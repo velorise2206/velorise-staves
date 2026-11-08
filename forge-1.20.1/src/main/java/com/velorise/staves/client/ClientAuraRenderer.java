@@ -8,6 +8,7 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
@@ -23,6 +24,7 @@ import java.util.*;
 @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
 
     static {
         for (Element e : Element.values()) {
@@ -34,14 +36,16 @@ public final class ClientAuraRenderer {
 
     @SubscribeEvent
     public static void onRenderLiving(RenderLivingEvent.Post<?, ?> event) {
-        if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
+        try {
+            if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
+        } catch (Exception ignored) {}
 
         LivingEntity entity = event.getEntity();
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
-        if (entity.distanceToSqr(mc.player) > 48.0D * 48.0D) return;
+        if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
         if (data == null) return;
@@ -56,7 +60,6 @@ public final class ClientAuraRenderer {
             return;
         }
 
-        // Determine which elements to render
         List<Element> display = new ArrayList<>(data.elements);
         if (now < data.dualUntil && data.dualTriggerElement != null && !display.contains(data.dualTriggerElement)) {
             display.add(data.dualTriggerElement);
@@ -66,39 +69,49 @@ public final class ClientAuraRenderer {
 
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource buffer = event.getMultiBufferSource();
-        int packedLight = event.getPackedLight();
 
         poseStack.pushPose();
-        double height = entity.getBbHeight() + 0.5D;
+        double height = entity.getBbHeight() + 0.35D;
         poseStack.translate(0.0D, height, 0.0D);
         poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
         poseStack.scale(-0.025F, -0.025F, 0.025F);
 
         // 1. Draw Element Icons
         int count = display.size();
-        float iconSize = 14.0F;
+        float iconSize = 16.0F;
         float gap = 2.0F;
 
         if (count == 1) {
-            drawIcon(poseStack, buffer, display.get(0), -iconSize / 2.0F, -iconSize, iconSize, iconSize, packedLight);
+            drawIcon(poseStack, buffer, display.get(0), -iconSize / 2.0F, -iconSize, iconSize, iconSize);
         } else if (count == 2) {
             float totalWidth = iconSize * 2.0F + gap;
             float startX = -totalWidth / 2.0F;
-            drawIcon(poseStack, buffer, display.get(0), startX, -iconSize, iconSize, iconSize, packedLight);
-            drawIcon(poseStack, buffer, display.get(1), startX + iconSize + gap, -iconSize, iconSize, iconSize, packedLight);
+            drawIcon(poseStack, buffer, display.get(0), startX, -iconSize, iconSize, iconSize);
+            drawIcon(poseStack, buffer, display.get(1), startX + iconSize + gap, -iconSize, iconSize, iconSize);
         } else if (count > 2) {
             float totalWidth = count * iconSize + (count - 1) * gap;
             float startX = -totalWidth / 2.0F;
             for (int i = 0; i < count; i++) {
-                drawIcon(poseStack, buffer, display.get(i), startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, packedLight);
+                drawIcon(poseStack, buffer, display.get(i), startX + i * (iconSize + gap), -iconSize, iconSize, iconSize);
             }
         }
 
-        // 2. Draw Floating Reaction Text (e.g. "Đóng Băng", "Bốc Hơi", "Quá Tải")
+        // Flush icon render types immediately
+        if (buffer instanceof MultiBufferSource.BufferSource bs) {
+            for (Element e : display) {
+                ResourceLocation tex = TEXTURES.get(e);
+                if (tex != null) {
+                    bs.endBatch(RenderType.textSeeThrough(tex));
+                    bs.endBatch(RenderType.text(tex));
+                }
+            }
+        }
+
+        // 2. Draw Floating Reaction Text
         if (data.reaction != null && now < data.reactionUntil) {
             float elapsed = (now - (data.reactionUntil - 1200)) / 1200.0F;
             elapsed = Math.max(0.0F, Math.min(1.0F, elapsed));
-            float floatY = -iconSize - 3.0F - (elapsed * 8.0F); // floats up 8px
+            float floatY = -iconSize - 4.0F - (elapsed * 10.0F);
             String text = data.reaction.reactionName();
             Font font = mc.font;
             float textWidth = font.width(text);
@@ -112,6 +125,21 @@ public final class ClientAuraRenderer {
                 color |= 0xFF000000;
             }
 
+            // See-through pass for reaction text
+            font.drawInBatch(
+                    text,
+                    textX,
+                    floatY,
+                    (color & 0x00FFFFFF) | (0x66 << 24),
+                    false,
+                    poseStack.last().pose(),
+                    buffer,
+                    Font.DisplayMode.SEE_THROUGH,
+                    0,
+                    FULL_BRIGHT
+            );
+
+            // Foreground pass for reaction text
             font.drawInBatch(
                     text,
                     textX,
@@ -122,24 +150,40 @@ public final class ClientAuraRenderer {
                     buffer,
                     Font.DisplayMode.NORMAL,
                     0,
-                    packedLight
+                    FULL_BRIGHT
             );
         }
 
         poseStack.popPose();
     }
 
-    private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height, int packedLight) {
+    private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height) {
         ResourceLocation texture = TEXTURES.get(element);
         if (texture == null) return;
 
-        VertexConsumer consumer = buffer.getBuffer(RenderType.text(texture));
         Matrix4f matrix = poseStack.last().pose();
 
-        consumer.vertex(matrix, x, y, 0.0F).color(255, 255, 255, 255).uv(0.0F, 0.0F).uv2(packedLight).endVertex();
-        consumer.vertex(matrix, x, y + height, 0.0F).color(255, 255, 255, 255).uv(0.0F, 1.0F).uv2(packedLight).endVertex();
-        consumer.vertex(matrix, x + width, y + height, 0.0F).color(255, 255, 255, 255).uv(1.0F, 1.0F).uv2(packedLight).endVertex();
-        consumer.vertex(matrix, x + width, y, 0.0F).color(255, 255, 255, 255).uv(1.0F, 0.0F).uv2(packedLight).endVertex();
+        // Pass 1: See-through layer (always visible through geometry with 40% opacity)
+        VertexConsumer seeThrough = buffer.getBuffer(RenderType.textSeeThrough(texture));
+        drawDoubleSidedQuad(seeThrough, matrix, x, y, width, height, 255, 255, 255, 102);
+
+        // Pass 2: Main vivid layer (100% opacity with depth test)
+        VertexConsumer main = buffer.getBuffer(RenderType.text(texture));
+        drawDoubleSidedQuad(main, matrix, x, y, width, height, 255, 255, 255, 255);
+    }
+
+    private static void drawDoubleSidedQuad(VertexConsumer consumer, Matrix4f matrix, float x, float y, float width, float height, int r, int g, int b, int a) {
+        // Front face
+        consumer.vertex(matrix, x, y, 0.0F).color(r, g, b, a).uv(0.0F, 0.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x, y + height, 0.0F).color(r, g, b, a).uv(0.0F, 1.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x + width, y + height, 0.0F).color(r, g, b, a).uv(1.0F, 1.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x + width, y, 0.0F).color(r, g, b, a).uv(1.0F, 0.0F).uv2(FULL_BRIGHT).endVertex();
+
+        // Back face (counter-winding)
+        consumer.vertex(matrix, x + width, y, 0.0F).color(r, g, b, a).uv(1.0F, 0.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x + width, y + height, 0.0F).color(r, g, b, a).uv(1.0F, 1.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x, y + height, 0.0F).color(r, g, b, a).uv(0.0F, 1.0F).uv2(FULL_BRIGHT).endVertex();
+        consumer.vertex(matrix, x, y, 0.0F).color(r, g, b, a).uv(0.0F, 0.0F).uv2(FULL_BRIGHT).endVertex();
     }
 
     private static int getReactionColor(ElementalReaction reaction) {

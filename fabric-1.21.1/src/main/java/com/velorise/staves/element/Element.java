@@ -8,13 +8,13 @@ import net.minecraft.ChatFormatting;
  * Anemo and Geo are strictly Trigger elements and never linger on entities.
  */
 public enum Element {
-    PYRO("🔥", "Hỏa", ChatFormatting.RED, true),
-    HYDRO("💧", "Thủy", ChatFormatting.BLUE, true),
-    CRYO("❄️", "Băng", ChatFormatting.AQUA, true),
-    ELECTRO("⚡", "Lôi", ChatFormatting.YELLOW, true),
-    DENDRO("🌿", "Thảo", ChatFormatting.GREEN, true),
-    ANEMO("🌪️", "Phong", ChatFormatting.DARK_AQUA, false),
-    GEO("🪨", "Nham", ChatFormatting.GOLD, false);
+    PYRO("🔥", "Pyro", ChatFormatting.RED, true),
+    HYDRO("💧", "Hydro", ChatFormatting.BLUE, true),
+    CRYO("❄️", "Cryo", ChatFormatting.AQUA, true),
+    ELECTRO("⚡", "Electro", ChatFormatting.YELLOW, true),
+    DENDRO("🌿", "Dendro", ChatFormatting.GREEN, true),
+    ANEMO("🌪️", "Anemo", ChatFormatting.DARK_AQUA, false),
+    GEO("🪨", "Geo", ChatFormatting.GOLD, false);
 
     private final String symbol;
     private final String displayName;

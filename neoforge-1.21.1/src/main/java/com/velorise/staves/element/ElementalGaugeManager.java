@@ -84,14 +84,14 @@ public final class ElementalGaugeManager {
                 target.hurt(level.damageSources().magic(), effectiveDamage + bonus);
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.8F, 1.6F);
-                sendActionbar(attacker, ChatFormatting.YELLOW + "⚡ Tăng Cường! (+5.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Quicken còn " + String.format("%.1fs", (quickenEnd - now) / 20.0F));
+                sendActionbar(attacker, ChatFormatting.YELLOW + "⚡ Aggravate! (+5.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Quicken remaining " + String.format("%.1fs", (quickenEnd - now) / 20.0F));
                 return;
             } else if (attackElement == Element.DENDRO) {
                 float bonus = (float) (6.5F * dmgMult);
                 target.hurt(level.damageSources().magic(), effectiveDamage + bonus);
                 level.sendParticles(ParticleTypes.GLOW, target.getX(), target.getY() + 1.0D, target.getZ(), 20, 0.35D, 0.4D, 0.35D, 0.05D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.CHORUS_FLOWER_GROW, SoundSource.PLAYERS, 0.9F, 1.4F);
-                sendActionbar(attacker, ChatFormatting.DARK_GREEN + "🌿 Lan Tràn! (+6.5 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Quicken còn " + String.format("%.1fs", (quickenEnd - now) / 20.0F));
+                sendActionbar(attacker, ChatFormatting.DARK_GREEN + "🌿 Spread! (+6.5 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Quicken remaining " + String.format("%.1fs", (quickenEnd - now) / 20.0F));
                 return;
             }
         }
@@ -105,7 +105,7 @@ public final class ElementalGaugeManager {
                 target.hurt(level.damageSources().magic(), effectiveDamage + bonus);
                 level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
-                sendActionbar(attacker, ChatFormatting.WHITE + "🪨 Phá Băng! (+10.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Tảng băng đã vỡ");
+                sendActionbar(attacker, ChatFormatting.WHITE + "🪨 Shatter! (+10.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Ice shattered");
                 return;
             } else if (attackElement == Element.PYRO) {
                 FROZEN_UNTIL.remove(targetId);
@@ -113,7 +113,7 @@ public final class ElementalGaugeManager {
                 target.hurt(level.damageSources().magic(), meltDamage);
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 25, 0.3D, 0.35D, 0.3D, 0.04D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.2F);
-                sendActionbar(attacker, ChatFormatting.RED + "🔥 Tan Chảy Băng! (x2.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Phá tan đóng băng");
+                sendActionbar(attacker, ChatFormatting.RED + "🔥 Melt! (x2.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Frozen melted");
                 return;
             }
         }
@@ -134,7 +134,7 @@ public final class ElementalGaugeManager {
             target.hurt(level.damageSources().magic(), overvapeDmg);
             triggerOverloadExplosion(level, target, attacker, dmgMult);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
-            sendActionbar(attacker, ChatFormatting.GOLD + "💥 Overvape! (Bốc Hơi x1.5 + Nổ Quá Tải 3.5m)");
+            sendActionbar(attacker, ChatFormatting.GOLD + "💥 Overvape! (Vaporize x1.5 + Overload 3.5m AOE)");
             syncAuras(target, targetGauges.keySet(), attackElement, ElementalReaction.OVERLOADED);
             return;
         }
@@ -157,9 +157,9 @@ public final class ElementalGaugeManager {
                 executeReactionEffect(level, target, reaction, auraElement, attacker, dmgMult);
 
                 if (auraDepleted) {
-                    sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Đã tiêu hao hết ấn " + auraElement.symbol());
+                    sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Depleted " + auraElement.symbol() + " " + auraElement.displayName() + " aura");
                 } else {
-                    sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.WHITE + "Còn lại: " + auraElement.formatted() + String.format(" %.1fU", aura.getUnits()));
+                    sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.WHITE + "Remaining: " + auraElement.formatted() + String.format(" %.1fU", aura.getUnits()));
                 }
                 syncAuras(target, targetGauges.keySet(), attackElement, reaction);
                 return;
@@ -171,11 +171,11 @@ public final class ElementalGaugeManager {
             if (targetGauges.containsKey(attackElement)) {
                 GaugeState existing = targetGauges.get(attackElement);
                 existing.addUnits(attackU * 0.8F);
-                sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Nạp thêm ấn " + attackElement.displayName() + String.format(" (Tổng: %.1fU)", existing.getUnits()));
+                sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Refreshed " + attackElement.displayName() + " aura" + String.format(" (Total: %.1fU)", existing.getUnits()));
             } else {
                 GaugeState newAura = new GaugeState(attackElement, attackU);
                 targetGauges.put(attackElement, newAura);
-                sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Đã gắn ấn " + attackElement.displayName() + String.format(" (%.1fU)", newAura.getUnits()));
+                sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Applied " + attackElement.displayName() + " aura" + String.format(" (%.1fU)", newAura.getUnits()));
             }
             syncAuras(target, targetGauges.keySet(), null, null);
         }

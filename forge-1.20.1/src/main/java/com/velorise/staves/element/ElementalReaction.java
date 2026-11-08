@@ -7,23 +7,23 @@ import net.minecraft.ChatFormatting;
  */
 public enum ElementalReaction {
     NONE("", "", 0.0F, 1.0F, ChatFormatting.WHITE),
-    FORWARD_VAPORIZE("Bốc Hơi Thuận", "💧 + 🔥", 2.0F, 2.0F, ChatFormatting.BLUE),
-    REVERSE_VAPORIZE("Bốc Hơi Nghịch", "🔥 + 💧", 0.5F, 1.5F, ChatFormatting.RED),
-    FORWARD_MELT("Tan Chảy Thuận", "🔥 + ❄️", 2.0F, 2.0F, ChatFormatting.RED),
-    REVERSE_MELT("Tan Chảy Nghịch", "❄️ + 🔥", 0.5F, 1.5F, ChatFormatting.AQUA),
-    OVERLOADED("Quá Tải", "🔥 + ⚡", 1.0F, 1.0F, ChatFormatting.GOLD),
-    SUPERCONDUCT("Siêu Dẫn", "❄️ + ⚡", 1.0F, 1.0F, ChatFormatting.AQUA),
-    FROZEN("Đóng Băng", "💧 + ❄️", 1.0F, 1.0F, ChatFormatting.AQUA),
-    SHATTER("Phá Băng", "🪨 + 🧊", 1.0F, 1.0F, ChatFormatting.WHITE),
-    ELECTRO_CHARGED("Điện Cảm", "💧 + ⚡", 0.4F, 1.0F, ChatFormatting.YELLOW),
-    BURNING("Thiêu Đốt", "🔥 + 🌿", 0.4F, 1.0F, ChatFormatting.RED),
-    QUICKEN("Sinh Trưởng", "🌿 + ⚡", 1.0F, 1.0F, ChatFormatting.GREEN),
-    AGGRAVATE("Tăng Cường", "⚡ + Sinh Trưởng", 0.0F, 1.0F, ChatFormatting.YELLOW),
-    SPREAD("Lan Tràn", "🌿 + Sinh Trưởng", 0.0F, 1.0F, ChatFormatting.DARK_GREEN),
-    BLOOM("Sum Xuê", "💧 + 🌿", 1.0F, 1.0F, ChatFormatting.GREEN),
+    FORWARD_VAPORIZE("Vaporize", "💧 + 🔥", 2.0F, 2.0F, ChatFormatting.BLUE),
+    REVERSE_VAPORIZE("Vaporize", "🔥 + 💧", 0.5F, 1.5F, ChatFormatting.RED),
+    FORWARD_MELT("Melt", "🔥 + ❄️", 2.0F, 2.0F, ChatFormatting.RED),
+    REVERSE_MELT("Melt", "❄️ + 🔥", 0.5F, 1.5F, ChatFormatting.AQUA),
+    OVERLOADED("Overloaded", "🔥 + ⚡", 1.0F, 1.0F, ChatFormatting.GOLD),
+    SUPERCONDUCT("Superconduct", "❄️ + ⚡", 1.0F, 1.0F, ChatFormatting.AQUA),
+    FROZEN("Frozen", "💧 + ❄️", 1.0F, 1.0F, ChatFormatting.AQUA),
+    SHATTER("Shatter", "🪨 + 🧊", 1.0F, 1.0F, ChatFormatting.WHITE),
+    ELECTRO_CHARGED("Electro-Charged", "💧 + ⚡", 0.4F, 1.0F, ChatFormatting.YELLOW),
+    BURNING("Burning", "🔥 + 🌿", 0.4F, 1.0F, ChatFormatting.RED),
+    QUICKEN("Quicken", "🌿 + ⚡", 1.0F, 1.0F, ChatFormatting.GREEN),
+    AGGRAVATE("Aggravate", "⚡ + Quicken", 0.0F, 1.0F, ChatFormatting.YELLOW),
+    SPREAD("Spread", "🌿 + Quicken", 0.0F, 1.0F, ChatFormatting.DARK_GREEN),
+    BLOOM("Bloom", "💧 + 🌿", 1.0F, 1.0F, ChatFormatting.GREEN),
     OVERVAPE("Overvape", "🔥 + (💧 & ⚡)", 0.5F, 1.5F, ChatFormatting.GOLD),
-    SWIRL("Khuếch Tán", "🌪️ + Ấn", 0.5F, 1.0F, ChatFormatting.DARK_AQUA),
-    CRYSTALLIZE("Kết Tinh", "🪨 + Ấn", 0.5F, 1.0F, ChatFormatting.GOLD);
+    SWIRL("Swirl", "🌪️ + Aura", 0.5F, 1.0F, ChatFormatting.DARK_AQUA),
+    CRYSTALLIZE("Crystallize", "🪨 + Aura", 0.5F, 1.0F, ChatFormatting.GOLD);
 
     private final String name;
     private final String formula;

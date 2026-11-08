@@ -553,17 +553,17 @@ public final class ArcaneStaffItem extends Item {
 
     public String getDamageDisplay() {
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "10.0 + Mây (Hỏa 2U)" : "7.0 + Mây (Hỏa 2U)";
-            case ECHO -> isNetherite ? "16.0 (Phong 4U - Swirl)" : "11.0 (Phong 2U - Swirl)";
-            case INFERNO -> isNetherite ? "4.5 x 3 (Hỏa 1.5U/v)" : "3.0 x 3 (Hỏa 1U/v)";
-            case GHASTFIRE -> isNetherite ? "9.0 (Hỏa 4U)" : "6.0 (Hỏa 2U)";
-            case WITHER -> isNetherite ? "6.0 x 3 (Thảo 1.5U/v)" : "4.0 x 3 (Thảo 1U/v)";
-            case SHULKER -> isNetherite ? "6.0 x 2 (Lôi 1.5U/v)" : "4.0 x 2 (Lôi 1U/v)";
-            case GUARDIAN -> isNetherite ? "1.8 x 10 (Thủy 1.5U)" : "1.2 x 10 (Thủy 1U)";
-            case EVOKER -> isNetherite ? "4.5 / Nanh (Nham 1.5U)" : "3.0 / Nanh (Nham 1U)";
-            case LIGHTNING -> isNetherite ? "7.5 (Lôi 4U)" : "5.0 (Lôi 2U)";
-            case FROST -> isNetherite ? "4.5 x 3 (Băng 1.5U/v)" : "3.0 x 3 (Băng 1U/v)";
-            case WEB -> isNetherite ? "Trói + Độc (Thảo 1.5U)" : "Trói + Độc (Thảo 1U)";
+            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud (Pyro 2U)" : "7.0 + Cloud (Pyro 2U)";
+            case ECHO -> isNetherite ? "16.0 (Anemo 4U - Swirl)" : "11.0 (Anemo 2U - Swirl)";
+            case INFERNO -> isNetherite ? "4.5 x 3 (Pyro 1.5U/shot)" : "3.0 x 3 (Pyro 1U/shot)";
+            case GHASTFIRE -> isNetherite ? "9.0 (Pyro 4U)" : "6.0 (Pyro 2U)";
+            case WITHER -> isNetherite ? "6.0 x 3 (Dendro 1.5U/shot)" : "4.0 x 3 (Dendro 1U/shot)";
+            case SHULKER -> isNetherite ? "6.0 x 2 (Electro 1.5U/shot)" : "4.0 x 2 (Electro 1U/shot)";
+            case GUARDIAN -> isNetherite ? "1.8 x 10 (Hydro 1.5U)" : "1.2 x 10 (Hydro 1U)";
+            case EVOKER -> isNetherite ? "4.5 / Fang (Geo 1.5U)" : "3.0 / Fang (Geo 1U)";
+            case LIGHTNING -> isNetherite ? "7.5 (Electro 4U)" : "5.0 (Electro 2U)";
+            case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
+            case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
         };
     }
 

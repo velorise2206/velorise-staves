@@ -168,6 +168,14 @@ public final class VeloriseStavesMod implements ModInitializer {
             TemporaryWebManager.clearAll(server);
             ElementalGaugeManager.clearAll();
         });
+        net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
+            if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {
+                java.util.Collection<com.velorise.staves.element.Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
+                if (!elements.isEmpty()) {
+                    com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements);
+                }
+            }
+        });
     }
 
     private static Item registerItem(String path, Item item) {
