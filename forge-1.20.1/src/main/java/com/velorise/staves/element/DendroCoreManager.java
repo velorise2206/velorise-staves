@@ -65,15 +65,26 @@ public final class DendroCoreManager {
     }
 
     public static void spawn(ServerLevel level, Vec3 pos, @Nullable ServerPlayer owner, float damageMultiplier) {
-        // Enforce max 5 cores (oldest detonates immediately)
-        if (CORES.size() >= MAX_CORES) {
-            for (CoreEntry old : CORES) {
-                if (old.entity.isAlive() && !old.entity.isRemoved()) {
-                    detonateBloom(old);
-                    CORES.remove(old);
-                    break;
+        // Enforce max 5 cores per owner (or 5 for wild/unowned); oldest detonates immediately when 6th is spawned
+        UUID ownerId = owner != null ? owner.getUUID() : null;
+        int ownerCoreCount = 0;
+        CoreEntry oldestOwnerCore = null;
+        for (CoreEntry core : CORES) {
+            if (core.entity.isAlive() && !core.entity.isRemoved()) {
+                boolean sameOwner = (ownerId == null && core.ownerId == null)
+                        || (ownerId != null && ownerId.equals(core.ownerId));
+                if (sameOwner) {
+                    ownerCoreCount++;
+                    if (oldestOwnerCore == null) {
+                        oldestOwnerCore = core;
+                    }
                 }
             }
+        }
+
+        if (ownerCoreCount >= MAX_CORES && oldestOwnerCore != null) {
+            detonateBloom(oldestOwnerCore);
+            CORES.remove(oldestOwnerCore);
         }
 
         ItemStack seedItem = new ItemStack(VeloriseStavesMod.DENDRO_CORE.get());

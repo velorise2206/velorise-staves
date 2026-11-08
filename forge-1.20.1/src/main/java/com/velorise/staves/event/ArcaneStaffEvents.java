@@ -71,12 +71,14 @@ public final class ArcaneStaffEvents {
         Projectile projectile = event.getProjectile();
         if (!(projectile.level() instanceof ServerLevel level)) return;
 
-        // Splash Water Potion / Lingering Water Potion applies Hydro 1.0U
+        // Splash Water / Poison Potion applies Hydro / Dendro 1.0U
         if (projectile instanceof ThrownPotion potion) {
             ItemStack stack = potion.getItem();
             Potion potionType = PotionUtils.getPotion(stack);
             if (potionType == Potions.WATER) {
                 handleWaterPotionSplash(level, potion);
+            } else if (potionType == Potions.POISON || potionType == Potions.LONG_POISON || potionType == Potions.STRONG_POISON) {
+                handlePoisonPotionSplash(level, potion);
             }
         }
 
@@ -379,6 +381,18 @@ public final class ArcaneStaffEvents {
         for (LivingEntity living : nearby) {
             if (potion.distanceToSqr(living) <= 16.0D) {
                 ElementalGaugeManager.applyElement(level, living, Element.HYDRO, 1.0F, thrower, 0.0F);
+            }
+        }
+    }
+
+    private static void handlePoisonPotionSplash(ServerLevel level, ThrownPotion potion) {
+        Entity owner = potion.getOwner();
+        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
+        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
+        for (LivingEntity living : nearby) {
+            if (potion.distanceToSqr(living) <= 16.0D) {
+                ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, thrower, 0.0F);
             }
         }
     }

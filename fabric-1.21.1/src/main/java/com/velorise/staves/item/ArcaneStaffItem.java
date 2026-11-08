@@ -250,9 +250,9 @@ public final class ArcaneStaffItem extends Item {
         if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(entity instanceof ServerPlayer player)) return;
         if (kind == Kind.LIGHTNING) {
             int elapsed = 60 - count;
-            if (elapsed < 0 || elapsed % 3 != 0) return;
+            if (elapsed < 0 || elapsed % 5 != 0) return;
             fireChanneledLightning(serverLevel, player, elapsed);
-            if (elapsed > 0 && elapsed % 15 == 0) {
+            if (elapsed > 0 && elapsed % 20 == 0) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
             }
             return;
@@ -658,7 +658,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> isNetherite ? "6.0 x 2 (Electro 1.5U/shot)" : "4.0 x 2 (Electro 1U/shot)";
             case GUARDIAN -> isNetherite ? "1.8 x 10 (Hydro 1.5U)" : "1.2 x 10 (Hydro 1U)";
             case EVOKER -> isNetherite ? "4.5 / Fang (Geo 1.5U)" : "3.0 / Fang (Geo 1U)";
-            case LIGHTNING -> isNetherite ? "2.5/tick (Electro 1.5U - Voltaic Arc)" : "1.8/tick (Electro 1.0U - Voltaic Arc)";
+            case LIGHTNING -> isNetherite ? "2.5/hit (Electro 1.5U - Voltaic Arc)" : "1.8/hit (Electro 1.0U - Voltaic Arc)";
             case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
             case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
         };

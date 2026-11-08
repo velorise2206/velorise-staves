@@ -61,6 +61,19 @@ public final class ElementalGaugeManager {
     private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
+
+    private static class IcdEntry {
+        int hitCount;
+        long firstHitTime;
+
+        IcdEntry(int hitCount, long firstHitTime) {
+            this.hitCount = hitCount;
+            this.firstHitTime = firstHitTime;
+        }
+    }
+
+    private static final Map<Long, IcdEntry> ICD_TRACKER = new ConcurrentHashMap<>();
 
     private ElementalGaugeManager() {}
 
@@ -100,6 +113,7 @@ public final class ElementalGaugeManager {
         ELECTRO_CHARGE_TICK.clear();
         LAST_PROXIMITY_SHOCK.clear();
         LAST_BLOOM_SPAWN.clear();
+        ICD_TRACKER.clear();
         DendroCoreManager.clearAll();
         ElectrifiedWaterManager.clearAll();
         DragonfireCloudManager.clearAll();
@@ -128,7 +142,7 @@ public final class ElementalGaugeManager {
      */
     public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) {
         if (!target.isAlive() || target.isInvulnerable() || target.level().isClientSide()) return;
-        if (IS_PROCESSING_DAMAGE.get()) return;
+        if (IS_PROCESSING_DAMAGE.get() || IS_PROCESSING_REACTION.get()) return;
 
         IS_PROCESSING_DAMAGE.set(true);
         try {
@@ -159,12 +173,6 @@ public final class ElementalGaugeManager {
 
                 // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
                 if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
-                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
-                    return;
-                }
-
-                // 6. Poison damage or afflicted with Poison -> Dendro (1.0U)
-                if (source.is(DamageTypes.MAGIC) && target.hasEffect(MobEffects.POISON)) {
                     applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
                     return;
                 }
@@ -394,6 +402,26 @@ public final class ElementalGaugeManager {
     }
 
     /**
+     * Standard ICD (3 hits / 2.5s timer):
+     * Follows Genshin Impact's standard internal cooldown rule for elemental attacks.
+     * Hit 1, 4, 7... or attacks separated by >= 2.5s (50 ticks) apply element / trigger reaction.
+     * Rapid hits in between deal base damage without applying an aura or triggering reactions.
+     */
+    public static boolean checkStandardIcd(LivingEntity target, Element element, @Nullable ServerPlayer attacker, long now) {
+        int attackerKey = attacker != null ? attacker.getId() : 0;
+        long key = (((long) attackerKey) << 36) | (((long) target.getId()) << 4) | (element.ordinal() & 0xFL);
+
+        IcdEntry entry = ICD_TRACKER.get(key);
+        if (entry == null || (now - entry.firstHitTime) >= 50) {
+            ICD_TRACKER.put(key, new IcdEntry(1, now));
+            return true;
+        }
+
+        entry.hitCount++;
+        return (entry.hitCount % 3 == 1);
+    }
+
+    /**
      * Resolves an elemental attack hitting a target entity.
      * Calculates Innate Immunity, Innate Lock & Re-infusion, On-Hit Environmental Auras, Reactions, and Actionbar feedback.
      */
@@ -416,8 +444,38 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        UUID targetId = target.getUUID();
         long now = level.getGameTime();
+
+        // Standard ICD check (3-Hit / 2.5s rule) for damaging elemental attacks:
+        // If on ICD, deal effective base damage directly without applying aura or triggering reactions.
+        if (baseDamage > 0.0F) {
+            boolean canApply = checkStandardIcd(target, attackElement, attacker, now);
+            if (!canApply) {
+                target.hurt(level.damageSources().magic(), effectiveDamage);
+                return;
+            }
+        }
+
+        IS_PROCESSING_REACTION.set(true);
+        try {
+            applyElementInternal(level, target, attackElement, attackU, attacker, baseDamage, effectiveDamage, dmgMult, now);
+        } finally {
+            IS_PROCESSING_REACTION.set(false);
+        }
+    }
+
+    private static void applyElementInternal(
+            ServerLevel level,
+            LivingEntity target,
+            Element attackElement,
+            float attackU,
+            @Nullable ServerPlayer attacker,
+            float baseDamage,
+            float effectiveDamage,
+            double dmgMult,
+            long now
+    ) {
+        UUID targetId = target.getUUID();
         Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> new EnumMap<>(Element.class));
 
         // 0A. Innate Elemental Creature Logic (Immunity to same element + Innate Aura Lock & Re-infusion)
@@ -895,6 +953,11 @@ public final class ElementalGaugeManager {
             DendroCoreManager.tick(lvl);
             ElectrifiedWaterManager.tick(lvl);
             DragonfireCloudManager.tick(lvl);
+        }
+
+        long serverNow = server.overworld().getGameTime();
+        if (serverNow % 100 == 0) {
+            ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue().firstHitTime) > 100);
         }
 
         // 0. Check Innate Re-infusion timers (0.8s = 16 ticks after an innate mob's aura was consumed)
