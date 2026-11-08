@@ -168,7 +168,14 @@ public final class ClientAuraRenderer {
             poseStack.pushPose();
             poseStack.translate(0.0D, height, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-            poseStack.scale(-0.025F, -0.025F, 0.025F);
+
+            float textPop = 1.0F;
+            long primaryAge = hasReaction ? (now - data.reactionStartTime) : (now - data.damageStartTime);
+            if (primaryAge < 220L && primaryAge >= 0L) {
+                textPop = 1.0F + 0.35F * (float) Math.sin((primaryAge / 220.0F) * Math.PI);
+            }
+            poseStack.scale(-0.028F * textPop, -0.028F * textPop, 0.028F * textPop);
+
             Font font = mc.font;
             float baseIconOffset = display.isEmpty() ? 0.0F : iconSize;
 
