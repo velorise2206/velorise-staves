@@ -131,9 +131,22 @@ public final class DendroCoreManager {
             float hyperbloomDmg = 16.0F * core.damageMultiplier;
             nearest.hurt(core.level.damageSources().magic(), hyperbloomDmg);
             Vec3 targetPos = nearest.position();
+            drawHomingTrail(core.level, pos, targetPos.add(0, nearest.getBbHeight() * 0.5D, 0));
             core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, targetPos.x, targetPos.y + 0.8D, targetPos.z, 25, 0.4D, 0.4D, 0.4D, 0.09D);
             core.level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, targetPos.x, targetPos.y + 0.8D, targetPos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
             ElementalGaugeManager.syncAuras(nearest, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hyperbloomDmg);
+        }
+    }
+
+    private static void drawHomingTrail(ServerLevel level, Vec3 start, Vec3 end) {
+        Vec3 diff = end.subtract(start);
+        double dist = diff.length();
+        int steps = Math.max(6, (int) Math.round(dist * 3.5D));
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / (double) steps;
+            Vec3 p = start.add(diff.scale(t));
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
+            level.sendParticles(ParticleTypes.SCULK_SOUL, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
         }
     }
 
