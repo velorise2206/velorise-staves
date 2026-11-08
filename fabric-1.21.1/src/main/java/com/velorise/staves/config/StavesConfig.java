@@ -31,6 +31,11 @@ public final class StavesConfig {
     public static final DoubleValue MAGIC_MIRROR_COOLDOWN_SECONDS = defineDouble("mechanics", "magic_mirror_cooldown_seconds", 15.0D, 1.0D, 300.0D);
     public static final DoubleValue MAGIC_MIRROR_CHANNEL_SECONDS = defineDouble("mechanics", "magic_mirror_channel_seconds", 2.5D, 0.5D, 10.0D);
 
+    // Elemental Gauge Theory (EGT)
+    public static final BooleanValue ENABLE_ELEMENTAL_GAUGE = defineBool("elemental_gauge", "enable_elemental_gauge", true);
+    public static final BooleanValue SHOW_ACTIONBAR_FEEDBACK = defineBool("elemental_gauge", "show_actionbar_feedback", true);
+    public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
+
     // Cooldowns
     public static final DoubleValue DRAGONFIRE_COOLDOWN = defineDouble("cooldowns", "dragonfire_cooldown", 8.0D, 0.5D, 60.0D);
     public static final DoubleValue ECHO_COOLDOWN = defineDouble("cooldowns", "echo_cooldown", 8.0D, 0.5D, 60.0D);

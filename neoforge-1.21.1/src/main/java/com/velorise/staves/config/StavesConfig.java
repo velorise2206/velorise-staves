@@ -18,6 +18,11 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue MAGIC_MIRROR_COOLDOWN_SECONDS;
     public static final ModConfigSpec.DoubleValue MAGIC_MIRROR_CHANNEL_SECONDS;
 
+    // Elemental Gauge Theory (EGT)
+    public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
+    public static final ModConfigSpec.BooleanValue SHOW_ACTIONBAR_FEEDBACK;
+    public static final ModConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
+
     // Cooldowns
     public static final ModConfigSpec.DoubleValue DRAGONFIRE_COOLDOWN;
     public static final ModConfigSpec.DoubleValue ECHO_COOLDOWN;
@@ -104,6 +109,18 @@ public final class StavesConfig {
             .comment("Channeling time in seconds before Magic Mirror teleports player home. Default: 2.5")
             .defineInRange("magic_mirror_channel_seconds", 2.5D, 0.5D, 10.0D);
 
+        builder.pop();
+
+        builder.comment("Elemental Gauge Theory (EGT) Combat Mechanics").push("elemental_gauge");
+        ENABLE_ELEMENTAL_GAUGE = builder
+            .comment("Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay. Default: true")
+            .define("enable_elemental_gauge", true);
+        SHOW_ACTIONBAR_FEEDBACK = builder
+            .comment("Show real-time elemental reaction HUD and remaining gauge units in Actionbar. Default: true")
+            .define("show_actionbar_feedback", true);
+        SHOW_ELEMENTAL_PARTICLES = builder
+            .comment("Show ambient elemental particles hovering around affected entities. Default: true")
+            .define("show_elemental_particles", true);
         builder.pop();
 
         builder.comment("Individual staff cooldowns in seconds").push("cooldowns");

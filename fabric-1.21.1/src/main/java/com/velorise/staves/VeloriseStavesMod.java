@@ -1,6 +1,7 @@
 package com.velorise.staves;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
@@ -158,8 +159,14 @@ public final class VeloriseStavesMod implements ModInitializer {
     public void onInitialize() {
         StavesConfig.load();
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
-        ServerTickEvents.END_SERVER_TICK.register(TemporaryWebManager::tick);
-        ServerLifecycleEvents.SERVER_STOPPING.register(TemporaryWebManager::clearAll);
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            TemporaryWebManager.tick(server);
+            ElementalGaugeManager.tick(server);
+        });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            TemporaryWebManager.clearAll(server);
+            ElementalGaugeManager.clearAll();
+        });
     }
 
     private static Item registerItem(String path, Item item) {

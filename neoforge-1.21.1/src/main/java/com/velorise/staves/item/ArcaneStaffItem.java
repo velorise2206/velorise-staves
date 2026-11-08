@@ -1,6 +1,8 @@
 package com.velorise.staves.item;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.Element;
+import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.event.ArcaneStaffEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -385,6 +387,8 @@ public final class ArcaneStaffItem extends Item {
         flat = flat.normalize();
         int count = isNetherite ? 13 : 9;
         float yaw = (float)Math.atan2(flat.z, flat.x);
+        float baseDmg = isNetherite ? 4.5F : 3.0F;
+        float attackU = isNetherite ? 1.5F : 1.0F;
 
         for (int i = 0; i < count; i++) {
             double distance = 1.5D + i * 1.5D;
@@ -392,6 +396,11 @@ public final class ArcaneStaffItem extends Item {
             double z = player.getZ() + flat.z * distance;
             double y = findGroundY(level, x, player.getY(), z);
             level.addFreshEntity(new EvokerFangs(level, x, y, z, yaw, i * 2, player));
+
+            AABB fangBox = new AABB(x - 0.9D, y - 0.5D, z - 0.9D, x + 0.9D, y + 1.6D, z + 0.9D);
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, fangBox, e -> e.isAlive() && e != player)) {
+                ElementalGaugeManager.applyElement(level, target, Element.GEO, attackU, player, baseDmg);
+            }
         }
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
         return true;
@@ -440,8 +449,9 @@ public final class ArcaneStaffItem extends Item {
         double range = isNetherite ? 28.0D : 24.0D;
         Vec3 end = target == null ? rayEnd(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
-            float baseDmg = isNetherite ? 3.5F : 2.5F;
-            target.hurt(level.damageSources().magic(), (float) (baseDmg * StavesConfig.DAMAGE_MULTIPLIER.get()));
+            float baseDmg = isNetherite ? 1.8F : 1.2F;
+            float attackU = isNetherite ? 1.5F : 1.0F;
+            ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
         }
         drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
         level.playSound(null, player.blockPosition(), SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.9F, 1.2F);
@@ -463,9 +473,10 @@ public final class ArcaneStaffItem extends Item {
             .sorted(Comparator.comparingDouble(target -> projection(start, direction, target.getBoundingBox().getCenter())))
             .toList();
 
-        float damage = (float) ((isNetherite ? 28.0F : 22.0F) * StavesConfig.DAMAGE_MULTIPLIER.get());
+        float baseDmg = isNetherite ? 16.0F : 11.0F;
+        float attackU = isNetherite ? 4.0F : 2.0F;
         for (LivingEntity target : targets) {
-            target.hurt(level.damageSources().magic(), damage);
+            ElementalGaugeManager.applyElement(level, target, Element.ANEMO, attackU, player, baseDmg);
         }
         Vec3 end = start.add(direction.scale(range));
         drawBeam(level, start, end, ParticleTypes.SONIC_BOOM, 1.5D);
@@ -541,17 +552,17 @@ public final class ArcaneStaffItem extends Item {
 
     public String getDamageDisplay() {
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "Harm II (~12.0/s)" : "Harm I (~6.0/s)";
-            case ECHO -> isNetherite ? "28.0" : "22.0";
-            case INFERNO -> isNetherite ? "8.0 x 3 (24.0)" : "6.0 x 3 (18.0)";
-            case GHASTFIRE -> isNetherite ? "16.0 + Blast" : "12.0 + Blast";
-            case WITHER -> isNetherite ? "10.0 x 3 (30.0) + Wither III" : "8.0 x 3 (24.0) + Wither II";
-            case SHULKER -> isNetherite ? "10.0 x 2 (20.0)" : "8.0 x 2 (16.0)";
-            case GUARDIAN -> isNetherite ? "3.5 x 10 (35.0)" : "2.5 x 10 (25.0)";
-            case EVOKER -> "6.0 / Fang";
-            case LIGHTNING -> isNetherite ? "14.0" : "10.0";
-            case FROST -> isNetherite ? "8.0 x 3 (24.0)" : "6.0 x 3 (18.0)";
-            case WEB -> isNetherite ? "Poison II (Trapping)" : "Poison I (Trapping)";
+            case DRAGONFIRE -> isNetherite ? "10.0 + Mây (Hỏa 2U)" : "7.0 + Mây (Hỏa 2U)";
+            case ECHO -> isNetherite ? "16.0 (Phong 4U - Swirl)" : "11.0 (Phong 2U - Swirl)";
+            case INFERNO -> isNetherite ? "4.5 x 3 (Hỏa 1.5U/v)" : "3.0 x 3 (Hỏa 1U/v)";
+            case GHASTFIRE -> isNetherite ? "9.0 (Hỏa 4U)" : "6.0 (Hỏa 2U)";
+            case WITHER -> isNetherite ? "6.0 x 3 (Thảo 1.5U/v)" : "4.0 x 3 (Thảo 1U/v)";
+            case SHULKER -> isNetherite ? "6.0 x 2 (Lôi 1.5U/v)" : "4.0 x 2 (Lôi 1U/v)";
+            case GUARDIAN -> isNetherite ? "1.8 x 10 (Thủy 1.5U)" : "1.2 x 10 (Thủy 1U)";
+            case EVOKER -> isNetherite ? "4.5 / Nanh (Nham 1.5U)" : "3.0 / Nanh (Nham 1U)";
+            case LIGHTNING -> isNetherite ? "7.5 (Lôi 4U)" : "5.0 (Lôi 2U)";
+            case FROST -> isNetherite ? "4.5 x 3 (Băng 1.5U/v)" : "3.0 x 3 (Băng 1U/v)";
+            case WEB -> isNetherite ? "Trói + Độc (Thảo 1.5U)" : "Trói + Độc (Thảo 1U)";
         };
     }
 

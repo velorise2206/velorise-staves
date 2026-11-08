@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-11-08
+
+### Added
+- **Elemental Gauge Theory (EGT) Combat System**: Implemented a comprehensive Genshin Impact-style combat mechanics engine across Forge 1.20.1, NeoForge 1.21.1, and Fabric 1.21.1 (`com.velorise.staves.element`).
+  - **Aura & Trigger Separation**: 5 persistent aura elements (🔥 Pyro, 💧 Hydro, ❄️ Cryo, ⚡ Electro, 🌿 Dendro) and 2 trigger-only elements (🌪️ Anemo, 🪨 Geo) that never linger as auras on entities.
+  - **Gauge Units (U) & Aura Tax**: Đòn đánh gắn ấn chịu 20% Thuế Ấn (Aura Tax $0.8\times$), suy giảm theo thời gian ($Duration = 2.5U + 7.0s$).
+  - **Reaction Matrix & Modifiers**:
+    - *Forward Vaporize* (💧 on 🔥, $2.0\times$ U consumption, $\times 2.0$ DMG).
+    - *Reverse Vaporize* (🔥 on 💧, $0.5\times$ U consumption, $\times 1.5$ DMG).
+    - *Forward Melt* (🔥 on ❄️, $2.0\times$ U consumption, $\times 2.0$ DMG).
+    - *Reverse Melt* (❄️ on 🔥, $0.5\times$ U consumption, $\times 1.5$ DMG).
+    - *Overloaded* (🔥 + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE explosion + knockback).
+    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast + Weakness II for $8\text{s}$).
+    - *Frozen & Shatter* (💧 + ❄️ immobilizes for $3.5\text{s}$; 🪨 Geo triggers Shatter for $+10.0$ physical burst damage).
+    - *Electro-Charged* (💧 + ⚡ coexisting auras, continuous lightning chain damage at $0.4\text{U/s}$).
+    - *Burning* (🔥 + 🌿 continuous fire damage consuming $0.4\text{U/s}$ Dendro).
+    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+5.0$ DMG and 🌿 triggers Spread $+6.5$ DMG without consuming Quicken).
+    - *Bloom* (💧 + 🌿 creates Dendro core $3.0\text{m}$ AoE spore explosion).
+    - *Overvape* (🔥 on Hydro + Electro triggers simultaneous Vaporize and Overload).
+    - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).
+    - *Crystallize* (🪨 consumes $0.5\times$ aura, grants absorption hearts shield).
+  - **Actionbar HUD & Visuals**: Real-time actionbar notifications displaying reaction name, damage multiplier, and remaining U, alongside ambient hovering element particles and distinct reaction sound effects.
+  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_actionbar_feedback`, and `show_elemental_particles`.
+
+### Changed
+- **50% Base Damage Rebalance**: Reduced base damage across all basic staves by 50% to incentivize tactical elemental reaction combos and prevent un-comboed one-shots.
+- **Tooltips Update**: Updated damage hover tooltips on all 11 staves to clearly display the calibrated damage and exact Gauge Units (e.g. `3.0 x 3 (Hỏa 1U/v)`).
+
+---
+
 ## [1.0.1] - 2026-11-08
 
 ### Added
@@ -26,6 +56,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Offhand Slot & Foil Parity**: Fixed hardcoded `EquipmentSlot.MAINHAND` in channeled items and restored `isFoil()` enchantment glint on `MagicMirrorItem` and `VoidTranslocatorItem` in NeoForge and Fabric 1.21.1.
 - **Dev Environment Tools**: Added Jade HUD (`11.13.3+forge`, `15.10.6+neoforge`, `15.10.6+fabric`) runtime dependencies across all three loaders for in-game testing.
 - **Resource & Script Cleanup**: Stripped UTF-8 BOM from 41 JSON files and fixed leftover project names in `.bat` and `gradlew` scripts.
+
+---
+
+## [1.1.0] - 2026-11-08
+
+### Added
+- **Elemental Gauge Theory (EGT) Combat System**: Implemented a comprehensive Genshin Impact-style combat mechanics engine across Forge 1.20.1, NeoForge 1.21.1, and Fabric 1.21.1 (`com.velorise.staves.element`).
+  - **Aura & Trigger Separation**: 5 persistent aura elements (🔥 Pyro, 💧 Hydro, ❄️ Cryo, ⚡ Electro, 🌿 Dendro) and 2 trigger-only elements (🌪️ Anemo, 🪨 Geo) that never linger as auras on entities.
+  - **Gauge Units (U) & Aura Tax**: Đòn đánh gắn ấn chịu 20% Thuế Ấn (Aura Tax $0.8\times$), suy giảm theo thời gian ($Duration = 2.5U + 7.0s$).
+  - **Reaction Matrix & Modifiers**:
+    - *Forward Vaporize* (💧 on 🔥, $2.0\times$ U consumption, $\times 2.0$ DMG).
+    - *Reverse Vaporize* (🔥 on 💧, $0.5\times$ U consumption, $\times 1.5$ DMG).
+    - *Forward Melt* (🔥 on ❄️, $2.0\times$ U consumption, $\times 2.0$ DMG).
+    - *Reverse Melt* (❄️ on 🔥, $0.5\times$ U consumption, $\times 1.5$ DMG).
+    - *Overloaded* (🔥 + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE explosion + knockback).
+    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast + Weakness II for $8\text{s}$).
+    - *Frozen & Shatter* (💧 + ❄️ immobilizes for $3.5\text{s}$; 🪨 Geo triggers Shatter for $+10.0$ physical burst damage).
+    - *Electro-Charged* (💧 + ⚡ coexisting auras, continuous lightning chain damage at $0.4\text{U/s}$).
+    - *Burning* (🔥 + 🌿 continuous fire damage consuming $0.4\text{U/s}$ Dendro).
+    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+5.0$ DMG and 🌿 triggers Spread $+6.5$ DMG without consuming Quicken).
+    - *Bloom* (💧 + 🌿 creates Dendro core $3.0\text{m}$ AoE spore explosion).
+    - *Overvape* (🔥 on Hydro + Electro triggers simultaneous Vaporize and Overload).
+    - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).
+    - *Crystallize* (🪨 consumes $0.5\times$ aura, grants absorption hearts shield).
+  - **Actionbar HUD & Visuals**: Real-time actionbar notifications displaying reaction name, damage multiplier, and remaining U, alongside ambient hovering element particles and distinct reaction sound effects.
+  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_actionbar_feedback`, and `show_elemental_particles`.
+
+### Changed
+- **50% Base Damage Rebalance**: Reduced base damage across all basic staves by 50% to incentivize tactical elemental reaction combos and prevent un-comboed one-shots.
+- **Tooltips Update**: Updated damage hover tooltips on all 11 staves to clearly display the calibrated damage and exact Gauge Units (e.g. `3.0 x 3 (Hỏa 1U/v)`).
 
 ---
 
