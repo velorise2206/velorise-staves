@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "minecraft:breeze"
+    {
+      "id": "minecraft:breeze",
+      "required": false
+    }
   ]
 }
