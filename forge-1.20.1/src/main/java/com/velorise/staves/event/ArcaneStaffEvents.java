@@ -346,11 +346,4 @@ public final class ArcaneStaffEvents {
             }
         }
     }
-
-    @SubscribeEvent
-    public static void onLivingDamage(net.minecraftforge.event.entity.living.LivingDamageEvent event) {
-        if (event.getSource().is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
-            ElementalGaugeManager.handleEnvironmentalFireDamage(event.getEntity());
-        }
-    }
 }
