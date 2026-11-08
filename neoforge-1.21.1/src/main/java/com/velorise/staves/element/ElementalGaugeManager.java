@@ -18,13 +18,17 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.Bogged;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.Endermite;
 import net.minecraft.world.entity.monster.Guardian;
 import net.minecraft.world.entity.monster.MagmaCube;
+import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.breeze.Breeze;
@@ -92,6 +96,9 @@ public final class ElementalGaugeManager {
         if (target.isInWaterRainOrBubble() || target.isInWaterOrRain() || target.isInWater()) return true;
         BlockPos feet = target.blockPosition();
         if (target.level().getBlockState(feet).is(Blocks.WATER) || target.level().getFluidState(feet).is(FluidTags.WATER)) {
+            return true;
+        }
+        if (target.level().getFluidState(feet.below()).is(FluidTags.WATER)) {
             return true;
         }
         BlockPos eye = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
@@ -217,7 +224,11 @@ public final class ElementalGaugeManager {
         if (target instanceof Breeze) {
             return Element.ANEMO;
         }
-        if (target instanceof Creeper creeper && creeper.isPowered()) {
+        if ((target instanceof Creeper creeper && creeper.isPowered())
+                || target instanceof EnderMan
+                || target instanceof EnderDragon
+                || target instanceof Endermite
+                || target instanceof Shulker) {
             return Element.ELECTRO;
         }
         if (target instanceof Bogged) {
@@ -704,9 +715,7 @@ public final class ElementalGaugeManager {
     }
 
     private static void sendActionbar(@Nullable ServerPlayer player, String message) {
-        if (player == null) return;
-        if (!StavesConfig.SHOW_ACTIONBAR_FEEDBACK.get()) return;
-        player.displayClientMessage(Component.literal(message), true);
+        // Silenced: all combat feedback (damage numbers, reactions, IMMUNE) is rendered as 3D floating text near the mob (Genshin style)
     }
 
     /**

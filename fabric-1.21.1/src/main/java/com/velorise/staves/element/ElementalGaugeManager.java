@@ -94,6 +94,9 @@ public final class ElementalGaugeManager {
         if (target.level().getBlockState(feet).is(Blocks.WATER) || target.level().getFluidState(feet).is(FluidTags.WATER)) {
             return true;
         }
+        if (target.level().getFluidState(feet.below()).is(FluidTags.WATER)) {
+            return true;
+        }
         BlockPos eye = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
         return target.level().getBlockState(eye).is(Blocks.WATER) || target.level().getFluidState(eye).is(FluidTags.WATER);
     }
@@ -704,9 +707,7 @@ public final class ElementalGaugeManager {
     }
 
     private static void sendActionbar(@Nullable ServerPlayer player, String message) {
-        if (player == null) return;
-        if (!StavesConfig.SHOW_ACTIONBAR_FEEDBACK.get()) return;
-        player.displayClientMessage(Component.literal(message), true);
+        // Silenced: all combat feedback (damage numbers, reactions, IMMUNE) is rendered as 3D floating text near the mob (Genshin style)
     }
 
     /**

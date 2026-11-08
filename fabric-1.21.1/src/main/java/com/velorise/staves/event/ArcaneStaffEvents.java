@@ -7,6 +7,8 @@ import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -114,9 +116,9 @@ public final class ArcaneStaffEvents {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         float baseDmg = isNetherite ? 10.0F : 7.0F;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            ElementalGaugeManager.applyElement(level, target, Element.PYRO, 2.0F, player, baseDmg);
+            ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 2.0F, player, baseDmg);
         }
-        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, player);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
     }
@@ -155,6 +157,15 @@ public final class ArcaneStaffEvents {
         float baseDmg = isNetherite ? 6.0F : 4.0F;
         float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        BlockPos hitPos = BlockPos.containing(hit);
+        boolean hitWater = level.getFluidState(hitPos).is(FluidTags.WATER)
+            || level.getBlockState(hitPos).is(Blocks.WATER)
+            || level.getFluidState(hitPos.below()).is(FluidTags.WATER);
+        if (hitWater) {
+            com.velorise.staves.element.DendroCoreManager.spawn(level, hit, player, isNetherite ? 1.5F : 1.0F);
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hit.x, hit.y + 0.4D, hit.z, 20, 0.5D, 0.3D, 0.5D, 0.04D);
+            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+        }
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElement(level, target, Element.DENDRO, attackU, player, baseDmg);
             target.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, isNetherite ? 1 : 0));
@@ -220,6 +231,15 @@ public final class ArcaneStaffEvents {
 
         LivingEntity directHit = hitEntity(hitResult);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        BlockPos hitPos = BlockPos.containing(hit);
+        boolean hitWater = level.getFluidState(hitPos).is(FluidTags.WATER)
+            || level.getBlockState(hitPos).is(Blocks.WATER)
+            || level.getFluidState(hitPos.below()).is(FluidTags.WATER);
+        if (hitWater) {
+            com.velorise.staves.element.DendroCoreManager.spawn(level, hit, player, isNetherite ? 1.5F : 1.0F);
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hit.x, hit.y + 0.4D, hit.z, 20, 0.5D, 0.3D, 0.5D, 0.04D);
+            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+        }
         if (directHit != null && directHit != owner) {
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
