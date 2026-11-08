@@ -6,7 +6,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
 $WorkspaceParent = Split-Path -Parent $Root.TrimEnd('\', '/')
-$OutputDirectory = Join-Path $WorkspaceParent 'mods'
+$ModsRoot = Join-Path $WorkspaceParent 'mods'
+$OutputDirectory = Join-Path $ModsRoot 'velorise_staves'
 
 $OriginalJavaHome = $env:JAVA_HOME
 $OriginalPath = $env:Path
@@ -85,6 +86,12 @@ function Invoke-Build(
 
         if (-not (Test-Path $OutputDirectory)) {
             New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+        }
+
+        # Clean up old versions matching pattern in destination and root mods folder
+        if (-not [string]::IsNullOrWhiteSpace($ArtifactPattern)) {
+            Get-ChildItem -Path $OutputDirectory -Filter $ArtifactPattern -File -ErrorAction SilentlyContinue | Remove-Item -Force
+            Get-ChildItem -Path $ModsRoot -Filter $ArtifactPattern -File -ErrorAction SilentlyContinue | Remove-Item -Force
         }
 
         foreach ($jar in $producedJars) {
