@@ -1,5 +1,5 @@
 {
-  "credit": "Velorise Staves - Genshin Impact Dendro Core 3D Bulb",
+  "credit": "Velorise Staves - Genshin Impact Dendro Core 3D Physalis Lantern",
   "ambientocclusion": true,
   "textures": {
     "0": "velorise_staves:item/dendro_core",
@@ -7,94 +7,120 @@
   },
   "elements": [
     {
-      "name": "core_bulb",
-      "from": [5, 2, 5],
-      "to": [11, 8, 11],
+      "name": "inner_glowing_core",
+      "from": [5.5, 3.5, 5.5],
+      "to": [10.5, 8.5, 10.5],
       "faces": {
-        "north": {"uv": [5, 5, 11, 11], "texture": "#0"},
-        "east": {"uv": [5, 5, 11, 11], "texture": "#0"},
-        "south": {"uv": [5, 5, 11, 11], "texture": "#0"},
-        "west": {"uv": [5, 5, 11, 11], "texture": "#0"},
-        "up": {"uv": [5, 5, 11, 11], "texture": "#0"},
-        "down": {"uv": [5, 5, 11, 11], "texture": "#0"}
+        "north": {"uv": [8, 0, 16, 8], "texture": "#0"},
+        "east": {"uv": [8, 0, 16, 8], "texture": "#0"},
+        "south": {"uv": [8, 0, 16, 8], "texture": "#0"},
+        "west": {"uv": [8, 0, 16, 8], "texture": "#0"},
+        "up": {"uv": [8, 0, 16, 8], "texture": "#0"},
+        "down": {"uv": [8, 0, 16, 8], "texture": "#0"}
+      }
+    },
+    {
+      "name": "base_taper",
+      "from": [5, 1.5, 5],
+      "to": [11, 3.5, 11],
+      "faces": {
+        "north": {"uv": [0, 6, 6, 8], "texture": "#0"},
+        "east": {"uv": [0, 6, 6, 8], "texture": "#0"},
+        "south": {"uv": [0, 6, 6, 8], "texture": "#0"},
+        "west": {"uv": [0, 6, 6, 8], "texture": "#0"},
+        "up": {"uv": [0, 0, 6, 6], "texture": "#0"},
+        "down": {"uv": [0, 0, 6, 6], "texture": "#0"}
       }
     },
     {
       "name": "leaf_north",
-      "from": [5, 1, 4],
-      "to": [11, 9, 5.5],
+      "from": [4.5, 3, 3],
+      "to": [11.5, 9.5, 4.5],
       "faces": {
-        "north": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "east": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "south": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "west": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "up": {"uv": [1, 4, 7, 5.5], "texture": "#0"},
-        "down": {"uv": [1, 4, 7, 5.5], "texture": "#0"}
+        "north": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "east": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "south": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "west": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "up": {"uv": [0, 0, 7, 1.5], "texture": "#0"},
+        "down": {"uv": [0, 0, 7, 1.5], "texture": "#0"}
       }
     },
     {
       "name": "leaf_south",
-      "from": [5, 1, 10.5],
-      "to": [11, 9, 12],
+      "from": [4.5, 3, 11.5],
+      "to": [11.5, 9.5, 13],
       "faces": {
-        "north": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "east": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "south": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "west": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "up": {"uv": [1, 4, 7, 5.5], "texture": "#0"},
-        "down": {"uv": [1, 4, 7, 5.5], "texture": "#0"}
+        "north": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "east": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "south": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "west": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "up": {"uv": [0, 0, 7, 1.5], "texture": "#0"},
+        "down": {"uv": [0, 0, 7, 1.5], "texture": "#0"}
       }
     },
     {
       "name": "leaf_west",
-      "from": [4, 1, 5],
-      "to": [5.5, 9, 11],
+      "from": [3, 3, 4.5],
+      "to": [4.5, 9.5, 11.5],
       "faces": {
-        "north": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "east": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "south": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "west": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "up": {"uv": [1, 4, 2.5, 10], "texture": "#0"},
-        "down": {"uv": [1, 4, 2.5, 10], "texture": "#0"}
+        "north": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "east": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "south": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "west": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "up": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "down": {"uv": [0, 0, 1.5, 7], "texture": "#0"}
       }
     },
     {
       "name": "leaf_east",
-      "from": [10.5, 1, 5],
-      "to": [12, 9, 11],
+      "from": [11.5, 3, 4.5],
+      "to": [13, 9.5, 11.5],
       "faces": {
-        "north": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "east": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "south": {"uv": [1, 4, 2.5, 12], "texture": "#0"},
-        "west": {"uv": [1, 4, 7, 12], "texture": "#0"},
-        "up": {"uv": [1, 4, 2.5, 10], "texture": "#0"},
-        "down": {"uv": [1, 4, 2.5, 10], "texture": "#0"}
+        "north": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "east": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "south": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "west": {"uv": [0, 0, 7, 7], "texture": "#0"},
+        "up": {"uv": [0, 0, 1.5, 7], "texture": "#0"},
+        "down": {"uv": [0, 0, 1.5, 7], "texture": "#0"}
       }
     },
     {
-      "name": "top_crown",
-      "from": [6.5, 8, 6.5],
-      "to": [9.5, 11, 9.5],
+      "name": "calyx_top",
+      "from": [5, 9.5, 5],
+      "to": [11, 11.5, 11],
       "faces": {
-        "north": {"uv": [0, 0, 3, 3], "texture": "#0"},
-        "east": {"uv": [0, 0, 3, 3], "texture": "#0"},
-        "south": {"uv": [0, 0, 3, 3], "texture": "#0"},
-        "west": {"uv": [0, 0, 3, 3], "texture": "#0"},
-        "up": {"uv": [0, 0, 3, 3], "texture": "#0"},
-        "down": {"uv": [0, 0, 3, 3], "texture": "#0"}
+        "north": {"uv": [0, 8, 6, 10], "texture": "#0"},
+        "east": {"uv": [0, 8, 6, 10], "texture": "#0"},
+        "south": {"uv": [0, 8, 6, 10], "texture": "#0"},
+        "west": {"uv": [0, 8, 6, 10], "texture": "#0"},
+        "up": {"uv": [0, 8, 6, 14], "texture": "#0"},
+        "down": {"uv": [0, 8, 6, 14], "texture": "#0"}
       }
     },
     {
-      "name": "top_stem",
-      "from": [7.5, 11, 7.5],
-      "to": [8.5, 13, 8.5],
+      "name": "stem",
+      "from": [7.5, 11.5, 7.5],
+      "to": [8.5, 14.5, 8.5],
       "faces": {
-        "north": {"uv": [0, 0, 1, 2], "texture": "#0"},
-        "east": {"uv": [0, 0, 1, 2], "texture": "#0"},
-        "south": {"uv": [0, 0, 1, 2], "texture": "#0"},
-        "west": {"uv": [0, 0, 1, 2], "texture": "#0"},
-        "up": {"uv": [0, 0, 1, 1], "texture": "#0"},
-        "down": {"uv": [0, 0, 1, 1], "texture": "#0"}
+        "north": {"uv": [0, 8, 1, 11], "texture": "#0"},
+        "east": {"uv": [0, 8, 1, 11], "texture": "#0"},
+        "south": {"uv": [0, 8, 1, 11], "texture": "#0"},
+        "west": {"uv": [0, 8, 1, 11], "texture": "#0"},
+        "up": {"uv": [0, 8, 1, 9], "texture": "#0"},
+        "down": {"uv": [0, 8, 1, 9], "texture": "#0"}
+      }
+    },
+    {
+      "name": "stem_sprout",
+      "from": [8.5, 13.5, 7.5],
+      "to": [10, 14.5, 8.5],
+      "faces": {
+        "north": {"uv": [2, 8, 3.5, 9], "texture": "#0"},
+        "east": {"uv": [2, 8, 3, 9], "texture": "#0"},
+        "south": {"uv": [2, 8, 3.5, 9], "texture": "#0"},
+        "west": {"uv": [2, 8, 3, 9], "texture": "#0"},
+        "up": {"uv": [2, 8, 3.5, 9], "texture": "#0"},
+        "down": {"uv": [2, 8, 3.5, 9], "texture": "#0"}
       }
     }
   ],
@@ -102,12 +128,12 @@
     "thirdperson_righthand": {
       "rotation": [0, 90, -35],
       "translation": [0, 1.25, -3.5],
-      "scale": [0.6, 0.6, 0.6]
+      "scale": [0.65, 0.65, 0.65]
     },
     "thirdperson_lefthand": {
       "rotation": [0, -90, 35],
       "translation": [0, 1.25, -3.5],
-      "scale": [0.6, 0.6, 0.6]
+      "scale": [0.65, 0.65, 0.65]
     },
     "firstperson_righthand": {
       "rotation": [0, -135, 25],
@@ -121,18 +147,18 @@
     },
     "ground": {
       "rotation": [0, 0, 0],
-      "translation": [0, 2, 0],
-      "scale": [0.65, 0.65, 0.65]
+      "translation": [0, 2.5, 0],
+      "scale": [0.85, 0.85, 0.85]
     },
     "gui": {
       "rotation": [25, 135, 0],
       "translation": [0, 0.5, 0],
-      "scale": [0.95, 0.95, 0.95]
+      "scale": [1.0, 1.0, 1.0]
     },
     "fixed": {
       "rotation": [0, 180, 0],
       "translation": [0, 0, 0],
-      "scale": [0.75, 0.75, 0.75]
+      "scale": [0.85, 0.85, 0.85]
     }
   }
 }

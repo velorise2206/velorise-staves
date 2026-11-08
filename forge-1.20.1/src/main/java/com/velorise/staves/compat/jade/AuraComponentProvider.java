@@ -6,7 +6,6 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -14,14 +13,49 @@ import snownee.jade.api.EntityAccessor;
 import snownee.jade.api.IEntityComponentProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
+import snownee.jade.api.ui.IElementHelper;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public enum AuraComponentProvider implements IEntityComponentProvider {
     INSTANCE;
 
     private static final ResourceLocation UID = new ResourceLocation(VeloriseStavesMod.MODID, "elemental_aura");
+    private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+
+    static {
+        for (Element e : Element.values()) {
+            TEXTURES.put(e, new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
+        }
+    }
+
+    public static class ElementIcon extends snownee.jade.api.ui.Element {
+        private final ResourceLocation texture;
+        private final net.minecraft.world.phys.Vec2 size;
+
+        public ElementIcon(ResourceLocation texture, int width, int height) {
+            this.texture = texture;
+            this.size = new net.minecraft.world.phys.Vec2(width, height);
+        }
+
+        @Override
+        public net.minecraft.world.phys.Vec2 getSize() {
+            return this.size;
+        }
+
+        @Override
+        public void render(net.minecraft.client.gui.GuiGraphics guiGraphics, float x, float y, float maxX, float maxY) {
+            if (this.texture == null) return;
+            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+            guiGraphics.blit(this.texture, Math.round(x), Math.round(y), 0.0F, 0.0F, (int) this.size.x, (int) this.size.y, (int) this.size.x, (int) this.size.y);
+            com.mojang.blaze3d.systems.RenderSystem.disableBlend();
+        }
+    }
 
     @Override
     public ResourceLocation getUid() {
@@ -48,62 +82,62 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
         boolean hasActiveReaction = data != null && data.reaction != null && now < data.reactionUntil;
         boolean hasDualAnimation = data != null && data.reactedAuraElement != null && data.dualTriggerElement != null && now < data.dualUntil;
 
-        // 1. Active reaction: [Reacted Aura] + [Trigger] ➔ §lREACTION
+        IElementHelper helper = IElementHelper.get();
+
+        // 1. Active reaction: [Reacted Aura Icon] Aura + [Trigger Icon] Trigger ➔ §lREACTION
         if (hasActiveReaction && data != null && data.reaction != null) {
-            MutableComponent reactionLine = Component.literal("");
             Element rAura = data.reactedAuraElement;
             Element trig = data.dualTriggerElement;
 
             if (rAura != null) {
-                reactionLine.append(getElementBadge(rAura)).append(" ");
+                appendElementBadge(tooltip, rAura, true);
+                if (trig != null) {
+                    tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
+                    appendElementBadge(tooltip, trig, false);
+                }
+            } else if (trig != null) {
+                appendElementBadge(tooltip, trig, true);
             }
-            if (trig != null) {
-                reactionLine.append(Component.literal("+ ").withStyle(ChatFormatting.GRAY))
-                            .append(getElementBadge(trig)).append(" ");
-            }
-            reactionLine.append(Component.literal("➔ ").withStyle(ChatFormatting.WHITE))
-                        .append(Component.literal(data.reaction.reactionName()).withStyle(data.reaction.color(), ChatFormatting.BOLD));
 
-            tooltip.add(reactionLine);
+            tooltip.append(Component.literal(" ➔ ").withStyle(ChatFormatting.WHITE));
+            tooltip.append(Component.literal(data.reaction.reactionName()).withStyle(data.reaction.color(), ChatFormatting.BOLD));
             return;
         }
 
-        // 2. Dual aura transition
-        if (hasDualAnimation && data != null) {
-            MutableComponent dualLine = Component.literal("");
-            dualLine.append(getElementBadge(data.reactedAuraElement))
-                    .append(Component.literal(" + ").withStyle(ChatFormatting.GRAY))
-                    .append(getElementBadge(data.dualTriggerElement));
-            tooltip.add(dualLine);
+        // 2. Dual aura transition: [Aura 1 Icon] Aura 1 + [Aura 2 Icon] Aura 2
+        if (hasDualAnimation && data != null && data.reactedAuraElement != null && data.dualTriggerElement != null) {
+            appendElementBadge(tooltip, data.reactedAuraElement, true);
+            tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
+            appendElementBadge(tooltip, data.dualTriggerElement, false);
             return;
         }
 
-        // 3. Standard active auras (shows dual co-existing elements like Quicken: Dendro + Electro, or Electro-Charged: Hydro + Electro)
+        // 3. Standard active auras (shows dual co-existing elements like Quicken or Electro-Charged)
         if (!activeElements.isEmpty()) {
-            MutableComponent auraLine = Component.literal("");
             for (int i = 0; i < activeElements.size(); i++) {
                 Element elem = activeElements.get(i);
-                if (i > 0) {
-                    auraLine.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
+                if (i == 0) {
+                    appendElementBadge(tooltip, elem, true);
+                } else {
+                    tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
+                    appendElementBadge(tooltip, elem, false);
                 }
-                auraLine.append(getElementBadge(elem));
                 if (elem == innate) {
-                    auraLine.append(Component.literal(" (Innate)").withStyle(ChatFormatting.DARK_GRAY));
+                    tooltip.append(Component.literal(" (Innate)").withStyle(ChatFormatting.DARK_GRAY));
                 }
             }
-            tooltip.add(auraLine);
         }
     }
 
-    private static Component getElementBadge(Element elem) {
-        return switch (elem) {
-            case PYRO -> Component.literal("🔥 Pyro").withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
-            case HYDRO -> Component.literal("💧 Hydro").withStyle(ChatFormatting.BLUE, ChatFormatting.BOLD);
-            case CRYO -> Component.literal("❄ Cryo").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD);
-            case ELECTRO -> Component.literal("⚡ Electro").withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD);
-            case DENDRO -> Component.literal("🌿 Dendro").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD);
-            case ANEMO -> Component.literal("🌀 Anemo").withStyle(ChatFormatting.DARK_GREEN, ChatFormatting.BOLD);
-            case GEO -> Component.literal("🛡 Geo").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
-        };
+    private static void appendElementBadge(ITooltip tooltip, Element elem, boolean startOfLine) {
+        ResourceLocation iconTex = TEXTURES.get(elem);
+        IElementHelper helper = IElementHelper.get();
+        if (startOfLine) {
+            tooltip.add(new ElementIcon(iconTex, 10, 10));
+        } else {
+            tooltip.append(new ElementIcon(iconTex, 10, 10));
+        }
+        tooltip.append(helper.spacer(2, 0));
+        tooltip.append(Component.literal(elem.displayName()).withStyle(elem.color(), ChatFormatting.BOLD));
     }
 }

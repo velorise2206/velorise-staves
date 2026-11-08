@@ -21,13 +21,17 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.Bogged;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.Endermite;
 import net.minecraft.world.entity.monster.Guardian;
 import net.minecraft.world.entity.monster.MagmaCube;
+import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.breeze.Breeze;
@@ -51,6 +55,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> BLOOM_SEED_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
+    private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
 
     private ElementalGaugeManager() {}
 
@@ -88,7 +93,9 @@ public final class ElementalGaugeManager {
         BLOOM_SEED_UNTIL.clear();
         INNATE_COOLDOWN_UNTIL.clear();
         ELECTRO_CHARGE_TICK.clear();
+        LAST_PROXIMITY_SHOCK.clear();
         DendroCoreManager.clearAll();
+        ElectrifiedWaterManager.clearAll();
     }
 
     public static boolean isEntityInWater(LivingEntity target) {
@@ -172,7 +179,8 @@ public final class ElementalGaugeManager {
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
             }
-            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, 0.0F);
+            target.hurt(target.level().damageSources().inFire(), 2.5F);
+            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, 2.5F);
             return;
         }
 
@@ -184,7 +192,8 @@ public final class ElementalGaugeManager {
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
             }
-            syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, 0.0F);
+            target.hurt(target.level().damageSources().inFire(), 3.0F);
+            syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, 3.0F);
             return;
         }
 
@@ -200,7 +209,8 @@ public final class ElementalGaugeManager {
         if (targetGauges.containsKey(Element.DENDRO)) {
             BURNING_UNTIL.put(id, now + 100);
             target.igniteForSeconds(5);
-            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
+            target.hurt(target.level().damageSources().inFire(), 2.0F);
+            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 2.0F);
             return;
         }
 
@@ -233,7 +243,8 @@ public final class ElementalGaugeManager {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.03D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
             }
-            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 0.0F);
+            target.hurt(target.level().damageSources().magic(), 2.5F);
+            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 2.5F);
         }
 
         // 2. Dendro in water -> Bloom reaction & spawn Dendro Core!
@@ -244,7 +255,24 @@ public final class ElementalGaugeManager {
                 sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
             }
-            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
+            target.hurt(target.level().damageSources().magic(), 3.0F);
+            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 3.0F);
+        }
+
+        // 3. Electro in water -> Electrify water & trigger Electro-Charged shock!
+        if (targetGauges.containsKey(Element.ELECTRO)) {
+            GaugeState electro = targetGauges.get(Element.ELECTRO);
+            if (electro != null) {
+                electro.consume(0.4F);
+                if (electro.isExpired()) targetGauges.remove(Element.ELECTRO);
+            }
+            if (target.level() instanceof ServerLevel sl) {
+                ElectrifiedWaterManager.electrify(sl, target.blockPosition(), 3.5D, 70, null, 2.0F);
+                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.3D, 0.3D, 0.3D, 0.06D);
+                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+                target.hurt(sl.damageSources().magic(), 2.5F);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, 2.5F);
         }
     }
 
@@ -270,7 +298,11 @@ public final class ElementalGaugeManager {
         if (target instanceof Breeze) {
             return Element.ANEMO;
         }
-        if (target instanceof Creeper creeper && creeper.isPowered()) {
+        if ((target instanceof Creeper creeper && creeper.isPowered())
+                || target instanceof EnderMan
+                || target instanceof EnderDragon
+                || target instanceof Endermite
+                || target instanceof Shulker) {
             return Element.ELECTRO;
         }
         if (target instanceof Bogged) {
@@ -763,14 +795,29 @@ public final class ElementalGaugeManager {
         // Silenced: all combat feedback (damage numbers, reactions, IMMUNE) is rendered as 3D floating text near the mob (Genshin style)
     }
 
+    public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) {
+        Vec3 diff = end.subtract(start);
+        double dist = diff.length();
+        int steps = Math.max(6, (int) Math.round(dist * 3.5D));
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / (double) steps;
+            double offsetX = (level.random.nextDouble() - 0.5D) * 0.25D;
+            double offsetY = (level.random.nextDouble() - 0.5D) * 0.25D;
+            double offsetZ = (level.random.nextDouble() - 0.5D) * 0.25D;
+            Vec3 p = start.add(diff.scale(t)).add(offsetX, offsetY, offsetZ);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
+        }
+    }
+
     /**
      * Server tick loop for decay, innate aura re-infusion after 0.8s, environmental water/rain extinguish, and periodic reactions.
      * Note: We NEVER iterate over ocean fish/squid or auto-attach HYDRO in tick().
      */
     public static void tick(MinecraftServer server) {
-        // Tick physical Dendro Cores in all levels
+        // Tick physical Dendro Cores and Electrified Water in all levels
         for (ServerLevel lvl : server.getAllLevels()) {
             DendroCoreManager.tick(lvl);
+            ElectrifiedWaterManager.tick(lvl);
         }
 
         // 0. Check Innate Re-infusion timers (0.8s = 16 ticks after an innate mob's aura was consumed)
@@ -862,6 +909,28 @@ public final class ElementalGaugeManager {
                 }
             }
 
+            // 2B. Proximity Voltaic Arcing (Electro mob <-> Hydro / Wet mob within 4.0 blocks)
+            if (entityGauges.containsKey(Element.ELECTRO) && (now % 10 == Math.abs(target.getId()) % 10)) {
+                final LivingEntity srcTarget = target;
+                AABB arcBox = target.getBoundingBox().inflate(4.0D);
+                for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, arcBox, e -> e.isAlive() && !e.isRemoved() && e != srcTarget)) {
+                    boolean nearbyWet = isEntityInWater(nearby) || getEntityElements(nearby.getUUID()).contains(Element.HYDRO) || getInnateElement(nearby) == Element.HYDRO;
+                    if (nearbyWet) {
+                        long pairKey = (((long) Math.min(target.getId(), nearby.getId())) << 32) | ((long) Math.max(target.getId(), nearby.getId()) & 0xFFFFFFFFL);
+                        Long lastShock = LAST_PROXIMITY_SHOCK.get(pairKey);
+                        if (lastShock == null || now - lastShock >= 18) { // 0.9s discharge interval
+                            LAST_PROXIMITY_SHOCK.put(pairKey, now);
+                            drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
+                            targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
+                            applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 2.5F);
+                            target.hurt(targetLevel.damageSources().magic(), 1.5F);
+                            syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, 1.5F);
+                            break;
+                        }
+                    }
+                }
+            }
+
             // 3. Electro-Charged periodic damage (every 20 ticks = 1 second)
             if (entityGauges.containsKey(Element.HYDRO) && entityGauges.containsKey(Element.ELECTRO)) {
                 int counter = ELECTRO_CHARGE_TICK.getOrDefault(id, 0) + 1;
@@ -870,6 +939,18 @@ public final class ElementalGaugeManager {
                     target.hurt(targetLevel.damageSources().magic(), 2.5F);
                     targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.3D, 0.3D, 0.3D, 0.05D);
                     targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
+                    syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, 2.5F);
+
+                    // Chain discharge arc to nearby wet entities
+                    final LivingEntity srcTarget = target;
+                    AABB chainBox = target.getBoundingBox().inflate(4.0D);
+                    for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
+                        if (isEntityInWater(nearby) || getEntityElements(nearby.getUUID()).contains(Element.HYDRO)) {
+                            nearby.hurt(targetLevel.damageSources().magic(), 2.0F);
+                            applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
+                            targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, nearby.getX(), nearby.getY() + 0.8D, nearby.getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
+                        }
+                    }
 
                     GaugeState hydroState = entityGauges.get(Element.HYDRO);
                     GaugeState electroState = entityGauges.get(Element.ELECTRO);

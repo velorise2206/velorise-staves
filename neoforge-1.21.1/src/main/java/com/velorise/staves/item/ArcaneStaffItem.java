@@ -4,6 +4,7 @@ import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
+import com.velorise.staves.element.ElectrifiedWaterManager;
 import com.velorise.staves.event.ArcaneStaffEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -502,6 +503,9 @@ public final class ArcaneStaffItem extends Item {
             victim.clearFire();
         }
         DendroCoreManager.checkReactionsNear(level, strikePos, chainRadius + 0.5D, Element.ELECTRO, player);
+        // Electrify water if strikePos or victim is in water
+        BlockPos strikeBlock = BlockPos.containing(strikePos);
+        ElectrifiedWaterManager.electrify(level, strikeBlock, chainRadius + 0.5D, 70, player, damagePerTick);
     }
 
     private static void drawJaggedArc(ServerLevel level, Vec3 start, Vec3 end, double jitter) {

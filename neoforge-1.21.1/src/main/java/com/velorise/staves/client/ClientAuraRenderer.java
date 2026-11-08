@@ -71,7 +71,10 @@ public final class ClientAuraRenderer {
                 data.reactedAuraElement = null;
                 data.dualTriggerElement = null;
             }
-            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && innateElement == null) {
+            if (data.damageUntil <= now) {
+                data.lastDamage = 0.0F;
+            }
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && innateElement == null) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -99,7 +102,10 @@ public final class ClientAuraRenderer {
             display.add(innateElement);
         }
 
-        if (display.isEmpty() && (data == null || data.reaction == null)) return;
+        boolean hasReaction = data != null && data.reaction != null && now < data.reactionUntil;
+        boolean hasDamage = data != null && data.damageUntil > now && data.lastDamage > 0.0F;
+
+        if (display.isEmpty() && !hasReaction && !hasDamage) return;
 
         double height = entity.getBbHeight() + 0.35D;
         float iconSize = 16.0F;
@@ -167,22 +173,27 @@ public final class ClientAuraRenderer {
         }
 
         // Branch 2: Separate PoseStack for 3D Floating Reaction Text & Damage Numbers (Genshin Style)
-        boolean hasReaction = data != null && data.reaction != null && now < data.reactionUntil;
-        boolean hasDamage = data != null && data.damageUntil > now && data.lastDamage > 0.0F;
-
         if (hasReaction || hasDamage) {
             poseStack.pushPose();
             poseStack.translate(0.0D, height, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-            poseStack.scale(-0.025F, -0.025F, 0.025F);
+
+            float textPop = 1.0F;
+            long primaryAge = hasReaction ? (now - data.reactionStartTime) : (now - data.damageStartTime);
+            if (primaryAge < 220L && primaryAge >= 0L) {
+                textPop = 1.0F + 0.35F * (float) Math.sin((primaryAge / 220.0F) * Math.PI);
+            }
+            poseStack.scale(-0.028F * textPop, -0.028F * textPop, 0.028F * textPop);
+
             Font font = mc.font;
+            float baseIconOffset = display.isEmpty() ? 0.0F : iconSize;
 
             if (hasReaction) {
                 long reactionAge = Math.max(0L, now - data.reactionStartTime);
                 long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
                 float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
 
-                float floatY = -iconSize - 6.0F - (progress * 12.0F);
+                float floatY = -baseIconOffset - 6.0F - (progress * 14.0F);
                 String text = "§l" + data.reaction.reactionName();
                 float textWidth = font.width(text);
                 float textX = -textWidth / 2.0F;
@@ -207,7 +218,9 @@ public final class ClientAuraRenderer {
                 long dmgDuration = Math.max(1L, data.damageUntil - data.damageStartTime);
                 float dmgProgress = Math.max(0.0F, Math.min(1.0F, (float) dmgAge / (float) dmgDuration));
 
-                float dmgY = hasReaction ? (-iconSize + 2.0F - (dmgProgress * 8.0F)) : (-iconSize - 4.0F - (dmgProgress * 12.0F));
+                float dmgY = hasReaction
+                        ? (-baseIconOffset + 4.0F - (dmgProgress * 8.0F))
+                        : (-baseIconOffset - 6.0F - (dmgProgress * 14.0F));
                 String dmgText = "§l" + (data.lastDamage % 1.0F == 0.0F ? String.valueOf((int) data.lastDamage) : String.format(Locale.ROOT, "%.1f", data.lastDamage));
                 float dmgWidth = font.width(dmgText);
                 float dmgX = -dmgWidth / 2.0F;

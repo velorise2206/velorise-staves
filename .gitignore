@@ -26,4 +26,6 @@ Thumbs.db
 net/
 /assets/
 *.png
+!shared-resources/assets/**
+
 

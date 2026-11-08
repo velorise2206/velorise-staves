@@ -60,21 +60,21 @@ public final class ClientAuraTracker {
         if (reaction != null && reaction != ElementalReaction.NONE) {
             entry.reaction = reaction;
             entry.reactionStartTime = now;
-            entry.reactionUntil = now + 1200; // 24 ticks (1.2 seconds) floating reaction text
+            entry.reactionUntil = now + 1600; // 32 ticks (1.6 seconds) floating reaction text
         }
 
         if (reactedAura != null || trigger != null) {
             entry.reactedAuraElement = reactedAura;
             entry.dualTriggerElement = trigger;
             entry.dualStartTime = now;
-            entry.dualUntil = now + 1100; // 22 ticks (1.1 seconds) Genshin dual-icon pop & fade
+            entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
         }
 
         if (damage > 0.0F) {
             entry.lastDamage = damage;
             entry.damageElement = trigger != null ? trigger : (reactedAura != null ? reactedAura : null);
             entry.damageStartTime = now;
-            entry.damageUntil = now + 1100;
+            entry.damageUntil = now + 1500; // 30 ticks (1.5 seconds) floating damage number
         }
 
         if (elements.isEmpty() && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
