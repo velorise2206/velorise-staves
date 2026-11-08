@@ -3,27 +3,31 @@ package com.velorise.staves.element;
 import net.minecraft.ChatFormatting;
 
 /**
- * Elemental reactions and their mathematical modifiers according to Elemental Gauge Theory.
+ * Elemental reactions and their mathematical modifiers according to Genshin Impact Elemental Gauge Theory (EGT).
  */
 public enum ElementalReaction {
     NONE("", "", 0.0F, 1.0F, ChatFormatting.WHITE),
-    FORWARD_VAPORIZE("Vaporize", "💧 + 🔥", 2.0F, 2.0F, ChatFormatting.BLUE),
-    REVERSE_VAPORIZE("Vaporize", "🔥 + 💧", 0.5F, 1.5F, ChatFormatting.RED),
-    FORWARD_MELT("Melt", "🔥 + ❄️", 2.0F, 2.0F, ChatFormatting.RED),
-    REVERSE_MELT("Melt", "❄️ + 🔥", 0.5F, 1.5F, ChatFormatting.AQUA),
-    OVERLOADED("Overloaded", "🔥 + ⚡", 1.0F, 1.0F, ChatFormatting.GOLD),
-    SUPERCONDUCT("Superconduct", "❄️ + ⚡", 1.0F, 1.0F, ChatFormatting.AQUA),
-    FROZEN("Frozen", "💧 + ❄️", 1.0F, 1.0F, ChatFormatting.AQUA),
-    SHATTER("Shatter", "🪨 + 🧊", 1.0F, 1.0F, ChatFormatting.WHITE),
-    ELECTRO_CHARGED("Electro-Charged", "💧 + ⚡", 0.4F, 1.0F, ChatFormatting.YELLOW),
-    BURNING("Burning", "🔥 + 🌿", 0.4F, 1.0F, ChatFormatting.RED),
-    QUICKEN("Quicken", "🌿 + ⚡", 1.0F, 1.0F, ChatFormatting.GREEN),
-    AGGRAVATE("Aggravate", "⚡ + Quicken", 0.0F, 1.0F, ChatFormatting.YELLOW),
-    SPREAD("Spread", "🌿 + Quicken", 0.0F, 1.0F, ChatFormatting.DARK_GREEN),
-    BLOOM("Bloom", "💧 + 🌿", 1.0F, 1.0F, ChatFormatting.GREEN),
-    OVERVAPE("Overvape", "🔥 + (💧 & ⚡)", 0.5F, 1.5F, ChatFormatting.GOLD),
-    SWIRL("Swirl", "🌪️ + Aura", 0.5F, 1.0F, ChatFormatting.DARK_AQUA),
-    CRYSTALLIZE("Crystallize", "🪨 + Aura", 0.5F, 1.0F, ChatFormatting.GOLD);
+    IMMUNE("IMMUNE", "Immune", 0.0F, 0.0F, ChatFormatting.GRAY),
+    FORWARD_VAPORIZE("VAPORIZE", "💧 + 🔥", 2.0F, 2.0F, ChatFormatting.BLUE),
+    REVERSE_VAPORIZE("VAPORIZE", "🔥 + 💧", 0.5F, 1.5F, ChatFormatting.RED),
+    FORWARD_MELT("MELT", "🔥 + ❄️", 2.0F, 2.0F, ChatFormatting.RED),
+    REVERSE_MELT("MELT", "❄️ + 🔥", 0.5F, 1.5F, ChatFormatting.AQUA),
+    OVERLOADED("OVERLOADED", "🔥 + ⚡", 1.0F, 1.0F, ChatFormatting.GOLD),
+    SUPERCONDUCT("SUPERCONDUCT", "❄️ + ⚡", 1.0F, 1.0F, ChatFormatting.AQUA),
+    FROZEN("FROZEN", "💧 + ❄️", 1.0F, 1.0F, ChatFormatting.AQUA),
+    SHATTER("SHATTER", "🪨 + 🧊", 1.0F, 1.0F, ChatFormatting.WHITE),
+    ELECTRO_CHARGED("ELECTRO-CHARGED", "💧 + ⚡", 0.4F, 1.0F, ChatFormatting.YELLOW),
+    BURNING("BURNING", "🔥 + 🌿", 0.4F, 1.0F, ChatFormatting.RED),
+    QUICKEN("QUICKEN", "🌿 + ⚡", 1.0F, 1.0F, ChatFormatting.GREEN),
+    AGGRAVATE("AGGRAVATE", "⚡ + Quicken", 0.0F, 1.0F, ChatFormatting.YELLOW),
+    SPREAD("SPREAD", "🌿 + Quicken", 0.0F, 1.0F, ChatFormatting.DARK_GREEN),
+    BLOOM("BLOOM", "💧 + 🌿", 0.5F, 1.0F, ChatFormatting.GREEN),
+    REVERSE_BLOOM("BLOOM", "🌿 + 💧", 2.0F, 1.0F, ChatFormatting.GREEN),
+    HYPERBLOOM("HYPERBLOOM", "⚡ + 🌱", 1.0F, 1.0F, ChatFormatting.LIGHT_PURPLE),
+    BURGEON("BURGEON", "🔥 + 🌱", 1.0F, 1.0F, ChatFormatting.GOLD),
+    OVERVAPE("OVERVAPE", "🔥 + (💧 & ⚡)", 0.5F, 1.5F, ChatFormatting.GOLD),
+    SWIRL("SWIRL", "🌪️ + Aura", 0.5F, 1.0F, ChatFormatting.DARK_AQUA),
+    CRYSTALLIZE("CRYSTALLIZE", "🪨 + Aura", 0.5F, 1.0F, ChatFormatting.GOLD);
 
     private final String name;
     private final String formula;

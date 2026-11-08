@@ -16,16 +16,18 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             context.client().execute(() -> {
                 List<Element> elements = new ArrayList<>();
                 for (Element e : Element.values()) {
-                    if ((payload.elementMask() & (1 << e.ordinal())) != 0) {
+                    if ((payload.activeMask() & (1 << e.ordinal())) != 0) {
                         elements.add(e);
                     }
                 }
-                Element trigger = (payload.triggerOrdinal() > 0 && payload.triggerOrdinal() <= Element.values().length)
-                        ? Element.values()[payload.triggerOrdinal() - 1] : null;
+                Element reactedAura = (payload.reactedAuraOrdinal() > 0 && payload.reactedAuraOrdinal() <= Element.values().length)
+                        ? Element.values()[payload.reactedAuraOrdinal() - 1] : null;
+                Element trigger = (payload.triggerElementOrdinal() > 0 && payload.triggerElementOrdinal() <= Element.values().length)
+                        ? Element.values()[payload.triggerElementOrdinal() - 1] : null;
                 ElementalReaction reaction = (payload.reactionOrdinal() > 0 && payload.reactionOrdinal() <= ElementalReaction.values().length)
                         ? ElementalReaction.values()[payload.reactionOrdinal() - 1] : null;
 
-                ClientAuraTracker.update(payload.entityId(), elements, trigger, reaction);
+                ClientAuraTracker.update(payload.entityId(), elements, reactedAura, trigger, reaction);
             });
         });
     }

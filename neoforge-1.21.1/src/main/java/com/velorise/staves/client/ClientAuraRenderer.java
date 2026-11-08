@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
+import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalReaction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -36,101 +37,167 @@ public final class ClientAuraRenderer {
 
     @SubscribeEvent
     public static void onRenderLiving(RenderLivingEvent.Post<?, ?> event) {
+        LivingEntity entity = event.getEntity();
+        PoseStack poseStack = event.getPoseStack();
+        MultiBufferSource buffer = event.getMultiBufferSource();
+        render(entity, poseStack, buffer);
+    }
+
+    public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         try {
             if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
         } catch (Exception ignored) {}
 
-        LivingEntity entity = event.getEntity();
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
 
+        // Check innate element on entity (e.g., Blaze/MagmaCube/Strider -> PYRO, Stray/SnowGolem -> CRYO, Guardian/Drowned -> HYDRO, Breeze -> ANEMO)
+        Element innateElement = ElementalGaugeManager.getInnateElement(entity);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
-        if (data == null) return;
+
+        // Filter out passive ocean fish/squid unless explicitly hit in combat
+        if (data == null && innateElement == null) return;
+        if (data == null && ElementalGaugeManager.isPassiveAquaticOrAmbient(entity)) return;
 
         long now = System.currentTimeMillis();
-        if (data.reactionUntil <= now) {
-            data.reaction = null;
-        }
-
-        if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now) {
-            ClientAuraTracker.remove(entity.getId());
-            return;
-        }
-
-        List<Element> display = new ArrayList<>(data.elements);
-        if (now < data.dualUntil && data.dualTriggerElement != null && !display.contains(data.dualTriggerElement)) {
-            display.add(data.dualTriggerElement);
-        }
-
-        if (display.isEmpty() && data.reaction == null) return;
-
-        PoseStack poseStack = event.getPoseStack();
-        MultiBufferSource buffer = event.getMultiBufferSource();
-
-        poseStack.pushPose();
-        double height = entity.getBbHeight() + 0.35D;
-        poseStack.translate(0.0D, height, 0.0D);
-        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-        poseStack.scale(-0.025F, -0.025F, 0.025F);
-
-        // 1. Draw Element Icons
-        int count = display.size();
-        float iconSize = 16.0F;
-        float gap = 2.0F;
-
-        if (count == 1) {
-            drawIcon(poseStack, buffer, display.get(0), -iconSize / 2.0F, -iconSize, iconSize, iconSize);
-        } else if (count == 2) {
-            float totalWidth = iconSize * 2.0F + gap;
-            float startX = -totalWidth / 2.0F;
-            drawIcon(poseStack, buffer, display.get(0), startX, -iconSize, iconSize, iconSize);
-            drawIcon(poseStack, buffer, display.get(1), startX + iconSize + gap, -iconSize, iconSize, iconSize);
-        } else if (count > 2) {
-            float totalWidth = count * iconSize + (count - 1) * gap;
-            float startX = -totalWidth / 2.0F;
-            for (int i = 0; i < count; i++) {
-                drawIcon(poseStack, buffer, display.get(i), startX + i * (iconSize + gap), -iconSize, iconSize, iconSize);
+        if (data != null) {
+            if (data.reactionUntil <= now) {
+                data.reaction = null;
+            }
+            if (data.dualUntil <= now) {
+                data.reactedAuraElement = null;
+                data.dualTriggerElement = null;
+            }
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && innateElement == null) {
+                ClientAuraTracker.remove(entity.getId());
+                return;
             }
         }
 
-        // Flush icon render types immediately
-        if (buffer instanceof MultiBufferSource.BufferSource bs) {
-            for (Element e : display) {
-                ResourceLocation tex = TEXTURES.get(e);
-                if (tex != null) {
-                    bs.endBatch(RenderType.textSeeThrough(tex));
-                    bs.endBatch(RenderType.text(tex));
+        List<Element> display = new ArrayList<>();
+        boolean inDualReaction = data != null && now < data.dualUntil && (data.reactedAuraElement != null || data.dualTriggerElement != null);
+
+        if (inDualReaction) {
+            if (data.reactedAuraElement != null) {
+                display.add(data.reactedAuraElement);
+            }
+            if (data.dualTriggerElement != null && !display.contains(data.dualTriggerElement)) {
+                display.add(data.dualTriggerElement);
+            }
+            for (Element active : data.elements) {
+                if (!display.contains(active)) {
+                    display.add(active);
                 }
             }
+        } else if (data != null && !data.elements.isEmpty()) {
+            display.addAll(data.elements);
+        } else if (innateElement != null) {
+            // Always show innate element icon above Blaze, MagmaCube, Strider, Stray, SnowGolem, Guardian, Drowned, Breeze
+            display.add(innateElement);
         }
 
-        // 2. Draw Floating Reaction Text
-        if (data.reaction != null && now < data.reactionUntil) {
-            float elapsed = (now - (data.reactionUntil - 1200)) / 1200.0F;
-            elapsed = Math.max(0.0F, Math.min(1.0F, elapsed));
-            float floatY = -iconSize - 4.0F - (elapsed * 10.0F);
+        if (display.isEmpty() && (data == null || data.reaction == null)) return;
+
+        double height = entity.getBbHeight() + 0.35D;
+        float iconSize = 16.0F;
+        float gap = 3.0F;
+
+        // Branch 1: Draw Overhead Element Icon(s) with Pop & Fade-out Animation
+        if (!display.isEmpty()) {
+            poseStack.pushPose();
+            poseStack.translate(0.0D, height, 0.0D);
+            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+
+            float popScale = 1.0F;
+            int iconAlpha = 255;
+
+            if (inDualReaction && data != null) {
+                long dualAge = Math.max(0L, now - data.dualStartTime);
+                long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
+                float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
+
+                // Scale pop in the first 4 ticks (~200ms)
+                if (dualAge < 200L) {
+                    float popPhase = (float) dualAge / 200.0F;
+                    popScale = 1.0F + 0.28F * (float) Math.sin(popPhase * Math.PI);
+                }
+                // Fade out smoothly if the underlying aura was consumed
+                if (data.elements.isEmpty() && innateElement == null && dualProgress > 0.55F) {
+                    float fade = (1.0F - dualProgress) / 0.45F;
+                    iconAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
+                }
+            }
+
+            poseStack.scale(0.025F * popScale, -0.025F * popScale, 0.025F * popScale);
+
+            int count = display.size();
+            float totalWidth = count * iconSize + (count - 1) * gap;
+            float startX = -totalWidth / 2.0F;
+
+            for (int i = 0; i < count; i++) {
+                Element elem = display.get(i);
+                int elemAlpha = iconAlpha;
+                if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
+                    long dualAge = Math.max(0L, now - data.dualStartTime);
+                    long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
+                    float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
+                    if (dualProgress > 0.55F) {
+                        float fade = (1.0F - dualProgress) / 0.45F;
+                        elemAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
+                    }
+                }
+                drawIcon(poseStack, buffer, elem, startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, elemAlpha);
+            }
+
+            // Flush icon render types BEFORE popping icon PoseStack
+            if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                for (Element e : display) {
+                    ResourceLocation tex = TEXTURES.get(e);
+                    if (tex != null) {
+                        bs.endBatch(RenderType.textSeeThrough(tex));
+                        bs.endBatch(RenderType.text(tex));
+                    }
+                }
+            }
+
+            poseStack.popPose();
+        }
+
+        // Branch 2: Separate PoseStack for 3D Floating Reaction Text (prevents Y-axis or X-axis inversion & flushes before popPose)
+        if (data != null && data.reaction != null && now < data.reactionUntil) {
+            poseStack.pushPose();
+            poseStack.translate(0.0D, height, 0.0D);
+            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+            poseStack.scale(0.025F, -0.025F, 0.025F);
+
+            long reactionAge = Math.max(0L, now - data.reactionStartTime);
+            long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
+            float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
+
+            float floatY = -iconSize - 6.0F - (progress * 12.0F);
             String text = data.reaction.reactionName();
             Font font = mc.font;
             float textWidth = font.width(text);
             float textX = -textWidth / 2.0F;
 
-            int color = getReactionColor(data.reaction);
-            if (elapsed > 0.7F) {
-                int alpha = (int) ((1.0F - elapsed) / 0.3F * 255.0F);
-                color = (color & 0x00FFFFFF) | (Math.max(10, alpha) << 24);
-            } else {
-                color |= 0xFF000000;
+            int baseColor = getReactionColor(data.reaction) & 0x00FFFFFF;
+            int alpha = 255;
+            if (progress > 0.7F) {
+                alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
             }
+            int fgColor = baseColor | (alpha << 24);
+            int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.45F));
+            int seeThroughColor = baseColor | (seeThroughAlpha << 24);
 
-            // See-through pass for reaction text
+            // See-through pass
             font.drawInBatch(
                     text,
                     textX,
                     floatY,
-                    (color & 0x00FFFFFF) | (0x66 << 24),
+                    seeThroughColor,
                     false,
                     poseStack.last().pose(),
                     buffer,
@@ -139,12 +206,12 @@ public final class ClientAuraRenderer {
                     FULL_BRIGHT
             );
 
-            // Foreground pass for reaction text
+            // Foreground pass with dropShadow = true for crisp visibility against any terrain
             font.drawInBatch(
                     text,
                     textX,
                     floatY,
-                    color,
+                    fgColor,
                     true,
                     poseStack.last().pose(),
                     buffer,
@@ -152,24 +219,30 @@ public final class ClientAuraRenderer {
                     0,
                     FULL_BRIGHT
             );
-        }
 
-        poseStack.popPose();
+            // Flush font batch BEFORE poseStack.popPose() so text vertices keep the billboard matrix (compatible with Sodium/Embeddium)
+            if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                bs.endBatch();
+            }
+
+            poseStack.popPose();
+        }
     }
 
-    private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height) {
+    private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height, int alpha) {
         ResourceLocation texture = TEXTURES.get(element);
         if (texture == null) return;
 
         Matrix4f matrix = poseStack.last().pose();
+        int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.4F));
 
-        // Pass 1: See-through layer (always visible through geometry with 40% opacity)
+        // Pass 1: See-through layer (always visible through geometry)
         VertexConsumer seeThrough = buffer.getBuffer(RenderType.textSeeThrough(texture));
-        drawDoubleSidedQuad(seeThrough, matrix, x, y, width, height, 255, 255, 255, 102);
+        drawDoubleSidedQuad(seeThrough, matrix, x, y, width, height, 255, 255, 255, seeThroughAlpha);
 
-        // Pass 2: Main vivid layer (100% opacity with depth test)
+        // Pass 2: Main vivid layer (with depth test)
         VertexConsumer main = buffer.getBuffer(RenderType.text(texture));
-        drawDoubleSidedQuad(main, matrix, x, y, width, height, 255, 255, 255, 255);
+        drawDoubleSidedQuad(main, matrix, x, y, width, height, 255, 255, 255, alpha);
     }
 
     private static void drawDoubleSidedQuad(VertexConsumer consumer, Matrix4f matrix, float x, float y, float width, float height, int r, int g, int b, int a) {
@@ -188,19 +261,22 @@ public final class ClientAuraRenderer {
 
     private static int getReactionColor(ElementalReaction reaction) {
         return switch (reaction) {
+            case IMMUNE -> 0xB0B0B8;
             case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE -> 0xFF8C33;
             case FORWARD_MELT, REVERSE_MELT -> 0xFF3B30;
-            case OVERLOADED -> 0xAF52DE;
+            case OVERLOADED -> 0xFF6B4A;
             case SUPERCONDUCT -> 0x5AC8FA;
             case ELECTRO_CHARGED -> 0xBF5AF2;
-            case FROZEN -> 0x30D158;
+            case FROZEN -> 0x64D2FF;
             case SHATTER -> 0xE5E5EA;
             case QUICKEN -> 0xA8E063;
             case AGGRAVATE -> 0xFFD60A;
             case SPREAD -> 0x34C759;
-            case BLOOM -> 0x32D74B;
+            case BLOOM, REVERSE_BLOOM -> 0x32D74B;
+            case HYPERBLOOM -> 0xDA70D6;
+            case BURGEON -> 0xFF9F0A;
             case BURNING -> 0xFF453A;
-            case SWIRL -> 0x64D2FF;
+            case SWIRL -> 0x55EFC4;
             case CRYSTALLIZE -> 0xFFD60A;
             default -> 0xFFFFFF;
         };

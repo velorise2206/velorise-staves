@@ -8,6 +8,7 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -20,9 +21,15 @@ public final class ModNetwork {
         PayloadTypeRegistry.playS2C().register(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC);
     }
 
-    public static void sendAuraSync(Entity target, Collection<Element> elements, Element trigger, ElementalReaction reaction) {
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, trigger, reaction);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction);
         Set<ServerPlayer> recipients = new HashSet<>(PlayerLookup.tracking(target));
         if (target.level() instanceof ServerLevel serverLevel) {
             recipients.addAll(PlayerLookup.around(serverLevel, target.position(), 64.0D));
@@ -36,7 +43,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null);
         ServerPlayNetworking.send(player, payload);
     }
 }

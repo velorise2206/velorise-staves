@@ -10,6 +10,7 @@ import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
@@ -34,9 +35,15 @@ public final class ModNetwork {
                 .add();
     }
 
-    public static void sendAuraSync(Entity target, Collection<Element> elements, Element trigger, ElementalReaction reaction) {
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, trigger, reaction);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction);
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
         CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 target.getX(), target.getY(), target.getZ(), 64.0D, target.level().dimension()
@@ -44,7 +51,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null);
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 }

@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 
@@ -18,9 +19,15 @@ public final class ModNetwork {
         registrar.playToClient(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC, AuraSyncPayload::handle);
     }
 
-    public static void sendAuraSync(Entity target, Collection<Element> elements, Element trigger, ElementalReaction reaction) {
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, trigger, reaction);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction);
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
         if (target.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
             PacketDistributor.sendToPlayersNear(serverLevel, null, target.getX(), target.getY(), target.getZ(), 64.0D, payload);
@@ -28,7 +35,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null);
         PacketDistributor.sendToPlayer(player, payload);
     }
 }
