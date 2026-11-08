@@ -24,3 +24,6 @@ crash-reports/
 .DS_Store
 Thumbs.db
 net/
+/assets/
+*.png
+
