@@ -1,6 +1,6 @@
 # BÁO CÁO TỔNG KẾT TÌNH HÌNH & HỆ THỐNG PHẢN ỨNG NGUYÊN TỐ VELORISE STAVES
 
-> **Ngày cập nhật:** 08/11/2026  
+> **Ngày cập nhật:** 09/11/2026  
 > **Phiên bản:** `1.0.0` (Triple-Loader: Forge 1.20.1 | NeoForge 1.21.1 | Fabric 1.21.1)  
 > **Mục tiêu:** Mô phỏng hoàn chỉnh hệ thống **Elemental Gauge Theory (EGT)** và các phản ứng nguyên tố chuẩn Genshin Impact trong Minecraft.
 
@@ -68,6 +68,20 @@ Hệ thống phản ứng nguyên tố và hiển thị của mod đã được 
     - Sau 6 giây (120 ticks) tự nổ diện rộng 3m gây 8.0 DMG.
     - Nếu gặp đòn đánh **Lôi (Electro)** gần đó -> Kích hoạt **Hyperbloom (Sprawling Shot)**: phóng đạn tầm nhiệt truy đuổi kẻ địch gần nhất trong bán kính 16m gây 16.0 DMG!
     - Nếu gặp đòn đánh **Hỏa (Pyro)** gần đó -> Kích hoạt **Burgeon**: nổ tung cực mạnh bán kính 5m gây 17.5 DMG!
+
+### 2.6. Tương tác Thảo với Nước & Bắn Thảo xuống nước (Water Bloom Ingestion)
+- **Hiện tượng:** Trước đây, Iron Golem hoặc sinh vật đứng dưới nước bị bắn Thảo vẫn giữ nguyên ấn Thảo trên đầu mà không tạo Hạt Thảo; hoặc bắn trượng Thảo xuống sông/hồ không có hiệu ứng gì.
+- **Giải pháp:**
+  - Tự động kiểm tra `isEntityInWater`: Nếu thực thể mang ấn Thảo tiếp xúc với nước hoặc mưa, ấn Thảo bị tiêu hao ngay lập tức để kích hoạt **Sum Suê (Bloom)** và sinh ra Hạt Nhân Thảo 3D.
+  - Khi bắn trượng Thảo (`Wither Staff`, `Web Staff`) chạm vào bất kỳ khối nước hoặc mặt nước nào (kể cả không trúng quái), hệ thống lập tức cho nở một **Hạt Nhân Thảo 3D** nổi bồng bềnh trên mặt nước chuẩn Genshin Impact (Nahida/Tighnari bắn vào nước).
+
+### 2.7. Dập tắt triệt để thông báo Actionbar
+- **Hiện tượng:** Khi đánh quái miễn nhiễm (Blaze trúng Hỏa), màn hình hiện dòng chữ `🛡️ IMMUNE! (Blaze is immune to Pyro)` ở đáy màn hình (Actionbar).
+- **Giải pháp:** Vô hiệu hóa hoàn toàn phương thức `sendActionbar`, chuyển đổi 100% phản hồi sang chữ nổi 3D in đậm phía trên đầu quái (`§lIMMUNE`, `§lBLOOM`, `§lVAPORIZE`,...).
+
+### 2.8. Lực đẩy định hướng phản ứng Quá Tải (Overloaded Directional Knockback)
+- **Hiện tượng:** Mục tiêu trực tiếp kích hoạt Quá Tải trước đây chỉ bị nảy nhẹ lên trên tại chỗ do vector đẩy lùi từ tâm nổ về chính nó bằng 0.
+- **Giải pháp:** Bổ sung vector đẩy lùi định hướng từ vị trí người chơi ra xa sau lưng quái, khiến mục tiêu bị hất văng lùi lại với lực nổ uy lực y hệt Genshin Impact.
 
 ---
 
