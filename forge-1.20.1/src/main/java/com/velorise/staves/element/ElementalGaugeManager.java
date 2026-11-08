@@ -931,6 +931,22 @@ public final class ElementalGaugeManager {
                 handleEnvironmentalPoison(target);
             }
 
+            // Special Mutant: Powered Creeper
+            if (target instanceof Creeper creeper && creeper.isPowered()) {
+                // 1. Passive 1-block aura field (every 10 ticks = 0.5s):
+                if (now % 10 == 0) {
+                    AABB auraField = creeper.getBoundingBox().inflate(1.2D);
+                    for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, auraField, e -> e.isAlive() && !e.isRemoved() && e != creeper)) {
+                        applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 0.0F);
+                    }
+                }
+
+                // 2. Mutant Water Exception: Charged Creeper electrifies water in 3x3 zone!
+                if (isEntityInWater(creeper)) {
+                    ElectrifiedWaterManager.electrify(targetLevel, creeper.blockPosition(), 2.0D, 30, null, 2.5F);
+                }
+            }
+
             // 2. Tick gauges decay (Innate aura on an innate mob does not expire naturally)
             Iterator<Map.Entry<Element, GaugeState>> gaugeIt = entityGauges.entrySet().iterator();
             while (gaugeIt.hasNext()) {
@@ -1091,6 +1107,18 @@ public final class ElementalGaugeManager {
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
+
+                // Auto-register nearby Charged Creepers within 32m to GAUGES
+                if (player.level() instanceof ServerLevel sl && player.tickCount % 20 == 0) {
+                    AABB searchBox = player.getBoundingBox().inflate(32.0D);
+                    for (Creeper creeper : sl.getEntitiesOfClass(Creeper.class, searchBox, c -> c.isAlive() && c.isPowered())) {
+                        if (!GAUGES.containsKey(creeper.getUUID())) {
+                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> new EnumMap<>(Element.class));
+                            gauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, 1.25F));
+                            syncAuras(creeper, gauges.keySet(), null, null, null);
+                        }
+                    }
+                }
             }
         }
     }
