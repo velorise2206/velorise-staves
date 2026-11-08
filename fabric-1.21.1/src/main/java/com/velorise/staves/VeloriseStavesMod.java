@@ -1,5 +1,6 @@
 package com.velorise.staves;
 
+import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
@@ -22,90 +23,94 @@ import net.minecraft.world.item.ItemStack;
 public final class VeloriseStavesMod implements ModInitializer {
     public static final String MODID = "velorise_staves";
 
+    static {
+        StavesConfig.load();
+    }
+
     // Sounds
     public static final SoundEvent MAGIC_MIRROR_USE_SOUND = registerSound("magic_mirror_use");
 
     // Basic Combat Staves
     public static final Item DRAGONFIRE_SCEPTER = registerItem("dragonfire_scepter",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 130, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, false), false));
 
     public static final Item RESONANT_ECHO = registerItem("resonant_echo",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, 130, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.ECHO, false), false));
 
     public static final Item INFERNO_ROD = registerItem("inferno_rod",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, 150, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.INFERNO, false), false));
 
     public static final Item GHASTFIRE_STAFF = registerItem("ghastfire_staff",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, 120, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GHASTFIRE, false), false));
 
     public static final Item WITHER_SCEPTER = registerItem("wither_scepter",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, 140, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WITHER, false), false));
 
     public static final Item SHULKER_SEEKER = registerItem("shulker_seeker",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 130, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.SHULKER, false), false));
 
     public static final Item GUARDIAN_LENS = registerItem("guardian_lens",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 130, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GUARDIAN, false), false));
 
     public static final Item EVOKER_FANG_STAFF = registerItem("evoker_fang_staff",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 120, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, false), false));
 
     public static final Item STORMCALLER = registerItem("stormcaller",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 130, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, false), false));
 
     public static final Item FROSTBOLT_WAND = registerItem("frostbolt_wand",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 150, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.FROST, false), false));
 
     public static final Item WEBCASTER = registerItem("webcaster",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, false), false));
 
     // Basic Utility Artifacts
     public static final Item VOID_TRANSLOCATOR = registerItem("void_translocator",
-        new VoidTranslocatorItem(80, 24.0D, false));
+        new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, false), 24.0D, false));
 
     public static final Item MAGIC_MIRROR = registerItem("magic_mirror",
-        new MagicMirrorItem(40, false));
+        new MagicMirrorItem(StavesConfig.getArtifactMaxDurability(false, false), false));
 
     // Netherite Upgraded Combat Staves
     public static final Item NETHERITE_DRAGONFIRE_SCEPTER = registerItem("netherite_dragonfire_scepter",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, true), true));
 
     public static final Item NETHERITE_RESONANT_ECHO = registerItem("netherite_resonant_echo",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.ECHO, true), true));
 
     public static final Item NETHERITE_INFERNO_ROD = registerItem("netherite_inferno_rod",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, 550, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.INFERNO, true), true));
 
     public static final Item NETHERITE_GHASTFIRE_STAFF = registerItem("netherite_ghastfire_staff",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, 450, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GHASTFIRE, true), true));
 
     public static final Item NETHERITE_WITHER_SCEPTER = registerItem("netherite_wither_scepter",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WITHER, true), true));
 
     public static final Item NETHERITE_SHULKER_SEEKER = registerItem("netherite_shulker_seeker",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.SHULKER, true), true));
 
     public static final Item NETHERITE_GUARDIAN_LENS = registerItem("netherite_guardian_lens",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GUARDIAN, true), true));
 
     public static final Item NETHERITE_EVOKER_FANG_STAFF = registerItem("netherite_evoker_fang_staff",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 450, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, true), true));
 
     public static final Item NETHERITE_STORMCALLER = registerItem("netherite_stormcaller",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, true), true));
 
     public static final Item NETHERITE_FROSTBOLT_WAND = registerItem("netherite_frostbolt_wand",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.FROST, true), true));
 
     public static final Item NETHERITE_WEBCASTER = registerItem("netherite_webcaster",
-        new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, true), true));
 
     // Netherite Upgraded Utility Artifacts
     public static final Item NETHERITE_VOID_TRANSLOCATOR = registerItem("netherite_void_translocator",
-        new VoidTranslocatorItem(250, 36.0D, true));
+        new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, true), 36.0D, true));
 
     public static final Item NETHERITE_MAGIC_MIRROR = registerItem("netherite_magic_mirror",
-        new MagicMirrorItem(150, true));
+        new MagicMirrorItem(StavesConfig.getArtifactMaxDurability(false, true), true));
 
     // Creative Tab
     public static final ResourceKey<CreativeModeTab> TAB_KEY = ResourceKey.create(
@@ -151,6 +156,7 @@ public final class VeloriseStavesMod implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        StavesConfig.load();
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
         ServerTickEvents.END_SERVER_TICK.register(TemporaryWebManager::tick);
         ServerLifecycleEvents.SERVER_STOPPING.register(TemporaryWebManager::clearAll);

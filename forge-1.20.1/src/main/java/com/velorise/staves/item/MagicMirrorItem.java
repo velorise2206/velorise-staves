@@ -1,6 +1,7 @@
 package com.velorise.staves.item;
 
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -26,8 +27,20 @@ import java.util.Optional;
 
 /** Recall artifact that channels and returns the player to their bed or spawn. */
 public class MagicMirrorItem extends Item {
-    private static final int USE_DURATION_TICKS = 50; // 2.5 seconds
-    private static final int COOLDOWN_TICKS = 300; // 15.0 seconds
+    public int getCooldownTicks() {
+        double seconds = StavesConfig.MAGIC_MIRROR_COOLDOWN_SECONDS.get();
+        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
+    public int getUseDurationTicks() {
+        return Math.max(1, (int) Math.round(StavesConfig.MAGIC_MIRROR_CHANNEL_SECONDS.get() * 20.0D));
+    }
+
+    @Override
+    public int getMaxDamage(ItemStack stack) {
+        return StavesConfig.getArtifactMaxDurability(false, isNetherite);
+    }
     private final boolean isNetherite;
 
     private record Target(ServerLevel level, Vec3 pos, float angle, boolean bedObstructed) {}
@@ -85,7 +98,7 @@ public class MagicMirrorItem extends Item {
 
     @Override
     public int getUseDuration(ItemStack stack) {
-        return USE_DURATION_TICKS;
+        return getUseDurationTicks();
     }
 
     @Override
@@ -117,7 +130,8 @@ public class MagicMirrorItem extends Item {
                 return stack;
             }
 
-            if (!isNetherite && player.level() != target.level) {
+            boolean allowCrossDim = isNetherite || StavesConfig.BASIC_MIRROR_CROSS_DIMENSION.get();
+            if (!allowCrossDim && player.level() != target.level) {
                 player.displayClientMessage(Component.translatable("message.velorise_staves.mirror_dimension_blocked"), true);
                 return stack;
             }
@@ -139,7 +153,7 @@ public class MagicMirrorItem extends Item {
             }
 
             stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
-            player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
+            player.getCooldowns().addCooldown(this, getCooldownTicks());
         }
         return stack;
     }
@@ -163,6 +177,6 @@ public class MagicMirrorItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", COOLDOWN_TICKS / 20.0F)));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)));
     }
 }

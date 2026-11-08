@@ -11,7 +11,10 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.eventbus.api.IEventBus;
+import com.velorise.staves.config.StavesConfig;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -151,6 +154,7 @@ public final class VeloriseStavesMod {
             .build());
 
     public VeloriseStavesMod() {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);

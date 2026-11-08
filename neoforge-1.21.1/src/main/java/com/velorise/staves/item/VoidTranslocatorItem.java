@@ -1,5 +1,6 @@
 package com.velorise.staves.item;
 
+import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -27,7 +28,22 @@ import java.util.List;
 
 /** Short-range blink teleportation tool powered by durability and cooldown. */
 public class VoidTranslocatorItem extends Item {
-    private static final int COOLDOWN_TICKS = 100; // 5.0 seconds
+    public double getEffectiveRange() {
+        return isNetherite
+            ? StavesConfig.VOID_TRANSLOCATOR_RANGE_NETHERITE.get()
+            : StavesConfig.VOID_TRANSLOCATOR_RANGE_BASIC.get();
+    }
+
+    public int getCooldownTicks() {
+        double seconds = StavesConfig.VOID_TRANSLOCATOR_COOLDOWN_SECONDS.get();
+        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
+    @Override
+    public int getMaxDamage(ItemStack stack) {
+        return StavesConfig.getArtifactMaxDurability(true, isNetherite);
+    }
     private final double range;
     private final boolean isNetherite;
 
@@ -59,7 +75,7 @@ public class VoidTranslocatorItem extends Item {
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
             Vec3 start = player.getEyePosition();
             Vec3 look = player.getViewVector(1.0F);
-            Vec3 end = start.add(look.scale(this.range));
+            Vec3 end = start.add(look.scale(getEffectiveRange()));
             BlockHitResult hitResult = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
             Vec3 destination = resolveDestination(level, look, end, hitResult);
 
@@ -77,7 +93,7 @@ public class VoidTranslocatorItem extends Item {
             player.fallDistance = 0.0F;
 
             stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
-            player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
+            player.getCooldowns().addCooldown(this, getCooldownTicks());
 
             spawnPortalParticles(serverLevel, destination.add(0, 1.0, 0));
             level.playSound(null, destination.x, destination.y, destination.z,
@@ -130,7 +146,7 @@ public class VoidTranslocatorItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) this.range + "m"));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", COOLDOWN_TICKS / 20.0F)));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) getEffectiveRange() + "m"));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)));
     }
 }

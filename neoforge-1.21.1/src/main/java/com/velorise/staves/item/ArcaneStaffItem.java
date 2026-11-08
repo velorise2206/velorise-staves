@@ -1,5 +1,6 @@
 package com.velorise.staves.item;
 
+import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.event.ArcaneStaffEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -184,20 +185,15 @@ public final class ArcaneStaffItem extends Item {
         return kind == Kind.ECHO || kind == Kind.GUARDIAN;
     }
 
-    private int getCooldownTicks() {
-        return switch (kind) {
-            case DRAGONFIRE -> 160; // 8.0s
-            case ECHO -> 160;       // 8.0s
-            case INFERNO -> 80;     // 4.0s
-            case GHASTFIRE -> 100;  // 5.0s
-            case WITHER -> 120;     // 6.0s
-            case SHULKER -> 120;    // 6.0s
-            case GUARDIAN -> 100;   // 5.0s
-            case EVOKER -> 100;     // 5.0s
-            case LIGHTNING -> 120;  // 6.0s
-            case FROST -> 80;       // 4.0s
-            case WEB -> 100;        // 5.0s
-        };
+    public int getCooldownTicks() {
+        double seconds = StavesConfig.getStaffCooldownSeconds(kind);
+        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
+    @Override
+    public int getMaxDamage(ItemStack stack) {
+        return StavesConfig.getMaxDurability(kind, isNetherite);
     }
 
     private void prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks) {
@@ -444,7 +440,8 @@ public final class ArcaneStaffItem extends Item {
         double range = isNetherite ? 28.0D : 24.0D;
         Vec3 end = target == null ? rayEnd(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
-            target.hurt(level.damageSources().magic(), isNetherite ? 3.5F : 2.5F);
+            float baseDmg = isNetherite ? 3.5F : 2.5F;
+            target.hurt(level.damageSources().magic(), (float) (baseDmg * StavesConfig.DAMAGE_MULTIPLIER.get()));
         }
         drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
         level.playSound(null, player.blockPosition(), SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.9F, 1.2F);
@@ -466,7 +463,7 @@ public final class ArcaneStaffItem extends Item {
             .sorted(Comparator.comparingDouble(target -> projection(start, direction, target.getBoundingBox().getCenter())))
             .toList();
 
-        float damage = isNetherite ? 28.0F : 22.0F;
+        float damage = (float) ((isNetherite ? 28.0F : 22.0F) * StavesConfig.DAMAGE_MULTIPLIER.get());
         for (LivingEntity target : targets) {
             target.hurt(level.damageSources().magic(), damage);
         }
