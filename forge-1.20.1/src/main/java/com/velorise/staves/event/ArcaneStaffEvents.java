@@ -21,11 +21,16 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 /** Server-side impact resolution for Arcane Staves projectiles and server tick managers. */
 @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
@@ -35,6 +40,7 @@ public final class ArcaneStaffEvents {
     private static final String TAG_ORIGIN_Y = "ArcaneStaffOriginY";
     private static final String TAG_ORIGIN_Z = "ArcaneStaffOriginZ";
     private static final String TAG_MAX_RANGE = "ArcaneStaffMaxRange";
+    private static final Set<Projectile> TRACKED_PROJECTILES = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
     private ArcaneStaffEvents() {}
 
@@ -43,6 +49,7 @@ public final class ArcaneStaffEvents {
         projectile.getPersistentData().putDouble(TAG_ORIGIN_Y, origin.y);
         projectile.getPersistentData().putDouble(TAG_ORIGIN_Z, origin.z);
         projectile.getPersistentData().putDouble(TAG_MAX_RANGE, Math.max(1.0D, maxRange));
+        TRACKED_PROJECTILES.add(projectile);
     }
 
     @SubscribeEvent
@@ -52,6 +59,7 @@ public final class ArcaneStaffEvents {
         String kind = projectile.getPersistentData().getString(TAG_KIND);
         if (kind.isEmpty()) return;
 
+        TRACKED_PROJECTILES.remove(projectile);
         Vec3 hit = event.getRayTraceResult().getLocation();
         if (isBeyondRange(projectile, hit)) {
             event.setCanceled(true);
@@ -88,6 +96,31 @@ public final class ArcaneStaffEvents {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server != null) {
             TemporaryWebManager.tick(server);
+            tickProjectiles();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event) {
+        TemporaryWebManager.clearAll(event.getServer());
+        TRACKED_PROJECTILES.clear();
+    }
+
+    private static void tickProjectiles() {
+        synchronized (TRACKED_PROJECTILES) {
+            Iterator<Projectile> it = TRACKED_PROJECTILES.iterator();
+            while (it.hasNext()) {
+                Projectile projectile = it.next();
+                if (projectile == null || projectile.isRemoved() || !(projectile.level() instanceof ServerLevel level)) {
+                    it.remove();
+                    continue;
+                }
+                if (isBeyondRange(projectile, projectile.position())) {
+                    level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
+                    projectile.discard();
+                    it.remove();
+                }
+            }
         }
     }
 

@@ -1,7 +1,6 @@
 package com.velorise.staves.event;
 
 import com.velorise.staves.VeloriseStavesMod;
-import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -22,9 +21,14 @@ import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 /** Server-side impact resolution for Arcane Staves projectiles and server tick managers. */
 @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.GAME)
@@ -34,6 +38,7 @@ public final class ArcaneStaffEvents {
     private static final String TAG_ORIGIN_Y = "ArcaneStaffOriginY";
     private static final String TAG_ORIGIN_Z = "ArcaneStaffOriginZ";
     private static final String TAG_MAX_RANGE = "ArcaneStaffMaxRange";
+    private static final Set<Projectile> TRACKED_PROJECTILES = Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
 
     private ArcaneStaffEvents() {}
 
@@ -42,6 +47,7 @@ public final class ArcaneStaffEvents {
         projectile.getPersistentData().putDouble(TAG_ORIGIN_Y, origin.y);
         projectile.getPersistentData().putDouble(TAG_ORIGIN_Z, origin.z);
         projectile.getPersistentData().putDouble(TAG_MAX_RANGE, Math.max(1.0D, maxRange));
+        TRACKED_PROJECTILES.add(projectile);
     }
 
     @SubscribeEvent
@@ -51,6 +57,7 @@ public final class ArcaneStaffEvents {
         String kind = projectile.getPersistentData().getString(TAG_KIND);
         if (kind.isEmpty()) return;
 
+        TRACKED_PROJECTILES.remove(projectile);
         Vec3 hit = event.getRayTraceResult().getLocation();
         if (isBeyondRange(projectile, hit)) {
             event.setCanceled(true);
@@ -84,6 +91,31 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
         TemporaryWebManager.tick(event.getServer());
+        tickProjectiles();
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event) {
+        TemporaryWebManager.clearAll(event.getServer());
+        TRACKED_PROJECTILES.clear();
+    }
+
+    private static void tickProjectiles() {
+        synchronized (TRACKED_PROJECTILES) {
+            Iterator<Projectile> it = TRACKED_PROJECTILES.iterator();
+            while (it.hasNext()) {
+                Projectile projectile = it.next();
+                if (projectile == null || projectile.isRemoved() || !(projectile.level() instanceof ServerLevel level)) {
+                    it.remove();
+                    continue;
+                }
+                if (isBeyondRange(projectile, projectile.position())) {
+                    level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
+                    projectile.discard();
+                    it.remove();
+                }
+            }
+        }
     }
 
     private static void resolveDragonfire(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {

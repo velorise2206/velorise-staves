@@ -1,4 +1,4 @@
-﻿{
+{
   "parent": "velorise_staves:item/arcane_staff_handheld",
   "textures": {
     "layer0": "velorise_staves:item/resonant_echo"

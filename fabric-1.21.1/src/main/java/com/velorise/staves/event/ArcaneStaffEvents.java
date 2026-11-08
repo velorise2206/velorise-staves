@@ -21,7 +21,7 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
-/** Server-side impact resolution for Arcane Staves projectiles. */
+/** Server-side impact and range resolution for Arcane Staves projectiles. */
 public final class ArcaneStaffEvents {
     private static final String TAG_PREFIX_KIND = "velorise:kind:";
     private static final String TAG_PREFIX_RANGE = "velorise:range:";
@@ -45,6 +45,16 @@ public final class ArcaneStaffEvents {
             }
         }
         return null;
+    }
+
+    public static void onProjectileTick(Projectile projectile) {
+        if (!(projectile.level() instanceof ServerLevel level)) return;
+        String kind = getKind(projectile);
+        if (kind == null || kind.isEmpty()) return;
+        if (isBeyondRange(projectile, projectile.position())) {
+            level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
+            projectile.discard();
+        }
     }
 
     public static boolean onProjectileHit(Projectile projectile, HitResult hitResult) {

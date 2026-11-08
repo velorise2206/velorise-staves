@@ -3,7 +3,7 @@ set -eu
 GRADLE_VERSION="8.10.2"
 GRADLE_DIST="gradle-${GRADLE_VERSION}-bin.zip"
 GRADLE_URL="https://services.gradle.org/distributions/${GRADLE_DIST}"
-CACHE_ROOT="${HOME}/.gradle/camera-lockon-distributions"
+CACHE_ROOT="${HOME}/.gradle/velorise-staves-distributions"
 GRADLE_HOME="${CACHE_ROOT}/gradle-${GRADLE_VERSION}"
 GRADLE_BIN="${GRADLE_HOME}/bin/gradle"
 

@@ -13,8 +13,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
@@ -28,6 +28,7 @@ import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.projectile.WitherSkull;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.ClipContext;
@@ -51,6 +52,7 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WITHER_LAST = "ArcaneStaffWitherLast";
     private static final String TAG_FROST_SHOTS = "ArcaneStaffFrostShots";
     private static final String TAG_FROST_LAST = "ArcaneStaffFrostLast";
+    private static final int BURST_RESET_TICKS = 20;
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
@@ -98,18 +100,11 @@ public final class ArcaneStaffItem extends Item {
         if (level.isClientSide()) return InteractionResultHolder.sidedSuccess(stack, true);
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
 
-        if (kind == Kind.INFERNO && !prepareBurst(serverPlayer, TAG_INFERNO_SHOTS, TAG_INFERNO_LAST, 20, getCooldownTicks())) {
-            return InteractionResultHolder.fail(stack);
+        if (isBurstKind()) {
+            prepareBurst(serverPlayer, burstShotsTag(), burstLastTag(), BURST_RESET_TICKS);
         }
-        if (kind == Kind.WEB && !prepareBurst(serverPlayer, TAG_WEB_SHOTS, TAG_WEB_LAST, 20, getCooldownTicks())) {
-            return InteractionResultHolder.fail(stack);
-        }
-        if (kind == Kind.WITHER && !prepareBurst(serverPlayer, TAG_WITHER_SHOTS, TAG_WITHER_LAST, 20, getCooldownTicks())) {
-            return InteractionResultHolder.fail(stack);
-        }
-        if (kind == Kind.FROST && !prepareBurst(serverPlayer, TAG_FROST_SHOTS, TAG_FROST_LAST, 20, getCooldownTicks())) {
-            return InteractionResultHolder.fail(stack);
-        }
+
+        boolean shouldConsumeDurability = !isBurstKind() || isFirstBurstShot(serverPlayer, burstShotsTag());
 
         boolean activated = switch (kind) {
             case DRAGONFIRE -> shootDragonfire(serverPlayer);
@@ -126,17 +121,64 @@ public final class ArcaneStaffItem extends Item {
 
         if (!activated) return InteractionResultHolder.fail(stack);
 
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
+        if (shouldConsumeDurability) {
+            stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
+        }
 
-        if (kind == Kind.INFERNO) advanceBurst(serverPlayer, TAG_INFERNO_SHOTS, TAG_INFERNO_LAST, 3, getCooldownTicks());
-        else if (kind == Kind.WEB) advanceBurst(serverPlayer, TAG_WEB_SHOTS, TAG_WEB_LAST, 3, getCooldownTicks());
-        else if (kind == Kind.WITHER) advanceBurst(serverPlayer, TAG_WITHER_SHOTS, TAG_WITHER_LAST, 3, getCooldownTicks());
-        else if (kind == Kind.FROST) advanceBurst(serverPlayer, TAG_FROST_SHOTS, TAG_FROST_LAST, 3, getCooldownTicks());
-        else player.getCooldowns().addCooldown(this, getCooldownTicks());
+        if (isBurstKind()) {
+            advanceBurst(serverPlayer, burstShotsTag(), burstLastTag(), 3, getCooldownTicks());
+        } else {
+            player.getCooldowns().addCooldown(this, getCooldownTicks());
+        }
 
         player.awardStat(Stats.ITEM_USED.get(this));
         player.swing(hand, true);
         return InteractionResultHolder.consume(stack);
+    }
+
+    @Override
+    public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (level.isClientSide() || !isBurstKind() || !(entity instanceof ServerPlayer player)) return;
+        String tagShots = burstShotsTag();
+        String tagLast = burstLastTag();
+        int shots = player.getPersistentData().getInt(tagShots);
+        if (shots <= 0) return;
+        long elapsed = level.getGameTime() - player.getPersistentData().getLong(tagLast);
+        if (elapsed > BURST_RESET_TICKS) {
+            player.getPersistentData().remove(tagShots);
+            player.getPersistentData().remove(tagLast);
+            if (!player.getCooldowns().isOnCooldown(this)) {
+                player.getCooldowns().addCooldown(this, getCooldownTicks());
+            }
+        }
+    }
+
+    private boolean isBurstKind() {
+        return kind == Kind.INFERNO || kind == Kind.WEB || kind == Kind.WITHER || kind == Kind.FROST;
+    }
+
+    private String burstShotsTag() {
+        return switch (kind) {
+            case INFERNO -> TAG_INFERNO_SHOTS;
+            case WEB -> TAG_WEB_SHOTS;
+            case WITHER -> TAG_WITHER_SHOTS;
+            case FROST -> TAG_FROST_SHOTS;
+            default -> "";
+        };
+    }
+
+    private String burstLastTag() {
+        return switch (kind) {
+            case INFERNO -> TAG_INFERNO_LAST;
+            case WEB -> TAG_WEB_LAST;
+            case WITHER -> TAG_WITHER_LAST;
+            case FROST -> TAG_FROST_LAST;
+            default -> "";
+        };
+    }
+
+    private boolean isFirstBurstShot(ServerPlayer player, String tagShots) {
+        return player.getPersistentData().getInt(tagShots) <= 0;
     }
 
     private boolean isCharged() {
@@ -159,16 +201,14 @@ public final class ArcaneStaffItem extends Item {
         };
     }
 
-    private boolean prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks, int cdTicks) {
+    private void prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks) {
         int shots = player.getPersistentData().getInt(tagShots);
-        if (shots <= 0) return true;
+        if (shots <= 0) return;
         long elapsed = player.level().getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (elapsed <= resetTicks) return true;
-
-        player.getPersistentData().remove(tagShots);
-        player.getPersistentData().remove(tagLast);
-        player.getCooldowns().addCooldown(this, cdTicks);
-        return false;
+        if (elapsed > resetTicks) {
+            player.getPersistentData().remove(tagShots);
+            player.getPersistentData().remove(tagLast);
+        }
     }
 
     private void advanceBurst(ServerPlayer player, String tagShots, String tagLast, int maxShots, int cdTicks) {
@@ -200,11 +240,12 @@ public final class ArcaneStaffItem extends Item {
         if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
         if (kind == Kind.GUARDIAN) {
             int elapsed = 50 - count;
-            if (elapsed <= 0 || elapsed % 5 != 0 || !(entity instanceof ServerPlayer player)) return;
+            if (elapsed < 0 || elapsed % 5 != 0 || !(entity instanceof ServerPlayer player)) return;
             LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
             fireGuardian(player, target);
-            if (elapsed % 10 == 0) {
-                stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(EquipmentSlot.MAINHAND));
+            if (elapsed > 0 && elapsed % 20 == 0) {
+                InteractionHand usedHand = player.getUsedItemHand();
+                stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
             }
             return;
         }
@@ -220,8 +261,9 @@ public final class ArcaneStaffItem extends Item {
             finishGuardianBeam(player);
             return stack;
         }
+        InteractionHand usedHand = player.getUsedItemHand();
         fireEcho(player);
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(EquipmentSlot.MAINHAND));
+        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
         player.getCooldowns().addCooldown(this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
         return stack;
@@ -285,19 +327,22 @@ public final class ArcaneStaffItem extends Item {
         LivingEntity target = findTarget(player, range, 1.5D);
         int shots = 2;
         int spawned = 0;
+        String kindTag = isNetherite ? "netherite_shulker" : "shulker";
         for (int i = 0; i < shots; i++) {
             Vec3 direction = fanDirection(player.getLookAngle(), i, shots, 9.0F);
+            Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
             ShulkerBullet projectile;
             if (target != null) {
                 projectile = new ShulkerBullet(level, player, target, Direction.Axis.Y);
+                projectile.moveTo(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z, player.getYRot(), player.getXRot());
+                projectile.setDeltaMovement(direction.scale(0.45D));
+                projectile.getPersistentData().putString(ArcaneStaffEvents.TAG_KIND, kindTag);
+                ArcaneStaffEvents.markRange(projectile, player.position(), range);
             } else {
                 projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
-                projectile.setOwner(player);
-                Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
-                projectile.moveTo(spawnPos.x, spawnPos.y, spawnPos.z, player.getYRot(), player.getXRot());
-                projectile.setDeltaMovement(direction.scale(1.25D));
+                prepareProjectile(projectile, player, kindTag, range, 1.25F, direction);
+                projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
             }
-            prepareProjectile(projectile, player, isNetherite ? "netherite_shulker" : "shulker", range, 1.25F, direction);
             level.addFreshEntity(projectile);
             spawned++;
         }
@@ -466,6 +511,22 @@ public final class ArcaneStaffItem extends Item {
         double projection = projection(start, direction, point);
         if (projection < 0.0D || projection > range) return Double.MAX_VALUE;
         return point.distanceTo(start.add(direction.scale(projection)));
+    }
+
+    @Override
+    public int getEnchantmentValue() {
+        return isNetherite ? 20 : 15;
+    }
+
+    @Override
+    public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
+        if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
+        boolean validBase = switch (kind) {
+            case DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, WITHER, GUARDIAN -> repair.is(Items.BLAZE_ROD);
+            case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
+            case EVOKER, LIGHTNING, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+        };
+        return validBase || super.isValidRepairItem(toRepair, repair);
     }
 
     @Override

@@ -1,4 +1,4 @@
-﻿{
+{
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "velorise_staves:item/magic_mirror"

@@ -3,7 +3,7 @@ setlocal EnableExtensions
 set "GRADLE_VERSION=8.10.2"
 set "GRADLE_DIST=gradle-%GRADLE_VERSION%-bin.zip"
 set "GRADLE_URL=https://services.gradle.org/distributions/%GRADLE_DIST%"
-set "GRADLE_CACHE=%USERPROFILE%\.gradle\camera-lockon-distributions"
+set "GRADLE_CACHE=%USERPROFILE%\.gradle\velorise-staves-distributions"
 set "GRADLE_HOME=%GRADLE_CACHE%\gradle-%GRADLE_VERSION%"
 set "GRADLE_BAT=%GRADLE_HOME%\bin\gradle.bat"
 

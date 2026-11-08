@@ -16,7 +16,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
-/** Tracks temporary Webcaster cobwebs and restores previous blocks upon expiration. */
+/** Tracks temporary Webcaster cobwebs and restores previous blocks upon expiration or server shutdown. */
 public final class TemporaryWebManager {
     private static final int VENOM_PULSE_INTERVAL_TICKS = 20;
     private static final int POISON_DURATION_TICKS = 60;
@@ -72,12 +72,31 @@ public final class TemporaryWebManager {
                 if (venomPulse && level.getBlockState(pos).is(Blocks.COBWEB)) {
                     AABB webBox = new AABB(pos).inflate(0.05D);
                     for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, webBox, LivingEntity::isAlive)) {
+                        if (entry.ownerId != null && entry.ownerId.equals(target.getUUID())) continue;
                         target.addEffect(new MobEffectInstance(MobEffects.POISON, POISON_DURATION_TICKS, entry.poisonAmplifier, true, true, true));
                     }
                 }
             }
 
             if (levelEntry.getValue().isEmpty()) levels.remove();
+        }
+    }
+
+    public static void clearAll(MinecraftServer server) {
+        Iterator<Map.Entry<ServerLevel, Map<BlockPos, Entry>>> levels = WEBS.entrySet().iterator();
+        while (levels.hasNext()) {
+            Map.Entry<ServerLevel, Map<BlockPos, Entry>> levelEntry = levels.next();
+            ServerLevel level = levelEntry.getKey();
+            if (server != null && level.getServer() != server) continue;
+
+            for (Map.Entry<BlockPos, Entry> web : levelEntry.getValue().entrySet()) {
+                BlockPos pos = web.getKey();
+                Entry entry = web.getValue();
+                if (level.hasChunkAt(pos) && level.getBlockState(pos).is(Blocks.COBWEB)) {
+                    level.setBlock(pos, entry.previous, 3);
+                }
+            }
+            levels.remove();
         }
     }
 

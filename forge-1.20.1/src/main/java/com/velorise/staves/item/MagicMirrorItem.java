@@ -10,11 +10,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.Level;
@@ -122,6 +122,7 @@ public class MagicMirrorItem extends Item {
                 return stack;
             }
 
+            InteractionHand usedHand = player.getUsedItemHand();
             ServerLevel departure = (ServerLevel) player.level();
             departure.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY() + 1.0, player.getZ(), 30, 0.5, 0.5, 0.5, 0.5);
             departure.playSound(null, player.blockPosition(), VeloriseStavesMod.MAGIC_MIRROR_USE_SOUND.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -137,10 +138,21 @@ public class MagicMirrorItem extends Item {
                 player.displayClientMessage(Component.translatable("message.velorise_staves.mirror_teleport"), true);
             }
 
-            stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(EquipmentSlot.MAINHAND));
+            stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
             player.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         }
         return stack;
+    }
+
+    @Override
+    public int getEnchantmentValue() {
+        return isNetherite ? 20 : 15;
+    }
+
+    @Override
+    public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
+        if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
+        return repair.is(Items.DIAMOND) || super.isValidRepairItem(toRepair, repair);
     }
 
     @Override

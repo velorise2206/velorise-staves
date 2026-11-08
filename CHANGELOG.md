@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-11-08
+
+### Fixed
+- **1.21.1 Enchantment Compatibility**: Added `minecraft:enchantable/durability` and `minecraft:enchantable/vanishing` item tags in `shared-resources` so `Unbreaking`, `Mending`, and `Curse of Vanishing` work properly in Survival on NeoForge 1.21.1 and Fabric 1.21.1.
+- **Enchantability & Anvil Material Repair**: Overrode `getEnchantmentValue()` (15 for Basic, 20 for Netherite) and `isValidRepairItem()` across all staves and artifacts.
+- **Webcaster Owner Immunity & Server Shutdown Cleanup**: Fixed `TemporaryWebManager` poisoning the caster and added `clearAll()` hook on server stopping across Forge, NeoForge, and Fabric so temporary cobwebs never persist permanently after server restarts.
+- **Burst-Fire Stalls & Durability Drain**: Fixed burst staves (`Inferno Rod`, `Wither Scepter`, `Frostbolt Wand`, `Webcaster`) consuming 3 durability per burst and stalling with a full cooldown on expired partial bursts.
+- **Shulker Seeker Homing**: Fixed `prepareProjectile()` overwriting `ShulkerBullet` homing movement when a target is locked.
+- **Mid-Air Projectile Max Range**: Enforced `maxRange` despawning in mid-air via tick checks across Forge, NeoForge, and Fabric (`ProjectileMixin`).
+- **Guardian Lens Damage Tick Count**: Fixed `onUseTick` skipping the initial tick (`elapsed == 0`), restoring full 10-tick channel damage (25.0 Basic / 35.0 Netherite).
+- **Offhand Slot & Foil Parity**: Fixed hardcoded `EquipmentSlot.MAINHAND` in channeled items and restored `isFoil()` enchantment glint on `MagicMirrorItem` and `VoidTranslocatorItem` in NeoForge and Fabric 1.21.1.
+- **Resource & Script Cleanup**: Stripped UTF-8 BOM from 41 JSON files and fixed leftover project names in `.bat` and `gradlew` scripts.
+
+---
+
 ## [1.0.0] - 2026-11-08
 
 ### Added

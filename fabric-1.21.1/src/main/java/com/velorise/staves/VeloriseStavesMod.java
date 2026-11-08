@@ -5,6 +5,7 @@ import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.core.Registry;
@@ -152,6 +153,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     public void onInitialize() {
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
         ServerTickEvents.END_SERVER_TICK.register(TemporaryWebManager::tick);
+        ServerLifecycleEvents.SERVER_STOPPING.register(TemporaryWebManager::clearAll);
     }
 
     private static Item registerItem(String path, Item item) {
