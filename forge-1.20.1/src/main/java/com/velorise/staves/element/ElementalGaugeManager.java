@@ -698,8 +698,11 @@ public final class ElementalGaugeManager {
         AABB box = target.getBoundingBox().inflate(3.5D);
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             victim.hurt(level.damageSources().magic(), (float) (6.0F * dmgMult));
-            Vec3 knock = victim.position().subtract(pos).normalize();
-            victim.setDeltaMovement(victim.getDeltaMovement().add(knock.x * 0.75D, 0.42D, knock.z * 0.75D));
+            Vec3 diff = victim == target && attacker != null
+                ? target.position().subtract(attacker.position())
+                : victim.position().subtract(pos);
+            Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+            victim.setDeltaMovement(victim.getDeltaMovement().add(knock.x * 0.85D, 0.45D, knock.z * 0.85D));
             victim.hurtMarked = true;
         }
     }
