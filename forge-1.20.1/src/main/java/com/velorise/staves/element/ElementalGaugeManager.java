@@ -946,13 +946,13 @@ public final class ElementalGaugeManager {
                 }
             }
 
-            // 2B. Proximity Voltaic Arcing (Electro mob <-> Hydro / Wet mob within 4.0 blocks)
-            if (entityGauges.containsKey(Element.ELECTRO) && (now % 4 == 0)) {
+            // 2B. Proximity Voltaic Arcing (ONLY when BOTH entities are submerged in water)
+            // On land, two mobs with different auras standing next to each other DO NOT auto-trigger reactions.
+            if (entityGauges.containsKey(Element.ELECTRO) && isEntityInWater(target) && (now % 4 == 0)) {
                 final LivingEntity srcTarget = target;
                 AABB arcBox = target.getBoundingBox().inflate(4.0D);
                 for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, arcBox, e -> e.isAlive() && !e.isRemoved() && e != srcTarget)) {
-                    boolean nearbyWet = isEntityInWater(nearby) || getEntityElements(nearby.getUUID()).contains(Element.HYDRO) || getInnateElement(nearby) == Element.HYDRO;
-                    if (nearbyWet) {
+                    if (isEntityInWater(nearby)) {
                         long pairKey = (((long) Math.min(target.getId(), nearby.getId())) << 32) | ((long) Math.max(target.getId(), nearby.getId()) & 0xFFFFFFFFL);
                         Long lastShock = LAST_PROXIMITY_SHOCK.get(pairKey);
                         if (lastShock == null || now - lastShock >= 18) { // 0.9s discharge interval
@@ -978,15 +978,17 @@ public final class ElementalGaugeManager {
                     targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
                     syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, 2.5F);
 
-                    // Chain discharge arc to nearby wet entities
-                    final LivingEntity srcTarget = target;
-                    AABB chainBox = target.getBoundingBox().inflate(4.0D);
-                    for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
-                        if (isEntityInWater(nearby) || getEntityElements(nearby.getUUID()).contains(Element.HYDRO)) {
-                            drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
-                            nearby.hurt(targetLevel.damageSources().magic(), 2.0F);
-                            applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
-                            targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, nearby.getX(), nearby.getY() + 0.8D, nearby.getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
+                    // Chain discharge arc to nearby wet entities ONLY IF both are in water
+                    if (isEntityInWater(target)) {
+                        final LivingEntity srcTarget = target;
+                        AABB chainBox = target.getBoundingBox().inflate(4.0D);
+                        for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
+                            if (isEntityInWater(nearby)) {
+                                drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
+                                nearby.hurt(targetLevel.damageSources().magic(), 2.0F);
+                                applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
+                                targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, nearby.getX(), nearby.getY() + 0.8D, nearby.getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
+                            }
                         }
                     }
 
@@ -1058,7 +1060,11 @@ public final class ElementalGaugeManager {
                 }
             }
 
+            // 6. Cryo Aura passive debuff (-15% Movement Speed, -15% Attack Speed)
+            updateCryoDebuff(target, id, entityGauges.containsKey(Element.CRYO), innate);
+
             if (entityGauges.isEmpty()) {
+                updateCryoDebuff(target, id, false, innate);
                 it.remove();
             }
 
@@ -1066,13 +1072,13 @@ public final class ElementalGaugeManager {
                 syncAuras(target, entityGauges.keySet(), null, null, null);
             }
 
-            // 6. Ambient aura particles (every 10 ticks)
+            // 7. Ambient aura particles (every 10 ticks)
             if (!entityGauges.isEmpty() && now % 10 == 0 && StavesConfig.SHOW_ELEMENTAL_PARTICLES.get()) {
                 spawnAmbientParticles(targetLevel, target, entityGauges, now);
             }
         }
 
-        // 7. Environmental water, fire & poison checks on active online players
+        // 8. Environmental water, fire, poison & cryo checks on active online players
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (player.isAlive()) {
                 if (isEntityInWater(player)) {
@@ -1083,6 +1089,33 @@ public final class ElementalGaugeManager {
                 if (player.hasEffect(MobEffects.POISON)) {
                     handleEnvironmentalPoison(player);
                 }
+                Collection<Element> playerElements = getEntityElements(player.getUUID());
+                updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
+            }
+        }
+    }
+
+    /**
+     * Cryo Aura passive debuff (Genshin Impact):
+     * When afflicted with Cryo, reduces movement speed by 15% (Slowness I) and attack speed by 15% (Mining Fatigue I).
+     * Clears debuff immediately when Cryo aura expires or is removed by reactions (e.g. Melt).
+     */
+    private static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) {
+        if (innate == Element.CRYO) return;
+        if (hasCryo) {
+            if (!target.hasEffect(MobEffects.MOVEMENT_SLOWDOWN)) {
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 0, false, false, true));
+            }
+            if (!target.hasEffect(MobEffects.DIG_SLOWDOWN)) {
+                target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 30, 0, false, false, true));
+            }
+        } else {
+            if (target.hasEffect(MobEffects.DIG_SLOWDOWN)) {
+                target.removeEffect(MobEffects.DIG_SLOWDOWN);
+            }
+            MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
+            if (slow != null && slow.getAmplifier() == 0 && !FROZEN_UNTIL.containsKey(id)) {
+                target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
             }
         }
     }
