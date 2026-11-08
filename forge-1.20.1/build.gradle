@@ -56,6 +56,10 @@ repositories {
         name = "ModMaven"
         url = "https://modmaven.dev"
     }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+    }
 }
 
 dependencies {
@@ -63,6 +67,9 @@ dependencies {
 
     compileOnly "mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-forge:${jei_version}"
+
+    compileOnly fg.deobf("maven.modrinth:jade:11.13.3+forge")
+    runtimeOnly fg.deobf("maven.modrinth:jade:11.13.3+forge")
 }
 
 tasks.named('processResources', ProcessResources).configure {

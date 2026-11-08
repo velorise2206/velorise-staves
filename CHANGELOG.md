@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Mid-Air Projectile Max Range**: Enforced `maxRange` despawning in mid-air via tick checks across Forge, NeoForge, and Fabric (`ProjectileMixin`).
 - **Guardian Lens Damage Tick Count**: Fixed `onUseTick` skipping the initial tick (`elapsed == 0`), restoring full 10-tick channel damage (25.0 Basic / 35.0 Netherite).
 - **Offhand Slot & Foil Parity**: Fixed hardcoded `EquipmentSlot.MAINHAND` in channeled items and restored `isFoil()` enchantment glint on `MagicMirrorItem` and `VoidTranslocatorItem` in NeoForge and Fabric 1.21.1.
+- **Dev Environment Tools**: Added Jade HUD (`11.13.3+forge`, `15.10.6+neoforge`, `15.10.6+fabric`) runtime dependencies across all three loaders for in-game testing.
 - **Resource & Script Cleanup**: Stripped UTF-8 BOM from 41 JSON files and fixed leftover project names in `.bat` and `gradlew` scripts.
 
 ---
