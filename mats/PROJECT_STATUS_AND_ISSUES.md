@@ -83,6 +83,34 @@ Hệ thống phản ứng nguyên tố và hiển thị của mod đã được 
 - **Hiện tượng:** Mục tiêu trực tiếp kích hoạt Quá Tải trước đây chỉ bị nảy nhẹ lên trên tại chỗ do vector đẩy lùi từ tâm nổ về chính nó bằng 0.
 - **Giải pháp:** Bổ sung vector đẩy lùi định hướng từ vị trí người chơi ra xa sau lưng quái, khiến mục tiêu bị hất văng lùi lại với lực nổ uy lực y hệt Genshin Impact.
 
+### 2.9. Vùng Nước Nhiễm Lôi (Electrified Water)
+- **Cơ chế:** Khi tia sét từ Arc Caster bắn vào khối nước, hoặc khi thực thể mang ấn Lôi bước vào/bơi trong nước, toàn bộ vùng nước trong bán kính 4.0m sẽ trở thành Vùng nước nhiễm điện tồn tại trong 3.5 giây (70 ticks).
+- **Hiệu ứng & Sát thương:** Bề mặt nước nổ tia lửa `ELECTRIC_SPARK` và âm thanh sấm rền liên tục. Cứ mỗi 0.5s (10 ticks), các thực thể bên trong nhận 1.5 - 2.0 sát thương Lôi, bị gắn 0.8U ấn Lôi, và kích hoạt chuỗi phản ứng Điện Cảm (Electro-Charged) liên tục với nước.
+
+### 2.10. Tự Phóng Điện Gần Nhau & Chuỗi Lan Sét Điện Cảm (Proximity & Chain Arcing)
+- **Tự phóng điện gần nhau:** Khi 2 quái đứng cách nhau dưới 3.5m (một con có ấn Lôi, một con có ấn Thủy), giữa 2 quái sẽ tự động phóng hồ quang điện gây sát thương và kích hoạt phản ứng Điện Cảm mà không cần người chơi phải đánh tiếp.
+- **Chuỗi lây lan:** Mỗi nhịp sát thương định kỳ của Điện Cảm (mỗi 1s) sẽ phóng sét sang tất cả các quái xung quanh trong phạm vi 4.0m đang mang ấn Thủy hoặc bị ướt.
+
+### 2.11. Đổi tên và Chuyển dạng Arc Caster (Voltaic Arc Stream)
+- **Thay đổi:** Gậy Lôi đổi tên từ Stormcaller thành **Arc Caster** (`arc_caster`).
+- **Cơ chế giữ gậy (Channeling):** Không còn gọi sét vanilla từ trên trời (gây cháy đất phiền toái), chuyển sang dạng giữ gậy liên tục (channeling tối đa 60 ticks) phóng luồng hồ quang điện uốn lượn giật ngang từ đầu gậy tới mục tiêu với tia lửa nổ lách tách và âm thanh điện cao thế, giật lan sang 2 quái lân cận, chỉ áp ấn Lôi và dập tắt lửa tức thì (`clearFire()`).
+
+### 2.12. Tương Thích Jade (WAILA): Icon PNG & Phản Ứng Kép
+- **Icon PNG nguyên tố:** Thay thế text/emoji bằng `ElementIcon` 10x10 vẽ trực tiếp từ file PNG nguyên tố độ phân giải cao (`textures/element/<element>.png`).
+- **Phản ứng kép song song:** Khi phản ứng nguyên tố diễn ra, Jade hiển thị đồng thời cả 2 icon nguyên tố thành phần: `[💧 Thủy] + [⚡ Lôi] ➔ ELECTRO-CHARGED`.
+
+### 2.13. Tinh Chỉnh Mô Hình 3D Quả Lồng Đèn Thảo (Dendro Core Physalis)
+- **Mô hình 3D:** Thiết kế lại khối 3D quả lồng đèn / tầm bóp (*Physalis*) với 4 cánh bao lá khum ôm bọc lấy nhân hạt phát sáng rực rỡ màu xanh non chuối (`#d5ff64`), kèm cuống lá trên đỉnh và hiệu ứng bào tử lơ lửng (`SPORE_BLOSSOM_AIR`, `GLOW`).
+- **Tỷ lệ hiển thị:** Cân chỉnh `scale: 0.65` và `translation: [0, 1.25, 0]` giúp hạt nằm trọn vẹn và vừa vặn bên trong hitbox $0.25\times 0.25$ của ItemEntity.
+
+### 2.14. Tương Tác Môi Trường: Cầu Băng & Làm Tan Băng
+- **Gậy Băng (Frostbolt Wand):** Bắn xuống nước tạo ra thềm băng nứt tạm thời `Blocks.FROSTED_ICE` tự tan chảy sau 2–4s (cơ chế Kaeya/Ayaka).
+- **Gậy Lửa (Inferno Rod / Ghastfire Staff):** Bắn vào băng sẽ làm tan chảy băng tức thì thành nước kèm hơi nước bốc lên (`CLOUD`).
+
+### 2.15. Hệ Thống Ender & Môi Trường Độc/Gai Liên Kết Nguyên Tố
+- **Hệ Ender = Lôi (Electro):** Toàn bộ thực thể Enderman, Ender Dragon, Shulker, Endermite, đòn đánh cận chiến, hơi thở rồng, cầu lửa rồng, ngọc Ender ném đều áp ấn Lôi (1.0U – 1.5U) và mang nguyên tố bẩm sinh Lôi (miễn nhiễm Lôi).
+- **Độc & Gai = Thảo (Dendro):** Cây xương rồng, bụi dâu gai, và hiệu ứng thuốc độc (Poison) gây sát thương sẽ tự động áp ấn Thảo (1.0U).
+
 ---
 
 ## 3. PHÂN LOẠI QUÁI VẬT NGUYÊN TỐ TRONG MINECRAFT
