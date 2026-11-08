@@ -145,7 +145,26 @@ public final class ElementalGaugeManager {
                 return;
             }
 
-            // 5. Attacker with Innate Element (Enderman, Ender Dragon, Shulker, Endermite, Blaze, Stray)
+            // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
+            if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
+                applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
+                return;
+            }
+
+            // 6. Poison damage or afflicted with Poison -> Dendro (1.0U)
+            if (target.hasEffect(MobEffects.POISON)) {
+                applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
+            }
+
+            // 7. Direct Ender projectiles (Dragon Fireball, Shulker Bullet, Ender Pearl) -> Electro (1.5U)
+            if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.DragonFireball
+                    || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet
+                    || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl) {
+                applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
+                return;
+            }
+
+            // 8. Attacker with Innate Element (Enderman, Ender Dragon, Shulker, Endermite, Blaze, Stray)
             if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
                 Element innate = getInnateElement(attackerMob);
                 if (innate != null) {
@@ -271,6 +290,24 @@ public final class ElementalGaugeManager {
                 target.hurt(sl.damageSources().magic(), 2.5F);
             }
             syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, 2.5F);
+        }
+    }
+
+    /**
+     * Handles environmental poison affliction (splash/lingering potion, cave spider, poison damage) on entities.
+     * Continuously maintains 1.0U Dendro aura while afflicted with MobEffects.POISON.
+     */
+    public static void handleEnvironmentalPoison(LivingEntity target) {
+        if (!target.isAlive() || target.isInvulnerable()) return;
+        Element innate = getInnateElement(target);
+        if (innate == Element.DENDRO) return;
+
+        UUID id = target.getUUID();
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
+        if (!targetGauges.containsKey(Element.DENDRO)) {
+            if (target.level() instanceof ServerLevel sl) {
+                applyElement(sl, target, Element.DENDRO, 1.0F, null, 0.0F);
+            }
         }
     }
 
@@ -873,7 +910,7 @@ public final class ElementalGaugeManager {
             Element innate = getInnateElement(target);
             boolean changed = false;
 
-            // 1. Environmental Water / Fire check
+            // 1. Environmental Water / Fire / Poison check
             if (isEntityInWater(target)) {
                 handleEnvironmentalWater(target);
                 if (entityGauges.isEmpty()) {
@@ -882,6 +919,9 @@ public final class ElementalGaugeManager {
                 }
             } else if (target.isOnFire()) {
                 handleEnvironmentalFireDamage(target);
+            }
+            if (target.hasEffect(MobEffects.POISON)) {
+                handleEnvironmentalPoison(target);
             }
 
             // 2. Tick gauges decay (Innate aura on an innate mob does not expire naturally)
@@ -1024,13 +1064,16 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 7. Environmental water & fire checks on active online players
+        // 7. Environmental water, fire & poison checks on active online players
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (player.isAlive()) {
                 if (isEntityInWater(player)) {
                     handleEnvironmentalWater(player);
                 } else if (player.isOnFire()) {
                     handleEnvironmentalFireDamage(player);
+                }
+                if (player.hasEffect(MobEffects.POISON)) {
+                    handleEnvironmentalPoison(player);
                 }
             }
         }

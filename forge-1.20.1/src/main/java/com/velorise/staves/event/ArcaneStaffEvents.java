@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AreaEffectCloud;
@@ -210,20 +211,11 @@ public final class ArcaneStaffEvents {
     private static void resolveWither(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
         double radius = isNetherite ? 4.0D : 3.0D;
         float baseDmg = isNetherite ? 6.0F : 4.0F;
-        float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        BlockPos hitPos = BlockPos.containing(hit);
-        boolean hitWater = level.getFluidState(hitPos).is(FluidTags.WATER)
-            || level.getBlockState(hitPos).is(Blocks.WATER)
-            || level.getFluidState(hitPos.below()).is(FluidTags.WATER);
-        if (hitWater) {
-            DendroCoreManager.spawn(level, hit, player, isNetherite ? 1.5F : 1.0F);
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hit.x, hit.y + 0.4D, hit.z, 20, 0.5D, 0.3D, 0.5D, 0.04D);
-            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
-        }
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            ElementalGaugeManager.applyElement(level, target, Element.DENDRO, attackU, player, baseDmg);
-            target.addEffect(new MobEffectInstance(MobEffects.WITHER, 100, isNetherite ? 1 : 0));
+            DamageSource source = player != null ? level.damageSources().playerAttack(player) : level.damageSources().wither();
+            target.hurt(source, baseDmg);
+            target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 1 : 0));
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,
             radius * 0.4D, radius * 0.35D, radius * 0.4D, 0.04D);
