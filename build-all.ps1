@@ -67,9 +67,9 @@ function Invoke-Build(
     Push-Location $projectDir
     try {
         if ($Clean) {
-            cmd.exe /c "gradlew.bat clean build"
+            cmd.exe /c "gradlew.bat clean build --no-daemon"
         } else {
-            cmd.exe /c "gradlew.bat build"
+            cmd.exe /c "gradlew.bat build --no-daemon"
         }
         if ($LASTEXITCODE -ne 0) {
             throw "Build failed for $DisplayName with exit code $LASTEXITCODE"
