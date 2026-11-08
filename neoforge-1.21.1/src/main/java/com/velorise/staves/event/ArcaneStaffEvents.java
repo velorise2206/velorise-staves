@@ -168,6 +168,7 @@ public final class ArcaneStaffEvents {
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
+        meltIceNear(level, hit, isNetherite ? 2 : 1);
         DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 35 : 25, 0.3D, 0.3D, 0.3D, 0.04D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8F, 1.0F);
@@ -183,9 +184,21 @@ public final class ArcaneStaffEvents {
             target.igniteForSeconds(isNetherite ? 5 : 4);
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
+        meltIceNear(level, hit, (int) Math.round(radius * 0.6D));
         DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 45 : 35,
             radius * 0.35D, radius * 0.25D, radius * 0.35D, 0.05D);
+    }
+
+    private static void meltIceNear(ServerLevel level, Vec3 hit, int radius) {
+        BlockPos center = BlockPos.containing(hit);
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-radius, -1, -radius), center.offset(radius, 1, radius))) {
+            if (level.getBlockState(p).is(Blocks.FROSTED_ICE) || level.getBlockState(p).is(Blocks.ICE)) {
+                level.setBlockAndUpdate(p, Blocks.WATER.defaultBlockState());
+                level.sendParticles(ParticleTypes.CLOUD, p.getX() + 0.5D, p.getY() + 0.5D, p.getZ() + 0.5D, 6, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 1.4F);
+            }
+        }
     }
 
     private static void resolveWither(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
@@ -244,8 +257,36 @@ public final class ArcaneStaffEvents {
                 }
             }
         }
+
+        // Cryo ice bridging (Kaeya/Ayaka effect)
+        freezeWaterNear(level, hit, isNetherite ? 2 : 1);
+
         level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y, hit.z, isNetherite ? 30 : 20, 0.3D, 0.3D, 0.3D, 0.025D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.65F, 1.6F);
+    }
+
+    private static void freezeWaterNear(ServerLevel level, Vec3 hit, int radius) {
+        BlockPos center = BlockPos.containing(hit);
+        boolean froze = false;
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if (dx * dx + dz * dz <= radius * radius + 1) {
+                    BlockPos p = center.offset(dx, 0, dz);
+                    for (BlockPos targetPos : new BlockPos[]{p, p.below()}) {
+                        if (level.getFluidState(targetPos).is(FluidTags.WATER) && level.getFluidState(targetPos).isSource() && level.getBlockState(targetPos.above()).isAir()) {
+                            level.setBlockAndUpdate(targetPos, Blocks.FROSTED_ICE.defaultBlockState());
+                            level.scheduleTick(targetPos, Blocks.FROSTED_ICE, level.random.nextInt(40) + 50);
+                            froze = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (froze) {
+            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.8F, 1.4F);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y + 0.2D, hit.z, 20, 0.5D, 0.1D, 0.5D, 0.02D);
+        }
     }
 
     private static void resolveWeb(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {

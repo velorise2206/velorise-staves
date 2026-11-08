@@ -28,4 +28,7 @@ net/
 *.png
 !shared-resources/assets/**
 
+# Materials / Docs scratch
+mats/
+
 
