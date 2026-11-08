@@ -7,6 +7,7 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
@@ -23,6 +24,10 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -63,6 +68,16 @@ public final class ArcaneStaffEvents {
     public static void onProjectileImpact(ProjectileImpactEvent event) {
         Projectile projectile = event.getProjectile();
         if (!(projectile.level() instanceof ServerLevel level)) return;
+
+        // Splash Water Potion / Lingering Water Potion applies Hydro 1.0U
+        if (projectile instanceof ThrownPotion potion) {
+            ItemStack stack = potion.getItem();
+            PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+            if (contents.is(Potions.WATER)) {
+                handleWaterPotionSplash(level, potion);
+            }
+        }
+
         String kind = projectile.getPersistentData().getString(TAG_KIND);
         if (kind.isEmpty()) return;
 
@@ -348,6 +363,18 @@ public final class ArcaneStaffEvents {
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hit.x, hit.y + 0.5D, hit.z, isNetherite ? 40 : 30,
             radius * 0.35D, 0.8D, radius * 0.35D, 0.08D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 1.0F);
+    }
+
+    private static void handleWaterPotionSplash(ServerLevel level, ThrownPotion potion) {
+        Entity owner = potion.getOwner();
+        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
+        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
+        for (LivingEntity living : nearby) {
+            if (potion.distanceToSqr(living) <= 16.0D) {
+                ElementalGaugeManager.applyElement(level, living, Element.HYDRO, 1.0F, thrower, 0.0F);
+            }
+        }
     }
 
     private static LivingEntity hitEntity(ProjectileImpactEvent event) {

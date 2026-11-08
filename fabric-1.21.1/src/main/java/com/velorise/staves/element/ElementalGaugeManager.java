@@ -60,6 +60,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
     private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
+    private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
 
     private ElementalGaugeManager() {}
 
@@ -127,59 +128,66 @@ public final class ElementalGaugeManager {
      */
     public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) {
         if (!target.isAlive() || target.isInvulnerable() || target.level().isClientSide()) return;
+        if (IS_PROCESSING_DAMAGE.get()) return;
 
-        if (target.level() instanceof ServerLevel level) {
-            // 1. Environmental Fire
-            if (source.is(DamageTypeTags.IS_FIRE)) {
-                handleEnvironmentalFireDamage(target);
-                return;
-            }
+        IS_PROCESSING_DAMAGE.set(true);
+        try {
+            if (target.level() instanceof ServerLevel level) {
+                // 1. Environmental Fire
+                if (source.is(DamageTypeTags.IS_FIRE)) {
+                    handleEnvironmentalFireDamage(target);
+                    return;
+                }
 
-            // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro
-            if (source.is(DamageTypes.DRAGON_BREATH)) {
-                applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
-                return;
-            }
+                // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro
+                if (source.is(DamageTypes.DRAGON_BREATH)) {
+                    applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
+                    return;
+                }
 
-            // 3. Lightning Bolt (DamageTypeTags.IS_LIGHTNING) -> Electro
-            if (source.is(DamageTypeTags.IS_LIGHTNING)) {
-                applyElement(level, target, Element.ELECTRO, 2.0F, null, 0.0F);
-                return;
-            }
+                // 3. Lightning Bolt (DamageTypeTags.IS_LIGHTNING) -> Electro
+                if (source.is(DamageTypeTags.IS_LIGHTNING)) {
+                    applyElement(level, target, Element.ELECTRO, 2.0F, null, 0.0F);
+                    return;
+                }
 
-            // 4. Freezing / Powder snow (DamageTypeTags.IS_FREEZING) -> Cryo
-            if (source.is(DamageTypeTags.IS_FREEZING)) {
-                applyElement(level, target, Element.CRYO, 1.0F, null, 0.0F);
-                return;
-            }
+                // 4. Freezing / Powder snow (DamageTypeTags.IS_FREEZING) -> Cryo
+                if (source.is(DamageTypeTags.IS_FREEZING)) {
+                    applyElement(level, target, Element.CRYO, 1.0F, null, 0.0F);
+                    return;
+                }
 
-            // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
-            if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
-                applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
-                return;
-            }
+                // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
+                if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
+                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
+                    return;
+                }
 
-            // 6. Poison damage or afflicted with Poison -> Dendro (1.0U)
-            if (target.hasEffect(MobEffects.POISON)) {
-                applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
-            }
+                // 6. Poison damage or afflicted with Poison -> Dendro (1.0U)
+                if (source.is(DamageTypes.MAGIC) && target.hasEffect(MobEffects.POISON)) {
+                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
+                    return;
+                }
 
-            // 7. Direct Ender projectiles (Dragon Fireball, Shulker Bullet, Ender Pearl) -> Electro (1.5U)
-            if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.DragonFireball
-                    || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet
-                    || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl) {
-                applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
-                return;
-            }
+                // 7. Direct Ender projectiles (Dragon Fireball, Shulker Bullet, Ender Pearl) -> Electro (1.5U)
+                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.DragonFireball
+                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet
+                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl) {
+                    applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
+                    return;
+                }
 
-            // 8. Attacker with Innate Element (Enderman, Ender Dragon, Shulker, Endermite, Blaze, Stray, Bogged)
-            if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
-                Element innate = getInnateElement(attackerMob);
-                if (innate != null) {
-                    ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
+                // 8. Attacker with Innate Element (Enderman, Ender Dragon, Shulker, Endermite, Blaze, Stray, Bogged)
+                if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
+                    Element innate = getInnateElement(attackerMob);
+                    if (innate != null) {
+                        ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
+                        applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
+                    }
                 }
             }
+        } finally {
+            IS_PROCESSING_DAMAGE.set(false);
         }
     }
 
@@ -204,7 +212,6 @@ public final class ElementalGaugeManager {
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
             }
-            target.hurt(target.level().damageSources().inFire(), 2.5F);
             syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, 2.5F);
             return;
         }
@@ -217,7 +224,6 @@ public final class ElementalGaugeManager {
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
             }
-            target.hurt(target.level().damageSources().inFire(), 3.0F);
             syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, 3.0F);
             return;
         }
@@ -232,10 +238,11 @@ public final class ElementalGaugeManager {
         }
 
         if (targetGauges.containsKey(Element.DENDRO)) {
-            BURNING_UNTIL.put(id, now + 100);
-            target.igniteForSeconds(5);
-            target.hurt(target.level().damageSources().inFire(), 2.0F);
-            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 2.0F);
+            if (!BURNING_UNTIL.containsKey(id)) {
+                BURNING_UNTIL.put(id, now + 100);
+                target.igniteForSeconds(5);
+                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
+            }
             return;
         }
 
