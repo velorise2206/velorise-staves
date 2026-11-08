@@ -24,6 +24,7 @@ import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.Bogged;
+import net.minecraft.world.entity.monster.CaveSpider;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.monster.ElderGuardian;
@@ -173,6 +174,12 @@ public final class ElementalGaugeManager {
 
                 // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
                 if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
+                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
+                    return;
+                }
+
+                // 6. Cave Spider venom bite -> Dendro (1.0U)
+                if (source.getEntity() instanceof CaveSpider) {
                     applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
                     return;
                 }
@@ -335,24 +342,6 @@ public final class ElementalGaugeManager {
         }
     }
 
-    /**
-     * Handles environmental poison affliction (splash/lingering potion, cave spider, poison damage) on entities.
-     * Continuously maintains 1.0U Dendro aura while afflicted with MobEffects.POISON.
-     */
-    public static void handleEnvironmentalPoison(LivingEntity target) {
-        if (!target.isAlive() || target.isInvulnerable()) return;
-        Element innate = getInnateElement(target);
-        if (innate == Element.DENDRO) return;
-        if (target.tickCount % 20 != 0) return; // Refresh once per second at most
-
-        UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
-        if (!targetGauges.containsKey(Element.DENDRO)) {
-            if (target.level() instanceof ServerLevel sl) {
-                applyElement(sl, target, Element.DENDRO, 1.0F, null, 0.0F);
-            }
-        }
-    }
 
     /**
      * Checks whether a vanilla mob has an innate elemental aura:
@@ -1033,9 +1022,6 @@ public final class ElementalGaugeManager {
             } else if (target.isOnFire()) {
                 handleEnvironmentalFireDamage(target);
             }
-            if (target.hasEffect(MobEffects.POISON)) {
-                handleEnvironmentalPoison(target);
-            }
 
             // Special Mutant: Powered Creeper
             if (target instanceof Creeper creeper && creeper.isPowered()) {
@@ -1191,9 +1177,6 @@ public final class ElementalGaugeManager {
                     handleEnvironmentalWater(player);
                 } else if (player.isOnFire()) {
                     handleEnvironmentalFireDamage(player);
-                }
-                if (player.hasEffect(MobEffects.POISON)) {
-                    handleEnvironmentalPoison(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
