@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "네더라이트 화염 면역 내구도로 최대 36블록까지 즉각 순간이동합니다.",
   "item.velorise_staves.netherite_magic_mirror": "네더라이트 마법의 거울",
   "item.velorise_staves.netherite_magic_mirror.desc": "네더의 불꽃으로 제련. 어느 차원에서든 제약 없이 즉시 집으로 귀환합니다.",
-  "message.velorise_staves.mirror_dimension_blocked": "§c기본 마법 거울은 차원을 넘을 수 없습니다! 네더라이트로 업그레이드하세요."
+  "message.velorise_staves.mirror_dimension_blocked": "§c기본 마법 거울은 차원을 넘을 수 없습니다! 네더라이트로 업그레이드하세요.",
+  "item.velorise_staves.dendro_core": "풀 원핵"
 }

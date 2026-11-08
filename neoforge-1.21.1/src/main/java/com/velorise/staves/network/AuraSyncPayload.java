@@ -21,7 +21,8 @@ public record AuraSyncPayload(
         byte activeMask,
         byte reactedAuraOrdinal,
         byte triggerElementOrdinal,
-        byte reactionOrdinal
+        byte reactionOrdinal,
+        float damage
 ) implements CustomPacketPayload {
     public static final Type<AuraSyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "aura_sync"));
 
@@ -31,6 +32,7 @@ public record AuraSyncPayload(
             ByteBufCodecs.BYTE, AuraSyncPayload::reactedAuraOrdinal,
             ByteBufCodecs.BYTE, AuraSyncPayload::triggerElementOrdinal,
             ByteBufCodecs.BYTE, AuraSyncPayload::reactionOrdinal,
+            ByteBufCodecs.FLOAT, AuraSyncPayload::damage,
             AuraSyncPayload::new
     );
 
@@ -39,15 +41,27 @@ public record AuraSyncPayload(
             Collection<Element> elements,
             @Nullable Element reactedAura,
             @Nullable Element trigger,
-            @Nullable ElementalReaction reaction
+            @Nullable ElementalReaction reaction,
+            float damage
     ) {
         this(
                 entityId,
                 toMask(elements),
                 reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
                 trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
-                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0
+                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
+                damage
         );
+    }
+
+    public AuraSyncPayload(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, 0.0F);
     }
 
     private static byte toMask(Collection<Element> elements) {
@@ -78,7 +92,7 @@ public record AuraSyncPayload(
             ElementalReaction reaction = (payload.reactionOrdinal > 0 && payload.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[payload.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction);
+            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage);
         });
     }
 }

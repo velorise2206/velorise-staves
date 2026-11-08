@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "Instantly teleports you forward up to 36 blocks with fireproof Netherite durability.",
   "item.velorise_staves.netherite_magic_mirror": "Netherite Magic Mirror",
   "item.velorise_staves.netherite_magic_mirror.desc": "Forged in the Nether. Channels and recalls back home across any dimension.",
-  "message.velorise_staves.mirror_dimension_blocked": "§cBasic Magic Mirror cannot recall across dimensions! Upgrade with Netherite."
+  "message.velorise_staves.mirror_dimension_blocked": "§cBasic Magic Mirror cannot recall across dimensions! Upgrade with Netherite.",
+  "item.velorise_staves.dendro_core": "Dendro Core"
 }

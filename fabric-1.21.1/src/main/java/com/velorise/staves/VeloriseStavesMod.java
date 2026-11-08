@@ -74,6 +74,10 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item MAGIC_MIRROR = registerItem("magic_mirror",
         new MagicMirrorItem(StavesConfig.getArtifactMaxDurability(false, false), false));
 
+    // Elemental Reaction Entities & Materials
+    public static final Item DENDRO_CORE = registerItem("dendro_core",
+        new Item(new Item.Properties()));
+
     // Netherite Upgraded Combat Staves
     public static final Item NETHERITE_DRAGONFIRE_SCEPTER = registerItem("netherite_dragonfire_scepter",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, true), true));
@@ -154,6 +158,9 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_WEBCASTER);
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(NETHERITE_MAGIC_MIRROR);
+
+            // Reactions
+            output.accept(DENDRO_CORE);
         })
         .build();
 
@@ -237,6 +244,11 @@ public final class VeloriseStavesMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             TemporaryWebManager.clearAll(server);
             ElementalGaugeManager.clearAll();
+        });
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
+            if (source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
+                ElementalGaugeManager.handleEnvironmentalFireDamage(entity);
+            }
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {

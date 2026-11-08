@@ -18,19 +18,22 @@ public class AuraSyncPacket {
     private final byte reactedAuraOrdinal;
     private final byte triggerElementOrdinal;
     private final byte reactionOrdinal;
+    private final float damage;
 
     public AuraSyncPacket(
             int entityId,
             byte activeMask,
             byte reactedAuraOrdinal,
             byte triggerElementOrdinal,
-            byte reactionOrdinal
+            byte reactionOrdinal,
+            float damage
     ) {
         this.entityId = entityId;
         this.activeMask = activeMask;
         this.reactedAuraOrdinal = reactedAuraOrdinal;
         this.triggerElementOrdinal = triggerElementOrdinal;
         this.reactionOrdinal = reactionOrdinal;
+        this.damage = damage;
     }
 
     public AuraSyncPacket(
@@ -38,7 +41,8 @@ public class AuraSyncPacket {
             Collection<Element> elements,
             @Nullable Element reactedAura,
             @Nullable Element trigger,
-            @Nullable ElementalReaction reaction
+            @Nullable ElementalReaction reaction,
+            float damage
     ) {
         this.entityId = entityId;
         byte mask = 0;
@@ -49,6 +53,17 @@ public class AuraSyncPacket {
         this.reactedAuraOrdinal = reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0;
         this.triggerElementOrdinal = trigger != null ? (byte) (trigger.ordinal() + 1) : 0;
         this.reactionOrdinal = reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0;
+        this.damage = damage;
+    }
+
+    public AuraSyncPacket(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, 0.0F);
     }
 
     public AuraSyncPacket(FriendlyByteBuf buf) {
@@ -57,6 +72,7 @@ public class AuraSyncPacket {
         this.reactedAuraOrdinal = buf.readByte();
         this.triggerElementOrdinal = buf.readByte();
         this.reactionOrdinal = buf.readByte();
+        this.damage = buf.readFloat();
     }
 
     public void toBytes(FriendlyByteBuf buf) {
@@ -65,6 +81,7 @@ public class AuraSyncPacket {
         buf.writeByte(this.reactedAuraOrdinal);
         buf.writeByte(this.triggerElementOrdinal);
         buf.writeByte(this.reactionOrdinal);
+        buf.writeFloat(this.damage);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -83,7 +100,7 @@ public class AuraSyncPacket {
             ElementalReaction reaction = (this.reactionOrdinal > 0 && this.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[this.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(this.entityId, elements, reactedAura, trigger, reaction);
+            ClientAuraTracker.update(this.entityId, elements, reactedAura, trigger, reaction, this.damage);
         });
         ctx.setPacketHandled(true);
     }

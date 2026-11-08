@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "Мгновенный скачок вперёд до 36 блоков с огнеупорной прочностью незерита.",
   "item.velorise_staves.netherite_magic_mirror": "Незеритовое волшебное зеркало",
   "item.velorise_staves.netherite_magic_mirror.desc": "Закалено в Незере. Позволяет мгновенно вернуться домой из любого измерения.",
-  "message.velorise_staves.mirror_dimension_blocked": "§cБазовое зеркало не может перемещать между измерениями! Улучшите незеритом."
+  "message.velorise_staves.mirror_dimension_blocked": "§cБазовое зеркало не может перемещать между измерениями! Улучшите незеритом.",
+  "item.velorise_staves.dendro_core": "Дендро ядро"
 }

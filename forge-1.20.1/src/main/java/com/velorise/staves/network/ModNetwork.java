@@ -42,8 +42,19 @@ public final class ModNetwork {
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction
     ) {
+        sendAuraSync(target, elements, reactedAura, trigger, reaction, 0.0F);
+    }
+
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage);
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
         CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 target.getX(), target.getY(), target.getZ(), 64.0D, target.level().dimension()

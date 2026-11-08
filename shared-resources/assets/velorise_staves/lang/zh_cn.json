@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "最远可瞬移闪烁至36格前方，具备下界合金防火耐久。",
   "item.velorise_staves.netherite_magic_mirror": "下界合金魔镜",
   "item.velorise_staves.netherite_magic_mirror.desc": "熔铸下界精金。可跨越任意维度直接引导传送回温馨之家。",
-  "message.velorise_staves.mirror_dimension_blocked": "§c基础魔镜无法跨维度召回！请使用下界合金升级。"
+  "message.velorise_staves.mirror_dimension_blocked": "§c基础魔镜无法跨维度召回！请使用下界合金升级。",
+  "item.velorise_staves.dendro_core": "草原核"
 }

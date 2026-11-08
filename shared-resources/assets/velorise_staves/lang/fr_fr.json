@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "Saut instantané jusqu'à 36 blocs avec la durabilité ignifugée de la Netherite.",
   "item.velorise_staves.netherite_magic_mirror": "Miroir Magique en Netherite",
   "item.velorise_staves.netherite_magic_mirror.desc": "Forgé dans le Nether. Permet de rentrer chez soi depuis n'importe quelle dimension.",
-  "message.velorise_staves.mirror_dimension_blocked": "§cLe miroir basique ne peut traverser les dimensions ! Améliorez-le en Netherite."
+  "message.velorise_staves.mirror_dimension_blocked": "§cLe miroir basique ne peut traverser les dimensions ! Améliorez-le en Netherite.",
+  "item.velorise_staves.dendro_core": "Noyau Dendro"
 }

@@ -1,6 +1,7 @@
 package com.velorise.staves.event;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.manager.TemporaryWebManager;
@@ -115,6 +116,7 @@ public final class ArcaneStaffEvents {
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, 2.0F, player, baseDmg);
         }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
     }
@@ -128,6 +130,7 @@ public final class ArcaneStaffEvents {
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 35 : 25, 0.3D, 0.3D, 0.3D, 0.04D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
@@ -142,6 +145,7 @@ public final class ArcaneStaffEvents {
             target.igniteForSeconds(isNetherite ? 5 : 4);
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 45 : 35,
             radius * 0.35D, radius * 0.25D, radius * 0.35D, 0.05D);
     }
@@ -169,6 +173,7 @@ public final class ArcaneStaffEvents {
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
             target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 80 : 60, 0));
         }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.5D, Element.ELECTRO, player);
         level.sendParticles(ParticleTypes.END_ROD, hit.x, hit.y, hit.z, 16, 0.25D, 0.25D, 0.25D, 0.03D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SHULKER_BULLET_HIT, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
@@ -241,6 +246,7 @@ public final class ArcaneStaffEvents {
             }
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, owner, baseDmg);
         }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, owner);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hit.x, hit.y + 0.5D, hit.z, isNetherite ? 40 : 30,
             radius * 0.35D, 0.8D, radius * 0.35D, 0.08D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 1.0F);

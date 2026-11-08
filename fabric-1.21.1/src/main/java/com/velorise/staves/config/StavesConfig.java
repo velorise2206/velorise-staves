@@ -33,7 +33,7 @@ public final class StavesConfig {
 
     // Elemental Gauge Theory (EGT)
     public static final BooleanValue ENABLE_ELEMENTAL_GAUGE = defineBool("elemental_gauge", "enable_elemental_gauge", true);
-    public static final BooleanValue SHOW_ACTIONBAR_FEEDBACK = defineBool("elemental_gauge", "show_actionbar_feedback", true);
+    public static final BooleanValue SHOW_ACTIONBAR_FEEDBACK = defineBool("elemental_gauge", "show_actionbar_feedback", false);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
 

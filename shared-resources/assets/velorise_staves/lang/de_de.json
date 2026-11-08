@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "Augenblicklicher Blinzler bis zu 36 Blöcke weit mit feuerfester Netherit-Haltbarkeit.",
   "item.velorise_staves.netherite_magic_mirror": "Netherit-Zauberspiegel",
   "item.velorise_staves.netherite_magic_mirror.desc": "Im Nether geschmiedet. Ermöglicht die Heimkehr aus jeder beliebigen Dimension.",
-  "message.velorise_staves.mirror_dimension_blocked": "§cEinfache Spiegel können nicht zwischen Dimensionen reisen! Mit Netherit aufrüsten."
+  "message.velorise_staves.mirror_dimension_blocked": "§cEinfache Spiegel können nicht zwischen Dimensionen reisen! Mit Netherit aufrüsten.",
+  "item.velorise_staves.dendro_core": "Dendro-Kern"
 }

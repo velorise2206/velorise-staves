@@ -2,6 +2,7 @@ package com.velorise.staves.element;
 
 import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -9,6 +10,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -26,6 +28,7 @@ import net.minecraft.world.entity.monster.MagmaCube;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.breeze.Breeze;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -55,7 +58,18 @@ public final class ElementalGaugeManager {
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction
     ) {
-        com.velorise.staves.network.ModNetwork.sendAuraSync(target, elements, reactedAura, trigger, reaction);
+        syncAuras(target, elements, reactedAura, trigger, reaction, 0.0F);
+    }
+
+    public static void syncAuras(
+            LivingEntity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage
+    ) {
+        com.velorise.staves.network.ModNetwork.sendAuraSync(target, elements, reactedAura, trigger, reaction, damage);
     }
 
     public static Collection<Element> getEntityElements(UUID entityId) {
@@ -71,6 +85,114 @@ public final class ElementalGaugeManager {
         BLOOM_SEED_UNTIL.clear();
         INNATE_COOLDOWN_UNTIL.clear();
         ELECTRO_CHARGE_TICK.clear();
+        DendroCoreManager.clearAll();
+    }
+
+    public static boolean isEntityInWater(LivingEntity target) {
+        if (target.isInWaterRainOrBubble() || target.isInWaterOrRain() || target.isInWater()) return true;
+        BlockPos feet = target.blockPosition();
+        if (target.level().getBlockState(feet).is(Blocks.WATER) || target.level().getFluidState(feet).is(FluidTags.WATER)) {
+            return true;
+        }
+        BlockPos eye = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
+        return target.level().getBlockState(eye).is(Blocks.WATER) || target.level().getFluidState(eye).is(FluidTags.WATER);
+    }
+
+    /**
+     * Handles environmental fire damage (lava, fire block, campfire, magma, burning) on entities.
+     * Triggers reactions if entity holds Hydro/Cryo/Electro/Dendro, or applies 1.0U Pyro aura.
+     */
+    public static void handleEnvironmentalFireDamage(LivingEntity target) {
+        if (!target.isAlive() || target.isInvulnerable()) return;
+        Element innate = getInnateElement(target);
+        if (innate == Element.PYRO) return;
+        if (isEntityInWater(target)) return;
+
+        UUID id = target.getUUID();
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
+        long now = target.level().getGameTime();
+
+        // Check if there is an existing aura that reacts with Pyro
+        if (targetGauges.containsKey(Element.HYDRO)) {
+            targetGauges.remove(Element.HYDRO);
+            target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
+            if (target.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, 0.0F);
+            return;
+        }
+
+        if (targetGauges.containsKey(Element.CRYO)) {
+            targetGauges.remove(Element.CRYO);
+            FROZEN_UNTIL.remove(id);
+            target.setTicksFrozen(0);
+            target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
+            if (target.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, 0.0F);
+            return;
+        }
+
+        if (targetGauges.containsKey(Element.ELECTRO)) {
+            targetGauges.remove(Element.ELECTRO);
+            if (target.level() instanceof ServerLevel sl) {
+                triggerOverloadExplosion(sl, target, null, 1.0D);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.ELECTRO, Element.PYRO, ElementalReaction.OVERLOADED, 6.0F);
+            return;
+        }
+
+        if (targetGauges.containsKey(Element.DENDRO)) {
+            BURNING_UNTIL.put(id, now + 100);
+            target.igniteForSeconds(5);
+            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
+            return;
+        }
+
+        // No reactive aura -> apply Pyro 1.0U
+        if (!targetGauges.containsKey(Element.PYRO)) {
+            targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
+            syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
+        }
+    }
+
+    /**
+     * Handles environmental water on entities holding active auras:
+     * - Pyro in water -> Extinguishes & triggers Vaporize
+     * - Dendro in water -> Triggers Bloom reaction & spawns Dendro Core into water
+     */
+    public static void handleEnvironmentalWater(LivingEntity target) {
+        if (!target.isAlive()) return;
+        UUID id = target.getUUID();
+        Map<Element, GaugeState> targetGauges = GAUGES.get(id);
+        if (targetGauges == null || targetGauges.isEmpty()) return;
+
+        Element innate = getInnateElement(target);
+
+        // 1. Pyro in water -> Extinguish & Vaporize
+        if (innate != Element.PYRO && targetGauges.containsKey(Element.PYRO)) {
+            targetGauges.remove(Element.PYRO);
+            BURNING_UNTIL.remove(id);
+            target.clearFire();
+            if (target.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.03D);
+                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 0.0F);
+        }
+
+        // 2. Dendro in water -> Bloom reaction & spawn Dendro Core!
+        if (targetGauges.containsKey(Element.DENDRO)) {
+            targetGauges.remove(Element.DENDRO);
+            if (target.level() instanceof ServerLevel sl) {
+                DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
+                sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
+                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
+        }
     }
 
     /**
@@ -163,7 +285,7 @@ public final class ElementalGaugeManager {
         }
 
         // 0B. On-Hit Environmental Auras (Water/Rain -> 1.0U HYDRO, Lava/Fire -> 1.0U PYRO, Powder Snow -> 1.0U CRYO)
-        if (target.isInWaterOrRain()) {
+        if (isEntityInWater(target)) {
             if (targetGauges.remove(Element.PYRO) != null || BURNING_UNTIL.remove(targetId) != null) {
                 target.clearFire();
             }
@@ -180,6 +302,9 @@ public final class ElementalGaugeManager {
             }
         }
 
+        // Check if attack element detonates nearby Dendro Cores (Hyperbloom / Burgeon)
+        DendroCoreManager.checkReactionsNear(level, target.position(), 3.5D, attackElement, attacker);
+
         // 0C. Dendro Core Secondary Reactions (Hyperbloom / Burgeon)
         Long bloomUntil = BLOOM_SEED_UNTIL.get(targetId);
         if (bloomUntil != null && now < bloomUntil) {
@@ -192,7 +317,7 @@ public final class ElementalGaugeManager {
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.9F, 1.5F);
                 sendActionbar(attacker, ChatFormatting.LIGHT_PURPLE + "🌱⚡ Hyperbloom! (+9.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Dendro Core homing burst");
                 enforceInnateLock(targetGauges, targetId, innateElement, now);
-                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM);
+                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, effectiveDamage + bonus);
                 return;
             } else if (attackElement == Element.PYRO) {
                 BLOOM_SEED_UNTIL.remove(targetId);
@@ -207,7 +332,7 @@ public final class ElementalGaugeManager {
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.25F);
                 sendActionbar(attacker, ChatFormatting.GOLD + "🌱🔥 Burgeon! (+9.5 AOE DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GREEN + "Dendro Core detonated");
                 enforceInnateLock(targetGauges, targetId, innateElement, now);
-                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON);
+                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDamage + bonus);
                 return;
             }
         }
@@ -262,7 +387,7 @@ public final class ElementalGaugeManager {
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.2F);
                 sendActionbar(attacker, ChatFormatting.RED + "🔥 Melt! (x2.0 DMG) " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Frozen melted");
                 enforceInnateLock(targetGauges, targetId, innateElement, now);
-                syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT);
+                syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, meltDamage);
                 return;
             } else if (attackElement == Element.ELECTRO) {
                 FROZEN_UNTIL.remove(targetId);
@@ -276,7 +401,7 @@ public final class ElementalGaugeManager {
                 executeReactionEffect(level, target, ElementalReaction.SUPERCONDUCT, Element.CRYO, attacker, dmgMult);
                 sendActionbar(attacker, ChatFormatting.AQUA + "❄️⚡ Superconduct! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.GRAY + "Frozen superconducted");
                 enforceInnateLock(targetGauges, targetId, innateElement, now);
-                syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT);
+                syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT, effectiveDamage);
                 return;
             }
         }
@@ -296,7 +421,7 @@ public final class ElementalGaugeManager {
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
             sendActionbar(attacker, ChatFormatting.GOLD + "💥 Overvape! (Vaporize x1.5 + Overload 3.5m AOE)");
             enforceInnateLock(targetGauges, targetId, innateElement, now);
-            syncAuras(target, targetGauges.keySet(), Element.ELECTRO, attackElement, ElementalReaction.OVERVAPE);
+            syncAuras(target, targetGauges.keySet(), Element.ELECTRO, attackElement, ElementalReaction.OVERVAPE, overvapeDmg);
             return;
         }
 
@@ -321,11 +446,12 @@ public final class ElementalGaugeManager {
                         enforceInnateLock(targetGauges, targetId, innateElement, now);
                     }
 
-                    target.hurt(level.damageSources().magic(), effectiveDamage + (float) (2.5F * dmgMult));
+                    float ecDmg = effectiveDamage + (float) (2.5F * dmgMult);
+                    target.hurt(level.damageSources().magic(), ecDmg);
                     executeReactionEffect(level, target, reaction, auraElement, attacker, dmgMult);
                     ELECTRO_CHARGE_TICK.put(targetId, 0);
                     sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.YELLOW + "Hydro + Electro shock");
-                    syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction);
+                    syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, ecDmg);
                     return;
                 }
 
@@ -340,7 +466,7 @@ public final class ElementalGaugeManager {
                     target.hurt(level.damageSources().magic(), effectiveDamage);
                     executeReactionEffect(level, target, reaction, auraElement, attacker, dmgMult);
                     sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.RED + "Continuous Burning active");
-                    syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction);
+                    syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, effectiveDamage);
                     return;
                 }
 
@@ -351,8 +477,8 @@ public final class ElementalGaugeManager {
                     targetGauges.remove(auraElement);
                 }
 
-                // If target is submerged in water and Reverse Vaporize occurred, ensure environmental Hydro remains
-                if (reaction == ElementalReaction.REVERSE_VAPORIZE && target.isInWater()) {
+                // If target is in water and Reverse Vaporize occurred, ensure fire is extinguished
+                if (reaction == ElementalReaction.REVERSE_VAPORIZE && isEntityInWater(target)) {
                     target.clearFire();
                 }
 
@@ -367,23 +493,26 @@ public final class ElementalGaugeManager {
                 } else {
                     sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.WHITE + "Remaining: " + auraElement.formatted() + String.format(" %.1fU", aura.getUnits()));
                 }
-                syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction);
+                syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, finalDmg);
                 return;
             }
         }
 
         // 5. No Reaction: Apply or Refresh Aura (Aura elements only!)
         if (attackElement.isAura()) {
-            // Strictly block PYRO aura application if the target is submerged in water
-            if (attackElement == Element.PYRO && target.isInWater()) {
+            // Strictly block PYRO aura application if the target is in water or rain
+            if (attackElement == Element.PYRO && isEntityInWater(target)) {
                 target.clearFire();
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                float vapeDmg = effectiveDamage * 1.5F;
+                target.hurt(level.damageSources().magic(), vapeDmg);
+                syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, vapeDmg);
                 return;
             }
 
             // Innate Lock: never allow foreign elemental auras (e.g. Hydro/Cryo on Blaze) to linger on innate elemental mobs
             if (innateElement != null && attackElement != innateElement) {
                 target.hurt(level.damageSources().magic(), effectiveDamage);
+                syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
                 return;
             }
 
@@ -398,11 +527,14 @@ public final class ElementalGaugeManager {
                 targetGauges.put(attackElement, newAura);
                 sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Applied " + attackElement.displayName() + " aura" + String.format(" (%.1fU)", newAura.getUnits()));
             }
-            syncAuras(target, targetGauges.keySet(), null, null, null);
+            syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
+            target.hurt(level.damageSources().magic(), effectiveDamage);
+            return;
         }
 
         // Deal normal damage
         target.hurt(level.damageSources().magic(), effectiveDamage);
+        syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
     }
 
     /**
@@ -523,6 +655,7 @@ public final class ElementalGaugeManager {
             }
             case BLOOM, REVERSE_BLOOM -> {
                 BLOOM_SEED_UNTIL.put(target.getUUID(), level.getGameTime() + 120); // 6s Dendro Core window for Hyperbloom/Burgeon
+                DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult);
                 level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 25, 0.8D, 0.5D, 0.8D, 0.04D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.1F);
                 AABB box = target.getBoundingBox().inflate(3.0D);
@@ -581,6 +714,11 @@ public final class ElementalGaugeManager {
      * Note: We NEVER iterate over ocean fish/squid or auto-attach HYDRO in tick().
      */
     public static void tick(MinecraftServer server) {
+        // Tick physical Dendro Cores in all levels
+        for (ServerLevel lvl : server.getAllLevels()) {
+            DendroCoreManager.tick(lvl);
+        }
+
         // 0. Check Innate Re-infusion timers (0.8s = 16 ticks after an innate mob's aura was consumed)
         Iterator<Map.Entry<UUID, Long>> innateIt = INNATE_COOLDOWN_UNTIL.entrySet().iterator();
         while (innateIt.hasNext()) {
@@ -644,18 +782,15 @@ public final class ElementalGaugeManager {
             Element innate = getInnateElement(target);
             boolean changed = false;
 
-            // 1. Environmental Water / Rain check for non-innate entities holding PYRO aura
-            if (innate != Element.PYRO && entityGauges.containsKey(Element.PYRO) && target.isInWaterOrRain()) {
-                entityGauges.remove(Element.PYRO);
-                BURNING_UNTIL.remove(id);
-                target.clearFire();
-                targetLevel.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 12, 0.25D, 0.25D, 0.25D, 0.03D);
-                targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
-                syncAuras(target, entityGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE);
+            // 1. Environmental Water / Fire check
+            if (isEntityInWater(target)) {
+                handleEnvironmentalWater(target);
                 if (entityGauges.isEmpty()) {
                     it.remove();
                     continue;
                 }
+            } else if (target.isOnFire()) {
+                handleEnvironmentalFireDamage(target);
             }
 
             // 2. Tick gauges decay (Innate aura on an innate mob does not expire naturally)
@@ -745,6 +880,17 @@ public final class ElementalGaugeManager {
             // 6. Ambient aura particles (every 10 ticks)
             if (!entityGauges.isEmpty() && now % 10 == 0 && StavesConfig.SHOW_ELEMENTAL_PARTICLES.get()) {
                 spawnAmbientParticles(targetLevel, target, entityGauges, now);
+            }
+        }
+
+        // 7. Environmental water & fire checks on active online players
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (player.isAlive()) {
+                if (isEntityInWater(player)) {
+                    handleEnvironmentalWater(player);
+                } else if (player.isOnFire()) {
+                    handleEnvironmentalFireDamage(player);
+                }
             }
         }
     }

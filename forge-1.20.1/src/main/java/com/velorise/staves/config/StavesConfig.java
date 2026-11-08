@@ -117,8 +117,8 @@ public final class StavesConfig {
             .comment("Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay. Default: true")
             .define("enable_elemental_gauge", true);
         SHOW_ACTIONBAR_FEEDBACK = builder
-            .comment("Show real-time elemental reaction HUD and remaining gauge units in Actionbar. Default: true")
-            .define("show_actionbar_feedback", true);
+            .comment("Show real-time elemental reaction HUD and remaining gauge units in Actionbar. Default: false")
+            .define("show_actionbar_feedback", false);
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);

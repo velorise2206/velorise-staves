@@ -23,6 +23,10 @@ public final class ClientAuraTracker {
         public long reactionStartTime = 0;
         public long reactionUntil = 0;
         public long appliedTime = 0;
+        public float lastDamage = 0.0F;
+        public @Nullable Element damageElement = null;
+        public long damageStartTime = 0;
+        public long damageUntil = 0;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -35,6 +39,17 @@ public final class ClientAuraTracker {
             @Nullable Element reactedAura,
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction
+    ) {
+        update(entityId, elements, reactedAura, trigger, reaction, 0.0F);
+    }
+
+    public static void update(
+            int entityId,
+            List<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage
     ) {
         long now = System.currentTimeMillis();
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
@@ -55,7 +70,14 @@ public final class ClientAuraTracker {
             entry.dualUntil = now + 1100; // 22 ticks (1.1 seconds) Genshin dual-icon pop & fade
         }
 
-        if (elements.isEmpty() && entry.reactionUntil <= now && entry.dualUntil <= now) {
+        if (damage > 0.0F) {
+            entry.lastDamage = damage;
+            entry.damageElement = trigger != null ? trigger : (reactedAura != null ? reactedAura : null);
+            entry.damageStartTime = now;
+            entry.damageUntil = now + 1100;
+        }
+
+        if (elements.isEmpty() && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }

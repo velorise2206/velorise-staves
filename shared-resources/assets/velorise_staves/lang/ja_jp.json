@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "最大36ブロック前方へ瞬間転移。ネザライトの耐火耐久性を誇ります。",
   "item.velorise_staves.netherite_magic_mirror": "ネザライトマジックミラー",
   "item.velorise_staves.netherite_magic_mirror.desc": "ネザーの炎で鍛造。異次元からでも瞬時に元の拠点へと回帰します。",
-  "message.velorise_staves.mirror_dimension_blocked": "§c通常の鏡では異次元を越えられません！ネザライトで強化してください。"
+  "message.velorise_staves.mirror_dimension_blocked": "§c通常の鏡では異次元を越えられません！ネザライトで強化してください。",
+  "item.velorise_staves.dendro_core": "草原核"
 }

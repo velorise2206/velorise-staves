@@ -72,6 +72,10 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> MAGIC_MIRROR = ITEMS.register("magic_mirror",
         () -> new MagicMirrorItem(40, false));
 
+    // Elemental Reaction Entities & Materials
+    public static final Supplier<Item> DENDRO_CORE = ITEMS.register("dendro_core",
+        () -> new Item(new Item.Properties()));
+
     // Netherite Upgraded Combat Staves
     public static final Supplier<Item> NETHERITE_DRAGONFIRE_SCEPTER = ITEMS.register("netherite_dragonfire_scepter",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 500, true));
@@ -148,6 +152,9 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
+
+                // Reactions
+                output.accept(DENDRO_CORE.get());
             })
             .build());
 

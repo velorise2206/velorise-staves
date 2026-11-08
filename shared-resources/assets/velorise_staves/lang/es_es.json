@@ -59,5 +59,6 @@
   "item.velorise_staves.netherite_void_translocator.desc": "Salto instantáneo de hasta 36 bloques con resistencia al fuego de inframundita.",
   "item.velorise_staves.netherite_magic_mirror": "Espejo Mágico de Inframundita",
   "item.velorise_staves.netherite_magic_mirror.desc": "Forjado en el Nether. Permite regresar a casa desde cualquier dimensión.",
-  "message.velorise_staves.mirror_dimension_blocked": "§c¡El espejo básico no puede cruzar dimensiones! Mejóralo con inframundita."
+  "message.velorise_staves.mirror_dimension_blocked": "§c¡El espejo básico no puede cruzar dimensiones! Mejóralo con inframundita.",
+  "item.velorise_staves.dendro_core": "Núcleo Dendro"
 }

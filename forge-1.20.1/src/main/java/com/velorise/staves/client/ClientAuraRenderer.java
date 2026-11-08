@@ -166,59 +166,86 @@ public final class ClientAuraRenderer {
             poseStack.popPose();
         }
 
-        // Branch 2: Separate PoseStack for 3D Floating Reaction Text (prevents Y-axis or X-axis inversion & flushes before popPose)
-        if (data != null && data.reaction != null && now < data.reactionUntil) {
+        // Branch 2: Separate PoseStack for 3D Floating Reaction Text & Damage Numbers (Genshin Style)
+        boolean hasReaction = data != null && data.reaction != null && now < data.reactionUntil;
+        boolean hasDamage = data != null && data.damageUntil > now && data.lastDamage > 0.0F;
+
+        if (hasReaction || hasDamage) {
             poseStack.pushPose();
             poseStack.translate(0.0D, height, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
             poseStack.scale(-0.025F, -0.025F, 0.025F);
-
-            long reactionAge = Math.max(0L, now - data.reactionStartTime);
-            long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
-            float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
-
-            float floatY = -iconSize - 6.0F - (progress * 12.0F);
-            String text = data.reaction.reactionName();
             Font font = mc.font;
-            float textWidth = font.width(text);
-            float textX = -textWidth / 2.0F;
 
-            int baseColor = getReactionColor(data.reaction) & 0x00FFFFFF;
-            int alpha = 255;
-            if (progress > 0.7F) {
-                alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
+            if (hasReaction) {
+                long reactionAge = Math.max(0L, now - data.reactionStartTime);
+                long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
+                float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
+
+                float floatY = -iconSize - 6.0F - (progress * 12.0F);
+                String text = "§l" + data.reaction.reactionName();
+                float textWidth = font.width(text);
+                float textX = -textWidth / 2.0F;
+
+                int baseColor = getReactionColor(data.reaction) & 0x00FFFFFF;
+                int alpha = 255;
+                if (progress > 0.7F) {
+                    alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
+                }
+                int fgColor = baseColor | (alpha << 24);
+                int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.45F));
+                int seeThroughColor = baseColor | (seeThroughAlpha << 24);
+
+                // See-through pass
+                font.drawInBatch(
+                        text,
+                        textX,
+                        floatY,
+                        seeThroughColor,
+                        false,
+                        poseStack.last().pose(),
+                        buffer,
+                        Font.DisplayMode.SEE_THROUGH,
+                        0,
+                        FULL_BRIGHT
+                );
+
+                // Foreground pass with dropShadow = true for crisp visibility against any terrain
+                font.drawInBatch(
+                        text,
+                        textX,
+                        floatY,
+                        fgColor,
+                        true,
+                        poseStack.last().pose(),
+                        buffer,
+                        Font.DisplayMode.NORMAL,
+                        0,
+                        FULL_BRIGHT
+                );
             }
-            int fgColor = baseColor | (alpha << 24);
-            int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.45F));
-            int seeThroughColor = baseColor | (seeThroughAlpha << 24);
 
-            // See-through pass
-            font.drawInBatch(
-                    text,
-                    textX,
-                    floatY,
-                    seeThroughColor,
-                    false,
-                    poseStack.last().pose(),
-                    buffer,
-                    Font.DisplayMode.SEE_THROUGH,
-                    0,
-                    FULL_BRIGHT
-            );
+            if (hasDamage) {
+                long dmgAge = Math.max(0L, now - data.damageStartTime);
+                long dmgDuration = Math.max(1L, data.damageUntil - data.damageStartTime);
+                float dmgProgress = Math.max(0.0F, Math.min(1.0F, (float) dmgAge / (float) dmgDuration));
 
-            // Foreground pass with dropShadow = true for crisp visibility against any terrain
-            font.drawInBatch(
-                    text,
-                    textX,
-                    floatY,
-                    fgColor,
-                    true,
-                    poseStack.last().pose(),
-                    buffer,
-                    Font.DisplayMode.NORMAL,
-                    0,
-                    FULL_BRIGHT
-            );
+                float dmgY = hasReaction ? (-iconSize + 2.0F - (dmgProgress * 8.0F)) : (-iconSize - 4.0F - (dmgProgress * 12.0F));
+                String dmgText = "§l" + (data.lastDamage % 1.0F == 0.0F ? String.valueOf((int) data.lastDamage) : String.format(Locale.ROOT, "%.1f", data.lastDamage));
+                float dmgWidth = font.width(dmgText);
+                float dmgX = -dmgWidth / 2.0F;
+
+                int dmgBaseColor = data.damageElement != null ? getElementTextColor(data.damageElement) : 0xFFFFFF;
+                int dmgAlpha = 255;
+                if (dmgProgress > 0.7F) {
+                    dmgAlpha = Math.max(15, Math.min(255, Math.round(((1.0F - dmgProgress) / 0.3F) * 255.0F)));
+                }
+                int dmgFg = (dmgBaseColor & 0x00FFFFFF) | (dmgAlpha << 24);
+                int dmgSeeThrough = (dmgBaseColor & 0x00FFFFFF) | (Math.max(10, Math.round(dmgAlpha * 0.45F)) << 24);
+
+                font.drawInBatch(dmgText, dmgX, dmgY, dmgSeeThrough, false, poseStack.last().pose(), buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
+                font.drawInBatch(dmgText, dmgX, dmgY, dmgFg, true, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
+            }
 
             // Flush font batch BEFORE poseStack.popPose() so text vertices keep the billboard matrix (compatible with Sodium/Embeddium)
             if (buffer instanceof MultiBufferSource.BufferSource bs) {
@@ -279,6 +306,18 @@ public final class ClientAuraRenderer {
             case SWIRL -> 0x55EFC4;
             case CRYSTALLIZE -> 0xFFD60A;
             default -> 0xFFFFFF;
+        };
+    }
+
+    private static int getElementTextColor(Element element) {
+        return switch (element) {
+            case PYRO -> 0xFF453A;
+            case HYDRO -> 0x0A84FF;
+            case CRYO -> 0x64D2FF;
+            case ELECTRO -> 0xBF5AF2;
+            case ANEMO -> 0x55EFC4;
+            case GEO -> 0xFFD60A;
+            case DENDRO -> 0x32D74B;
         };
     }
 }
