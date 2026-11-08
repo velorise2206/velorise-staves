@@ -57,6 +57,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
     private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
 
     private ElementalGaugeManager() {}
 
@@ -95,6 +96,7 @@ public final class ElementalGaugeManager {
         INNATE_COOLDOWN_UNTIL.clear();
         ELECTRO_CHARGE_TICK.clear();
         LAST_PROXIMITY_SHOCK.clear();
+        LAST_BLOOM_SPAWN.clear();
         DendroCoreManager.clearAll();
         ElectrifiedWaterManager.clearAll();
     }
@@ -244,17 +246,33 @@ public final class ElementalGaugeManager {
     /**
      * Handles environmental water on entities holding active auras:
      * - Pyro in water -> Extinguishes & triggers Vaporize
-     * - Dendro in water -> Triggers Bloom reaction & spawns Dendro Core into water
+     * - Dendro in water / Innate Dendro (Bogged, Dendro Slime) in rain -> Triggers Bloom reaction & spawns Dendro Core (0.5s ICD)
      */
     public static void handleEnvironmentalWater(LivingEntity target) {
         if (!target.isAlive()) return;
         UUID id = target.getUUID();
+        Element innate = getInnateElement(target);
+
+        // 1. Innate Dendro mob (Bogged, Dendro Slime) in water or rain -> Bloom reaction!
+        if (innate == Element.DENDRO) {
+            long now = target.level().getGameTime();
+            Long lastSpawn = LAST_BLOOM_SPAWN.get(id);
+            if (lastSpawn == null || now - lastSpawn >= 10L) { // 0.5s ICD
+                if (target.level() instanceof ServerLevel sl) {
+                    DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
+                    sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+                }
+                LAST_BLOOM_SPAWN.put(id, now);
+                syncAuras(target, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
+            }
+            return;
+        }
+
         Map<Element, GaugeState> targetGauges = GAUGES.get(id);
         if (targetGauges == null || targetGauges.isEmpty()) return;
 
-        Element innate = getInnateElement(target);
-
-        // 1. Pyro in water -> Extinguish & Vaporize
+        // 2. Pyro in water -> Extinguish & Vaporize
         if (innate != Element.PYRO && targetGauges.containsKey(Element.PYRO)) {
             targetGauges.remove(Element.PYRO);
             BURNING_UNTIL.remove(id);
@@ -267,19 +285,23 @@ public final class ElementalGaugeManager {
             syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 2.5F);
         }
 
-        // 2. Dendro in water -> Bloom reaction & spawn Dendro Core!
+        // 3. Applied Dendro in water -> Bloom reaction & spawn Dendro Core!
         if (targetGauges.containsKey(Element.DENDRO)) {
             targetGauges.remove(Element.DENDRO);
-            if (target.level() instanceof ServerLevel sl) {
-                DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
-                sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
-                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+            long now = target.level().getGameTime();
+            Long lastSpawn = LAST_BLOOM_SPAWN.get(id);
+            if (lastSpawn == null || now - lastSpawn >= 10L) {
+                if (target.level() instanceof ServerLevel sl) {
+                    DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
+                    sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+                }
+                LAST_BLOOM_SPAWN.put(id, now);
             }
-            target.hurt(target.level().damageSources().magic(), 3.0F);
-            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 3.0F);
+            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
         }
 
-        // 3. Electro in water -> Trigger Electro-Charged shock on entity itself (water does NOT turn electrified)
+        // 4. Electro in water -> Trigger Electro-Charged shock on entity itself (water does NOT turn electrified)
         if (targetGauges.containsKey(Element.ELECTRO)) {
             GaugeState electro = targetGauges.get(Element.ELECTRO);
             if (electro != null) {
@@ -303,6 +325,7 @@ public final class ElementalGaugeManager {
         if (!target.isAlive() || target.isInvulnerable()) return;
         Element innate = getInnateElement(target);
         if (innate == Element.DENDRO) return;
+        if (target.tickCount % 20 != 0) return; // Refresh once per second at most
 
         UUID id = target.getUUID();
         Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
@@ -774,13 +797,14 @@ public final class ElementalGaugeManager {
             }
             case BLOOM, REVERSE_BLOOM -> {
                 BLOOM_SEED_UNTIL.put(target.getUUID(), level.getGameTime() + 120); // 6s Dendro Core window for Hyperbloom/Burgeon
-                DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult);
+                long now = level.getGameTime();
+                Long lastSpawn = LAST_BLOOM_SPAWN.get(target.getUUID());
+                if (lastSpawn == null || now - lastSpawn >= 10L) { // 0.5s ICD per target
+                    DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult);
+                    LAST_BLOOM_SPAWN.put(target.getUUID(), now);
+                }
                 level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 25, 0.8D, 0.5D, 0.8D, 0.04D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.1F);
-                AABB box = target.getBoundingBox().inflate(3.0D);
-                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    nearby.hurt(level.damageSources().magic(), (float) (6.0F * dmgMult));
-                }
             }
             case BURNING -> {
                 BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + 100); // 5 seconds
@@ -1108,11 +1132,15 @@ public final class ElementalGaugeManager {
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
 
-                // Auto-register nearby Charged Creepers within 32m to GAUGES
-                if (player.level() instanceof ServerLevel sl && player.tickCount % 20 == 0) {
+                // Auto-register nearby Charged Creepers and process nearby innate mobs in water/rain within 32m
+                if (player.level() instanceof ServerLevel sl && player.tickCount % 10 == 0) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
-                    for (Creeper creeper : sl.getEntitiesOfClass(Creeper.class, searchBox, c -> c.isAlive() && c.isPowered())) {
-                        if (!GAUGES.containsKey(creeper.getUUID())) {
+                    for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
+                        Element nearbyInnate = getInnateElement(nearby);
+                        if (nearbyInnate != null && isEntityInWater(nearby)) {
+                            handleEnvironmentalWater(nearby);
+                        }
+                        if (nearby instanceof Creeper creeper && creeper.isPowered() && !GAUGES.containsKey(creeper.getUUID())) {
                             Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> new EnumMap<>(Element.class));
                             gauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, 1.25F));
                             syncAuras(creeper, gauges.keySet(), null, null, null);

@@ -43,8 +43,26 @@ public final class DendroCoreManager {
     }
 
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
+    private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
     private DendroCoreManager() {}
+
+    private static boolean canTakeBloomDamage(LivingEntity victim, long now) {
+        UUID id = victim.getUUID();
+        Long lastTick = LAST_DMG_TICK.get(id);
+        if (lastTick == null || now - lastTick >= 10L) { // New 0.5s window
+            LAST_DMG_TICK.put(id, now);
+            DMG_INSTANCE_COUNT.put(id, 1);
+            return true;
+        }
+        int count = DMG_INSTANCE_COUNT.getOrDefault(id, 0);
+        if (count < 2) {
+            DMG_INSTANCE_COUNT.put(id, count + 1);
+            return true;
+        }
+        return false;
+    }
 
     public static void spawn(ServerLevel level, Vec3 pos, @Nullable ServerPlayer owner, float damageMultiplier) {
         // Enforce max 5 cores (oldest detonates immediately)
@@ -103,8 +121,10 @@ public final class DendroCoreManager {
         float dmg = 8.0F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 3.0D, pos.y - 2.0D, pos.z - 3.0D, pos.x + 3.0D, pos.y + 3.0D, pos.z + 3.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            victim.hurt(core.level.damageSources().magic(), dmg);
-            ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+            if (canTakeBloomDamage(victim, core.level.getGameTime())) {
+                victim.hurt(core.level.damageSources().magic(), dmg);
+                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+            }
         }
     }
 
@@ -129,7 +149,9 @@ public final class DendroCoreManager {
 
         if (nearest != null) {
             float hyperbloomDmg = 16.0F * core.damageMultiplier;
-            nearest.hurt(core.level.damageSources().magic(), hyperbloomDmg);
+            if (canTakeBloomDamage(nearest, core.level.getGameTime())) {
+                nearest.hurt(core.level.damageSources().magic(), hyperbloomDmg);
+            }
             Vec3 targetPos = nearest.position();
             drawHomingTrail(core.level, pos, targetPos.add(0, nearest.getBbHeight() * 0.5D, 0));
             core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, targetPos.x, targetPos.y + 0.8D, targetPos.z, 25, 0.4D, 0.4D, 0.4D, 0.09D);
@@ -160,8 +182,10 @@ public final class DendroCoreManager {
         float burgeonDmg = 17.5F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-            victim.hurt(core.level.damageSources().magic(), burgeonDmg);
-            ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, burgeonDmg);
+            if (canTakeBloomDamage(victim, core.level.getGameTime())) {
+                victim.hurt(core.level.damageSources().magic(), burgeonDmg);
+                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, burgeonDmg);
+            }
         }
     }
 
@@ -198,5 +222,7 @@ public final class DendroCoreManager {
             }
         }
         CORES.clear();
+        LAST_DMG_TICK.clear();
+        DMG_INSTANCE_COUNT.clear();
     }
 }

@@ -4,8 +4,6 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -29,7 +27,7 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
     static {
         for (Element e : Element.values()) {
-            TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
+            TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + "_32.png"));
         }
     }
 
@@ -68,76 +66,39 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
         if (!(entity instanceof LivingEntity living)) return;
         if (!living.isAlive()) return;
 
+        Element innateElement = ElementalGaugeManager.getInnateElement(living);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(living.getId());
-        Element innate = ElementalGaugeManager.getInnateElement(living);
-
-        List<Element> activeElements = new ArrayList<>();
-        if (data != null && !data.elements.isEmpty()) {
-            activeElements.addAll(data.elements);
-        } else if (innate != null) {
-            activeElements.add(innate);
-        }
 
         long now = System.currentTimeMillis();
-        boolean hasActiveReaction = data != null && data.reaction != null && now < data.reactionUntil;
-        boolean hasDualAnimation = data != null && data.reactedAuraElement != null && data.dualTriggerElement != null && now < data.dualUntil;
+        List<Element> display = new ArrayList<>();
+        boolean inDualReaction = data != null && now < data.dualUntil && (data.reactedAuraElement != null || data.dualTriggerElement != null);
 
-        IElementHelper helper = IElementHelper.get();
-
-        // 1. Active reaction: [Reacted Aura Icon] Aura + [Trigger Icon] Trigger ➔ §lREACTION
-        if (hasActiveReaction && data != null && data.reaction != null) {
-            Element rAura = data.reactedAuraElement;
-            Element trig = data.dualTriggerElement;
-
-            if (rAura != null) {
-                appendElementBadge(tooltip, rAura, true);
-                if (trig != null) {
-                    tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
-                    appendElementBadge(tooltip, trig, false);
-                }
-            } else if (trig != null) {
-                appendElementBadge(tooltip, trig, true);
+        if (inDualReaction) {
+            if (data.reactedAuraElement != null) {
+                display.add(data.reactedAuraElement);
             }
-
-            tooltip.append(Component.literal(" ➔ ").withStyle(ChatFormatting.WHITE));
-            tooltip.append(Component.literal(data.reaction.reactionName()).withStyle(data.reaction.color(), ChatFormatting.BOLD));
-            return;
-        }
-
-        // 2. Dual aura transition: [Aura 1 Icon] Aura 1 + [Aura 2 Icon] Aura 2
-        if (hasDualAnimation && data != null && data.reactedAuraElement != null && data.dualTriggerElement != null) {
-            appendElementBadge(tooltip, data.reactedAuraElement, true);
-            tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
-            appendElementBadge(tooltip, data.dualTriggerElement, false);
-            return;
-        }
-
-        // 3. Standard active auras (shows dual co-existing elements like Quicken or Electro-Charged)
-        if (!activeElements.isEmpty()) {
-            for (int i = 0; i < activeElements.size(); i++) {
-                Element elem = activeElements.get(i);
-                if (i == 0) {
-                    appendElementBadge(tooltip, elem, true);
-                } else {
-                    tooltip.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
-                    appendElementBadge(tooltip, elem, false);
-                }
-                if (elem == innate) {
-                    tooltip.append(Component.literal(" (Innate)").withStyle(ChatFormatting.DARK_GRAY));
+            if (data.dualTriggerElement != null && !display.contains(data.dualTriggerElement)) {
+                display.add(data.dualTriggerElement);
+            }
+            for (Element active : data.elements) {
+                if (!display.contains(active)) {
+                    display.add(active);
                 }
             }
+        } else if (data != null && !data.elements.isEmpty()) {
+            display.addAll(data.elements);
+        } else if (innateElement != null) {
+            display.add(innateElement);
         }
-    }
 
-    private static void appendElementBadge(ITooltip tooltip, Element elem, boolean startOfLine) {
-        ResourceLocation iconTex = TEXTURES.get(elem);
+        if (display.isEmpty()) return;
+
         IElementHelper helper = IElementHelper.get();
-        if (startOfLine) {
-            tooltip.add(new ElementIcon(iconTex, 10, 10));
-        } else {
-            tooltip.append(new ElementIcon(iconTex, 10, 10));
+        // Clean display matching overhead style: 1 icon or 2 icons side-by-side
+        tooltip.add(new ElementIcon(TEXTURES.get(display.get(0)), 12, 12));
+        if (display.size() > 1) {
+            tooltip.append(helper.spacer(3, 0));
+            tooltip.append(new ElementIcon(TEXTURES.get(display.get(1)), 12, 12));
         }
-        tooltip.append(helper.spacer(2, 0));
-        tooltip.append(Component.literal(elem.displayName()).withStyle(elem.color(), ChatFormatting.BOLD));
     }
 }
