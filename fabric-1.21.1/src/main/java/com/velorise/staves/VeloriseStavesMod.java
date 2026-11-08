@@ -246,9 +246,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             ElementalGaugeManager.clearAll();
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
-            if (source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
-                ElementalGaugeManager.handleEnvironmentalFireDamage(entity);
-            }
+            ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {

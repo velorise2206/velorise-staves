@@ -10,7 +10,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -99,6 +102,53 @@ public final class ElementalGaugeManager {
         }
         BlockPos eye = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
         return target.level().getBlockState(eye).is(Blocks.WATER) || target.level().getFluidState(eye).is(FluidTags.WATER);
+    }
+
+    /**
+     * Handles environmental damage types and innate elemental mob attacks:
+     * - Fire damage -> Fire reaction / 1.0U Pyro aura
+     * - Freezing / Powder Snow -> Cryo reaction / 1.0U Cryo aura
+     * - Lightning -> Electro reaction / 2.0U Electro aura
+     * - Dragon's Breath -> Electro reaction / 1.5U Electro aura
+     * - Melee/Ranged attack from mob with innate element (Enderman, Ender Dragon, Shulker, Blaze, Stray, Bogged) -> applies 1.0U innate aura
+     */
+    public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) {
+        if (!target.isAlive() || target.isInvulnerable() || target.level().isClientSide()) return;
+
+        if (target.level() instanceof ServerLevel level) {
+            // 1. Environmental Fire
+            if (source.is(DamageTypeTags.IS_FIRE)) {
+                handleEnvironmentalFireDamage(target);
+                return;
+            }
+
+            // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro
+            if (source.is(DamageTypes.DRAGON_BREATH)) {
+                applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
+                return;
+            }
+
+            // 3. Lightning Bolt (DamageTypeTags.IS_LIGHTNING) -> Electro
+            if (source.is(DamageTypeTags.IS_LIGHTNING)) {
+                applyElement(level, target, Element.ELECTRO, 2.0F, null, 0.0F);
+                return;
+            }
+
+            // 4. Freezing / Powder snow (DamageTypeTags.IS_FREEZING) -> Cryo
+            if (source.is(DamageTypeTags.IS_FREEZING)) {
+                applyElement(level, target, Element.CRYO, 1.0F, null, 0.0F);
+                return;
+            }
+
+            // 5. Attacker with Innate Element (Enderman, Ender Dragon, Shulker, Endermite, Blaze, Stray, Bogged)
+            if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
+                Element innate = getInnateElement(attackerMob);
+                if (innate != null) {
+                    ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
+                }
+            }
+        }
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.velorise.staves.item;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.event.ArcaneStaffEvents;
@@ -11,6 +12,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
@@ -20,6 +22,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LightningBolt;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.DragonFireball;
 import net.minecraft.world.entity.projectile.EvokerFangs;
@@ -93,9 +96,17 @@ public final class ArcaneStaffItem extends Item {
         if (isCharged()) {
             player.startUsingItem(hand);
             if (!level.isClientSide()) {
-                level.playSound(null, player.blockPosition(),
-                    kind == Kind.ECHO ? SoundEvents.WARDEN_SONIC_CHARGE : SoundEvents.GUARDIAN_AMBIENT,
-                    SoundSource.PLAYERS, 0.8F, kind == Kind.ECHO ? 0.85F : 1.25F);
+                SoundEvent cueSound = switch (kind) {
+                    case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
+                    case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
+                    default -> SoundEvents.GUARDIAN_AMBIENT;
+                };
+                float cuePitch = switch (kind) {
+                    case ECHO -> 0.85F;
+                    case LIGHTNING -> 1.5F;
+                    default -> 1.25F;
+                };
+                level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, cuePitch);
             }
             return InteractionResultHolder.consume(stack);
         }
@@ -116,10 +127,9 @@ public final class ArcaneStaffItem extends Item {
             case WITHER -> shootWither(serverPlayer);
             case SHULKER -> shootShulker(serverPlayer);
             case EVOKER -> castFangs(serverPlayer);
-            case LIGHTNING -> castLightning(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
-            case ECHO, GUARDIAN -> false;
+            case ECHO, GUARDIAN, LIGHTNING -> false;
         };
 
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -185,7 +195,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN;
+        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING;
     }
 
     public int getCooldownTicks() {
@@ -224,6 +234,7 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public int getUseDuration(ItemStack stack) {
+        if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 50;
         return isCharged() ? 30 : 0;
     }
@@ -235,10 +246,20 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int count) {
-        if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel)) return;
+        if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(entity instanceof ServerPlayer player)) return;
+        if (kind == Kind.LIGHTNING) {
+            int elapsed = 60 - count;
+            if (elapsed < 0 || elapsed % 3 != 0) return;
+            fireChanneledLightning(serverLevel, player, elapsed);
+            if (elapsed > 0 && elapsed % 15 == 0) {
+                InteractionHand usedHand = player.getUsedItemHand();
+                stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+            }
+            return;
+        }
         if (kind == Kind.GUARDIAN) {
             int elapsed = 50 - count;
-            if (elapsed < 0 || elapsed % 5 != 0 || !(entity instanceof ServerPlayer player)) return;
+            if (elapsed < 0 || elapsed % 5 != 0) return;
             LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
             fireGuardian(player, target);
             if (elapsed > 0 && elapsed % 20 == 0) {
@@ -255,6 +276,10 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
         if (!isCharged() || level.isClientSide() || !(entity instanceof ServerPlayer player)) return stack;
+        if (kind == Kind.LIGHTNING) {
+            finishLightningStorm(player);
+            return stack;
+        }
         if (kind == Kind.GUARDIAN) {
             finishGuardianBeam(player);
             return stack;
@@ -269,9 +294,18 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
-        if (kind == Kind.GUARDIAN && !level.isClientSide() && entity instanceof ServerPlayer player && timeLeft < 50) {
-            finishGuardianBeam(player);
+        if (!level.isClientSide() && entity instanceof ServerPlayer player) {
+            if (kind == Kind.LIGHTNING && timeLeft < 60) {
+                finishLightningStorm(player);
+            } else if (kind == Kind.GUARDIAN && timeLeft < 50) {
+                finishGuardianBeam(player);
+            }
         }
+    }
+
+    private void finishLightningStorm(ServerPlayer player) {
+        player.getCooldowns().addCooldown(this, getCooldownTicks());
+        player.awardStat(Stats.ITEM_USED.get(this));
     }
 
     private void finishGuardianBeam(ServerPlayer player) {
@@ -422,20 +456,66 @@ public final class ArcaneStaffItem extends Item {
         return originY;
     }
 
-    private boolean castLightning(ServerPlayer player) {
-        ServerLevel level = (ServerLevel) player.level();
-        double range = isNetherite ? 36.0D : 32.0D;
-        LivingEntity target = findTarget(player, range, 1.3D);
-        Vec3 impact = target != null ? target.getBoundingBox().getCenter() : rayEnd(player, range);
+    private void fireChanneledLightning(ServerLevel level, ServerPlayer player, int elapsed) {
+        double range = isNetherite ? 36.0D : 30.0D;
+        double spread = isNetherite ? 3.5D : 2.5D;
+        LivingEntity target = findTarget(player, range, 2.0D);
+        Vec3 basePos = target != null ? target.position() : rayEnd(player, range);
+
+        double offX = (level.random.nextDouble() - 0.5D) * 2.0D * spread;
+        double offZ = (level.random.nextDouble() - 0.5D) * 2.0D * spread;
+        double strikeX = basePos.x + offX;
+        double strikeZ = basePos.z + offZ;
+        double strikeY = findGroundY(level, strikeX, basePos.y, strikeZ);
+        Vec3 strikePos = new Vec3(strikeX, strikeY, strikeZ);
+
         LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
         if (bolt != null) {
-            bolt.setPos(impact.x, impact.y, impact.z);
-            bolt.setCause(player);
+            bolt.setPos(strikePos.x, strikePos.y, strikePos.z);
             bolt.setVisualOnly(true);
             level.addFreshEntity(bolt);
         }
-        ArcaneStaffEvents.resolveLightning(level, impact, player, isNetherite, bolt);
-        return true;
+
+        Vec3 start = player.getEyePosition();
+        Vec3 diff = strikePos.subtract(start);
+        double dist = diff.length();
+        int steps = Math.min((int)(dist * 1.5D), 20);
+        for (int s = 0; s < steps; s++) {
+            double t = (double) s / (double) steps;
+            double jx = (level.random.nextDouble() - 0.5D) * 0.4D;
+            double jy = (level.random.nextDouble() - 0.5D) * 0.4D;
+            double jz = (level.random.nextDouble() - 0.5D) * 0.4D;
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                start.x + diff.x * t + jx,
+                start.y + diff.y * t + jy,
+                start.z + diff.z * t + jz,
+                1, 0, 0, 0, 0.01D);
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y + 0.3D, strikePos.z, 14, 0.8D, 0.5D, 0.8D, 0.05D);
+
+        level.playSound(null, strikePos.x, strikePos.y, strikePos.z,
+            SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.35F + level.random.nextFloat() * 0.45F);
+        if (elapsed % 6 == 0) {
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.6F, 1.25F);
+        }
+
+        double aoe = isNetherite ? 3.0D : 2.2D;
+        float damagePerStrike = isNetherite ? 3.0F : 2.0F;
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        boolean chargeCreeper = StavesConfig.STORMCALLER_CHARGE_CREEPER.get();
+        AABB aabb = new AABB(strikePos.x - aoe, strikePos.y - 1.5D, strikePos.z - aoe,
+                             strikePos.x + aoe, strikePos.y + 2.5D, strikePos.z + aoe);
+        for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive() && e != player)) {
+            if (victim instanceof Creeper creeper && chargeCreeper) {
+                if (bolt != null) creeper.thunderHit(level, bolt);
+                creeper.clearFire();
+            }
+            victim.clearFire();
+            ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU, player, damagePerStrike);
+            victim.clearFire();
+        }
+        DendroCoreManager.checkReactionsNear(level, strikePos, aoe + 0.5D, Element.ELECTRO, player);
     }
 
     private static Vec3 rayEnd(ServerPlayer player, double range) {
@@ -547,7 +627,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case EVOKER -> isNetherite ? "19.5m (x13)" : "13.5m (x9)";
-            case LIGHTNING -> isNetherite ? "36m (AOE 4.5m)" : "32m (AOE 3.5m)";
+            case LIGHTNING -> isNetherite ? "36m Channeled (Spread 3.5m)" : "30m Channeled (Spread 2.5m)";
             case FROST -> isNetherite ? "28m (AOE 2.0m)" : "28m";
             case WEB -> "28m";
         };
@@ -563,7 +643,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> isNetherite ? "6.0 x 2 (Electro 1.5U/shot)" : "4.0 x 2 (Electro 1U/shot)";
             case GUARDIAN -> isNetherite ? "1.8 x 10 (Hydro 1.5U)" : "1.2 x 10 (Hydro 1U)";
             case EVOKER -> isNetherite ? "4.5 / Fang (Geo 1.5U)" : "3.0 / Fang (Geo 1U)";
-            case LIGHTNING -> isNetherite ? "7.5 (Electro 4U)" : "5.0 (Electro 2U)";
+            case LIGHTNING -> isNetherite ? "3.0/arc (Electro 1.5U - No Fire)" : "2.0/arc (Electro 1.0U - No Fire)";
             case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
             case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
         };

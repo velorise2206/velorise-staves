@@ -59,7 +59,7 @@ public final class DendroCoreManager {
         }
 
         ItemStack seedItem = new ItemStack(VeloriseStavesMod.DENDRO_CORE);
-        ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.35D, pos.z, seedItem);
+        ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.1D, pos.z, seedItem);
         item.setPickUpDelay(32767);
         item.setUnlimitedLifetime();
         item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);

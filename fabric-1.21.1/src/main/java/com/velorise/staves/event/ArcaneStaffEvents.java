@@ -261,10 +261,13 @@ public final class ArcaneStaffEvents {
         LightningBolt effectiveBolt = bolt != null ? bolt : EntityType.LIGHTNING_BOLT.create(level);
         boolean chargeCreeper = StavesConfig.STORMCALLER_CHARGE_CREEPER.get();
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            if (effectiveBolt != null && chargeCreeper) {
-                target.thunderHit(level, effectiveBolt);
+            if (target instanceof net.minecraft.world.entity.monster.Creeper creeper && chargeCreeper) {
+                if (effectiveBolt != null) creeper.thunderHit(level, effectiveBolt);
+                creeper.clearFire();
             }
+            target.clearFire();
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, owner, baseDmg);
+            target.clearFire();
         }
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, owner);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hit.x, hit.y + 0.5D, hit.z, isNetherite ? 40 : 30,
