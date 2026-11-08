@@ -101,6 +101,7 @@ public final class ElementalGaugeManager {
         LAST_BLOOM_SPAWN.clear();
         DendroCoreManager.clearAll();
         ElectrifiedWaterManager.clearAll();
+        DragonfireCloudManager.clearAll();
     }
 
     public static boolean isEntityInWater(LivingEntity target) {
@@ -886,6 +887,7 @@ public final class ElementalGaugeManager {
         for (ServerLevel lvl : server.getAllLevels()) {
             DendroCoreManager.tick(lvl);
             ElectrifiedWaterManager.tick(lvl);
+            DragonfireCloudManager.tick(lvl);
         }
 
         // 0. Check Innate Re-infusion timers (0.8s = 16 ticks after an innate mob's aura was consumed)

@@ -1,7 +1,7 @@
 {
   "itemGroup.velorise_staves": "Gậy Phép Velorise",
   "item.velorise_staves.dragonfire_scepter": "Vương Trượng Hơi Thở Rồng",
-  "item.velorise_staves.dragonfire_scepter.desc": "Bắn ra luồng hơi thở rồng cô đặc, tạo đám mây lửa ma thuật lưu lại trên mặt đất.",
+  "item.velorise_staves.dragonfire_scepter.desc": "Bắn ra luồng hơi thở rồng cô đặc, tạo đám mây Lôi ma thuật lưu lại, liên tục nhiễm điện mặt nước và giật sét kẻ địch.",
   "item.velorise_staves.resonant_echo": "Âm Vang Cộng Hưởng",
   "item.velorise_staves.resonant_echo.desc": "Khai phóng sóng xung kích siêu thanh của Warden xuyên qua mọi kẻ địch.",
   "item.velorise_staves.inferno_rod": "Gậy Hỏa Ngục",
@@ -34,7 +34,7 @@
   "message.velorise_staves.translocator_blocked": "§cĐiểm đến bị chặn hoặc nằm ngoài tầm với.",
   "subtitles.velorise_staves.magic_mirror_use": "Gương ma thuật ngân vang",
   "item.velorise_staves.netherite_dragonfire_scepter": "Vương Trượng Hơi Thở Rồng Netherite",
-  "item.velorise_staves.netherite_dragonfire_scepter.desc": "Hơi thở rồng cường hóa tạo mây lửa rộng lớn và sát thương chí mạng hơn.",
+  "item.velorise_staves.netherite_dragonfire_scepter.desc": "Hơi thở rồng cường hóa tạo đám mây Lôi rộng lớn, liên tục nhiễm điện mặt nước và giật sét chí mạng.",
   "item.velorise_staves.netherite_resonant_echo": "Âm Vang Cộng Hưởng Netherite",
   "item.velorise_staves.netherite_resonant_echo.desc": "Sóng siêu thanh Warden cường hóa gây sát thương xuyên thấu hủy diệt.",
   "item.velorise_staves.netherite_inferno_rod": "Gậy Hỏa Ngục Netherite",

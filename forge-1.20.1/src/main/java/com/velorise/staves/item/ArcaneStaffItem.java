@@ -653,7 +653,7 @@ public final class ArcaneStaffItem extends Item {
 
     public String getDamageDisplay() {
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud (Pyro 2U)" : "7.0 + Cloud (Pyro 2U)";
+            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud (Electro 2U)" : "7.0 + Cloud (Electro 2U)";
             case ECHO -> isNetherite ? "16.0 (Anemo 4U - Swirl)" : "11.0 (Anemo 2U - Swirl)";
             case INFERNO -> isNetherite ? "4.5 x 3 (Pyro 1.5U/shot)" : "3.0 x 3 (Pyro 1U/shot)";
             case GHASTFIRE -> isNetherite ? "9.0 (Pyro 4U)" : "6.0 (Pyro 2U)";

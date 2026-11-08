@@ -112,6 +112,7 @@ public final class ArcaneStaffEvents {
         cloud.setRadiusPerTick(((radius + 1.0F) - cloud.getRadius()) / (float) cloud.getDuration());
         cloud.setWaitTime(10);
         cloud.addEffect(new MobEffectInstance(MobEffects.HARM, 1, isNetherite ? 1 : 0));
+        cloud.addTag("velorise_staves:dragonfire_cloud");
         level.addFreshEntity(cloud);
 
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
@@ -120,6 +121,11 @@ public final class ArcaneStaffEvents {
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 2.0F, player, baseDmg);
         }
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, player);
+
+        // Immediately electrify water beneath/around impact pos and register continuous cloud electrification
+        BlockPos hitPos = BlockPos.containing(hit);
+        com.velorise.staves.element.ElectrifiedWaterManager.electrify(level, hitPos, radius + 1.0D, 120, player, isNetherite ? 3.0F : 2.0F);
+        com.velorise.staves.element.DragonfireCloudManager.register(cloud, level, player, isNetherite);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
     }

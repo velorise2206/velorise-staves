@@ -1,7 +1,7 @@
 {
   "itemGroup.velorise_staves": "Velorise's Staves",
   "item.velorise_staves.dragonfire_scepter": "Dragonfire Scepter",
-  "item.velorise_staves.dragonfire_scepter.desc": "Hurls concentrated dragon breath that leaves a lingering mystic flame cloud.",
+  "item.velorise_staves.dragonfire_scepter.desc": "Hurls concentrated dragon breath that leaves a lingering mystic lightning cloud, continuously electrifying water.",
   "item.velorise_staves.resonant_echo": "Resonant Echo",
   "item.velorise_staves.resonant_echo.desc": "Channels the devastating sonic boom of the Warden to pierce through enemies.",
   "item.velorise_staves.inferno_rod": "Inferno Rod",
@@ -34,7 +34,7 @@
   "message.velorise_staves.translocator_blocked": "§cDestination is obstructed or out of range.",
   "subtitles.velorise_staves.magic_mirror_use": "Magic Mirror chimes",
   "item.velorise_staves.netherite_dragonfire_scepter": "Netherite Dragonfire Scepter",
-  "item.velorise_staves.netherite_dragonfire_scepter.desc": "Hurls intensified dragon breath that forms a larger, more lethal lingering flame cloud.",
+  "item.velorise_staves.netherite_dragonfire_scepter.desc": "Hurls intensified dragon breath that forms a larger lingering lightning cloud, continuously electrifying water.",
   "item.velorise_staves.netherite_resonant_echo": "Netherite Resonant Echo",
   "item.velorise_staves.netherite_resonant_echo.desc": "Channels an empowered Warden sonic boom dealing devastating piercing damage.",
   "item.velorise_staves.netherite_inferno_rod": "Netherite Inferno Rod",
