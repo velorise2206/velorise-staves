@@ -17,6 +17,8 @@ import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.monster.Blaze;
+import net.minecraft.world.entity.monster.Bogged;
+import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.monster.ElderGuardian;
 import net.minecraft.world.entity.monster.Guardian;
@@ -77,6 +79,8 @@ public final class ElementalGaugeManager {
      * - #cryo_creatures: Stray, SnowGolem -> CRYO
      * - #hydro_creatures: Guardian, ElderGuardian, Drowned -> HYDRO
      * - #anemo_creatures: Breeze (1.21+) -> ANEMO
+     * - #electro_creatures: Charged Creeper -> ELECTRO
+     * - #dendro_creatures: Bogged (1.21+) -> DENDRO
      */
     public static @Nullable Element getInnateElement(LivingEntity target) {
         if (target instanceof Blaze || target instanceof MagmaCube || target instanceof Strider) {
@@ -90,6 +94,12 @@ public final class ElementalGaugeManager {
         }
         if (target instanceof Breeze) {
             return Element.ANEMO;
+        }
+        if (target instanceof Creeper creeper && creeper.isPowered()) {
+            return Element.ELECTRO;
+        }
+        if (target instanceof Bogged) {
+            return Element.DENDRO;
         }
         return null;
     }
