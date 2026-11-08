@@ -28,11 +28,14 @@ import net.minecraft.world.entity.monster.Drowned;
 import net.minecraft.world.entity.monster.ElderGuardian;
 import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.monster.Endermite;
+import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Guardian;
 import net.minecraft.world.entity.monster.MagmaCube;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
+import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -276,7 +279,7 @@ public final class ElementalGaugeManager {
             syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 3.0F);
         }
 
-        // 3. Electro in water -> Electrify water & trigger Electro-Charged shock!
+        // 3. Electro in water -> Trigger Electro-Charged shock on entity itself (water does NOT turn electrified)
         if (targetGauges.containsKey(Element.ELECTRO)) {
             GaugeState electro = targetGauges.get(Element.ELECTRO);
             if (electro != null) {
@@ -284,7 +287,6 @@ public final class ElementalGaugeManager {
                 if (electro.isExpired()) targetGauges.remove(Element.ELECTRO);
             }
             if (target.level() instanceof ServerLevel sl) {
-                ElectrifiedWaterManager.electrify(sl, target.blockPosition(), 3.5D, 70, null, 2.0F);
                 sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.3D, 0.3D, 0.3D, 0.06D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
                 target.hurt(sl.damageSources().magic(), 2.5F);
@@ -319,7 +321,12 @@ public final class ElementalGaugeManager {
      * - #electro_creatures: Charged Creeper -> ELECTRO
      */
     public static @Nullable Element getInnateElement(LivingEntity target) {
-        if (target instanceof Blaze || target instanceof MagmaCube || target instanceof Strider) {
+        if (target instanceof Blaze
+                || target instanceof MagmaCube
+                || target instanceof Strider
+                || target instanceof Ghast
+                || target instanceof WitherSkeleton
+                || target instanceof ZombifiedPiglin) {
             return Element.PYRO;
         }
         if (target instanceof Stray || target instanceof SnowGolem) {
@@ -940,7 +947,7 @@ public final class ElementalGaugeManager {
             }
 
             // 2B. Proximity Voltaic Arcing (Electro mob <-> Hydro / Wet mob within 4.0 blocks)
-            if (entityGauges.containsKey(Element.ELECTRO) && (now % 10 == Math.abs(target.getId()) % 10)) {
+            if (entityGauges.containsKey(Element.ELECTRO) && (now % 4 == 0)) {
                 final LivingEntity srcTarget = target;
                 AABB arcBox = target.getBoundingBox().inflate(4.0D);
                 for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, arcBox, e -> e.isAlive() && !e.isRemoved() && e != srcTarget)) {
@@ -976,6 +983,7 @@ public final class ElementalGaugeManager {
                     AABB chainBox = target.getBoundingBox().inflate(4.0D);
                     for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
                         if (isEntityInWater(nearby) || getEntityElements(nearby.getUUID()).contains(Element.HYDRO)) {
+                            drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
                             nearby.hurt(targetLevel.damageSources().magic(), 2.0F);
                             applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
                             targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, nearby.getX(), nearby.getY() + 0.8D, nearby.getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
