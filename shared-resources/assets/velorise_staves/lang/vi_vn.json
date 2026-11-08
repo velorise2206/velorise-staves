@@ -26,6 +26,8 @@
   "item.velorise_staves.void_translocator.desc": "Dịch chuyển tức thời về phía trước đến vị trí bạn đang nhìn.",
   "item.velorise_staves.magic_mirror": "Gương Ma Thuật",
   "item.velorise_staves.magic_mirror.desc": "Giữ chuột phải để niệm chú quay về điểm hồi sinh hoặc giường của bạn.",
+  "tooltip.velorise_staves.range": "§9Tầm xa: §b%s",
+  "tooltip.velorise_staves.damage": "§cSát thương: §6%s",
   "tooltip.velorise_staves.cooldown": "§8Hồi chiêu: §7%ss",
   "message.velorise_staves.mirror_teleport": "§aĐã dịch chuyển về nhà!",
   "message.velorise_staves.mirror_no_spawn": "§cKhông tìm thấy điểm hồi sinh; đưa về điểm xuất phát thế giới.",

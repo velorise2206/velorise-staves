@@ -529,6 +529,38 @@ public final class ArcaneStaffItem extends Item {
         return validBase || super.isValidRepairItem(toRepair, repair);
     }
 
+    public String getRangeDisplay() {
+        return switch (kind) {
+            case DRAGONFIRE -> isNetherite ? "32m (AOE 4.5m)" : "32m (AOE 3.5m)";
+            case ECHO -> isNetherite ? "32m" : "28m";
+            case INFERNO -> "30m";
+            case GHASTFIRE -> isNetherite ? "36m (AOE 4.5m)" : "36m (AOE 3.5m)";
+            case WITHER -> isNetherite ? "32m (AOE 4.0m)" : "32m (AOE 3.0m)";
+            case SHULKER -> "30m";
+            case GUARDIAN -> isNetherite ? "28m" : "24m";
+            case EVOKER -> isNetherite ? "19.5m (x13)" : "13.5m (x9)";
+            case LIGHTNING -> isNetherite ? "36m (AOE 4.5m)" : "32m (AOE 3.5m)";
+            case FROST -> isNetherite ? "28m (AOE 2.0m)" : "28m";
+            case WEB -> "28m";
+        };
+    }
+
+    public String getDamageDisplay() {
+        return switch (kind) {
+            case DRAGONFIRE -> isNetherite ? "Harm II (~12.0/s)" : "Harm I (~6.0/s)";
+            case ECHO -> isNetherite ? "28.0" : "22.0";
+            case INFERNO -> isNetherite ? "8.0 x 3 (24.0)" : "6.0 x 3 (18.0)";
+            case GHASTFIRE -> isNetherite ? "16.0 + Blast" : "12.0 + Blast";
+            case WITHER -> isNetherite ? "10.0 x 3 (30.0) + Wither III" : "8.0 x 3 (24.0) + Wither II";
+            case SHULKER -> isNetherite ? "10.0 x 2 (20.0)" : "8.0 x 2 (16.0)";
+            case GUARDIAN -> isNetherite ? "3.5 x 10 (35.0)" : "2.5 x 10 (25.0)";
+            case EVOKER -> "6.0 / Fang";
+            case LIGHTNING -> isNetherite ? "14.0" : "10.0";
+            case FROST -> isNetherite ? "8.0 x 3 (24.0)" : "6.0 x 3 (18.0)";
+            case WEB -> isNetherite ? "Poison II (Trapping)" : "Poison I (Trapping)";
+        };
+    }
+
     @Override
     public boolean isFoil(ItemStack stack) {
         return true;
@@ -537,6 +569,8 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.damage", getDamageDisplay()));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)));
     }
 }

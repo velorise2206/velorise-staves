@@ -26,6 +26,8 @@
   "item.velorise_staves.void_translocator.desc": "Instantly teleports you forward to the surface you are looking at.",
   "item.velorise_staves.magic_mirror": "Magic Mirror",
   "item.velorise_staves.magic_mirror.desc": "Hold right-click to channel and teleport back to your spawn point or bed.",
+  "tooltip.velorise_staves.range": "§9Range: §b%s",
+  "tooltip.velorise_staves.damage": "§cDamage: §6%s",
   "tooltip.velorise_staves.cooldown": "§8Cooldown: §7%ss",
   "message.velorise_staves.mirror_teleport": "§aTeleported home!",
   "message.velorise_staves.mirror_no_spawn": "§cNo respawn point found; returning to world spawn.",

@@ -130,6 +130,7 @@ public class VoidTranslocatorItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) this.range + "m"));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", COOLDOWN_TICKS / 20.0F)));
     }
 }

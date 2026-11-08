@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-11-08
 
+### Added
+- **Item Tooltips (Damage & Range)**: Added clear display of attack damage, effective range, and AOE radius to hover tooltips across all 11 combat staves (both Basic and Netherite tiers) and `Void Translocator` in both English (`en_us`) and Vietnamese (`vi_vn`).
+- **Build Distribution Directory**: Configured `build-all.ps1` to automatically deploy all generated `.jar` artifacts into `myMod/mods/velorise_staves/` matching workspace organizational standards.
+
 ### Fixed
 - **1.21.1 Enchantment Compatibility**: Added `minecraft:enchantable/durability` and `minecraft:enchantable/vanishing` item tags in `shared-resources` so `Unbreaking`, `Mending`, and `Curse of Vanishing` work properly in Survival on NeoForge 1.21.1 and Fabric 1.21.1.
 - **Enchantability & Anvil Material Repair**: Overrode `getEnchantmentValue()` (15 for Basic, 20 for Netherite) and `isValidRepairItem()` across all staves and artifacts.
