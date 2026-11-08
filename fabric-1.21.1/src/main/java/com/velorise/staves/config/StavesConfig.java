@@ -22,7 +22,7 @@ public final class StavesConfig {
     // Mechanics
     public static final DoubleValue DAMAGE_MULTIPLIER = defineDouble("mechanics", "damage_multiplier", 1.0D, 0.1D, 10.0D);
     public static final DoubleValue COOLDOWN_MULTIPLIER = defineDouble("mechanics", "cooldown_multiplier", 1.0D, 0.1D, 10.0D);
-    public static final BooleanValue STORMCALLER_CHARGE_CREEPER = defineBool("mechanics", "stormcaller_charge_creeper", true);
+    public static final BooleanValue ARC_CASTER_CHARGE_CREEPER = defineBool("mechanics", "arc_caster_charge_creeper", true);
     public static final BooleanValue BASIC_MIRROR_CROSS_DIMENSION = defineBool("mechanics", "basic_mirror_cross_dimension", false);
     public static final IntValue TEMPORARY_WEB_DURATION_TICKS = defineInt("mechanics", "temporary_web_duration_ticks", 100, 20, 1200);
     public static final DoubleValue VOID_TRANSLOCATOR_RANGE_BASIC = defineDouble("mechanics", "void_translocator_range_basic", 24.0D, 4.0D, 128.0D);
@@ -46,7 +46,7 @@ public final class StavesConfig {
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
-    public static final DoubleValue STORMCALLER_COOLDOWN = defineDouble("cooldowns", "stormcaller_cooldown", 6.0D, 0.5D, 60.0D);
+    public static final DoubleValue ARC_CASTER_COOLDOWN = defineDouble("cooldowns", "arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
 
@@ -67,8 +67,8 @@ public final class StavesConfig {
     public static final IntValue GUARDIAN_DURABILITY_NETHERITE = defineInt("durability", "guardian_netherite", 500, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_BASIC = defineInt("durability", "evoker_basic", 120, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_NETHERITE = defineInt("durability", "evoker_netherite", 450, 10, 5000);
-    public static final IntValue STORMCALLER_DURABILITY_BASIC = defineInt("durability", "stormcaller_basic", 130, 10, 5000);
-    public static final IntValue STORMCALLER_DURABILITY_NETHERITE = defineInt("durability", "stormcaller_netherite", 500, 10, 5000);
+    public static final IntValue ARC_CASTER_DURABILITY_BASIC = defineInt("durability", "arc_caster_basic", 130, 10, 5000);
+    public static final IntValue ARC_CASTER_DURABILITY_NETHERITE = defineInt("durability", "arc_caster_netherite", 500, 10, 5000);
     public static final IntValue FROSTBOLT_DURABILITY_BASIC = defineInt("durability", "frostbolt_basic", 150, 10, 5000);
     public static final IntValue FROSTBOLT_DURABILITY_NETHERITE = defineInt("durability", "frostbolt_netherite", 500, 10, 5000);
     public static final IntValue WEBCASTER_DURABILITY_BASIC = defineInt("durability", "webcaster_basic", 140, 10, 5000);
@@ -135,8 +135,8 @@ public final class StavesConfig {
                 writer.write("damage_multiplier = " + DAMAGE_MULTIPLIER.get() + "\n");
                 writer.write("# Global cooldown multiplier for all staves and artifacts (0.1 to 10.0)\n");
                 writer.write("cooldown_multiplier = " + COOLDOWN_MULTIPLIER.get() + "\n");
-                writer.write("# Whether Stormcaller lightning strikes charge creepers and trigger mob conversions\n");
-                writer.write("stormcaller_charge_creeper = " + STORMCALLER_CHARGE_CREEPER.get() + "\n");
+                writer.write("# Whether Arc Caster lightning strikes charge creepers and trigger mob conversions\n");
+                writer.write("arc_caster_charge_creeper = " + ARC_CASTER_CHARGE_CREEPER.get() + "\n");
                 writer.write("# Allow basic Magic Mirror to teleport across dimensions (Netherite tier always can)\n");
                 writer.write("basic_mirror_cross_dimension = " + BASIC_MIRROR_CROSS_DIMENSION.get() + "\n");
                 writer.write("# Duration in ticks before temporary cobwebs vanish (20 ticks = 1s)\n");
@@ -177,7 +177,7 @@ public final class StavesConfig {
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
             case EVOKER -> EVOKER_COOLDOWN.get();
-            case LIGHTNING -> STORMCALLER_COOLDOWN.get();
+            case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();
         };
@@ -193,7 +193,7 @@ public final class StavesConfig {
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
-            case LIGHTNING -> isNetherite ? STORMCALLER_DURABILITY_NETHERITE.get() : STORMCALLER_DURABILITY_BASIC.get();
+            case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
         };

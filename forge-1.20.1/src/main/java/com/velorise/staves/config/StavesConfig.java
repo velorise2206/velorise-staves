@@ -9,7 +9,7 @@ public final class StavesConfig {
     // Mechanics
     public static final ForgeConfigSpec.DoubleValue DAMAGE_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue COOLDOWN_MULTIPLIER;
-    public static final ForgeConfigSpec.BooleanValue STORMCALLER_CHARGE_CREEPER;
+    public static final ForgeConfigSpec.BooleanValue ARC_CASTER_CHARGE_CREEPER;
     public static final ForgeConfigSpec.BooleanValue BASIC_MIRROR_CROSS_DIMENSION;
     public static final ForgeConfigSpec.IntValue TEMPORARY_WEB_DURATION_TICKS;
     public static final ForgeConfigSpec.DoubleValue VOID_TRANSLOCATOR_RANGE_BASIC;
@@ -33,7 +33,7 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.DoubleValue SHULKER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue GUARDIAN_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue EVOKER_COOLDOWN;
-    public static final ForgeConfigSpec.DoubleValue STORMCALLER_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue ARC_CASTER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue FROSTBOLT_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue WEBCASTER_COOLDOWN;
 
@@ -54,8 +54,8 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.IntValue GUARDIAN_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue EVOKER_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue EVOKER_DURABILITY_NETHERITE;
-    public static final ForgeConfigSpec.IntValue STORMCALLER_DURABILITY_BASIC;
-    public static final ForgeConfigSpec.IntValue STORMCALLER_DURABILITY_NETHERITE;
+    public static final ForgeConfigSpec.IntValue ARC_CASTER_DURABILITY_BASIC;
+    public static final ForgeConfigSpec.IntValue ARC_CASTER_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue FROSTBOLT_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue FROSTBOLT_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue WEBCASTER_DURABILITY_BASIC;
@@ -78,9 +78,9 @@ public final class StavesConfig {
             .comment("Global cooldown multiplier for all staves and artifacts (0.1 to 10.0). Default: 1.0")
             .defineInRange("cooldown_multiplier", 1.0D, 0.1D, 10.0D);
 
-        STORMCALLER_CHARGE_CREEPER = builder
-            .comment("Whether Stormcaller lightning strikes turn creepers into charged creepers and trigger mob lightning conversions. Default: true")
-            .define("stormcaller_charge_creeper", true);
+        ARC_CASTER_CHARGE_CREEPER = builder
+            .comment("Whether Arc Caster lightning strikes turn creepers into charged creepers and trigger mob lightning conversions. Default: true")
+            .define("arc_caster_charge_creeper", true);
 
         BASIC_MIRROR_CROSS_DIMENSION = builder
             .comment("Allow basic Magic Mirror to teleport across dimensions (Netherite tier always can). Default: false")
@@ -136,7 +136,7 @@ public final class StavesConfig {
         SHULKER_COOLDOWN = builder.defineInRange("shulker_cooldown", 6.0D, 0.5D, 60.0D);
         GUARDIAN_COOLDOWN = builder.defineInRange("guardian_cooldown", 5.0D, 0.5D, 60.0D);
         EVOKER_COOLDOWN = builder.defineInRange("evoker_cooldown", 5.0D, 0.5D, 60.0D);
-        STORMCALLER_COOLDOWN = builder.defineInRange("stormcaller_cooldown", 6.0D, 0.5D, 60.0D);
+        ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);
         builder.pop();
@@ -158,8 +158,8 @@ public final class StavesConfig {
         GUARDIAN_DURABILITY_NETHERITE = builder.defineInRange("guardian_netherite", 500, 10, 5000);
         EVOKER_DURABILITY_BASIC = builder.defineInRange("evoker_basic", 120, 10, 5000);
         EVOKER_DURABILITY_NETHERITE = builder.defineInRange("evoker_netherite", 450, 10, 5000);
-        STORMCALLER_DURABILITY_BASIC = builder.defineInRange("stormcaller_basic", 130, 10, 5000);
-        STORMCALLER_DURABILITY_NETHERITE = builder.defineInRange("stormcaller_netherite", 500, 10, 5000);
+        ARC_CASTER_DURABILITY_BASIC = builder.defineInRange("arc_caster_basic", 130, 10, 5000);
+        ARC_CASTER_DURABILITY_NETHERITE = builder.defineInRange("arc_caster_netherite", 500, 10, 5000);
         FROSTBOLT_DURABILITY_BASIC = builder.defineInRange("frostbolt_basic", 150, 10, 5000);
         FROSTBOLT_DURABILITY_NETHERITE = builder.defineInRange("frostbolt_netherite", 500, 10, 5000);
         WEBCASTER_DURABILITY_BASIC = builder.defineInRange("webcaster_basic", 140, 10, 5000);
@@ -185,7 +185,7 @@ public final class StavesConfig {
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
             case EVOKER -> EVOKER_COOLDOWN.get();
-            case LIGHTNING -> STORMCALLER_COOLDOWN.get();
+            case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();
         };
@@ -201,7 +201,7 @@ public final class StavesConfig {
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
-            case LIGHTNING -> isNetherite ? STORMCALLER_DURABILITY_NETHERITE.get() : STORMCALLER_DURABILITY_BASIC.get();
+            case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
         };

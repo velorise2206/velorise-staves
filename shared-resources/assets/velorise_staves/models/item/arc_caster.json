@@ -1,6 +1,6 @@
 {
   "parent": "velorise_staves:item/arcane_staff_handheld",
   "textures": {
-    "layer0": "velorise_staves:item/netherite_stormcaller"
+    "layer0": "velorise_staves:item/arc_caster"
   }
 }

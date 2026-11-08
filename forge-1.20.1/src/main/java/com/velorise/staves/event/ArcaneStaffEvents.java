@@ -301,7 +301,7 @@ public final class ArcaneStaffEvents {
         float baseDmg = isNetherite ? 7.5F : 5.0F;
         float attackU = isNetherite ? 4.0F : 2.0F;
         LightningBolt effectiveBolt = bolt != null ? bolt : EntityType.LIGHTNING_BOLT.create(level);
-        boolean chargeCreeper = StavesConfig.STORMCALLER_CHARGE_CREEPER.get();
+        boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             if (target instanceof net.minecraft.world.entity.monster.Creeper creeper && chargeCreeper) {
                 if (effectiveBolt != null) creeper.thunderHit(level, effectiveBolt);

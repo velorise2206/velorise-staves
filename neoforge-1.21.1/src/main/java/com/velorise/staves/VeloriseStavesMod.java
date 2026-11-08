@@ -56,7 +56,7 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> EVOKER_FANG_STAFF = ITEMS.register("evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 120, false));
 
-    public static final Supplier<Item> STORMCALLER = ITEMS.register("stormcaller",
+    public static final Supplier<Item> ARC_CASTER = ITEMS.register("arc_caster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 130, false));
 
     public static final Supplier<Item> FROSTBOLT_WAND = ITEMS.register("frostbolt_wand",
@@ -101,7 +101,7 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 450, true));
 
-    public static final Supplier<Item> NETHERITE_STORMCALLER = ITEMS.register("netherite_stormcaller",
+    public static final Supplier<Item> NETHERITE_ARC_CASTER = ITEMS.register("netherite_arc_caster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 500, true));
 
     public static final Supplier<Item> NETHERITE_FROSTBOLT_WAND = ITEMS.register("netherite_frostbolt_wand",
@@ -132,7 +132,7 @@ public final class VeloriseStavesMod {
                 output.accept(SHULKER_SEEKER.get());
                 output.accept(GUARDIAN_LENS.get());
                 output.accept(EVOKER_FANG_STAFF.get());
-                output.accept(STORMCALLER.get());
+                output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(WEBCASTER.get());
                 output.accept(VOID_TRANSLOCATOR.get());
@@ -147,7 +147,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_SHULKER_SEEKER.get());
                 output.accept(NETHERITE_GUARDIAN_LENS.get());
                 output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
-                output.accept(NETHERITE_STORMCALLER.get());
+                output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_VOID_TRANSLOCATOR.get());

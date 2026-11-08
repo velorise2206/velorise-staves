@@ -455,64 +455,78 @@ public final class ArcaneStaffItem extends Item {
 
     private void fireChanneledLightning(ServerLevel level, ServerPlayer player, int elapsed) {
         double range = isNetherite ? 36.0D : 30.0D;
-        double spread = isNetherite ? 3.5D : 2.5D;
-        LivingEntity target = findTarget(player, range, 2.0D);
-        Vec3 basePos = target != null ? target.position() : rayEnd(player, range);
+        double chainRadius = isNetherite ? 4.0D : 3.0D;
+        LivingEntity target = findTarget(player, range, 2.5D);
+        Vec3 start = player.getEyePosition().add(player.getLookAngle().scale(0.4D));
+        Vec3 aimPoint = target != null ? target.getBoundingBox().getCenter() : rayEnd(player, range);
 
-        double offX = (level.random.nextDouble() - 0.5D) * 2.0D * spread;
-        double offZ = (level.random.nextDouble() - 0.5D) * 2.0D * spread;
-        double strikeX = basePos.x + offX;
-        double strikeZ = basePos.z + offZ;
-        double strikeY = findGroundY(level, strikeX, basePos.y, strikeZ);
-        Vec3 strikePos = new Vec3(strikeX, strikeY, strikeZ);
+        double jitter = isNetherite ? 0.6D : 0.45D;
+        double offX = (level.random.nextDouble() - 0.5D) * jitter;
+        double offY = (level.random.nextDouble() - 0.5D) * jitter;
+        double offZ = (level.random.nextDouble() - 0.5D) * jitter;
+        Vec3 strikePos = aimPoint.add(offX, offY, offZ);
 
-        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
-        if (bolt != null) {
-            bolt.setPos(strikePos.x, strikePos.y, strikePos.z);
-            bolt.setVisualOnly(true);
-            level.addFreshEntity(bolt);
-        }
+        // Draw horizontal primary arc from staff tip to target
+        drawJaggedArc(level, start, strikePos, isNetherite ? 0.45D : 0.35D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 12, 0.35D, 0.35D, 0.35D, 0.05D);
 
-        Vec3 start = player.getEyePosition();
-        Vec3 diff = strikePos.subtract(start);
-        double dist = diff.length();
-        int steps = Math.min((int)(dist * 1.5D), 20);
-        for (int s = 0; s < steps; s++) {
-            double t = (double) s / (double) steps;
-            double jx = (level.random.nextDouble() - 0.5D) * 0.4D;
-            double jy = (level.random.nextDouble() - 0.5D) * 0.4D;
-            double jz = (level.random.nextDouble() - 0.5D) * 0.4D;
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK,
-                start.x + diff.x * t + jx,
-                start.y + diff.y * t + jy,
-                start.z + diff.z * t + jz,
-                1, 0, 0, 0, 0.01D);
-        }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y + 0.3D, strikePos.z, 14, 0.8D, 0.5D, 0.8D, 0.05D);
-
+        // High-voltage electric crackle sound
         level.playSound(null, strikePos.x, strikePos.y, strikePos.z,
-            SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.35F + level.random.nextFloat() * 0.45F);
-        if (elapsed % 6 == 0) {
+            SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.55F + level.random.nextFloat() * 0.45F);
+        if (elapsed % 4 == 0) {
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.6F, 1.25F);
+                SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.45F, 1.75F);
         }
 
-        double aoe = isNetherite ? 3.0D : 2.2D;
-        float damagePerStrike = isNetherite ? 3.0F : 2.0F;
+        float damagePerTick = isNetherite ? 2.5F : 1.8F;
         float attackU = isNetherite ? 1.5F : 1.0F;
-        boolean chargeCreeper = StavesConfig.STORMCALLER_CHARGE_CREEPER.get();
-        AABB aabb = new AABB(strikePos.x - aoe, strikePos.y - 1.5D, strikePos.z - aoe,
-                             strikePos.x + aoe, strikePos.y + 2.5D, strikePos.z + aoe);
-        for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive() && e != player)) {
+        boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
+
+        AABB aabb = new AABB(strikePos.x - chainRadius, strikePos.y - 2.0D, strikePos.z - chainRadius,
+                             strikePos.x + chainRadius, strikePos.y + 2.5D, strikePos.z + chainRadius);
+        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive() && e != player);
+
+        // Chain lightning to nearby enemies
+        int chained = 0;
+        for (LivingEntity victim : victims) {
+            if (victim != target && chained < 2) {
+                drawJaggedArc(level, strikePos, victim.getBoundingBox().getCenter(), 0.3D);
+                chained++;
+            }
             if (victim instanceof Creeper creeper && chargeCreeper) {
-                if (bolt != null) creeper.thunderHit(level, bolt);
+                LightningBolt fakeBolt = EntityType.LIGHTNING_BOLT.create(level);
+                if (fakeBolt != null) creeper.thunderHit(level, fakeBolt);
                 creeper.clearFire();
             }
             victim.clearFire();
-            ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU, player, damagePerStrike);
+            ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU, player, damagePerTick);
             victim.clearFire();
         }
-        DendroCoreManager.checkReactionsNear(level, strikePos, aoe + 0.5D, Element.ELECTRO, player);
+        DendroCoreManager.checkReactionsNear(level, strikePos, chainRadius + 0.5D, Element.ELECTRO, player);
+    }
+
+    private static void drawJaggedArc(ServerLevel level, Vec3 start, Vec3 end, double jitter) {
+        Vec3 diff = end.subtract(start);
+        double dist = diff.length();
+        if (dist <= 0.1D) return;
+        int steps = Math.max(3, (int) Math.round(dist * 1.8D));
+        for (int s = 1; s <= steps; s++) {
+            double t = (double) s / (double) steps;
+            Vec3 linear = start.add(diff.scale(t));
+            Vec3 pt;
+            if (s == steps) {
+                pt = end;
+            } else {
+                double jx = (level.random.nextDouble() - 0.5D) * jitter;
+                double jy = (level.random.nextDouble() - 0.5D) * jitter;
+                double jz = (level.random.nextDouble() - 0.5D) * jitter;
+                pt = linear.add(jx, jy, jz);
+            }
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0.005D);
+            if (s % 3 == 0) {
+                level.sendParticles(ParticleTypes.GLOW, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0.002D);
+            }
+        }
     }
 
     private static Vec3 rayEnd(ServerPlayer player, double range) {
@@ -624,7 +638,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case EVOKER -> isNetherite ? "19.5m (x13)" : "13.5m (x9)";
-            case LIGHTNING -> isNetherite ? "36m Channeled (Spread 3.5m)" : "30m Channeled (Spread 2.5m)";
+            case LIGHTNING -> isNetherite ? "36m Arc Stream (Chain 4.0m)" : "30m Arc Stream (Chain 3.0m)";
             case FROST -> isNetherite ? "28m (AOE 2.0m)" : "28m";
             case WEB -> "28m";
         };
@@ -640,7 +654,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> isNetherite ? "6.0 x 2 (Electro 1.5U/shot)" : "4.0 x 2 (Electro 1U/shot)";
             case GUARDIAN -> isNetherite ? "1.8 x 10 (Hydro 1.5U)" : "1.2 x 10 (Hydro 1U)";
             case EVOKER -> isNetherite ? "4.5 / Fang (Geo 1.5U)" : "3.0 / Fang (Geo 1U)";
-            case LIGHTNING -> isNetherite ? "3.0/arc (Electro 1.5U - No Fire)" : "2.0/arc (Electro 1.0U - No Fire)";
+            case LIGHTNING -> isNetherite ? "2.5/tick (Electro 1.5U - Voltaic Arc)" : "1.8/tick (Electro 1.0U - Voltaic Arc)";
             case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
             case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
         };

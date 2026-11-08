@@ -58,7 +58,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item EVOKER_FANG_STAFF = registerItem("evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, false), false));
 
-    public static final Item STORMCALLER = registerItem("stormcaller",
+    public static final Item ARC_CASTER = registerItem("arc_caster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, false), false));
 
     public static final Item FROSTBOLT_WAND = registerItem("frostbolt_wand",
@@ -103,7 +103,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_EVOKER_FANG_STAFF = registerItem("netherite_evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, true), true));
 
-    public static final Item NETHERITE_STORMCALLER = registerItem("netherite_stormcaller",
+    public static final Item NETHERITE_ARC_CASTER = registerItem("netherite_arc_caster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, true), true));
 
     public static final Item NETHERITE_FROSTBOLT_WAND = registerItem("netherite_frostbolt_wand",
@@ -138,7 +138,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(SHULKER_SEEKER);
             output.accept(GUARDIAN_LENS);
             output.accept(EVOKER_FANG_STAFF);
-            output.accept(STORMCALLER);
+            output.accept(ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
             output.accept(WEBCASTER);
             output.accept(VOID_TRANSLOCATOR);
@@ -153,7 +153,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_SHULKER_SEEKER);
             output.accept(NETHERITE_GUARDIAN_LENS);
             output.accept(NETHERITE_EVOKER_FANG_STAFF);
-            output.accept(NETHERITE_STORMCALLER);
+            output.accept(NETHERITE_ARC_CASTER);
             output.accept(NETHERITE_FROSTBOLT_WAND);
             output.accept(NETHERITE_WEBCASTER);
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
@@ -181,7 +181,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(SHULKER_SEEKER);
             entries.accept(GUARDIAN_LENS);
             entries.accept(EVOKER_FANG_STAFF);
-            entries.accept(STORMCALLER);
+            entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
             entries.accept(VOID_TRANSLOCATOR);
@@ -196,7 +196,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_SHULKER_SEEKER);
             entries.accept(NETHERITE_GUARDIAN_LENS);
             entries.accept(NETHERITE_EVOKER_FANG_STAFF);
-            entries.accept(NETHERITE_STORMCALLER);
+            entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);
             entries.accept(NETHERITE_VOID_TRANSLOCATOR);
@@ -213,7 +213,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(SHULKER_SEEKER);
             entries.accept(GUARDIAN_LENS);
             entries.accept(EVOKER_FANG_STAFF);
-            entries.accept(STORMCALLER);
+            entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
             entries.accept(NETHERITE_DRAGONFIRE_SCEPTER);
@@ -224,7 +224,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_SHULKER_SEEKER);
             entries.accept(NETHERITE_GUARDIAN_LENS);
             entries.accept(NETHERITE_EVOKER_FANG_STAFF);
-            entries.accept(NETHERITE_STORMCALLER);
+            entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);
         });
