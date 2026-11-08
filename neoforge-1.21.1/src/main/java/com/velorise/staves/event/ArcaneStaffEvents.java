@@ -295,4 +295,14 @@ public final class ArcaneStaffEvents {
             projectile.getPersistentData().getDouble(TAG_ORIGIN_Z));
         return origin.distanceToSqr(hit) > maxRange * maxRange;
     }
+
+    @SubscribeEvent
+    public static void onStartTracking(net.neoforged.neoforge.event.entity.player.PlayerEvent.StartTracking event) {
+        if (event.getTarget() instanceof LivingEntity living && event.getEntity() instanceof ServerPlayer player) {
+            java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
+            if (!elements.isEmpty()) {
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements);
+            }
+        }
+    }
 }

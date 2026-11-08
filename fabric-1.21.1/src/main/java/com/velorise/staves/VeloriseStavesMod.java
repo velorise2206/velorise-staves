@@ -158,6 +158,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     @Override
     public void onInitialize() {
         StavesConfig.load();
+        com.velorise.staves.network.ModNetwork.registerCommon();
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             TemporaryWebManager.tick(server);

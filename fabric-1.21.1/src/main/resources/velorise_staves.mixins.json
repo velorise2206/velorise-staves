@@ -3,7 +3,8 @@
   "package": "com.velorise.staves.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ProjectileMixin"
+    "ProjectileMixin",
+    "LivingEntityRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

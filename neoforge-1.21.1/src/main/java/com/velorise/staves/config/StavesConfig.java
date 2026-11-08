@@ -22,6 +22,7 @@ public final class StavesConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
     public static final ModConfigSpec.BooleanValue SHOW_ACTIONBAR_FEEDBACK;
     public static final ModConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
+    public static final ModConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
 
     // Cooldowns
     public static final ModConfigSpec.DoubleValue DRAGONFIRE_COOLDOWN;
@@ -121,6 +122,9 @@ public final class StavesConfig {
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);
+        SHOW_OVERHEAD_ELEMENT_ICONS = builder
+            .comment("Render Genshin-style overhead elemental aura icons and floating reaction text above afflicted mobs. Default: true")
+            .define("show_overhead_element_icons", true);
         builder.pop();
 
         builder.comment("Individual staff cooldowns in seconds").push("cooldowns");

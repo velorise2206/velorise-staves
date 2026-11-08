@@ -33,6 +33,15 @@ public final class ElementalGaugeManager {
 
     private ElementalGaugeManager() {}
 
+    public static void syncAuras(LivingEntity target, Collection<Element> elements, @Nullable Element trigger, @Nullable ElementalReaction reaction) {
+        com.velorise.staves.network.ModNetwork.sendAuraSync(target, elements, trigger, reaction);
+    }
+
+    public static Collection<Element> getEntityElements(UUID entityId) {
+        Map<Element, GaugeState> gauges = GAUGES.get(entityId);
+        return gauges != null ? gauges.keySet() : Collections.emptyList();
+    }
+
     public static void clearAll() {
         GAUGES.clear();
         FROZEN_UNTIL.clear();
@@ -126,6 +135,7 @@ public final class ElementalGaugeManager {
             triggerOverloadExplosion(level, target, attacker, dmgMult);
             level.playSound(null, target.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
             sendActionbar(attacker, ChatFormatting.GOLD + "💥 Overvape! (Bốc Hơi x1.5 + Nổ Quá Tải 3.5m)");
+            syncAuras(target, targetGauges.keySet(), attackElement, ElementalReaction.OVERLOADED);
             return;
         }
 
@@ -151,6 +161,7 @@ public final class ElementalGaugeManager {
                 } else {
                     sendActionbar(attacker, reaction.color() + reaction.reactionName() + " (" + reaction.formula() + ")! " + ChatFormatting.DARK_GRAY + "| " + ChatFormatting.WHITE + "Còn lại: " + auraElement.formatted() + String.format(" %.1fU", aura.getUnits()));
                 }
+                syncAuras(target, targetGauges.keySet(), attackElement, reaction);
                 return;
             }
         }
@@ -167,6 +178,7 @@ public final class ElementalGaugeManager {
                 targetGauges.put(attackElement, newAura);
                 sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Đã gắn ấn " + attackElement.displayName() + String.format(" (%.1fU)", newAura.getUnits()));
             }
+            syncAuras(target, targetGauges.keySet(), null, null);
         }
 
         // Deal normal damage
@@ -342,6 +354,7 @@ public final class ElementalGaugeManager {
                 }
 
                 Map<Element, GaugeState> entityGauges = entry.getValue();
+                boolean changed = false;
 
                 // 1. Tick gauges decay
                 Iterator<Map.Entry<Element, GaugeState>> gaugeIt = entityGauges.entrySet().iterator();
@@ -350,11 +363,16 @@ public final class ElementalGaugeManager {
                     state.tick();
                     if (state.isExpired()) {
                         gaugeIt.remove();
+                        changed = true;
                     }
                 }
 
                 if (entityGauges.isEmpty()) {
                     it.remove();
+                }
+
+                if (changed) {
+                    syncAuras(target, entityGauges.keySet(), null, null);
                 }
 
                 // 2. Electro-Charged periodic damage (every 20 ticks = 1 second)

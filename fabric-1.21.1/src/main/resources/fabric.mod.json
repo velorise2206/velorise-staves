@@ -16,6 +16,9 @@
   "entrypoints": {
     "main": [
       "com.velorise.staves.VeloriseStavesMod"
+    ],
+    "client": [
+      "com.velorise.staves.client.VeloriseStavesClient"
     ]
   },
   "mixins": [

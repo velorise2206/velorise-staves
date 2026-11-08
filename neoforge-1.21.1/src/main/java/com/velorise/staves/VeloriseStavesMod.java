@@ -153,6 +153,7 @@ public final class VeloriseStavesMod {
 
     public VeloriseStavesMod(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
+        modEventBus.addListener(com.velorise.staves.network.ModNetwork::registerPayloads);
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);

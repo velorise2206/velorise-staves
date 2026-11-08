@@ -155,6 +155,7 @@ public final class VeloriseStavesMod {
 
     public VeloriseStavesMod() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
+        com.velorise.staves.network.ModNetwork.register();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
