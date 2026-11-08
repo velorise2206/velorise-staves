@@ -432,7 +432,7 @@ public final class ArcaneStaffItem extends Item {
             bolt.setVisualOnly(true);
             level.addFreshEntity(bolt);
         }
-        ArcaneStaffEvents.resolveLightning(level, impact, player, isNetherite);
+        ArcaneStaffEvents.resolveLightning(level, impact, player, isNetherite, bolt);
         return true;
     }
 

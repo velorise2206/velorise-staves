@@ -11,6 +11,8 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.AABB;
@@ -191,11 +193,20 @@ public final class ArcaneStaffEvents {
     }
 
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite) {
+        resolveLightning(level, hit, owner, isNetherite, null);
+    }
+
+    public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite, LightningBolt bolt) {
         double radius = isNetherite ? 4.5D : 3.5D;
         float damage = isNetherite ? 14.0F : 10.0F;
+        LightningBolt effectiveBolt = bolt != null ? bolt : EntityType.LIGHTNING_BOLT.create(level);
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            target.igniteForSeconds(isNetherite ? 5 : 4);
-            target.hurt(level.damageSources().lightningBolt(), damage);
+            if (effectiveBolt != null) {
+                target.thunderHit(level, effectiveBolt);
+            }
+            if (target.isAlive() && damage > 5.0F) {
+                target.hurt(level.damageSources().lightningBolt(), damage);
+            }
         }
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hit.x, hit.y + 0.5D, hit.z, isNetherite ? 40 : 30,
             radius * 0.35D, 0.8D, radius * 0.35D, 0.08D);

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Build Distribution Directory**: Configured `build-all.ps1` to automatically deploy all generated `.jar` artifacts into `myMod/mods/velorise_staves/` matching workspace organizational standards.
 
 ### Fixed
+- **Stormcaller Creeper Transformation**: Fixed `Stormcaller` failing to charge Creepers (and trigger mob lightning transformations like Villagers to Witches and Pigs to Zombified Piglins) by invoking `target.thunderHit(level, bolt)` on all entities caught in the lightning strike AOE.
 - **1.21.1 Enchantment Compatibility**: Added `minecraft:enchantable/durability` and `minecraft:enchantable/vanishing` item tags in `shared-resources` so `Unbreaking`, `Mending`, and `Curse of Vanishing` work properly in Survival on NeoForge 1.21.1 and Fabric 1.21.1.
 - **Enchantability & Anvil Material Repair**: Overrode `getEnchantmentValue()` (15 for Basic, 20 for Netherite) and `isValidRepairItem()` across all staves and artifacts.
 - **Webcaster Owner Immunity & Server Shutdown Cleanup**: Fixed `TemporaryWebManager` poisoning the caster and added `clearAll()` hook on server stopping across Forge, NeoForge, and Fabric so temporary cobwebs never persist permanently after server restarts.
