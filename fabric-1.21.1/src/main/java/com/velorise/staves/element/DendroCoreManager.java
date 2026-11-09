@@ -282,7 +282,7 @@ public final class DendroCoreManager {
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.3F);
 
         float dmg = 8.0F * core.damageMultiplier;
-        AABB box = new AABB(pos.x - 3.0D, pos.y - 2.0D, pos.z - 3.0D, pos.x + 3.0D, pos.y + 3.0D, pos.z + 3.0D);
+        AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
                 victim.hurt(core.level.damageSources().magic(), dmg);
@@ -428,22 +428,22 @@ public final class DendroCoreManager {
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 8, 0.2D, 0.2D, 0.2D, 0.05D);
                 level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.8F);
 
+                // Genshin Impact: Hyperbloom deals small AoE splash damage with 1.0m radius around impact point
+                AABB splashBox = new AABB(hitPos.x - 1.0D, hitPos.y - 1.0D, hitPos.z - 1.0D, hitPos.x + 1.0D, hitPos.y + 1.0D, hitPos.z + 1.0D);
+                boolean hitAny = false;
+                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
+                    if (canTakeBloomDamage(nearby, level.getGameTime())) {
+                        nearby.hurt(level.damageSources().magic(), m.damage);
+                        ElementalGaugeManager.syncAuras(nearby, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
+                        hitAny = true;
+                    }
+                }
                 LivingEntity victim = m.target;
-                if (victim != null && victim.isAlive() && !victim.isRemoved()) {
+                if (!hitAny && victim != null && victim.isAlive() && !victim.isRemoved() && victim != m.attacker) {
                     if (canTakeBloomDamage(victim, level.getGameTime())) {
                         victim.hurt(level.damageSources().magic(), m.damage);
                     }
                     ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
-                } else {
-                    // Target died or moved away: hit nearest living entity within 2.5 blocks of impact point
-                    AABB splashBox = new AABB(hitPos.x - 2.5D, hitPos.y - 2.5D, hitPos.z - 2.5D, hitPos.x + 2.5D, hitPos.y + 2.5D, hitPos.z + 2.5D);
-                    for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
-                        if (canTakeBloomDamage(nearby, level.getGameTime())) {
-                            nearby.hurt(level.damageSources().magic(), m.damage);
-                            ElementalGaugeManager.syncAuras(nearby, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
-                            break;
-                        }
-                    }
                 }
             }
         }
