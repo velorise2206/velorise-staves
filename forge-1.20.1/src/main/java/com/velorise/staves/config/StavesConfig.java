@@ -20,7 +20,6 @@ public final class StavesConfig {
 
     // Elemental Gauge Theory (EGT)
     public static final ForgeConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
-    public static final ForgeConfigSpec.BooleanValue SHOW_ACTIONBAR_FEEDBACK;
     public static final ForgeConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ForgeConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
 
@@ -116,9 +115,6 @@ public final class StavesConfig {
         ENABLE_ELEMENTAL_GAUGE = builder
             .comment("Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay. Default: true")
             .define("enable_elemental_gauge", true);
-        SHOW_ACTIONBAR_FEEDBACK = builder
-            .comment("Show real-time elemental reaction HUD and remaining gauge units in Actionbar. Default: false")
-            .define("show_actionbar_feedback", false);
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);

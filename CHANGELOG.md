@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).
     - *Crystallize* (🪨 consumes $0.5\times$ aura, grants absorption hearts shield).
   - **Actionbar HUD & Visuals**: Real-time actionbar notifications displaying reaction name, damage multiplier, and remaining U, alongside ambient hovering element particles and distinct reaction sound effects.
-  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_actionbar_feedback`, and `show_elemental_particles`.
+  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_elemental_particles`, and `show_overhead_element_icons`.
 
 ### Changed
 - **50% Base Damage Rebalance**: Reduced base damage across all basic staves by 50% to incentivize tactical elemental reaction combos and prevent un-comboed one-shots.
@@ -81,7 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).
     - *Crystallize* (🪨 consumes $0.5\times$ aura, grants absorption hearts shield).
   - **Actionbar HUD & Visuals**: Real-time actionbar notifications displaying reaction name, damage multiplier, and remaining U, alongside ambient hovering element particles and distinct reaction sound effects.
-  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_actionbar_feedback`, and `show_elemental_particles`.
+  - **TOML Config Toggles**: Added `[elemental_gauge]` section with `enable_elemental_gauge`, `show_elemental_particles`, and `show_overhead_element_icons`.
 
 ### Changed
 - **50% Base Damage Rebalance**: Reduced base damage across all basic staves by 50% to incentivize tactical elemental reaction combos and prevent un-comboed one-shots.

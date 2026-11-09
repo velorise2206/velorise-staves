@@ -33,7 +33,6 @@ public final class StavesConfig {
 
     // Elemental Gauge Theory (EGT)
     public static final BooleanValue ENABLE_ELEMENTAL_GAUGE = defineBool("elemental_gauge", "enable_elemental_gauge", true);
-    public static final BooleanValue SHOW_ACTIONBAR_FEEDBACK = defineBool("elemental_gauge", "show_actionbar_feedback", false);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
 
@@ -153,8 +152,6 @@ public final class StavesConfig {
                 writer.write("[elemental_gauge]\n");
                 writer.write("# Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay\n");
                 writer.write("enable_elemental_gauge = " + ENABLE_ELEMENTAL_GAUGE.get() + "\n");
-                writer.write("# Show real-time elemental reaction HUD and remaining gauge units in Actionbar\n");
-                writer.write("show_actionbar_feedback = " + SHOW_ACTIONBAR_FEEDBACK.get() + "\n");
                 writer.write("# Show ambient elemental particles hovering around affected entities\n");
                 writer.write("show_elemental_particles = " + SHOW_ELEMENTAL_PARTICLES.get() + "\n");
                 writer.write("# Render Genshin-style overhead elemental aura icons and floating reaction text above afflicted mobs\n");
