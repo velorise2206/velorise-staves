@@ -42,7 +42,59 @@ public final class DendroCoreManager {
         }
     }
 
+    public static class HyperbloomMissile {
+        public final ServerLevel level;
+        public final Vec3 p0;
+        public final Vec3 p1;
+        public final Vec3 p2;
+        public final @Nullable LivingEntity target;
+        public Vec3 lastKnownTargetPos;
+        public final float damage;
+        public final @Nullable ServerPlayer attacker;
+        public final int totalTicks;
+        public int currentTick;
+
+        public HyperbloomMissile(
+                ServerLevel level,
+                Vec3 p0,
+                Vec3 p1,
+                Vec3 p2,
+                @Nullable LivingEntity target,
+                Vec3 initialTargetPos,
+                float damage,
+                @Nullable ServerPlayer attacker,
+                int totalTicks
+        ) {
+            this.level = level;
+            this.p0 = p0;
+            this.p1 = p1;
+            this.p2 = p2;
+            this.target = target;
+            this.lastKnownTargetPos = initialTargetPos;
+            this.damage = damage;
+            this.attacker = attacker;
+            this.totalTicks = Math.max(3, totalTicks);
+            this.currentTick = 0;
+        }
+
+        public Vec3 evaluate(float t, Vec3 currentTargetPos) {
+            float u = 1.0F - t;
+            float tt = t * t;
+            float uu = u * u;
+            float uuu = uu * u;
+            float ttt = tt * t;
+
+            // Cubic Bézier: B(t) = (1-t)^3 * P0 + 3(1-t)^2 * t * P1 + 3(1-t) * t^2 * P2 + t^3 * P3
+            double x = uuu * p0.x + 3.0D * uu * t * p1.x + 3.0D * u * tt * p2.x + ttt * currentTargetPos.x;
+            double y = uuu * p0.y + 3.0D * uu * t * p1.y + 3.0D * u * tt * p2.y + ttt * currentTargetPos.y;
+            double z = uuu * p0.z + 3.0D * uu * t * p1.z + 3.0D * u * tt * p2.z + ttt * currentTargetPos.z;
+
+            return new Vec3(x, y, z);
+        }
+    }
+
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
+    private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
     private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -147,7 +199,7 @@ public final class DendroCoreManager {
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.9F, 1.6F);
 
         // Find nearest living enemy within 16 blocks (Sprawling Shot homing)
-        AABB search = new AABB(pos.x - 16.0D, pos.y - 8.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 8.0D, pos.z + 16.0D);
+        AABB search = new AABB(pos.x - 16.0D, pos.y - 12.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 16.0D, pos.z + 16.0D);
         LivingEntity nearest = null;
         double minD2 = Double.MAX_VALUE;
         for (LivingEntity entity : core.level.getEntitiesOfClass(LivingEntity.class, search, e -> e.isAlive() && e != attacker)) {
@@ -158,29 +210,34 @@ public final class DendroCoreManager {
             }
         }
 
+        Vec3 p0 = pos.add(0, 0.35D, 0);
+        Vec3 p3;
         if (nearest != null) {
-            float hyperbloomDmg = 16.0F * core.damageMultiplier;
-            if (canTakeBloomDamage(nearest, core.level.getGameTime())) {
-                nearest.hurt(core.level.damageSources().magic(), hyperbloomDmg);
-            }
-            Vec3 targetPos = nearest.position();
-            drawHomingTrail(core.level, pos, targetPos.add(0, nearest.getBbHeight() * 0.5D, 0));
-            core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, targetPos.x, targetPos.y + 0.8D, targetPos.z, 25, 0.4D, 0.4D, 0.4D, 0.09D);
-            core.level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, targetPos.x, targetPos.y + 0.8D, targetPos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
-            ElementalGaugeManager.syncAuras(nearest, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hyperbloomDmg);
+            p3 = nearest.position().add(0, nearest.getBbHeight() * 0.55D, 0);
+        } else {
+            p3 = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 3.5D, core.level.random.nextDouble() * 4.0D - 2.0D);
         }
-    }
 
-    private static void drawHomingTrail(ServerLevel level, Vec3 start, Vec3 end) {
-        Vec3 diff = end.subtract(start);
+        Vec3 diff = p3.subtract(p0);
         double dist = diff.length();
-        int steps = Math.max(6, (int) Math.round(dist * 3.5D));
-        for (int i = 0; i <= steps; i++) {
-            double t = (double) i / (double) steps;
-            Vec3 p = start.add(diff.scale(t));
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
-            level.sendParticles(ParticleTypes.SCULK_SOUL, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
-        }
+        double horizDist = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
+
+        // Perpendicular horizontal vector for lateral arc sway (uốn lượn hình cánh cung)
+        Vec3 horizDir = horizDist > 0.01D ? new Vec3(diff.x / horizDist, 0, diff.z / horizDist) : new Vec3(1, 0, 0);
+        Vec3 sideVec = new Vec3(-horizDir.z, 0, horizDir.x);
+        double sideOffset = (core.level.random.nextBoolean() ? 1.0D : -1.0D) * (0.9D + core.level.random.nextDouble() * 0.9D);
+        Vec3 lateralOffset = sideVec.scale(sideOffset);
+
+        // Launch apex calculation: always pops UP into the air first (even if target is a flying Vex)
+        double apexHeight = Math.max(p0.y + 2.2D + horizDist * 0.15D, p3.y + 1.2D);
+        Vec3 p1 = new Vec3(p0.x + diff.x * 0.2D, apexHeight, p0.z + diff.z * 0.2D).add(lateralOffset);
+        Vec3 p2 = new Vec3(p0.x + diff.x * 0.7D, Math.max(p3.y + 0.8D, apexHeight - 0.4D), p0.z + diff.z * 0.7D).add(lateralOffset.scale(0.6D));
+
+        float hyperbloomDmg = 16.0F * core.damageMultiplier;
+        // Travel time: 5 to 9 ticks (~0.25s to 0.45s) based on distance
+        int flightTicks = Math.max(5, Math.min(9, (int) Math.round(dist * 0.35D + 4.0D)));
+
+        MISSILES.add(new HyperbloomMissile(core.level, p0, p1, p2, nearest, p3, hyperbloomDmg, attacker, flightTicks));
     }
 
     private static void triggerBurgeon(CoreEntry core, @Nullable ServerPlayer attacker) {
@@ -206,6 +263,76 @@ public final class DendroCoreManager {
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
+
+        // 1. Tick Hyperbloom Bézier homing missiles (Sprawling Shot 3D flight)
+        Iterator<HyperbloomMissile> missileIt = MISSILES.iterator();
+        while (missileIt.hasNext()) {
+            HyperbloomMissile m = missileIt.next();
+            if (m.level != level) continue;
+
+            m.currentTick++;
+            float tPrev = (float) (m.currentTick - 1) / (float) m.totalTicks;
+            float tCurr = (float) m.currentTick / (float) m.totalTicks;
+
+            // Dynamically update target position if enemy is still alive and moving (e.g. flying Vex)
+            Vec3 currentTargetPos;
+            if (m.target != null && m.target.isAlive() && !m.target.isRemoved()) {
+                currentTargetPos = m.target.position().add(0, m.target.getBbHeight() * 0.55D, 0);
+                m.lastKnownTargetPos = currentTargetPos;
+            } else {
+                currentTargetPos = m.lastKnownTargetPos;
+            }
+
+            // Draw dense interpolated particle trail between tPrev and tCurr
+            int subSteps = 5;
+            for (int s = 1; s <= subSteps; s++) {
+                float subT = tPrev + (tCurr - tPrev) * ((float) s / (float) subSteps);
+                Vec3 p = m.evaluate(subT, currentTargetPos);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
+                level.sendParticles(ParticleTypes.SCULK_SOUL, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
+                if (s == subSteps) {
+                    level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 2, 0.05D, 0.05D, 0.05D, 0.01D);
+                }
+            }
+
+            // Play flying hum sound on tick 2
+            if (m.currentTick == 2) {
+                Vec3 midP = m.evaluate(tCurr, currentTargetPos);
+                level.playSound(null, midP.x, midP.y, midP.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.3F, 2.0F);
+            }
+
+            // Impact!
+            if (m.currentTick >= m.totalTicks) {
+                MISSILES.remove(m);
+                Vec3 hitPos = m.evaluate(1.0F, currentTargetPos);
+
+                // Impact particles & sound
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 25, 0.4D, 0.4D, 0.4D, 0.09D);
+                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hitPos.x, hitPos.y, hitPos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
+                level.sendParticles(ParticleTypes.GLOW, hitPos.x, hitPos.y, hitPos.z, 8, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.85F, 1.7F);
+
+                LivingEntity victim = m.target;
+                if (victim != null && victim.isAlive() && !victim.isRemoved()) {
+                    if (canTakeBloomDamage(victim, level.getGameTime())) {
+                        victim.hurt(level.damageSources().magic(), m.damage);
+                    }
+                    ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
+                } else {
+                    // Target died or moved away: hit nearest living entity within 2.5 blocks of impact point
+                    AABB splashBox = new AABB(hitPos.x - 2.5D, hitPos.y - 2.5D, hitPos.z - 2.5D, hitPos.x + 2.5D, hitPos.y + 2.5D, hitPos.z + 2.5D);
+                    for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
+                        if (canTakeBloomDamage(nearby, level.getGameTime())) {
+                            nearby.hurt(level.damageSources().magic(), m.damage);
+                            ElementalGaugeManager.syncAuras(nearby, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Tick physical Dendro Cores on field
         Iterator<CoreEntry> it = CORES.iterator();
         while (it.hasNext()) {
             CoreEntry core = it.next();
@@ -237,6 +364,7 @@ public final class DendroCoreManager {
             }
         }
         CORES.clear();
+        MISSILES.clear();
         LAST_DMG_TICK.clear();
         DMG_INSTANCE_COUNT.clear();
     }
