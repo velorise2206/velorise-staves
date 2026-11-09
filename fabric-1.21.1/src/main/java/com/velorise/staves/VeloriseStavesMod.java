@@ -246,21 +246,9 @@ public final class VeloriseStavesMod implements ModInitializer {
             return true;
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
-            if (!blocked && afterDamage > 0.0F && !entity.level().isClientSide()) {
-                if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
-                    com.velorise.staves.element.Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, entity.level().getGameTime());
-                    if (activeShield != null && com.velorise.staves.element.CrystallizeShardManager.matchesElementalShield(activeShield, source)) {
-                        float refund = afterDamage * 0.6F;
-                        sp.setHealth(Math.min(sp.getMaxHealth(), sp.getHealth() + refund));
-                        sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                                net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_HIT, net.minecraft.sounds.SoundSource.PLAYERS, 0.9F, 1.8F);
-                    }
-                }
-                if (ElementalGaugeManager.hasSuperconductDebuff(entity, entity.level().getGameTime()) && ElementalGaugeManager.isPhysicalDamage(source)) {
-                    ElementalGaugeManager.applySuperconductBonusDamage(entity, afterDamage * 0.4F);
-                }
+            if (!blocked && !entity.level().isClientSide()) {
+                ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
             }
-            ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {
