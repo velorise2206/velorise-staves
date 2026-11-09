@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/pyro.png",
+      "file": "velorise_staves:element/pyro.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -11,7 +11,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/hydro.png",
+      "file": "velorise_staves:element/hydro.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -20,7 +20,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/cryo.png",
+      "file": "velorise_staves:element/cryo.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -29,7 +29,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/electro.png",
+      "file": "velorise_staves:element/electro.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -38,7 +38,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/anemo.png",
+      "file": "velorise_staves:element/anemo.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -47,7 +47,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/geo.png",
+      "file": "velorise_staves:element/geo.png",
       "ascent": 7,
       "height": 8,
       "chars": [
@@ -56,7 +56,7 @@
     },
     {
       "type": "bitmap",
-      "file": "velorise_staves:textures/element/dendro.png",
+      "file": "velorise_staves:element/dendro.png",
       "ascent": 7,
       "height": 8,
       "chars": [
