@@ -343,6 +343,13 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
+                // 7b. Warden Sonic Boom -> Anemo (2.0U) (swirls target's elements)
+                if (source.is(DamageTypes.SONIC_BOOM) || "sonic_boom".equals(source.type().msgId())) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, Element.ANEMO, 2.0F, attacker, 0.0F);
+                    return;
+                }
+
                 // 8. Falling Stalactite / Stalagmite / Anvil / Falling Block -> Geo (1.5U)
                 if (source.is(DamageTypes.FALLING_STALACTITE) || source.is(DamageTypes.STALAGMITE)
                         || source.is(DamageTypes.FALLING_ANVIL) || source.is(DamageTypes.FALLING_BLOCK)) {
