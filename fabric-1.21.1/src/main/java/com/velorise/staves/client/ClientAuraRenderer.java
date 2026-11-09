@@ -26,6 +26,8 @@ public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
     private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
     private static final ResourceLocation EFFECT_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/effect_background");
+    private static final ResourceLocation EFFECT_BACKGROUND_LARGE_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_large");
+    private static final ResourceLocation EFFECT_BACKGROUND_SMALL_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_small");
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
 
     static {
@@ -410,6 +412,106 @@ public final class ClientAuraRenderer {
             ResourceLocation tex = HUD_TEXTURES.get(elem);
             if (tex != null) {
                 guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+            }
+
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            index++;
+        }
+    }
+
+    public static void renderInventoryAura(
+            GuiGraphics guiGraphics,
+            EffectRenderingInventoryScreen<?> screen,
+            int leftPos,
+            int topPos,
+            int imageWidth,
+            int mouseX,
+            int mouseY
+    ) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        if (data == null || data.elements.isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+
+        // Environmental refresh: while player is actively burning, in lava, or in water, keep duration refreshed!
+        if (data.expireTime > 0 && data.elements.contains(Element.PYRO) && (mc.player.isInLava() || mc.player.isOnFire() || mc.player.getRemainingFireTicks() > 0)) {
+            data.expireTime = now + 9500L;
+        }
+        if (data.expireTime > 0 && data.elements.contains(Element.HYDRO) && mc.player.isInWaterOrRain()) {
+            data.expireTime = now + 9500L;
+        }
+
+        if (data.expireTime > 0 && now >= data.expireTime) {
+            data.elements.clear();
+            ClientAuraTracker.remove(mc.player.getId());
+            return;
+        }
+
+        int startX = leftPos + imageWidth + 2;
+        int availableWidth = screen.width - startX;
+        if (availableWidth < 32) return;
+
+        boolean isWide = availableWidth >= 120;
+        int vanillaCount = mc.player.getActiveEffects().size();
+        int totalEffects = vanillaCount + data.elements.size();
+        int yStep = 33;
+        if (totalEffects > 5) {
+            yStep = 132 / (totalEffects - 1);
+        }
+
+        int index = 0;
+        for (Element elem : data.elements) {
+            int y = topPos + (vanillaCount + index) * yStep;
+            long remMs = data.expireTime > 0 ? Math.max(0, data.expireTime - now) : 0;
+            float alpha = 1.0F;
+            if (data.expireTime > 0 && remMs <= 3000L) {
+                alpha = Math.sin((remMs / 140.0D) * Math.PI) < 0 ? 0.35F : 1.0F;
+            }
+
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
+
+            String elemName = elem.name().charAt(0) + elem.name().substring(1).toLowerCase(Locale.ROOT);
+            String title = elemName + " Aura";
+            String durationStr;
+            if (data.expireTime < 0) {
+                durationStr = "∞";
+            } else if (data.expireTime > 0) {
+                long remSec = remMs / 1000L;
+                durationStr = String.format(Locale.ROOT, "%d:%02d", remSec / 60, remSec % 60);
+            } else {
+                durationStr = "";
+            }
+
+            ResourceLocation tex = HUD_TEXTURES.get(elem);
+
+            if (isWide) {
+                // Wide Mode: 120x32 effect card matching vanilla layout exactly
+                guiGraphics.blitSprite(EFFECT_BACKGROUND_LARGE_SPRITE, startX, y, 120, 32);
+                if (tex != null) {
+                    guiGraphics.blit(tex, startX + 7, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                }
+                guiGraphics.drawString(mc.font, title, startX + 28, y + 6, getElementTextColor(elem), true);
+                if (!durationStr.isEmpty()) {
+                    guiGraphics.drawString(mc.font, durationStr, startX + 28, y + 17, 0x808080, false);
+                }
+            } else {
+                // Compact Mode: 32x32 square
+                guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
+                if (tex != null) {
+                    guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                }
+                if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+                    List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+                    tooltip.add(net.minecraft.network.chat.Component.literal(title));
+                    if (!durationStr.isEmpty()) {
+                        tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
+                    }
+                    guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                }
             }
 
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);

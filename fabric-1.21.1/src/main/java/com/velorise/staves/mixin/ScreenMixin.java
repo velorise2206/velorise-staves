@@ -3,6 +3,7 @@ package com.velorise.staves.mixin;
 import com.velorise.staves.client.ClientAuraRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,5 +19,9 @@ public abstract class ScreenMixin {
     @Inject(method = "renderWithTooltip", at = @At("RETURN"))
     private void velorise$afterRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ClientAuraRenderer.setRenderingScreen(false);
+        if ((Object) this instanceof EffectRenderingInventoryScreen<?> screen && screen.canSeeEffects()) {
+            AbstractContainerScreenAccessor accessor = (AbstractContainerScreenAccessor) screen;
+            ClientAuraRenderer.renderInventoryAura(guiGraphics, screen, accessor.velorise$getLeftPos(), accessor.velorise$getTopPos(), accessor.velorise$getImageWidth(), mouseX, mouseY);
+        }
     }
 }
