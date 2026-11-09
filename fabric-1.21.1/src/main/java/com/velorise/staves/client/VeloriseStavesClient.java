@@ -27,7 +27,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ElementalReaction reaction = (payload.reactionOrdinal() > 0 && payload.reactionOrdinal() <= ElementalReaction.values().length)
                         ? ElementalReaction.values()[payload.reactionOrdinal() - 1] : null;
 
-                ClientAuraTracker.update(payload.entityId(), elements, reactedAura, trigger, reaction);
+                ClientAuraTracker.update(payload.entityId(), elements, reactedAura, trigger, reaction, payload.damage());
             });
         });
     }

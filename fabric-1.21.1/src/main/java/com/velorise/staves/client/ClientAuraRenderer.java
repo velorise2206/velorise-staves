@@ -163,28 +163,31 @@ public final class ClientAuraRenderer {
             poseStack.popPose();
         }
 
-        // Branch 2: Separate PoseStack for 3D Floating Reaction Text & Damage Numbers (Genshin Style)
+        // Branch 2: Floating Combat Feedback (Reaction Text & Damage Numbers - Genshin Style)
         if (hasReaction || hasDamage) {
             poseStack.pushPose();
-            poseStack.translate(0.0D, height, 0.0D);
+            // Centered at torso / combat height so combat text is always visible and never covered by overhead icons
+            double combatHeight = Math.max(0.65D, entity.getBbHeight() * 0.65D);
+            poseStack.translate(0.0D, combatHeight, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
 
             float textPop = 1.0F;
             long primaryAge = hasReaction ? (now - data.reactionStartTime) : (now - data.damageStartTime);
-            if (primaryAge < 220L && primaryAge >= 0L) {
-                textPop = 1.0F + 0.35F * (float) Math.sin((primaryAge / 220.0F) * Math.PI);
+            if (primaryAge < 250L && primaryAge >= 0L) {
+                textPop = 1.0F + 0.38F * (float) Math.sin((primaryAge / 250.0F) * Math.PI);
             }
-            poseStack.scale(-0.028F * textPop, -0.028F * textPop, 0.028F * textPop);
+            poseStack.scale(-0.030F * textPop, -0.030F * textPop, 0.030F * textPop);
 
             Font font = mc.font;
-            float baseIconOffset = display.isEmpty() ? 0.0F : iconSize;
+            Matrix4f matrix = poseStack.last().pose();
 
+            float reactY = 0.0F;
             if (hasReaction) {
                 long reactionAge = Math.max(0L, now - data.reactionStartTime);
                 long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
                 float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
 
-                float floatY = -baseIconOffset - 6.0F - (progress * 14.0F);
+                reactY = -6.0F - (progress * 18.0F);
                 String text = "§l" + data.reaction.reactionName();
                 float textWidth = font.width(text);
                 float textX = -textWidth / 2.0F;
@@ -195,13 +198,13 @@ public final class ClientAuraRenderer {
                     alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
                 }
                 int fgColor = baseColor | (alpha << 24);
-                int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.45F));
+                int seeThroughAlpha = Math.max(15, Math.round(alpha * 0.35F));
                 int seeThroughColor = baseColor | (seeThroughAlpha << 24);
 
                 // See-through pass
-                font.drawInBatch(text, textX, floatY, seeThroughColor, false, poseStack.last().pose(), buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
+                font.drawInBatch(text, textX, reactY, seeThroughColor, false, matrix, buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
                 // Foreground pass with dropShadow = true
-                font.drawInBatch(text, textX, floatY, fgColor, true, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
+                font.drawInBatch(text, textX, reactY, fgColor, true, matrix, buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
             }
 
             if (hasDamage) {
@@ -209,9 +212,7 @@ public final class ClientAuraRenderer {
                 long dmgDuration = Math.max(1L, data.damageUntil - data.damageStartTime);
                 float dmgProgress = Math.max(0.0F, Math.min(1.0F, (float) dmgAge / (float) dmgDuration));
 
-                float dmgY = hasReaction
-                        ? (-baseIconOffset + 4.0F - (dmgProgress * 8.0F))
-                        : (-baseIconOffset - 6.0F - (dmgProgress * 14.0F));
+                float dmgY = hasReaction ? (reactY + 11.0F) : (-6.0F - (dmgProgress * 18.0F));
                 String dmgText = "§l" + (data.lastDamage % 1.0F == 0.0F ? String.valueOf((int) data.lastDamage) : String.format(Locale.ROOT, "%.1f", data.lastDamage));
                 float dmgWidth = font.width(dmgText);
                 float dmgX = -dmgWidth / 2.0F;
@@ -222,15 +223,10 @@ public final class ClientAuraRenderer {
                     dmgAlpha = Math.max(15, Math.min(255, Math.round(((1.0F - dmgProgress) / 0.3F) * 255.0F)));
                 }
                 int dmgFg = (dmgBaseColor & 0x00FFFFFF) | (dmgAlpha << 24);
-                int dmgSeeThrough = (dmgBaseColor & 0x00FFFFFF) | (Math.max(10, Math.round(dmgAlpha * 0.45F)) << 24);
+                int dmgSeeThrough = (dmgBaseColor & 0x00FFFFFF) | (Math.max(15, Math.round(dmgAlpha * 0.35F)) << 24);
 
-                font.drawInBatch(dmgText, dmgX, dmgY, dmgSeeThrough, false, poseStack.last().pose(), buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
-                font.drawInBatch(dmgText, dmgX, dmgY, dmgFg, true, poseStack.last().pose(), buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
-            }
-
-            // Flush font batch BEFORE poseStack.popPose() so text vertices keep the billboard matrix (compatible with Sodium/Embeddium)
-            if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                bs.endBatch();
+                font.drawInBatch(dmgText, dmgX, dmgY, dmgSeeThrough, false, matrix, buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
+                font.drawInBatch(dmgText, dmgX, dmgY, dmgFg, true, matrix, buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
             }
 
             poseStack.popPose();
@@ -269,7 +265,7 @@ public final class ClientAuraRenderer {
 
     private static int getReactionColor(ElementalReaction reaction) {
         return switch (reaction) {
-            case IMMUNE -> 0xB0B0B8;
+            case IMMUNE -> 0xE0E0E8;
             case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE -> 0xFF8C33;
             case FORWARD_MELT, REVERSE_MELT -> 0xFF3B30;
             case OVERLOADED -> 0xFF6B4A;

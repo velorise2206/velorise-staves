@@ -278,7 +278,15 @@ public final class ElementalGaugeManager {
     public static void handleEnvironmentalFireDamage(LivingEntity target) {
         if (!target.isAlive() || target.isInvulnerable()) return;
         Element innate = getInnateElement(target);
-        if (innate == Element.PYRO || target.fireImmune() || target instanceof Warden) return;
+        if (innate == Element.PYRO || target.fireImmune() || target instanceof Warden) {
+            long now = target.level().getGameTime();
+            Long lastImmune = INNATE_COOLDOWN_UNTIL.get(target.getUUID());
+            if (lastImmune == null || now >= lastImmune) {
+                INNATE_COOLDOWN_UNTIL.put(target.getUUID(), now + 30L);
+                syncAuras(target, Collections.emptyList(), null, Element.PYRO, ElementalReaction.IMMUNE);
+            }
+            return;
+        }
         if (isEntityInWater(target)) return;
 
         UUID id = target.getUUID();
@@ -540,7 +548,6 @@ public final class ElementalGaugeManager {
                 }
                 level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
-                sendActionbar(attacker, ChatFormatting.GRAY + "🛡️ IMMUNE! (" + target.getName().getString() + " is immune to " + attackElement.formatted() + ChatFormatting.GRAY + ")");
                 syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
                 return;
             }
@@ -558,7 +565,6 @@ public final class ElementalGaugeManager {
         if (attackElement == Element.PYRO && (target instanceof Warden || target.fireImmune())) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
-            sendActionbar(attacker, ChatFormatting.GRAY + "🛡️ IMMUNE! (" + target.getName().getString() + " is immune to " + attackElement.formatted() + ChatFormatting.GRAY + ")");
             syncAuras(target, targetGauges.keySet(), null, attackElement, ElementalReaction.IMMUNE);
             return;
         }
