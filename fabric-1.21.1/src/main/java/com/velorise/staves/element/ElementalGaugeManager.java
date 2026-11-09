@@ -590,9 +590,20 @@ public final class ElementalGaugeManager {
             }
         }
 
+        // Same-element immunity (Genshin Impact): Innate elemental beings (Blaze, MagmaCube, Stray, Drowned, Charged Creeper)
+        // are 100% immune to their own element (deals 0 damage, pops IMMUNE, never lose health even under ICD)
+        Element innateElement = getInnateElement(target);
+        if (innateElement != null && attackElement == innateElement) {
+            level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
+            Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> new EnumMap<>(Element.class));
+            syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
+            return;
+        }
+
         // Warden & Vanilla Fire-Immune Mob Check for Pyro attacks:
         // Deal 0 damage, but ALLOW Pyro aura to be applied!
-        if (attackElement == Element.PYRO && (target instanceof Warden || (target.fireImmune() && getInnateElement(target) == null))) {
+        if (attackElement == Element.PYRO && (target instanceof Warden || (target.fireImmune() && innateElement == null))) {
             baseDamage = 0.0F;
             effectiveDamage = 0.0F;
         }

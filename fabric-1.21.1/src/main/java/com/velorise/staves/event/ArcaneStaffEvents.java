@@ -122,7 +122,8 @@ public final class ArcaneStaffEvents {
 
         if ("ghastfire".equals(baseKind)) {
             resolveGhastfire(level, hit, owner, isNetherite);
-            return false; // Allow vanilla LargeFireball explosion to run
+            projectile.discard();
+            return true; // Cancel vanilla LargeFireball explosion to let EGT control damage
         }
 
         switch (baseKind) {

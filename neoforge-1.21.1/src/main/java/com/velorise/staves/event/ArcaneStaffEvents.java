@@ -114,7 +114,9 @@ public final class ArcaneStaffEvents {
         String baseKind = isNetherite ? kind.substring("netherite_".length()) : kind;
 
         if ("ghastfire".equals(baseKind)) {
+            event.setCanceled(true);
             resolveGhastfire(level, hit, owner, isNetherite);
+            projectile.discard();
             return;
         }
 
