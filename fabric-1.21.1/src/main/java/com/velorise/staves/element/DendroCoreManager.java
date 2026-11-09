@@ -35,6 +35,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class DendroCoreManager {
     public static final String TAG_DENDRO_CORE = "velorise_staves:dendro_core";
+    public static final String TAG_HYPERBLOOM_VISUAL = "velorise_staves:hyperbloom_visual";
     private static final int MAX_CORES = 5;
     private static final int CORE_LIFETIME_TICKS = 120; // 6 seconds
 
@@ -110,6 +111,7 @@ public final class DendroCoreManager {
 
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
     private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
+    private static final Set<UUID> ACTIVE_MISSILE_VISUALS = Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     // Subtle, faint footprint trail particles (delicate 0.55F neon lime dots, replacing particle clutter)
     private static final DustParticleOptions HYPERBLOOM_FOOTPRINT = new DustParticleOptions(new Vector3f(0.42F, 0.95F, 0.22F), 0.55F);
     private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
@@ -125,6 +127,7 @@ public final class DendroCoreManager {
             display.getSlot(0).set(new ItemStack(VeloriseStavesMod.DENDRO_CORE));
             display.setNoGravity(true);
             display.noPhysics = true;
+            display.addTag(TAG_HYPERBLOOM_VISUAL);
 
             CompoundTag nbt = new CompoundTag();
             ListTag posList = new ListTag();
@@ -153,8 +156,10 @@ public final class DendroCoreManager {
             }
 
             display.load(nbt);
+            display.addTag(TAG_HYPERBLOOM_VISUAL);
             display.getSlot(0).set(new ItemStack(VeloriseStavesMod.DENDRO_CORE));
             level.addFreshEntity(display);
+            ACTIVE_MISSILE_VISUALS.add(display.getUUID());
             return display;
         } catch (Throwable ignored) {
             return null;
@@ -202,7 +207,6 @@ public final class DendroCoreManager {
         ItemStack seedItem = new ItemStack(VeloriseStavesMod.DENDRO_CORE);
         ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.1D, pos.z, seedItem);
         item.setPickUpDelay(32767);
-        item.setUnlimitedLifetime();
         item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
         item.addTag(TAG_DENDRO_CORE);
         level.addFreshEntity(item);
@@ -216,19 +220,31 @@ public final class DendroCoreManager {
     public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable ServerPlayer attacker) {
         if (attackElement != Element.ELECTRO && attackElement != Element.PYRO) return;
 
-        Iterator<CoreEntry> it = CORES.iterator();
-        while (it.hasNext()) {
-            CoreEntry core = it.next();
+        double r2 = radius * radius;
+        for (CoreEntry core : CORES) {
             if (core.level != level || !core.entity.isAlive() || core.entity.isRemoved()) {
                 CORES.remove(core);
                 continue;
             }
-            if (core.entity.position().distanceToSqr(hitPos) <= radius * radius) {
+            if (core.entity.position().distanceToSqr(hitPos) <= r2) {
                 CORES.remove(core);
                 if (attackElement == Element.ELECTRO) {
                     triggerHyperbloom(core, attacker);
                 } else if (attackElement == Element.PYRO) {
                     triggerBurgeon(core, attacker);
+                }
+            }
+        }
+
+        // Also detect and react any untracked or orphaned seeds in the blast zone
+        AABB box = new AABB(hitPos.x - radius, hitPos.y - radius, hitPos.z - radius, hitPos.x + radius, hitPos.y + radius, hitPos.z + radius);
+        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, box, e -> e.isAlive() && !e.isRemoved())) {
+            if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == VeloriseStavesMod.DENDRO_CORE) {
+                CoreEntry tempCore = new CoreEntry(item, level, level.getGameTime(), attacker != null ? attacker.getUUID() : null, 1.0F);
+                if (attackElement == Element.ELECTRO) {
+                    triggerHyperbloom(tempCore, attacker);
+                } else if (attackElement == Element.PYRO) {
+                    triggerBurgeon(tempCore, attacker);
                 }
             }
         }
@@ -374,7 +390,8 @@ public final class DendroCoreManager {
             // Impact!
             if (m.currentTick >= m.totalTicks) {
                 MISSILES.remove(m);
-                if (m.visualEntity != null && m.visualEntity.isAlive()) {
+                if (m.visualEntity != null) {
+                    ACTIVE_MISSILE_VISUALS.remove(m.visualEntity.getUUID());
                     m.visualEntity.discard();
                 }
 
@@ -428,21 +445,60 @@ public final class DendroCoreManager {
                 detonateBloom(core);
             }
         }
+
+        // 3. Auto-Purge Orphaned Seeds & Visual Entities
+        if (now % 20 == 0) {
+            net.minecraft.world.item.Item dendroCoreItem = VeloriseStavesMod.DENDRO_CORE;
+            for (ServerPlayer player : level.players()) {
+                AABB scanBox = player.getBoundingBox().inflate(64.0D);
+
+                // A. Purge orphaned ItemDisplay seeds (from previous crashes, disconnects, etc.)
+                List<Display.ItemDisplay> displays = level.getEntitiesOfClass(Display.ItemDisplay.class, scanBox);
+                for (Display.ItemDisplay disp : displays) {
+                    if (disp.getTags().contains(TAG_HYPERBLOOM_VISUAL)
+                            || disp.getSlot(0).get().getItem() == dendroCoreItem) {
+                        if (!ACTIVE_MISSILE_VISUALS.contains(disp.getUUID())) {
+                            disp.discard();
+                        }
+                    }
+                }
+
+                // B. Adopt or clean orphaned ItemEntity Bloom seeds
+                List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, scanBox);
+                for (ItemEntity item : items) {
+                    if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == dendroCoreItem) {
+                        boolean tracked = false;
+                        for (CoreEntry c : CORES) {
+                            if (c.entity == item || c.entity.getUUID().equals(item.getUUID())) {
+                                tracked = true;
+                                break;
+                            }
+                        }
+                        if (!tracked) {
+                            if (item.getAge() >= CORE_LIFETIME_TICKS) {
+                                item.discard();
+                            } else {
+                                CORES.add(new CoreEntry(item, level, now - Math.max(0, item.getAge()), null, 1.0F));
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public static void clearAll() {
         for (CoreEntry core : CORES) {
-            if (core.entity.isAlive()) {
-                core.entity.discard();
-            }
+            core.entity.discard();
         }
         CORES.clear();
         for (HyperbloomMissile m : MISSILES) {
-            if (m.visualEntity != null && m.visualEntity.isAlive()) {
+            if (m.visualEntity != null) {
                 m.visualEntity.discard();
             }
         }
         MISSILES.clear();
+        ACTIVE_MISSILE_VISUALS.clear();
         LAST_DMG_TICK.clear();
         DMG_INSTANCE_COUNT.clear();
     }
