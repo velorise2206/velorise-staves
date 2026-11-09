@@ -245,8 +245,12 @@ public final class DendroCoreManager {
 
         double r2 = radius * radius;
         for (CoreEntry core : CORES) {
-            if (core.level != level || !core.entity.isAlive() || core.entity.isRemoved()) {
+            if (!core.entity.isAlive() || core.entity.isRemoved()) {
+                cleanUpCoreTeam(core);
                 CORES.remove(core);
+                continue;
+            }
+            if (core.level != level) {
                 continue;
             }
             if (core.entity.position().distanceToSqr(hitPos) <= r2) {
