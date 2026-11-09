@@ -685,6 +685,17 @@ public final class ArcaneStaffItem extends Item {
     }
 
     @Override
+    public Component getName(ItemStack stack) {
+        Element elem = getElement();
+        if (elem != null) {
+            return Component.translatable(this.getDescriptionId(stack)).withStyle(elem.color());
+        } else if (kind == Kind.WITHER) {
+            return Component.translatable(this.getDescriptionId(stack)).withStyle(ChatFormatting.DARK_GRAY);
+        }
+        return super.getName(stack);
+    }
+
+    @Override
     public boolean isFoil(ItemStack stack) {
         return true;
     }
@@ -693,8 +704,10 @@ public final class ArcaneStaffItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         Element elem = getElement();
         if (elem != null) {
-            String subtitle = elem.iconString() + " " + (isNetherite ? elem.displayName() + " Staff (Netherite)" : elem.displayName() + " Staff");
-            tooltip.add(Component.literal(subtitle).withStyle(elem.color()));
+            Component iconComp = Component.literal(elem.iconString()).withStyle(ChatFormatting.WHITE);
+            String label = " " + (isNetherite ? elem.displayName() + " Staff (Netherite)" : elem.displayName() + " Staff");
+            Component textComp = Component.literal(label).withStyle(elem.color());
+            tooltip.add(Component.empty().append(iconComp).append(textComp));
         } else if (kind == Kind.WITHER) {
             String subtitle = "☠ " + (isNetherite ? "Wither Staff (Netherite)" : "Wither Staff");
             tooltip.add(Component.literal(subtitle).withStyle(ChatFormatting.DARK_GRAY));

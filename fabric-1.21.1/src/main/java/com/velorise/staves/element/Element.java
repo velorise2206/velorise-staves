@@ -11,7 +11,7 @@ public enum Element {
     PYRO("🔥", "Pyro", ChatFormatting.RED, true, '\uE001'),
     HYDRO("💧", "Hydro", ChatFormatting.BLUE, true, '\uE002'),
     CRYO("❄️", "Cryo", ChatFormatting.AQUA, true, '\uE003'),
-    ELECTRO("⚡", "Electro", ChatFormatting.YELLOW, true, '\uE004'),
+    ELECTRO("⚡", "Electro", ChatFormatting.LIGHT_PURPLE, true, '\uE004'),
     DENDRO("🌿", "Dendro", ChatFormatting.GREEN, true, '\uE007'),
     ANEMO("🌪️", "Anemo", ChatFormatting.DARK_AQUA, false, '\uE005'),
     GEO("🪨", "Geo", ChatFormatting.GOLD, false, '\uE006');
