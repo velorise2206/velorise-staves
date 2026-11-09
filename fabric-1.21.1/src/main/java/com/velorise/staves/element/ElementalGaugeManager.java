@@ -1,10 +1,13 @@
 package com.velorise.staves.element;
 
+import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,11 +15,13 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.animal.Bee;
@@ -69,6 +74,14 @@ import java.util.concurrent.ConcurrentHashMap;
  * Simultaneous Reaction Priority, Innate Lock, Environmental Auras, and combat feedback.
  */
 public final class ElementalGaugeManager {
+    public static final TagKey<EntityType<?>> PYRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "pyro_creatures"));
+    public static final TagKey<EntityType<?>> HYDRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "hydro_creatures"));
+    public static final TagKey<EntityType<?>> ELECTRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "electro_creatures"));
+    public static final TagKey<EntityType<?>> CRYO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "cryo_creatures"));
+    public static final TagKey<EntityType<?>> DENDRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "dendro_creatures"));
+    public static final TagKey<EntityType<?>> ANEMO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "anemo_creatures"));
+    public static final TagKey<EntityType<?>> GEO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "geo_creatures"));
+
     private static final Map<UUID, Map<Element, GaugeState>> GAUGES = new ConcurrentHashMap<>();
     private static final Map<UUID, GaugeState> FROZEN_GAUGES = new ConcurrentHashMap<>();
     private static final Map<UUID, GaugeState> QUICKEN_GAUGES = new ConcurrentHashMap<>();
@@ -684,6 +697,16 @@ public final class ElementalGaugeManager {
     }
 
     public static @Nullable Element getInnateElement(LivingEntity target) {
+        EntityType<?> type = target.getType();
+        if (type.is(PYRO_CREATURES)) return Element.PYRO;
+        if (type.is(HYDRO_CREATURES)) return Element.HYDRO;
+        if (type.is(CRYO_CREATURES)) return Element.CRYO;
+        if (type.is(ELECTRO_CREATURES)) return Element.ELECTRO;
+        if (type.is(DENDRO_CREATURES) && !(target instanceof MagmaCube)) return Element.DENDRO;
+        if (type.is(ANEMO_CREATURES)) return Element.ANEMO;
+        if (type.is(GEO_CREATURES)) return Element.GEO;
+
+        // Fallback / dynamic state checks
         if (target instanceof Blaze
                 || target instanceof MagmaCube
                 || target instanceof Strider

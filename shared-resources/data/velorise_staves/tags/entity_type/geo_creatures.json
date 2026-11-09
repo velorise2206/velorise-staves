@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
-    "minecraft:iron_golem"
+    "minecraft:iron_golem",
+    {
+      "id": "minecraft:armadillo",
+      "required": false
+    }
   ]
 }

@@ -3,6 +3,8 @@
   "values": [
     "minecraft:guardian",
     "minecraft:elder_guardian",
-    "minecraft:drowned"
+    "minecraft:drowned",
+    "minecraft:axolotl",
+    "minecraft:frog"
   ]
 }
