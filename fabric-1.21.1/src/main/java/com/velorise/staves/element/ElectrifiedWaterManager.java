@@ -1,6 +1,7 @@
 package com.velorise.staves.element;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -42,6 +44,9 @@ public final class ElectrifiedWaterManager {
     }
 
     private static final List<WaterZone> ZONES = new CopyOnWriteArrayList<>();
+    // 50% particle size electric arc particles (scale = 0.5F)
+    private static final DustParticleOptions ELECTRIC_DUST_VIOLET = new DustParticleOptions(new Vector3f(0.75F, 0.4F, 1.0F), 0.5F);
+    private static final DustParticleOptions ELECTRIC_DUST_CYAN = new DustParticleOptions(new Vector3f(0.35F, 0.85F, 1.0F), 0.5F);
 
     private ElectrifiedWaterManager() {}
 
@@ -110,13 +115,14 @@ public final class ElectrifiedWaterManager {
                 target = target.add(jx, jy, jz);
             }
 
-            // Dense interpolation between prev and target to form an unbroken glowing electric streak
+            // Dense interpolation between prev and target to form an unbroken glowing electric streak (50% smaller particles)
             Vec3 seg = target.subtract(prev);
             double segDist = seg.length();
-            int subSteps = Math.max(2, (int) Math.ceil(segDist / 0.12D));
+            int subSteps = Math.max(2, (int) Math.ceil(segDist / 0.10D));
             for (int s = 0; s <= subSteps; s++) {
                 Vec3 p = prev.add(seg.scale((double) s / (double) subSteps));
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                DustParticleOptions dust = (s % 2 == 0) ? ELECTRIC_DUST_VIOLET : ELECTRIC_DUST_CYAN;
+                level.sendParticles(dust, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
             }
 
             // Optional branching lightning fork splitting off outward
@@ -126,10 +132,11 @@ public final class ElectrifiedWaterManager {
                         (level.random.nextDouble() - 0.2D) * 0.35D,
                         (level.random.nextDouble() - 0.5D) * 0.9D
                 );
-                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.12D));
+                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.10D));
                 for (int fs = 0; fs <= forkSteps; fs++) {
                     Vec3 fp = target.add(forkDir.scale((double) fs / (double) forkSteps));
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, fp.x, fp.y, fp.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                    DustParticleOptions dust = (fs % 2 == 0) ? ELECTRIC_DUST_CYAN : ELECTRIC_DUST_VIOLET;
+                    level.sendParticles(dust, fp.x, fp.y, fp.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
                 }
             }
 
@@ -216,7 +223,8 @@ public final class ElectrifiedWaterManager {
             if (ElementalGaugeManager.isEntityInWater(victim)) {
                 // Apply 0.8U Electro aura with damage, reacting with environmental Hydro wetness
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, damage);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, victim.getX(), victim.getY() + 0.6D, victim.getZ(), 8, 0.25D, 0.3D, 0.25D, 0.04D);
+                level.sendParticles(ELECTRIC_DUST_VIOLET, victim.getX(), victim.getY() + 0.6D, victim.getZ(), 6, 0.2D, 0.25D, 0.2D, 0.02D);
+                level.sendParticles(ELECTRIC_DUST_CYAN, victim.getX(), victim.getY() + 0.6D, victim.getZ(), 4, 0.2D, 0.25D, 0.2D, 0.02D);
             }
         }
     }
