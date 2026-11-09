@@ -8,13 +8,19 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SculkSensorBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.CalibratedSculkSensorBlockEntity;
+import net.minecraft.world.level.block.entity.SculkSensorBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.SculkSensorPhase;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,22 +41,54 @@ public final class EnvironmentalBlockManager {
     public static void tick(MinecraftServer server) {
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
-            LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100);
+            LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
             List<ServerPlayer> players = level.players();
             if (players.isEmpty()) continue;
 
-            Set<LivingEntity> processed = new HashSet<>();
+            Set<Long> visitedChunks = new HashSet<>();
+            List<BlockPos> activeSensors8 = new ArrayList<>();
+            List<BlockPos> activeCalibrated16 = new ArrayList<>();
+
+            for (ServerPlayer player : players) {
+                ChunkPos cp = player.chunkPosition();
+                for (int cx = cp.x - 3; cx <= cp.x + 3; cx++) {
+                    for (int cz = cp.z - 3; cz <= cp.z + 3; cz++) {
+                        long chunkKey = ChunkPos.asLong(cx, cz);
+                        if (!visitedChunks.add(chunkKey)) continue;
+                        if (!level.hasChunk(cx, cz)) continue;
+                        LevelChunk chunk = level.getChunk(cx, cz);
+                        for (BlockEntity be : chunk.getBlockEntities().values()) {
+                            if (be instanceof CalibratedSculkSensorBlockEntity) {
+                                BlockState st = be.getBlockState();
+                                if (SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE) {
+                                    activeCalibrated16.add(be.getBlockPos());
+                                }
+                            } else if (be instanceof SculkSensorBlockEntity) {
+                                BlockState st = be.getBlockState();
+                                if (SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE) {
+                                    activeSensors8.add(be.getBlockPos());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Set<UUID> processed = new HashSet<>();
             for (ServerPlayer player : players) {
                 AABB area = player.getBoundingBox().inflate(32.0D);
-                List<LivingEntity> entities = level.getEntitiesOfClass(LivingEntity.class, area, LivingEntity::isAlive);
+                List<LivingEntity> entities = level.getEntitiesOfClass(
+                        LivingEntity.class,
+                        area,
+                        e -> e.isAlive() && !e.isRemoved() && !ElementalGaugeManager.isPassiveAquaticOrAmbient(e)
+                );
                 for (LivingEntity living : entities) {
-                    if (processed.add(living)) {
-                        // Stagger checks across 20 ticks (1s interval per entity)
+                    if (processed.add(living.getUUID())) {
                         if ((living.tickCount + Math.abs(living.getId())) % 20 == 0) {
-                            tickEntityEnvironmentalAuras(level, living);
+                            tickEntityEnvironmentalAuras(level, living, activeSensors8, activeCalibrated16);
                         }
                     }
                 }
@@ -58,11 +96,18 @@ public final class EnvironmentalBlockManager {
         }
     }
 
-    private static void tickEntityEnvironmentalAuras(ServerLevel level, LivingEntity living) {
+    private static void tickEntityEnvironmentalAuras(
+            ServerLevel level,
+            LivingEntity living,
+            List<BlockPos> activeSensors8,
+            List<BlockPos> activeCalibrated16
+    ) {
         BlockPos pos = living.blockPosition();
+        if (!level.hasChunkAt(pos)) return;
 
-        // 1. Redstone Block: Emits Electro aura within 8 blocks radius (1s / 1U)
-        boolean nearRedstone = BlockPos.findClosestMatch(pos, 8, 4, p -> level.getBlockState(p).is(Blocks.REDSTONE_BLOCK)).isPresent();
+        // 1. Redstone Block (safe 4x2x4 scan in loaded chunks)
+        boolean nearRedstone = BlockPos.findClosestMatch(pos, 4, 2,
+                p -> level.hasChunkAt(p) && level.getBlockState(p).is(Blocks.REDSTONE_BLOCK)).isPresent();
         if (nearRedstone) {
             ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.5D, living.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.05D);
@@ -72,43 +117,44 @@ public final class EnvironmentalBlockManager {
         AABB touchBox = living.getBoundingBox().inflate(0.25D);
         BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY, touchBox.minZ);
         BlockPos max = BlockPos.containing(touchBox.maxX, touchBox.maxY, touchBox.maxZ);
-        boolean touchDendroBlock = false;
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
             if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)) {
-                touchDendroBlock = true;
+                ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
                 break;
             }
         }
-        if (touchDendroBlock) {
-            ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
+
+        // 3. Sculk Sensor (8m) & Calibrated Sculk Sensor (16m) via O(1) active BlockEntity list
+        boolean nearActiveSensor = false;
+        for (BlockPos sensorPos : activeSensors8) {
+            if (sensorPos.closerThan(pos, 8.0D)) {
+                nearActiveSensor = true;
+                break;
+            }
         }
-
-        // 3. Sculk Sensor (8 blocks) & Calibrated Sculk Sensor (16 blocks): Emits Electro when ACTIVATED
-        boolean nearActiveSensor = BlockPos.findClosestMatch(pos, 8, 4, p -> {
-            BlockState st = level.getBlockState(p);
-            return st.is(Blocks.SCULK_SENSOR) && SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE;
-        }).isPresent();
-
         if (!nearActiveSensor) {
-            nearActiveSensor = BlockPos.findClosestMatch(pos, 16, 6, p -> {
-                BlockState st = level.getBlockState(p);
-                return st.is(Blocks.CALIBRATED_SCULK_SENSOR) && SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE;
-            }).isPresent();
+            for (BlockPos sensorPos : activeCalibrated16) {
+                if (sensorPos.closerThan(pos, 16.0D)) {
+                    nearActiveSensor = true;
+                    break;
+                }
+            }
         }
-
         if (nearActiveSensor) {
             ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
             level.sendParticles(ParticleTypes.SCULK_CHARGE_POP, living.getX(), living.getY() + 0.5D, living.getZ(), 3, 0.2D, 0.2D, 0.2D, 0.02D);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.5D, living.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.05D);
         }
 
-        // 4. Every Amethyst: Innate Electro, zaps nearby entities within 1 block for 1 damage (like Genshin)
+        // 4. Amethyst Blocks: Innate Electro, zaps nearby entities within 1.2 blocks
         AABB zapBox = living.getBoundingBox().inflate(1.2D);
         BlockPos minZap = BlockPos.containing(zapBox.minX, zapBox.minY, zapBox.minZ);
         BlockPos maxZap = BlockPos.containing(zapBox.maxX, zapBox.maxY, zapBox.maxZ);
         BlockPos amethystPos = null;
         for (BlockPos p : BlockPos.betweenClosed(minZap, maxZap)) {
+            if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
             if (isAmethystBlock(st)) {
                 amethystPos = p.immutable();
@@ -118,7 +164,7 @@ public final class EnvironmentalBlockManager {
         if (amethystPos != null && ElementalGaugeManager.getInnateElement(living) != Element.ELECTRO) {
             long now = level.getGameTime();
             Long lastZap = LAST_AMETHYST_ZAP.get(living.getUUID());
-            if (lastZap == null || (now - lastZap) >= 20) {
+            if (lastZap == null || (now - lastZap) >= 20L) {
                 LAST_AMETHYST_ZAP.put(living.getUUID(), now);
                 living.hurt(level.damageSources().magic(), 1.0F);
                 ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
