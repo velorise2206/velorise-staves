@@ -68,6 +68,7 @@ public final class ArcaneStaffItem extends Item {
         }
     }
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
@@ -104,6 +105,9 @@ public final class ArcaneStaffItem extends Item {
 
         if (isCharged()) {
             player.startUsingItem(hand);
+            if (isChannelingKind()) {
+                ACTIVE_CHANNELING.put(player.getUUID(), kind);
+            }
             if (!level.isClientSide()) {
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
@@ -161,7 +165,21 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (level.isClientSide() || !isBurstKind() || !(entity instanceof ServerPlayer player)) return;
+        if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
+
+        if (isChannelingKind()) {
+            Kind chKind = ACTIVE_CHANNELING.get(player.getUUID());
+            if (chKind == kind) {
+                if (!player.isUsingItem() || player.getUseItem() != stack) {
+                    ACTIVE_CHANNELING.remove(player.getUUID());
+                    if (!player.getCooldowns().isOnCooldown(this)) {
+                        player.getCooldowns().addCooldown(this, getCooldownTicks());
+                    }
+                }
+            }
+        }
+
+        if (!isBurstKind()) return;
         Map<String, BurstState> map = PLAYER_BURSTS.get(player.getUUID());
         if (map == null) return;
         String key = burstKey();
@@ -201,6 +219,10 @@ public final class ArcaneStaffItem extends Item {
 
     private boolean isCharged() {
         return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING;
+    }
+
+    private boolean isChannelingKind() {
+        return kind == Kind.LIGHTNING || kind == Kind.GUARDIAN;
     }
 
     public int getCooldownTicks() {
@@ -254,7 +276,7 @@ public final class ArcaneStaffItem extends Item {
             int elapsed = 60 - count;
             if (elapsed < 0 || elapsed % 5 != 0) return;
             fireChanneledLightning(serverLevel, player, elapsed);
-            if (elapsed > 0 && elapsed % 20 == 0) {
+            if (elapsed % 20 == 0) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
             }
             return;
@@ -264,7 +286,7 @@ public final class ArcaneStaffItem extends Item {
             if (elapsed < 0 || elapsed % 5 != 0) return;
             LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
             fireGuardian(player, target);
-            if (elapsed > 0 && elapsed % 20 == 0) {
+            if (elapsed % 20 == 0) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
             }
             return;
@@ -295,20 +317,22 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
         if (!level.isClientSide() && entity instanceof ServerPlayer player) {
-            if (kind == Kind.LIGHTNING && timeLeft < 60) {
+            if (kind == Kind.LIGHTNING) {
                 finishLightningStorm(player);
-            } else if (kind == Kind.GUARDIAN && timeLeft < 50) {
+            } else if (kind == Kind.GUARDIAN) {
                 finishGuardianBeam(player);
             }
         }
     }
 
     private void finishLightningStorm(ServerPlayer player) {
+        ACTIVE_CHANNELING.remove(player.getUUID());
         player.getCooldowns().addCooldown(this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
 
     private void finishGuardianBeam(ServerPlayer player) {
+        ACTIVE_CHANNELING.remove(player.getUUID());
         player.getCooldowns().addCooldown(this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
