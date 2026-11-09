@@ -200,6 +200,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
+            entries.accept(WIND_STAFF);
             entries.accept(VOID_TRANSLOCATOR);
             entries.accept(MAGIC_MIRROR);
 
@@ -215,6 +216,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);
+            entries.accept(NETHERITE_WIND_STAFF);
             entries.accept(NETHERITE_VOID_TRANSLOCATOR);
             entries.accept(NETHERITE_MAGIC_MIRROR);
         });
@@ -232,6 +234,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
+            entries.accept(WIND_STAFF);
             entries.accept(NETHERITE_DRAGONFIRE_SCEPTER);
             entries.accept(NETHERITE_RESONANT_ECHO);
             entries.accept(NETHERITE_INFERNO_ROD);
@@ -243,6 +246,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);
+            entries.accept(NETHERITE_WIND_STAFF);
         });
 
         // Also add artifacts to vanilla Tools & Utilities tab

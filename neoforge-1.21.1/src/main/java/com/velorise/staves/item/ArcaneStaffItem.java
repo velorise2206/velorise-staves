@@ -158,7 +158,7 @@ public final class ArcaneStaffItem extends Item {
         int shots = player.getPersistentData().getInt(tagShots);
         if (shots <= 0) return;
         long elapsed = level.getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (elapsed > BURST_RESET_TICKS) {
+        if (elapsed >= BURST_RESET_TICKS) {
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
             if (!player.getCooldowns().isOnCooldown(this)) {
@@ -172,23 +172,25 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private String burstShotsTag() {
-        return switch (kind) {
+        String base = switch (kind) {
             case INFERNO -> TAG_INFERNO_SHOTS;
             case WEB -> TAG_WEB_SHOTS;
             case WITHER -> TAG_WITHER_SHOTS;
             case FROST -> TAG_FROST_SHOTS;
             default -> "";
         };
+        return isNetherite ? base + "Netherite" : base;
     }
 
     private String burstLastTag() {
-        return switch (kind) {
+        String base = switch (kind) {
             case INFERNO -> TAG_INFERNO_LAST;
             case WEB -> TAG_WEB_LAST;
             case WITHER -> TAG_WITHER_LAST;
             case FROST -> TAG_FROST_LAST;
             default -> "";
         };
+        return isNetherite ? base + "Netherite" : base;
     }
 
     private boolean isFirstBurstShot(ServerPlayer player, String tagShots) {
@@ -214,7 +216,7 @@ public final class ArcaneStaffItem extends Item {
         int shots = player.getPersistentData().getInt(tagShots);
         if (shots <= 0) return;
         long elapsed = player.level().getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (elapsed > resetTicks) {
+        if (elapsed >= resetTicks) {
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
         }

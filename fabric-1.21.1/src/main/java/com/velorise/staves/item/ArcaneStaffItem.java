@@ -168,7 +168,7 @@ public final class ArcaneStaffItem extends Item {
         BurstState state = map.get(key);
         if (state == null || state.shots <= 0) return;
         long elapsed = level.getGameTime() - state.lastTime;
-        if (elapsed > BURST_RESET_TICKS) {
+        if (elapsed >= BURST_RESET_TICKS) {
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             if (!player.getCooldowns().isOnCooldown(this)) {
@@ -182,13 +182,14 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private String burstKey() {
-        return switch (kind) {
+        String base = switch (kind) {
             case INFERNO -> TAG_INFERNO_SHOTS;
             case WEB -> TAG_WEB_SHOTS;
             case WITHER -> TAG_WITHER_SHOTS;
             case FROST -> TAG_FROST_SHOTS;
             default -> "";
         };
+        return isNetherite ? "netherite_" + base : base;
     }
 
     private boolean isFirstBurstShot(ServerPlayer player, String key) {
@@ -214,7 +215,7 @@ public final class ArcaneStaffItem extends Item {
         BurstState state = map.get(tagShots);
         if (state == null || state.shots <= 0) return;
         long elapsed = player.level().getGameTime() - state.lastTime;
-        if (elapsed > resetTicks) {
+        if (elapsed >= resetTicks) {
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
         }
