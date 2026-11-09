@@ -52,9 +52,6 @@ public final class ModNetwork {
         if (target.level().isClientSide()) return;
         AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
-        if (target.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            PacketDistributor.sendToPlayersNear(serverLevel, null, target.getX(), target.getY(), target.getZ(), 64.0D, payload);
-        }
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {

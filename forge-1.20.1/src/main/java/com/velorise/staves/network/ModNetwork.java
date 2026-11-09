@@ -68,9 +68,6 @@ public final class ModNetwork {
         if (target.level().isClientSide()) return;
         AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
-        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
-                target.getX(), target.getY(), target.getZ(), 64.0D, target.level().dimension()
-        )), packet);
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
