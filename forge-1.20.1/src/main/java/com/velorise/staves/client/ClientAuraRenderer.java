@@ -533,7 +533,7 @@ public final class ClientAuraRenderer {
         int totalEffects = vanillaCount + data.elements.size();
         int yStep = 33;
         if (totalEffects > 5) {
-            yStep = 132 / (totalEffects - 1);
+            yStep = Math.max(1, 132 / (totalEffects - 1));
         }
 
         int index = 0;
@@ -698,7 +698,7 @@ public final class ClientAuraRenderer {
         int totalEffects = vanillaCount + auraCount;
         int yStep = 33;
         if (totalEffects > 5) {
-            yStep = 132 / (totalEffects - 1);
+            yStep = Math.max(1, 132 / (totalEffects - 1));
         }
 
         int effectIndex = 0;

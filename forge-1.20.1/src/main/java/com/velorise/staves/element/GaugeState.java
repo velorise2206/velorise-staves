@@ -65,12 +65,13 @@ public final class GaugeState {
      * the unconsumed trigger gauge lingers with the decay rate of the trigger attack.
      */
     public static GaugeState createLeftover(Element element, float leftoverUnits, float originalAttackU) {
-        float u = Math.max(0.01F, leftoverUnits);
-        float totalDurationSec = 2.5F * originalAttackU + 7.0F;
+        float safeLeftover = (Float.isNaN(leftoverUnits) || Float.isInfinite(leftoverUnits)) ? 0.01F : Math.max(0.01F, leftoverUnits);
+        float safeAttackU = (Float.isNaN(originalAttackU) || Float.isInfinite(originalAttackU)) ? 1.0F : Math.max(0.1F, originalAttackU);
+        float totalDurationSec = 2.5F * safeAttackU + 7.0F;
         int totalTicks = Math.max(20, Math.round(totalDurationSec * 20.0F));
-        float decayPerTick = (originalAttackU * 0.8F) / (float) totalTicks;
-        int remainingTicks = Math.max(20, Math.round(u / decayPerTick));
-        return new GaugeState(element, u, remainingTicks);
+        float decayPerTick = Math.max(1.0E-5F, (safeAttackU * 0.8F) / (float) totalTicks);
+        int remainingTicks = Math.max(1, Math.round(safeLeftover / decayPerTick));
+        return new GaugeState(element, safeLeftover, remainingTicks);
     }
 
     /**
@@ -79,9 +80,10 @@ public final class GaugeState {
      * Duration = 2 * sqrt(5 * U_Freeze + 4) - 4 seconds.
      */
     public static GaugeState createFrozen(float freezeUnits) {
-        float u = Math.max(0.1F, freezeUnits);
-        double durationSeconds = 2.0D * Math.sqrt(5.0D * u + 4.0D) - 4.0D;
-        int ticks = Math.max(20, (int) Math.round(durationSeconds * 20.0D));
+        float u = (Float.isNaN(freezeUnits) || Float.isInfinite(freezeUnits)) ? 0.8F : Math.max(0.1F, freezeUnits);
+        double radicand = Math.max(4.0D, 5.0D * u + 4.0D);
+        double durationSeconds = Math.max(0.5D, 2.0D * Math.sqrt(radicand) - 4.0D);
+        int ticks = Math.max(10, (int) Math.round(durationSeconds * 20.0D));
         return new GaugeState(Element.CRYO, u, ticks);
     }
 
