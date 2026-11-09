@@ -19,6 +19,8 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.MushroomCow;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -188,6 +190,20 @@ public final class ElementalGaugeManager {
                 if (source.is(DamageTypes.WIND_CHARGE)) {
                     ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
                     applyElement(level, target, Element.ANEMO, 1.0F, attacker, 1.0F);
+                    return;
+                }
+
+                // 8. Falling Stalactite / Stalagmite / Anvil / Falling Block -> Geo (1.5U)
+                if (source.is(DamageTypes.FALLING_STALACTITE) || source.is(DamageTypes.STALAGMITE)
+                        || source.is(DamageTypes.FALLING_ANVIL) || source.is(DamageTypes.FALLING_BLOCK)) {
+                    applyElement(level, target, Element.GEO, 1.5F, null, 0.0F);
+                    return;
+                }
+
+                // 9. Thrown Trident -> Hydro (1.0U)
+                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, Element.HYDRO, 1.0F, attacker, 0.0F);
                     return;
                 }
 
@@ -384,8 +400,11 @@ public final class ElementalGaugeManager {
                 || target instanceof Shulker) {
             return Element.ELECTRO;
         }
-        if (target instanceof Bogged) {
+        if (target instanceof Bogged || target instanceof MushroomCow) {
             return Element.DENDRO;
+        }
+        if (target instanceof IronGolem) {
+            return Element.GEO;
         }
         return null;
     }
@@ -861,6 +880,9 @@ public final class ElementalGaugeManager {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 70, 6));
                 level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 0.4D, 0.6D, 0.4D, 0.02D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.9F, 1.4F);
+                if (isEntityInWater(target)) {
+                    com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, target.position(), 1);
+                }
             }
             case QUICKEN -> {
                 QUICKEN_UNTIL.put(target.getUUID(), level.getGameTime() + 140); // 7 seconds

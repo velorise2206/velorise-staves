@@ -24,6 +24,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.projectile.ThrownPotion;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
@@ -69,7 +70,7 @@ public final class ArcaneStaffEvents {
         Projectile projectile = event.getProjectile();
         if (!(projectile.level() instanceof ServerLevel level)) return;
 
-        // Splash Water / Poison Potion applies Hydro / Dendro 1.0U
+        // Splash Water / Poison / Slowness Potion applies Hydro / Dendro / Cryo 1.0U
         if (projectile instanceof ThrownPotion potion) {
             ItemStack stack = potion.getItem();
             PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
@@ -77,11 +78,25 @@ public final class ArcaneStaffEvents {
                 handleWaterPotionSplash(level, potion);
             } else if (contents.is(Potions.POISON) || contents.is(Potions.LONG_POISON) || contents.is(Potions.STRONG_POISON)) {
                 handlePoisonPotionSplash(level, potion);
+            } else if (contents.is(Potions.SLOWNESS) || contents.is(Potions.LONG_SLOWNESS) || contents.is(Potions.STRONG_SLOWNESS)) {
+                handleSlownessPotionSplash(level, potion);
             }
         }
 
         String kind = projectile.getPersistentData().getString(TAG_KIND);
-        if (kind.isEmpty()) return;
+        if (kind.isEmpty()) {
+            if (projectile instanceof Snowball) {
+                Vec3 hit = event.getRayTraceResult().getLocation();
+                Entity owner = projectile.getOwner();
+                ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
+                LivingEntity directHit = hitEntity(event);
+                if (directHit != null && directHit != owner) {
+                    ElementalGaugeManager.applyElement(level, directHit, Element.CRYO, 0.5F, thrower, 0.0F);
+                }
+                freezeWaterNear(level, hit, 1);
+            }
+            return;
+        }
 
         TRACKED_PROJECTILES.remove(projectile);
         Vec3 hit = event.getRayTraceResult().getLocation();
@@ -286,7 +301,7 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.65F, 1.6F);
     }
 
-    private static void freezeWaterNear(ServerLevel level, Vec3 hit, int radius) {
+    public static void freezeWaterNear(ServerLevel level, Vec3 hit, int radius) {
         BlockPos center = BlockPos.containing(hit);
         boolean froze = false;
         for (int dx = -radius; dx <= radius; dx++) {
@@ -423,6 +438,19 @@ public final class ArcaneStaffEvents {
                 ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, thrower, 0.0F);
             }
         }
+    }
+
+    private static void handleSlownessPotionSplash(ServerLevel level, ThrownPotion potion) {
+        Entity owner = potion.getOwner();
+        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
+        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
+        for (LivingEntity living : nearby) {
+            if (potion.distanceToSqr(living) <= 16.0D) {
+                ElementalGaugeManager.applyElement(level, living, Element.CRYO, 1.0F, thrower, 0.0F);
+            }
+        }
+        freezeWaterNear(level, potion.position(), 2);
     }
 
     private static LivingEntity hitEntity(ProjectileImpactEvent event) {

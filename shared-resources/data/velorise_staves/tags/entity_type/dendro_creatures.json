@@ -4,6 +4,10 @@
     {
       "id": "minecraft:bogged",
       "required": false
+    },
+    {
+      "id": "minecraft:mooshroom",
+      "required": false
     }
   ]
 }
