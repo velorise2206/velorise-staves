@@ -749,7 +749,6 @@ public final class ElementalGaugeManager {
         Element innateElement = getInnateElement(target);
         if (innateElement != null && attackElement == innateElement) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
-            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
             Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> new EnumMap<>(Element.class));
             syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
             return;
@@ -808,7 +807,6 @@ public final class ElementalGaugeManager {
                     targetGauges.put(innateElement, new GaugeState(innateElement, 1.25F));
                 }
                 level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
-                level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
                 syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
                 return;
             }
