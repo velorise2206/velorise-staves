@@ -44,6 +44,7 @@ import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.WitherSkeleton;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.breeze.Breeze;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.level.block.Blocks;
@@ -279,7 +280,7 @@ public final class ElementalGaugeManager {
     public static void handleEnvironmentalFireDamage(LivingEntity target) {
         if (!target.isAlive() || target.isInvulnerable()) return;
         Element innate = getInnateElement(target);
-        if (innate == Element.PYRO) return;
+        if (innate == Element.PYRO || target.fireImmune() || target instanceof Warden) return;
         if (isEntityInWater(target)) return;
 
         UUID id = target.getUUID();
@@ -560,6 +561,15 @@ public final class ElementalGaugeManager {
             }
         }
 
+        // Warden & Vanilla Fire-Immune Mob Check for Pyro attacks (deal 0 DMG and pop IMMUNE)
+        if (attackElement == Element.PYRO && (target instanceof Warden || target.fireImmune())) {
+            level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
+            sendActionbar(attacker, ChatFormatting.GRAY + "🛡️ IMMUNE! (" + target.getName().getString() + " is immune to " + attackElement.formatted() + ChatFormatting.GRAY + ")");
+            syncAuras(target, targetGauges.keySet(), null, attackElement, ElementalReaction.IMMUNE);
+            return;
+        }
+
         // 0B. On-Hit Environmental Auras (Water/Rain -> 1.0U HYDRO, Lava/Fire -> 1.0U PYRO, Powder Snow -> 1.0U CRYO)
         if (isEntityInWater(target)) {
             if (targetGauges.remove(Element.PYRO) != null || BURNING_UNTIL.remove(targetId) != null) {
@@ -569,7 +579,7 @@ public final class ElementalGaugeManager {
                 targetGauges.put(Element.HYDRO, new GaugeState(Element.HYDRO, 1.25F)); // 1.0U Environmental Wet
             }
         } else if (target.isInLava() || (target.isOnFire() && !targetGauges.containsKey(Element.PYRO))) {
-            if (innateElement == null && !targetGauges.containsKey(Element.PYRO)) {
+            if (innateElement == null && !target.fireImmune() && !(target instanceof Warden) && !targetGauges.containsKey(Element.PYRO)) {
                 targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
             }
         } else if (target.isInPowderSnow) {
@@ -1196,7 +1206,7 @@ public final class ElementalGaugeManager {
             // 4. Burning periodic damage (every 10 ticks = 0.5s)
             Long burningEnd = BURNING_UNTIL.get(id);
             if (burningEnd != null) {
-                if (now >= burningEnd || !entityGauges.containsKey(Element.DENDRO) || target.isInWaterOrRain()) {
+                if (now >= burningEnd || !entityGauges.containsKey(Element.DENDRO) || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
                 } else if (now % 10 == 0) {
                     target.hurt(targetLevel.damageSources().inFire(), 1.5F);
