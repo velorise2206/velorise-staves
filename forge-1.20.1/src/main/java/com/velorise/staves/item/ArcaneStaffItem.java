@@ -526,14 +526,17 @@ public final class ArcaneStaffItem extends Item {
 
         // Chain lightning to nearby enemies
         int chained = 0;
+        LightningBolt sharedBolt = null;
         for (LivingEntity victim : victims) {
             if (victim != target && chained < 2) {
                 drawJaggedArc(level, strikePos, victim.getBoundingBox().getCenter(), 0.3D);
                 chained++;
             }
-            if (victim instanceof Creeper creeper && chargeCreeper) {
-                LightningBolt fakeBolt = EntityType.LIGHTNING_BOLT.create(level);
-                if (fakeBolt != null) creeper.thunderHit(level, fakeBolt);
+            if (victim instanceof Creeper creeper && chargeCreeper && !creeper.isPowered()) {
+                if (sharedBolt == null) {
+                    sharedBolt = EntityType.LIGHTNING_BOLT.create(level);
+                }
+                if (sharedBolt != null) creeper.thunderHit(level, sharedBolt);
                 creeper.clearFire();
             }
             victim.clearFire();

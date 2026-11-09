@@ -118,7 +118,7 @@ public final class ElectrifiedWaterManager {
             // Dense interpolation between prev and target to form an unbroken glowing electric streak (50% smaller particles)
             Vec3 seg = target.subtract(prev);
             double segDist = seg.length();
-            int subSteps = Math.max(2, (int) Math.ceil(segDist / 0.10D));
+            int subSteps = Math.max(1, (int) Math.ceil(segDist / 0.22D));
             for (int s = 0; s <= subSteps; s++) {
                 Vec3 p = prev.add(seg.scale((double) s / (double) subSteps));
                 DustParticleOptions dust = (s % 2 == 0) ? ELECTRIC_DUST_VIOLET : ELECTRIC_DUST_CYAN;
