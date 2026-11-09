@@ -64,5 +64,6 @@
   "item.velorise_staves.pyro_crystallize_shard": "Mảnh Kết Tinh Hỏa",
   "item.velorise_staves.hydro_crystallize_shard": "Mảnh Kết Tinh Thủy",
   "item.velorise_staves.electro_crystallize_shard": "Mảnh Kết Tinh Lôi",
-  "item.velorise_staves.cryo_crystallize_shard": "Mảnh Kết Tinh Băng"
+  "item.velorise_staves.cryo_crystallize_shard": "Mảnh Kết Tinh Băng",
+  "config.jade.plugin_velorise_staves.elemental_aura": "Ấn Nguyên Tố"
 }

@@ -68,5 +68,6 @@
   "item.velorise_staves.pyro_crystallize_shard": "Pyro Crystallize Shard",
   "item.velorise_staves.hydro_crystallize_shard": "Hydro Crystallize Shard",
   "item.velorise_staves.electro_crystallize_shard": "Electro Crystallize Shard",
-  "item.velorise_staves.cryo_crystallize_shard": "Cryo Crystallize Shard"
+  "item.velorise_staves.cryo_crystallize_shard": "Cryo Crystallize Shard",
+  "config.jade.plugin_velorise_staves.elemental_aura": "Elemental Aura"
 }
