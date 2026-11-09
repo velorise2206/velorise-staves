@@ -70,6 +70,10 @@ public final class ArcaneStaffItem extends Item {
 
     private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
 
+    public static void clearAll() {
+        ACTIVE_CHANNELING.clear();
+    }
+
     private final Kind kind;
     private final boolean isNetherite;
 

@@ -70,6 +70,11 @@ public final class ArcaneStaffItem extends Item {
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
 
+    public static void clearAll() {
+        ACTIVE_CHANNELING.clear();
+        PLAYER_BURSTS.clear();
+    }
+
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
         WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB, WIND

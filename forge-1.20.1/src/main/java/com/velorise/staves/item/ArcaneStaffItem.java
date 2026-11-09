@@ -55,6 +55,10 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Standalone magic staves powered by vanilla durability and cooldowns. */
 public final class ArcaneStaffItem extends Item {
     private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+
+    public static void clearAll() {
+        ACTIVE_CHANNELING.clear();
+    }
     private static final String TAG_INFERNO_SHOTS = "ArcaneStaffInfernoShots";
     private static final String TAG_INFERNO_LAST = "ArcaneStaffInfernoLast";
     private static final String TAG_WEB_SHOTS = "ArcaneStaffWebShots";

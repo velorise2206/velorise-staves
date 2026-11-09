@@ -229,6 +229,7 @@ public final class VeloriseStavesMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
             TemporaryWebManager.clearAll(server);
             ElementalGaugeManager.clearAll();
+            ArcaneStaffItem.clearAll();
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs fangs

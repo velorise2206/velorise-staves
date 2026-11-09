@@ -5,6 +5,7 @@ import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.DendroCoreManager;
+import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -203,6 +204,7 @@ public final class ArcaneStaffEvents {
     public static void onServerStopping(ServerStoppingEvent event) {
         TemporaryWebManager.clearAll(event.getServer());
         ElementalGaugeManager.clearAll();
+        ArcaneStaffItem.clearAll();
         TRACKED_PROJECTILES.clear();
     }
 
