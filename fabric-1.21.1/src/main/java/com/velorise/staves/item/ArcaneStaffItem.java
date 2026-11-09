@@ -645,7 +645,8 @@ public final class ArcaneStaffItem extends Item {
             case DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, WITHER, GUARDIAN -> repair.is(Items.BLAZE_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
-            case EVOKER, LIGHTNING, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+            case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
+            case EVOKER, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
     }

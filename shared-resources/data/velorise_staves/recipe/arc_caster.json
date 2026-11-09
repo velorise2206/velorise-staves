@@ -3,12 +3,12 @@
   "category": "equipment",
   "pattern": [
     "  L",
-    " B ",
-    "B  "
+    " A ",
+    "A  "
   ],
   "key": {
-    "B": {
-      "item": "minecraft:blaze_rod"
+    "A": {
+      "item": "minecraft:amethyst_shard"
     },
     "L": {
       "item": "minecraft:lightning_rod"
