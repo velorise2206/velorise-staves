@@ -70,5 +70,9 @@
   "item.velorise_staves.wind_staff": "Wind Staff",
   "item.velorise_staves.wind_staff.desc": "Unleashes gusting wind bursts triggering Swirl reactions.",
   "item.velorise_staves.netherite_wind_staff": "Netherite Wind Staff",
-  "item.velorise_staves.netherite_wind_staff.desc": "Fires empowered gale charges launching foes and swirling elements."
+  "item.velorise_staves.netherite_wind_staff.desc": "Fires empowered gale charges launching foes and swirling elements.",
+  "effect.velorise_staves.pyro_shield": "Khiên Kết Tinh Hỏa",
+  "effect.velorise_staves.hydro_shield": "Khiên Kết Tinh Thủy",
+  "effect.velorise_staves.electro_shield": "Khiên Kết Tinh Lôi",
+  "effect.velorise_staves.cryo_shield": "Khiên Kết Tinh Băng"
 }

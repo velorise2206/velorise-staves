@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalReaction;
@@ -584,25 +585,54 @@ public final class ClientAuraRenderer {
         guiGraphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, (0x1A << 24) | (color & 0x00FFFFFF));
     }
 
+    public static void renderCrystallizeShieldHudFrame(GuiGraphics guiGraphics, int x, int y, int color) {
+        // Inner gray border of 24x24 HUD box (leaves 1px outer black border intact!)
+        guiGraphics.fill(x + 2, y + 1, x + 22, y + 2, color);
+        guiGraphics.fill(x + 1, y + 2, x + 3, y + 3, color);
+        guiGraphics.fill(x + 21, y + 2, x + 23, y + 3, color);
+
+        guiGraphics.fill(x + 1, y + 3, x + 2, y + 21, color);
+        guiGraphics.fill(x + 22, y + 3, x + 23, y + 21, color);
+
+        guiGraphics.fill(x + 1, y + 21, x + 3, y + 22, color);
+        guiGraphics.fill(x + 21, y + 21, x + 23, y + 22, color);
+        guiGraphics.fill(x + 2, y + 22, x + 22, y + 23, color);
+    }
+
+    public static void renderCrystallizeShieldInventoryFrame(GuiGraphics guiGraphics, int x, int y, int color) {
+        // Inner gray border of 32x32 Inventory box (leaves 1px outer black border intact!)
+        guiGraphics.fill(x + 2, y + 1, x + 29, y + 2, color);
+        guiGraphics.fill(x + 1, y + 2, x + 30, y + 3, color);
+        guiGraphics.fill(x + 1, y + 3, x + 4, y + 4, color);
+        guiGraphics.fill(x + 28, y + 3, x + 31, y + 4, color);
+
+        guiGraphics.fill(x + 1, y + 4, x + 3, y + 28, color);
+        guiGraphics.fill(x + 29, y + 4, x + 31, y + 28, color);
+
+        guiGraphics.fill(x + 1, y + 28, x + 4, y + 29, color);
+        guiGraphics.fill(x + 28, y + 28, x + 31, y + 29, color);
+        guiGraphics.fill(x + 2, y + 29, x + 31, y + 30, color);
+        guiGraphics.fill(x + 3, y + 30, x + 30, y + 31, color);
+    }
+
     private static boolean isBeneficial(MobEffectInstance inst) {
         return inst.getEffect().value().isBeneficial();
     }
 
-    private static boolean isAbsorption(MobEffectInstance inst) {
-        return inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION);
-    }
-
     private static void renderCrystallizeShieldHud(GuiGraphics guiGraphics, Minecraft mc) {
-        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
-        if (shield == null || mc.player == null || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
-            return;
+        if (mc.player == null) return;
+        Element shield = ModMobEffects.getActiveShield(mc.player);
+        if (shield == null) {
+            shield = ClientAuraTracker.getActiveCrystallizeShield();
         }
+        if (shield == null) return;
 
         int beneficialIndex = 0;
         boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon() && isBeneficial(inst)) {
-                if (isAbsorption(inst)) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
+                        || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
                     found = true;
                     break;
                 }
@@ -617,7 +647,7 @@ public final class ClientAuraRenderer {
             int row = beneficialIndex / 10;
             int x = screenWidth - 25 * (col + 1);
             int y = top + 26 * row;
-            renderColoredBorder(guiGraphics, x, y, 24, 24, getElementBorderColor(shield));
+            renderCrystallizeShieldHudFrame(guiGraphics, x, y, getElementBorderColor(shield));
         }
     }
 
@@ -629,16 +659,17 @@ public final class ClientAuraRenderer {
             int imageWidth,
             EffectRenderingInventoryScreen<?> screen
     ) {
-        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
-        if (shield == null || mc.player == null || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
-            return;
+        if (mc.player == null) return;
+        Element shield = ModMobEffects.getActiveShield(mc.player);
+        if (shield == null) {
+            shield = ClientAuraTracker.getActiveCrystallizeShield();
         }
+        if (shield == null) return;
 
         int startX = leftPos + imageWidth + 2;
         int availableWidth = screen.width - startX;
         if (availableWidth < 32) return;
 
-        boolean isWide = availableWidth >= 120;
         int vanillaCount = mc.player.getActiveEffects().size();
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         int auraCount = (data != null) ? data.elements.size() : 0;
@@ -652,7 +683,8 @@ public final class ClientAuraRenderer {
         boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
-                if (isAbsorption(inst)) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
+                        || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
                     found = true;
                     break;
                 }
@@ -662,7 +694,7 @@ public final class ClientAuraRenderer {
 
         if (found) {
             int y = topPos + effectIndex * yStep;
-            renderColoredBorder(guiGraphics, startX, y, isWide ? 120 : 32, 32, getElementBorderColor(shield));
+            renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
         }
     }
 }

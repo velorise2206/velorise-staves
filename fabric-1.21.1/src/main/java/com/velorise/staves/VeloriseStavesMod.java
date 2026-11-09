@@ -184,6 +184,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     public void onInitialize() {
         StavesConfig.load();
         com.velorise.staves.network.ModNetwork.registerCommon();
+        com.velorise.staves.effect.ModMobEffects.init();
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
 
         // Also add combat staves to vanilla Combat tab so players never miss them

@@ -1,6 +1,7 @@
 package com.velorise.staves.element;
 
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -266,6 +267,15 @@ public final class CrystallizeShardManager {
                 }
             }
         }
+
+        // Check shield absorption depletion
+        for (ServerPlayer player : level.players()) {
+            if (player.getAbsorptionAmount() <= 0.0F && ModMobEffects.getActiveShield(player) != null) {
+                ModMobEffects.removeAllShields(player);
+                level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                        SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
+            }
+        }
     }
 
     private static void cleanUpShardTeam(ShardEntry shard) {
@@ -315,9 +325,15 @@ public final class CrystallizeShardManager {
     private static void pickupShard(ServerLevel level, ServerPlayer player, Element element) {
         long now = level.getGameTime();
 
-        // Overwrite absorption: 1 golden heart (2 absorption health) for 15s (300 ticks)
-        player.removeEffect(MobEffects.ABSORPTION);
-        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, 0, false, true, true));
+        // Remove any old crystallize shield effects
+        ModMobEffects.removeAllShields(player);
+        var shieldObj = ModMobEffects.getShieldForElement(element);
+        if (shieldObj != null) {
+            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, true, true));
+        }
+
+        // Grant 1 golden heart (2 absorption health)
+        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), 2.0F));
 
         // Register 250% elemental counter shield
         ACTIVE_SHIELDS.put(player.getUUID(), new ShieldEntry(element, now + SHIELD_DURATION_TICKS));
@@ -330,8 +346,19 @@ public final class CrystallizeShardManager {
                 SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.7F, 1.3F);
     }
 
+    public static @Nullable Element getActiveShield(LivingEntity entity) {
+        Element shield = ModMobEffects.getActiveShield(entity);
+        if (shield != null) return shield;
+        if (entity instanceof ServerPlayer sp) {
+            return getActiveShield(sp.getUUID(), entity.level().getGameTime());
+        }
+        return null;
+    }
+
     public static @Nullable Element getActiveShield(ServerPlayer player, long now) {
-        if (player.getAbsorptionAmount() <= 0.0F || !player.hasEffect(MobEffects.ABSORPTION)) {
+        Element shield = ModMobEffects.getActiveShield(player);
+        if (shield != null) return shield;
+        if (player.getAbsorptionAmount() <= 0.0F) {
             ACTIVE_SHIELDS.remove(player.getUUID());
             return null;
         }

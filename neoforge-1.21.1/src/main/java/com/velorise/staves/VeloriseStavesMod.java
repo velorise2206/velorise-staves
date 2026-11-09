@@ -180,5 +180,6 @@ public final class VeloriseStavesMod {
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
+        com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 }
