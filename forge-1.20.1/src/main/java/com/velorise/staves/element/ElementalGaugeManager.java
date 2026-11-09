@@ -459,7 +459,7 @@ public final class ElementalGaugeManager {
         if (isEntityInWater(target)) return;
 
         UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
         long now = target.level().getGameTime();
 
         // 1. Check if entity has Frozen or Cryo -> Forward Melt
@@ -606,7 +606,7 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
         long now = target.level().getGameTime();
 
         // 2. Pyro in water/rain -> Extinguish & Vaporize
@@ -816,7 +816,7 @@ public final class ElementalGaugeManager {
         Element innateElement = getInnateElement(target);
         if (innateElement != null && attackElement == innateElement) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
-            Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> new EnumMap<>(Element.class));
+            Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
             syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
             return;
         }
@@ -864,7 +864,7 @@ public final class ElementalGaugeManager {
             long now
     ) {
         UUID targetId = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> new EnumMap<>(Element.class));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
 
         // 0A. Innate Elemental Creature Logic
         Element innateElement = getInnateElement(target);
@@ -1582,7 +1582,7 @@ public final class ElementalGaugeManager {
             }
 
             long now = targetLevel.getGameTime();
-            Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
+            Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
             Element innate = getInnateElement(target);
             boolean changed = false;
 
@@ -1845,7 +1845,7 @@ public final class ElementalGaugeManager {
                             }
                         }
                         if (nearby instanceof Creeper creeper && creeper.isPowered() && !GAUGES.containsKey(creeper.getUUID())) {
-                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> new EnumMap<>(Element.class));
+                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
                             gauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, 1.25F));
                             syncAuras(creeper, gauges.keySet(), null, null, null);
                         }
