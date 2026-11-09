@@ -1,62 +1,89 @@
 # Velorise's Staves
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-brightgreen.svg)](https://minecraft.net/)
-[![NeoForge](https://img.shields.io/badge/Modloader-NeoForge-orange.svg)](https://neoforged.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
+[![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
 
-A lightweight, standalone Minecraft mod that introduces **11 elemental & mob-themed combat staves** and **2 utility magic artifacts**.
+A lightweight Minecraft magic & combat mod introducing **12 elemental combat staves**, **2 utility artifacts**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)**.
 
-No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable with `Unbreaking` and `Mending`.
-
----
-
-## Features
-
-### Combat Staves
-
-- **Dragonfire Scepter**: Hurls concentrated dragon breath creating a lingering mystic damage cloud.
-- **Resonant Echo**: Charges and releases a devastating Warden sonic boom that pierces through lines of enemies.
-- **Inferno Rod**: Rapid-fires blazing fireballs in a tight burst.
-- **Ghastfire Staff**: Shoots high-impact explosive fireballs that detonate on contact.
-- **Wither Scepter**: Fires a 3-skull spread inflicting deadly Wither decay.
-- **Shulker Seeker**: Launches homing shulker bullets that cause foes to levitate uncontrollably.
-- **Guardian Lens**: Sustains a continuous prismatic beam burning the focused target.
-- **Evoker Fang Staff**: Casts lines of biting evoker fangs erupting along the ground.
-- **Stormcaller**: Summons thunderous lightning strikes directly onto your crosshair.
-- **Frostbolt Wand**: Propels chilling frost orbs that inflict deep freeze and severe slowness.
-- **Webcaster**: Traps enemies in temporary toxic cobwebs that dissolve automatically.
-
-### Utility & Mobility Artifacts
-
-- **Void Translocator**: Blink forward up to 24 blocks through obstacles safely.
-- **Magic Mirror**: Hold right-click to channel and recall back to your bed or world spawn point.
+No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
 ---
 
-## Design Philosophy
+## ✨ Features
 
-- **Plug & Play**: Designed for vanilla-plus gameplay and lightweight modpacks.
-- **Natural Balance**: Cooldowns prevent spamming; durability gives staves an authentic tool feel.
-- **Enchantment Ready**: Repairable with Mending or materials in an Anvil, and durable with Unbreaking.
+### 🪄 Combat Staves (12 Types + Netherite Upgrades)
+
+- **Inferno Rod** (🔥 Pyro): Rapid-fires blazing fireballs in tight bursts.
+- **Ghastfire Staff** (🔥 Pyro): Launches explosive fireballs that detonate on contact.
+- **Guardian Lens** (💧 Hydro): Channels a continuous prismatic laser burning through targets.
+- **Frostbolt Wand** (❄️ Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
+- **Stormcaller** (⚡ Electro): Summons instant lightning strikes onto your crosshair.
+- **Wind Staff** (🌪️ Anemo): Fires gusting wind charges that trigger rapid Swirl reactions.
+- **Resonant Echo** (🌪️ Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
+- **Webcaster** (🌿 Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
+- **Evoker Fang Staff** (🪨 Geo): Erupts a straight line of vicious evoker fangs along the ground.
+- **Shulker Seeker** (⚡ Electro): Fires homing shulker bullets causing levitation.
+- **Dragonfire Scepter** (⚡ Electro): Hurls dragon breath creating a lingering mystic damage cloud.
+- **Wither Scepter** (💀 Nether): Discharges a 3-skull spread inflicting deadly Wither decay.
+
+*All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns.*
+
+### 🔮 Utility & Mobility Artifacts
+
+- **Void Translocator**: Blink forward up to 24 blocks through solid obstacles safely.
+- **Magic Mirror**: Channel to recall back to your bed or world spawn point.
 
 ---
 
-## Building from Source
+## ⚡ Elemental Reaction System (EGT)
 
-```bash
-# Clone the repository
+Built upon **Elemental Gauge Theory**, attacks and the environment apply elemental auras with decay, internal cooldowns (ICD), and reactions:
+
+- **7 Elements**: Pyro 🔥, Hydro 💧, Cryo ❄️, Electro ⚡, Anemo 🌪️, Geo 🪨, Dendro 🌿.
+- **Core Reactions**:
+  - **Vaporize** (💧 + 🔥) & **Melt** (🔥 + ❄️) — Multiplicative damage scaling.
+  - **Overloaded** (🔥 + ⚡) — High-knockback AOE explosion.
+  - **Frozen & Shatter** (💧 + ❄️, then 🪨/Heavy) — Locks enemies in ice, then shatters for heavy damage.
+  - **Electro-Charged** (💧 + ⚡) — Continuous chain lightning shock.
+  - **Burning** (🔥 + 🌿) — Rapid continuous flame ticks.
+  - **Quicken, Aggravate & Spread** (🌿 + ⚡) — Flat elemental damage amplification.
+  - **Bloom, Hyperbloom & Burgeon** (💧 + 🌿, then ⚡/🔥) — Spawns 3D physical Dendro Cores that burst or home into enemies.
+  - **Swirl** (🌪️ + Aura) — Spreads absorbed elements in an expanding gale.
+  - **Crystallize** (🪨 + Aura) — Drops 3D elemental crystal shards providing player shields and 250% matching resistance.
+
+### 🌍 World & Creature Interactions
+
+- **Innate Creature Elements**: Nether mobs (Blaze, Magma Cube, Piglin) possess Innate Pyro; Strays have Innate Cryo; Guardians have Innate Hydro; Endermen have Innate Electro; Iron Golems have Innate Geo, etc. When attacking, they inflict their innate element; same-element attacks trigger **IMMUNE**.
+- **Environmental Afflictions**: Water & Rain apply Hydro; Lava & Fire apply Pyro; Powder Snow applies Cryo; Thorns apply Dendro; Stalactites apply Geo.
+
+---
+
+## 🎮 Visual & Combat Feedback
+
+- **3D Floating Combat Text**: Reaction titles (`VAPORIZE`, `IMMUNE`, etc.) and elemental damage numbers pop cleanly at torso height.
+- **HD Overhead Element Icons**: 32x32 pixel-art icons above mobs displaying active auras and dual-reaction animations.
+- **Jade / Waila HUD**: Native tooltip integration showing active element gauges and remaining durations.
+
+---
+
+## 🛠️ Building from Source
+
+Supports **NeoForge 1.21.1**, **Forge 1.20.1**, and **Fabric 1.21.1**:
+
+```powershell
+# Clone repository
 git clone https://github.com/hungbbdzz/velorise-staves.git
 cd velorise-staves
 
-# Build all loaders
-build-all.bat
-
-# Or run client directly
-run.bat
+# Build all 3 loaders simultaneously
+powershell -ExecutionPolicy Bypass -File .\build-all.ps1
 ```
+
+Compiled jar artifacts will be placed in the `mods/velorise_staves/` directory.
 
 ---
 
-## License
+## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
