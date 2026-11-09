@@ -173,26 +173,10 @@ public final class ArcaneStaffEvents {
         // 1. Crystallize Elemental Shield (250% absorption against matching element)
         if (entity instanceof ServerPlayer sp) {
             Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, now);
-            if (activeShield != null) {
-                Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
-                        ? ElementalGaugeManager.getInnateElement(attackerMob) : null;
-                boolean matches = (attackerInnate == activeShield);
-                if (activeShield == Element.PYRO && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
-                    matches = true;
-                } else if (activeShield == Element.ELECTRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || src.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH))) {
-                    matches = true;
-                } else if (activeShield == Element.CRYO && src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)) {
-                    matches = true;
-                } else if (activeShield == Element.HYDRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
-                        || src.is(net.minecraft.world.damagesource.DamageTypes.TRIDENT)
-                        || src.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident)) {
-                    matches = true;
-                }
-                if (matches) {
-                    event.setNewDamage(event.getNewDamage() * 0.4F);
-                    sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                            SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
-                }
+            if (activeShield != null && com.velorise.staves.element.CrystallizeShardManager.matchesElementalShield(activeShield, src)) {
+                event.setNewDamage(event.getNewDamage() * 0.4F);
+                sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                        SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
             }
         }
 

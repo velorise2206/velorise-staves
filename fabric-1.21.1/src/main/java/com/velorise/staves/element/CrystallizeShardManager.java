@@ -9,8 +9,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -301,6 +305,41 @@ public final class CrystallizeShardManager {
             return null;
         }
         return getActiveShield(player.getUUID(), now);
+    }
+
+    public static boolean matchesElementalShield(@Nullable Element activeShield, DamageSource src) {
+        if (activeShield == null) return false;
+        Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
+                ? ElementalGaugeManager.getInnateElement(attackerMob) : null;
+        if (attackerInnate == activeShield) return true;
+
+        if (activeShield == Element.PYRO) {
+            return src.is(DamageTypeTags.IS_FIRE)
+                    || src.is(DamageTypes.FIREWORKS);
+        }
+        if (activeShield == Element.ELECTRO) {
+            return src.is(DamageTypeTags.IS_LIGHTNING)
+                    || src.is(DamageTypes.DRAGON_BREATH);
+        }
+        if (activeShield == Element.CRYO) {
+            return src.is(DamageTypeTags.IS_FREEZING);
+        }
+        if (activeShield == Element.HYDRO) {
+            return src.is(DamageTypeTags.IS_DROWNING)
+                    || src.is(DamageTypes.TRIDENT)
+                    || src.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident;
+        }
+        if (activeShield == Element.DENDRO) {
+            return src.is(DamageTypes.CACTUS)
+                    || src.is(DamageTypes.SWEET_BERRY_BUSH);
+        }
+        if (activeShield == Element.GEO) {
+            return src.is(DamageTypes.FALLING_STALACTITE)
+                    || src.is(DamageTypes.STALAGMITE)
+                    || src.is(DamageTypes.FALLING_ANVIL)
+                    || src.is(DamageTypes.FALLING_BLOCK);
+        }
+        return false;
     }
 
     public static @Nullable Element getActiveShield(UUID playerId, long now) {
