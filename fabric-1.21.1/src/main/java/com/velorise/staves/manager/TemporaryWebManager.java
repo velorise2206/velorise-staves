@@ -59,9 +59,6 @@ public final class TemporaryWebManager {
                 BlockPos pos = web.getKey();
                 Entry entry = web.getValue();
                 if (!level.hasChunkAt(pos)) {
-                    if (now - entry.expiresAt > 600L) {
-                        webs.remove();
-                    }
                     continue;
                 }
 

@@ -172,7 +172,7 @@ public final class CrystallizeShardManager {
                 if (now >= entry.expireTick || player.getAbsorptionAmount() <= 0.0F || !player.hasEffect(MobEffects.ABSORPTION)) {
                     ACTIVE_SHIELDS.remove(pid);
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
-                } else if (now % 4 == 0) {
+                } else if (now % 8 == 0) {
                     spawnShieldOrbitParticles(level, player, entry.element);
                 }
             }
@@ -236,6 +236,34 @@ public final class CrystallizeShardManager {
                 cleanUpShardTeam(shard);
                 shard.entity.discard();
                 SHARDS.remove(shard);
+            }
+        }
+
+        // Auto-Purge Orphaned Crystallize Shards
+        if (now % 20 == 0) {
+            for (ServerPlayer player : level.players()) {
+                AABB scanBox = player.getBoundingBox().inflate(64.0D);
+                for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, scanBox, e -> e.isAlive() && !e.isRemoved())) {
+                    if (item.getTags().contains(TAG_CRYSTALLIZE_SHARD)) {
+                        boolean tracked = false;
+                        for (ShardEntry s : SHARDS) {
+                            if (s.entity == item || s.entity.getUUID().equals(item.getUUID())) {
+                                tracked = true;
+                                break;
+                            }
+                        }
+                        if (!tracked && item.getAge() >= SHARD_LIFETIME_TICKS) {
+                            try {
+                                Scoreboard sb = level.getScoreboard();
+                                PlayerTeam team = sb.getPlayersTeam(item.getScoreboardName());
+                                if (team != null && team.getName().startsWith("vs_")) {
+                                    sb.removePlayerFromTeam(item.getScoreboardName(), team);
+                                }
+                            } catch (Throwable ignored) {}
+                            item.discard();
+                        }
+                    }
+                }
             }
         }
     }

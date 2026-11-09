@@ -61,5 +61,14 @@
   "item.velorise_staves.netherite_magic_mirror": "Miroir Magique en Netherite",
   "item.velorise_staves.netherite_magic_mirror.desc": "Forgé dans le Nether. Permet de rentrer chez soi depuis n'importe quelle dimension.",
   "message.velorise_staves.mirror_dimension_blocked": "§cLe miroir basique ne peut traverser les dimensions ! Améliorez-le en Netherite.",
-  "item.velorise_staves.dendro_core": "Noyau Dendro"
+  "item.velorise_staves.dendro_core": "Noyau Dendro",
+  "item.velorise_staves.wind_staff": "Wind Staff",
+  "item.velorise_staves.wind_staff.desc": "Unleashes gusting wind bursts triggering Swirl reactions.",
+  "item.velorise_staves.netherite_wind_staff": "Netherite Wind Staff",
+  "item.velorise_staves.netherite_wind_staff.desc": "Fires empowered gale charges launching foes and swirling elements.",
+  "item.velorise_staves.pyro_crystallize_shard": "Pyro Crystallize Shard",
+  "item.velorise_staves.hydro_crystallize_shard": "Hydro Crystallize Shard",
+  "item.velorise_staves.electro_crystallize_shard": "Electro Crystallize Shard",
+  "item.velorise_staves.cryo_crystallize_shard": "Cryo Crystallize Shard",
+  "config.jade.plugin_velorise_staves.elemental_aura": "Elemental Aura"
 }

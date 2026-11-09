@@ -1,7 +1,6 @@
 package com.velorise.staves.network;
 
 import com.velorise.staves.VeloriseStavesMod;
-import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import io.netty.buffer.ByteBuf;
@@ -103,7 +102,11 @@ public record AuraSyncPayload(
     }
 
     public static void handle(AuraSyncPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> {
+        context.enqueueWork(() -> ClientPayloadHandler.handle(payload));
+    }
+
+    private static final class ClientPayloadHandler {
+        private static void handle(AuraSyncPayload payload) {
             List<Element> elements = new ArrayList<>();
             for (Element e : Element.values()) {
                 if ((payload.activeMask & (1 << e.ordinal())) != 0) {
@@ -117,7 +120,7 @@ public record AuraSyncPayload(
             ElementalReaction reaction = (payload.reactionOrdinal > 0 && payload.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[payload.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage, payload.durationTicks);
-        });
+            com.velorise.staves.client.ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage, payload.durationTicks);
+        }
     }
 }

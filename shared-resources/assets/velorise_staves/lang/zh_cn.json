@@ -61,5 +61,14 @@
   "item.velorise_staves.netherite_magic_mirror": "下界合金魔镜",
   "item.velorise_staves.netherite_magic_mirror.desc": "熔铸下界精金。可跨越任意维度直接引导传送回温馨之家。",
   "message.velorise_staves.mirror_dimension_blocked": "§c基础魔镜无法跨维度召回！请使用下界合金升级。",
-  "item.velorise_staves.dendro_core": "草原核"
+  "item.velorise_staves.dendro_core": "草原核",
+  "item.velorise_staves.wind_staff": "Wind Staff",
+  "item.velorise_staves.wind_staff.desc": "Unleashes gusting wind bursts triggering Swirl reactions.",
+  "item.velorise_staves.netherite_wind_staff": "Netherite Wind Staff",
+  "item.velorise_staves.netherite_wind_staff.desc": "Fires empowered gale charges launching foes and swirling elements.",
+  "item.velorise_staves.pyro_crystallize_shard": "Pyro Crystallize Shard",
+  "item.velorise_staves.hydro_crystallize_shard": "Hydro Crystallize Shard",
+  "item.velorise_staves.electro_crystallize_shard": "Electro Crystallize Shard",
+  "item.velorise_staves.cryo_crystallize_shard": "Cryo Crystallize Shard",
+  "config.jade.plugin_velorise_staves.elemental_aura": "Elemental Aura"
 }

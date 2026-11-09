@@ -38,5 +38,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register((guiGraphics, tickCounter) -> {
             ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
         });
+
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            ClientAuraTracker.clear();
+        });
     }
 }

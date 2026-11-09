@@ -517,6 +517,7 @@ public final class DendroCoreManager {
                         }
                         if (!tracked) {
                             if (item.getAge() >= CORE_LIFETIME_TICKS) {
+                                cleanUpCoreTeam(new CoreEntry(item, level, now, null, 1.0F));
                                 item.discard();
                             } else {
                                 CORES.add(new CoreEntry(item, level, now - Math.max(0, item.getAge()), null, 1.0F));

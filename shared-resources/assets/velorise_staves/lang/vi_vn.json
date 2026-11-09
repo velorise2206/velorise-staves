@@ -66,5 +66,9 @@
   "item.velorise_staves.hydro_crystallize_shard": "Mảnh Kết Tinh Thủy",
   "item.velorise_staves.electro_crystallize_shard": "Mảnh Kết Tinh Lôi",
   "item.velorise_staves.cryo_crystallize_shard": "Mảnh Kết Tinh Băng",
-  "config.jade.plugin_velorise_staves.elemental_aura": "Ấn Nguyên Tố"
+  "config.jade.plugin_velorise_staves.elemental_aura": "Ấn Nguyên Tố",
+  "item.velorise_staves.wind_staff": "Wind Staff",
+  "item.velorise_staves.wind_staff.desc": "Unleashes gusting wind bursts triggering Swirl reactions.",
+  "item.velorise_staves.netherite_wind_staff": "Netherite Wind Staff",
+  "item.velorise_staves.netherite_wind_staff.desc": "Fires empowered gale charges launching foes and swirling elements."
 }

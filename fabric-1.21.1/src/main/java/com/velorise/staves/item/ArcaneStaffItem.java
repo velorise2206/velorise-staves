@@ -68,7 +68,7 @@ public final class ArcaneStaffItem extends Item {
         }
     }
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
 
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
@@ -112,7 +112,7 @@ public final class ArcaneStaffItem extends Item {
             player.startUsingItem(hand);
             if (!level.isClientSide()) {
                 if (isChannelingKind()) {
-                    ACTIVE_CHANNELING.put(player.getUUID(), kind);
+                    ACTIVE_CHANNELING.put(player.getUUID(), stack);
                 }
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
@@ -133,7 +133,9 @@ public final class ArcaneStaffItem extends Item {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
 
         if (isBurstKind()) {
-            prepareBurst(serverPlayer, burstKey(), BURST_RESET_TICKS);
+            if (prepareBurst(serverPlayer, burstKey(), BURST_RESET_TICKS)) {
+                return InteractionResultHolder.fail(stack);
+            }
         }
 
         boolean shouldConsumeDurability = !isBurstKind() || isFirstBurstShot(serverPlayer, burstKey());
@@ -173,8 +175,8 @@ public final class ArcaneStaffItem extends Item {
         if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
 
         if (isChannelingKind()) {
-            Kind chKind = ACTIVE_CHANNELING.get(player.getUUID());
-            if (chKind == kind) {
+            ItemStack chStack = ACTIVE_CHANNELING.get(player.getUUID());
+            if (chStack == stack) {
                 if (!player.isUsingItem() || player.getUseItem() != stack) {
                     ACTIVE_CHANNELING.remove(player.getUUID());
                     if (!player.getCooldowns().isOnCooldown(this)) {
@@ -236,11 +238,11 @@ public final class ArcaneStaffItem extends Item {
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
 
-    private void prepareBurst(ServerPlayer player, String tagShots, int resetTicks) {
+    private boolean prepareBurst(ServerPlayer player, String tagShots, int resetTicks) {
         Map<String, BurstState> map = PLAYER_BURSTS.get(player.getUUID());
-        if (map == null) return;
+        if (map == null) return false;
         BurstState state = map.get(tagShots);
-        if (state == null || state.shots <= 0) return;
+        if (state == null || state.shots <= 0) return false;
         long elapsed = player.level().getGameTime() - state.lastTime;
         if (elapsed >= resetTicks) {
             map.remove(tagShots);
@@ -248,7 +250,9 @@ public final class ArcaneStaffItem extends Item {
             if (!player.getCooldowns().isOnCooldown(this)) {
                 player.getCooldowns().addCooldown(this, getCooldownTicks());
             }
+            return true;
         }
+        return false;
     }
 
     private void advanceBurst(ServerPlayer player, String tagShots, int maxShots, int cdTicks) {

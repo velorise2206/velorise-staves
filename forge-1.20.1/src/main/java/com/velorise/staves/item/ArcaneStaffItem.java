@@ -54,7 +54,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Standalone magic staves powered by vanilla durability and cooldowns. */
 public final class ArcaneStaffItem extends Item {
-    private static final Map<UUID, Kind> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
 
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
@@ -106,7 +106,7 @@ public final class ArcaneStaffItem extends Item {
             player.startUsingItem(hand);
             if (!level.isClientSide()) {
                 if (isChannelingKind()) {
-                    ACTIVE_CHANNELING.put(player.getUUID(), kind);
+                    ACTIVE_CHANNELING.put(player.getUUID(), stack);
                 }
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
@@ -127,7 +127,9 @@ public final class ArcaneStaffItem extends Item {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
 
         if (isBurstKind()) {
-            prepareBurst(serverPlayer, burstShotsTag(), burstLastTag(), BURST_RESET_TICKS);
+            if (prepareBurst(serverPlayer, burstShotsTag(), burstLastTag(), BURST_RESET_TICKS)) {
+                return InteractionResultHolder.fail(stack);
+            }
         }
 
         boolean shouldConsumeDurability = !isBurstKind() || isFirstBurstShot(serverPlayer, burstShotsTag());
@@ -166,8 +168,8 @@ public final class ArcaneStaffItem extends Item {
         if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
 
         if (isChannelingKind()) {
-            Kind chKind = ACTIVE_CHANNELING.get(player.getUUID());
-            if (chKind == kind) {
+            ItemStack chStack = ACTIVE_CHANNELING.get(player.getUUID());
+            if (chStack == stack) {
                 if (!player.isUsingItem() || player.getUseItem() != stack) {
                     ACTIVE_CHANNELING.remove(player.getUUID());
                     if (!player.getCooldowns().isOnCooldown(this)) {
@@ -241,9 +243,9 @@ public final class ArcaneStaffItem extends Item {
         return StavesConfig.getMaxDurability(kind, isNetherite);
     }
 
-    private void prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks) {
+    private boolean prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks) {
         int shots = player.getPersistentData().getInt(tagShots);
-        if (shots <= 0) return;
+        if (shots <= 0) return false;
         long elapsed = player.level().getGameTime() - player.getPersistentData().getLong(tagLast);
         if (elapsed >= resetTicks) {
             player.getPersistentData().remove(tagShots);
@@ -251,7 +253,9 @@ public final class ArcaneStaffItem extends Item {
             if (!player.getCooldowns().isOnCooldown(this)) {
                 player.getCooldowns().addCooldown(this, getCooldownTicks());
             }
+            return true;
         }
+        return false;
     }
 
     private void advanceBurst(ServerPlayer player, String tagShots, String tagLast, int maxShots, int cdTicks) {

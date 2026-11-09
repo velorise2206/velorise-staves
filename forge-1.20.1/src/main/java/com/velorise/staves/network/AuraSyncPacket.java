@@ -1,6 +1,5 @@
 package com.velorise.staves.network;
 
-import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import net.minecraft.network.FriendlyByteBuf;
@@ -104,22 +103,29 @@ public class AuraSyncPacket {
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
-        ctx.enqueueWork(() -> {
+        ctx.enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                net.minecraftforge.api.distmarker.Dist.CLIENT,
+                () -> () -> ClientPacketHandler.handleAuraSync(this)
+        ));
+        ctx.setPacketHandled(true);
+    }
+
+    private static final class ClientPacketHandler {
+        private static void handleAuraSync(AuraSyncPacket pkt) {
             List<Element> elements = new ArrayList<>();
             for (Element e : Element.values()) {
-                if ((this.activeMask & (1 << e.ordinal())) != 0) {
+                if ((pkt.activeMask & (1 << e.ordinal())) != 0) {
                     elements.add(e);
                 }
             }
-            Element reactedAura = (this.reactedAuraOrdinal > 0 && this.reactedAuraOrdinal <= Element.values().length)
-                    ? Element.values()[this.reactedAuraOrdinal - 1] : null;
-            Element trigger = (this.triggerElementOrdinal > 0 && this.triggerElementOrdinal <= Element.values().length)
-                    ? Element.values()[this.triggerElementOrdinal - 1] : null;
-            ElementalReaction reaction = (this.reactionOrdinal > 0 && this.reactionOrdinal <= ElementalReaction.values().length)
-                    ? ElementalReaction.values()[this.reactionOrdinal - 1] : null;
+            Element reactedAura = (pkt.reactedAuraOrdinal > 0 && pkt.reactedAuraOrdinal <= Element.values().length)
+                    ? Element.values()[pkt.reactedAuraOrdinal - 1] : null;
+            Element trigger = (pkt.triggerElementOrdinal > 0 && pkt.triggerElementOrdinal <= Element.values().length)
+                    ? Element.values()[pkt.triggerElementOrdinal - 1] : null;
+            ElementalReaction reaction = (pkt.reactionOrdinal > 0 && pkt.reactionOrdinal <= ElementalReaction.values().length)
+                    ? ElementalReaction.values()[pkt.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(this.entityId, elements, reactedAura, trigger, reaction, this.damage, this.durationTicks);
-        });
-        ctx.setPacketHandled(true);
+            com.velorise.staves.client.ClientAuraTracker.update(pkt.entityId, elements, reactedAura, trigger, reaction, pkt.damage, pkt.durationTicks);
+        }
     }
 }

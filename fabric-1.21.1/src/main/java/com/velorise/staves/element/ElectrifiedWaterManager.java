@@ -132,7 +132,7 @@ public final class ElectrifiedWaterManager {
                         (level.random.nextDouble() - 0.2D) * 0.35D,
                         (level.random.nextDouble() - 0.5D) * 0.9D
                 );
-                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.10D));
+                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.22D));
                 for (int fs = 0; fs <= forkSteps; fs++) {
                     Vec3 fp = target.add(forkDir.scale((double) fs / (double) forkSteps));
                     DustParticleOptions dust = (fs % 2 == 0) ? ELECTRIC_DUST_CYAN : ELECTRIC_DUST_VIOLET;

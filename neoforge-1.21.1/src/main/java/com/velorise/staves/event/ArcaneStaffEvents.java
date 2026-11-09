@@ -348,12 +348,13 @@ public final class ArcaneStaffEvents {
 
     private static void resolveWither(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
         double radius = isNetherite ? 4.0D : 3.0D;
-        float baseDmg = isNetherite ? 6.0F : 4.0F;
+        double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
+        float finalDmg = (float) ((isNetherite ? 6.0F : 4.0F) * dmgMult);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            DamageSource source = player != null ? level.damageSources().playerAttack(player) : level.damageSources().wither();
-            target.hurt(source, baseDmg);
-            target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 1 : 0));
+            DamageSource source = player != null ? level.damageSources().indirectMagic(player, player) : level.damageSources().wither();
+            target.hurt(source, finalDmg);
+            target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,
             radius * 0.4D, radius * 0.35D, radius * 0.4D, 0.04D);
@@ -367,7 +368,9 @@ public final class ArcaneStaffEvents {
             float baseDmg = isNetherite ? 6.0F : 4.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
-            target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 80 : 60, 0));
+            if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO && !ElementalGaugeManager.isBossEntity(target)) {
+                target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 80 : 60, 0));
+            }
         }
         DendroCoreManager.checkReactionsNear(level, hit, 3.5D, Element.ELECTRO, player);
         level.sendParticles(ParticleTypes.END_ROD, hit.x, hit.y, hit.z, 16, 0.25D, 0.25D, 0.25D, 0.03D);
@@ -381,15 +384,19 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.CRYO, attackU, player, baseDmg);
-            target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 60, 1));
-            target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 140 : 100));
+            if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO && !ElementalGaugeManager.isBossEntity(target)) {
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 60, 1));
+                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 140 : 100));
+            }
         }
         if (isNetherite) {
             for (LivingEntity splashTarget : targets(level, hit, 2.0D, owner)) {
                 if (splashTarget != target) {
                     ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, 1.0F, player, 2.5F);
-                    splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0));
-                    splashTarget.setTicksFrozen(100);
+                    if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO && !ElementalGaugeManager.isBossEntity(splashTarget)) {
+                        splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0));
+                        splashTarget.setTicksFrozen(100);
+                    }
                 }
             }
         }

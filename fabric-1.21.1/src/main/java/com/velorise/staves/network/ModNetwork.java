@@ -5,14 +5,11 @@ import com.velorise.staves.element.ElementalReaction;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 
 public final class ModNetwork {
     private ModNetwork() {}
@@ -53,15 +50,11 @@ public final class ModNetwork {
     ) {
         if (target.level().isClientSide()) return;
         AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
-        Set<ServerPlayer> recipients = new HashSet<>(PlayerLookup.tracking(target));
-        if (target.level() instanceof ServerLevel serverLevel) {
-            recipients.addAll(PlayerLookup.around(serverLevel, target.position(), 64.0D));
+        for (ServerPlayer player : PlayerLookup.tracking(target)) {
+            ServerPlayNetworking.send(player, payload);
         }
         if (target instanceof ServerPlayer self) {
-            recipients.add(self);
-        }
-        for (ServerPlayer player : recipients) {
-            ServerPlayNetworking.send(player, payload);
+            ServerPlayNetworking.send(self, payload);
         }
     }
 

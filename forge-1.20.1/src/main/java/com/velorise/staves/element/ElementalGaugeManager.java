@@ -278,6 +278,10 @@ public final class ElementalGaugeManager {
         FROZEN_GAUGES.remove(id);
         FROZEN_UNTIL.remove(id);
         target.setTicksFrozen(0);
+        MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        if (slow != null && slow.getAmplifier() >= 6) {
+            target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        }
     }
 
     private static void clearQuickenState(UUID id) {
@@ -459,7 +463,7 @@ public final class ElementalGaugeManager {
         if (isEntityInWater(target)) return;
 
         UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
         long now = target.level().getGameTime();
 
         // 1. Check if entity has Frozen or Cryo -> Forward Melt
@@ -606,7 +610,7 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
         long now = target.level().getGameTime();
 
         // 2. Pyro in water/rain -> Extinguish & Vaporize
@@ -816,7 +820,7 @@ public final class ElementalGaugeManager {
         Element innateElement = getInnateElement(target);
         if (innateElement != null && attackElement == innateElement) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
-            Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+            Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> new ConcurrentHashMap<>());
             syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
             return;
         }
@@ -864,7 +868,7 @@ public final class ElementalGaugeManager {
             long now
     ) {
         UUID targetId = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> new ConcurrentHashMap<>());
 
         // 0A. Innate Elemental Creature Logic
         Element innateElement = getInnateElement(target);
@@ -1441,6 +1445,7 @@ public final class ElementalGaugeManager {
                     if (nearby instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.CRYO) {
                         dmg *= 0.4F;
                     }
+                    nearby.invulnerableTime = 0;
                     nearby.hurt(level.damageSources().freeze(), dmg);
                     SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
                     nearby.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 0));
@@ -1507,6 +1512,7 @@ public final class ElementalGaugeManager {
             if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.PYRO) {
                 dmg *= 0.4F;
             }
+            victim.invulnerableTime = 0;
             victim.hurt(level.damageSources().magic(), dmg);
             Vec3 diff = victim == target && attacker != null
                 ? target.position().subtract(attacker.position())
@@ -1582,7 +1588,7 @@ public final class ElementalGaugeManager {
             }
 
             long now = targetLevel.getGameTime();
-            Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+            Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
             Element innate = getInnateElement(target);
             boolean changed = false;
 
@@ -1762,7 +1768,12 @@ public final class ElementalGaugeManager {
                     if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, now) == Element.PYRO) {
                         burnDmg *= 0.4F;
                     }
-                    target.hurt(targetLevel.damageSources().inFire(), burnDmg);
+                    IS_PROCESSING_REACTION.set(true);
+                    try {
+                        target.hurt(targetLevel.damageSources().inFire(), burnDmg);
+                    } finally {
+                        IS_PROCESSING_REACTION.set(false);
+                    }
                     target.setSecondsOnFire(2);
 
                     // Consume 0.1U per 5 ticks (= 0.4U/s) from Dendro and Quicken gauges
@@ -1845,7 +1856,7 @@ public final class ElementalGaugeManager {
                             }
                         }
                         if (nearby instanceof Creeper creeper && creeper.isPowered() && !GAUGES.containsKey(creeper.getUUID())) {
-                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> Collections.synchronizedMap(new EnumMap<>(Element.class)));
+                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> new ConcurrentHashMap<>());
                             gauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, 1.25F));
                             syncAuras(creeper, gauges.keySet(), null, null, null);
                         }

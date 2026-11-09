@@ -51,6 +51,11 @@ public final class ClientAuraRenderer {
     private ClientAuraRenderer() {}
 
     @SubscribeEvent
+    public static void onClientLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
+        ClientAuraTracker.clear();
+    }
+
+    @SubscribeEvent
     public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
         renderingScreen = true;
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
