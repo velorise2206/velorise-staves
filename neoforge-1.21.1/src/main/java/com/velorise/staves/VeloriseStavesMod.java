@@ -78,6 +78,14 @@ public final class VeloriseStavesMod {
     // Elemental Reaction Entities & Materials
     public static final Supplier<Item> DENDRO_CORE = ITEMS.register("dendro_core",
         () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> PYRO_CRYSTALLIZE_SHARD = ITEMS.register("pyro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> HYDRO_CRYSTALLIZE_SHARD = ITEMS.register("hydro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> ELECTRO_CRYSTALLIZE_SHARD = ITEMS.register("electro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> CRYO_CRYSTALLIZE_SHARD = ITEMS.register("cryo_crystallize_shard",
+        () -> new Item(new Item.Properties()));
 
     // Netherite Upgraded Combat Staves
     public static final Supplier<Item> NETHERITE_DRAGONFIRE_SCEPTER = ITEMS.register("netherite_dragonfire_scepter",

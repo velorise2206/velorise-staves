@@ -60,5 +60,9 @@
   "item.velorise_staves.netherite_magic_mirror": "Gương Ma Thuật Netherite",
   "item.velorise_staves.netherite_magic_mirror.desc": "Được rèn từ Nether. Có thể vận công dịch chuyển xuyên qua mọi chiều không gian.",
   "message.velorise_staves.mirror_dimension_blocked": "§cGương Ma Thuật thường không thể dịch chuyển xuyên chiều không gian! Hãy nâng cấp lên Netherite.",
-  "item.velorise_staves.dendro_core": "Hạt Nhân Thảo"
+  "item.velorise_staves.dendro_core": "Hạt Nhân Thảo",
+  "item.velorise_staves.pyro_crystallize_shard": "Mảnh Kết Tinh Hỏa",
+  "item.velorise_staves.hydro_crystallize_shard": "Mảnh Kết Tinh Thủy",
+  "item.velorise_staves.electro_crystallize_shard": "Mảnh Kết Tinh Lôi",
+  "item.velorise_staves.cryo_crystallize_shard": "Mảnh Kết Tinh Băng"
 }

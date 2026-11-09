@@ -1,0 +1,6 @@
+{
+  "parent": "velorise_staves:item/crystallize_shard_base",
+  "textures": {
+    "texture": "velorise_staves:item/electro_crystallize_shard"
+  }
+}

@@ -80,6 +80,8 @@ public final class ArcaneStaffEvents {
                 handlePoisonPotionSplash(level, potion);
             } else if (contents.is(Potions.SLOWNESS) || contents.is(Potions.LONG_SLOWNESS) || contents.is(Potions.STRONG_SLOWNESS)) {
                 handleSlownessPotionSplash(level, potion);
+            } else if (contents.is(Potions.HARMING) || contents.is(Potions.STRONG_HARMING)) {
+                handleHarmingPotionSplash(level, potion);
             }
         }
 
@@ -451,6 +453,19 @@ public final class ArcaneStaffEvents {
             }
         }
         freezeWaterNear(level, potion.position(), 2);
+    }
+
+    private static void handleHarmingPotionSplash(ServerLevel level, ThrownPotion potion) {
+        Entity owner = potion.getOwner();
+        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
+        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
+        for (LivingEntity living : nearby) {
+            if (potion.distanceToSqr(living) <= 16.0D) {
+                ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, thrower, 0.0F);
+            }
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, potion.getX(), potion.getY(), potion.getZ(), 20, 0.5D, 0.3D, 0.5D, 0.05D);
     }
 
     private static LivingEntity hitEntity(ProjectileImpactEvent event) {

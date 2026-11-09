@@ -64,5 +64,9 @@
   "item.velorise_staves.netherite_magic_mirror": "Netherite Magic Mirror",
   "item.velorise_staves.netherite_magic_mirror.desc": "Forged in the Nether. Channels and recalls back home across any dimension.",
   "message.velorise_staves.mirror_dimension_blocked": "§cBasic Magic Mirror cannot recall across dimensions! Upgrade with Netherite.",
-  "item.velorise_staves.dendro_core": "Dendro Core"
+  "item.velorise_staves.dendro_core": "Dendro Core",
+  "item.velorise_staves.pyro_crystallize_shard": "Pyro Crystallize Shard",
+  "item.velorise_staves.hydro_crystallize_shard": "Hydro Crystallize Shard",
+  "item.velorise_staves.electro_crystallize_shard": "Electro Crystallize Shard",
+  "item.velorise_staves.cryo_crystallize_shard": "Cryo Crystallize Shard"
 }

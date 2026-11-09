@@ -33,12 +33,17 @@ import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.monster.Endermite;
 import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Guardian;
+import net.minecraft.world.entity.monster.Husk;
 import net.minecraft.world.entity.monster.MagmaCube;
+import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
+import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.WitherSkeleton;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
+import net.minecraft.world.entity.projectile.EvokerFangs;
+import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -116,6 +121,7 @@ public final class ElementalGaugeManager {
         LAST_BLOOM_SPAWN.clear();
         ICD_TRACKER.clear();
         DendroCoreManager.clearAll();
+        CrystallizeShardManager.clearAll();
         ElectrifiedWaterManager.clearAll();
         DragonfireCloudManager.clearAll();
     }
@@ -210,6 +216,43 @@ public final class ElementalGaugeManager {
                         || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet
                         || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl) {
                     applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
+                    return;
+                }
+
+                // 10. Husk melee attack -> Geo (0.5U)
+                if (source.getEntity() instanceof Husk) {
+                    applyElement(level, target, Element.GEO, 0.5F, null, 0.0F);
+                    return;
+                }
+
+                // 11. Ravager: Roar shockwave -> Anemo (1.5U), Stomp/Melee -> Geo (1.0U)
+                if (source.getEntity() instanceof Ravager ravager) {
+                    if (ravager.getRoarTick() > 0) {
+                        applyElement(level, target, Element.ANEMO, 1.5F, null, 0.0F);
+                    } else {
+                        applyElement(level, target, Element.GEO, 1.0F, null, 0.0F);
+                    }
+                    return;
+                }
+
+                // 12. Evoker Fangs -> Geo (1.0U)
+                if (source.getDirectEntity() instanceof EvokerFangs) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, Element.GEO, 1.0F, attacker, 0.0F);
+                    return;
+                }
+
+                // 13. Vex melee attack -> Electro (0.5U)
+                if (source.getEntity() instanceof Vex) {
+                    applyElement(level, target, Element.ELECTRO, 0.5F, null, 0.0F);
+                    return;
+                }
+
+                // 14. Fireworks explosion -> Pyro (1.5U)
+                if (source.is(DamageTypes.FIREWORKS)
+                        || source.getDirectEntity() instanceof FireworkRocketEntity) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, Element.PYRO, 1.5F, attacker, 0.0F);
                     return;
                 }
 
@@ -910,9 +953,7 @@ public final class ElementalGaugeManager {
             case CRYSTALLIZE -> {
                 level.sendParticles(ParticleTypes.CRIT, pos.x, pos.y + 0.8D, pos.z, 15, 0.35D, 0.4D, 0.35D, 0.05D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.8F, 1.2F);
-                if (attacker != null) {
-                    attacker.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 300, 1, false, true, true));
-                }
+                CrystallizeShardManager.spawn(level, target.position(), auraElement);
             }
             default -> {}
         }
@@ -962,6 +1003,7 @@ public final class ElementalGaugeManager {
         // Tick physical Dendro Cores and Electrified Water in all levels
         for (ServerLevel lvl : server.getAllLevels()) {
             DendroCoreManager.tick(lvl);
+            CrystallizeShardManager.tick(lvl);
             ElectrifiedWaterManager.tick(lvl);
             DragonfireCloudManager.tick(lvl);
         }

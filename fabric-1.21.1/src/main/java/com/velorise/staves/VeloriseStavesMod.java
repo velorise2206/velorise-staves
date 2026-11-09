@@ -80,6 +80,14 @@ public final class VeloriseStavesMod implements ModInitializer {
     // Elemental Reaction Entities & Materials
     public static final Item DENDRO_CORE = registerItem("dendro_core",
         new Item(new Item.Properties()));
+    public static final Item PYRO_CRYSTALLIZE_SHARD = registerItem("pyro_crystallize_shard",
+        new Item(new Item.Properties()));
+    public static final Item HYDRO_CRYSTALLIZE_SHARD = registerItem("hydro_crystallize_shard",
+        new Item(new Item.Properties()));
+    public static final Item ELECTRO_CRYSTALLIZE_SHARD = registerItem("electro_crystallize_shard",
+        new Item(new Item.Properties()));
+    public static final Item CRYO_CRYSTALLIZE_SHARD = registerItem("cryo_crystallize_shard",
+        new Item(new Item.Properties()));
 
     // Netherite Upgraded Combat Staves
     public static final Item NETHERITE_DRAGONFIRE_SCEPTER = registerItem("netherite_dragonfire_scepter",
