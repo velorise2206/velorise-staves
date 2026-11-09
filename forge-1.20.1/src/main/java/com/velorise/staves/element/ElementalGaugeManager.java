@@ -19,10 +19,14 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.Bee;
+import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.MushroomCow;
+import net.minecraft.world.entity.animal.PolarBear;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.CaveSpider;
@@ -37,6 +41,7 @@ import net.minecraft.world.entity.monster.Husk;
 import net.minecraft.world.entity.monster.MagmaCube;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.entity.monster.Shulker;
+import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.Vex;
@@ -46,6 +51,7 @@ import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -355,8 +361,10 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
-                // 9. Thrown Trident -> Hydro (1.0U)
-                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident) {
+                // 9. Trident damage (Thrown Trident, Trident melee, or Drowned attack) -> Hydro (1.0U)
+                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident
+                        || source.is(DamageTypes.TRIDENT)
+                        || (source.getEntity() instanceof LivingEntity attacker && attacker.getMainHandItem().is(Items.TRIDENT))) {
                     ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
                     applyElement(level, target, Element.HYDRO, 1.0F, attacker, 0.0F);
                     return;
@@ -668,23 +676,31 @@ public final class ElementalGaugeManager {
                 || target instanceof Zoglin) {
             return Element.PYRO;
         }
-        if (target instanceof Stray || target instanceof SnowGolem) {
+        if (target instanceof Stray || target instanceof SnowGolem || target instanceof PolarBear) {
             return Element.CRYO;
         }
-        if (target instanceof Guardian || target instanceof ElderGuardian || target instanceof Drowned) {
+        if (target instanceof Guardian || target instanceof ElderGuardian || target instanceof Drowned
+                || target instanceof Axolotl || target instanceof Frog) {
             return Element.HYDRO;
+        }
+        if (target.getType().getDescriptionId().contains("breeze")) {
+            return Element.ANEMO;
         }
         if ((target instanceof Creeper creeper && creeper.isPowered())
                 || target instanceof EnderMan
                 || target instanceof EnderDragon
                 || target instanceof Endermite
-                || target instanceof Shulker) {
+                || target instanceof Shulker
+                || target instanceof Vex) {
             return Element.ELECTRO;
         }
-        if (target instanceof MushroomCow) {
+        if (target instanceof MushroomCow
+                || target instanceof Bee || target instanceof CaveSpider
+                || (target instanceof Slime && !(target instanceof MagmaCube))
+                || target.getType().getDescriptionId().contains("bogged")) {
             return Element.DENDRO;
         }
-        if (target instanceof IronGolem) {
+        if (target instanceof IronGolem || target.getType().getDescriptionId().contains("armadillo")) {
             return Element.GEO;
         }
         return null;
