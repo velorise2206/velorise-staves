@@ -1411,17 +1411,7 @@ public final class ElementalGaugeManager {
     }
 
     public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) {
-        Vec3 diff = end.subtract(start);
-        double dist = diff.length();
-        int steps = Math.max(6, (int) Math.round(dist * 3.5D));
-        for (int i = 0; i <= steps; i++) {
-            double t = (double) i / (double) steps;
-            double offsetX = (level.random.nextDouble() - 0.5D) * 0.25D;
-            double offsetY = (level.random.nextDouble() - 0.5D) * 0.25D;
-            double offsetZ = (level.random.nextDouble() - 0.5D) * 0.25D;
-            Vec3 p = start.add(diff.scale(t)).add(offsetX, offsetY, offsetZ);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
-        }
+        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.32D, true);
     }
 
     /**

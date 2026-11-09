@@ -514,27 +514,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private static void drawJaggedArc(ServerLevel level, Vec3 start, Vec3 end, double jitter) {
-        Vec3 diff = end.subtract(start);
-        double dist = diff.length();
-        if (dist <= 0.1D) return;
-        int steps = Math.max(3, (int) Math.round(dist * 1.8D));
-        for (int s = 1; s <= steps; s++) {
-            double t = (double) s / (double) steps;
-            Vec3 linear = start.add(diff.scale(t));
-            Vec3 pt;
-            if (s == steps) {
-                pt = end;
-            } else {
-                double jx = (level.random.nextDouble() - 0.5D) * jitter;
-                double jy = (level.random.nextDouble() - 0.5D) * jitter;
-                double jz = (level.random.nextDouble() - 0.5D) * jitter;
-                pt = linear.add(jx, jy, jz);
-            }
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0.005D);
-            if (s % 3 == 0) {
-                level.sendParticles(ParticleTypes.GLOW, pt.x, pt.y, pt.z, 1, 0, 0, 0, 0.002D);
-            }
-        }
+        com.velorise.staves.element.ElectrifiedWaterManager.drawElectricArc(level, start, end, jitter, true);
     }
 
     private static Vec3 rayEnd(ServerPlayer player, double range) {
