@@ -32,6 +32,8 @@ public final class ClientAuraTracker {
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
+    public static @Nullable Element activeCrystallizeShield = null;
+    public static long crystallizeShieldUntil = 0L;
 
     private ClientAuraTracker() {}
 
@@ -90,6 +92,19 @@ public final class ClientAuraTracker {
                 entry.dualStartTime = now;
                 entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
             }
+
+            if (reaction == ElementalReaction.CRYSTALLIZE) {
+                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+                if (mc.player != null && mc.player.getId() == entityId) {
+                    if (reactedAura != null || trigger != null) {
+                        activeCrystallizeShield = reactedAura != null ? reactedAura : trigger;
+                        crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
+                    } else {
+                        activeCrystallizeShield = null;
+                        crystallizeShieldUntil = 0L;
+                    }
+                }
+            }
         } else {
             entry.reaction = null;
             entry.reactedAuraElement = null;
@@ -119,5 +134,21 @@ public final class ClientAuraTracker {
 
     public static void clear() {
         DATA.clear();
+        activeCrystallizeShield = null;
+        crystallizeShieldUntil = 0L;
+    }
+
+    public static @Nullable Element getActiveCrystallizeShield() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.player == null) return null;
+        if (activeCrystallizeShield != null) {
+            long now = System.currentTimeMillis();
+            if (now >= crystallizeShieldUntil || mc.player.getAbsorptionAmount() <= 0.0F || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+                activeCrystallizeShield = null;
+                return null;
+            }
+            return activeCrystallizeShield;
+        }
+        return null;
     }
 }

@@ -2,8 +2,11 @@ package com.velorise.staves.element;
 
 import com.mojang.math.Transformation;
 import com.velorise.staves.VeloriseStavesMod;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.DoubleTag;
 import net.minecraft.nbt.FloatTag;
@@ -209,12 +212,32 @@ public final class DendroCoreManager {
         item.setPickUpDelay(32767);
         item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
         item.addTag(TAG_DENDRO_CORE);
+        item.setGlowingTag(true);
+        try {
+            Scoreboard sb = level.getScoreboard();
+            PlayerTeam team = sb.getPlayerTeam("vs_dendro");
+            if (team == null) {
+                team = sb.addPlayerTeam("vs_dendro");
+                team.setColor(ChatFormatting.GREEN);
+            }
+            sb.addPlayerToTeam(item.getScoreboardName(), team);
+        } catch (Throwable ignored) {}
         level.addFreshEntity(item);
 
         level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.5D, pos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.2F);
 
         CORES.add(new CoreEntry(item, level, level.getGameTime(), owner != null ? owner.getUUID() : null, damageMultiplier));
+    }
+
+    private static void cleanUpCoreTeam(CoreEntry core) {
+        try {
+            Scoreboard sb = core.level.getScoreboard();
+            PlayerTeam team = sb.getPlayerTeam("vs_dendro");
+            if (team != null) {
+                sb.removePlayerFromTeam(core.entity.getScoreboardName(), team);
+            }
+        } catch (Throwable ignored) {}
     }
 
     public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable ServerPlayer attacker) {
@@ -251,6 +274,7 @@ public final class DendroCoreManager {
     }
 
     private static void detonateBloom(CoreEntry core) {
+        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
         core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.3D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
@@ -268,6 +292,7 @@ public final class DendroCoreManager {
     }
 
     private static void triggerHyperbloom(CoreEntry core, @Nullable ServerPlayer attacker) {
+        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
 
@@ -328,6 +353,7 @@ public final class DendroCoreManager {
     }
 
     private static void triggerBurgeon(CoreEntry core, @Nullable ServerPlayer attacker) {
+        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
         core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 3, 0.3D, 0.3D, 0.3D, 0.0D);
@@ -428,15 +454,17 @@ public final class DendroCoreManager {
             CoreEntry core = it.next();
             if (core.level != level) continue;
             if (!core.entity.isAlive() || core.entity.isRemoved()) {
+                cleanUpCoreTeam(core);
                 CORES.remove(core);
                 continue;
             }
 
-            // Ambient pulsating green particles around the Dendro Core
-            if (now % 8 == 0) {
+            // Ambient pulsating green particles and soft glowing aura around the Dendro Core
+            if (now % 6 == 0) {
                 Vec3 p = core.entity.position();
                 level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y + 0.25D, p.z, 3, 0.2D, 0.2D, 0.2D, 0.02D);
                 level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 2, 0.15D, 0.15D, 0.15D, 0.01D);
+                level.sendParticles(new DustParticleOptions(new Vector3f(0.38F, 0.95F, 0.2F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
             }
 
             // Explode after 6 seconds (120 ticks)
@@ -489,6 +517,7 @@ public final class DendroCoreManager {
 
     public static void clearAll() {
         for (CoreEntry core : CORES) {
+            cleanUpCoreTeam(core);
             core.entity.discard();
         }
         CORES.clear();

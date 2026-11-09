@@ -1379,9 +1379,9 @@ public final class ElementalGaugeManager {
             }
             case CRYSTALLIZE -> {
                 level.sendParticles(ParticleTypes.CRIT, pos.x, pos.y + 0.8D, pos.z, 15, 0.35D, 0.4D, 0.35D, 0.05D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.8F, 1.2F);
+                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
                 if (attacker != null) {
-                    CrystallizeShardManager.spawn(level, target.position(), auraElement);
+                    CrystallizeShardManager.spawn(level, target.position(), auraElement, target.getUUID());
                 }
             }
             default -> {}

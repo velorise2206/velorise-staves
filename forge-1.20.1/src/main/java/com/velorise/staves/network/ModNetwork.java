@@ -81,4 +81,17 @@ public final class ModNetwork {
         AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null, 0.0F, durationTicks);
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
+
+    public static void sendCrystallizeShieldToPlayer(ServerPlayer player, @Nullable Element element, int durationTicks) {
+        AuraSyncPacket packet = new AuraSyncPacket(
+                player.getId(),
+                java.util.Collections.emptyList(),
+                element,
+                null,
+                ElementalReaction.CRYSTALLIZE,
+                0.0F,
+                durationTicks
+        );
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
 }

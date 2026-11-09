@@ -73,4 +73,18 @@ public final class ModNetwork {
         AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks);
         ServerPlayNetworking.send(player, payload);
     }
+
+    public static void sendCrystallizeShieldToPlayer(ServerPlayer player, @Nullable Element element, int durationTicks) {
+        byte elemOrd = element != null ? (byte) (element.ordinal() + 1) : 0;
+        AuraSyncPayload payload = new AuraSyncPayload(
+                player.getId(),
+                (byte) 0,
+                elemOrd,
+                (byte) 0,
+                (byte) (ElementalReaction.CRYSTALLIZE.ordinal() + 1),
+                0.0F,
+                durationTicks
+        );
+        ServerPlayNetworking.send(player, payload);
+    }
 }

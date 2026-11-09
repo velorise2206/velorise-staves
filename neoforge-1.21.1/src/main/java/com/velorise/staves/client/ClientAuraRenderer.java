@@ -369,6 +369,8 @@ public final class ClientAuraRenderer {
             return;
         }
 
+        renderCrystallizeShieldHud(guiGraphics, mc);
+
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
 
@@ -466,6 +468,8 @@ public final class ClientAuraRenderer {
     ) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
+
+        renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -573,5 +577,116 @@ public final class ClientAuraRenderer {
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    public static int getElementBorderColor(Element element) {
+        return switch (element) {
+            case PYRO -> 0xFFFF4500;   // Flame Red-Orange
+            case HYDRO -> 0xFF00C8FF;  // Aqua Cyan
+            case ELECTRO -> 0xFFBF40FF;// Electric Violet
+            case CRYO -> 0xFF4DF0FF;   // Frost Crystal Cyan
+            case DENDRO -> 0xFF32CD32; // Emerald Green
+            case ANEMO -> 0xFF40E0D0;  // Turquoise
+            case GEO -> 0xFFFFD700;    // Amber Gold
+        };
+    }
+
+    public static void renderColoredBorder(GuiGraphics guiGraphics, int x, int y, int width, int height, int color) {
+        int alpha = (color >> 24) & 0xFF;
+        int glow = ((Math.max(40, alpha / 3)) << 24) | (color & 0x00FFFFFF);
+        // Outer soft glow outline (1px expand)
+        guiGraphics.fill(x - 1, y - 1, x + width + 1, y, glow);
+        guiGraphics.fill(x - 1, y + height, x + width + 1, y + height + 1, glow);
+        guiGraphics.fill(x - 1, y, x, y + height, glow);
+        guiGraphics.fill(x + width, y, x + width + 1, y + height, glow);
+        // Inner crisp colored border
+        guiGraphics.fill(x, y, x + width, y + 1, color);
+        guiGraphics.fill(x, y + height - 1, x + width, y + height, color);
+        guiGraphics.fill(x, y + 1, x + 1, y + height - 1, color);
+        guiGraphics.fill(x + width - 1, y + 1, x + width, y + height - 1, color);
+        // Subtle colored wash inside box (10% opacity)
+        guiGraphics.fill(x + 1, y + 1, x + width - 1, y + height - 1, (0x1A << 24) | (color & 0x00FFFFFF));
+    }
+
+    private static boolean isBeneficial(MobEffectInstance inst) {
+        return inst.getEffect().value().isBeneficial();
+    }
+
+    private static boolean isAbsorption(MobEffectInstance inst) {
+        return inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION);
+    }
+
+    private static void renderCrystallizeShieldHud(GuiGraphics guiGraphics, Minecraft mc) {
+        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (shield == null || mc.player == null || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+            return;
+        }
+
+        int beneficialIndex = 0;
+        boolean found = false;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon() && isBeneficial(inst)) {
+                if (isAbsorption(inst)) {
+                    found = true;
+                    break;
+                }
+                beneficialIndex++;
+            }
+        }
+
+        if (found) {
+            int screenWidth = guiGraphics.guiWidth();
+            int top = mc.isDemo() ? 16 : 1;
+            int col = beneficialIndex % 10;
+            int row = beneficialIndex / 10;
+            int x = screenWidth - 25 * (col + 1);
+            int y = top + 26 * row;
+            renderColoredBorder(guiGraphics, x, y, 24, 24, getElementBorderColor(shield));
+        }
+    }
+
+    private static void renderCrystallizeShieldInventory(
+            GuiGraphics guiGraphics,
+            Minecraft mc,
+            int leftPos,
+            int topPos,
+            int imageWidth,
+            EffectRenderingInventoryScreen<?> screen
+    ) {
+        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (shield == null || mc.player == null || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+            return;
+        }
+
+        int startX = leftPos + imageWidth + 2;
+        int availableWidth = screen.width - startX;
+        if (availableWidth < 32) return;
+
+        boolean isWide = availableWidth >= 120;
+        int vanillaCount = mc.player.getActiveEffects().size();
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        int auraCount = (data != null) ? data.elements.size() : 0;
+        int totalEffects = vanillaCount + auraCount;
+        int yStep = 33;
+        if (totalEffects > 5) {
+            yStep = 132 / (totalEffects - 1);
+        }
+
+        int effectIndex = 0;
+        boolean found = false;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon()) {
+                if (isAbsorption(inst)) {
+                    found = true;
+                    break;
+                }
+                effectIndex++;
+            }
+        }
+
+        if (found) {
+            int y = topPos + effectIndex * yStep;
+            renderColoredBorder(guiGraphics, startX, y, isWide ? 120 : 32, 32, getElementBorderColor(shield));
+        }
     }
 }
