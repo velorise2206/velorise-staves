@@ -1,0 +1,67 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/pyro.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE001"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/hydro.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE002"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/cryo.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE003"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/electro.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE004"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/anemo.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE005"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/geo.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE006"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:textures/element/dendro.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE007"
+      ]
+    }
+  ]
+}

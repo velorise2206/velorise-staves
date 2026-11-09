@@ -637,37 +637,52 @@ public final class ArcaneStaffItem extends Item {
         return validBase || super.isValidRepairItem(toRepair, repair);
     }
 
+    public Element getElement() {
+        return switch (kind) {
+            case DRAGONFIRE, SHULKER, LIGHTNING -> Element.ELECTRO;
+            case ECHO, WIND -> Element.ANEMO;
+            case INFERNO, GHASTFIRE -> Element.PYRO;
+            case GUARDIAN -> Element.HYDRO;
+            case EVOKER -> Element.GEO;
+            case FROST -> Element.CRYO;
+            case WEB -> Element.DENDRO;
+            case WITHER -> null;
+        };
+    }
+
     public String getRangeDisplay() {
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "32m (AOE 4.5m)" : "32m (AOE 3.5m)";
+            case DRAGONFIRE -> isNetherite ? "32m (4.5m AoE)" : "32m (3.5m AoE)";
             case ECHO -> isNetherite ? "32m" : "28m";
             case INFERNO -> "30m";
-            case GHASTFIRE -> isNetherite ? "36m (AOE 4.5m)" : "36m (AOE 3.5m)";
-            case WITHER -> isNetherite ? "32m (AOE 4.0m)" : "32m (AOE 3.0m)";
+            case GHASTFIRE -> isNetherite ? "36m (4.5m AoE)" : "36m (3.5m AoE)";
+            case WITHER -> isNetherite ? "32m (4.0m AoE)" : "32m (3.0m AoE)";
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
-            case EVOKER -> isNetherite ? "19.5m (x13)" : "13.5m (x9)";
-            case LIGHTNING -> isNetherite ? "36m Arc Stream (Chain 4.0m)" : "30m Arc Stream (Chain 3.0m)";
-            case FROST -> isNetherite ? "28m (AOE 2.0m)" : "28m";
+            case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
+            case LIGHTNING -> isNetherite ? "36m Arc (4.0m Chain)" : "30m Arc (3.0m Chain)";
+            case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
             case WEB -> "28m";
-            case WIND -> isNetherite ? "28m (AOE 4.5m)" : "28m (AOE 3.5m)";
+            case WIND -> isNetherite ? "28m (4.5m AoE)" : "28m (3.5m AoE)";
         };
     }
 
     public String getDamageDisplay() {
+        Element e = getElement();
+        String icon = e != null ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " " : "";
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud (Electro 2U)" : "7.0 + Cloud (Electro 2U)";
-            case ECHO -> isNetherite ? "16.0 (Anemo 4U - Swirl)" : "11.0 (Anemo 2U - Swirl)";
-            case INFERNO -> isNetherite ? "4.5 x 3 (Pyro 1.5U/shot)" : "3.0 x 3 (Pyro 1U/shot)";
-            case GHASTFIRE -> isNetherite ? "9.0 (Pyro 4U)" : "6.0 (Pyro 2U)";
-            case WITHER -> isNetherite ? "6.0 x 3 (Pure Wither)" : "4.0 x 3 (Pure Wither)";
-            case SHULKER -> isNetherite ? "6.0 x 2 (Electro 1.5U/shot)" : "4.0 x 2 (Electro 1U/shot)";
-            case GUARDIAN -> isNetherite ? "1.8 x 10 (Hydro 1.5U)" : "1.2 x 10 (Hydro 1U)";
-            case EVOKER -> isNetherite ? "4.5 / Fang (Geo 1.5U)" : "3.0 / Fang (Geo 1U)";
-            case LIGHTNING -> isNetherite ? "2.5/hit (Electro 1.5U - Voltaic Arc)" : "1.8/hit (Electro 1.0U - Voltaic Arc)";
-            case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
-            case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
-            case WIND -> isNetherite ? "2.5 (Anemo 1.5U - Wind Burst)" : "1.5 (Anemo 1.0U - Wind Burst)";
+            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud " + icon + "2U" : "7.0 + Cloud " + icon + "2U";
+            case ECHO -> isNetherite ? "16.0 " + icon + "4U (Swirl)" : "11.0 " + icon + "2U (Swirl)";
+            case INFERNO -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";
+            case GHASTFIRE -> isNetherite ? "9.0 " + icon + "4U" : "6.0 " + icon + "2U";
+            case WITHER -> isNetherite ? "6.0 x 3 (Wither III)" : "4.0 x 3 (Wither II)";
+            case SHULKER -> isNetherite ? "6.0 x 2 " + icon + "1.5U" : "4.0 x 2 " + icon + "1U";
+            case GUARDIAN -> isNetherite ? "1.8 x 10 " + icon + "1.5U" : "1.2 x 10 " + icon + "1U";
+            case EVOKER -> isNetherite ? "4.5 / Fang " + icon + "1.5U" : "3.0 / Fang " + icon + "1U";
+            case LIGHTNING -> isNetherite ? "2.5 / hit " + icon + "1.5U" : "1.8 / hit " + icon + "1U";
+            case FROST -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";
+            case WEB -> isNetherite ? "Trap + Poison " + icon + "1.5U" : "Trap + Poison " + icon + "1U";
+            case WIND -> isNetherite ? "2.5 " + icon + "1.5U (Swirl)" : "1.5 " + icon + "1U (Swirl)";
         };
     }
 
@@ -678,9 +693,24 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.damage", getDamageDisplay()));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)));
+        Element elem = getElement();
+        if (elem != null) {
+            String subtitle = elem.iconString() + " " + (isNetherite ? elem.displayName() + " Staff (Netherite)" : elem.displayName() + " Staff");
+            tooltip.add(Component.literal(subtitle).withStyle(elem.color()));
+        } else if (kind == Kind.WITHER) {
+            String subtitle = "☠ " + (isNetherite ? "Wither Staff (Netherite)" : "Wither Staff");
+            tooltip.add(Component.literal(subtitle).withStyle(ChatFormatting.DARK_GRAY));
+        }
+
+        tooltip.add(Component.empty());
+        tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.damage", getDamageDisplay()).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+
+        if (flag.isAdvanced()) {
+            tooltip.add(Component.empty());
+            tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.DARK_GRAY));
+        }
     }
 }

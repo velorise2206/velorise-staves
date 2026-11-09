@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Manages Genshin Impact Dendro Cores (Hạt Nhân Thảo) in Forge 1.20.1.
+ * Manages Genshin Impact Dendro Cores in Forge 1.20.1.
  * Handles Bloom seed physical dropping, water buoyancy, 6s timeout explosion,
  * Hyperbloom (Electro homing missile), and Burgeon (Pyro 5m AoE blast).
  */
@@ -227,7 +227,7 @@ public final class DendroCoreManager {
         double dist = diff.length();
         double horizDist = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
 
-        // Perpendicular horizontal vector for lateral arc sway (uốn lượn hình cánh cung)
+        // Perpendicular horizontal vector for lateral arc sway (curved arc trajectory)
         Vec3 horizDir = horizDist > 0.01D ? new Vec3(diff.x / horizDist, 0, diff.z / horizDist) : new Vec3(1, 0, 0);
         Vec3 sideVec = new Vec3(-horizDir.z, 0, horizDir.x);
         double sideOffset = (core.level.random.nextBoolean() ? 1.0D : -1.0D) * (0.9D + core.level.random.nextDouble() * 0.9D);

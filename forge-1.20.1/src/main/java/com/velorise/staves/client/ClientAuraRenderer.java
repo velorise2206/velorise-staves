@@ -175,7 +175,7 @@ public final class ClientAuraRenderer {
                 }
             }
 
-            // Genshin-style expiration flickering (chớp chớp khi gần hết <= 3.0s):
+            // Genshin-style expiration flickering (pulsing when remaining time <= 3.0s):
             if (data != null && data.expireTime > 0 && innateElement == null) {
                 long remainingMs = data.expireTime - now;
                 if (remainingMs <= 3000L && remainingMs > 0) {

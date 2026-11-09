@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Manages Genshin Impact Electrified Water (Vùng nước nhiễm Lôi).
+ * Manages Genshin Impact Electrified Water in Minecraft.
  * When an Electro attack hits a body of water, or a mob carrying Electro enters water,
  * the water becomes electrified for 3.5 seconds (70 ticks), continuously crackling with electric sparks,
  * dealing periodic Electro damage, applying Electro aura, and triggering Electro-Charged reactions.

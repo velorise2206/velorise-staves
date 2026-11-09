@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Manages Genshin Impact Crystallize Elemental Shards (Mảnh Kết Tinh) in Minecraft.
+ * Manages Genshin Impact Crystallize Elemental Shards in Minecraft.
  * When Geo hits Pyro/Hydro/Electro/Cryo, drops a 3D spinning elemental crystal shard.
  * Only players can pick it up; grants 1 golden heart Absorption (15s) with 250% matching elemental absorption efficiency.
  * If the Absorption shield hearts are depleted (getAbsorptionAmount() <= 0), the elemental shield breaks immediately.
