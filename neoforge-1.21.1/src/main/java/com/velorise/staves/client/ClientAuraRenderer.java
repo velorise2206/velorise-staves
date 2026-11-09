@@ -43,10 +43,23 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static boolean renderingScreen = false;
+
     private ClientAuraRenderer() {}
 
     @SubscribeEvent
+    public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
+        renderingScreen = true;
+    }
+
+    @SubscribeEvent
+    public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
+        renderingScreen = false;
+    }
+
+    @SubscribeEvent
     public static void onRenderLiving(RenderLivingEvent.Post<?, ?> event) {
+        if (renderingScreen) return;
         LivingEntity entity = event.getEntity();
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource buffer = event.getMultiBufferSource();
@@ -59,6 +72,7 @@ public final class ClientAuraRenderer {
     }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (renderingScreen) return;
         try {
             if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
         } catch (Exception ignored) {}

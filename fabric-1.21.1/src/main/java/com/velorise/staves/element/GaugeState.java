@@ -38,6 +38,15 @@ public final class GaugeState {
         this.units += amount;
     }
 
+    public void resetAge() {
+        this.ageTicks = 0;
+    }
+
+    public void refresh(float appliedUnits) {
+        this.units = Math.max(this.units, Math.max(0.01F, appliedUnits * 0.8F));
+        this.ageTicks = 0;
+    }
+
     public void tick() {
         this.units -= decayPerTick;
         this.ageTicks++;

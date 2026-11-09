@@ -35,6 +35,16 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static boolean renderingScreen = false;
+
+    public static boolean isRenderingScreen() {
+        return renderingScreen;
+    }
+
+    public static void setRenderingScreen(boolean rendering) {
+        renderingScreen = rendering;
+    }
+
     private ClientAuraRenderer() {}
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
@@ -42,6 +52,7 @@ public final class ClientAuraRenderer {
     }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (renderingScreen) return;
         try {
             if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
         } catch (Exception ignored) {}
