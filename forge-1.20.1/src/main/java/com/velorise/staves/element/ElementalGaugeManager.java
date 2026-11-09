@@ -1002,6 +1002,25 @@ public final class ElementalGaugeManager {
                 level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
                 // Note: underlying HYDRO or CRYO in targetGauges is preserved (enabling Shatter-Crystallize or Shatter-Vape)!
+                // Shatter-Crystallize: If target has underlying HYDRO or CRYO aura, Geo triggers Crystallize immediately!
+                Element underlying = null;
+                if (targetGauges.containsKey(Element.CRYO)) underlying = Element.CRYO;
+                else if (targetGauges.containsKey(Element.HYDRO)) underlying = Element.HYDRO;
+                else if (innateElement == Element.CRYO || innateElement == Element.HYDRO) underlying = innateElement;
+
+                if (underlying != null && checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
+                    GaugeState underAura = targetGauges.get(underlying);
+                    float underBefore = underAura != null ? underAura.getUnits() : 1.25F;
+                    float consumed = attackU * ElementalReaction.CRYSTALLIZE.getConsumptionModifier();
+                    float removedU = Math.min(underBefore, consumed);
+                    if (underAura != null) {
+                        underAura.consume(consumed);
+                        if (underAura.isExpired()) {
+                            targetGauges.remove(underlying);
+                        }
+                    }
+                    executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, underlying, removedU, attacker, dmgMult);
+                }
                 enforceInnateLock(targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, attackElement, ElementalReaction.SHATTER, shatterDamage);
                 return;
