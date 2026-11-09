@@ -138,6 +138,25 @@ public final class ArcaneStaffEvents {
     public static void onLivingHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
+        if (entity instanceof ServerPlayer sp) {
+            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
+            if (activeShield != null) {
+                DamageSource src = event.getSource();
+                boolean matches = false;
+                if (activeShield == Element.PYRO && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
+                    matches = true;
+                } else if (activeShield == Element.ELECTRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || src.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH))) {
+                    matches = true;
+                } else if (activeShield == Element.CRYO && src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)) {
+                    matches = true;
+                }
+                if (matches) {
+                    event.setAmount(event.getAmount() * 0.4F);
+                    sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                            SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
+                }
+            }
+        }
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
     }
 
@@ -500,7 +519,19 @@ public final class ArcaneStaffEvents {
         if (event.getTarget() instanceof LivingEntity living && event.getEntity() instanceof ServerPlayer player) {
             java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
             if (!elements.isEmpty()) {
-                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements);
+                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(living.getUUID());
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(player.getUUID());
+            if (!elements.isEmpty()) {
+                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(player.getUUID());
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, player, elements, duration);
             }
         }
     }

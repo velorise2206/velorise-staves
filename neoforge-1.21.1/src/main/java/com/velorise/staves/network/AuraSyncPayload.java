@@ -22,19 +22,51 @@ public record AuraSyncPayload(
         byte reactedAuraOrdinal,
         byte triggerElementOrdinal,
         byte reactionOrdinal,
-        float damage
+        float damage,
+        int durationTicks
 ) implements CustomPacketPayload {
     public static final Type<AuraSyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "aura_sync"));
 
-    public static final StreamCodec<ByteBuf, AuraSyncPayload> STREAM_CODEC = StreamCodec.composite(
-            ByteBufCodecs.VAR_INT, AuraSyncPayload::entityId,
-            ByteBufCodecs.BYTE, AuraSyncPayload::activeMask,
-            ByteBufCodecs.BYTE, AuraSyncPayload::reactedAuraOrdinal,
-            ByteBufCodecs.BYTE, AuraSyncPayload::triggerElementOrdinal,
-            ByteBufCodecs.BYTE, AuraSyncPayload::reactionOrdinal,
-            ByteBufCodecs.FLOAT, AuraSyncPayload::damage,
-            AuraSyncPayload::new
+    public static final StreamCodec<ByteBuf, AuraSyncPayload> STREAM_CODEC = StreamCodec.of(
+            (buf, payload) -> {
+                ByteBufCodecs.VAR_INT.encode(buf, payload.entityId());
+                ByteBufCodecs.BYTE.encode(buf, payload.activeMask());
+                ByteBufCodecs.BYTE.encode(buf, payload.reactedAuraOrdinal());
+                ByteBufCodecs.BYTE.encode(buf, payload.triggerElementOrdinal());
+                ByteBufCodecs.BYTE.encode(buf, payload.reactionOrdinal());
+                ByteBufCodecs.FLOAT.encode(buf, payload.damage());
+                ByteBufCodecs.VAR_INT.encode(buf, payload.durationTicks());
+            },
+            buf -> new AuraSyncPayload(
+                    ByteBufCodecs.VAR_INT.decode(buf),
+                    ByteBufCodecs.BYTE.decode(buf),
+                    ByteBufCodecs.BYTE.decode(buf),
+                    ByteBufCodecs.BYTE.decode(buf),
+                    ByteBufCodecs.BYTE.decode(buf),
+                    ByteBufCodecs.FLOAT.decode(buf),
+                    ByteBufCodecs.VAR_INT.decode(buf)
+            )
     );
+
+    public AuraSyncPayload(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
+        this(
+                entityId,
+                toMask(elements),
+                reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
+                trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
+                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
+                damage,
+                durationTicks
+        );
+    }
 
     public AuraSyncPayload(
             int entityId,
@@ -44,14 +76,7 @@ public record AuraSyncPayload(
             @Nullable ElementalReaction reaction,
             float damage
     ) {
-        this(
-                entityId,
-                toMask(elements),
-                reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
-                trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
-                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
-                damage
-        );
+        this(entityId, elements, reactedAura, trigger, reaction, damage, 0);
     }
 
     public AuraSyncPayload(
@@ -92,7 +117,7 @@ public record AuraSyncPayload(
             ElementalReaction reaction = (payload.reactionOrdinal > 0 && payload.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[payload.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage);
+            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage, payload.durationTicks);
         });
     }
 }

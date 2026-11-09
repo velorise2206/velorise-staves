@@ -19,6 +19,7 @@ public class AuraSyncPacket {
     private final byte triggerElementOrdinal;
     private final byte reactionOrdinal;
     private final float damage;
+    private final int durationTicks;
 
     public AuraSyncPacket(
             int entityId,
@@ -26,7 +27,8 @@ public class AuraSyncPacket {
             byte reactedAuraOrdinal,
             byte triggerElementOrdinal,
             byte reactionOrdinal,
-            float damage
+            float damage,
+            int durationTicks
     ) {
         this.entityId = entityId;
         this.activeMask = activeMask;
@@ -34,6 +36,7 @@ public class AuraSyncPacket {
         this.triggerElementOrdinal = triggerElementOrdinal;
         this.reactionOrdinal = reactionOrdinal;
         this.damage = damage;
+        this.durationTicks = durationTicks;
     }
 
     public AuraSyncPacket(
@@ -42,7 +45,8 @@ public class AuraSyncPacket {
             @Nullable Element reactedAura,
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction,
-            float damage
+            float damage,
+            int durationTicks
     ) {
         this.entityId = entityId;
         byte mask = 0;
@@ -54,6 +58,18 @@ public class AuraSyncPacket {
         this.triggerElementOrdinal = trigger != null ? (byte) (trigger.ordinal() + 1) : 0;
         this.reactionOrdinal = reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0;
         this.damage = damage;
+        this.durationTicks = durationTicks;
+    }
+
+    public AuraSyncPacket(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, damage, 0);
     }
 
     public AuraSyncPacket(
@@ -63,7 +79,7 @@ public class AuraSyncPacket {
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction
     ) {
-        this(entityId, elements, reactedAura, trigger, reaction, 0.0F);
+        this(entityId, elements, reactedAura, trigger, reaction, 0.0F, 0);
     }
 
     public AuraSyncPacket(FriendlyByteBuf buf) {
@@ -73,6 +89,7 @@ public class AuraSyncPacket {
         this.triggerElementOrdinal = buf.readByte();
         this.reactionOrdinal = buf.readByte();
         this.damage = buf.readFloat();
+        this.durationTicks = buf.readVarInt();
     }
 
     public void toBytes(FriendlyByteBuf buf) {
@@ -82,6 +99,7 @@ public class AuraSyncPacket {
         buf.writeByte(this.triggerElementOrdinal);
         buf.writeByte(this.reactionOrdinal);
         buf.writeFloat(this.damage);
+        buf.writeVarInt(this.durationTicks);
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -100,7 +118,7 @@ public class AuraSyncPacket {
             ElementalReaction reaction = (this.reactionOrdinal > 0 && this.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[this.reactionOrdinal - 1] : null;
 
-            ClientAuraTracker.update(this.entityId, elements, reactedAura, trigger, reaction, this.damage);
+            ClientAuraTracker.update(this.entityId, elements, reactedAura, trigger, reaction, this.damage, this.durationTicks);
         });
         ctx.setPacketHandled(true);
     }

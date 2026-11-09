@@ -39,8 +39,20 @@ public final class ModNetwork {
             @Nullable ElementalReaction reaction,
             float damage
     ) {
+        sendAuraSync(target, elements, reactedAura, trigger, reaction, damage, 0);
+    }
+
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
         Set<ServerPlayer> recipients = new HashSet<>(PlayerLookup.tracking(target));
         if (target.level() instanceof ServerLevel serverLevel) {
             recipients.addAll(PlayerLookup.around(serverLevel, target.position(), 64.0D));
@@ -54,7 +66,11 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null);
+        sendAuraSyncToPlayer(player, target, elements, 0);
+    }
+
+    public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements, int durationTicks) {
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks);
         ServerPlayNetworking.send(player, payload);
     }
 }

@@ -27,6 +27,8 @@ public final class ClientAuraTracker {
         public @Nullable Element damageElement = null;
         public long damageStartTime = 0;
         public long damageUntil = 0;
+        public int durationTicks = 0;
+        public long expireTime = 0; // ms timestamp when aura completely expires
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -40,7 +42,7 @@ public final class ClientAuraTracker {
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction
     ) {
-        update(entityId, elements, reactedAura, trigger, reaction, 0.0F);
+        update(entityId, elements, reactedAura, trigger, reaction, 0.0F, 0);
     }
 
     public static void update(
@@ -51,11 +53,31 @@ public final class ClientAuraTracker {
             @Nullable ElementalReaction reaction,
             float damage
     ) {
+        update(entityId, elements, reactedAura, trigger, reaction, damage, 0);
+    }
+
+    public static void update(
+            int entityId,
+            List<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
         long now = System.currentTimeMillis();
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
         entry.elements.clear();
         entry.elements.addAll(elements);
         entry.appliedTime = now;
+        entry.durationTicks = durationTicks;
+        if (durationTicks > 0) {
+            entry.expireTime = now + (long) durationTicks * 50L;
+        } else if (durationTicks < 0) {
+            entry.expireTime = -1L; // Permanent innate aura
+        } else {
+            entry.expireTime = 0L;
+        }
 
         if (reaction != null && reaction != ElementalReaction.NONE) {
             entry.reaction = reaction;

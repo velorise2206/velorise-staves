@@ -53,8 +53,20 @@ public final class ModNetwork {
             @Nullable ElementalReaction reaction,
             float damage
     ) {
+        sendAuraSync(target, elements, reactedAura, trigger, reaction, damage, 0);
+    }
+
+    public static void sendAuraSync(
+            Entity target,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
         CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
                 target.getX(), target.getY(), target.getZ(), 64.0D, target.level().dimension()
@@ -62,7 +74,11 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null);
+        sendAuraSyncToPlayer(player, target, elements, 0);
+    }
+
+    public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements, int durationTicks) {
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null, 0.0F, durationTicks);
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 }

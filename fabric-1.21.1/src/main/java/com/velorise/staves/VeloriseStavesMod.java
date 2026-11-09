@@ -268,8 +268,17 @@ public final class VeloriseStavesMod implements ModInitializer {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {
                 java.util.Collection<com.velorise.staves.element.Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
                 if (!elements.isEmpty()) {
-                    com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements);
+                    int duration = ElementalGaugeManager.getEntityMaxDurationTicks(living.getUUID());
+                    com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
                 }
+            }
+        });
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            net.minecraft.server.level.ServerPlayer player = handler.getPlayer();
+            java.util.Collection<com.velorise.staves.element.Element> elements = ElementalGaugeManager.getEntityElements(player.getUUID());
+            if (!elements.isEmpty()) {
+                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(player.getUUID());
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, player, elements, duration);
             }
         });
     }

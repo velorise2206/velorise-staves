@@ -46,4 +46,8 @@ public final class GaugeState {
     public boolean isExpired() {
         return units <= 0.001F || ageTicks >= maxDurationTicks;
     }
+
+    public int getRemainingTicks() {
+        return Math.max(0, maxDurationTicks - ageTicks);
+    }
 }

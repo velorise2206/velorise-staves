@@ -9,6 +9,8 @@ import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalReaction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -17,7 +19,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderLivingEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
 import org.joml.Matrix4f;
 
 import java.util.*;
@@ -25,11 +29,13 @@ import java.util.*;
 @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
 
     static {
         for (Element e : Element.values()) {
             TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + "_32.png"));
+            HUD_TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
         }
     }
 
@@ -41,6 +47,18 @@ public final class ClientAuraRenderer {
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource buffer = event.getMultiBufferSource();
         render(entity, poseStack, buffer);
+    }
+
+    @SubscribeEvent
+    public static void onRenderGui(RenderGuiEvent.Post event) {
+        renderPlayerAuraHud(event.getGuiGraphics());
+    }
+
+    @SubscribeEvent
+    public static void onScreenRender(ScreenEvent.Render.Post event) {
+        if (event.getScreen() instanceof InventoryScreen) {
+            renderPlayerAuraHud(event.getGuiGraphics());
+        }
     }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
@@ -64,6 +82,9 @@ public final class ClientAuraRenderer {
 
         long now = System.currentTimeMillis();
         if (data != null) {
+            if (data.expireTime > 0 && now >= data.expireTime && innateElement == null) {
+                data.elements.clear();
+            }
             if (data.reactionUntil <= now) {
                 data.reaction = null;
             }
@@ -134,6 +155,17 @@ public final class ClientAuraRenderer {
                 if (data.elements.isEmpty() && innateElement == null && dualProgress > 0.55F) {
                     float fade = (1.0F - dualProgress) / 0.45F;
                     iconAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
+                }
+            }
+
+            // Genshin-style expiration flickering (chớp chớp khi gần hết <= 3.0s):
+            if (data != null && data.expireTime > 0 && innateElement == null) {
+                long remainingMs = data.expireTime - now;
+                if (remainingMs <= 3000L && remainingMs > 0) {
+                    float pulse = (float) Math.sin((remainingMs / 140.0D) * Math.PI);
+                    if (pulse < 0.0F) {
+                        iconAlpha = Math.max(35, Math.round(iconAlpha * 0.25F));
+                    }
                 }
             }
 
@@ -305,5 +337,78 @@ public final class ClientAuraRenderer {
             case GEO -> 0xFFD60A;
             case DENDRO -> 0x32D74B;
         };
+    }
+
+    public static void renderPlayerAuraHud(GuiGraphics guiGraphics) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.options.hideGui) return;
+
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        if (data == null || data.elements.isEmpty()) return;
+
+        long now = System.currentTimeMillis();
+        if (data.expireTime > 0 && now >= data.expireTime) {
+            data.elements.clear();
+            ClientAuraTracker.remove(mc.player.getId());
+            return;
+        }
+
+        int screenWidth = guiGraphics.guiWidth();
+        int activeVanillaEffects = mc.player.getActiveEffects().size();
+
+        int startY = 8;
+        if (activeVanillaEffects > 0) {
+            startY += Math.min(activeVanillaEffects, 3) * 26 + 4;
+        }
+
+        int boxWidth = 26;
+        int boxHeight = 28;
+        int rightMargin = 6;
+        int index = 0;
+
+        for (Element elem : data.elements) {
+            int x = screenWidth - rightMargin - boxWidth - (index * (boxWidth + 4));
+            int y = startY;
+
+            long remMs = data.expireTime > 0 ? Math.max(0, data.expireTime - now) : 0;
+            boolean isExpiringSoon = data.expireTime > 0 && remMs <= 3000L;
+            boolean blinkDim = isExpiringSoon && Math.sin((remMs / 140.0D) * Math.PI) < 0;
+
+            int bgAlpha = blinkDim ? 0x40 : 0x95;
+            int borderColor = switch (elem) {
+                case PYRO -> 0xFFFF5722;
+                case HYDRO -> 0xFF29B6F6;
+                case CRYO -> 0xFF80DEEA;
+                case ELECTRO -> 0xFFBA68C8;
+                case ANEMO -> 0xFF80CBC4;
+                case GEO -> 0xFFFFCA28;
+                case DENDRO -> 0xFF81C784;
+            };
+
+            // Background & 1px Outline
+            guiGraphics.fill(x, y, x + boxWidth, y + boxHeight, (bgAlpha << 24));
+            int outline = blinkDim ? 0x55FFFFFF : borderColor;
+            guiGraphics.fill(x, y, x + boxWidth, y + 1, outline);
+            guiGraphics.fill(x, y + boxHeight - 1, x + boxWidth, y + boxHeight, outline);
+            guiGraphics.fill(x + 1, y + 1, x + 1, y + boxHeight - 1, outline);
+            guiGraphics.fill(x + boxWidth - 1, y + 1, x + boxWidth, y + boxHeight - 1, outline);
+
+            // 16x16 Element icon
+            ResourceLocation tex = HUD_TEXTURES.get(elem);
+            if (tex != null) {
+                guiGraphics.blit(tex, x + 5, y + 2, 0.0F, 0.0F, 16, 16, 16, 16);
+            }
+
+            // Duration text (e.g. 0:09, 0:08)
+            if (data.expireTime > 0) {
+                int secs = (int) Math.ceil(remMs / 1000.0D);
+                String timer = String.format("0:%02d", secs);
+                int textColor = isExpiringSoon ? 0xFFFF5555 : 0xFFE0E0E0;
+                int textWidth = mc.font.width(timer);
+                guiGraphics.drawString(mc.font, timer, x + (boxWidth - textWidth) / 2 + 1, y + 19, textColor, true);
+            }
+
+            index++;
+        }
     }
 }

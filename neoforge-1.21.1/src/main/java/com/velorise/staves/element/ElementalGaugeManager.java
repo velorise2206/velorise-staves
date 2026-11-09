@@ -96,6 +96,17 @@ public final class ElementalGaugeManager {
         syncAuras(target, elements, reactedAura, trigger, reaction, 0.0F);
     }
 
+    public static int getEntityMaxDurationTicks(UUID entityId) {
+        Map<Element, GaugeState> gauges = GAUGES.get(entityId);
+        if (gauges == null || gauges.isEmpty()) return 0;
+        int max = 0;
+        for (GaugeState gs : gauges.values()) {
+            int rem = gs.getRemainingTicks();
+            if (rem > max) max = rem;
+        }
+        return max;
+    }
+
     public static void syncAuras(
             LivingEntity target,
             Collection<Element> elements,
@@ -104,7 +115,12 @@ public final class ElementalGaugeManager {
             @Nullable ElementalReaction reaction,
             float damage
     ) {
-        com.velorise.staves.network.ModNetwork.sendAuraSync(target, elements, reactedAura, trigger, reaction, damage);
+        int durationTicks = getEntityMaxDurationTicks(target.getUUID());
+        Element innate = getInnateElement(target);
+        if (durationTicks <= 0 && innate != null && elements.contains(innate)) {
+            durationTicks = -1; // -1 represents permanent innate aura
+        }
+        com.velorise.staves.network.ModNetwork.sendAuraSync(target, elements, reactedAura, trigger, reaction, damage, durationTicks);
     }
 
     public static Collection<Element> getEntityElements(UUID entityId) {
@@ -1062,12 +1078,18 @@ public final class ElementalGaugeManager {
             UUID id = cdEntry.getKey();
             LivingEntity target = null;
             ServerLevel targetLevel = null;
-            for (ServerLevel lvl : server.getAllLevels()) {
-                Entity e = lvl.getEntity(id);
-                if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
-                    target = living;
-                    targetLevel = lvl;
-                    break;
+            ServerPlayer onlinePlayer = server.getPlayerList().getPlayer(id);
+            if (onlinePlayer != null && onlinePlayer.isAlive() && !onlinePlayer.isRemoved()) {
+                target = onlinePlayer;
+                targetLevel = onlinePlayer.serverLevel();
+            } else {
+                for (ServerLevel lvl : server.getAllLevels()) {
+                    Entity e = lvl.getEntity(id);
+                    if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
+                        target = living;
+                        targetLevel = lvl;
+                        break;
+                    }
                 }
             }
             if (target == null || targetLevel == null) {
@@ -1093,12 +1115,18 @@ public final class ElementalGaugeManager {
             LivingEntity target = null;
             ServerLevel targetLevel = null;
 
-            for (ServerLevel lvl : server.getAllLevels()) {
-                Entity e = lvl.getEntity(id);
-                if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
-                    target = living;
-                    targetLevel = lvl;
-                    break;
+            ServerPlayer onlinePlayer = server.getPlayerList().getPlayer(id);
+            if (onlinePlayer != null && onlinePlayer.isAlive() && !onlinePlayer.isRemoved()) {
+                target = onlinePlayer;
+                targetLevel = onlinePlayer.serverLevel();
+            } else {
+                for (ServerLevel lvl : server.getAllLevels()) {
+                    Entity e = lvl.getEntity(id);
+                    if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
+                        target = living;
+                        targetLevel = lvl;
+                        break;
+                    }
                 }
             }
 

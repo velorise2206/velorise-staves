@@ -133,6 +133,29 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onLivingDamagePre(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
+        if (event.getEntity() instanceof ServerPlayer sp && !sp.level().isClientSide()) {
+            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
+            if (activeShield != null) {
+                DamageSource src = event.getSource();
+                boolean matches = false;
+                if (activeShield == Element.PYRO && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
+                    matches = true;
+                } else if (activeShield == Element.ELECTRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || src.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH))) {
+                    matches = true;
+                } else if (activeShield == Element.CRYO && src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)) {
+                    matches = true;
+                }
+                if (matches) {
+                    event.setNewDamage(event.getNewDamage() * 0.4F);
+                    sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                            SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingDamage(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Post event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
@@ -494,7 +517,19 @@ public final class ArcaneStaffEvents {
         if (event.getTarget() instanceof LivingEntity living && event.getEntity() instanceof ServerPlayer player) {
             java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
             if (!elements.isEmpty()) {
-                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements);
+                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(living.getUUID());
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(player.getUUID());
+            if (!elements.isEmpty()) {
+                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(player.getUUID());
+                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, player, elements, duration);
             }
         }
     }
