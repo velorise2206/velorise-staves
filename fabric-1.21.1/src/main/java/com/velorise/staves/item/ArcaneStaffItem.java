@@ -71,7 +71,7 @@ public final class ArcaneStaffItem extends Item {
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB
+        WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB, WIND
     }
 
     private final Kind kind;
@@ -138,6 +138,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> castFangs(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
+            case WIND -> shootSnowball(serverPlayer, "wind", 1.6F);
             case ECHO, GUARDIAN, LIGHTNING -> false;
         };
 
@@ -388,9 +389,11 @@ public final class ArcaneStaffItem extends Item {
         String tag = isNetherite ? "netherite_" + kind : kind;
         prepareProjectile(projectile, player, tag, 28.0D, velocity);
         level.addFreshEntity(projectile);
-        level.playSound(null, player.blockPosition(),
-            "web".equals(kind) ? SoundEvents.SPIDER_AMBIENT : SoundEvents.SNOW_GOLEM_SHOOT,
-            SoundSource.PLAYERS, 0.7F, "web".equals(kind) ? 1.45F : 1.1F);
+        SoundEvent sound = "web".equals(kind) ? SoundEvents.SPIDER_AMBIENT
+            : "wind".equals(kind) ? SoundEvents.PLAYER_ATTACK_SWEEP
+            : SoundEvents.SNOW_GOLEM_SHOOT;
+        float pitch = "web".equals(kind) ? 1.45F : "wind".equals(kind) ? 1.4F : 1.1F;
+        level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 0.7F, pitch);
         return true;
     }
 
@@ -627,7 +630,7 @@ public final class ArcaneStaffItem extends Item {
         boolean validBase = switch (kind) {
             case DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, WITHER, GUARDIAN -> repair.is(Items.BLAZE_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
-            case EVOKER, LIGHTNING, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+            case EVOKER, LIGHTNING, FROST, WEB, WIND -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK) || repair.is(Items.FEATHER);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
     }
@@ -645,6 +648,7 @@ public final class ArcaneStaffItem extends Item {
             case LIGHTNING -> isNetherite ? "36m Arc Stream (Chain 4.0m)" : "30m Arc Stream (Chain 3.0m)";
             case FROST -> isNetherite ? "28m (AOE 2.0m)" : "28m";
             case WEB -> "28m";
+            case WIND -> isNetherite ? "28m (AOE 4.5m)" : "28m (AOE 3.5m)";
         };
     }
 
@@ -661,6 +665,7 @@ public final class ArcaneStaffItem extends Item {
             case LIGHTNING -> isNetherite ? "2.5/hit (Electro 1.5U - Voltaic Arc)" : "1.8/hit (Electro 1.0U - Voltaic Arc)";
             case FROST -> isNetherite ? "4.5 x 3 (Cryo 1.5U/shot)" : "3.0 x 3 (Cryo 1U/shot)";
             case WEB -> isNetherite ? "Trap + Poison (Dendro 1.5U)" : "Trap + Poison (Dendro 1U)";
+            case WIND -> isNetherite ? "2.5 (Anemo 1.5U - Wind Burst)" : "1.5 (Anemo 1.0U - Wind Burst)";
         };
     }
 

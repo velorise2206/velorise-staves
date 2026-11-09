@@ -109,6 +109,7 @@ public final class ArcaneStaffEvents {
             case "shulker" -> resolveShulker(level, hit, owner, event, isNetherite);
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
+            case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
             default -> {}
         }
         projectile.discard();
@@ -148,6 +149,11 @@ public final class ArcaneStaffEvents {
                     level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
                     projectile.discard();
                     it.remove();
+                    continue;
+                }
+                String kindTag = projectile.getPersistentData().getString(TAG_KIND);
+                if (kindTag.endsWith("wind")) {
+                    level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
                 }
             }
         }
@@ -340,6 +346,34 @@ public final class ArcaneStaffEvents {
 
         level.sendParticles(ParticleTypes.POOF, hit.x, hit.y, hit.z, 14, 0.25D, 0.25D, 0.25D, 0.02D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.7F, 1.5F);
+    }
+
+    private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        float baseDmg = isNetherite ? 2.5F : 1.5F;
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        double radius = isNetherite ? 4.5D : 3.5D;
+
+        level.sendParticles(ParticleTypes.CLOUD, hit.x, hit.y + 0.3D, hit.z, 20, 0.4D, 0.3D, 0.4D, 0.08D);
+        level.sendParticles(ParticleTypes.SWEEP_ATTACK, hit.x, hit.y + 0.5D, hit.z, 6, 0.5D, 0.2D, 0.5D, 0.0D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 0.7F);
+
+        LivingEntity directHit = hitEntity(event);
+        if (directHit != null && directHit != owner) {
+            ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
+        }
+
+        AABB blastBox = new AABB(hit, hit).inflate(radius);
+        double radiusSqr = radius * radius;
+        for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
+            if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
+                Vec3 diff = nearby.position().subtract(hit);
+                Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+                nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.6D, 0.35D, knock.z * 0.6D));
+                nearby.hurtMarked = true;
+                ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
+            }
+        }
     }
 
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite) {

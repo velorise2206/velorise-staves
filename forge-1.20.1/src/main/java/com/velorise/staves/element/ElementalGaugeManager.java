@@ -182,6 +182,13 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
+                // 7. Wind Charge damage (Vanilla Wind Charge / Breeze) -> Anemo (1.0U)
+                if (source.type().msgId().contains("wind_charge") || source.type().msgId().contains("breeze")) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElement(level, target, Element.ANEMO, 1.0F, attacker, 1.0F);
+                    return;
+                }
+
                 // 7. Direct Ender projectiles (Dragon Fireball, Shulker Bullet, Ender Pearl) -> Electro (1.5U)
                 if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.DragonFireball
                         || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet

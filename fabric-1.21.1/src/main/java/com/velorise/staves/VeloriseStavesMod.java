@@ -67,6 +67,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item WEBCASTER = registerItem("webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, false), false));
 
+    public static final Item WIND_STAFF = registerItem("wind_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, false), false));
+
     // Basic Utility Artifacts
     public static final Item VOID_TRANSLOCATOR = registerItem("void_translocator",
         new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, false), 24.0D, false));
@@ -112,6 +115,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_WEBCASTER = registerItem("netherite_webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, true), true));
 
+    public static final Item NETHERITE_WIND_STAFF = registerItem("netherite_wind_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, true), true));
+
     // Netherite Upgraded Utility Artifacts
     public static final Item NETHERITE_VOID_TRANSLOCATOR = registerItem("netherite_void_translocator",
         new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, true), 36.0D, true));
@@ -141,6 +147,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
             output.accept(WEBCASTER);
+            output.accept(WIND_STAFF);
             output.accept(VOID_TRANSLOCATOR);
             output.accept(MAGIC_MIRROR);
 
@@ -156,6 +163,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_ARC_CASTER);
             output.accept(NETHERITE_FROSTBOLT_WAND);
             output.accept(NETHERITE_WEBCASTER);
+            output.accept(NETHERITE_WIND_STAFF);
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(NETHERITE_MAGIC_MIRROR);
 

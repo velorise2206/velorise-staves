@@ -36,6 +36,7 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.DoubleValue ARC_CASTER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue FROSTBOLT_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue WEBCASTER_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue WIND_COOLDOWN;
 
     // Durabilities
     public static final ForgeConfigSpec.IntValue DRAGONFIRE_DURABILITY_BASIC;
@@ -60,6 +61,8 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.IntValue FROSTBOLT_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue WEBCASTER_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue WEBCASTER_DURABILITY_NETHERITE;
+    public static final ForgeConfigSpec.IntValue WIND_DURABILITY_BASIC;
+    public static final ForgeConfigSpec.IntValue WIND_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue VOID_TRANSLOCATOR_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue VOID_TRANSLOCATOR_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue MAGIC_MIRROR_DURABILITY_BASIC;
@@ -139,6 +142,7 @@ public final class StavesConfig {
         ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);
+        WIND_COOLDOWN = builder.defineInRange("wind_cooldown", 1.5D, 0.2D, 60.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
@@ -164,6 +168,8 @@ public final class StavesConfig {
         FROSTBOLT_DURABILITY_NETHERITE = builder.defineInRange("frostbolt_netherite", 500, 10, 5000);
         WEBCASTER_DURABILITY_BASIC = builder.defineInRange("webcaster_basic", 140, 10, 5000);
         WEBCASTER_DURABILITY_NETHERITE = builder.defineInRange("webcaster_netherite", 500, 10, 5000);
+        WIND_DURABILITY_BASIC = builder.defineInRange("wind_basic", 140, 10, 5000);
+        WIND_DURABILITY_NETHERITE = builder.defineInRange("wind_netherite", 500, 10, 5000);
         VOID_TRANSLOCATOR_DURABILITY_BASIC = builder.defineInRange("void_translocator_basic", 80, 10, 5000);
         VOID_TRANSLOCATOR_DURABILITY_NETHERITE = builder.defineInRange("void_translocator_netherite", 250, 10, 5000);
         MAGIC_MIRROR_DURABILITY_BASIC = builder.defineInRange("magic_mirror_basic", 40, 10, 5000);
@@ -188,6 +194,7 @@ public final class StavesConfig {
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();
+            case WIND -> WIND_COOLDOWN.get();
         };
     }
 
@@ -204,6 +211,7 @@ public final class StavesConfig {
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
+            case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
         };
     }
 
