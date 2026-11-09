@@ -99,11 +99,25 @@ public final class CrystallizeShardManager {
         };
     }
 
+    public static void spawn(ServerLevel level, LivingEntity target, Element reactedElement) {
+        spawn(level, target, reactedElement, target.getUUID());
+    }
+
+    public static void spawn(ServerLevel level, LivingEntity target, Element reactedElement, @Nullable UUID sourceMobId) {
+        double spawnY = target.getY() + target.getBbHeight() * 0.80D;
+        Vec3 spawnPos = new Vec3(target.getX(), spawnY, target.getZ());
+        spawnAt(level, spawnPos, reactedElement, sourceMobId);
+    }
+
     public static void spawn(ServerLevel level, Vec3 pos, Element reactedElement) {
         spawn(level, pos, reactedElement, null);
     }
 
     public static void spawn(ServerLevel level, Vec3 pos, Element reactedElement, @Nullable UUID sourceMobId) {
+        spawnAt(level, pos, reactedElement, sourceMobId);
+    }
+
+    private static void spawnAt(ServerLevel level, Vec3 pos, Element reactedElement, @Nullable UUID sourceMobId) {
         if (sourceMobId != null) {
             long now = level.getGameTime();
             Long lastSpawn = LAST_MOB_SHARD_TICK.get(sourceMobId);
@@ -123,9 +137,17 @@ public final class CrystallizeShardManager {
         if (shardItem == null) return;
 
         ItemStack stack = new ItemStack(shardItem);
-        ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.15D, pos.z, stack);
+        ItemEntity item = new ItemEntity(level, pos.x, pos.y, pos.z, stack);
         item.setPickUpDelay(32767); // Cannot be picked up normally into inventory
-        item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.24D, (level.random.nextDouble() - 0.5D) * 0.12D);
+
+        // Pop upward from 80% body height and arc gently outward before falling
+        double angle = level.random.nextDouble() * Math.PI * 2.0D;
+        double horizSpeed = 0.08D + level.random.nextDouble() * 0.08D;
+        double vx = Math.cos(angle) * horizSpeed;
+        double vz = Math.sin(angle) * horizSpeed;
+        double vy = 0.32D + level.random.nextDouble() * 0.08D;
+        item.setDeltaMovement(vx, vy, vz);
+        item.hasImpulse = true;
         item.addTag(TAG_CRYSTALLIZE_SHARD);
         item.setGlowingTag(true);
 
@@ -150,10 +172,10 @@ public final class CrystallizeShardManager {
 
     private static void spawnBurstParticles(ServerLevel level, Vec3 pos, Element element) {
         switch (element) {
-            case PYRO -> level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.4D, pos.z, 16, 0.3D, 0.3D, 0.3D, 0.04D);
-            case HYDRO -> level.sendParticles(ParticleTypes.FALLING_WATER, pos.x, pos.y + 0.4D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.05D);
-            case ELECTRO -> level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.4D, pos.z, 16, 0.3D, 0.3D, 0.3D, 0.06D);
-            case CRYO -> level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.4D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.03D);
+            case PYRO -> level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y, pos.z, 16, 0.25D, 0.25D, 0.25D, 0.04D);
+            case HYDRO -> level.sendParticles(ParticleTypes.FALLING_WATER, pos.x, pos.y, pos.z, 20, 0.25D, 0.25D, 0.25D, 0.05D);
+            case ELECTRO -> level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 16, 0.25D, 0.25D, 0.25D, 0.06D);
+            case CRYO -> level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y, pos.z, 20, 0.25D, 0.25D, 0.25D, 0.03D);
             default -> {}
         }
     }
