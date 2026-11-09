@@ -354,6 +354,15 @@ public final class ElementalGaugeManager {
         if (!targetGauges.containsKey(Element.PYRO)) {
             targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
             syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
+        } else {
+            // Target is actively in fire/lava: keep Pyro refreshed at full units so it does not decay to 0 and jump back!
+            GaugeState existing = targetGauges.get(Element.PYRO);
+            if (existing != null && (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
+                if (existing.getUnits() < 1.25F) {
+                    existing.consume(existing.getUnits());
+                    existing.addUnits(1.25F);
+                }
+            }
         }
     }
 
@@ -673,9 +682,17 @@ public final class ElementalGaugeManager {
             if (innateElement != Element.PYRO && !targetGauges.containsKey(Element.HYDRO)) {
                 targetGauges.put(Element.HYDRO, new GaugeState(Element.HYDRO, 1.25F)); // 1.0U Environmental Wet
             }
-        } else if (target.isInLava() || ((target.isOnFire() || target.getRemainingFireTicks() > 0) && !targetGauges.containsKey(Element.PYRO))) {
-            if (innateElement == null && !targetGauges.containsKey(Element.PYRO)) {
-                targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
+        } else if (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0) {
+            if (innateElement == null) {
+                if (!targetGauges.containsKey(Element.PYRO)) {
+                    targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
+                } else {
+                    GaugeState existing = targetGauges.get(Element.PYRO);
+                    if (existing != null && existing.getUnits() < 1.25F) {
+                        existing.consume(existing.getUnits());
+                        existing.addUnits(1.25F);
+                    }
+                }
             }
         } else if (target.isInPowderSnow) {
             if (innateElement == null && !targetGauges.containsKey(Element.CRYO)) {
@@ -1217,7 +1234,7 @@ public final class ElementalGaugeManager {
                     it.remove();
                     continue;
                 }
-            } else if (target.isOnFire()) {
+            } else if (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava()) {
                 handleEnvironmentalFireDamage(target);
             }
 
@@ -1243,6 +1260,14 @@ public final class ElementalGaugeManager {
                 Map.Entry<Element, GaugeState> gEntry = gaugeIt.next();
                 if (innate != null && gEntry.getKey() == innate) {
                     continue; // Innate lock: never decay below 1.0U naturally
+                }
+                // Environmental lock: while actively in lava or burning, Pyro does not decay
+                if (gEntry.getKey() == Element.PYRO && (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
+                    continue;
+                }
+                // Environmental lock: while actively in water, Hydro does not decay
+                if (gEntry.getKey() == Element.HYDRO && isEntityInWater(target)) {
+                    continue;
                 }
                 GaugeState state = gEntry.getValue();
                 state.tick();

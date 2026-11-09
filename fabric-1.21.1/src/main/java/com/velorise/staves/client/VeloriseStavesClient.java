@@ -38,14 +38,5 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register((guiGraphics, tickCounter) -> {
             ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
         });
-
-        // Register Inventory Screen HUD overlay
-        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
-            if (screen instanceof InventoryScreen) {
-                ScreenEvents.afterRender(screen).register((scr, guiGraphics, mouseX, mouseY, tickDelta) -> {
-                    ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
-                });
-            }
-        });
     }
 }

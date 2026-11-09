@@ -1,5 +1,6 @@
 package com.velorise.staves.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.velorise.staves.VeloriseStavesMod;
@@ -10,10 +11,12 @@ import com.velorise.staves.element.ElementalReaction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import org.joml.Matrix4f;
 
@@ -22,6 +25,7 @@ import java.util.*;
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
     private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
+    private static final ResourceLocation EFFECT_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/effect_background");
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
 
     static {
@@ -322,12 +326,24 @@ public final class ClientAuraRenderer {
      */
     public static void renderPlayerAuraHud(GuiGraphics guiGraphics) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.screen instanceof EffectRenderingInventoryScreen screen && screen.canSeeEffects()) {
+            return;
+        }
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
 
         long now = System.currentTimeMillis();
+
+        // Environmental refresh: while player is actively burning, in lava, or in water, keep duration refreshed!
+        if (data.expireTime > 0 && data.elements.contains(Element.PYRO) && (mc.player.isInLava() || mc.player.isOnFire() || mc.player.getRemainingFireTicks() > 0)) {
+            data.expireTime = now + 9500L;
+        }
+        if (data.expireTime > 0 && data.elements.contains(Element.HYDRO) && mc.player.isInWaterOrRain()) {
+            data.expireTime = now + 9500L;
+        }
+
         if (data.expireTime > 0 && now >= data.expireTime) {
             data.elements.clear();
             ClientAuraTracker.remove(mc.player.getId());
@@ -335,60 +351,57 @@ public final class ClientAuraRenderer {
         }
 
         int screenWidth = guiGraphics.guiWidth();
-        int activeVanillaEffects = mc.player.getActiveEffects().size();
+        int top = mc.isDemo() ? 16 : 1;
 
-        int startY = 8;
-        if (activeVanillaEffects > 0) {
-            startY += Math.min(activeVanillaEffects, 3) * 26 + 4;
+        int beneficialCount = 0;
+        int harmfulCount = 0;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon()) {
+                if (inst.getEffect().value().isBeneficial()) {
+                    beneficialCount++;
+                } else {
+                    harmfulCount++;
+                }
+            }
         }
 
-        int boxWidth = 26;
-        int boxHeight = 28;
-        int rightMargin = 6;
         int index = 0;
-
         for (Element elem : data.elements) {
-            int x = screenWidth - rightMargin - boxWidth - (index * (boxWidth + 4));
-            int y = startY;
+            int col;
+            int row;
+            if (beneficialCount > 0 || harmfulCount > 0) {
+                // Place in harmful effects row (Row 1) after existing harmful effects
+                col = (harmfulCount + index) % 10;
+                row = 1 + (harmfulCount + index) / 10;
+            } else {
+                // No vanilla effects: start from row 0 top-right
+                col = index % 10;
+                row = index / 10;
+            }
+
+            int x = screenWidth - 25 * (col + 1);
+            int y = top + 26 * row;
 
             long remMs = data.expireTime > 0 ? Math.max(0, data.expireTime - now) : 0;
-            boolean isExpiringSoon = data.expireTime > 0 && remMs <= 3000L;
-            boolean blinkDim = isExpiringSoon && Math.sin((remMs / 140.0D) * Math.PI) < 0;
+            float alpha = 1.0F;
+            if (data.expireTime > 0 && remMs <= 3000L) {
+                // Smooth vanilla-style blinking during the last 3 seconds
+                alpha = Math.sin((remMs / 140.0D) * Math.PI) < 0 ? 0.35F : 1.0F;
+            }
 
-            int bgAlpha = blinkDim ? 0x40 : 0x95;
-            int borderColor = switch (elem) {
-                case PYRO -> 0xFFFF5722;
-                case HYDRO -> 0xFF29B6F6;
-                case CRYO -> 0xFF80DEEA;
-                case ELECTRO -> 0xFFBA68C8;
-                case ANEMO -> 0xFF80CBC4;
-                case GEO -> 0xFFFFCA28;
-                case DENDRO -> 0xFF81C784;
-            };
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
 
-            // Background & 1px Outline
-            guiGraphics.fill(x, y, x + boxWidth, y + boxHeight, (bgAlpha << 24));
-            int outline = blinkDim ? 0x55FFFFFF : borderColor;
-            guiGraphics.fill(x, y, x + boxWidth, y + 1, outline);
-            guiGraphics.fill(x, y + boxHeight - 1, x + boxWidth, y + boxHeight, outline);
-            guiGraphics.fill(x + 1, y + 1, x + 1, y + boxHeight - 1, outline);
-            guiGraphics.fill(x + boxWidth - 1, y + 1, x + boxWidth, y + boxHeight - 1, outline);
+            // Vanilla 24x24 effect background
+            guiGraphics.blitSprite(EFFECT_BACKGROUND_SPRITE, x, y, 24, 24);
 
-            // 16x16 Element icon
+            // 16x16 Element icon centered inside the 24x24 box
             ResourceLocation tex = HUD_TEXTURES.get(elem);
             if (tex != null) {
-                guiGraphics.blit(tex, x + 5, y + 2, 0.0F, 0.0F, 16, 16, 16, 16);
+                guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
             }
 
-            // Duration text (e.g. 0:09, 0:08)
-            if (data.expireTime > 0) {
-                int secs = (int) Math.ceil(remMs / 1000.0D);
-                String timer = String.format("0:%02d", secs);
-                int textColor = isExpiringSoon ? 0xFFFF5555 : 0xFFE0E0E0;
-                int textWidth = mc.font.width(timer);
-                guiGraphics.drawString(mc.font, timer, x + (boxWidth - textWidth) / 2 + 1, y + 19, textColor, true);
-            }
-
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             index++;
         }
     }
