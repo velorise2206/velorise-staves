@@ -1,11 +1,9 @@
 package com.velorise.staves.network;
 
 import com.velorise.staves.VeloriseStavesMod;
-import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import io.netty.buffer.ByteBuf;
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -100,24 +98,5 @@ public record AuraSyncPayload(
     @Override
     public Type<? extends CustomPacketPayload> type() {
         return TYPE;
-    }
-
-    public static void handle(AuraSyncPayload payload, ClientPlayNetworking.Context context) {
-        context.client().execute(() -> {
-            List<Element> elements = new ArrayList<>();
-            for (Element e : Element.values()) {
-                if ((payload.activeMask & (1 << e.ordinal())) != 0) {
-                    elements.add(e);
-                }
-            }
-            Element reactedAura = (payload.reactedAuraOrdinal > 0 && payload.reactedAuraOrdinal <= Element.values().length)
-                    ? Element.values()[payload.reactedAuraOrdinal - 1] : null;
-            Element trigger = (payload.triggerElementOrdinal > 0 && payload.triggerElementOrdinal <= Element.values().length)
-                    ? Element.values()[payload.triggerElementOrdinal - 1] : null;
-            ElementalReaction reaction = (payload.reactionOrdinal > 0 && payload.reactionOrdinal <= ElementalReaction.values().length)
-                    ? ElementalReaction.values()[payload.reactionOrdinal - 1] : null;
-
-            ClientAuraTracker.update(payload.entityId, elements, reactedAura, trigger, reaction, payload.damage, payload.durationTicks);
-        });
     }
 }
