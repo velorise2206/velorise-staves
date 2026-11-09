@@ -373,7 +373,7 @@ public final class DendroCoreManager {
 
             // Impact!
             if (m.currentTick >= m.totalTicks) {
-                missileIt.remove();
+                MISSILES.remove(m);
                 if (m.visualEntity != null && m.visualEntity.isAlive()) {
                     m.visualEntity.discard();
                 }
