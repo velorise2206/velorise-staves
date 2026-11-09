@@ -294,15 +294,9 @@ public final class ElementalGaugeManager {
      * Triggers reactions if entity holds Hydro/Cryo/Electro/Dendro, or applies 1.0U Pyro aura.
      */
     public static void handleEnvironmentalFireDamage(LivingEntity target) {
-        if (!target.isAlive() || target.isInvulnerable()) return;
+        if (!target.isAlive() || target.isSpectator()) return;
         Element innate = getInnateElement(target);
-        if (innate == Element.PYRO || target.fireImmune() || target instanceof Warden) {
-            long now = target.level().getGameTime();
-            Long lastImmune = INNATE_COOLDOWN_UNTIL.get(target.getUUID());
-            if (lastImmune == null || now >= lastImmune) {
-                INNATE_COOLDOWN_UNTIL.put(target.getUUID(), now + 30L);
-                syncAuras(target, Collections.emptyList(), null, Element.PYRO, ElementalReaction.IMMUNE);
-            }
+        if (innate == Element.PYRO) {
             return;
         }
         if (isEntityInWater(target)) return;
@@ -311,8 +305,8 @@ public final class ElementalGaugeManager {
         Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new EnumMap<>(Element.class));
         long now = target.level().getGameTime();
 
-        // Check if there is an existing aura that reacts with Pyro
-        if (targetGauges.containsKey(Element.HYDRO)) {
+        // 1. Check if entity has Hydro (applied or innate e.g. Drowned, Guardian) -> Reverse Vaporize
+        if (targetGauges.containsKey(Element.HYDRO) || innate == Element.HYDRO) {
             targetGauges.remove(Element.HYDRO);
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
             if (target.level() instanceof ServerLevel sl) {
@@ -322,7 +316,8 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        if (targetGauges.containsKey(Element.CRYO)) {
+        // 2. Check if entity has Cryo (applied or innate e.g. Snow Golem, Stray) -> Forward Melt
+        if (targetGauges.containsKey(Element.CRYO) || innate == Element.CRYO) {
             targetGauges.remove(Element.CRYO);
             FROZEN_UNTIL.remove(id);
             target.setTicksFrozen(0);
@@ -334,7 +329,8 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        if (targetGauges.containsKey(Element.ELECTRO)) {
+        // 3. Check if entity has Electro (applied or innate e.g. Charged Creeper) -> Overloaded
+        if (targetGauges.containsKey(Element.ELECTRO) || innate == Element.ELECTRO) {
             targetGauges.remove(Element.ELECTRO);
             if (target.level() instanceof ServerLevel sl) {
                 triggerOverloadExplosion(sl, target, null, 1.0D);
@@ -343,7 +339,8 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        if (targetGauges.containsKey(Element.DENDRO)) {
+        // 4. Dendro -> Burning
+        if (targetGauges.containsKey(Element.DENDRO) || innate == Element.DENDRO) {
             if (!BURNING_UNTIL.containsKey(id)) {
                 BURNING_UNTIL.put(id, now + 100);
                 target.igniteForSeconds(5);
@@ -352,7 +349,7 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // No reactive aura -> apply Pyro 1.0U
+        // No reactive aura -> apply Pyro 1.0U (works on Player even in creative, Warden, and normal mobs)
         if (!targetGauges.containsKey(Element.PYRO)) {
             targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
             syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
@@ -361,11 +358,13 @@ public final class ElementalGaugeManager {
 
     /**
      * Handles environmental water on entities holding active auras:
-     * - Pyro in water -> Extinguishes & triggers Vaporize
-     * - Dendro in water / Innate Dendro (Bogged, Dendro Slime) in rain -> Triggers Bloom reaction & spawns Dendro Core (0.5s ICD)
+     * - Pyro in water / Innate Pyro (Blaze, Magma Cube) -> Extinguishes & triggers Vaporize
+     * - Electro in water / Innate Electro (Charged Creeper) in rain -> Triggers Electro-Charged AoE Shock
+     * - Dendro in water / Innate Dendro (Bogged) in rain -> Triggers Bloom reaction & spawns Dendro Core (0.5s ICD)
+     * - Cryo in water / Innate Cryo (Snow Golem) -> Freezes water
      */
     public static void handleEnvironmentalWater(LivingEntity target) {
-        if (!target.isAlive()) return;
+        if (!target.isAlive() || target.isSpectator()) return;
         UUID id = target.getUUID();
         Element innate = getInnateElement(target);
 
@@ -385,11 +384,67 @@ public final class ElementalGaugeManager {
             return;
         }
 
+        // 1B. Innate Pyro mob (Blaze, Magma Cube, Strider) in water or rain -> Vaporize!
+        if (innate == Element.PYRO) {
+            long now = target.level().getGameTime();
+            Long lastVape = INNATE_COOLDOWN_UNTIL.get(id);
+            if (lastVape == null || now >= lastVape) {
+                INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
+                if (target.level() instanceof ServerLevel sl) {
+                    sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 14, 0.3D, 0.3D, 0.3D, 0.04D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.2F);
+                    target.hurt(sl.damageSources().magic(), 3.0F);
+                }
+                syncAuras(target, Collections.singleton(Element.PYRO), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 3.0F);
+            }
+            return;
+        }
+
+        // 1C. Innate Electro mob (Charged Creeper, Shulker) in water or rain -> Electro-Charged AoE Shock!
+        if (innate == Element.ELECTRO) {
+            long now = target.level().getGameTime();
+            Long lastEc = INNATE_COOLDOWN_UNTIL.get(id);
+            if (lastEc == null || now >= lastEc) {
+                INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
+                if (target.level() instanceof ServerLevel sl) {
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.35D, 0.35D, 0.35D, 0.06D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+                    target.hurt(sl.damageSources().magic(), 2.0F);
+
+                    // Chain lightning to nearby entities in water/rain (like Electro Slimes in Genshin)
+                    AABB chainBox = target.getBoundingBox().inflate(4.5D);
+                    for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != target)) {
+                        if (isEntityInWater(nearby)) {
+                            drawVoltaicArc(sl, target.getEyePosition(), nearby.getEyePosition());
+                            nearby.hurt(sl.damageSources().magic(), 2.0F);
+                            applyElement(sl, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
+                        }
+                    }
+                }
+                syncAuras(target, Collections.singleton(Element.ELECTRO), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, 2.0F);
+            }
+            return;
+        }
+
+        // 1D. Innate Cryo mob (Snow Golem, Stray) in water -> Freeze Water!
+        if (innate == Element.CRYO) {
+            long now = target.level().getGameTime();
+            Long lastFreeze = FROZEN_UNTIL.get(id);
+            if (lastFreeze == null || now - lastFreeze >= 20L) {
+                FROZEN_UNTIL.put(id, now);
+                if (target.level() instanceof ServerLevel sl) {
+                    com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(sl, target.position(), 1);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
+                }
+            }
+            return;
+        }
+
         Map<Element, GaugeState> targetGauges = GAUGES.get(id);
         if (targetGauges == null || targetGauges.isEmpty()) return;
 
         // 2. Pyro in water -> Extinguish & Vaporize
-        if (innate != Element.PYRO && targetGauges.containsKey(Element.PYRO)) {
+        if (targetGauges.containsKey(Element.PYRO)) {
             targetGauges.remove(Element.PYRO);
             BURNING_UNTIL.remove(id);
             target.clearFire();
@@ -417,7 +472,7 @@ public final class ElementalGaugeManager {
             syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
         }
 
-        // 4. Electro in water -> Trigger Electro-Charged shock on entity itself (water does NOT turn electrified)
+        // 4. Electro in water -> Trigger Electro-Charged shock on entity itself
         if (targetGauges.containsKey(Element.ELECTRO)) {
             GaugeState electro = targetGauges.get(Element.ELECTRO);
             if (electro != null) {
@@ -533,6 +588,13 @@ public final class ElementalGaugeManager {
             }
         }
 
+        // Warden & Vanilla Fire-Immune Mob Check for Pyro attacks:
+        // Deal 0 damage, but ALLOW Pyro aura to be applied!
+        if (attackElement == Element.PYRO && (target instanceof Warden || (target.fireImmune() && getInnateElement(target) == null))) {
+            baseDamage = 0.0F;
+            effectiveDamage = 0.0F;
+        }
+
         if (!egtEnabled) {
             target.hurt(level.damageSources().magic(), effectiveDamage);
             return;
@@ -595,14 +657,6 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // Warden & Vanilla Fire-Immune Mob Check for Pyro attacks (deal 0 DMG and pop IMMUNE)
-        if (attackElement == Element.PYRO && (target instanceof Warden || target.fireImmune())) {
-            level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
-            level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.7F, 1.4F);
-            syncAuras(target, targetGauges.keySet(), null, attackElement, ElementalReaction.IMMUNE);
-            return;
-        }
-
         // 0B. On-Hit Environmental Auras (Water/Rain -> 1.0U HYDRO, Lava/Fire -> 1.0U PYRO, Powder Snow -> 1.0U CRYO)
         if (isEntityInWater(target)) {
             if (targetGauges.remove(Element.PYRO) != null || BURNING_UNTIL.remove(targetId) != null) {
@@ -611,8 +665,8 @@ public final class ElementalGaugeManager {
             if (innateElement != Element.PYRO && !targetGauges.containsKey(Element.HYDRO)) {
                 targetGauges.put(Element.HYDRO, new GaugeState(Element.HYDRO, 1.25F)); // 1.0U Environmental Wet
             }
-        } else if (target.isInLava() || (target.isOnFire() && !targetGauges.containsKey(Element.PYRO))) {
-            if (innateElement == null && !target.fireImmune() && !(target instanceof Warden) && !targetGauges.containsKey(Element.PYRO)) {
+        } else if (target.isInLava() || ((target.isOnFire() || target.getRemainingFireTicks() > 0) && !targetGauges.containsKey(Element.PYRO))) {
+            if (innateElement == null && !targetGauges.containsKey(Element.PYRO)) {
                 targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
             }
         } else if (target.isInPowderSnow) {
@@ -1314,22 +1368,26 @@ public final class ElementalGaugeManager {
 
         // 8. Environmental water, fire, poison & cryo checks on active online players
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (player.isAlive()) {
+            if (player.isAlive() && !player.isSpectator()) {
                 if (isEntityInWater(player)) {
                     handleEnvironmentalWater(player);
-                } else if (player.isOnFire()) {
+                } else if (player.isOnFire() || player.getRemainingFireTicks() > 0 || player.isInLava()) {
                     handleEnvironmentalFireDamage(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
 
-                // Auto-register nearby Charged Creepers and process nearby innate mobs in water/rain within 32m
+                // Auto-register nearby Charged Creepers and process nearby innate mobs in water/rain or fire within 32m
                 if (player.level() instanceof ServerLevel sl && player.tickCount % 10 == 0) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
                         Element nearbyInnate = getInnateElement(nearby);
-                        if (nearbyInnate != null && isEntityInWater(nearby)) {
-                            handleEnvironmentalWater(nearby);
+                        if (nearbyInnate != null) {
+                            if (isEntityInWater(nearby)) {
+                                handleEnvironmentalWater(nearby);
+                            } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava()) {
+                                handleEnvironmentalFireDamage(nearby);
+                            }
                         }
                         if (nearby instanceof Creeper creeper && creeper.isPowered() && !GAUGES.containsKey(creeper.getUUID())) {
                             Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(creeper.getUUID(), k -> new EnumMap<>(Element.class));

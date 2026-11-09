@@ -175,19 +175,6 @@ public final class CrystallizeShardManager {
                 SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.55F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.7F, 1.3F);
-
-        // Feedback in actionbar
-        String color = switch (element) {
-            case PYRO -> "§c";
-            case HYDRO -> "§9";
-            case ELECTRO -> "§d";
-            case CRYO -> "§b";
-            default -> "§e";
-        };
-        player.sendSystemMessage(
-                Component.literal("🛡️ " + color + element.name() + " Crystallize Shield! §7(+1 Heart Absorption | 250% " + element.name() + " Res)"),
-                true
-        );
     }
 
     public static @Nullable Element getActiveShield(UUID playerId, long now) {
