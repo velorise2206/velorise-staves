@@ -484,7 +484,7 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.45F, 1.75F);
         }
 
-        float damagePerTick = isNetherite ? 2.5F : 1.8F;
+        float damagePerTick = isNetherite ? 1.0F : 0.5F;
         float attackU = isNetherite ? 1.5F : 1.0F;
         boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
 
@@ -678,7 +678,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> isNetherite ? "6.0 x 2 " + icon + "1.5U" : "4.0 x 2 " + icon + "1U";
             case GUARDIAN -> isNetherite ? "1.8 x 10 " + icon + "1.5U" : "1.2 x 10 " + icon + "1U";
             case EVOKER -> isNetherite ? "4.5 / Fang " + icon + "1.5U" : "3.0 / Fang " + icon + "1U";
-            case LIGHTNING -> isNetherite ? "2.5 / hit " + icon + "1.5U" : "1.8 / hit " + icon + "1U";
+            case LIGHTNING -> isNetherite ? "1.0 / hit " + icon + "1.5U" : "0.5 / hit " + icon + "1U";
             case FROST -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";
             case WEB -> isNetherite ? "Trap + Poison " + icon + "1.5U" : "Trap + Poison " + icon + "1U";
         };
