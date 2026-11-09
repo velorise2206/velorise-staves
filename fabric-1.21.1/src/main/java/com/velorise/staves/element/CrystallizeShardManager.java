@@ -201,31 +201,9 @@ public final class CrystallizeShardManager {
 
             Vec3 p = shard.entity.position();
 
-            // Ambient sparkle around the floating crystal
-            if (now % 6 == 0) {
-                switch (shard.element) {
-                    case PYRO -> {
-                        level.sendParticles(ParticleTypes.FLAME, p.x, p.y + 0.25D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                        level.sendParticles(new DustParticleOptions(new Vector3f(1.0F, 0.3F, 0.1F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
-                        level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                    }
-                    case HYDRO -> {
-                        level.sendParticles(ParticleTypes.FALLING_WATER, p.x, p.y + 0.25D, p.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                        level.sendParticles(new DustParticleOptions(new Vector3f(0.1F, 0.75F, 1.0F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
-                        level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                    }
-                    case ELECTRO -> {
-                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y + 0.25D, p.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                        level.sendParticles(new DustParticleOptions(new Vector3f(0.8F, 0.3F, 1.0F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
-                        level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                    }
-                    case CRYO -> {
-                        level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y + 0.25D, p.z, 2, 0.1D, 0.1D, 0.1D, 0.01D);
-                        level.sendParticles(new DustParticleOptions(new Vector3f(0.4F, 0.9F, 1.0F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
-                        level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                    }
-                    default -> {}
-                }
+            // Ambient Genshin-style glowing spherical aura shell around the Nether Star core
+            if (now % 3 == 0) {
+                spawnShardAuraSphere(level, p, shard.element, now);
             }
 
             // Player pickup detection (within 1.5m radius)
@@ -287,6 +265,50 @@ public final class CrystallizeShardManager {
                 sb.removePlayerFromTeam(shard.entity.getScoreboardName(), team);
             }
         } catch (Throwable ignored) {}
+    }
+
+    private static void spawnShardAuraSphere(ServerLevel level, Vec3 p, Element element, long gameTime) {
+        double cx = p.x;
+        double cy = p.y + 0.28D;
+        double cz = p.z;
+        double r = 0.42D;
+
+        Vector3f color = switch (element) {
+            case PYRO -> new Vector3f(1.0F, 0.42F, 0.12F);
+            case HYDRO -> new Vector3f(0.15F, 0.75F, 1.0F);
+            case ELECTRO -> new Vector3f(0.85F, 0.35F, 1.0F);
+            case CRYO -> new Vector3f(0.4F, 0.95F, 1.0F);
+            default -> new Vector3f(1.0F, 0.85F, 0.2F);
+        };
+        DustParticleOptions dust = new DustParticleOptions(color, 0.85F);
+
+        // Rotating horizontal orbital ring (6 points)
+        double angleBase = (gameTime * 0.12D);
+        for (int i = 0; i < 6; i++) {
+            double a = angleBase + (i * Math.PI / 3.0D);
+            double x = cx + Math.cos(a) * r;
+            double y = cy + Math.sin(a * 2.0D) * 0.05D;
+            double z = cz + Math.sin(a) * r;
+            level.sendParticles(dust, x, y, z, 1, 0, 0, 0, 0);
+            if (i % 2 == 0) {
+                level.sendParticles(ParticleTypes.GLOW, x, y, z, 1, 0, 0, 0, 0);
+            }
+        }
+
+        // Inclined vertical orbital ring (4 points)
+        double angleVert = (gameTime * 0.09D) + Math.PI * 0.25D;
+        for (int i = 0; i < 4; i++) {
+            double a = angleVert + (i * Math.PI / 2.0D);
+            double x = cx + Math.cos(a) * r * 0.72D;
+            double y = cy + Math.sin(a) * r;
+            double z = cz + Math.sin(a) * r * 0.72D;
+            level.sendParticles(dust, x, y, z, 1, 0, 0, 0, 0);
+        }
+
+        // Center glistening spark
+        if (gameTime % 6 == 0) {
+            level.sendParticles(ParticleTypes.END_ROD, cx, cy, cz, 1, 0.02D, 0.02D, 0.02D, 0.005D);
+        }
     }
 
     private static void spawnShieldOrbitParticles(ServerLevel level, ServerPlayer player, Element element) {

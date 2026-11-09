@@ -157,7 +157,7 @@ public final class ClientAuraRenderer {
 
         if (display.isEmpty() && !hasReaction && !hasDamage) return;
 
-        double height = entity.getBbHeight() + 0.35D;
+        double height = entity.getBbHeight() + 0.55D;
         float iconSize = 16.0F;
         float gap = 3.0F;
 
@@ -198,7 +198,7 @@ public final class ClientAuraRenderer {
                 }
             }
 
-            poseStack.scale(-0.025F * popScale, -0.025F * popScale, 0.025F * popScale);
+            poseStack.scale(-0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
 
             int count = display.size();
             float totalWidth = count * iconSize + (count - 1) * gap;

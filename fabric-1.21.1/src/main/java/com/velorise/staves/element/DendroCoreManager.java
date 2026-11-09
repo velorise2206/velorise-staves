@@ -66,7 +66,7 @@ public final class DendroCoreManager {
         public final @Nullable LivingEntity target;
         public Vec3 lastKnownTargetPos;
         public final float damage;
-        public final @Nullable ServerPlayer attacker;
+        public final @Nullable LivingEntity attacker;
         public final int totalTicks;
         public int currentTick;
         public final @Nullable Display.ItemDisplay visualEntity;
@@ -79,7 +79,7 @@ public final class DendroCoreManager {
                 @Nullable LivingEntity target,
                 Vec3 initialTargetPos,
                 float damage,
-                @Nullable ServerPlayer attacker,
+                @Nullable LivingEntity attacker,
                 int totalTicks,
                 @Nullable Display.ItemDisplay visualEntity
         ) {
@@ -240,17 +240,17 @@ public final class DendroCoreManager {
         } catch (Throwable ignored) {}
     }
 
-    public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable ServerPlayer attacker) {
+    public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable LivingEntity attacker) {
         if (attackElement != Element.ELECTRO && attackElement != Element.PYRO) return;
 
         double r2 = radius * radius;
         for (CoreEntry core : CORES) {
+            if (core.level != level) {
+                continue;
+            }
             if (!core.entity.isAlive() || core.entity.isRemoved()) {
                 cleanUpCoreTeam(core);
                 CORES.remove(core);
-                continue;
-            }
-            if (core.level != level) {
                 continue;
             }
             if (core.entity.position().distanceToSqr(hitPos) <= r2) {
@@ -295,31 +295,28 @@ public final class DendroCoreManager {
         }
     }
 
-    private static void triggerHyperbloom(CoreEntry core, @Nullable ServerPlayer attacker) {
+    private static void triggerHyperbloom(CoreEntry core, @Nullable LivingEntity attacker) {
         cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
 
         // Electro trigger burst at origin
-        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.35D, pos.z, 10, 0.2D, 0.2D, 0.2D, 0.06D);
+        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.35D, pos.z, 12, 0.2D, 0.2D, 0.2D, 0.08D);
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
 
-        // Find nearest living enemy within 16 blocks (Sprawling Shot homing)
+        // Find random living target within 16 blocks (excluding triggerer/attacker)
         AABB search = new AABB(pos.x - 16.0D, pos.y - 12.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 16.0D, pos.z + 16.0D);
-        LivingEntity nearest = null;
-        double minD2 = Double.MAX_VALUE;
-        for (LivingEntity entity : core.level.getEntitiesOfClass(LivingEntity.class, search, e -> e.isAlive() && e != attacker)) {
-            double d2 = entity.position().distanceToSqr(pos);
-            if (d2 < minD2) {
-                minD2 = d2;
-                nearest = entity;
-            }
-        }
+        List<LivingEntity> candidates = core.level.getEntitiesOfClass(
+                LivingEntity.class,
+                search,
+                e -> e.isAlive() && !e.isSpectator() && e != attacker
+        );
+        LivingEntity chosenTarget = candidates.isEmpty() ? null : candidates.get(core.level.random.nextInt(candidates.size()));
 
         Vec3 p0 = pos.add(0, 0.35D, 0);
         Vec3 p3;
-        if (nearest != null) {
-            p3 = nearest.position().add(0, nearest.getBbHeight() * 0.55D, 0);
+        if (chosenTarget != null) {
+            p3 = chosenTarget.position().add(0, chosenTarget.getBbHeight() * 0.55D, 0);
         } else {
             p3 = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 3.5D, core.level.random.nextDouble() * 4.0D - 2.0D);
         }
@@ -353,10 +350,10 @@ public final class DendroCoreManager {
         // Spawn 50% scale Dendro Core seed projectile
         Display.ItemDisplay visualSeed = spawnVisualSeed(core.level, p0);
 
-        MISSILES.add(new HyperbloomMissile(core.level, p0, p1, p2, nearest, p3, hyperbloomDmg, attacker, flightTicks, visualSeed));
+        MISSILES.add(new HyperbloomMissile(core.level, p0, p1, p2, chosenTarget, p3, hyperbloomDmg, attacker, flightTicks, visualSeed));
     }
 
-    private static void triggerBurgeon(CoreEntry core, @Nullable ServerPlayer attacker) {
+    private static void triggerBurgeon(CoreEntry core, @Nullable LivingEntity attacker) {
         cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
@@ -415,10 +412,12 @@ public final class DendroCoreManager {
                 m.visualEntity.teleportTo(p.x, p.y, p.z);
             }
 
-            // Clean, delicate footprint trail behind the seed (no particle clutter)
-            level.sendParticles(HYPERBLOOM_FOOTPRINT, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
-            if (m.currentTick % 3 == 0) {
-                level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+            // Bright glowing Hyperbloom homing missile trail
+            level.sendParticles(HYPERBLOOM_FOOTPRINT, p.x, p.y, p.z, 2, 0.02D, 0.02D, 0.02D, 0.0D);
+            level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 2, 0.05D, 0.05D, 0.05D, 0.02D);
+            if (m.currentTick % 2 == 0) {
+                level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.005D);
             }
 
             // Play flying hum / whistling sound at launch and mid-flight
@@ -469,6 +468,36 @@ public final class DendroCoreManager {
             if (!core.entity.isAlive() || core.entity.isRemoved()) {
                 cleanUpCoreTeam(core);
                 CORES.remove(core);
+                continue;
+            }
+
+            // Proximity check: ANY player or monster near the Dendro Core with Electro or Pyro triggers Hyperbloom / Burgeon!
+            AABB triggerBox = core.entity.getBoundingBox().inflate(1.6D, 0.8D, 1.6D);
+            LivingEntity electroTriggerer = null;
+            LivingEntity pyroTriggerer = null;
+            for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, triggerBox, LivingEntity::isAlive)) {
+                Element activeShield = CrystallizeShardManager.getActiveShield(nearby);
+                if (ElementalGaugeManager.hasElement(nearby, Element.ELECTRO)
+                        || ElementalGaugeManager.getInnateElement(nearby) == Element.ELECTRO
+                        || activeShield == Element.ELECTRO) {
+                    electroTriggerer = nearby;
+                    break;
+                }
+                if (ElementalGaugeManager.hasElement(nearby, Element.PYRO)
+                        || ElementalGaugeManager.getInnateElement(nearby) == Element.PYRO
+                        || nearby.isOnFire()
+                        || activeShield == Element.PYRO) {
+                    pyroTriggerer = nearby;
+                }
+            }
+
+            if (electroTriggerer != null) {
+                CORES.remove(core);
+                triggerHyperbloom(core, electroTriggerer);
+                continue;
+            } else if (pyroTriggerer != null) {
+                CORES.remove(core);
+                triggerBurgeon(core, pyroTriggerer);
                 continue;
             }
 

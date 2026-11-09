@@ -44,9 +44,9 @@ public final class ElectrifiedWaterManager {
     }
 
     private static final List<WaterZone> ZONES = new CopyOnWriteArrayList<>();
-    // 50% particle size electric arc particles (scale = 0.5F)
-    private static final DustParticleOptions ELECTRIC_DUST_VIOLET = new DustParticleOptions(new Vector3f(0.75F, 0.4F, 1.0F), 0.5F);
-    private static final DustParticleOptions ELECTRIC_DUST_CYAN = new DustParticleOptions(new Vector3f(0.35F, 0.85F, 1.0F), 0.5F);
+    // Dense dual-layer 3D electric discharge particles
+    private static final DustParticleOptions ELECTRIC_DUST_VIOLET = new DustParticleOptions(new Vector3f(0.85F, 0.3F, 1.0F), 1.15F);
+    private static final DustParticleOptions ELECTRIC_DUST_CYAN = new DustParticleOptions(new Vector3f(0.2F, 0.85F, 1.0F), 1.15F);
 
     private ElectrifiedWaterManager() {}
 
@@ -95,48 +95,61 @@ public final class ElectrifiedWaterManager {
     }
 
     /**
-     * Renders a continuous, jagged electric arc between two 3D points with branching forks.
+     * Renders a vivid, 3D jagged electric lightning bolt between two points with dual-layer core and branching forks.
      */
     public static void drawElectricArc(ServerLevel level, Vec3 start, Vec3 end, double jitter, boolean branching) {
         Vec3 diff = end.subtract(start);
         double dist = diff.length();
         if (dist < 0.1D) return;
 
-        int numSegs = Math.max(3, (int) Math.round(dist * 2.5D));
+        int numSegs = Math.max(3, (int) Math.round(dist * 2.8D));
         Vec3 prev = start;
 
         for (int i = 1; i <= numSegs; i++) {
             double t = (double) i / (double) numSegs;
             Vec3 target = (i == numSegs) ? end : start.add(diff.scale(t));
             if (i < numSegs) {
-                double jx = (level.random.nextDouble() - 0.5D) * jitter;
-                double jy = (level.random.nextDouble() - 0.5D) * (jitter * 0.4D);
-                double jz = (level.random.nextDouble() - 0.5D) * jitter;
+                double jx = (level.random.nextGaussian()) * jitter * 0.7D;
+                double jy = (level.random.nextGaussian()) * (jitter * 0.45D);
+                double jz = (level.random.nextGaussian()) * jitter * 0.7D;
                 target = target.add(jx, jy, jz);
             }
 
-            // Dense interpolation between prev and target to form an unbroken glowing electric streak (50% smaller particles)
+            // Dual-layer 3D electric beam: bright white laser core (END_ROD) + outer glowing violet/cyan sheath
             Vec3 seg = target.subtract(prev);
             double segDist = seg.length();
-            int subSteps = Math.max(1, (int) Math.ceil(segDist / 0.22D));
+            int subSteps = Math.max(1, (int) Math.ceil(segDist / 0.16D));
             for (int s = 0; s <= subSteps; s++) {
                 Vec3 p = prev.add(seg.scale((double) s / (double) subSteps));
+                // White-hot plasma core
+                if (s % 2 == 0) {
+                    level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                }
+                // Outer glowing envelope
                 DustParticleOptions dust = (s % 2 == 0) ? ELECTRIC_DUST_VIOLET : ELECTRIC_DUST_CYAN;
-                level.sendParticles(dust, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                level.sendParticles(dust, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
             }
 
-            // Optional branching lightning fork splitting off outward
-            if (branching && i == numSegs / 2 && level.random.nextBoolean()) {
+            // Crackling sparks at joints
+            if (level.random.nextFloat() < 0.35F) {
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.x, target.y, target.z, 1, 0.03D, 0.03D, 0.03D, 0.02D);
+            }
+
+            // 3D branching lightning forks
+            if (branching && (i == numSegs / 2 || (numSegs > 6 && i == numSegs / 3)) && level.random.nextFloat() < 0.65F) {
                 Vec3 forkDir = new Vec3(
-                        (level.random.nextDouble() - 0.5D) * 0.9D,
-                        (level.random.nextDouble() - 0.2D) * 0.35D,
-                        (level.random.nextDouble() - 0.5D) * 0.9D
+                        (level.random.nextDouble() - 0.5D) * 1.1D,
+                        (level.random.nextDouble() - 0.2D) * 0.5D,
+                        (level.random.nextDouble() - 0.5D) * 1.1D
                 );
-                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.22D));
+                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.16D));
                 for (int fs = 0; fs <= forkSteps; fs++) {
                     Vec3 fp = target.add(forkDir.scale((double) fs / (double) forkSteps));
+                    if (fs % 2 == 0) {
+                        level.sendParticles(ParticleTypes.END_ROD, fp.x, fp.y, fp.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                    }
                     DustParticleOptions dust = (fs % 2 == 0) ? ELECTRIC_DUST_CYAN : ELECTRIC_DUST_VIOLET;
-                    level.sendParticles(dust, fp.x, fp.y, fp.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                    level.sendParticles(dust, fp.x, fp.y, fp.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
                 }
             }
 

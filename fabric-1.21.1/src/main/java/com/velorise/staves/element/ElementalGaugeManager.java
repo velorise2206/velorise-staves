@@ -237,6 +237,11 @@ public final class ElementalGaugeManager {
         return set;
     }
 
+    public static boolean hasElement(LivingEntity target, Element element) {
+        if (target == null) return false;
+        return getEntityElements(target.getUUID()).contains(element);
+    }
+
     public static boolean hasSuperconductDebuff(LivingEntity entity, long now) {
         Long until = SUPERCONDUCT_UNTIL.get(entity.getUUID());
         return until != null && now < until;

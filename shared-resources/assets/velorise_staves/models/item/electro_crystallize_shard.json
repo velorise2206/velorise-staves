@@ -1,6 +1,6 @@
 {
-  "parent": "velorise_staves:item/crystallize_shard_base",
+  "parent": "minecraft:item/generated",
   "textures": {
-    "texture": "velorise_staves:item/electro_crystallize_shard"
+    "layer0": "velorise_staves:item/electro_crystallize_shard"
   }
 }
