@@ -10,8 +10,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
-import java.util.HashMap;
-import java.util.IdentityHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
@@ -20,13 +19,13 @@ import java.util.UUID;
 public final class TemporaryWebManager {
     private static final int VENOM_PULSE_INTERVAL_TICKS = 20;
     private static final int POISON_DURATION_TICKS = 60;
-    private static final Map<ServerLevel, Map<BlockPos, Entry>> WEBS = new IdentityHashMap<>();
+    private static final Map<ServerLevel, Map<BlockPos, Entry>> WEBS = new ConcurrentHashMap<>();
 
     private TemporaryWebManager() {}
 
     public static boolean place(ServerLevel level, BlockPos pos, int durationTicks, int poisonAmplifier, UUID ownerId) {
         BlockState current = level.getBlockState(pos);
-        Map<BlockPos, Entry> entries = WEBS.computeIfAbsent(level, ignored -> new HashMap<>());
+        Map<BlockPos, Entry> entries = WEBS.computeIfAbsent(level, ignored -> new ConcurrentHashMap<>());
         BlockPos key = pos.immutable();
         Entry existing = entries.get(key);
         long now = level.getGameTime();
@@ -59,7 +58,12 @@ public final class TemporaryWebManager {
                 Map.Entry<BlockPos, Entry> web = webs.next();
                 BlockPos pos = web.getKey();
                 Entry entry = web.getValue();
-                if (!level.hasChunkAt(pos)) continue;
+                if (!level.hasChunkAt(pos)) {
+                    if (now - entry.expiresAt > 600L) {
+                        webs.remove();
+                    }
+                    continue;
+                }
 
                 if (now >= entry.expiresAt) {
                     if (level.getBlockState(pos).is(Blocks.COBWEB)) {

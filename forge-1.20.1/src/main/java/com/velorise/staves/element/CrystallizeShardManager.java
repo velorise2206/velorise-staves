@@ -124,7 +124,6 @@ public final class CrystallizeShardManager {
         ItemStack stack = new ItemStack(shardItem);
         ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.15D, pos.z, stack);
         item.setPickUpDelay(32767); // Cannot be picked up normally into inventory
-        item.setUnlimitedLifetime();
         item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.24D, (level.random.nextDouble() - 0.5D) * 0.12D);
         item.addTag(TAG_CRYSTALLIZE_SHARD);
         item.setGlowingTag(true);
