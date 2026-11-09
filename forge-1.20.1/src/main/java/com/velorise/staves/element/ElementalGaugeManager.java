@@ -511,7 +511,7 @@ public final class ElementalGaugeManager {
                 BURNING_UNTIL.put(id, now + 200L);
                 LAST_BURN_PYRO_REFRESH.put(id, now);
                 if (innate == null) {
-                    targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 2.0F));
+                    targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
                 }
                 target.setSecondsOnFire(5);
                 syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
@@ -1130,8 +1130,9 @@ public final class ElementalGaugeManager {
 
                 // Burning Coexistence: maintains 2.0U Burning Pyro state and consumes Dendro/Quicken at 0.4U/s until depleted
                 if (reaction == ElementalReaction.BURNING) {
+                    BURNING_UNTIL.put(targetId, now + 200L);
                     if (innateElement == null) {
-                        targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 2.0F));
+                        targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
                         if (attackElement == Element.DENDRO) {
                             if (targetGauges.containsKey(Element.DENDRO)) {
                                 targetGauges.get(Element.DENDRO).refresh(attackU);
@@ -1143,6 +1144,7 @@ public final class ElementalGaugeManager {
                         enforceInnateLock(targetGauges, targetId, innateElement, now);
                     }
                     LAST_BURN_PYRO_REFRESH.put(targetId, now);
+                    target.setSecondsOnFire(5);
                     target.hurt(level.damageSources().magic(), effectiveDamage);
                     executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
                     syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, effectiveDamage);
@@ -1156,6 +1158,10 @@ public final class ElementalGaugeManager {
                 boolean auraDepleted = aura.isExpired();
                 if (auraDepleted) {
                     targetGauges.remove(auraElement);
+                    if (auraElement == Element.PYRO) {
+                        BURNING_UNTIL.remove(targetId);
+                        LAST_BURN_PYRO_REFRESH.remove(targetId);
+                    }
                 }
 
                 // Also consume from independent Quicken gauge if Hydro triggered Bloom against Quicken/Dendro
@@ -1216,6 +1222,10 @@ public final class ElementalGaugeManager {
                                 aura2.consume(consumed2);
                                 if (aura2.isExpired()) {
                                     targetGauges.remove(secondaryAura);
+                                    if (secondaryAura == Element.PYRO) {
+                                        BURNING_UNTIL.remove(targetId);
+                                        LAST_BURN_PYRO_REFRESH.remove(targetId);
+                                    }
                                 }
                                 if (secondaryReaction == ElementalReaction.FROZEN) {
                                     float freezeU2 = 2.0F * Math.min(aura2Before, remainingAttackU);
@@ -1694,7 +1704,8 @@ public final class ElementalGaugeManager {
             //    and continues until all Dendro & Quicken gauges are completely depleted!)
             if (BURNING_UNTIL.containsKey(id)) {
                 boolean hasDendroFuel = entityGauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(id) || innate == Element.DENDRO;
-                if (!hasDendroFuel || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
+                boolean hasPyro = entityGauges.containsKey(Element.PYRO) || innate == Element.PYRO;
+                if (!hasDendroFuel || !hasPyro || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
                     LAST_BURN_PYRO_REFRESH.remove(id);
                     changed = true;

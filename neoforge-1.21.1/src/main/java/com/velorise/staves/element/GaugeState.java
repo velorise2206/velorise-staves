@@ -48,6 +48,18 @@ public final class GaugeState {
     }
 
     /**
+     * Genshin Impact Burning Aura formula:
+     * Burning applies an untaxed 2.0U Pyro aura.
+     * Duration = 2.5 * U + 7.0 seconds.
+     */
+    public static GaugeState createBurning(float burningUnits) {
+        float u = Math.max(0.1F, burningUnits);
+        float durationSeconds = 2.5F * u + 7.0F;
+        int ticks = Math.max(20, Math.round(durationSeconds * 20.0F));
+        return new GaugeState(Element.PYRO, u, ticks);
+    }
+
+    /**
      * Genshin Impact Freeze Aura formula:
      * U_Freeze = 2 * min(U_aura, U_trigger)
      * Duration = 2 * sqrt(5 * U_Freeze + 4) - 4 seconds.
