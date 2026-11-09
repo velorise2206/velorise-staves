@@ -288,6 +288,7 @@ public final class ElementalGaugeManager {
         CrystallizeShardManager.clearAll();
         ElectrifiedWaterManager.clearAll();
         DragonfireCloudManager.clearAll();
+        EnvironmentalBlockManager.clearAll();
     }
 
     private static void clearFreezeState(LivingEntity target, UUID id) {
@@ -1550,9 +1551,12 @@ public final class ElementalGaugeManager {
 
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
-            ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue().firstHitTime) > 100);
-            REACTION_ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100);
+            ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue().firstHitTime) > 100L);
+            REACTION_ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
             SUPERCONDUCT_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
+            INNATE_COOLDOWN_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
+            LAST_PROXIMITY_SHOCK.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
+            LAST_BLOOM_SPAWN.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
         }
 
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
@@ -1588,6 +1592,7 @@ public final class ElementalGaugeManager {
                 LAST_BURN_PYRO_REFRESH.remove(id);
                 INNATE_COOLDOWN_UNTIL.remove(id);
                 ELECTRO_CHARGE_TICK.remove(id);
+                LAST_BLOOM_SPAWN.remove(id);
                 SUPERCONDUCT_UNTIL.remove(id);
                 continue;
             }

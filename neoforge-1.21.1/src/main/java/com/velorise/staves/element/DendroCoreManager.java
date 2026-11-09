@@ -376,6 +376,15 @@ public final class DendroCoreManager {
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
+        if (now % 100 == 0) {
+            LAST_DMG_TICK.entrySet().removeIf(e -> {
+                if (now - e.getValue() >= 20L) {
+                    DMG_INSTANCE_COUNT.remove(e.getKey());
+                    return true;
+                }
+                return false;
+            });
+        }
 
         // 1. Tick Hyperbloom Bézier homing missiles (Sprawling Shot 3D flight)
         Iterator<HyperbloomMissile> missileIt = MISSILES.iterator();

@@ -160,6 +160,10 @@ public final class CrystallizeShardManager {
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
+        if (now % 100 == 0) {
+            LAST_MOB_SHARD_TICK.entrySet().removeIf(e -> (now - e.getValue()) >= 100L);
+            ACTIVE_SHIELDS.entrySet().removeIf(e -> now >= e.getValue().expireTick);
+        }
 
         // Break Crystallize shield immediately if player's Absorption hearts are depleted
         for (ServerPlayer player : level.players()) {
@@ -355,11 +359,13 @@ public final class CrystallizeShardManager {
 
     public static void clearAll() {
         for (ShardEntry shard : SHARDS) {
+            cleanUpShardTeam(shard);
             if (shard.entity.isAlive()) {
                 shard.entity.discard();
             }
         }
         SHARDS.clear();
         ACTIVE_SHIELDS.clear();
+        LAST_MOB_SHARD_TICK.clear();
     }
 }

@@ -28,6 +28,10 @@ public final class EnvironmentalBlockManager {
 
     private EnvironmentalBlockManager() {}
 
+    public static void clearAll() {
+        LAST_AMETHYST_ZAP.clear();
+    }
+
     public static void tick(MinecraftServer server) {
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
