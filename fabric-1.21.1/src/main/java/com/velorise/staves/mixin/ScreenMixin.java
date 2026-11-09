@@ -1,5 +1,6 @@
 package com.velorise.staves.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.velorise.staves.client.ClientAuraRenderer;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -14,6 +15,8 @@ public abstract class ScreenMixin {
     @Inject(method = "renderWithTooltip", at = @At("HEAD"))
     private void velorise$beforeRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ClientAuraRenderer.setRenderingScreen(true);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @Inject(method = "renderWithTooltip", at = @At("RETURN"))
@@ -23,5 +26,7 @@ public abstract class ScreenMixin {
             AbstractContainerScreenAccessor accessor = (AbstractContainerScreenAccessor) screen;
             ClientAuraRenderer.renderInventoryAura(guiGraphics, screen, accessor.velorise$getLeftPos(), accessor.velorise$getTopPos(), accessor.velorise$getImageWidth(), mouseX, mouseY);
         }
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }

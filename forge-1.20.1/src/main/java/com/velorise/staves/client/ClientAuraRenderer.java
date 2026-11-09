@@ -52,6 +52,8 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
         renderingScreen = true;
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @SubscribeEvent
@@ -60,6 +62,8 @@ public final class ClientAuraRenderer {
         if (event.getScreen() instanceof EffectRenderingInventoryScreen<?> screen && screen.canSeeEffects()) {
             renderInventoryAura(event.getGuiGraphics(), screen, screen.getGuiLeft(), screen.getGuiTop(), screen.getXSize(), event.getMouseX(), event.getMouseY());
         }
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @SubscribeEvent
@@ -75,6 +79,8 @@ public final class ClientAuraRenderer {
     public static void onRenderGuiOverlay(RenderGuiOverlayEvent.Post event) {
         if (event.getOverlay().id().equals(VanillaGuiOverlay.HOTBAR.id())) {
             renderPlayerAuraHud(event.getGuiGraphics());
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
         }
     }
 
@@ -426,6 +432,10 @@ public final class ClientAuraRenderer {
             }
         }
 
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
         int index = 0;
         for (Element elem : data.elements) {
             int col;
@@ -451,20 +461,27 @@ public final class ClientAuraRenderer {
             }
 
             RenderSystem.enableBlend();
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
 
-            // Vanilla 24x24 effect background (from inventory.png at u=141, v=166)
+            // Vanilla 24x24 effect background (from inventory.png at u=141, v=166, solid background, never blinks)
             guiGraphics.blit(INVENTORY_LOCATION, x, y, 141, 166, 24, 24);
 
-            // 16x16 Element icon centered inside the 24x24 box
+            // 16x16 Element icon centered inside the 24x24 box (blinks during last 3 seconds)
             ResourceLocation tex = HUD_TEXTURES.get(elem);
             if (tex != null) {
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+                }
                 guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+                }
             }
-
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             index++;
         }
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     public static void renderInventoryAura(
@@ -502,6 +519,11 @@ public final class ClientAuraRenderer {
         int availableWidth = screen.width - startX;
         if (availableWidth < 32) return;
 
+        // Flush any pending screen elements (such as hovered slot tooltip) to prevent shader color bleed
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
         boolean isWide = availableWidth >= 120;
         int vanillaCount = mc.player.getActiveEffects().size();
         int totalEffects = vanillaCount + data.elements.size();
@@ -520,7 +542,6 @@ public final class ClientAuraRenderer {
             }
 
             RenderSystem.enableBlend();
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, alpha);
 
             String elemName = elem.name().charAt(0) + elem.name().substring(1).toLowerCase(Locale.ROOT);
             String title = elemName + " Aura";
@@ -540,7 +561,14 @@ public final class ClientAuraRenderer {
                 // Wide Mode: 120x32 effect card matching vanilla inventory.png layout
                 guiGraphics.blit(INVENTORY_LOCATION, startX, y, 0, 166, 120, 32);
                 if (tex != null) {
+                    if (alpha < 1.0F) {
+                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+                    }
                     guiGraphics.blit(tex, startX + 7, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                    if (alpha < 1.0F) {
+                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    }
                 }
                 guiGraphics.drawString(mc.font, title, startX + 28, y + 6, getElementTextColor(elem), true);
                 if (!durationStr.isEmpty()) {
@@ -550,7 +578,14 @@ public final class ClientAuraRenderer {
                 // Compact Mode: 32x32 square
                 guiGraphics.blit(INVENTORY_LOCATION, startX, y, 141, 166, 32, 32);
                 if (tex != null) {
+                    if (alpha < 1.0F) {
+                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+                    }
                     guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                    if (alpha < 1.0F) {
+                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    }
                 }
                 if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
                     List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
@@ -562,8 +597,10 @@ public final class ClientAuraRenderer {
                 }
             }
 
-            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             index++;
         }
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 }
