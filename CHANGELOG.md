@@ -19,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Forward Melt* (🔥 on ❄️, $2.0\times$ U consumption, $\times 2.0$ DMG).
     - *Reverse Melt* (❄️ on 🔥, $0.5\times$ U consumption, $\times 1.5$ DMG).
     - *Overloaded* (🔥 + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE explosion + knockback).
-    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast + Weakness II for $8\text{s}$).
+    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast deal $1.0$ DMG ($0.5$ heart) + reduces enemy Physical RES by $40\%$ for $12\text{s}$, increasing physical damage from swords/arrows by $+40\%$).
     - *Frozen & Shatter* (💧 + ❄️ immobilizes for $3.5\text{s}$; 🪨 Geo triggers Shatter for $+10.0$ physical burst damage).
     - *Electro-Charged* (💧 + ⚡ coexisting auras, continuous lightning chain damage at $0.4\text{U/s}$).
     - *Burning* (🔥 + 🌿 continuous fire damage consuming $0.4\text{U/s}$ Dendro).
-    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+5.0$ DMG and 🌿 triggers Spread $+6.5$ DMG without consuming Quicken).
+    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+1.0$ DMG ($0.5$ heart) and 🌿 triggers Spread $+1.25$ DMG without consuming Quicken).
     - *Bloom* (💧 + 🌿 creates Dendro core $3.0\text{m}$ AoE spore explosion).
     - *Overvape* (🔥 on Hydro + Electro triggers simultaneous Vaporize and Overload).
     - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).
@@ -71,11 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - *Forward Melt* (🔥 on ❄️, $2.0\times$ U consumption, $\times 2.0$ DMG).
     - *Reverse Melt* (❄️ on 🔥, $0.5\times$ U consumption, $\times 1.5$ DMG).
     - *Overloaded* (🔥 + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE explosion + knockback).
-    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast + Weakness II for $8\text{s}$).
+    - *Superconduct* (❄️ + ⚡, $1.0\times$ U, $3.5\text{m}$ AoE Cryo blast deal $1.0$ DMG ($0.5$ heart) + reduces enemy Physical RES by $40\%$ for $12\text{s}$, increasing physical damage from swords/arrows by $+40\%$).
     - *Frozen & Shatter* (💧 + ❄️ immobilizes for $3.5\text{s}$; 🪨 Geo triggers Shatter for $+10.0$ physical burst damage).
     - *Electro-Charged* (💧 + ⚡ coexisting auras, continuous lightning chain damage at $0.4\text{U/s}$).
     - *Burning* (🔥 + 🌿 continuous fire damage consuming $0.4\text{U/s}$ Dendro).
-    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+5.0$ DMG and 🌿 triggers Spread $+6.5$ DMG without consuming Quicken).
+    - *Quicken, Aggravate & Spread* (⚡ + 🌿 creates Quicken; ⚡ triggers Aggravate $+1.0$ DMG ($0.5$ heart) and 🌿 triggers Spread $+1.25$ DMG without consuming Quicken).
     - *Bloom* (💧 + 🌿 creates Dendro core $3.0\text{m}$ AoE spore explosion).
     - *Overvape* (🔥 on Hydro + Electro triggers simultaneous Vaporize and Overload).
     - *Swirl* (🌪️ consumes $0.5\times$ aura, triggers $5\text{m}$ elemental vortex spreading the element to all nearby mobs).

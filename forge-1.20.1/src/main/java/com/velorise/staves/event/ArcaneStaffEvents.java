@@ -179,6 +179,13 @@ public final class ArcaneStaffEvents {
                 }
             }
         }
+        long now = entity.level().getGameTime();
+        if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(event.getSource())) {
+            event.setAmount(event.getAmount() * 1.4F);
+            if (entity.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.05D);
+            }
+        }
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
     }
 

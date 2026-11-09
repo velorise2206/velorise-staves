@@ -231,6 +231,11 @@ public final class VeloriseStavesMod implements ModInitializer {
             ElementalGaugeManager.clearAll();
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
+            if (!blocked && afterDamage > 0.0F && !entity.level().isClientSide()) {
+                if (ElementalGaugeManager.hasSuperconductDebuff(entity, entity.level().getGameTime()) && ElementalGaugeManager.isPhysicalDamage(source)) {
+                    ElementalGaugeManager.applySuperconductBonusDamage(entity, afterDamage * 0.4F);
+                }
+            }
             ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {

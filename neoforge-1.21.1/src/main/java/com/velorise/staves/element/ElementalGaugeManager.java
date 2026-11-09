@@ -73,6 +73,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
     private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> SUPERCONDUCT_UNTIL = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
     public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
 
@@ -203,6 +204,24 @@ public final class ElementalGaugeManager {
         return set;
     }
 
+    public static boolean hasSuperconductDebuff(LivingEntity entity, long now) {
+        Long until = SUPERCONDUCT_UNTIL.get(entity.getUUID());
+        return until != null && now < until;
+    }
+
+    public static boolean isPhysicalDamage(DamageSource source) {
+        if (source.is(DamageTypeTags.BYPASSES_ARMOR)) return false;
+        if (source.is(DamageTypeTags.IS_FIRE)) return false;
+        if (source.is(DamageTypeTags.IS_FREEZING)) return false;
+        if (source.is(DamageTypeTags.IS_LIGHTNING)) return false;
+        if (source.is(DamageTypeTags.WITCH_RESISTANT_TO)) return false;
+        if (source.is(DamageTypes.MAGIC) || source.is(DamageTypes.INDIRECT_MAGIC) || source.is(DamageTypes.GENERIC)) return false;
+        if (source.is(DamageTypes.PLAYER_ATTACK) || source.is(DamageTypes.MOB_ATTACK) || source.is(DamageTypes.ARROW) || source.is(DamageTypes.TRIDENT)) return true;
+        if (source.is(DamageTypeTags.IS_PROJECTILE)) return true;
+        return source.getDirectEntity() instanceof net.minecraft.world.entity.player.Player
+                || source.getEntity() instanceof net.minecraft.world.entity.player.Player;
+    }
+
     public static void clearAll() {
         GAUGES.clear();
         FROZEN_GAUGES.clear();
@@ -215,6 +234,7 @@ public final class ElementalGaugeManager {
         ELECTRO_CHARGE_TICK.clear();
         LAST_PROXIMITY_SHOCK.clear();
         LAST_BLOOM_SPAWN.clear();
+        SUPERCONDUCT_UNTIL.clear();
         ICD_TRACKER.clear();
         REACTION_ICD_TRACKER.clear();
         DendroCoreManager.clearAll();
@@ -845,8 +865,8 @@ public final class ElementalGaugeManager {
         }
 
         // 1. Quicken / Catalyze Checks (Independent Quicken Aura coexisting with Dendro/Electro):
-        //    - Electro triggers Aggravate (+5.0 DMG) without consuming Quicken, and can STILL react with underlying Dendro (to refresh Quicken) or coexist!
-        //    - Dendro triggers Spread (+6.5 DMG) without consuming Quicken, and can STILL react with underlying Electro (to refresh Quicken) or coexist!
+        //    - Electro triggers Aggravate (+1.0 DMG) without consuming Quicken, and can STILL react with underlying Dendro (to refresh Quicken) or coexist!
+        //    - Dendro triggers Spread (+1.25 DMG) without consuming Quicken, and can STILL react with underlying Electro (to refresh Quicken) or coexist!
         //    - Pyro / Hydro react directly with the Quicken aura (acting as a Dendro gauge).
         GaugeState quickenGauge = QUICKEN_GAUGES.get(targetId);
         Long quickenEnd = QUICKEN_UNTIL.get(targetId);
@@ -856,7 +876,7 @@ public final class ElementalGaugeManager {
         if (hasQuicken) {
             if (attackElement == Element.ELECTRO) {
                 if (checkReactionIcd(target, ElementalReaction.AGGRAVATE, now)) {
-                    float bonus = (float) (5.0F * dmgMult);
+                    float bonus = (float) (1.0F * dmgMult);
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.AGGRAVATE;
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
@@ -877,7 +897,7 @@ public final class ElementalGaugeManager {
                 }
             } else if (attackElement == Element.DENDRO) {
                 if (checkReactionIcd(target, ElementalReaction.SPREAD, now)) {
-                    float bonus = (float) (6.5F * dmgMult);
+                    float bonus = (float) (1.25F * dmgMult);
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.SPREAD;
                     level.sendParticles(ParticleTypes.GLOW, target.getX(), target.getY() + 1.0D, target.getZ(), 20, 0.35D, 0.4D, 0.35D, 0.05D);
@@ -1308,14 +1328,16 @@ public final class ElementalGaugeManager {
                 level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 1.2D, 0.5D, 1.2D, 0.03D);
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 15, 0.8D, 0.5D, 0.8D, 0.06D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.9F, 1.2F);
+                long debuffEnd = level.getGameTime() + 240L; // 12 seconds Physical RES shred (-40% Physical RES)
+                SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
                 AABB box = target.getBoundingBox().inflate(3.5D);
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    float dmg = (float) (4.5F * dmgMult);
+                    float dmg = (float) (1.0F * dmgMult); // 0.5 heart Cryo AoE damage
                     if (nearby instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.CRYO) {
                         dmg *= 0.4F;
                     }
                     nearby.hurt(level.damageSources().freeze(), dmg);
-                    nearby.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 160, 1));
+                    SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
                     nearby.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 0));
                 }
             }
@@ -1422,6 +1444,7 @@ public final class ElementalGaugeManager {
         if (serverNow % 100 == 0) {
             ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue().firstHitTime) > 100);
             REACTION_ICD_TRACKER.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100);
+            SUPERCONDUCT_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
         }
 
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
@@ -1457,6 +1480,7 @@ public final class ElementalGaugeManager {
                 LAST_BURN_PYRO_REFRESH.remove(id);
                 INNATE_COOLDOWN_UNTIL.remove(id);
                 ELECTRO_CHARGE_TICK.remove(id);
+                SUPERCONDUCT_UNTIL.remove(id);
                 continue;
             }
 

@@ -151,8 +151,13 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onLivingDamagePre(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
-        if (event.getEntity() instanceof ServerPlayer sp && !sp.level().isClientSide()) {
-            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, sp.level().getGameTime());
+        LivingEntity entity = event.getEntity();
+        if (entity.level().isClientSide()) return;
+        long now = entity.level().getGameTime();
+
+        // 1. Crystallize Elemental Shield (250% absorption against matching element)
+        if (entity instanceof ServerPlayer sp) {
+            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, now);
             if (activeShield != null) {
                 DamageSource src = event.getSource();
                 Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
@@ -174,6 +179,14 @@ public final class ArcaneStaffEvents {
                     sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
                             SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
                 }
+            }
+        }
+
+        // 2. Superconduct Physical RES Shred (-40% Physical Resistance -> +40% Physical Damage Taken)
+        if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(event.getSource())) {
+            event.setNewDamage(event.getNewDamage() * 1.4F);
+            if (entity.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.05D);
             }
         }
     }
