@@ -41,6 +41,7 @@ import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.Zoglin;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.projectile.EvokerFangs;
@@ -502,7 +503,8 @@ public final class ElementalGaugeManager {
                 || target instanceof Strider
                 || target instanceof Ghast
                 || target instanceof WitherSkeleton
-                || target instanceof ZombifiedPiglin) {
+                || target instanceof ZombifiedPiglin
+                || target instanceof Zoglin) {
             return Element.PYRO;
         }
         if (target instanceof Stray || target instanceof SnowGolem) {

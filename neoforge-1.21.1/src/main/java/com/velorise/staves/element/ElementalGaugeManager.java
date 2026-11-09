@@ -42,6 +42,7 @@ import net.minecraft.world.entity.monster.Stray;
 import net.minecraft.world.entity.monster.Strider;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.WitherSkeleton;
+import net.minecraft.world.entity.monster.Zoglin;
 import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.breeze.Breeze;
 import net.minecraft.world.entity.monster.warden.Warden;
@@ -491,7 +492,7 @@ public final class ElementalGaugeManager {
 
     /**
      * Checks whether a vanilla mob has an innate elemental aura:
-     * - #pyro_creatures: Blaze, MagmaCube, Strider, Ghast, WitherSkeleton, ZombifiedPiglin -> PYRO
+     * - #pyro_creatures: Blaze, MagmaCube, Strider, Ghast, WitherSkeleton, ZombifiedPiglin, Zoglin -> PYRO
      * - #cryo_creatures: Stray, SnowGolem -> CRYO
      * - #hydro_creatures: Guardian, ElderGuardian, Drowned -> HYDRO
      * - #anemo_creatures: Breeze (1.21+) -> ANEMO
@@ -504,7 +505,8 @@ public final class ElementalGaugeManager {
                 || target instanceof Strider
                 || target instanceof Ghast
                 || target instanceof WitherSkeleton
-                || target instanceof ZombifiedPiglin) {
+                || target instanceof ZombifiedPiglin
+                || target instanceof Zoglin) {
             return Element.PYRO;
         }
         if (target instanceof Stray || target instanceof SnowGolem) {
