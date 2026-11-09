@@ -150,6 +150,16 @@ public final class StavesConfig {
                 writer.write("magic_mirror_cooldown_seconds = " + MAGIC_MIRROR_COOLDOWN_SECONDS.get() + "\n");
                 writer.write("magic_mirror_channel_seconds = " + MAGIC_MIRROR_CHANNEL_SECONDS.get() + "\n\n");
 
+                writer.write("[elemental_gauge]\n");
+                writer.write("# Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay\n");
+                writer.write("enable_elemental_gauge = " + ENABLE_ELEMENTAL_GAUGE.get() + "\n");
+                writer.write("# Show real-time elemental reaction HUD and remaining gauge units in Actionbar\n");
+                writer.write("show_actionbar_feedback = " + SHOW_ACTIONBAR_FEEDBACK.get() + "\n");
+                writer.write("# Show ambient elemental particles hovering around affected entities\n");
+                writer.write("show_elemental_particles = " + SHOW_ELEMENTAL_PARTICLES.get() + "\n");
+                writer.write("# Render Genshin-style overhead elemental aura icons and floating reaction text above afflicted mobs\n");
+                writer.write("show_overhead_element_icons = " + SHOW_OVERHEAD_ELEMENT_ICONS.get() + "\n\n");
+
                 writer.write("[cooldowns]\n");
                 for (Map.Entry<String, ConfigEntry<?>> entry : ENTRIES.entrySet()) {
                     if (entry.getKey().startsWith("cooldowns.")) {

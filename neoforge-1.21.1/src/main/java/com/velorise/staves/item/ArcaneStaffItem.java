@@ -631,7 +631,8 @@ public final class ArcaneStaffItem extends Item {
         boolean validBase = switch (kind) {
             case DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, WITHER, GUARDIAN -> repair.is(Items.BLAZE_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
-            case EVOKER, LIGHTNING, FROST, WEB, WIND -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK) || repair.is(Items.FEATHER);
+            case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
+            case EVOKER, LIGHTNING, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
     }

@@ -2,7 +2,6 @@ package com.velorise.staves.element;
 
 import com.velorise.staves.VeloriseStavesMod;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -26,7 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Manages Genshin Impact Crystallize Elemental Shards (Mảnh Kết Tinh) in Minecraft.
  * When Geo hits Pyro/Hydro/Electro/Cryo, drops a 3D spinning elemental crystal shard.
- * Only players can pick it up; grants 1 golden heart Absorption (15s) with 250% matching elemental resistance.
+ * Only players can pick it up; grants 1 golden heart Absorption (15s) with 250% matching elemental absorption efficiency.
+ * If the Absorption shield hearts are depleted (getAbsorptionAmount() <= 0), the elemental shield breaks immediately.
  * Despawns after 17.5s (350 ticks) if not picked up.
  */
 public final class CrystallizeShardManager {
@@ -104,6 +104,18 @@ public final class CrystallizeShardManager {
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
+
+        // Break Crystallize shield immediately if player's Absorption hearts are depleted
+        for (ServerPlayer player : level.players()) {
+            UUID pid = player.getUUID();
+            ShieldEntry entry = ACTIVE_SHIELDS.get(pid);
+            if (entry != null) {
+                if (now >= entry.expireTick || player.getAbsorptionAmount() <= 0.0F || !player.hasEffect(MobEffects.ABSORPTION)) {
+                    ACTIVE_SHIELDS.remove(pid);
+                }
+            }
+        }
+
         Iterator<ShardEntry> it = SHARDS.iterator();
 
         while (it.hasNext()) {
@@ -174,6 +186,14 @@ public final class CrystallizeShardManager {
                 SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.55F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.7F, 1.3F);
+    }
+
+    public static @Nullable Element getActiveShield(ServerPlayer player, long now) {
+        if (player.getAbsorptionAmount() <= 0.0F || !player.hasEffect(MobEffects.ABSORPTION)) {
+            ACTIVE_SHIELDS.remove(player.getUUID());
+            return null;
+        }
+        return getActiveShield(player.getUUID(), now);
     }
 
     public static @Nullable Element getActiveShield(UUID playerId, long now) {

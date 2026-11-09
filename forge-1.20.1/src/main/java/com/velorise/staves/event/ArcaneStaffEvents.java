@@ -145,7 +145,6 @@ public final class ArcaneStaffEvents {
             case "shulker" -> resolveShulker(level, hit, owner, event, isNetherite);
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
-            case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
             default -> {}
         }
         projectile.discard();
@@ -156,15 +155,21 @@ public final class ArcaneStaffEvents {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
         if (entity instanceof ServerPlayer sp) {
-            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
+            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, sp.level().getGameTime());
             if (activeShield != null) {
                 DamageSource src = event.getSource();
-                boolean matches = false;
+                Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
+                        ? ElementalGaugeManager.getInnateElement(attackerMob) : null;
+                boolean matches = (attackerInnate == activeShield);
                 if (activeShield == Element.PYRO && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
                     matches = true;
                 } else if (activeShield == Element.ELECTRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || src.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH))) {
                     matches = true;
                 } else if (activeShield == Element.CRYO && src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)) {
+                    matches = true;
+                } else if (activeShield == Element.HYDRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
+                        || src.is(net.minecraft.world.damagesource.DamageTypes.TRIDENT)
+                        || src.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident)) {
                     matches = true;
                 }
                 if (matches) {
@@ -211,9 +216,6 @@ public final class ArcaneStaffEvents {
                     continue;
                 }
                 String kindTag = projectile.getPersistentData().getString(TAG_KIND);
-                if (kindTag.endsWith("wind")) {
-                    level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
-                }
 
                 // Check Cryo water surface freezing for Snowball and Frostbolt wand
                 boolean isSnowball = projectile instanceof Snowball;
@@ -461,34 +463,6 @@ public final class ArcaneStaffEvents {
 
         level.sendParticles(ParticleTypes.POOF, hit.x, hit.y, hit.z, 14, 0.25D, 0.25D, 0.25D, 0.02D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.7F, 1.5F);
-    }
-
-    private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
-        ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 2.5F : 1.5F;
-        float attackU = isNetherite ? 1.5F : 1.0F;
-        double radius = isNetherite ? 4.5D : 3.5D;
-
-        level.sendParticles(ParticleTypes.CLOUD, hit.x, hit.y + 0.3D, hit.z, 20, 0.4D, 0.3D, 0.4D, 0.08D);
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, hit.x, hit.y + 0.5D, hit.z, 6, 0.5D, 0.2D, 0.5D, 0.0D);
-        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 0.7F);
-
-        LivingEntity directHit = hitEntity(event);
-        if (directHit != null && directHit != owner) {
-            ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
-        }
-
-        AABB blastBox = new AABB(hit, hit).inflate(radius);
-        double radiusSqr = radius * radius;
-        for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
-            if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
-                Vec3 diff = nearby.position().subtract(hit);
-                Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.6D, 0.35D, knock.z * 0.6D));
-                nearby.hurtMarked = true;
-                ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
-            }
-        }
     }
 
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite) {

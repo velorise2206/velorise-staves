@@ -186,41 +186,6 @@ public final class VeloriseStavesMod implements ModInitializer {
         com.velorise.staves.network.ModNetwork.registerCommon();
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
 
-        // Populate dedicated creative tab via Fabric ItemGroupEvents
-        ItemGroupEvents.modifyEntriesEvent(TAB_KEY).register(entries -> {
-            // Basic tier
-            entries.accept(DRAGONFIRE_SCEPTER);
-            entries.accept(RESONANT_ECHO);
-            entries.accept(INFERNO_ROD);
-            entries.accept(GHASTFIRE_STAFF);
-            entries.accept(WITHER_SCEPTER);
-            entries.accept(SHULKER_SEEKER);
-            entries.accept(GUARDIAN_LENS);
-            entries.accept(EVOKER_FANG_STAFF);
-            entries.accept(ARC_CASTER);
-            entries.accept(FROSTBOLT_WAND);
-            entries.accept(WEBCASTER);
-            entries.accept(WIND_STAFF);
-            entries.accept(VOID_TRANSLOCATOR);
-            entries.accept(MAGIC_MIRROR);
-
-            // Netherite tier
-            entries.accept(NETHERITE_DRAGONFIRE_SCEPTER);
-            entries.accept(NETHERITE_RESONANT_ECHO);
-            entries.accept(NETHERITE_INFERNO_ROD);
-            entries.accept(NETHERITE_GHASTFIRE_STAFF);
-            entries.accept(NETHERITE_WITHER_SCEPTER);
-            entries.accept(NETHERITE_SHULKER_SEEKER);
-            entries.accept(NETHERITE_GUARDIAN_LENS);
-            entries.accept(NETHERITE_EVOKER_FANG_STAFF);
-            entries.accept(NETHERITE_ARC_CASTER);
-            entries.accept(NETHERITE_FROSTBOLT_WAND);
-            entries.accept(NETHERITE_WEBCASTER);
-            entries.accept(NETHERITE_WIND_STAFF);
-            entries.accept(NETHERITE_VOID_TRANSLOCATOR);
-            entries.accept(NETHERITE_MAGIC_MIRROR);
-        });
-
         // Also add combat staves to vanilla Combat tab so players never miss them
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.COMBAT).register(entries -> {
             entries.accept(DRAGONFIRE_SCEPTER);

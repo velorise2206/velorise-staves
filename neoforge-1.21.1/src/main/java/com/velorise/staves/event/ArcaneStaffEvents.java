@@ -152,15 +152,21 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDamagePre(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
         if (event.getEntity() instanceof ServerPlayer sp && !sp.level().isClientSide()) {
-            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
+            Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, sp.level().getGameTime());
             if (activeShield != null) {
                 DamageSource src = event.getSource();
-                boolean matches = false;
+                Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
+                        ? ElementalGaugeManager.getInnateElement(attackerMob) : null;
+                boolean matches = (attackerInnate == activeShield);
                 if (activeShield == Element.PYRO && src.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
                     matches = true;
                 } else if (activeShield == Element.ELECTRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_LIGHTNING) || src.is(net.minecraft.world.damagesource.DamageTypes.DRAGON_BREATH))) {
                     matches = true;
                 } else if (activeShield == Element.CRYO && src.is(net.minecraft.tags.DamageTypeTags.IS_FREEZING)) {
+                    matches = true;
+                } else if (activeShield == Element.HYDRO && (src.is(net.minecraft.tags.DamageTypeTags.IS_DROWNING)
+                        || src.is(net.minecraft.world.damagesource.DamageTypes.TRIDENT)
+                        || src.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident)) {
                     matches = true;
                 }
                 if (matches) {

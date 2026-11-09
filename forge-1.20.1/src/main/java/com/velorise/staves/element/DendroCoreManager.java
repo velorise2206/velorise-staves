@@ -195,7 +195,7 @@ public final class DendroCoreManager {
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
                 float effectiveDmg = burgeonDmg;
-                if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), core.level.getGameTime()) == Element.PYRO) {
+                if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, core.level.getGameTime()) == Element.PYRO) {
                     effectiveDmg *= 0.4F;
                 }
                 victim.hurt(core.level.damageSources().magic(), effectiveDmg);

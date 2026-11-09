@@ -3,6 +3,10 @@
   "values": [
     "minecraft:blaze",
     "minecraft:magma_cube",
-    "minecraft:strider"
+    "minecraft:strider",
+    "minecraft:ghast",
+    "minecraft:wither_skeleton",
+    "minecraft:zombified_piglin",
+    "minecraft:zoglin"
   ]
 }
