@@ -34,6 +34,7 @@ import net.minecraft.world.entity.animal.WaterAnimal;
 import net.minecraft.world.entity.animal.armadillo.Armadillo;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.Blaze;
 import net.minecraft.world.entity.monster.CaveSpider;
 import net.minecraft.world.entity.monster.Creeper;
@@ -745,6 +746,13 @@ public final class ElementalGaugeManager {
         return null;
     }
 
+    public static boolean isBossEntity(LivingEntity entity) {
+        return entity instanceof Warden
+                || entity instanceof EnderDragon
+                || entity instanceof WitherBoss
+                || entity instanceof ElderGuardian;
+    }
+
     public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) {
         return entity instanceof WaterAnimal || entity instanceof AmbientCreature;
     }
@@ -1215,16 +1223,17 @@ public final class ElementalGaugeManager {
                 // When Frozen is triggered:
                 // - Preserve any unconsumed underlying HYDRO or CRYO aura in targetGauges!
                 // - Compute U_Freeze = 2 * min(U_aura, U_trigger) and dynamic duration T_Freeze = 2 * sqrt(5 * U_Freeze + 4) - 4s
+                // - Genshin Boss Freeze Immunity: Bosses (Warden, Ender Dragon, Wither, Elder Guardian) cannot be immobilized
                 if (reaction == ElementalReaction.FROZEN) {
                     float freezeU = 2.0F * Math.min(auraUnitsBefore, attackU);
                     GaugeState newFreeze = GaugeState.createFrozen(Math.max(0.8F, freezeU));
                     int freezeTicks = newFreeze.getRemainingTicks();
-                    if (innateElement == null) {
+                    if (innateElement == null && !isBossEntity(target)) {
                         FROZEN_GAUGES.put(targetId, newFreeze);
+                        FROZEN_UNTIL.put(targetId, now + freezeTicks);
+                        target.setTicksFrozen(freezeTicks + 40);
+                        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks, 6));
                     }
-                    FROZEN_UNTIL.put(targetId, now + freezeTicks);
-                    target.setTicksFrozen(freezeTicks + 40);
-                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks, 6));
                 }
 
                 // When Quicken is triggered:
@@ -1279,12 +1288,12 @@ public final class ElementalGaugeManager {
                                     float freezeU2 = 2.0F * Math.min(aura2Before, remainingAttackU);
                                     GaugeState newFreeze2 = GaugeState.createFrozen(Math.max(0.8F, freezeU2));
                                     int freezeTicks2 = newFreeze2.getRemainingTicks();
-                                    if (innateElement == null) {
+                                    if (innateElement == null && !isBossEntity(target)) {
                                         FROZEN_GAUGES.put(targetId, newFreeze2);
+                                        FROZEN_UNTIL.put(targetId, now + freezeTicks2);
+                                        target.setTicksFrozen(freezeTicks2 + 40);
+                                        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks2, 6));
                                     }
-                                    FROZEN_UNTIL.put(targetId, now + freezeTicks2);
-                                    target.setTicksFrozen(freezeTicks2 + 40);
-                                    target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks2, 6));
                                 }
                                 executeReactionEffect(level, target, secondaryReaction, secondaryAura, removed2, attacker, dmgMult);
                             }
@@ -1651,7 +1660,12 @@ public final class ElementalGaugeManager {
             // Tick independent Freeze gauge
             GaugeState fg = FROZEN_GAUGES.get(id);
             Long frozenEnd = FROZEN_UNTIL.get(id);
-            if (fg != null) {
+            if (isBossEntity(target)) {
+                if (fg != null || frozenEnd != null) {
+                    clearFreezeState(target, id);
+                    changed = true;
+                }
+            } else if (fg != null) {
                 fg.tick();
                 if (fg.isExpired() || (frozenEnd != null && now >= frozenEnd)) {
                     clearFreezeState(target, id);
