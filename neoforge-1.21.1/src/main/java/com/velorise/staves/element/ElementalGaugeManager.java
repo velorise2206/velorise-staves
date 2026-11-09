@@ -1460,10 +1460,7 @@ public final class ElementalGaugeManager {
                 float swirlSpreadU = Math.max(0.5F, (Math.max(0.04F, removedAuraU) - 0.04F) * 1.25F + 1.5F);
                 float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult);
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != target && e != attacker)) {
-                    if (swirlAoeDmg > 0.0F) {
-                        nearby.hurt(level.damageSources().magic(), swirlAoeDmg);
-                    }
-                    applyElement(level, nearby, auraElement, swirlSpreadU, attacker, 0.0F);
+                    applyElement(level, nearby, auraElement, swirlSpreadU, attacker, swirlAoeDmg);
                 }
             }
             case CRYSTALLIZE -> {
