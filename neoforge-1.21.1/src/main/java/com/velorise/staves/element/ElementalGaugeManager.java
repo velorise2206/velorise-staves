@@ -1461,6 +1461,7 @@ public final class ElementalGaugeManager {
             ElectrifiedWaterManager.tick(lvl);
             DragonfireCloudManager.tick(lvl);
         }
+        EnvironmentalBlockManager.tick(server);
 
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
