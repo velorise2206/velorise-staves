@@ -138,7 +138,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> castFangs(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
-            case WIND -> shootSnowball(serverPlayer, "wind", 1.6F);
+            case WIND -> shootWind(serverPlayer);
             case ECHO, GUARDIAN, LIGHTNING -> false;
         };
 
@@ -380,6 +380,17 @@ public final class ArcaneStaffItem extends Item {
         }
         if (spawned <= 0) return false;
         level.playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, 0.8F, 1.15F);
+        return true;
+    }
+
+    private boolean shootWind(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        net.minecraft.world.entity.projectile.windcharge.WindCharge projectile =
+            new net.minecraft.world.entity.projectile.windcharge.WindCharge(player, level, player.getX(), player.getEyeY() - 0.1D, player.getZ());
+        String tag = isNetherite ? "netherite_wind" : "wind";
+        prepareProjectile(projectile, player, tag, 28.0D, 1.6F);
+        level.addFreshEntity(projectile);
+        level.playSound(null, player.blockPosition(), SoundEvents.WIND_CHARGE_THROW, SoundSource.PLAYERS, 0.9F, 1.0F);
         return true;
     }
 

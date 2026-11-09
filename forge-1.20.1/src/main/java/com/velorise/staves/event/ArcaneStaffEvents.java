@@ -238,9 +238,12 @@ public final class ArcaneStaffEvents {
                     continue;
                 }
                 String kindTag = projectile.getPersistentData().getString(TAG_KIND);
+                if (kindTag.endsWith("wind")) {
+                    level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
+                }
 
-                // Check Cryo water surface freezing for Snowball and Frostbolt wand
-                boolean isSnowball = projectile instanceof Snowball;
+                // Check Cryo water surface freezing for plain Snowball and Frostbolt wand
+                boolean isSnowball = projectile instanceof Snowball && kindTag.isEmpty();
                 boolean isFrostStaff = kindTag.endsWith("frost");
                 if (isSnowball || isFrostStaff) {
                     Vec3 pos = projectile.position();

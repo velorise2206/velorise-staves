@@ -78,8 +78,8 @@ public final class ArcaneStaffEvents {
             }
         }
 
-        // Check Cryo water surface freezing for Snowball and Frost staff projectile
-        boolean isSnowball = projectile instanceof Snowball;
+        // Check Cryo water surface freezing for plain Snowball and Frost staff projectile
+        boolean isSnowball = projectile instanceof Snowball && (kind == null || kind.isEmpty());
         boolean isFrostStaff = kind != null && kind.endsWith("frost");
         if (isSnowball || isFrostStaff) {
             Vec3 pos = projectile.position();
