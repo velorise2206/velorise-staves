@@ -1171,7 +1171,9 @@ public final class ElementalGaugeManager {
                 }
 
                 float auraUnitsBefore = aura.getUnits();
-                float consumed = attackU * reaction.getConsumptionModifier();
+                float consumed = (reaction == ElementalReaction.QUICKEN)
+                        ? Math.min(auraUnitsBefore, attackU * 0.8F)
+                        : attackU * reaction.getConsumptionModifier();
                 float removedAuraU = Math.min(auraUnitsBefore, consumed);
                 aura.consume(consumed);
                 boolean auraDepleted = aura.isExpired();
@@ -1213,12 +1215,23 @@ public final class ElementalGaugeManager {
                 // - U_Quicken = min(U_aura, U_trigger * 0.8), Duration = 5 * U_Quicken + 6s
                 // - Store in independent QUICKEN_GAUGES so leftover Dendro/Electro can coexist in targetGauges
                 if (reaction == ElementalReaction.QUICKEN) {
-                    float quickenU = Math.max(0.4F, Math.min(auraUnitsBefore, attackU * 0.8F));
+                    float postTaxAttackU = attackU * 0.8F;
+                    float quickenU = Math.max(0.4F, Math.min(auraUnitsBefore, postTaxAttackU));
                     GaugeState newQuicken = GaugeState.createQuicken(quickenU);
                     GaugeState existingQuicken = QUICKEN_GAUGES.get(targetId);
                     if (existingQuicken == null || newQuicken.getRemainingTicks() > existingQuicken.getRemainingTicks()) {
                         QUICKEN_GAUGES.put(targetId, newQuicken);
                         QUICKEN_UNTIL.put(targetId, now + newQuicken.getRemainingTicks());
+                    }
+
+                    // Leftover trigger gauge if trigger attack was stronger than reacted aura
+                    float leftoverTriggerU = postTaxAttackU - auraUnitsBefore;
+                    if (leftoverTriggerU > 0.05F && innateElement == null) {
+                        if (targetGauges.containsKey(attackElement)) {
+                            targetGauges.get(attackElement).refresh(leftoverTriggerU);
+                        } else {
+                            targetGauges.put(attackElement, GaugeState.createLeftover(attackElement, leftoverTriggerU, attackU));
+                        }
                     }
                 }
 

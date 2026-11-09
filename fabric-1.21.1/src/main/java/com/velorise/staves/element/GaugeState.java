@@ -60,6 +60,20 @@ public final class GaugeState {
     }
 
     /**
+     * Genshin Impact Leftover Trigger Aura:
+     * When a trigger attack has higher gauge units than the reacted aura,
+     * the unconsumed trigger gauge lingers with the decay rate of the trigger attack.
+     */
+    public static GaugeState createLeftover(Element element, float leftoverUnits, float originalAttackU) {
+        float u = Math.max(0.01F, leftoverUnits);
+        float totalDurationSec = 2.5F * originalAttackU + 7.0F;
+        int totalTicks = Math.max(20, Math.round(totalDurationSec * 20.0F));
+        float decayPerTick = (originalAttackU * 0.8F) / (float) totalTicks;
+        int remainingTicks = Math.max(20, Math.round(u / decayPerTick));
+        return new GaugeState(element, u, remainingTicks);
+    }
+
+    /**
      * Genshin Impact Freeze Aura formula:
      * U_Freeze = 2 * min(U_aura, U_trigger)
      * Duration = 2 * sqrt(5 * U_Freeze + 4) - 4 seconds.
