@@ -369,8 +369,11 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
-                // 13. Evoker Fangs -> Geo (1.0U)
-                if (source.getDirectEntity() instanceof EvokerFangs) {
+                // 13. Evoker Fangs -> Geo (1.0U) (only for natural/wild Evokers)
+                if (source.getDirectEntity() instanceof EvokerFangs fangs) {
+                    if (fangs.getTags().contains("velorise_staves:geo_fangs")) {
+                        return; // Handled with custom Geo damage & immunity at bite time
+                    }
                     ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
                     applyElement(level, target, Element.GEO, 1.0F, attacker, 0.0F);
                     return;

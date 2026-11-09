@@ -191,7 +191,7 @@ public final class ArcaneStaffEvents {
         cloud.setDuration(120); // 6 seconds
         cloud.setRadiusPerTick(((radius + 1.0F) - cloud.getRadius()) / (float) cloud.getDuration());
         cloud.setWaitTime(10);
-        cloud.addEffect(new MobEffectInstance(MobEffects.HARM, 1, isNetherite ? 1 : 0));
+        // Visual-only dragon breath cloud: vanilla MobEffects.HARM omitted to prevent unresistable vanilla magic damage
         cloud.addTag("velorise_staves:dragonfire_cloud");
         level.addFreshEntity(cloud);
 

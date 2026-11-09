@@ -427,20 +427,18 @@ public final class ArcaneStaffItem extends Item {
         flat = flat.normalize();
         int count = isNetherite ? 13 : 9;
         float yaw = (float)Math.atan2(flat.z, flat.x);
-        float baseDmg = isNetherite ? 4.5F : 3.0F;
-        float attackU = isNetherite ? 1.5F : 1.0F;
 
         for (int i = 0; i < count; i++) {
             double distance = 1.5D + i * 1.5D;
             double x = player.getX() + flat.x * distance;
             double z = player.getZ() + flat.z * distance;
             double y = findGroundY(level, x, player.getY(), z);
-            level.addFreshEntity(new EvokerFangs(level, x, y, z, yaw, i * 2, player));
-
-            AABB fangBox = new AABB(x - 0.9D, y - 0.5D, z - 0.9D, x + 0.9D, y + 1.6D, z + 0.9D);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, fangBox, e -> e.isAlive() && e != player)) {
-                ElementalGaugeManager.applyElement(level, target, Element.GEO, attackU, player, baseDmg);
+            EvokerFangs fangs = new EvokerFangs(level, x, y, z, yaw, i * 2, player);
+            fangs.addTag("velorise_staves:geo_fangs");
+            if (isNetherite) {
+                fangs.addTag("velorise_staves:netherite_geo_fangs");
             }
+            level.addFreshEntity(fangs);
         }
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
         return true;

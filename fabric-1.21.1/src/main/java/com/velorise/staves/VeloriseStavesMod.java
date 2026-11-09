@@ -230,6 +230,20 @@ public final class VeloriseStavesMod implements ModInitializer {
             TemporaryWebManager.clearAll(server);
             ElementalGaugeManager.clearAll();
         });
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs fangs
+                    && fangs.getTags().contains("velorise_staves:geo_fangs")) {
+                if (entity.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+                    boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
+                    float baseDmg = isNetherite ? 4.5F : 3.0F;
+                    float attackU = isNetherite ? 1.5F : 1.0F;
+                    net.minecraft.server.level.ServerPlayer attacker = source.getEntity() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null;
+                    ElementalGaugeManager.applyElement(sl, entity, com.velorise.staves.element.Element.GEO, attackU, attacker, baseDmg);
+                }
+                return false;
+            }
+            return true;
+        });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && afterDamage > 0.0F && !entity.level().isClientSide()) {
                 if (ElementalGaugeManager.hasSuperconductDebuff(entity, entity.level().getGameTime()) && ElementalGaugeManager.isPhysicalDamage(source)) {

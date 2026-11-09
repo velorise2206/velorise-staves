@@ -23,6 +23,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.projectile.ThrownPotion;
@@ -154,10 +155,24 @@ public final class ArcaneStaffEvents {
     public static void onLivingHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
+        DamageSource src = event.getSource();
+
+        // 0. Tremor Staff Evoker Fangs: cancel vanilla 6.0 magic damage, apply custom Geo element & damage at bite time
+        if (src.getDirectEntity() instanceof EvokerFangs fangs && fangs.getTags().contains("velorise_staves:geo_fangs")) {
+            event.setCanceled(true);
+            if (entity.level() instanceof ServerLevel sl) {
+                boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
+                float baseDmg = isNetherite ? 4.5F : 3.0F;
+                float attackU = isNetherite ? 1.5F : 1.0F;
+                ServerPlayer attacker = src.getEntity() instanceof ServerPlayer sp ? sp : null;
+                ElementalGaugeManager.applyElement(sl, entity, Element.GEO, attackU, attacker, baseDmg);
+            }
+            return;
+        }
+
         if (entity instanceof ServerPlayer sp) {
             Element activeShield = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp, sp.level().getGameTime());
             if (activeShield != null) {
-                DamageSource src = event.getSource();
                 Element attackerInnate = src.getEntity() instanceof LivingEntity attackerMob
                         ? ElementalGaugeManager.getInnateElement(attackerMob) : null;
                 boolean matches = (attackerInnate == activeShield);
@@ -277,7 +292,7 @@ public final class ArcaneStaffEvents {
         cloud.setDuration(120); // 6 seconds
         cloud.setRadiusPerTick(((radius + 1.0F) - cloud.getRadius()) / (float) cloud.getDuration());
         cloud.setWaitTime(10);
-        cloud.addEffect(new MobEffectInstance(MobEffects.HARM, 1, isNetherite ? 1 : 0));
+        // Visual-only dragon breath cloud: vanilla MobEffects.HARM omitted to prevent unresistable vanilla magic damage
         cloud.addTag("velorise_staves:dragonfire_cloud");
         level.addFreshEntity(cloud);
 
