@@ -1,6 +1,7 @@
 package com.velorise.staves.element;
 
 import com.velorise.staves.VeloriseStavesMod;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -95,6 +97,8 @@ public final class DendroCoreManager {
 
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
     private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
+    private static final DustParticleOptions HYPERBLOOM_GREEN = new DustParticleOptions(new Vector3f(0.32F, 1.0F, 0.15F), 1.6F);
+    private static final DustParticleOptions HYPERBLOOM_BRIGHT_GREEN = new DustParticleOptions(new Vector3f(0.55F, 1.0F, 0.25F), 1.2F);
     private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -194,9 +198,10 @@ public final class DendroCoreManager {
     private static void triggerHyperbloom(CoreEntry core, @Nullable ServerPlayer attacker) {
         Vec3 pos = core.entity.position();
         core.entity.discard();
-        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.4D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.08D);
-        core.level.sendParticles(ParticleTypes.SCULK_SOUL, pos.x, pos.y + 0.4D, pos.z, 15, 0.3D, 0.3D, 0.3D, 0.06D);
-        core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.9F, 1.6F);
+        // Electro discharge at seed bursting into vibrant Dendro green energy
+        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.35D, pos.z, 15, 0.25D, 0.25D, 0.25D, 0.08D);
+        core.level.sendParticles(HYPERBLOOM_GREEN, pos.x, pos.y + 0.35D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.0D);
+        core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.8F, 1.8F);
 
         // Find nearest living enemy within 16 blocks (Sprawling Shot homing)
         AABB search = new AABB(pos.x - 16.0D, pos.y - 12.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 16.0D, pos.z + 16.0D);
@@ -283,15 +288,17 @@ public final class DendroCoreManager {
                 currentTargetPos = m.lastKnownTargetPos;
             }
 
-            // Draw dense interpolated particle trail between tPrev and tCurr
-            int subSteps = 5;
+            // Draw dense interpolated bright neon-green particle trail between tPrev and tCurr (matching Genshin Impact Sprawling Shot)
+            int subSteps = 7;
             for (int s = 1; s <= subSteps; s++) {
                 float subT = tPrev + (tCurr - tPrev) * ((float) s / (float) subSteps);
                 Vec3 p = m.evaluate(subT, currentTargetPos);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
-                level.sendParticles(ParticleTypes.SCULK_SOUL, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.01D);
+                // Vibrant neon lime-green core and outer aura
+                level.sendParticles(HYPERBLOOM_GREEN, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                level.sendParticles(HYPERBLOOM_BRIGHT_GREEN, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
                 if (s == subSteps) {
-                    level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 2, 0.05D, 0.05D, 0.05D, 0.01D);
+                    level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 2, 0.03D, 0.03D, 0.03D, 0.01D);
+                    level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
                 }
             }
 
@@ -306,10 +313,11 @@ public final class DendroCoreManager {
                 MISSILES.remove(m);
                 Vec3 hitPos = m.evaluate(1.0F, currentTargetPos);
 
-                // Impact particles & sound
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 25, 0.4D, 0.4D, 0.4D, 0.09D);
-                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hitPos.x, hitPos.y, hitPos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
+                // Impact particles & sound: Burst of Dendro green dust, spore blossom, electric sparks, and glow
+                level.sendParticles(HYPERBLOOM_GREEN, hitPos.x, hitPos.y, hitPos.z, 30, 0.35D, 0.35D, 0.35D, 0.0D);
+                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hitPos.x, hitPos.y, hitPos.z, 25, 0.4D, 0.4D, 0.4D, 0.05D);
                 level.sendParticles(ParticleTypes.GLOW, hitPos.x, hitPos.y, hitPos.z, 8, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 15, 0.3D, 0.3D, 0.3D, 0.08D);
                 level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.85F, 1.7F);
 
                 LivingEntity victim = m.target;
