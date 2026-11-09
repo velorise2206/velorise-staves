@@ -211,6 +211,8 @@ public final class ElectrifiedWaterManager {
 
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (victim == attacker) continue;
+            // Innate Electro beings are immune to electrified water shocks
+            if (ElementalGaugeManager.getInnateElement(victim) == Element.ELECTRO) continue;
             if (ElementalGaugeManager.isEntityInWater(victim)) {
                 // Apply 0.8U Electro aura with damage, reacting with environmental Hydro wetness
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, damage);

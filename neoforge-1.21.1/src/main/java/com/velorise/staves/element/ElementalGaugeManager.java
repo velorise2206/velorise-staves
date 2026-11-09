@@ -524,7 +524,7 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // 1C. Innate Electro mob in water or rain -> Electro-Charged shock!
+        // 1C. Innate Electro mob in water or rain -> Electro discharge into water, immune to self-shock!
         if (innate == Element.ELECTRO) {
             long now = target.level().getGameTime();
             Long lastEc = INNATE_COOLDOWN_UNTIL.get(id);
@@ -533,12 +533,12 @@ public final class ElementalGaugeManager {
                 if (target.level() instanceof ServerLevel sl) {
                     sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.35D, 0.35D, 0.35D, 0.06D);
                     sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
-                    target.hurt(sl.damageSources().magic(), 2.0F);
+                    // Innate Electro beings are immune to their own electrical shocks in water
 
                     if (isEntitySubmergedInWater(target)) {
                         AABB chainBox = target.getBoundingBox().inflate(4.5D);
                         for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != target)) {
-                            if (isEntitySubmergedInWater(nearby)) {
+                            if (isEntitySubmergedInWater(nearby) && getInnateElement(nearby) != Element.ELECTRO) {
                                 drawVoltaicArc(sl, target.getEyePosition(), nearby.getEyePosition());
                                 nearby.hurt(sl.damageSources().magic(), 2.0F);
                                 applyElement(sl, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
@@ -546,7 +546,6 @@ public final class ElementalGaugeManager {
                         }
                     }
                 }
-                syncAuras(target, Collections.singleton(Element.ELECTRO), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, 2.0F);
             }
             return;
         }
@@ -1575,8 +1574,10 @@ public final class ElementalGaugeManager {
                             drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
                             targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
                             applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 2.5F);
-                            target.hurt(targetLevel.damageSources().magic(), 1.5F);
-                            syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, 1.5F);
+                            if (innate != Element.ELECTRO) {
+                                target.hurt(targetLevel.damageSources().magic(), 1.5F);
+                                syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, 1.5F);
+                            }
                             break;
                         }
                     }
@@ -1599,10 +1600,10 @@ public final class ElementalGaugeManager {
                     if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, targetLevel.getGameTime()) == Element.ELECTRO) {
                         ecDmg *= 0.4F;
                     }
-                    target.hurt(targetLevel.damageSources().magic(), ecDmg);
-                    targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.3D, 0.3D, 0.3D, 0.05D);
-                    targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
-                    syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
+                    if (innate != Element.ELECTRO) {
+                        target.hurt(targetLevel.damageSources().magic(), ecDmg);
+                        syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
+                    }
 
                     if (isEntitySubmergedInWater(target)) {
                         final LivingEntity srcTarget = target;
