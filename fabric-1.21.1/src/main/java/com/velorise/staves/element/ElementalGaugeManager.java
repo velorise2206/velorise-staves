@@ -506,6 +506,17 @@ public final class ElementalGaugeManager {
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
         float effectiveDamage = (float) (baseDamage * dmgMult);
 
+        // Crystallize Shield matching elemental resistance:
+        // 250% absorption efficiency -> 40% incoming damage (damage / 2.5)
+        if (target instanceof ServerPlayer sp && effectiveDamage > 0.0F) {
+            Element activeShield = CrystallizeShardManager.getActiveShield(sp.getUUID(), level.getGameTime());
+            if (activeShield == attackElement) {
+                effectiveDamage *= 0.4F;
+                level.playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                        SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
+            }
+        }
+
         if (!egtEnabled) {
             target.hurt(level.damageSources().magic(), effectiveDamage);
             return;
@@ -928,7 +939,11 @@ public final class ElementalGaugeManager {
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.9F, 1.2F);
                 AABB box = target.getBoundingBox().inflate(3.5D);
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    nearby.hurt(level.damageSources().freeze(), (float) (4.5F * dmgMult));
+                    float dmg = (float) (4.5F * dmgMult);
+                    if (nearby instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), level.getGameTime()) == Element.CRYO) {
+                        dmg *= 0.4F;
+                    }
+                    nearby.hurt(level.damageSources().freeze(), dmg);
                     nearby.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 160, 1));
                     nearby.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 0));
                 }
@@ -990,7 +1005,11 @@ public final class ElementalGaugeManager {
 
         AABB box = target.getBoundingBox().inflate(3.5D);
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-            victim.hurt(level.damageSources().magic(), (float) (6.0F * dmgMult));
+            float dmg = (float) (6.0F * dmgMult);
+            if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), level.getGameTime()) == Element.PYRO) {
+                dmg *= 0.4F;
+            }
+            victim.hurt(level.damageSources().magic(), dmg);
             Vec3 diff = victim == target && attacker != null
                 ? target.position().subtract(attacker.position())
                 : victim.position().subtract(pos);
@@ -1168,10 +1187,14 @@ public final class ElementalGaugeManager {
                 int counter = ELECTRO_CHARGE_TICK.getOrDefault(id, 0) + 1;
                 if (counter >= 20) {
                     counter = 0;
-                    target.hurt(targetLevel.damageSources().magic(), 2.5F);
+                    float ecDmg = 2.5F;
+                    if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), targetLevel.getGameTime()) == Element.ELECTRO) {
+                        ecDmg *= 0.4F;
+                    }
+                    target.hurt(targetLevel.damageSources().magic(), ecDmg);
                     targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.3D, 0.3D, 0.3D, 0.05D);
                     targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
-                    syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, 2.5F);
+                    syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
 
                     // Chain discharge arc to nearby wet entities ONLY IF both are in water
                     if (isEntityInWater(target)) {
@@ -1215,7 +1238,11 @@ public final class ElementalGaugeManager {
                 if (now >= burningEnd || !entityGauges.containsKey(Element.DENDRO) || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
                 } else if (now % 10 == 0) {
-                    target.hurt(targetLevel.damageSources().inFire(), 1.5F);
+                    float burnDmg = 1.5F;
+                    if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), now) == Element.PYRO) {
+                        burnDmg *= 0.4F;
+                    }
+                    target.hurt(targetLevel.damageSources().inFire(), burnDmg);
                     GaugeState dendroState = entityGauges.get(Element.DENDRO);
                     if (dendroState != null) {
                         dendroState.consume(0.2F);

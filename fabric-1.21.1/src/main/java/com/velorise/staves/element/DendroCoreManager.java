@@ -194,8 +194,12 @@ public final class DendroCoreManager {
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
-                victim.hurt(core.level.damageSources().magic(), burgeonDmg);
-                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, burgeonDmg);
+                float effectiveDmg = burgeonDmg;
+                if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp.getUUID(), core.level.getGameTime()) == Element.PYRO) {
+                    effectiveDmg *= 0.4F;
+                }
+                victim.hurt(core.level.damageSources().magic(), effectiveDmg);
+                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
             }
         }
     }
