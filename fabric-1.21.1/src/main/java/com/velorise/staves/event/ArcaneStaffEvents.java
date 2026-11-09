@@ -28,6 +28,8 @@ import net.minecraft.world.entity.projectile.ThrownPotion;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -65,14 +67,52 @@ public final class ArcaneStaffEvents {
     public static void onProjectileTick(Projectile projectile) {
         if (!(projectile.level() instanceof ServerLevel level)) return;
         String kind = getKind(projectile);
-        if (kind == null || kind.isEmpty()) return;
-        if (isBeyondRange(projectile, projectile.position())) {
-            level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
-            projectile.discard();
-            return;
+        if (kind != null && !kind.isEmpty()) {
+            if (isBeyondRange(projectile, projectile.position())) {
+                level.sendParticles(ParticleTypes.SMOKE, projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.12D, 0.12D, 0.12D, 0.01D);
+                projectile.discard();
+                return;
+            }
+            if (kind.endsWith("wind")) {
+                level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
+            }
         }
-        if (kind.endsWith("wind")) {
-            level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
+
+        // Check Cryo water surface freezing for Snowball and Frost staff projectile
+        boolean isSnowball = projectile instanceof Snowball;
+        boolean isFrostStaff = kind != null && kind.endsWith("frost");
+        if (isSnowball || isFrostStaff) {
+            Vec3 pos = projectile.position();
+            Vec3 delta = projectile.getDeltaMovement();
+            Vec3 nextPos = pos.add(delta);
+
+            // Fluid raycast ahead to intercept water surface before projectile sinks into deep water
+            BlockHitResult fluidHit = level.clip(new ClipContext(
+                pos,
+                nextPos,
+                ClipContext.Block.COLLIDER,
+                ClipContext.Fluid.ANY,
+                projectile
+            ));
+
+            boolean hitWater = false;
+            Vec3 freezeLoc = null;
+
+            if (fluidHit.getType() == HitResult.Type.BLOCK && level.getFluidState(fluidHit.getBlockPos()).is(FluidTags.WATER)) {
+                hitWater = true;
+                freezeLoc = fluidHit.getLocation();
+            } else if (projectile.isInWater() || level.getFluidState(projectile.blockPosition()).is(FluidTags.WATER)) {
+                hitWater = true;
+                freezeLoc = pos;
+            }
+
+            if (hitWater) {
+                int radius = (isFrostStaff && kind.startsWith("netherite_")) ? 2 : 1;
+                freezeWaterNear(level, freezeLoc, radius);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, freezeLoc.x, freezeLoc.y + 0.15D, freezeLoc.z, 18, 0.35D, 0.1D, 0.35D, 0.03D);
+                level.playSound(null, freezeLoc.x, freezeLoc.y, freezeLoc.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.7F, 1.5F);
+                projectile.discard();
+            }
         }
     }
 
@@ -273,13 +313,30 @@ public final class ArcaneStaffEvents {
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 if (dx * dx + dz * dz <= radius * radius + 1) {
-                    BlockPos p = center.offset(dx, 0, dz);
-                    for (BlockPos targetPos : new BlockPos[]{p, p.below()}) {
-                        if (level.getFluidState(targetPos).is(FluidTags.WATER) && level.getFluidState(targetPos).isSource() && level.getBlockState(targetPos.above()).isAir()) {
-                            level.setBlockAndUpdate(targetPos, Blocks.FROSTED_ICE.defaultBlockState());
-                            level.scheduleTick(targetPos, Blocks.FROSTED_ICE, level.random.nextInt(40) + 50);
-                            froze = true;
+                    BlockPos col = center.offset(dx, 0, dz);
+                    BlockPos targetWater = null;
+
+                    // 1. Search vertically near hit Y (-3 to +3) for water
+                    for (int dy = 3; dy >= -3; dy--) {
+                        BlockPos check = col.above(dy);
+                        if (level.getFluidState(check).is(FluidTags.WATER)) {
+                            targetWater = check;
                             break;
+                        }
+                    }
+
+                    // 2. If water found, always ascend to the topmost surface water block
+                    if (targetWater != null) {
+                        while (targetWater.getY() < level.getMaxBuildHeight() && level.getFluidState(targetWater.above()).is(FluidTags.WATER)) {
+                            targetWater = targetWater.above();
+                        }
+                        if (level.getFluidState(targetWater).isSource()) {
+                            BlockState above = level.getBlockState(targetWater.above());
+                            if (above.isAir() || above.canBeReplaced() || above.is(Blocks.SNOW)) {
+                                level.setBlockAndUpdate(targetWater, Blocks.FROSTED_ICE.defaultBlockState());
+                                level.scheduleTick(targetWater, Blocks.FROSTED_ICE, level.random.nextInt(40) + 50);
+                                froze = true;
+                            }
                         }
                     }
                 }
