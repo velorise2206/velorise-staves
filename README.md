@@ -19,7 +19,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Guardian Lens** (![Hydro][hydro] Hydro): Channels a continuous prismatic laser burning through targets.
 - **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
 - **Stormcaller** (![Electro][electro] Electro): Summons instant lightning strikes onto your crosshair.
-- **Wind Staff** (![Anemo][anemo] Anemo): Fires gusting wind charges that trigger rapid Swirl reactions.
+- **Wind Staff** (![Anemo][anemo] Anemo, 1.21+ only): Fires gusting wind charges that trigger rapid Swirl reactions.
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
 - **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
 - **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a straight line of vicious evoker fangs along the ground.
@@ -28,6 +28,9 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Wither Scepter** (Nether): Discharges a 3-skull spread inflicting deadly Wither decay.
 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns.*
+
+> [!NOTE]
+> **Version Note:** The **Wind Staff** is exclusive to Minecraft 1.21.1 (NeoForge & Fabric), as its crafting recipe and mechanics utilize Breeze Rods and Wind Charges introduced in the 1.21 Tricky Trials update (Trial Chambers). Minecraft 1.20.1 (Forge) purposefully features 11 combat staves and uses **Resonant Echo** as its primary Anemo weapon.
 
 ### Utility & Mobility Artifacts
 
