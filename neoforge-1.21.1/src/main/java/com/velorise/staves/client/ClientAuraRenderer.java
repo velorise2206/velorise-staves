@@ -102,7 +102,7 @@ public final class ClientAuraRenderer {
         }
 
         List<Element> display = new ArrayList<>();
-        boolean inDualReaction = data != null && now < data.dualUntil && (data.reactedAuraElement != null || data.dualTriggerElement != null);
+        boolean inDualReaction = data != null && now < data.dualUntil && data.reaction != null && (data.reactedAuraElement != null || data.dualTriggerElement != null);
 
         if (inDualReaction) {
             if (data.reactedAuraElement != null) {

@@ -83,13 +83,18 @@ public final class ClientAuraTracker {
             entry.reaction = reaction;
             entry.reactionStartTime = now;
             entry.reactionUntil = now + 1600; // 32 ticks (1.6 seconds) floating reaction text
-        }
 
-        if (reactedAura != null || trigger != null) {
-            entry.reactedAuraElement = reactedAura;
-            entry.dualTriggerElement = trigger;
-            entry.dualStartTime = now;
-            entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
+            if (reactedAura != null || trigger != null) {
+                entry.reactedAuraElement = reactedAura;
+                entry.dualTriggerElement = trigger;
+                entry.dualStartTime = now;
+                entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
+            }
+        } else {
+            entry.reaction = null;
+            entry.reactedAuraElement = null;
+            entry.dualTriggerElement = null;
+            entry.dualUntil = 0L;
         }
 
         if (damage > 0.0F) {

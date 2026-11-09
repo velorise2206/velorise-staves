@@ -896,7 +896,7 @@ public final class ElementalGaugeManager {
             // Innate Lock: never allow foreign elemental auras (e.g. Hydro/Cryo on Blaze) to linger on innate elemental mobs
             if (innateElement != null && attackElement != innateElement) {
                 target.hurt(level.damageSources().magic(), effectiveDamage);
-                syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
+                syncAuras(target, targetGauges.keySet(), null, null, null, effectiveDamage);
                 return;
             }
 
@@ -911,14 +911,14 @@ public final class ElementalGaugeManager {
                 targetGauges.put(attackElement, newAura);
                 sendActionbar(attacker, attackElement.color() + attackElement.symbol() + " Applied " + attackElement.displayName() + " aura" + String.format(" (%.1fU)", newAura.getUnits()));
             }
-            syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
+            syncAuras(target, targetGauges.keySet(), null, null, null, effectiveDamage);
             target.hurt(level.damageSources().magic(), effectiveDamage);
             return;
         }
 
         // Deal normal damage
         target.hurt(level.damageSources().magic(), effectiveDamage);
-        syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
+        syncAuras(target, targetGauges.keySet(), null, null, null, effectiveDamage);
     }
 
     /**
@@ -1072,7 +1072,9 @@ public final class ElementalGaugeManager {
             case CRYSTALLIZE -> {
                 level.sendParticles(ParticleTypes.CRIT, pos.x, pos.y + 0.8D, pos.z, 15, 0.35D, 0.4D, 0.35D, 0.05D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 0.8F, 1.2F);
-                CrystallizeShardManager.spawn(level, target.position(), auraElement);
+                if (attacker != null) {
+                    CrystallizeShardManager.spawn(level, target.position(), auraElement);
+                }
             }
             default -> {}
         }
