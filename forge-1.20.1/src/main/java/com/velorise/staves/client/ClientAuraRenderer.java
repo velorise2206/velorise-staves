@@ -39,8 +39,9 @@ public final class ClientAuraRenderer {
 
     static {
         for (Element e : Element.values()) {
-            TEXTURES.put(e, new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + "_32.png"));
-            HUD_TEXTURES.put(e, new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
+            ResourceLocation res = new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png");
+            TEXTURES.put(e, res);
+            HUD_TEXTURES.put(e, res);
         }
     }
 

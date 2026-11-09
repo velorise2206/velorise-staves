@@ -97,8 +97,8 @@ public final class DendroCoreManager {
 
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
     private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
-    private static final DustParticleOptions HYPERBLOOM_GREEN = new DustParticleOptions(new Vector3f(0.32F, 1.0F, 0.15F), 1.6F);
-    private static final DustParticleOptions HYPERBLOOM_BRIGHT_GREEN = new DustParticleOptions(new Vector3f(0.55F, 1.0F, 0.25F), 1.2F);
+    private static final DustParticleOptions HYPERBLOOM_GREEN = new DustParticleOptions(new Vector3f(0.32F, 1.0F, 0.15F), 2.4F);
+    private static final DustParticleOptions HYPERBLOOM_BRIGHT_GREEN = new DustParticleOptions(new Vector3f(0.55F, 1.0F, 0.25F), 1.8F);
     private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -230,17 +230,18 @@ public final class DendroCoreManager {
         // Perpendicular horizontal vector for lateral arc sway (curved arc trajectory)
         Vec3 horizDir = horizDist > 0.01D ? new Vec3(diff.x / horizDist, 0, diff.z / horizDist) : new Vec3(1, 0, 0);
         Vec3 sideVec = new Vec3(-horizDir.z, 0, horizDir.x);
-        double sideOffset = (core.level.random.nextBoolean() ? 1.0D : -1.0D) * (0.9D + core.level.random.nextDouble() * 0.9D);
+        double sideOffset = (core.level.random.nextBoolean() ? 1.0D : -1.0D) * (1.6D + core.level.random.nextDouble() * 1.6D);
         Vec3 lateralOffset = sideVec.scale(sideOffset);
 
-        // Launch apex calculation: always pops UP into the air first (even if target is a flying Vex)
-        double apexHeight = Math.max(p0.y + 2.2D + horizDist * 0.15D, p3.y + 1.2D);
-        Vec3 p1 = new Vec3(p0.x + diff.x * 0.2D, apexHeight, p0.z + diff.z * 0.2D).add(lateralOffset);
-        Vec3 p2 = new Vec3(p0.x + diff.x * 0.7D, Math.max(p3.y + 0.8D, apexHeight - 0.4D), p0.z + diff.z * 0.7D).add(lateralOffset.scale(0.6D));
+        // Launch apex calculation: launches 3x higher into the air (7.5m - 14m tall arching rocket launch)
+        double apexRise = Math.max(7.5D, Math.max(p3.y - p0.y, 0.0D) + 6.5D) + horizDist * 0.35D;
+        double apexHeight = p0.y + apexRise;
+        Vec3 p1 = new Vec3(p0.x + diff.x * 0.15D, apexHeight, p0.z + diff.z * 0.15D).add(lateralOffset.scale(1.2D));
+        Vec3 p2 = new Vec3(p0.x + diff.x * 0.65D, apexHeight * 0.82D + p3.y * 0.18D, p0.z + diff.z * 0.65D).add(lateralOffset.scale(0.8D));
 
         float hyperbloomDmg = 16.0F * core.damageMultiplier;
-        // Travel time: 5 to 9 ticks (~0.25s to 0.45s) based on distance
-        int flightTicks = Math.max(5, Math.min(9, (int) Math.round(dist * 0.35D + 4.0D)));
+        // Slower travel time: 18 to 32 ticks (~0.9s to 1.6s) so players can clearly see the majestic flight path
+        int flightTicks = Math.max(18, Math.min(32, (int) Math.round(dist * 0.85D + 14.0D)));
 
         MISSILES.add(new HyperbloomMissile(core.level, p0, p1, p2, nearest, p3, hyperbloomDmg, attacker, flightTicks));
     }
@@ -288,24 +289,32 @@ public final class DendroCoreManager {
                 currentTargetPos = m.lastKnownTargetPos;
             }
 
-            // Draw dense interpolated bright neon-green particle trail between tPrev and tCurr (matching Genshin Impact Sprawling Shot)
-            int subSteps = 7;
+            // Draw extremely dense interpolated bright neon-green particle trail between tPrev and tCurr
+            int subSteps = 16;
             for (int s = 1; s <= subSteps; s++) {
                 float subT = tPrev + (tCurr - tPrev) * ((float) s / (float) subSteps);
                 Vec3 p = m.evaluate(subT, currentTargetPos);
-                // Vibrant neon lime-green core and outer aura
-                level.sendParticles(HYPERBLOOM_GREEN, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                level.sendParticles(HYPERBLOOM_BRIGHT_GREEN, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+                // Dense vibrant neon lime-green core and outer glow ribbon
+                level.sendParticles(HYPERBLOOM_GREEN, p.x, p.y, p.z, 2, 0.02D, 0.02D, 0.02D, 0.0D);
+                level.sendParticles(HYPERBLOOM_BRIGHT_GREEN, p.x, p.y, p.z, 1, 0.015D, 0.015D, 0.015D, 0.0D);
+
+                // Sparkling trail aura every 4th sub-step
+                if (s % 4 == 0) {
+                    level.sendParticles(ParticleTypes.HAPPY_VILLAGER, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+                }
+
+                // Missile head: brilliant glowing core with sparks
                 if (s == subSteps) {
-                    level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 2, 0.03D, 0.03D, 0.03D, 0.01D);
-                    level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.01D);
+                    level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 3, 0.04D, 0.04D, 0.04D, 0.01D);
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 2, 0.03D, 0.03D, 0.03D, 0.04D);
+                    level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y, p.z, 2, 0.03D, 0.03D, 0.03D, 0.01D);
                 }
             }
 
-            // Play flying hum sound on tick 2
-            if (m.currentTick == 2) {
+            // Play flying hum / whistling sound at launch and mid-flight
+            if (m.currentTick == 2 || m.currentTick == m.totalTicks / 2) {
                 Vec3 midP = m.evaluate(tCurr, currentTargetPos);
-                level.playSound(null, midP.x, midP.y, midP.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 0.3F, 2.0F);
+                level.playSound(null, midP.x, midP.y, midP.z, SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.6F, 1.8F);
             }
 
             // Impact!

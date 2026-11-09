@@ -27,7 +27,7 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
     static {
         for (Element e : Element.values()) {
-            TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + "_32.png"));
+            TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
         }
     }
 
