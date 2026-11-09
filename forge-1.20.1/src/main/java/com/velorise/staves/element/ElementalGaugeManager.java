@@ -131,6 +131,18 @@ public final class ElementalGaugeManager {
         return max;
     }
 
+    public static @Nullable Map<Element, GaugeState> getEntityGauges(UUID entityId) {
+        return GAUGES.get(entityId);
+    }
+
+    public static @Nullable GaugeState getQuickenGauge(UUID entityId) {
+        return QUICKEN_GAUGES.get(entityId);
+    }
+
+    public static @Nullable GaugeState getFrozenGauge(UUID entityId) {
+        return FROZEN_GAUGES.get(entityId);
+    }
+
     /**
      * Returns all active display elements on the entity (including Quicken Dendro aura and Frozen Cryo aura).
      */

@@ -4,11 +4,16 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
+import com.velorise.staves.element.GaugeState;
+import net.minecraft.ChatFormatting;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import snownee.jade.api.EntityAccessor;
 import snownee.jade.api.IEntityComponentProvider;
+import snownee.jade.api.IServerDataProvider;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
 import snownee.jade.api.ui.IElementHelper;
@@ -18,8 +23,9 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
-public enum AuraComponentProvider implements IEntityComponentProvider {
+public enum AuraComponentProvider implements IEntityComponentProvider, IServerDataProvider<EntityAccessor> {
     INSTANCE;
 
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "elemental_aura");
@@ -61,6 +67,49 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
     }
 
     @Override
+    public void appendServerData(CompoundTag tag, EntityAccessor accessor) {
+        Entity entity = accessor.getEntity();
+        if (!(entity instanceof LivingEntity living)) return;
+        UUID id = living.getUUID();
+        Element innate = ElementalGaugeManager.getInnateElement(living);
+        if (innate != null) {
+            tag.putString("vs_innate", innate.name());
+        }
+        CompoundTag gaugesTag = new CompoundTag();
+        Map<Element, GaugeState> gauges = ElementalGaugeManager.getEntityGauges(id);
+        if (gauges != null) {
+            for (Map.Entry<Element, GaugeState> entry : gauges.entrySet()) {
+                if (entry.getValue() != null && entry.getValue().getUnits() > 0.001F) {
+                    gaugesTag.putFloat(entry.getKey().name(), entry.getValue().getUnits());
+                }
+            }
+        }
+        GaugeState quicken = ElementalGaugeManager.getQuickenGauge(id);
+        if (quicken != null && quicken.getUnits() > 0.001F) {
+            gaugesTag.putFloat("QUICKEN", quicken.getUnits());
+        }
+        GaugeState frozen = ElementalGaugeManager.getFrozenGauge(id);
+        if (frozen != null && frozen.getUnits() > 0.001F) {
+            gaugesTag.putFloat("FROZEN", frozen.getUnits());
+        }
+        if (!gaugesTag.isEmpty()) {
+            tag.put("vs_gauges", gaugesTag);
+        }
+    }
+
+    private static ChatFormatting getElementChatFormatting(Element element) {
+        return switch (element) {
+            case PYRO -> ChatFormatting.RED;
+            case HYDRO -> ChatFormatting.AQUA;
+            case ELECTRO -> ChatFormatting.LIGHT_PURPLE;
+            case CRYO -> ChatFormatting.WHITE;
+            case DENDRO -> ChatFormatting.GREEN;
+            case ANEMO -> ChatFormatting.DARK_AQUA;
+            case GEO -> ChatFormatting.GOLD;
+        };
+    }
+
+    @Override
     public void appendTooltip(ITooltip tooltip, EntityAccessor accessor, IPluginConfig config) {
         Entity entity = accessor.getEntity();
         if (!(entity instanceof LivingEntity living)) return;
@@ -93,12 +142,48 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
         if (display.isEmpty()) return;
 
+        CompoundTag serverData = accessor.getServerData();
+        CompoundTag gaugesTag = (serverData != null && serverData.contains("vs_gauges")) ? serverData.getCompound("vs_gauges") : null;
+        String innateStr = (serverData != null && serverData.contains("vs_innate")) ? serverData.getString("vs_innate") : (innateElement != null ? innateElement.name() : null);
+
         IElementHelper helper = IElementHelper.get();
-        // Clean display matching overhead style: 1 icon or 2 icons side-by-side
-        tooltip.add(new ElementIcon(TEXTURES.get(display.get(0)), 12, 12));
-        if (display.size() > 1) {
-            tooltip.append(helper.spacer(3, 0));
-            tooltip.append(new ElementIcon(TEXTURES.get(display.get(1)), 12, 12));
+        for (int i = 0; i < Math.min(2, display.size()); i++) {
+            Element elem = display.get(i);
+            ResourceLocation tex = TEXTURES.get(elem);
+            if (tex == null) continue;
+
+            if (i == 0) {
+                tooltip.add(new ElementIcon(tex, 12, 12));
+            } else {
+                tooltip.append(helper.spacer(5, 0));
+                tooltip.append(new ElementIcon(tex, 12, 12));
+            }
+            tooltip.append(helper.spacer(2, 0));
+
+            // Format gauge unit text (e.g. 2.5U)
+            String uText;
+            if (gaugesTag != null && gaugesTag.contains(elem.name())) {
+                float u = gaugesTag.getFloat(elem.name());
+                uText = String.format(Locale.ROOT, "%.1fU", u);
+            } else if (gaugesTag != null && elem == Element.DENDRO && gaugesTag.contains("QUICKEN")) {
+                float u = gaugesTag.getFloat("QUICKEN");
+                uText = String.format(Locale.ROOT, "%.1fU", u);
+            } else if (gaugesTag != null && elem == Element.CRYO && gaugesTag.contains("FROZEN")) {
+                float u = gaugesTag.getFloat("FROZEN");
+                uText = String.format(Locale.ROOT, "%.1fU", u);
+            } else if (innateStr != null && innateStr.equalsIgnoreCase(elem.name())) {
+                uText = "∞";
+            } else if (data != null && data.expireTime > 0) {
+                long remMs = Math.max(0, data.expireTime - now);
+                float remSec = remMs / 1000.0F;
+                float estU = Math.max(0.1F, (remSec - 7.0F) / 2.5F);
+                uText = String.format(Locale.ROOT, "%.1fU", estU);
+            } else {
+                uText = "1.0U";
+            }
+
+            Component comp = Component.literal(uText).withStyle(getElementChatFormatting(elem));
+            tooltip.append(helper.text(comp));
         }
     }
 }

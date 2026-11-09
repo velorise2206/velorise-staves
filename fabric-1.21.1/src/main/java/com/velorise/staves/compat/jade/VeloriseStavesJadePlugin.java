@@ -11,7 +11,7 @@ import snownee.jade.api.WailaPlugin;
 public final class VeloriseStavesJadePlugin implements IWailaPlugin {
     @Override
     public void register(IWailaCommonRegistration registration) {
-        // Common registration
+        registration.registerEntityDataProvider(AuraComponentProvider.INSTANCE, LivingEntity.class);
     }
 
     @Override
