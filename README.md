@@ -14,17 +14,17 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ### Combat Staves (12 Types + Netherite Upgrades)
 
-- **Inferno Rod** (Pyro): Rapid-fires blazing fireballs in tight bursts.
-- **Ghastfire Staff** (Pyro): Launches explosive fireballs that detonate on contact.
-- **Guardian Lens** (Hydro): Channels a continuous prismatic laser burning through targets.
-- **Frostbolt Wand** (Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
-- **Stormcaller** (Electro): Summons instant lightning strikes onto your crosshair.
-- **Wind Staff** (Anemo): Fires gusting wind charges that trigger rapid Swirl reactions.
-- **Resonant Echo** (Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
-- **Webcaster** (Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
-- **Evoker Fang Staff** (Geo): Erupts a straight line of vicious evoker fangs along the ground.
-- **Shulker Seeker** (Electro): Fires homing shulker bullets causing levitation.
-- **Dragonfire Scepter** (Electro): Hurls dragon breath creating a lingering mystic damage cloud.
+- **Inferno Rod** (![Pyro][pyro] Pyro): Rapid-fires blazing fireballs in tight bursts.
+- **Ghastfire Staff** (![Pyro][pyro] Pyro): Launches explosive fireballs that detonate on contact.
+- **Guardian Lens** (![Hydro][hydro] Hydro): Channels a continuous prismatic laser burning through targets.
+- **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
+- **Stormcaller** (![Electro][electro] Electro): Summons instant lightning strikes onto your crosshair.
+- **Wind Staff** (![Anemo][anemo] Anemo): Fires gusting wind charges that trigger rapid Swirl reactions.
+- **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
+- **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
+- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a straight line of vicious evoker fangs along the ground.
+- **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
+- **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Nether): Discharges a 3-skull spread inflicting deadly Wither decay.
 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns.*
@@ -51,14 +51,6 @@ Built upon **Elemental Gauge Theory**, attacks and the environment apply element
   - **Bloom, Hyperbloom & Burgeon** (![Hydro][hydro] + ![Dendro][dendro], then ![Electro][electro]/![Pyro][pyro]) — Spawns 3D physical Dendro Cores that burst or home into enemies.
   - **Swirl** (![Anemo][anemo] + Aura) — Spreads absorbed elements in an expanding gale.
   - **Crystallize** (![Geo][geo] + Aura) — Drops 3D elemental crystal shards providing player shields and 250% matching resistance.
-
-[pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png
-[hydro]: shared-resources/assets/velorise_staves/textures/element/hydro.png
-[cryo]: shared-resources/assets/velorise_staves/textures/element/cryo.png
-[electro]: shared-resources/assets/velorise_staves/textures/element/electro.png
-[anemo]: shared-resources/assets/velorise_staves/textures/element/anemo.png
-[geo]: shared-resources/assets/velorise_staves/textures/element/geo.png
-[dendro]: shared-resources/assets/velorise_staves/textures/element/dendro.png
 
 ### World & Creature Interactions
 
@@ -95,3 +87,12 @@ Compiled jar artifacts will be placed in the `mods/velorise_staves/` directory.
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+[pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png
+[hydro]: shared-resources/assets/velorise_staves/textures/element/hydro.png
+[cryo]: shared-resources/assets/velorise_staves/textures/element/cryo.png
+[electro]: shared-resources/assets/velorise_staves/textures/element/electro.png
+[anemo]: shared-resources/assets/velorise_staves/textures/element/anemo.png
+[geo]: shared-resources/assets/velorise_staves/textures/element/geo.png
+[dendro]: shared-resources/assets/velorise_staves/textures/element/dendro.png
+
