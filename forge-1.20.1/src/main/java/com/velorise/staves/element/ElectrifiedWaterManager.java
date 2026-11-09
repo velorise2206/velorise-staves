@@ -202,8 +202,8 @@ public final class ElectrifiedWaterManager {
                 drawElectricArc(level, waterPt, mob.position().add(0, mob.getBbHeight() * 0.4D, 0), 0.22D, false);
             }
 
-            // Periodic electric shock damage and Electro aura application (every 10 ticks = 0.5s)
-            if (now % 10 == 0) {
+            // Periodic electric shock damage and Electro aura application (every 20 ticks = 1.0s)
+            if (now % 20 == 0) {
                 ServerPlayer attacker = zone.attackerId != null ? level.getServer().getPlayerList().getPlayer(zone.attackerId) : null;
                 shockEntities(level, zone.center, zone.radius, attacker, zone.damage);
             }

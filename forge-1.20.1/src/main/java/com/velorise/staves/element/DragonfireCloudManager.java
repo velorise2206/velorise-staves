@@ -44,7 +44,7 @@ public final class DragonfireCloudManager {
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
-        if (now % 10 != 0) return; // Every 0.5s (10 ticks)
+        if (now % 20 != 0) return; // Every 1.0s (20 ticks)
 
         Iterator<CloudEntry> it = CLOUDS.iterator();
         while (it.hasNext()) {
@@ -61,10 +61,10 @@ public final class DragonfireCloudManager {
             ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
             float damage = entry.isNetherite ? 2.5F : 1.8F;
 
-            // 1. Continuously electrify water beneath and around the cloud for its duration
+            // 1. Periodically electrify water beneath and around the cloud (every 1s)
             ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, damage);
 
-            // 2. Continuously shock and apply Electro (1.0U) to all entities inside the cloud
+            // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud (every 1s)
             AABB box = cloud.getBoundingBox();
             for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !e.isRemoved() && e != owner)) {
                 ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 1.0F, owner, damage);

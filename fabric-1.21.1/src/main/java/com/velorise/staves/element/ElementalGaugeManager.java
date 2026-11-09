@@ -1605,17 +1605,17 @@ public final class ElementalGaugeManager {
                 handleEnvironmentalFireDamage(target);
             }
 
-            // Special Mutant: Powered Creeper
+            // Special Mutant: Powered Creeper (Radiates aura at most once per second = 20 ticks)
             if (target instanceof Creeper creeper && creeper.isPowered()) {
-                if (now % 10 == 0) {
+                if (now % 20 == 0) {
                     AABB auraField = creeper.getBoundingBox().inflate(1.2D);
                     for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, auraField, e -> e.isAlive() && !e.isRemoved() && e != creeper)) {
                         applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 0.0F);
                     }
-                }
 
-                if (isEntitySubmergedInWater(creeper)) {
-                    ElectrifiedWaterManager.electrify(targetLevel, creeper.blockPosition(), 2.0D, 30, null, 2.5F);
+                    if (isEntitySubmergedInWater(creeper)) {
+                        ElectrifiedWaterManager.electrify(targetLevel, creeper.blockPosition(), 2.0D, 30, null, 2.5F);
+                    }
                 }
             }
 
@@ -1687,7 +1687,7 @@ public final class ElementalGaugeManager {
                     if (isEntitySubmergedInWater(nearby)) {
                         long pairKey = (((long) Math.min(target.getId(), nearby.getId())) << 32) | ((long) Math.max(target.getId(), nearby.getId()) & 0xFFFFFFFFL);
                         Long lastShock = LAST_PROXIMITY_SHOCK.get(pairKey);
-                        if (lastShock == null || now - lastShock >= 18) {
+                        if (lastShock == null || now - lastShock >= 20) {
                             LAST_PROXIMITY_SHOCK.put(pairKey, now);
                             drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
                             targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
@@ -1846,7 +1846,7 @@ public final class ElementalGaugeManager {
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
 
-                if (player.level() instanceof ServerLevel sl && player.tickCount % 10 == 0) {
+                if (player.level() instanceof ServerLevel sl && player.tickCount % 20 == 0) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
                         Element nearbyInnate = getInnateElement(nearby);
