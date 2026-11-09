@@ -104,10 +104,10 @@ public final class ArcaneStaffItem extends Item {
 
         if (isCharged()) {
             player.startUsingItem(hand);
-            if (isChannelingKind()) {
-                ACTIVE_CHANNELING.put(player.getUUID(), kind);
-            }
             if (!level.isClientSide()) {
+                if (isChannelingKind()) {
+                    ACTIVE_CHANNELING.put(player.getUUID(), kind);
+                }
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
@@ -249,6 +249,9 @@ public final class ArcaneStaffItem extends Item {
         if (elapsed >= resetTicks) {
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
+            if (!player.getCooldowns().isOnCooldown(this)) {
+                player.getCooldowns().addCooldown(this, getCooldownTicks());
+            }
         }
     }
 
