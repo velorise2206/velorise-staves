@@ -1,23 +1,32 @@
 package com.velorise.staves.element;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ambient.AmbientCreature;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.LightningRodBlock;
+import net.minecraft.world.level.block.ObserverBlock;
+import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.SculkSensorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.CalibratedSculkSensorBlockEntity;
 import net.minecraft.world.level.block.entity.SculkSensorBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.SculkSensorPhase;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.phys.AABB;
@@ -35,12 +44,16 @@ public final class EnvironmentalBlockManager {
 
     private static final Map<UUID, Long> LAST_AMETHYST_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> LAST_SENSOR_ZAP = new ConcurrentHashMap<>();
+    private static final Map<Long, Long> LAST_OBSERVER_ZAP = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, Long> LAST_LIGHTNING_ROD_ZAP = new ConcurrentHashMap<>();
 
     private EnvironmentalBlockManager() {}
 
     public static void clearAll() {
         LAST_AMETHYST_ZAP.clear();
         LAST_SENSOR_ZAP.clear();
+        LAST_OBSERVER_ZAP.clear();
+        LAST_LIGHTNING_ROD_ZAP.clear();
     }
 
     /**
@@ -85,11 +98,53 @@ public final class EnvironmentalBlockManager {
         }
     }
 
+    /**
+     * Discharges 1.0U Electro around a Lightning Rod when it is struck by lightning.
+     */
+    public static void dischargeLightningRod(ServerLevel level, BlockPos rodPos, long now) {
+        BlockPos immutableRod = rodPos.immutable();
+        Long lastZap = LAST_LIGHTNING_ROD_ZAP.get(immutableRod);
+        if (lastZap != null && (now - lastZap) < 10L) {
+            return;
+        }
+        LAST_LIGHTNING_ROD_ZAP.put(immutableRod, now);
+
+        double radius = 4.5D;
+        Vec3 rodCenter = Vec3.atCenterOf(immutableRod);
+
+        // Visual electric arcs radiating from the Lightning Rod
+        for (int i = 0; i < 6; i++) {
+            double angle = (i * Math.PI / 3.0D) + (level.random.nextDouble() - 0.5D) * 0.3D;
+            double dist = 1.5D + level.random.nextDouble() * 2.5D;
+            Vec3 endPt = rodCenter.add(Math.cos(angle) * dist, (level.random.nextDouble() - 0.5D) * 0.8D, Math.sin(angle) * dist);
+            ElectrifiedWaterManager.drawElectricArc(level, rodCenter, endPt, 0.25D, true);
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, rodCenter.x, rodCenter.y + 0.3D, rodCenter.z, 25, 0.8D, 0.5D, 0.8D, 0.08D);
+        level.playSound(null, rodCenter.x, rodCenter.y, rodCenter.z,
+                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.9F, 1.65F);
+
+        // Apply 1.0U Electro to all nearby LivingEntities
+        AABB box = new AABB(immutableRod).inflate(radius);
+        double r2 = radius * radius;
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !e.isRemoved() && !e.isSpectator())) {
+            if (target.position().distanceToSqr(rodCenter) <= r2) {
+                Vec3 targetCenter = target.position().add(0, target.getBbHeight() * 0.5D, 0);
+                ElectrifiedWaterManager.drawElectricArc(level, rodCenter, targetCenter, 0.2D, false);
+                ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, null, 1.0F);
+            }
+        }
+
+        // Electrify nearby water & trigger Hyperbloom on nearby Dendro Cores
+        ElectrifiedWaterManager.electrify(level, immutableRod, radius, 70, null, 1.0F);
+        DendroCoreManager.checkReactionsNear(level, rodCenter, radius, Element.ELECTRO, null);
+    }
+
     public static void tick(MinecraftServer server) {
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
             LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
-            LAST_SENSOR_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
+            LAST_OBSERVER_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
+            LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -99,6 +154,7 @@ public final class EnvironmentalBlockManager {
             Set<Long> visitedChunks = new HashSet<>();
             List<BlockPos> activeSensors8 = new ArrayList<>();
             List<BlockPos> activeCalibrated16 = new ArrayList<>();
+            Set<BlockPos> currentActiveSensors = new HashSet<>();
 
             for (ServerPlayer player : players) {
                 ChunkPos cp = player.chunkPosition();
@@ -112,12 +168,16 @@ public final class EnvironmentalBlockManager {
                             if (be instanceof CalibratedSculkSensorBlockEntity) {
                                 BlockState st = be.getBlockState();
                                 if (SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE) {
-                                    activeCalibrated16.add(be.getBlockPos());
+                                    BlockPos pos = be.getBlockPos().immutable();
+                                    activeCalibrated16.add(pos);
+                                    currentActiveSensors.add(pos);
                                 }
                             } else if (be instanceof SculkSensorBlockEntity) {
                                 BlockState st = be.getBlockState();
                                 if (SculkSensorBlock.getPhase(st) == SculkSensorPhase.ACTIVE) {
-                                    activeSensors8.add(be.getBlockPos());
+                                    BlockPos pos = be.getBlockPos().immutable();
+                                    activeSensors8.add(pos);
+                                    currentActiveSensors.add(pos);
                                 }
                             }
                         }
@@ -125,11 +185,15 @@ public final class EnvironmentalBlockManager {
                 }
             }
 
-            // Sculk Sensor (8m) & Calibrated Sculk Sensor (16m):
-            // Only zaps the specific entity that triggered the sensor signal (closest entity within range)
+            // Immediately clear sensors that left SculkSensorPhase.ACTIVE so their next activation zaps on frame 0
+            LAST_SENSOR_ZAP.keySet().retainAll(currentActiveSensors);
+
+            // Sculk Sensor (8m -> 1.0U Electro) & Calibrated Sculk Sensor (16m -> 2.0U Electro):
+            // Synchronized with vanilla SculkSensorPhase.ACTIVE animation (zaps immediately on activation and every 10 ticks while active)
+            // Also supports zapping underwater fish (WaterAnimal), excluding only bats (AmbientCreature).
             for (BlockPos sensorPos : activeSensors8) {
                 Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
-                if (lastZap == null || serverNow - lastZap >= 20L) {
+                if (lastZap == null || serverNow - lastZap >= 10L) {
                     AABB search = new AABB(sensorPos).inflate(8.0D);
                     LivingEntity closest = level.getNearestEntity(
                             LivingEntity.class,
@@ -138,9 +202,9 @@ public final class EnvironmentalBlockManager {
                             sensorPos.getX() + 0.5D, sensorPos.getY() + 0.5D, sensorPos.getZ() + 0.5D,
                             search
                     );
-                    if (closest != null && !closest.isSpectator() && !ElementalGaugeManager.isPassiveAquaticOrAmbient(closest)) {
-                        LAST_SENSOR_ZAP.put(sensorPos.immutable(), serverNow);
-                        ElementalGaugeManager.applyElement(level, closest, Element.ELECTRO, 1.0F, null, 0.0F);
+                    if (closest != null && !closest.isSpectator() && !(closest instanceof AmbientCreature)) {
+                        LAST_SENSOR_ZAP.put(sensorPos, serverNow);
+                        ElementalGaugeManager.applyElementBypassIcd(level, closest, Element.ELECTRO, 1.0F, null, 0.0F);
                         Vec3 start = Vec3.atCenterOf(sensorPos);
                         Vec3 end = closest.position().add(0, closest.getBbHeight() * 0.5D, 0);
                         ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.15D, false);
@@ -153,7 +217,7 @@ public final class EnvironmentalBlockManager {
 
             for (BlockPos sensorPos : activeCalibrated16) {
                 Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
-                if (lastZap == null || serverNow - lastZap >= 20L) {
+                if (lastZap == null || serverNow - lastZap >= 10L) {
                     AABB search = new AABB(sensorPos).inflate(16.0D);
                     LivingEntity closest = level.getNearestEntity(
                             LivingEntity.class,
@@ -162,9 +226,10 @@ public final class EnvironmentalBlockManager {
                             sensorPos.getX() + 0.5D, sensorPos.getY() + 0.5D, sensorPos.getZ() + 0.5D,
                             search
                     );
-                    if (closest != null && !closest.isSpectator() && !ElementalGaugeManager.isPassiveAquaticOrAmbient(closest)) {
-                        LAST_SENSOR_ZAP.put(sensorPos.immutable(), serverNow);
-                        ElementalGaugeManager.applyElement(level, closest, Element.ELECTRO, 1.0F, null, 0.0F);
+                    if (closest != null && !closest.isSpectator() && !(closest instanceof AmbientCreature)) {
+                        LAST_SENSOR_ZAP.put(sensorPos, serverNow);
+                        // Calibrated Sculk Sensor applies strong 2.0U Electro
+                        ElementalGaugeManager.applyElementBypassIcd(level, closest, Element.ELECTRO, 2.0F, null, 0.0F);
                         Vec3 start = Vec3.atCenterOf(sensorPos);
                         Vec3 end = closest.position().add(0, closest.getBbHeight() * 0.5D, 0);
                         ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.15D, false);
@@ -175,8 +240,31 @@ public final class EnvironmentalBlockManager {
                 }
             }
 
+            // Check active LightningBolts striking Lightning Rods
+            for (ServerPlayer player : players) {
+                AABB boltScan = player.getBoundingBox().inflate(64.0D);
+                for (LightningBolt bolt : level.getEntitiesOfClass(LightningBolt.class, boltScan, e -> e.isAlive() && !e.isRemoved())) {
+                    BlockPos bp = bolt.blockPosition();
+                    for (BlockPos check : new BlockPos[]{bp, bp.below(), bp.above(), bp.north(), bp.south(), bp.east(), bp.west()}) {
+                        if (level.hasChunkAt(check) && level.getBlockState(check).is(Blocks.LIGHTNING_ROD)) {
+                            dischargeLightningRod(level, check, serverNow);
+                        }
+                    }
+                }
+            }
+
             Set<UUID> processed = new HashSet<>();
             for (ServerPlayer player : players) {
+                // Also check powered Lightning Rods near players
+                BlockPos playerPos = player.blockPosition();
+                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-8, -4, -8), playerPos.offset(8, 4, 8))) {
+                    if (!level.hasChunkAt(p)) continue;
+                    BlockState st = level.getBlockState(p);
+                    if (st.is(Blocks.LIGHTNING_ROD) && st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
+                        dischargeLightningRod(level, p, serverNow);
+                    }
+                }
+
                 AABB area = player.getBoundingBox().inflate(32.0D);
                 List<LivingEntity> entities = level.getEntitiesOfClass(
                         LivingEntity.class,
@@ -185,9 +273,51 @@ public final class EnvironmentalBlockManager {
                 );
                 for (LivingEntity living : entities) {
                     if (processed.add(living.getUUID())) {
+                        // Fast check every tick for 2-tick Observer pulses
+                        tickObserverAndFastRedstone(level, living, serverNow);
                         if ((living.tickCount + Math.abs(living.getId())) % 20 == 0) {
                             tickEntityEnvironmentalAuras(level, living);
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Checks short-pulsing Observer blocks (2-tick pulse) every tick so entities standing at the
+     * single back output face of a triggered Observer immediately receive 1.0U Electro.
+     */
+    private static void tickObserverAndFastRedstone(ServerLevel level, LivingEntity living, long now) {
+        BlockPos pos = living.blockPosition();
+        if (!level.hasChunkAt(pos)) return;
+
+        AABB entityBox = living.getBoundingBox().inflate(0.15D);
+        BlockPos min = BlockPos.containing(entityBox.minX - 1.0D, entityBox.minY - 1.0D, entityBox.minZ - 1.0D);
+        BlockPos max = BlockPos.containing(entityBox.maxX + 1.0D, entityBox.maxY + 1.0D, entityBox.maxZ + 1.0D);
+
+        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!level.hasChunkAt(p)) continue;
+            BlockState st = level.getBlockState(p);
+            if (st.is(Blocks.OBSERVER) && st.hasProperty(ObserverBlock.POWERED) && st.getValue(ObserverBlock.POWERED)) {
+                // Vanilla Observer outputs Redstone strictly from its back face (FACING.getOpposite())
+                Direction outputDir = st.getValue(ObserverBlock.FACING).getOpposite();
+                BlockPos outputPos = p.relative(outputDir);
+                AABB outputBox = new AABB(outputPos);
+                if (entityBox.intersects(outputBox)) {
+                    long key = (((long) living.getId()) << 32) | (p.asLong() & 0xFFFFFFFFL);
+                    Long lastObsZap = LAST_OBSERVER_ZAP.get(key);
+                    if (lastObsZap == null || (now - lastObsZap) >= 6L) {
+                        LAST_OBSERVER_ZAP.put(key, now);
+                        ElementalGaugeManager.applyElementBypassIcd(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
+                        Vec3 portPos = Vec3.atCenterOf(p).add(
+                                outputDir.getStepX() * 0.5D,
+                                outputDir.getStepY() * 0.5D,
+                                outputDir.getStepZ() * 0.5D
+                        );
+                        Vec3 targetPos = living.position().add(0, living.getBbHeight() * 0.5D, 0);
+                        ElectrifiedWaterManager.drawElectricArc(level, portPos, targetPos, 0.12D, false);
+                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, targetPos.x, targetPos.y, targetPos.z, 4, 0.15D, 0.15D, 0.15D, 0.03D);
                     }
                 }
             }
@@ -201,18 +331,28 @@ public final class EnvironmentalBlockManager {
         BlockPos pos = living.blockPosition();
         if (!level.hasChunkAt(pos)) return;
 
-        // 1. Physical contact check: Redstone Block, Slime/Honey Block, and solid Amethyst Block / Budding Amethyst
+        // 1. Physical contact check: Redstone Block, powered Redstone Dust, lit Redstone Ore,
+        //    Soul Campfire (2.0U Pyro), Slime/Honey Block, and solid Amethyst Block / Budding Amethyst
         AABB touchBox = living.getBoundingBox().inflate(0.10D, 0.10D, 0.10D);
-        BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY - 0.15D, touchBox.minZ);
+        BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY - 0.20D, touchBox.minZ);
         BlockPos max = BlockPos.containing(touchBox.maxX, touchBox.maxY, touchBox.maxZ);
         boolean touchingRedstone = false;
         boolean touchingSlimeOrHoney = false;
+        boolean touchingSoulCampfire = false;
         BlockPos amethystZapPos = null;
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
             if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
             if (st.is(Blocks.REDSTONE_BLOCK)) {
                 touchingRedstone = true;
+            } else if (st.is(Blocks.REDSTONE_WIRE) && st.hasProperty(RedStoneWireBlock.POWER) && st.getValue(RedStoneWireBlock.POWER) > 0) {
+                touchingRedstone = true;
+            } else if ((st.is(Blocks.REDSTONE_ORE) || st.is(Blocks.DEEPSLATE_REDSTONE_ORE))
+                    && st.hasProperty(BlockStateProperties.LIT) && st.getValue(BlockStateProperties.LIT)) {
+                touchingRedstone = true;
+            }
+            if (st.is(Blocks.SOUL_CAMPFIRE) && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
+                touchingSoulCampfire = true;
             }
             if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)) {
                 touchingSlimeOrHoney = true;
@@ -224,6 +364,10 @@ public final class EnvironmentalBlockManager {
         if (touchingRedstone) {
             ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.3D, living.getZ(), 2, 0.15D, 0.15D, 0.15D, 0.02D);
+        }
+        if (touchingSoulCampfire) {
+            ElementalGaugeManager.applyElement(level, living, Element.PYRO, 2.0F, null, 0.0F);
+            level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, living.getX(), living.getY() + 0.3D, living.getZ(), 3, 0.15D, 0.15D, 0.15D, 0.02D);
         }
         if (touchingSlimeOrHoney) {
             ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);

@@ -156,6 +156,13 @@ public final class CrystallizeShardManager {
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
     }
 
+    public static void clearPlayerShield(ServerPlayer player) {
+        if (player == null) return;
+        ACTIVE_SHIELDS.remove(player.getUUID());
+        ModMobEffects.removeAllShields(player);
+        ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
+    }
+
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
         if (now % 100 == 0) {
@@ -323,7 +330,8 @@ public final class CrystallizeShardManager {
         }
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
-            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, true, true));
+            // visible=false, showIcon=false → suppress vanilla HUD icon; custom ClientAuraRenderer handles display
+            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, false, false));
         }
 
         // Grant fresh 15s vanilla Absorption (1 golden heart = 2.0F)

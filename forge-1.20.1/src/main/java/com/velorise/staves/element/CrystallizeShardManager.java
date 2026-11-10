@@ -4,7 +4,6 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,7 +23,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
 import java.util.Iterator;
 import java.util.List;
@@ -158,8 +156,11 @@ public final class CrystallizeShardManager {
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
     }
 
-    private static void spawnBurstParticles(ServerLevel level, Vec3 pos, Element element) {
-        // Kept clean without heavy ground particles, matching Genshin style
+    public static void clearPlayerShield(ServerPlayer player) {
+        if (player == null) return;
+        ACTIVE_SHIELDS.remove(player.getUUID());
+        ModMobEffects.removeAllShields(player);
+        ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
     }
 
     public static void tick(ServerLevel level) {
@@ -329,7 +330,8 @@ public final class CrystallizeShardManager {
         }
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
-            player.addEffect(new MobEffectInstance(shieldObj.get(), SHIELD_DURATION_TICKS, 0, false, true, true));
+            // visible=false, showIcon=false → suppress vanilla HUD icon; custom ClientAuraRenderer handles display
+            player.addEffect(new MobEffectInstance(shieldObj.get(), SHIELD_DURATION_TICKS, 0, false, false, false));
         }
 
         // Grant fresh 15s vanilla Absorption (1 golden heart = 2.0F)
