@@ -533,20 +533,21 @@ public final class ArcaneStaffItem extends Item {
 
     private void fireChanneledLightning(ServerLevel level, ServerPlayer player, int elapsed) {
         double range = isNetherite ? 36.0D : 30.0D;
-        double chainRadius = isNetherite ? 4.0D : 3.0D;
-        LivingEntity target = findTarget(player, range, 2.5D);
+        double targetInflation = isNetherite ? 2.0D : 1.0D;
+        LivingEntity target = findTarget(player, range, targetInflation);
         Vec3 start = player.getEyePosition().add(player.getLookAngle().scale(0.4D));
         Vec3 aimPoint = target != null ? target.getBoundingBox().getCenter() : rayEnd(player, range);
 
-        double jitter = isNetherite ? 0.6D : 0.45D;
+        // Basic tier has a small offset around crosshair/target; Netherite has slightly more wild arcs
+        double jitter = isNetherite ? 0.45D : 0.20D;
         double offX = (level.random.nextDouble() - 0.5D) * jitter;
         double offY = (level.random.nextDouble() - 0.5D) * jitter;
         double offZ = (level.random.nextDouble() - 0.5D) * jitter;
         Vec3 strikePos = aimPoint.add(offX, offY, offZ);
 
         // Draw horizontal primary arc from staff tip to target
-        drawJaggedArc(level, start, strikePos, isNetherite ? 0.45D : 0.35D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 3, 0.15D, 0.15D, 0.15D, 0.03D);
+        drawJaggedArc(level, start, strikePos, isNetherite ? 0.35D : 0.20D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
 
         // High-voltage electric crackle sound
         level.playSound(null, strikePos.x, strikePos.y, strikePos.z,
@@ -560,33 +561,52 @@ public final class ArcaneStaffItem extends Item {
         float attackU = isNetherite ? 1.5F : 1.0F;
         boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
 
-        AABB aabb = new AABB(strikePos.x - chainRadius, strikePos.y - 2.0D, strikePos.z - chainRadius,
-                             strikePos.x + chainRadius, strikePos.y + 2.5D, strikePos.z + chainRadius);
-        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, aabb, e -> e.isAlive() && e != player);
-
-        // Chain lightning to nearby enemies
-        int chained = 0;
         LightningBolt sharedBolt = null;
-        for (LivingEntity victim : victims) {
-            if (victim != target && chained < 2) {
-                drawJaggedArc(level, strikePos, victim.getBoundingBox().getCenter(), 0.3D);
-                chained++;
-            }
-            if (victim instanceof Creeper creeper && chargeCreeper && !creeper.isPowered()) {
-                if (sharedBolt == null) {
-                    sharedBolt = EntityType.LIGHTNING_BOLT.create(level);
-                }
+
+        // If target was found directly, damage primary target
+        if (target != null && target.isAlive()) {
+            if (target instanceof Creeper creeper && chargeCreeper && !creeper.isPowered()) {
+                sharedBolt = EntityType.LIGHTNING_BOLT.create(level);
                 if (sharedBolt != null) creeper.thunderHit(level, sharedBolt);
                 creeper.clearFire();
             }
-            victim.clearFire();
-            ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU, player, damagePerTick);
-            victim.clearFire();
+            target.clearFire();
+            ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, damagePerTick);
+            target.clearFire();
         }
-        DendroCoreManager.checkReactionsNear(level, strikePos, chainRadius + 0.5D, Element.ELECTRO, player);
-        // Electrify water if strikePos or victim is in water
+
+        // Netherite level can chain lightning to up to 3 nearby mobs within 6.0m without needing water
+        if (isNetherite) {
+            double chainRadius = 6.0D;
+            AABB aabb = new AABB(strikePos.x - chainRadius, strikePos.y - 2.5D, strikePos.z - chainRadius,
+                                 strikePos.x + chainRadius, strikePos.y + 3.0D, strikePos.z + chainRadius);
+            List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, aabb,
+                e -> e.isAlive() && e != player && e != target && !e.isAlliedTo(player));
+
+            int chained = 0;
+            for (LivingEntity victim : nearby) {
+                if (chained >= 3) break;
+                drawJaggedArc(level, strikePos, victim.getBoundingBox().getCenter(), 0.25D);
+                chained++;
+
+                if (victim instanceof Creeper creeper && chargeCreeper && !creeper.isPowered()) {
+                    if (sharedBolt == null) {
+                        sharedBolt = EntityType.LIGHTNING_BOLT.create(level);
+                    }
+                    if (sharedBolt != null) creeper.thunderHit(level, sharedBolt);
+                    creeper.clearFire();
+                }
+                victim.clearFire();
+                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU * 0.75F, player, damagePerTick);
+                victim.clearFire();
+            }
+        }
+
+        double aoeRadius = isNetherite ? 4.5D : 2.0D;
+        DendroCoreManager.checkReactionsNear(level, strikePos, aoeRadius, Element.ELECTRO, player);
+        // Electrify water if strikePos is in water
         BlockPos strikeBlock = BlockPos.containing(strikePos);
-        ElectrifiedWaterManager.electrify(level, strikeBlock, chainRadius + 0.5D, 70, player, damagePerTick);
+        ElectrifiedWaterManager.electrify(level, strikeBlock, aoeRadius, 70, player, damagePerTick);
     }
 
     private static void drawJaggedArc(ServerLevel level, Vec3 start, Vec3 end, double jitter) {
