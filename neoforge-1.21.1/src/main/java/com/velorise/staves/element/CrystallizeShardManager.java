@@ -149,35 +149,17 @@ public final class CrystallizeShardManager {
         item.setDeltaMovement(vx, vy, vz);
         item.hasImpulse = true;
         item.addTag(TAG_CRYSTALLIZE_SHARD);
-        item.setGlowingTag(true);
-
-        try {
-            Scoreboard sb = level.getScoreboard();
-            String teamName = "vs_" + reactedElement.name().toLowerCase(java.util.Locale.ROOT);
-            PlayerTeam team = sb.getPlayerTeam(teamName);
-            if (team == null) {
-                team = sb.addPlayerTeam(teamName);
-                team.setColor(getTeamColor(reactedElement));
-            }
-            sb.addPlayerToTeam(item.getScoreboardName(), team);
-        } catch (Throwable ignored) {}
+        item.setGlowingTag(false);
 
         level.addFreshEntity(item);
         SHARDS.add(new ShardEntry(item, level, reactedElement, level.getGameTime(), sourceMobId));
 
-        // Elemental birth sound and burst particles
+        // Elemental crystal birth sound (clean amethyst chime)
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
-        spawnBurstParticles(level, pos, reactedElement);
     }
 
     private static void spawnBurstParticles(ServerLevel level, Vec3 pos, Element element) {
-        switch (element) {
-            case PYRO -> level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y, pos.z, 16, 0.25D, 0.25D, 0.25D, 0.04D);
-            case HYDRO -> level.sendParticles(ParticleTypes.FALLING_WATER, pos.x, pos.y, pos.z, 20, 0.25D, 0.25D, 0.25D, 0.05D);
-            case ELECTRO -> level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 16, 0.25D, 0.25D, 0.25D, 0.06D);
-            case CRYO -> level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y, pos.z, 20, 0.25D, 0.25D, 0.25D, 0.03D);
-            default -> {}
-        }
+        // Kept clean without heavy ground particles, matching Genshin style
     }
 
     public static void tick(ServerLevel level) {

@@ -21,6 +21,9 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -733,6 +736,7 @@ public final class ClientAuraRenderer {
     public static void onRenderLevelStage(net.neoforged.neoforge.client.event.RenderLevelStageEvent event) {
         if (event.getStage() == net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
             renderActiveElectricArcs(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera());
+            renderCrystallizeShards(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera());
         }
     }
 
@@ -848,5 +852,309 @@ public final class ClientAuraRenderer {
         consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, bCol, alpha);
         consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, bCol, alpha);
         consumer.addVertex(matrix, x4, y4, z4).setColor(r, g, bCol, alpha);
+    }
+
+    public static Element getCrystallizeShardElement(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return null;
+        String desc = stack.getItem().getDescriptionId();
+        if (desc == null) return null;
+        if (desc.contains("pyro_crystallize_shard")) return Element.PYRO;
+        if (desc.contains("hydro_crystallize_shard")) return Element.HYDRO;
+        if (desc.contains("electro_crystallize_shard")) return Element.ELECTRO;
+        if (desc.contains("cryo_crystallize_shard")) return Element.CRYO;
+        return null;
+    }
+
+    private static int[] getCrystallizeColors(Element element) {
+        return switch (element) {
+            case PYRO -> new int[]{255, 95, 30, 255, 190, 140};
+            case HYDRO -> new int[]{35, 175, 255, 170, 230, 255};
+            case ELECTRO -> new int[]{195, 80, 255, 235, 185, 255};
+            case CRYO -> new int[]{75, 235, 255, 195, 250, 255};
+            default -> new int[]{255, 255, 255, 255, 255, 255};
+        };
+    }
+
+    public static void renderCrystallizeShards(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+
+        Vec3 camPos = camera.getPosition();
+        AABB searchBox = new AABB(
+                camPos.x - 48.0D, camPos.y - 32.0D, camPos.z - 48.0D,
+                camPos.x + 48.0D, camPos.y + 32.0D, camPos.z + 48.0D
+        );
+
+        List<ItemEntity> shards = mc.level.getEntitiesOfClass(ItemEntity.class, searchBox, item ->
+                item.isAlive() && getCrystallizeShardElement(item.getItem()) != null
+        );
+
+        if (shards.isEmpty()) return;
+
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
+
+        for (ItemEntity item : shards) {
+            Element elem = getCrystallizeShardElement(item.getItem());
+            if (elem == null) continue;
+
+            int[] cols = getCrystallizeColors(elem);
+            int r = cols[0], g = cols[1], b = cols[2];
+            int hr = cols[3], hg = cols[4], hb = cols[5];
+
+            float age = (float) item.tickCount;
+            float bob = (float) Math.sin(age * 0.08F) * 0.035F;
+
+            double cx = item.getX();
+            double cy = item.getY() + 0.38D + bob;
+            double cz = item.getZ();
+
+            poseStack.pushPose();
+            poseStack.translate(cx - camPos.x, cy - camPos.y, cz - camPos.z);
+
+            // 1. Outer Translucent 3D Sphere (R = 0.36m, soft glowing energy bubble)
+            renderUvSphere(consumer, poseStack.last().pose(), 0.36F, 14, 20, r, g, b, 50);
+
+            // 2. Inner Soft Volumetric Shell (R = 0.28m, alpha = 35) for optical depth & fresnel rim
+            renderUvSphere(consumer, poseStack.last().pose(), 0.28F, 10, 16, r, g, b, 35);
+
+            // 3. Swirling Orbital Energy Rings (tilted, spinning around the bubble)
+            poseStack.pushPose();
+            poseStack.mulPose(new org.joml.Quaternionf().rotationX((float) Math.toRadians(22.0D)));
+            poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 3.2F)));
+            renderOrbitalRing(consumer, poseStack.last().pose(), 0.38F, 0.024F, 24, hr, hg, hb, 180);
+            poseStack.popPose();
+
+            poseStack.pushPose();
+            poseStack.mulPose(new org.joml.Quaternionf().rotationZ((float) Math.toRadians(18.0D)));
+            poseStack.mulPose(new org.joml.Quaternionf().rotationX((float) Math.toRadians(-26.0D)));
+            poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(-age * 2.6F)));
+            renderOrbitalRing(consumer, poseStack.last().pose(), 0.37F, 0.016F, 20, r, g, b, 140);
+            poseStack.popPose();
+
+            // 4. Central Spinning Faceted Octahedron Crystal Core
+            poseStack.pushPose();
+            poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 2.2F)));
+            renderOctahedronCrystal(consumer, poseStack.last().pose(), 0.16F, 0.085F, r, g, b, hr, hg, hb);
+            poseStack.popPose();
+
+            // 5. Ambient swirling motes / sparkling energy points
+            renderSparkleMotes(consumer, poseStack.last().pose(), age, hr, hg, hb);
+
+            poseStack.popPose();
+        }
+
+        if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(RenderType.lightning());
+        }
+    }
+
+    private static void renderUvSphere(
+            VertexConsumer consumer, Matrix4f matrix,
+            float radius, int latBands, int lonSegs,
+            int r, int g, int b, int alpha
+    ) {
+        for (int i = 0; i < latBands; i++) {
+            double phi1 = -Math.PI / 2.0D + Math.PI * (double) i / (double) latBands;
+            double phi2 = -Math.PI / 2.0D + Math.PI * (double) (i + 1) / (double) latBands;
+
+            float y1 = (float) (radius * Math.sin(phi1));
+            float r1 = (float) (radius * Math.cos(phi1));
+            float y2 = (float) (radius * Math.sin(phi2));
+            float r2 = (float) (radius * Math.cos(phi2));
+
+            for (int j = 0; j < lonSegs; j++) {
+                double theta1 = 2.0D * Math.PI * (double) j / (double) lonSegs;
+                double theta2 = 2.0D * Math.PI * (double) (j + 1) / (double) lonSegs;
+
+                float x11 = (float) (r1 * Math.cos(theta1));
+                float z11 = (float) (r1 * Math.sin(theta1));
+
+                float x21 = (float) (r2 * Math.cos(theta1));
+                float z21 = (float) (r2 * Math.sin(theta1));
+
+                float x22 = (float) (r2 * Math.cos(theta2));
+                float z22 = (float) (r2 * Math.sin(theta2));
+
+                float x12 = (float) (r1 * Math.cos(theta2));
+                float z12 = (float) (r1 * Math.sin(theta2));
+
+                drawQuad(consumer, matrix,
+                        x11, y1, z11,
+                        x21, y2, z21,
+                        x22, y2, z22,
+                        x12, y1, z12,
+                        r, g, b, alpha);
+            }
+        }
+    }
+
+    private static void renderOrbitalRing(
+            VertexConsumer consumer, Matrix4f matrix,
+            float radius, float halfWidth, int segs,
+            int r, int g, int b, int alpha
+    ) {
+        float rInner = radius - halfWidth;
+        float rOuter = radius + halfWidth;
+
+        for (int i = 0; i < segs; i++) {
+            double theta1 = 2.0D * Math.PI * (double) i / (double) segs;
+            double theta2 = 2.0D * Math.PI * (double) (i + 1) / (double) segs;
+
+            float x1_in = (float) (rInner * Math.cos(theta1));
+            float z1_in = (float) (rInner * Math.sin(theta1));
+            float x1_out = (float) (rOuter * Math.cos(theta1));
+            float z1_out = (float) (rOuter * Math.sin(theta1));
+
+            float x2_in = (float) (rInner * Math.cos(theta2));
+            float z2_in = (float) (rInner * Math.sin(theta2));
+            float x2_out = (float) (rOuter * Math.cos(theta2));
+            float z2_out = (float) (rOuter * Math.sin(theta2));
+
+            drawQuad(consumer, matrix,
+                    x1_in, 0.0F, z1_in,
+                    x1_out, 0.0F, z1_out,
+                    x2_out, 0.0F, z2_out,
+                    x2_in, 0.0F, z2_in,
+                    r, g, b, alpha);
+        }
+    }
+
+    private static void renderOctahedronCrystal(
+            VertexConsumer consumer, Matrix4f matrix,
+            float halfH, float eqRadius,
+            int r, int g, int b,
+            int hr, int hg, int hb
+    ) {
+        int sides = 8;
+        float[] ex = new float[sides];
+        float[] ez = new float[sides];
+        for (int i = 0; i < sides; i++) {
+            double a = 2.0D * Math.PI * (double) i / (double) sides;
+            ex[i] = (float) (eqRadius * Math.cos(a));
+            ez[i] = (float) (eqRadius * Math.sin(a));
+        }
+
+        float lx = 0.408F, ly = 0.816F, lz = 0.408F;
+
+        for (int i = 0; i < sides; i++) {
+            int next = (i + 1) % sides;
+
+            // Upper Pyramid Facet
+            float ux = ex[i], uy = -halfH, uz = ez[i];
+            float vx = ex[next], vy = -halfH, vz = ez[next];
+            float nx = uy * vz - uz * vy;
+            float ny = uz * vx - ux * vz;
+            float nz = ux * vy - uy * vx;
+            float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+            if (len > 1e-4F) { nx /= len; ny /= len; nz /= len; }
+
+            float dot = Math.max(0.0F, nx * lx + ny * ly + nz * lz);
+            float shade = 0.60F + 0.40F * dot;
+
+            int fr = Math.min(255, (int) (r * shade));
+            int fg = Math.min(255, (int) (g * shade));
+            int fb = Math.min(255, (int) (b * shade));
+
+            drawTriangle(consumer, matrix,
+                    0.0F, halfH, 0.0F,
+                    ex[i], 0.0F, ez[i],
+                    ex[next], 0.0F, ez[next],
+                    fr, fg, fb, 240);
+
+            // Lower Pyramid Facet
+            float lux = ex[next], luy = halfH, luz = ez[next];
+            float lvx = ex[i], lvy = halfH, lvz = ez[i];
+            float lnx = luy * lvz - luz * lvy;
+            float lny = luz * lvx - lux * lvz;
+            float lnz = lux * lvy - luy * lvx;
+            float llen = (float) Math.sqrt(lnx * lnx + lny * lny + lnz * lnz);
+            if (llen > 1e-4F) { lnx /= llen; lny /= llen; lnz /= llen; }
+
+            float ldot = Math.max(0.0F, lnx * lx + lny * ly + lnz * lz);
+            float lshade = 0.50F + 0.35F * ldot;
+
+            int lfr = Math.min(255, (int) (r * lshade));
+            int lfg = Math.min(255, (int) (g * lshade));
+            int lfb = Math.min(255, (int) (b * lshade));
+
+            drawTriangle(consumer, matrix,
+                    0.0F, -halfH, 0.0F,
+                    ex[next], 0.0F, ez[next],
+                    ex[i], 0.0F, ez[i],
+                    lfr, lfg, lfb, 240);
+        }
+
+        // Inner bright specular core needle (spark of light inside the gem)
+        float innerH = halfH * 0.70F;
+        float innerR = eqRadius * 0.45F;
+        for (int i = 0; i < sides; i++) {
+            int next = (i + 1) % sides;
+            double a1 = 2.0D * Math.PI * (double) i / (double) sides;
+            double a2 = 2.0D * Math.PI * (double) next / (double) sides;
+            float ix1 = (float) (innerR * Math.cos(a1));
+            float iz1 = (float) (innerR * Math.sin(a1));
+            float ix2 = (float) (innerR * Math.cos(a2));
+            float iz2 = (float) (innerR * Math.sin(a2));
+
+            drawTriangle(consumer, matrix, 0.0F, innerH, 0.0F, ix1, 0.0F, iz1, ix2, 0.0F, iz2, hr, hg, hb, 210);
+            drawTriangle(consumer, matrix, 0.0F, -innerH, 0.0F, ix2, 0.0F, iz2, ix1, 0.0F, iz1, hr, hg, hb, 210);
+        }
+    }
+
+    private static void renderSparkleMotes(
+            VertexConsumer consumer, Matrix4f matrix,
+            float age, int hr, int hg, int hb
+    ) {
+        int count = 6;
+        float size = 0.016F;
+        for (int i = 0; i < count; i++) {
+            double orbitAngle = (double) (age * (1.5F + 0.3F * i) + i * 60.0F) * (Math.PI / 180.0D);
+            double orbitRadius = 0.22D + 0.03D * (i % 3);
+            double orbitY = Math.sin((double) (age * 0.06F + i * 1.2F)) * 0.14D;
+
+            float sx = (float) (orbitRadius * Math.cos(orbitAngle));
+            float sy = (float) orbitY;
+            float sz = (float) (orbitRadius * Math.sin(orbitAngle));
+
+            drawQuad(consumer, matrix,
+                    sx - size, sy - size, sz,
+                    sx + size, sy - size, sz,
+                    sx + size, sy + size, sz,
+                    sx - size, sy + size, sz,
+                    hr, hg, hb, 220);
+            drawQuad(consumer, matrix,
+                    sx, sy - size, sz - size,
+                    sx, sy - size, sz + size,
+                    sx, sy + size, sz + size,
+                    sx, sy + size, sz - size,
+                    hr, hg, hb, 220);
+        }
+    }
+
+    private static void drawQuad(
+            VertexConsumer consumer, Matrix4f matrix,
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3,
+            float x4, float y4, float z4,
+            int r, int g, int b, int a
+    ) {
+        consumer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x4, y4, z4).setColor(r, g, b, a);
+    }
+
+    private static void drawTriangle(
+            VertexConsumer consumer, Matrix4f matrix,
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3,
+            int r, int g, int b, int a
+    ) {
+        consumer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
     }
 }

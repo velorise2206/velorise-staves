@@ -47,9 +47,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             });
         });
 
-        // Register World Render for 3D Electric Arcs
+        // Register World Render for 3D Electric Arcs & Crystallize Shards
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             ClientAuraRenderer.renderActiveElectricArcs(context.matrixStack(), context.consumers(), context.camera());
+            ClientAuraRenderer.renderCrystallizeShards(context.matrixStack(), context.consumers(), context.camera());
         });
 
         // Register In-Game HUD overlay
