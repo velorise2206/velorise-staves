@@ -166,11 +166,6 @@ public final class ClientAuraTracker {
                 entry.dualStartTime = now;
                 entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
             }
-        } else {
-            entry.reaction = null;
-            entry.reactedAuraElement = null;
-            entry.dualTriggerElement = null;
-            entry.dualUntil = 0L;
         }
 
         if (damage > 0.0F) {

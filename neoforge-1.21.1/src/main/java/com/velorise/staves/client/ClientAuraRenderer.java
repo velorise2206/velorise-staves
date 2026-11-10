@@ -336,7 +336,7 @@ public final class ClientAuraRenderer {
                 }
             }
 
-            poseStack.scale(-0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
+            poseStack.scale(0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
 
             int count = display.size();
             float totalWidth = count * iconSize + (count - 1) * gap;
@@ -383,7 +383,7 @@ public final class ClientAuraRenderer {
             if (primaryAge < 250L && primaryAge >= 0L) {
                 textPop = 1.0F + 0.38F * (float) Math.sin((primaryAge / 250.0F) * Math.PI);
             }
-            poseStack.scale(-0.030F * textPop, -0.030F * textPop, 0.030F * textPop);
+            poseStack.scale(0.030F * textPop, -0.030F * textPop, 0.030F * textPop);
 
             Font font = mc.font;
             Matrix4f matrix = poseStack.last().pose();

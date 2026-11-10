@@ -755,6 +755,19 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
+                // 1b. Mutated Innate Mob Attack (takes priority over mob-specific default elements like Husk/Ravager)
+                if (source.getEntity() instanceof LivingEntity mutatedAttacker && mutatedAttacker != target && isMutatedInnate(mutatedAttacker)) {
+                    Element mutatedElem = getInnateElement(mutatedAttacker);
+                    if (mutatedElem != null) {
+                        if (mutatedElem != Element.PYRO && mutatedAttacker.isOnFire() && !target.isInLava()) {
+                            target.clearFire();
+                        }
+                        ServerPlayer attackerPlayer = mutatedAttacker instanceof ServerPlayer sp ? sp : null;
+                        applyElementBypassIcd(level, target, mutatedElem, 1.0F, attackerPlayer, 0.0F);
+                        return;
+                    }
+                }
+
                 // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro
                 if (source.is(DamageTypes.DRAGON_BREATH)) {
                     applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
@@ -886,26 +899,11 @@ public final class ElementalGaugeManager {
                 if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
                     Element innate = getInnateElement(attackerMob);
                     if (innate != null) {
-                        boolean isMutated = isMutatedInnate(attackerMob);
-                        boolean canApply = true;
-                        if (isMutated) {
-                            // Mutated mobs only apply their innate element on plain, unenchanted attacks/projectiles
-                            if (source.is(DamageTypeTags.IS_FIRE)
-                                    || (source.getDirectEntity() != null && source.getDirectEntity().isOnFire())
-                                    || attackerMob.getMainHandItem().isEnchanted()
-                                    || attackerMob.getOffhandItem().isEnchanted()
-                                    || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.SpectralArrow) {
-                                canApply = false;
-                            } else if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
-                                if (arrow.getColor() != -1) {
-                                    canApply = false;
-                                }
-                            }
+                        if (innate != Element.PYRO && attackerMob.isOnFire() && !target.isInLava()) {
+                            target.clearFire();
                         }
-                        if (canApply) {
-                            ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
-                            applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
-                        }
+                        ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
+                        applyElementBypassIcd(level, target, innate, 1.0F, attackerPlayer, 0.0F);
                     }
                 }
             }
@@ -1323,7 +1321,7 @@ public final class ElementalGaugeManager {
             mutateChance = StavesConfig.INNATE_MUTATION_CHANCE.get();
         } catch (Exception ignored) {}
         if (mutateChance > 0.0D && entity.getRandom().nextDouble() < mutateChance) {
-            Element[] elements = Element.values();
+            Element[] elements = {Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO, Element.DENDRO};
             Element chosen = elements[entity.getRandom().nextInt(elements.length)];
             entity.addTag("VeloriseInnate:" + chosen.name());
 
