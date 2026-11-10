@@ -211,16 +211,6 @@ public final class DendroCoreManager {
         item.setPickUpDelay(32767);
         item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
         item.addTag(TAG_DENDRO_CORE);
-        item.setGlowingTag(true);
-        try {
-            Scoreboard sb = level.getScoreboard();
-            PlayerTeam team = sb.getPlayerTeam("vs_dendro");
-            if (team == null) {
-                team = sb.addPlayerTeam("vs_dendro");
-                team.setColor(ChatFormatting.GREEN);
-            }
-            sb.addPlayerToTeam(item.getScoreboardName(), team);
-        } catch (Throwable ignored) {}
         level.addFreshEntity(item);
 
         level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.5D, pos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
@@ -433,34 +423,35 @@ public final class DendroCoreManager {
                 continue;
             }
 
-            // GenshinCraft flight vector formula
+            // GenshinCraft flight vector formula with rapid acceleration
             Vec3 dir;
             if (m.target == null) {
                 dir = new Vec3(0.0D, 0.5D, 0.0D);
             } else {
                 dir = dist > 1.0E-4D ? toTarget.scale(1.0D / dist) : new Vec3(0, 1, 0);
                 int age = m.currentTick;
-                if (age < 10) {
-                    dir = dir.add(0.0D, 1.0D, 0.0D).normalize();
-                } else if (age < 20) {
-                    dir = dir.add(0.0D, (20 - age) * 0.1D, 0.0D).normalize();
+                if (age < 6) {
+                    dir = dir.add(0.0D, 0.7D, 0.0D).normalize();
+                } else if (age < 12) {
+                    dir = dir.add(0.0D, (12 - age) * 0.08D, 0.0D).normalize();
                 }
             }
 
-            double stepSpeed = 0.8D; // GenshinCraft exact speed: 0.8 blocks/tick (16 blocks/second)
+            double stepSpeed = Math.min(1.35D, 0.85D + m.currentTick * 0.08D); // Rapid acceleration to high speed
             Vec3 nextPos = m.pos.add(dir.scale(stepSpeed));
             m.pos = nextPos;
 
-            // Move the glowing 50% scale seed visual entity along the trajectory
+            // Move the glowing seed visual entity along the trajectory
             if (m.visualEntity != null && m.visualEntity.isAlive()) {
                 m.visualEntity.teleportTo(nextPos.x, nextPos.y, nextPos.z);
             }
 
-            // Brilliant glowing Hyperbloom homing missile trail (vivid emerald lime + glow sparkles)
-            level.sendParticles(HYPERBLOOM_FOOTPRINT, nextPos.x, nextPos.y, nextPos.z, 3, 0.04D, 0.04D, 0.04D, 0.01D);
-            level.sendParticles(ParticleTypes.GLOW, nextPos.x, nextPos.y, nextPos.z, 2, 0.03D, 0.03D, 0.03D, 0.01D);
+            // Brilliant luminous glowing Hyperbloom homing missile trail (vivid emerald lime + bright end rod tracer + glow sparkles)
+            level.sendParticles(HYPERBLOOM_FOOTPRINT, nextPos.x, nextPos.y, nextPos.z, 5, 0.05D, 0.05D, 0.05D, 0.02D);
+            level.sendParticles(ParticleTypes.GLOW, nextPos.x, nextPos.y, nextPos.z, 4, 0.05D, 0.05D, 0.05D, 0.02D);
+            level.sendParticles(ParticleTypes.END_ROD, nextPos.x, nextPos.y, nextPos.z, 1, 0.01D, 0.01D, 0.01D, 0.002D);
             if (m.currentTick % 2 == 0) {
-                level.sendParticles(ParticleTypes.END_ROD, nextPos.x, nextPos.y, nextPos.z, 1, 0.01D, 0.01D, 0.01D, 0.005D);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, nextPos.x, nextPos.y, nextPos.z, 2, 0.04D, 0.04D, 0.04D, 0.02D);
             }
 
             // Play flying hum / whistling sound at launch and mid-flight
