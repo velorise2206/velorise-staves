@@ -276,7 +276,7 @@ public final class DendroCoreManager {
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.3F);
 
         ServerPlayer owner = core.ownerId != null ? core.level.getServer().getPlayerList().getPlayer(core.ownerId) : null;
-        float dmg = 8.0F * core.damageMultiplier;
+        float dmg = 4.0F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {

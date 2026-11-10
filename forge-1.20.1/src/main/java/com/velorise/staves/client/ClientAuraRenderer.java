@@ -133,8 +133,17 @@ public final class ClientAuraRenderer {
         }
     }
 
+    public static void clearPyroInnateFire(LivingEntity entity) {
+        if (entity == null) return;
+        if (ClientAuraTracker.hasPyroInnate(entity.getId()) && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())) {
+            entity.clearFire();
+            entity.setSharedFlagOnFire(false);
+        }
+    }
+
     public static void applyFrozenPoseLock(LivingEntity entity) {
         if (entity == null) return;
+        clearPyroInnateFire(entity);
         if (!ClientAuraTracker.isFrozen(entity.getId())) {
             FROZEN_RENDER_STATES.remove(entity.getId());
             return;

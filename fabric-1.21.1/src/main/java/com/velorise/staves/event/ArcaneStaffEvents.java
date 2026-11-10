@@ -213,7 +213,9 @@ public final class ArcaneStaffEvents {
         LivingEntity target = hitEntity(hitResult);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         if (target != null && target != owner) {
-            target.igniteForSeconds(isNetherite ? 5 : 3);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.igniteForSeconds(isNetherite ? 5 : 3);
+            }
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
@@ -232,7 +234,9 @@ public final class ArcaneStaffEvents {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
         for (LivingEntity target : affected) {
-            target.igniteForSeconds(isNetherite ? 5 : 4);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.igniteForSeconds(isNetherite ? 5 : 4);
+            }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));

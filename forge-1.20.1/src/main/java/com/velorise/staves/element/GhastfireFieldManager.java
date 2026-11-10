@@ -100,7 +100,9 @@ public final class GhastfireFieldManager {
                     double dx = target.getX() - centerPos.x;
                     double dz = target.getZ() - centerPos.z;
                     if (dx * dx + dz * dz <= r2) {
-                        target.setSecondsOnFire(3);
+                        if (!ElementalGaugeManager.isPyroInnate(target)) {
+                            target.setSecondsOnFire(3);
+                        }
                         ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, 1.0F, owner, damage);
                         level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
                     }

@@ -9,6 +9,7 @@ import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.server.MinecraftServer;
@@ -181,6 +182,27 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onLivingAttack(net.minecraftforge.event.entity.living.LivingAttackEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.level().isClientSide()
+                && event.getSource().is(DamageTypeTags.IS_FIRE)
+                && ElementalGaugeManager.isPyroInnate(entity)) {
+            ElementalGaugeManager.extinguishPyroInnate(entity);
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingTick(net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.level().isClientSide()
+                && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())
+                && ElementalGaugeManager.isPyroInnate(entity)) {
+            ElementalGaugeManager.extinguishPyroInnate(entity);
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
@@ -331,7 +353,9 @@ public final class ArcaneStaffEvents {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         if (target != null && target != owner) {
-            target.setSecondsOnFire(isNetherite ? 5 : 3);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.setSecondsOnFire(isNetherite ? 5 : 3);
+            }
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
@@ -350,7 +374,9 @@ public final class ArcaneStaffEvents {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
         for (LivingEntity target : affected) {
-            target.setSecondsOnFire(isNetherite ? 5 : 4);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.setSecondsOnFire(isNetherite ? 5 : 4);
+            }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));

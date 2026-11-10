@@ -749,6 +749,9 @@ public final class ElementalGaugeManager {
         IS_PROCESSING_DAMAGE.set(true);
         try {
             if (target.level() instanceof ServerLevel level) {
+                if ((target.getRemainingFireTicks() > 0 || target.isOnFire()) && isPyroInnate(target)) {
+                    extinguishPyroInnate(target);
+                }
                 // 1. Environmental Fire
                 if (source.is(DamageTypeTags.IS_FIRE)) {
                     handleEnvironmentalFireDamage(target);
@@ -976,7 +979,11 @@ public final class ElementalGaugeManager {
     public static void maintainBurningPyroAura(LivingEntity target) {
         if (!target.isAlive() || target.isSpectator() || isEntityInWater(target)) return;
         Element innate = getInnateElement(target);
-        if (innate == Element.PYRO || innate == Element.CRYO || innate == Element.HYDRO) return;
+        if (innate == Element.PYRO) {
+            extinguishPyroInnate(target);
+            return;
+        }
+        if (innate == Element.CRYO || innate == Element.HYDRO) return;
 
         UUID id = target.getUUID();
         Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
@@ -1327,6 +1334,9 @@ public final class ElementalGaugeManager {
             Element chosen = elements[entity.getRandom().nextInt(elements.length)];
             data.putString("VeloriseInnate", chosen.name());
             entity.addTag("VeloriseInnate:" + chosen.name());
+            if (chosen == Element.PYRO) {
+                extinguishPyroInnate(entity);
+            }
 
             // Immediately initialize mutated innate element in GAUGES (including Anemo & Geo) so it always syncs and renders overhead
             Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
@@ -1353,6 +1363,24 @@ public final class ElementalGaugeManager {
             }
         }
         return getNaturalInnateElement(target);
+    }
+
+    public static boolean isPyroInnate(@Nullable Entity entity) {
+        return entity instanceof LivingEntity living && getInnateElement(living) == Element.PYRO;
+    }
+
+    public static void extinguishPyroInnate(@Nullable LivingEntity entity) {
+        if (entity == null || !isPyroInnate(entity)) return;
+        if (entity.getRemainingFireTicks() > 0 || entity.isOnFire()) {
+            entity.clearFire();
+            entity.setSharedFlagOnFire(false);
+        }
+        if (!entity.level().isClientSide()) {
+            UUID id = entity.getUUID();
+            BURNING_UNTIL.remove(id);
+            BURNING_EM_LEVEL.remove(id);
+            LAST_BURN_PYRO_REFRESH.remove(id);
+        }
     }
 
     public static boolean isMutatedInnate(LivingEntity entity) {
@@ -2361,6 +2389,10 @@ public final class ElementalGaugeManager {
             Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
             Element innate = getInnateElement(target);
             boolean changed = false;
+
+            if (innate == Element.PYRO) {
+                extinguishPyroInnate(target);
+            }
 
             // 1. Environmental Water / Fire check & Cryo Water Freezing
             if (innate == Element.CRYO || entityGauges.containsKey(Element.CRYO)) {

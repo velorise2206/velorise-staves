@@ -26,6 +26,16 @@ public abstract class LivingEntityDamageMixin {
         }
     }
 
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void velorise$onLivingTickPost(CallbackInfo ci) {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (!entity.level().isClientSide()
+                && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())
+                && ElementalGaugeManager.isPyroInnate(entity)) {
+            ElementalGaugeManager.extinguishPyroInnate(entity);
+        }
+    }
+
     @ModifyVariable(
             method = "actuallyHurt",
             at = @At(value = "STORE", ordinal = 0),

@@ -255,6 +255,12 @@ public final class VeloriseStavesMod implements ModInitializer {
             ArcaneStaffItem.clearAll();
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (!entity.level().isClientSide()
+                    && source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)
+                    && ElementalGaugeManager.isPyroInnate(entity)) {
+                ElementalGaugeManager.extinguishPyroInnate(entity);
+                return false;
+            }
             if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs fangs
                     && fangs.getTags().contains("velorise_staves:geo_fangs")) {
                 if (entity.level() instanceof net.minecraft.server.level.ServerLevel sl) {

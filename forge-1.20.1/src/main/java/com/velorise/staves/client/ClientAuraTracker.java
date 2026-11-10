@@ -194,6 +194,11 @@ public final class ClientAuraTracker {
         }
     }
 
+    public static boolean hasPyroInnate(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.permanentInnateElement == Element.PYRO;
+    }
+
     public static boolean isFrozen(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         if (data == null || !data.isFrozen) return false;

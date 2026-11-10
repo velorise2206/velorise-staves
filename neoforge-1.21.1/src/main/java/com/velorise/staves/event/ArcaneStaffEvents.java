@@ -10,6 +10,7 @@ import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.server.level.ServerLevel;
@@ -181,6 +182,39 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onEntityInvulnerabilityCheck(net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent event) {
+        if (!event.getEntity().level().isClientSide()
+                && event.getSource().is(DamageTypeTags.IS_FIRE)
+                && event.getEntity() instanceof LivingEntity living
+                && ElementalGaugeManager.isPyroInnate(living)) {
+            ElementalGaugeManager.extinguishPyroInnate(living);
+            event.setInvulnerable(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onLivingIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.level().isClientSide()
+                && event.getSource().is(DamageTypeTags.IS_FIRE)
+                && ElementalGaugeManager.isPyroInnate(entity)) {
+            ElementalGaugeManager.extinguishPyroInnate(entity);
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityTickPost(net.neoforged.neoforge.event.tick.EntityTickEvent.Post event) {
+        Entity entity = event.getEntity();
+        if (!entity.level().isClientSide()
+                && entity instanceof LivingEntity living
+                && (living.getRemainingFireTicks() > 0 || living.isOnFire())
+                && ElementalGaugeManager.isPyroInnate(living)) {
+            ElementalGaugeManager.extinguishPyroInnate(living);
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingDamagePre(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
@@ -337,7 +371,9 @@ public final class ArcaneStaffEvents {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         if (target != null && target != owner) {
-            target.igniteForSeconds(isNetherite ? 5 : 3);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.igniteForSeconds(isNetherite ? 5 : 3);
+            }
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
@@ -356,7 +392,9 @@ public final class ArcaneStaffEvents {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
         for (LivingEntity target : affected) {
-            target.igniteForSeconds(isNetherite ? 5 : 4);
+            if (!ElementalGaugeManager.isPyroInnate(target)) {
+                target.igniteForSeconds(isNetherite ? 5 : 4);
+            }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));
