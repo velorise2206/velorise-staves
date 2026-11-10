@@ -392,7 +392,7 @@ public final class DendroCoreManager {
             }
 
             if (hit || m.currentTick > 100) { // Hit or timeout (5 seconds)
-                missileIt.remove();
+                MISSILES.remove(m);
                 if (m.visualEntity != null) {
                     try {
                         Scoreboard sb = level.getScoreboard();
