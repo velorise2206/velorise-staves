@@ -634,7 +634,15 @@ public final class ArcaneStaffItem extends Item {
         double range = isNetherite ? 28.0D : 24.0D;
         Vec3 end = target == null ? rayEnd(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
-            float baseDmg = isNetherite ? 1.8F : 1.2F;
+            float healthPct = player.getHealth() / Math.max(1.0F, player.getMaxHealth());
+            float baseDmg;
+            if (healthPct < 0.20F) {
+                baseDmg = isNetherite ? 2.0F : 1.5F; // < 20% hp -> 1.5 damage
+            } else if (healthPct < 0.50F) {
+                baseDmg = isNetherite ? 1.4F : 1.0F; // < 50% hp -> 1.0 damage
+            } else {
+                baseDmg = isNetherite ? 0.8F : 0.5F; // Full hp / >= 50% -> 0.5 damage
+            }
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
         }
