@@ -439,7 +439,7 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            ElementalGaugeManager.applyElement(level, target, Element.DENDRO, attackU, player, baseDmg);
+            ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
                 target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
             }

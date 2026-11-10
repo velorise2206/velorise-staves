@@ -12,6 +12,7 @@
     "sources": "https://github.com/hungbbdzz/velorise-staves"
   },
   "license": "MIT",
+  "icon": "assets/velorise_staves/textures/item/elemental_codex.png",
   "environment": "*",
   "entrypoints": {
     "main": [

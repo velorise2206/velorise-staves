@@ -187,6 +187,8 @@
   "codex.velorise_staves.staff.echo": "Releases a Warden sonic boom that pierces armor/walls and triggers high-damage Anemo Swirl.",
   "codex.velorise_staves.staff.shulker": "Fires a homing Anemo Shulker bullet that levitates targets and triggers Swirl.",
   "codex.velorise_staves.staff.evoker": "Summons a line of Geo Evoker Fangs from the ground, triggering Crystallize shields & Shatter.",
+  "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bCD:§r %ss | §dRange:§r %s",
+  "codex.velorise_staves.staff.stats_durability": "§7Durability (Basic ➔ Netherite): §f%s ➔ §6%s",
   "codex.velorise_staves.staff.utility.p1": "• Void Translocator: Instant blink teleport (%sm Basic / %sm Netherite) with fall-damage reset.",
   "codex.velorise_staves.staff.utility.p2": "• Magic Mirror: Channels recall to your Bed/Spawn (Cooldown: %ss; Netherite supports cross-dimension recall).",
   "codex.velorise_staves.mastery.card1.title": "Elemental Mastery I–III Enchantment Formulas",

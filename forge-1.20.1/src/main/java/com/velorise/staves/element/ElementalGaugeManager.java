@@ -760,8 +760,34 @@ public final class ElementalGaugeManager {
                         }
                         ServerPlayer attackerPlayer = mutatedAttacker instanceof ServerPlayer sp ? sp : null;
                         applyElementBypassIcd(level, target, mutatedElem, 1.0F, attackerPlayer, 0.0F);
+                        if (mutatedElem == Element.PYRO
+                                && target.isAlive()
+                                && !isPyroInnate(target)
+                                && !target.fireImmune()
+                                && !(target instanceof Warden)) {
+                            if (!isEntityInWater(target) && target.getRemainingFireTicks() < 40) {
+                                target.setRemainingFireTicks(40);
+                            }
+                            float fireDmg = (float) (2.0F * StavesConfig.DAMAGE_MULTIPLIER.get());
+                            if (fireDmg > 0.0F) {
+                                int prevInvuln = target.invulnerableTime;
+                                target.invulnerableTime = 0;
+                                target.hurt(level.damageSources().onFire(), fireDmg);
+                                target.invulnerableTime = prevInvuln;
+                            }
+                            level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                                    6, 0.25D, 0.25D, 0.25D, 0.03D);
+                        }
                         return;
                     }
+                }
+
+                // 1c. Wither Skull (Wither Boss, mobs, or player-launched/reflected skulls) -> Dendro (1.0U)
+                if (source.is(DamageTypes.WITHER_SKULL)
+                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.WitherSkull) {
+                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
+                    applyElementBypassIcd(level, target, Element.DENDRO, 1.0F, attacker, 0.0F);
+                    return;
                 }
 
                 // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro

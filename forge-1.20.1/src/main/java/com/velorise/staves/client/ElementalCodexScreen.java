@@ -493,7 +493,7 @@ public class ElementalCodexScreen extends Screen {
             case INNATE -> {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.rules.title"), 0xFFFFD60A,
-                        Element.PYRO, Element.HYDRO, EntityType.BLAZE, EntityType.CREEPER,
+                        null, null, EntityType.BLAZE, EntityType.CREEPER,
                         "IMMUNE & 6% Mutate", 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.innate.rules.p1"), tr("codex.velorise_staves.innate.rules.p2"))
                 ));
@@ -613,13 +613,15 @@ public class ElementalCodexScreen extends Screen {
 
                     ItemStack basicStack = getModItemStack(baseId);
                     String name = tr("item.velorise_staves." + baseId);
-                    String stats = String.format(Locale.ROOT, "%s ➔ %s§r | §bCD:§r %.1fs | §dRng:§r %s | §7Dur: %d/%d",
-                            bDmg, nDmg, cdSec, rngStr, bDur, nDur);
+                    String statsCombat = tr("codex.velorise_staves.staff.stats_combat",
+                            bDmg, nDmg, String.format(Locale.ROOT, "%.1f", cdSec), rngStr);
+                    String statsDur = tr("codex.velorise_staves.staff.stats_durability",
+                            String.valueOf(bDur), String.valueOf(nDur));
                     cards.add(new GuideCard(
                             name, ClientAuraRenderer.getElementBorderColor(el),
                             el, null, basicStack, ItemStack.EMPTY,
                             el.name(), ClientAuraRenderer.getElementBorderColor(el),
-                            List.of(stats, tr(descKey))
+                            List.of(statsCombat, statsDur, tr(descKey))
                     ));
                 }
                 // Utility Artifacts
@@ -921,7 +923,7 @@ public class ElementalCodexScreen extends Screen {
                 renderHoveredItem(guiGraphics, new ItemStack(Items.NETHERITE_INGOT), cx - 46, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx - 26, midY + 4, 0xFFFFD60A, true);
                 renderHoveredItem(guiGraphics, getModItemStack("netherite_dragonfire_scepter"), cx - 14, midY, mouseX, mouseY);
-                guiGraphics.drawString(this.font, "§6+50% DMG / +50% U", cx + 6, midY + 4, 0xFFFFD60A, true);
+                guiGraphics.drawString(this.font, "§6+50% §f\uE008§6 / +50% U", cx + 6, midY + 4, 0xFFFFD60A, true);
             }
             case MASTERY -> {
                 renderHoveredItem(guiGraphics, new ItemStack(Items.ENCHANTING_TABLE), cx - 110, midY, mouseX, mouseY);
