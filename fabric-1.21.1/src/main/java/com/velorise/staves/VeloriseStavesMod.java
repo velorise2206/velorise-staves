@@ -246,6 +246,11 @@ public final class VeloriseStavesMod implements ModInitializer {
             }
             return true;
         });
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
+            if (entity instanceof net.minecraft.world.entity.LivingEntity living && !world.isClientSide()) {
+                ElementalGaugeManager.checkInnateMutation(living);
+            }
+        });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && !entity.level().isClientSide()) {
                 ElementalGaugeManager.handleLivingIncomingDamage(entity, source);

@@ -715,7 +715,46 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static void checkInnateMutation(LivingEntity entity) {
+        if (entity.level().isClientSide()) return;
+        if (entity instanceof net.minecraft.world.entity.player.Player || isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return;
+
+        net.minecraft.nbt.CompoundTag data = entity.getPersistentData();
+        if (data.contains("VeloriseInnateChecked")) return;
+        data.putBoolean("VeloriseInnateChecked", true);
+
+        // If the entity already has a natural innate element, do not mutate it
+        if (getNaturalInnateElement(entity) != null) return;
+
+        // 1% chance (0.01) to mutate into one of the 7 innate elements
+        if (entity.getRandom().nextFloat() < 0.01F) {
+            Element[] elements = Element.values();
+            Element chosen = elements[entity.getRandom().nextInt(elements.length)];
+            data.putString("VeloriseInnate", chosen.name());
+
+            // Immediately initialize innate aura in GAUGES so it syncs and renders right away
+            if (chosen.isAura()) {
+                Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
+                gauges.put(chosen, new GaugeState(chosen, 1.25F));
+                syncAuras(entity, Collections.singleton(chosen), null, null, null, 0.0F);
+            }
+        }
+    }
+
     public static @Nullable Element getInnateElement(LivingEntity target) {
+        if (!target.level().isClientSide() && !target.getPersistentData().contains("VeloriseInnateChecked")) {
+            checkInnateMutation(target);
+        }
+        if (target.getPersistentData().contains("VeloriseInnate")) {
+            String elemName = target.getPersistentData().getString("VeloriseInnate");
+            try {
+                return Element.valueOf(elemName);
+            } catch (IllegalArgumentException ignored) {}
+        }
+        return getNaturalInnateElement(target);
+    }
+
+    public static @Nullable Element getNaturalInnateElement(LivingEntity target) {
         EntityType<?> type = target.getType();
         if (type.is(PYRO_CREATURES)) return Element.PYRO;
         if (type.is(HYDRO_CREATURES)) return Element.HYDRO;

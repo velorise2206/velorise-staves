@@ -79,6 +79,9 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
+        if (!event.getLevel().isClientSide() && event.getEntity() instanceof LivingEntity living) {
+            ElementalGaugeManager.checkInnateMutation(living);
+        }
         if (event.getEntity() instanceof Snowball snowball && !event.getLevel().isClientSide()) {
             TRACKED_PROJECTILES.add(snowball);
         }
