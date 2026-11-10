@@ -30,5 +30,8 @@ net/
 
 # Materials / Docs scratch
 mats/
+/isssues.md
+/issues.md
+*.zip
 
 
