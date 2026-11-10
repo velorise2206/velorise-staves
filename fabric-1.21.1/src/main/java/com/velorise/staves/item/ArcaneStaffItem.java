@@ -464,10 +464,8 @@ public final class ArcaneStaffItem extends Item {
         String tag = isNetherite ? "netherite_" + kind : kind;
         prepareProjectile(projectile, player, tag, 28.0D, velocity);
         level.addFreshEntity(projectile);
-        SoundEvent sound = "web".equals(kind) ? SoundEvents.SPIDER_AMBIENT
-            : "wind".equals(kind) ? SoundEvents.PLAYER_ATTACK_SWEEP
-            : SoundEvents.SNOW_GOLEM_SHOOT;
-        float pitch = "web".equals(kind) ? 1.45F : "wind".equals(kind) ? 1.4F : 1.1F;
+        SoundEvent sound = "web".equals(kind) ? SoundEvents.SPIDER_AMBIENT : SoundEvents.SNOW_GOLEM_SHOOT;
+        float pitch = "web".equals(kind) ? 1.45F : 1.1F;
         level.playSound(null, player.blockPosition(), sound, SoundSource.PLAYERS, 0.7F, pitch);
         return true;
     }
@@ -712,7 +710,9 @@ public final class ArcaneStaffItem extends Item {
     public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
         boolean validBase = switch (kind) {
-            case DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, WITHER, GUARDIAN -> repair.is(Items.BLAZE_ROD);
+            case DRAGONFIRE, INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
+            case ECHO -> repair.is(Items.ECHO_SHARD) || repair.is(Items.BLAZE_ROD);
+            case GUARDIAN -> repair.is(Items.PRISMARINE_SHARD) || repair.is(Items.PRISMARINE_CRYSTALS) || repair.is(Items.BLAZE_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
             case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
@@ -761,7 +761,7 @@ public final class ArcaneStaffItem extends Item {
             case GHASTFIRE -> isNetherite ? "9.0 " + icon + "4U" : "6.0 " + icon + "2U";
             case WITHER -> isNetherite ? "6.0 x 3 (Wither III)" : "4.0 x 3 (Wither II)";
             case SHULKER -> isNetherite ? "6.0 x 2 " + icon + "1.5U" : "4.0 x 2 " + icon + "1U";
-            case GUARDIAN -> isNetherite ? "1.8 x 10 " + icon + "1.5U" : "1.2 x 10 " + icon + "1U";
+            case GUARDIAN -> isNetherite ? "0.8-2.0 x 10 " + icon + "1.5U" : "0.5-1.5 x 10 " + icon + "1U";
             case EVOKER -> isNetherite ? "4.5 / Fang " + icon + "1.5U" : "3.0 / Fang " + icon + "1U";
             case LIGHTNING -> isNetherite ? "1.0 / hit " + icon + "1.5U" : "0.5 / hit " + icon + "1U";
             case FROST -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";

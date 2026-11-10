@@ -73,9 +73,7 @@ public final class ArcaneStaffEvents {
                 projectile.discard();
                 return;
             }
-            if (kind.endsWith("wind")) {
-                level.sendParticles(ParticleTypes.CLOUD, projectile.getX(), projectile.getY() + 0.1D, projectile.getZ(), 2, 0.05D, 0.05D, 0.05D, 0.01D);
-            }
+
         }
 
         // Check Cryo water surface freezing for plain Snowball and Frost staff projectile
@@ -136,6 +134,12 @@ public final class ArcaneStaffEvents {
 
         String kind = getKind(projectile);
         if (kind == null || kind.isEmpty()) {
+            if (projectile.isOnFire()
+                    || projectile instanceof net.minecraft.world.entity.projectile.SmallFireball
+                    || projectile instanceof net.minecraft.world.entity.projectile.LargeFireball) {
+                Vec3 fireHit = hitResult.getLocation();
+                com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(level, fireHit, 2.0D);
+            }
             if (projectile instanceof Snowball) {
                 Vec3 hit = hitResult.getLocation();
                 Entity owner = projectile.getOwner();
@@ -204,7 +208,7 @@ public final class ArcaneStaffEvents {
 
         // Immediately electrify water beneath/around impact pos and register continuous cloud electrification
         BlockPos hitPos = BlockPos.containing(hit);
-        com.velorise.staves.element.ElectrifiedWaterManager.electrify(level, hitPos, radius + 1.0D, 120, player, isNetherite ? 3.0F : 2.0F);
+        com.velorise.staves.element.ElectrifiedWaterManager.electrify(level, hitPos, radius + 1.0D, 120, player, 1.0F);
         com.velorise.staves.element.DragonfireCloudManager.register(cloud, level, player, isNetherite);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
@@ -221,6 +225,7 @@ public final class ArcaneStaffEvents {
         }
         meltIceNear(level, hit, isNetherite ? 2 : 1);
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(level, hit, isNetherite ? 2.5D : 2.0D);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 35 : 25, 0.3D, 0.3D, 0.3D, 0.04D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
@@ -237,6 +242,7 @@ public final class ArcaneStaffEvents {
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(level, hit, radius);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 45 : 35,
             radius * 0.35D, radius * 0.25D, radius * 0.35D, 0.05D);
 
@@ -400,7 +406,7 @@ public final class ArcaneStaffEvents {
             level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
         }
         if (directHit != null && directHit != owner) {
-            float baseDmg = isNetherite ? 4.5F : 3.0F;
+            float baseDmg = 0.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, directHit, Element.DENDRO, attackU, player, baseDmg);
         }
@@ -415,9 +421,8 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
 
-        level.sendParticles(ParticleTypes.CLOUD, hit.x, hit.y + 0.3D, hit.z, 20, 0.4D, 0.3D, 0.4D, 0.08D);
-        level.sendParticles(ParticleTypes.SWEEP_ATTACK, hit.x, hit.y + 0.5D, hit.z, 6, 0.5D, 0.2D, 0.5D, 0.0D);
-        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.2F, 0.7F);
+        level.sendParticles(ParticleTypes.GUST, hit.x, hit.y + 0.3D, hit.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
         LivingEntity directHit = hitEntity(hitResult);
         if (directHit != null && directHit != owner) {
