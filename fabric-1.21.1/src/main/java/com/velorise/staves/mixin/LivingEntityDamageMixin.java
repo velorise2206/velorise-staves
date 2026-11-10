@@ -26,6 +26,8 @@ public abstract class LivingEntityDamageMixin {
         if (entity.level().isClientSide() || amount <= 0.0F) return amount;
         long now = entity.level().getGameTime();
 
+        amount = ElementalGaugeManager.modifyIncomingEnvironmentalDamage(entity, source, amount);
+
         if (entity instanceof ServerPlayer sp) {
             Element activeShield = CrystallizeShardManager.getActiveShield(sp, now);
             if (activeShield != null && CrystallizeShardManager.matchesElementalShield(activeShield, source)) {
