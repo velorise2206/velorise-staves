@@ -69,7 +69,7 @@ dependencies {
     runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
 
     compileOnly fg.deobf("maven.modrinth:jade:11.12.3+forge")
-    runtimeOnly fg.deobf("maven.modrinth:jade:11.12.3+forge")
+    // runtimeOnly fg.deobf("maven.modrinth:jade:11.12.3+forge") - Disabled in dev runtime to prevent FontMixin crash with Forge 47.3.0 mappings
 }
 
 tasks.named('processResources', ProcessResources).configure {
