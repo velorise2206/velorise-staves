@@ -60,63 +60,39 @@ public final class DendroCoreManager {
 
     public static class HyperbloomMissile {
         public final ServerLevel level;
-        public final Vec3 p0;
-        public final Vec3 p1;
-        public final Vec3 p2;
+        public Vec3 pos;
         public final @Nullable LivingEntity target;
         public Vec3 lastKnownTargetPos;
         public final float damage;
         public final @Nullable LivingEntity attacker;
-        public final int totalTicks;
         public int currentTick;
         public final @Nullable Display.ItemDisplay visualEntity;
 
         public HyperbloomMissile(
                 ServerLevel level,
-                Vec3 p0,
-                Vec3 p1,
-                Vec3 p2,
+                Vec3 initialPos,
                 @Nullable LivingEntity target,
                 Vec3 initialTargetPos,
                 float damage,
                 @Nullable LivingEntity attacker,
-                int totalTicks,
                 @Nullable Display.ItemDisplay visualEntity
         ) {
             this.level = level;
-            this.p0 = p0;
-            this.p1 = p1;
-            this.p2 = p2;
+            this.pos = initialPos;
             this.target = target;
             this.lastKnownTargetPos = initialTargetPos;
             this.damage = damage;
             this.attacker = attacker;
-            this.totalTicks = Math.max(3, totalTicks);
             this.currentTick = 0;
             this.visualEntity = visualEntity;
-        }
-
-        public Vec3 evaluate(float t, Vec3 currentTargetPos) {
-            float u = 1.0F - t;
-            float tt = t * t;
-            float uu = u * u;
-            float uuu = uu * u;
-            float ttt = tt * t;
-
-            // Cubic Bézier: B(t) = (1-t)^3 * P0 + 3(1-t)^2 * t * P1 + 3(1-t) * t^2 * P2 + t^3 * P3
-            double x = uuu * p0.x + 3.0D * uu * t * p1.x + 3.0D * u * tt * p2.x + ttt * currentTargetPos.x;
-            double y = uuu * p0.y + 3.0D * uu * t * p1.y + 3.0D * u * tt * p2.y + ttt * currentTargetPos.y;
-            double z = uuu * p0.z + 3.0D * uu * t * p1.z + 3.0D * u * tt * p2.z + ttt * currentTargetPos.z;
-
-            return new Vec3(x, y, z);
         }
     }
 
     private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
     private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
     private static final Set<UUID> ACTIVE_MISSILE_VISUALS = Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
-    // Subtle, faint footprint trail particles (delicate 0.55F neon lime dots, replacing particle clutter)
-    private static final DustParticleOptions HYPERBLOOM_FOOTPRINT = new DustParticleOptions(new Vector3f(0.42F, 0.95F, 0.22F), 0.55F);
+    // Vibrant neon lime dust (size 1.25F, bright dendro green)
+    private static final DustParticleOptions HYPERBLOOM_FOOTPRINT = new DustParticleOptions(new Vector3f(0.35F, 1.0F, 0.2F), 1.25F);
     private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
     private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -146,11 +122,22 @@ public final class DendroCoreManager {
 
             nbt.putString("billboard", "center");
 
-            // Scale down to 50% (0.5F, 0.5F, 0.5F)
+            // Fullbright (15 sky, 15 block) so it shines brilliantly even in darkness
+            CompoundTag brightnessTag = new CompoundTag();
+            brightnessTag.putInt("sky", 15);
+            brightnessTag.putInt("block", 15);
+            nbt.put("brightness", brightnessTag);
+
+            // Glowing outline tag & vibrant neon lime color override
+            nbt.putByte("Glowing", (byte) 1);
+            nbt.putInt("glow_color_override", 0x55FF22);
+            nbt.putInt("teleport_duration", 1);
+
+            // Scale to 65% (0.65F, 0.65F, 0.65F)
             Transformation transformation = new Transformation(
                     new Vector3f(0.0F, 0.0F, 0.0F),
                     new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F),
-                    new Vector3f(0.5F, 0.5F, 0.5F),
+                    new Vector3f(0.65F, 0.65F, 0.65F),
                     new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F)
             );
             Tag transTag = Transformation.EXTENDED_CODEC.encodeStart(NbtOps.INSTANCE, transformation).result().orElse(null);
@@ -161,6 +148,18 @@ public final class DendroCoreManager {
             display.load(nbt);
             display.addTag(TAG_HYPERBLOOM_VISUAL);
             display.getSlot(0).set(new ItemStack(VeloriseStavesMod.DENDRO_CORE.get()));
+            display.setGlowingTag(true);
+
+            try {
+                Scoreboard sb = level.getScoreboard();
+                PlayerTeam team = sb.getPlayerTeam("vs_dendro");
+                if (team == null) {
+                    team = sb.addPlayerTeam("vs_dendro");
+                    team.setColor(ChatFormatting.GREEN);
+                }
+                sb.addPlayerToTeam(display.getScoreboardName(), team);
+            } catch (Throwable ignored) {}
+
             level.addFreshEntity(display);
             ACTIVE_MISSILE_VISUALS.add(display.getUUID());
             return display;
@@ -300,9 +299,12 @@ public final class DendroCoreManager {
         Vec3 pos = core.entity.position();
         core.entity.discard();
 
-        // Electro trigger burst at origin
-        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.35D, pos.z, 12, 0.2D, 0.2D, 0.2D, 0.08D);
-        core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+        Vec3 p0 = pos.add(0, 0.35D, 0);
+
+        // Electro trigger burst at origin: crisp electric sparks + luminous glow
+        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p0.x, p0.y, p0.z, 6, 0.15D, 0.15D, 0.15D, 0.04D);
+        core.level.sendParticles(ParticleTypes.GLOW, p0.x, p0.y, p0.z, 8, 0.2D, 0.2D, 0.2D, 0.04D);
+        core.level.playSound(null, p0.x, p0.y, p0.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
 
         // Find random living target within 16 blocks (excluding triggerer/attacker)
         AABB search = new AABB(pos.x - 16.0D, pos.y - 12.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 16.0D, pos.z + 16.0D);
@@ -313,44 +315,19 @@ public final class DendroCoreManager {
         );
         LivingEntity chosenTarget = candidates.isEmpty() ? null : candidates.get(core.level.random.nextInt(candidates.size()));
 
-        Vec3 p0 = pos.add(0, 0.35D, 0);
-        Vec3 p3;
+        Vec3 targetPos;
         if (chosenTarget != null) {
-            p3 = chosenTarget.position().add(0, chosenTarget.getBbHeight() * 0.55D, 0);
+            targetPos = chosenTarget.position().add(0, chosenTarget.getBbHeight() * 0.55D, 0);
         } else {
-            p3 = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 3.5D, core.level.random.nextDouble() * 4.0D - 2.0D);
+            targetPos = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 12.0D, core.level.random.nextDouble() * 4.0D - 2.0D);
         }
 
-        Vec3 diff = p3.subtract(p0);
-        double dist = diff.length();
-        double horizDist = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
-
-        // Calculate Genshin crescent swoop control points:
-        // Missile launches outward to the flank and climbs, reaching an apex in an arc before swooping down into target
-        Vec3 u = horizDist > 0.01D ? new Vec3(diff.x / horizDist, 0, diff.z / horizDist) : new Vec3(1, 0, 0);
-        Vec3 w = new Vec3(-u.z, 0, u.x); // Perpendicular horizontal normal
-        double sideSign = core.level.random.nextBoolean() ? 1.0D : -1.0D;
-        double lateralDist = 2.6D + core.level.random.nextDouble() * 1.6D; // 2.6 to 4.2 blocks to the flank
-        double climbHeight = Math.max(3.2D, Math.max(diff.y, 0.0D) + 2.8D + horizDist * 0.15D);
-
-        // P1: launches outwards laterally and upwards with slight forward motion
-        Vec3 p1 = p0.add(w.scale(sideSign * lateralDist))
-                .add(0, climbHeight, 0)
-                .add(u.scale(Math.min(horizDist * 0.25D, 1.5D)));
-
-        // P2: curves at apex and approaches target from the flank above
-        Vec3 p2 = p3.add(w.scale(sideSign * lateralDist * 0.45D))
-                .add(0, Math.max(1.8D, climbHeight * 0.5D), 0)
-                .subtract(u.scale(Math.min(horizDist * 0.35D, 2.0D)));
-
         float hyperbloomDmg = 16.0F * core.damageMultiplier;
-        // Travel duration: 14 to 22 ticks (~0.7s to 1.1s) for a smooth, readable swoop
-        int flightTicks = Math.max(14, Math.min(22, (int) Math.round(dist * 0.65D + 11.0D)));
 
-        // Spawn 50% scale Dendro Core seed projectile
+        // Spawn fullbright, glowing Dendro Core seed projectile
         Display.ItemDisplay visualSeed = spawnVisualSeed(core.level, p0);
 
-        MISSILES.add(new HyperbloomMissile(core.level, p0, p1, p2, chosenTarget, p3, hyperbloomDmg, attacker, flightTicks, visualSeed));
+        MISSILES.add(new HyperbloomMissile(core.level, p0, chosenTarget, targetPos, hyperbloomDmg, attacker, visualSeed));
     }
 
     private static void triggerBurgeon(CoreEntry core, @Nullable LivingEntity attacker) {
@@ -387,16 +364,15 @@ public final class DendroCoreManager {
             });
         }
 
-        // 1. Tick Hyperbloom Bézier homing missiles (Sprawling Shot 3D flight)
+        // 1. Tick Hyperbloom homing missiles (GenshinCraft flight physics & speed 0.8 blocks/tick)
         Iterator<HyperbloomMissile> missileIt = MISSILES.iterator();
         while (missileIt.hasNext()) {
             HyperbloomMissile m = missileIt.next();
             if (m.level != level) continue;
 
             m.currentTick++;
-            float tCurr = (float) m.currentTick / (float) m.totalTicks;
 
-            // Dynamically update target position if enemy is still alive and moving (e.g. flying Vex)
+            // Dynamically update target position if enemy is still alive and moving
             Vec3 currentTargetPos;
             if (m.target != null && m.target.isAlive() && !m.target.isRemoved()) {
                 currentTargetPos = m.target.position().add(0, m.target.getBbHeight() * 0.55D, 0);
@@ -405,39 +381,36 @@ public final class DendroCoreManager {
                 currentTargetPos = m.lastKnownTargetPos;
             }
 
-            Vec3 p = m.evaluate(tCurr, currentTargetPos);
+            Vec3 toTarget = currentTargetPos.subtract(m.pos);
+            double dist = toTarget.length();
 
-            // Move the 50% scale seed visual entity along the curve
-            if (m.visualEntity != null && m.visualEntity.isAlive()) {
-                m.visualEntity.teleportTo(p.x, p.y, p.z);
+            // Hit detection: close enough or intersecting target bounding box
+            boolean hit = dist <= 0.85D;
+            if (!hit && m.target != null && m.target.isAlive()) {
+                AABB missileBox = new AABB(m.pos.x - 0.4D, m.pos.y - 0.4D, m.pos.z - 0.4D, m.pos.x + 0.4D, m.pos.y + 0.4D, m.pos.z + 0.4D);
+                hit = m.target.getBoundingBox().intersects(missileBox);
             }
 
-            // Bright glowing Hyperbloom homing missile trail
-            level.sendParticles(HYPERBLOOM_FOOTPRINT, p.x, p.y, p.z, 2, 0.02D, 0.02D, 0.02D, 0.0D);
-            level.sendParticles(ParticleTypes.GLOW, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p.x, p.y, p.z, 2, 0.05D, 0.05D, 0.05D, 0.02D);
-            if (m.currentTick % 2 == 0) {
-                level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.01D, 0.01D, 0.01D, 0.005D);
-            }
-
-            // Play flying hum / whistling sound at launch and mid-flight
-            if (m.currentTick == 2 || m.currentTick == m.totalTicks / 2) {
-                level.playSound(null, p.x, p.y, p.z, SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.5F, 1.9F);
-            }
-
-            // Impact!
-            if (m.currentTick >= m.totalTicks) {
-                MISSILES.remove(m);
+            if (hit || m.currentTick > 100) { // Hit or timeout (5 seconds)
+                missileIt.remove();
                 if (m.visualEntity != null) {
+                    try {
+                        Scoreboard sb = level.getScoreboard();
+                        PlayerTeam team = sb.getPlayerTeam("vs_dendro");
+                        if (team != null) {
+                            sb.removePlayerFromTeam(m.visualEntity.getScoreboardName(), team);
+                        }
+                    } catch (Throwable ignored) {}
                     ACTIVE_MISSILE_VISUALS.remove(m.visualEntity.getUUID());
                     m.visualEntity.discard();
                 }
 
-                Vec3 hitPos = m.evaluate(1.0F, currentTargetPos);
+                Vec3 hitPos = m.pos;
 
-                // Clean impact burst: delicate pop of green particles and electric sparks
-                level.sendParticles(HYPERBLOOM_FOOTPRINT, hitPos.x, hitPos.y, hitPos.z, 14, 0.25D, 0.25D, 0.25D, 0.02D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 8, 0.2D, 0.2D, 0.2D, 0.05D);
+                // Impact burst: luminous green flash, electric sparks, and chime
+                level.sendParticles(HYPERBLOOM_FOOTPRINT, hitPos.x, hitPos.y, hitPos.z, 16, 0.25D, 0.25D, 0.25D, 0.05D);
+                level.sendParticles(ParticleTypes.GLOW, hitPos.x, hitPos.y, hitPos.z, 12, 0.25D, 0.25D, 0.25D, 0.04D);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 6, 0.2D, 0.2D, 0.2D, 0.03D);
                 level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.8F);
 
                 // Genshin Impact: Hyperbloom deals small AoE splash damage with 1.0m radius around impact point
@@ -457,6 +430,42 @@ public final class DendroCoreManager {
                     }
                     ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
                 }
+                continue;
+            }
+
+            // GenshinCraft flight vector formula
+            Vec3 dir;
+            if (m.target == null) {
+                dir = new Vec3(0.0D, 0.5D, 0.0D);
+            } else {
+                dir = dist > 1.0E-4D ? toTarget.scale(1.0D / dist) : new Vec3(0, 1, 0);
+                int age = m.currentTick;
+                if (age < 10) {
+                    dir = dir.add(0.0D, 1.0D, 0.0D).normalize();
+                } else if (age < 20) {
+                    dir = dir.add(0.0D, (20 - age) * 0.1D, 0.0D).normalize();
+                }
+            }
+
+            double stepSpeed = 0.8D; // GenshinCraft exact speed: 0.8 blocks/tick (16 blocks/second)
+            Vec3 nextPos = m.pos.add(dir.scale(stepSpeed));
+            m.pos = nextPos;
+
+            // Move the glowing 50% scale seed visual entity along the trajectory
+            if (m.visualEntity != null && m.visualEntity.isAlive()) {
+                m.visualEntity.teleportTo(nextPos.x, nextPos.y, nextPos.z);
+            }
+
+            // Brilliant glowing Hyperbloom homing missile trail (vivid emerald lime + glow sparkles)
+            level.sendParticles(HYPERBLOOM_FOOTPRINT, nextPos.x, nextPos.y, nextPos.z, 3, 0.04D, 0.04D, 0.04D, 0.01D);
+            level.sendParticles(ParticleTypes.GLOW, nextPos.x, nextPos.y, nextPos.z, 2, 0.03D, 0.03D, 0.03D, 0.01D);
+            if (m.currentTick % 2 == 0) {
+                level.sendParticles(ParticleTypes.END_ROD, nextPos.x, nextPos.y, nextPos.z, 1, 0.01D, 0.01D, 0.01D, 0.005D);
+            }
+
+            // Play flying hum / whistling sound at launch and mid-flight
+            if (m.currentTick == 2 || m.currentTick % 8 == 0) {
+                level.playSound(null, nextPos.x, nextPos.y, nextPos.z, SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.4F, 1.9F);
             }
         }
 
@@ -566,6 +575,13 @@ public final class DendroCoreManager {
         CORES.clear();
         for (HyperbloomMissile m : MISSILES) {
             if (m.visualEntity != null) {
+                try {
+                    Scoreboard sb = m.level.getScoreboard();
+                    PlayerTeam team = sb.getPlayerTeam("vs_dendro");
+                    if (team != null) {
+                        sb.removePlayerFromTeam(m.visualEntity.getScoreboardName(), team);
+                    }
+                } catch (Throwable ignored) {}
                 m.visualEntity.discard();
             }
         }
