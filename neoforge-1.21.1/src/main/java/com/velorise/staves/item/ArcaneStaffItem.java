@@ -802,19 +802,25 @@ public final class ArcaneStaffItem extends Item {
         Element e = getElement();
         String icon = e != null ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " " : "";
         String heart = ChatFormatting.WHITE.toString() + "\uE008" + ChatFormatting.BLUE;
+        String cloudSuffix = Component.translatable("tooltip.velorise_staves.dmg_cloud").getString();
+        String swirlTag = " (" + Component.translatable("reaction.velorise_staves.swirl").getString() + ")";
+        String witherTag = " " + Component.translatable(isNetherite ? "tooltip.velorise_staves.wither_ii" : "tooltip.velorise_staves.wither_i").getString();
+        String perFang = " " + Component.translatable("tooltip.velorise_staves.per_fang").getString() + " ";
+        String perHit = " " + Component.translatable("tooltip.velorise_staves.per_hit").getString() + " ";
+        String trapPoison = Component.translatable("tooltip.velorise_staves.trap_poison").getString();
         return switch (kind) {
-            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.0) : fmtHearts(7.0)) + heart + " + Cloud " + icon + "2U";
-            case ECHO -> (isNetherite ? fmtHearts(16.0) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
+            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.0) : fmtHearts(7.0)) + heart + " " + cloudSuffix + " " + icon + "2U";
+            case ECHO -> (isNetherite ? fmtHearts(16.0) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U") + swirlTag;
             case INFERNO -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U");
-            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U (+Wither II)" : "1U (+Wither I)");
+            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
             case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> (isNetherite ? (fmtHearts(0.8) + "-" + fmtHearts(2.0)) : (fmtHearts(0.5) + "-" + fmtHearts(1.5))) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
-            case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");
-            case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + " / hit " + icon + (isNetherite ? "1.5U" : "1U");
+            case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
+            case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
             case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
-            case WEB -> isNetherite ? "Trap + Poison " + icon + "1.5U" : "Trap + Poison " + icon + "1U";
-            case WIND -> (isNetherite ? fmtHearts(2.5) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U (Swirl)" : "1U (Swirl)");
+            case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
+            case WIND -> (isNetherite ? fmtHearts(2.5) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
         };
     }
 
@@ -839,12 +845,12 @@ public final class ArcaneStaffItem extends Item {
         Element elem = getElement();
         if (elem != null) {
             Component iconComp = Component.literal(elem.iconString()).withStyle(ChatFormatting.WHITE);
-            String label = " " + (isNetherite ? elem.displayName() + " Staff (Netherite)" : elem.displayName() + " Staff");
-            Component textComp = Component.literal(label).withStyle(elem.color());
+            String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_element.netherite" : "tooltip.velorise_staves.staff_element";
+            Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey, Component.translatable(elem.translationKey()))).withStyle(elem.color());
             tooltip.add(Component.empty().append(iconComp).append(textComp));
         } else if (kind == Kind.WITHER) {
-            String subtitle = "☠ " + (isNetherite ? "Wither Staff (Netherite)" : "Wither Staff");
-            tooltip.add(Component.literal(subtitle).withStyle(ChatFormatting.DARK_GRAY));
+            String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_wither.netherite" : "tooltip.velorise_staves.staff_wither";
+            tooltip.add(Component.literal("☠ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.DARK_GRAY));
         }
 
         tooltip.add(Component.empty());

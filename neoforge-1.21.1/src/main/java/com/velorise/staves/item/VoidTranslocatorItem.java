@@ -149,8 +149,8 @@ public class VoidTranslocatorItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        String subtitle = "✦ " + (isNetherite ? "Void Translocator (Netherite)" : "Void Translocator");
-        tooltip.add(Component.literal(subtitle).withStyle(ChatFormatting.DARK_PURPLE));
+        String subtitleKey = isNetherite ? "tooltip.velorise_staves.translocator_subtitle.netherite" : "tooltip.velorise_staves.translocator_subtitle";
+        tooltip.add(Component.literal("✦ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.DARK_PURPLE));
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) getEffectiveRange() + "m").withStyle(ChatFormatting.BLUE));

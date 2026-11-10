@@ -2,6 +2,8 @@ package com.velorise.staves.element;
 
 import net.minecraft.ChatFormatting;
 
+import java.util.Locale;
+
 /**
  * Elemental Gauge Theory (EGT) Element representation.
  * Pyro, Hydro, Cryo, Electro, and Dendro are lingering Auras.
@@ -36,6 +38,10 @@ public enum Element {
 
     public String displayName() {
         return displayName;
+    }
+
+    public String translationKey() {
+        return "element.velorise_staves." + name().toLowerCase(Locale.ROOT);
     }
 
     public ChatFormatting color() {

@@ -502,7 +502,11 @@ public final class ClientAuraRenderer {
                 float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
 
                 reactY = -6.0F - (progress * 18.0F);
-                String text = "§l" + data.reaction.reactionName();
+                String reactionKey = data.reaction.translationKey();
+                String reactionLabel = reactionKey.isEmpty()
+                        ? data.reaction.reactionName()
+                        : net.minecraft.network.chat.Component.translatable(reactionKey).getString().toUpperCase(Locale.ROOT);
+                String text = "§l" + reactionLabel;
                 float textWidth = font.width(text);
                 float textX = -textWidth / 2.0F;
 
@@ -802,8 +806,6 @@ public final class ClientAuraRenderer {
 
             RenderSystem.enableBlend();
 
-            String elemName = elem.name().charAt(0) + elem.name().substring(1).toLowerCase(Locale.ROOT);
-            String title = elemName + " Aura";
             String durationStr;
             if (data.expireTime < 0) {
                 durationStr = "∞";
@@ -830,7 +832,10 @@ public final class ClientAuraRenderer {
             }
             if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
                 List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
-                tooltip.add(net.minecraft.network.chat.Component.literal(title).withStyle(elem.color()));
+                tooltip.add(net.minecraft.network.chat.Component.translatable(
+                        "hud.velorise_staves.aura_title",
+                        net.minecraft.network.chat.Component.translatable(elem.translationKey())
+                ).withStyle(elem.color()));
                 if (!durationStr.isEmpty()) {
                     tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
                 }

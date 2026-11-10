@@ -2,6 +2,8 @@ package com.velorise.staves.element;
 
 import net.minecraft.ChatFormatting;
 
+import java.util.Locale;
+
 /**
  * Elemental reactions and their mathematical modifiers according to Genshin Impact Elemental Gauge Theory (EGT).
  */
@@ -45,6 +47,10 @@ public enum ElementalReaction {
 
     public String reactionName() {
         return name;
+    }
+
+    public String translationKey() {
+        return name.isEmpty() ? "" : "reaction.velorise_staves." + name.toLowerCase(Locale.ROOT).replace('-', '_');
     }
 
     public String formula() {

@@ -155,8 +155,8 @@ public class MagicMirrorItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        String subtitle = "✦ " + (isNetherite ? "Dimensional Recall (Netherite)" : "Recall Mirror");
-        tooltip.add(Component.literal(subtitle).withStyle(ChatFormatting.LIGHT_PURPLE));
+        String subtitleKey = isNetherite ? "tooltip.velorise_staves.mirror_subtitle.netherite" : "tooltip.velorise_staves.mirror_subtitle";
+        tooltip.add(Component.literal("✦ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.LIGHT_PURPLE));
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
