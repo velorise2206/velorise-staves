@@ -1,6 +1,8 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "velorise_staves:item/crystallize_shard_base",
   "textures": {
-    "layer0": "velorise_staves:item/cryo_crystallize_shard"
+    "core": "velorise_staves:item/cryo_crystallize_core",
+    "shell": "velorise_staves:item/crystallize_shell_cryo",
+    "particle": "velorise_staves:item/cryo_crystallize_core"
   }
 }
