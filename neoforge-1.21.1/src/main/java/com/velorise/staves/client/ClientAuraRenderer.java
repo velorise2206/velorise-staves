@@ -752,26 +752,24 @@ public final class ClientAuraRenderer {
         }
         renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
 
-        // Draw only the Crystallize Shield texture (textures/mob_effect/*_shield.png, 18x18), never the round element icon
-        ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
-        if (shieldTex != null) {
-            guiGraphics.blit(shieldTex, startX + 7, y + 7, 0.0F, 0.0F, 18, 18, 18, 18);
-        }
-
-        if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
-            long now = System.currentTimeMillis();
-            long remSec;
-            if (shieldInst != null) {
-                remSec = Math.max(0, shieldInst.getDuration() / 20);
-            } else {
-                remSec = Math.max(0, (ClientAuraTracker.crystallizeShieldUntil - now) / 1000L);
+        // When vanilla already renders the active effect icon & tooltip, only draw our colored border frame
+        // If not found in vanilla active effects, draw the shield texture and custom tooltip manually
+        if (!found) {
+            ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
+            if (shieldTex != null) {
+                guiGraphics.blit(shieldTex, startX + 7, y + 7, 0.0F, 0.0F, 18, 18, 18, 18);
             }
-            String durationStr = String.format(Locale.ROOT, "%d:%02d", remSec / 60, remSec % 60);
-            String key = "effect.velorise_staves." + shield.name().toLowerCase(Locale.ROOT) + "_shield";
-            List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
-            tooltip.add(net.minecraft.network.chat.Component.translatable(key).withStyle(shield.color()));
-            tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
-            guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+
+            if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+                long now = System.currentTimeMillis();
+                long remSec = Math.max(0, (ClientAuraTracker.crystallizeShieldUntil - now) / 1000L);
+                String durationStr = String.format(Locale.ROOT, "%d:%02d", remSec / 60, remSec % 60);
+                String key = "effect.velorise_staves." + shield.name().toLowerCase(Locale.ROOT) + "_shield";
+                List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+                tooltip.add(net.minecraft.network.chat.Component.translatable(key).withStyle(shield.color()));
+                tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
+                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+            }
         }
     }
 
