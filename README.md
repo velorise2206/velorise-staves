@@ -88,11 +88,12 @@ Compiled jar artifacts will be placed in the `mods/velorise_staves/` directory.
 
 ---
 
-## License
+## License & Disclaimer
 
-Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved** ([LICENSE](LICENSE)).
+Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved (Code & Documentation Only)** ([LICENSE](LICENSE)).
 
-You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code, binaries, or assets without prior written permission from the copyright holder.
+- **Scope of License (Excluding Assets):** The **All Rights Reserved** license applies solely to this mod's original source code, compiled binaries, data/localization files, and documentation authored by **hungbbdzz**. You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code or binaries without prior written permission from the copyright holder. It does **not** cover or claim exclusive ownership over visual assets, element icons, textures, or 3D models.
+- **Third-Party IP Disclaimer:** *Velorise's Staves* is an **unofficial, non-commercial fan-made mod** inspired by *Genshin Impact* and is **not affiliated with, endorsed by, or associated with HoYoverse / Cognosphere Pte. Ltd.** (or Mojang / Microsoft). All *Genshin Impact* trademarks, names, element icons/symbols, and related IP belong to **HoYoverse / Cognosphere Pte. Ltd.**; any third-party fan textures or 3D models belong to their respective creators.
 
 [pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png
 [hydro]: shared-resources/assets/velorise_staves/textures/element/hydro.png

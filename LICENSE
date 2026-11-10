@@ -1,18 +1,43 @@
-All Rights Reserved
+All Rights Reserved (Code & Documentation Only — Excluding Assets)
 
 Copyright (c) 2026 hungbbdzz
 
-All rights reserved with respect to the software, source code, assets,
-textures, 3D models, localization files, and documentation of Velorise's
-Staves (the "Software").
+All rights reserved solely with respect to the original software, Java source
+code, compiled binaries, data/recipe definitions, localization files, and
+documentation authored by hungbbdzz for Velorise's Staves (collectively, the
+"Software").
 
 Without prior written permission from the copyright holder (hungbbdzz), you
 may NOT copy, redistribute, reupload, mirror, modify, sublicense, sell, or
-create derivative works from the Software, its source code, or any included
-assets, in whole or in part.
+create derivative works from the Software (its source code or compiled
+binaries), in whole or in part.
 
 End users are permitted to download and use unmodified official releases
 strictly for personal gameplay.
+
+EXCLUSION OF ASSETS & THIRD-PARTY INTELLECTUAL PROPERTY DISCLAIMER
+
+1. Exclusion of Assets:
+   This All Rights Reserved license does NOT cover, restrict, or claim
+   exclusive ownership over visual/artistic assets, textures, elemental icons,
+   or 3D models included in the resource directories (`assets/`). No copyright
+   is claimed by hungbbdzz over third-party artwork, symbols, or community
+   models.
+
+2. Unofficial Fan-Made Project / No Affiliation:
+   Velorise's Staves is an unofficial, non-commercial fan-made Minecraft mod
+   inspired by Genshin Impact. It is NOT affiliated with, endorsed by,
+   sponsored by, or in any way officially connected with HoYoverse /
+   Cognosphere Pte. Ltd., Mojang AB, or Microsoft Corporation.
+
+3. Ownership of Third-Party IP:
+   All Genshin Impact trademarks, names, elemental symbols/icons, reaction
+   terminology, and related intellectual property belong exclusively to
+   HoYoverse / Cognosphere Pte. Ltd. Any third-party fan assets, textures, or
+   models remain the property of their respective creators and copyright
+   holders, and are used strictly for non-commercial fan-made compatibility.
+   Any rights holder may request removal or attribution adjustments via the
+   repository issue tracker.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
