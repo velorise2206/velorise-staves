@@ -33,6 +33,24 @@ public final class ModNetwork {
                 .encoder(AuraSyncPacket::toBytes)
                 .consumerMainThread(AuraSyncPacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(ElectricArcPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(ElectricArcPacket::new)
+                .encoder(ElectricArcPacket::toBytes)
+                .consumerMainThread(ElectricArcPacket::handle)
+                .add();
+    }
+
+    public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
+        ElectricArcPacket packet = new ElectricArcPacket(-1, start.x, start.y, start.z, -1, end.x, end.y, end.z, durationTicks, color);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
+    }
+
+    public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, Entity from, Entity to, int durationTicks, int color) {
+        net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.45D, 0);
+        net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.45D, 0);
+        ElectricArcPacket packet = new ElectricArcPacket(from.getId(), start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, color);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
     }
 
     public static void sendAuraSync(

@@ -16,6 +16,23 @@ public final class ModNetwork {
 
     public static void registerCommon() {
         PayloadTypeRegistry.playS2C().register(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC);
+    }
+
+    public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
+        ElectricArcPayload payload = new ElectricArcPayload(-1, start.x, start.y, start.z, -1, end.x, end.y, end.z, durationTicks, color);
+        for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, Entity from, Entity to, int durationTicks, int color) {
+        net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.45D, 0);
+        net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.45D, 0);
+        ElectricArcPayload payload = new ElectricArcPayload(from.getId(), start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, color);
+        for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
     }
 
     public static void sendAuraSync(

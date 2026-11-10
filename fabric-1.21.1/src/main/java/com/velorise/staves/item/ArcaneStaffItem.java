@@ -518,7 +518,7 @@ public final class ArcaneStaffItem extends Item {
 
         // Draw horizontal primary arc from staff tip to target
         drawJaggedArc(level, start, strikePos, isNetherite ? 0.45D : 0.35D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 12, 0.35D, 0.35D, 0.35D, 0.05D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 3, 0.15D, 0.15D, 0.15D, 0.03D);
 
         // High-voltage electric crackle sound
         level.playSound(null, strikePos.x, strikePos.y, strikePos.z,

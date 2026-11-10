@@ -36,6 +36,33 @@ public final class ClientAuraTracker {
     public static @Nullable Element activeCrystallizeShield = null;
     public static long crystallizeShieldUntil = 0L;
 
+    public static class ActiveArc {
+        public int fromEntityId;
+        public net.minecraft.world.phys.Vec3 start;
+        public int toEntityId;
+        public net.minecraft.world.phys.Vec3 end;
+        public long expireTime;
+        public long startTime;
+        public int color;
+        public final List<org.joml.Vector3f> points = new ArrayList<>();
+        public long lastJitterTime = 0L;
+    }
+
+    public static final List<ActiveArc> ACTIVE_ARCS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public static void addArc(int fromId, net.minecraft.world.phys.Vec3 start, int toId, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
+        long now = System.currentTimeMillis();
+        ActiveArc arc = new ActiveArc();
+        arc.fromEntityId = fromId;
+        arc.start = start;
+        arc.toEntityId = toId;
+        arc.end = end;
+        arc.startTime = now;
+        arc.expireTime = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
+        arc.color = color;
+        ACTIVE_ARCS.add(arc);
+    }
+
     private ClientAuraTracker() {}
 
     public static void update(
@@ -135,6 +162,7 @@ public final class ClientAuraTracker {
 
     public static void clear() {
         DATA.clear();
+        ACTIVE_ARCS.clear();
         activeCrystallizeShield = null;
         crystallizeShieldUntil = 0L;
     }

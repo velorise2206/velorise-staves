@@ -9,6 +9,7 @@ import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalReaction;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +21,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLivingEvent;
@@ -737,5 +739,126 @@ public final class ClientAuraRenderer {
             int y = topPos + effectIndex * yStep;
             renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
         }
+    }
+
+    @SubscribeEvent
+    public static void onRenderLevelStage(net.minecraftforge.client.event.RenderLevelStageEvent event) {
+        if (event.getStage() == net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+            renderActiveElectricArcs(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera());
+        }
+    }
+
+    public static void renderActiveElectricArcs(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
+        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+
+        long now = System.currentTimeMillis();
+        ClientAuraTracker.ACTIVE_ARCS.removeIf(arc -> now >= arc.expireTime);
+        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
+
+        Vec3 camPos = camera.getPosition();
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
+        Matrix4f matrix = poseStack.last().pose();
+
+        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            Vec3 startPos = null;
+            if (arc.fromEntityId >= 0) {
+                net.minecraft.world.entity.Entity from = mc.level.getEntity(arc.fromEntityId);
+                if (from != null) {
+                    startPos = from.position().add(0, from.getBbHeight() * 0.45D, 0);
+                }
+            }
+            if (startPos == null) startPos = arc.start;
+
+            Vec3 endPos = null;
+            if (arc.toEntityId >= 0) {
+                net.minecraft.world.entity.Entity to = mc.level.getEntity(arc.toEntityId);
+                if (to != null) {
+                    endPos = to.position().add(0, to.getBbHeight() * 0.45D, 0);
+                }
+            }
+            if (endPos == null) endPos = arc.end;
+
+            if (startPos == null || endPos == null) continue;
+            Vec3 diff = endPos.subtract(startPos);
+            double dist = diff.length();
+            if (dist < 0.05D) continue;
+
+            if (arc.points.isEmpty() || (now - arc.lastJitterTime) >= 70L) {
+                arc.points.clear();
+                int segs = Math.max(3, (int) Math.round(dist * 1.5D));
+                Vec3 dir = diff.normalize();
+                Vec3 arbitrary = Math.abs(dir.y) < 0.9D ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
+                Vec3 u = dir.cross(arbitrary).normalize();
+                Vec3 v = dir.cross(u).normalize();
+
+                arc.points.add(new org.joml.Vector3f((float) startPos.x, (float) startPos.y, (float) startPos.z));
+                for (int i = 1; i < segs; i++) {
+                    double t = (double) i / (double) segs;
+                    double maxJitter = Math.min(0.18D, dist * 0.05D);
+                    double jx = (Math.random() - 0.5D) * 2.0D * maxJitter;
+                    double jy = (Math.random() - 0.5D) * 2.0D * maxJitter;
+                    Vec3 pt = startPos.add(diff.scale(t)).add(u.scale(jx)).add(v.scale(jy));
+                    arc.points.add(new org.joml.Vector3f((float) pt.x, (float) pt.y, (float) pt.z));
+                }
+                arc.points.add(new org.joml.Vector3f((float) endPos.x, (float) endPos.y, (float) endPos.z));
+                arc.lastJitterTime = now;
+            }
+
+            int ptsCount = arc.points.size();
+            for (int i = 0; i < ptsCount - 1; i++) {
+                org.joml.Vector3f p1 = arc.points.get(i);
+                org.joml.Vector3f p2 = arc.points.get(i + 1);
+
+                Vec3 a = new Vec3(p1.x - camPos.x, p1.y - camPos.y, p1.z - camPos.z);
+                Vec3 b = new Vec3(p2.x - camPos.x, p2.y - camPos.y, p2.z - camPos.z);
+
+                Vec3 segDir = b.subtract(a);
+                Vec3 toCam = a.scale(-1.0D);
+                Vec3 normal = segDir.cross(toCam);
+                if (normal.lengthSqr() < 1e-6D) {
+                    normal = new Vec3(0, 1, 0).cross(segDir);
+                    if (normal.lengthSqr() < 1e-6D) normal = new Vec3(1, 0, 0);
+                }
+                normal = normal.normalize();
+
+                // Pass 1: Thin outer electric lavender ribbon (~4cm wide)
+                drawQuadRibbon(consumer, matrix, a, b, normal, 0.02D, 185, 90, 255, 230);
+                // Pass 2: Ultra-thin inner white-hot plasma core (~1.5cm wide)
+                drawQuadRibbon(consumer, matrix, a, b, normal, 0.007D, 255, 255, 255, 255);
+            }
+        }
+        if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(RenderType.lightning());
+        }
+    }
+
+    private static void drawQuadRibbon(
+            VertexConsumer consumer, Matrix4f matrix,
+            Vec3 a, Vec3 b, Vec3 normal, double halfWidth,
+            int r, int g, int bCol, int alpha
+    ) {
+        Vec3 off = normal.scale(halfWidth);
+        float x1 = (float) (a.x - off.x);
+        float y1 = (float) (a.y - off.y);
+        float z1 = (float) (a.z - off.z);
+
+        float x2 = (float) (a.x + off.x);
+        float y2 = (float) (a.y + off.y);
+        float z2 = (float) (a.z + off.z);
+
+        float x3 = (float) (b.x + off.x);
+        float y3 = (float) (b.y + off.y);
+        float z3 = (float) (b.z + off.z);
+
+        float x4 = (float) (b.x - off.x);
+        float y4 = (float) (b.y - off.y);
+        float z4 = (float) (b.z - off.z);
+
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x3, y3, z3).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x4, y4, z4).color(r, g, bCol, alpha).endVertex();
     }
 }

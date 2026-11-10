@@ -583,7 +583,7 @@ public final class ElementalGaugeManager {
             if (lastEc == null || now >= lastEc) {
                 INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
                 if (target.level() instanceof ServerLevel sl) {
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.35D, 0.35D, 0.35D, 0.06D);
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
                     sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
                     // Innate Electro beings are immune to their own electrical shocks in water
 
@@ -591,7 +591,7 @@ public final class ElementalGaugeManager {
                         AABB chainBox = target.getBoundingBox().inflate(4.5D);
                         for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != target)) {
                             if (isEntitySubmergedInWater(nearby) && getInnateElement(nearby) != Element.ELECTRO) {
-                                drawVoltaicArc(sl, target.getEyePosition(), nearby.getEyePosition());
+                                drawVoltaicArc(sl, target, nearby);
                                 nearby.hurt(sl.damageSources().magic(), 2.0F);
                                 applyElement(sl, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
                             }
@@ -671,7 +671,7 @@ public final class ElementalGaugeManager {
                 if (electro.isExpired()) targetGauges.remove(Element.ELECTRO);
             }
             if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 16, 0.3D, 0.3D, 0.3D, 0.06D);
+                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
                 target.hurt(sl.damageSources().magic(), 2.5F);
             }
@@ -1437,7 +1437,7 @@ public final class ElementalGaugeManager {
                 triggerOverloadExplosion(level, target, attacker, dmgMult);
             }
             case ELECTRO_CHARGED -> {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 16, 0.35D, 0.35D, 0.35D, 0.06D);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.7F);
             }
             case SUPERCONDUCT -> {
@@ -1530,7 +1530,11 @@ public final class ElementalGaugeManager {
     }
 
     public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) {
-        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.32D, true);
+        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.0D, false);
+    }
+
+    public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) {
+        ElectrifiedWaterManager.drawElectricArc(level, from, to, 8);
     }
 
     /**
@@ -1693,7 +1697,7 @@ public final class ElementalGaugeManager {
                         Long lastShock = LAST_PROXIMITY_SHOCK.get(pairKey);
                         if (lastShock == null || now - lastShock >= 20) {
                             LAST_PROXIMITY_SHOCK.put(pairKey, now);
-                            drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
+                            drawVoltaicArc(targetLevel, target, nearby);
                             targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
                             applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 2.5F);
                             if (innate != Element.ELECTRO) {
@@ -1732,10 +1736,9 @@ public final class ElementalGaugeManager {
                         AABB chainBox = target.getBoundingBox().inflate(4.0D);
                         for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
                             if (isEntitySubmergedInWater(nearby)) {
-                                drawVoltaicArc(targetLevel, target.getEyePosition(), nearby.getEyePosition());
+                                drawVoltaicArc(targetLevel, target, nearby);
                                 nearby.hurt(targetLevel.damageSources().magic(), 2.0F);
                                 applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 2.0F);
-                                targetLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK, nearby.getX(), nearby.getY() + 0.8D, nearby.getZ(), 8, 0.2D, 0.2D, 0.2D, 0.05D);
                             }
                         }
                     }

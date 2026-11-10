@@ -1,5 +1,6 @@
 package com.velorise.staves.element;
 
+import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -8,6 +9,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
@@ -95,66 +97,17 @@ public final class ElectrifiedWaterManager {
     }
 
     /**
-     * Renders a vivid, 3D jagged electric lightning bolt between two points with dual-layer core and branching forks.
+     * Renders a thin, crisp 3D jagged electric lightning bolt between two points (Genshin-style).
      */
     public static void drawElectricArc(ServerLevel level, Vec3 start, Vec3 end, double jitter, boolean branching) {
         Vec3 diff = end.subtract(start);
-        double dist = diff.length();
-        if (dist < 0.1D) return;
+        if (diff.lengthSqr() < 0.01D) return;
+        ModNetwork.sendElectricArc(level, start, end, 8, 0xBF40FF);
+    }
 
-        int numSegs = Math.max(3, (int) Math.round(dist * 2.8D));
-        Vec3 prev = start;
-
-        for (int i = 1; i <= numSegs; i++) {
-            double t = (double) i / (double) numSegs;
-            Vec3 target = (i == numSegs) ? end : start.add(diff.scale(t));
-            if (i < numSegs) {
-                double jx = (level.random.nextGaussian()) * jitter * 0.7D;
-                double jy = (level.random.nextGaussian()) * (jitter * 0.45D);
-                double jz = (level.random.nextGaussian()) * jitter * 0.7D;
-                target = target.add(jx, jy, jz);
-            }
-
-            // Dual-layer 3D electric beam: bright white laser core (END_ROD) + outer glowing violet/cyan sheath
-            Vec3 seg = target.subtract(prev);
-            double segDist = seg.length();
-            int subSteps = Math.max(1, (int) Math.ceil(segDist / 0.16D));
-            for (int s = 0; s <= subSteps; s++) {
-                Vec3 p = prev.add(seg.scale((double) s / (double) subSteps));
-                // White-hot plasma core
-                if (s % 2 == 0) {
-                    level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                }
-                // Outer glowing envelope
-                DustParticleOptions dust = (s % 2 == 0) ? ELECTRIC_DUST_VIOLET : ELECTRIC_DUST_CYAN;
-                level.sendParticles(dust, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-            }
-
-            // Crackling sparks at joints
-            if (level.random.nextFloat() < 0.35F) {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.x, target.y, target.z, 1, 0.03D, 0.03D, 0.03D, 0.02D);
-            }
-
-            // 3D branching lightning forks
-            if (branching && (i == numSegs / 2 || (numSegs > 6 && i == numSegs / 3)) && level.random.nextFloat() < 0.65F) {
-                Vec3 forkDir = new Vec3(
-                        (level.random.nextDouble() - 0.5D) * 1.1D,
-                        (level.random.nextDouble() - 0.2D) * 0.5D,
-                        (level.random.nextDouble() - 0.5D) * 1.1D
-                );
-                int forkSteps = Math.max(2, (int) Math.ceil(forkDir.length() / 0.16D));
-                for (int fs = 0; fs <= forkSteps; fs++) {
-                    Vec3 fp = target.add(forkDir.scale((double) fs / (double) forkSteps));
-                    if (fs % 2 == 0) {
-                        level.sendParticles(ParticleTypes.END_ROD, fp.x, fp.y, fp.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                    }
-                    DustParticleOptions dust = (fs % 2 == 0) ? ELECTRIC_DUST_CYAN : ELECTRIC_DUST_VIOLET;
-                    level.sendParticles(dust, fp.x, fp.y, fp.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-                }
-            }
-
-            prev = target;
-        }
+    public static void drawElectricArc(ServerLevel level, Entity from, Entity to, int durationTicks) {
+        if (from == null || to == null) return;
+        ModNetwork.sendElectricArc(level, from, to, durationTicks, 0xBF40FF);
     }
 
     public static void tick(ServerLevel level) {
@@ -203,8 +156,7 @@ public final class ElectrifiedWaterManager {
                     LivingEntity m1 = inWaterMobs.get(i);
                     LivingEntity m2 = inWaterMobs.get(i + 1);
                     if (m1.position().distanceToSqr(m2.position()) <= 25.0D) {
-                        drawElectricArc(level, m1.position().add(0, m1.getBbHeight() * 0.45D, 0),
-                                              m2.position().add(0, m2.getBbHeight() * 0.45D, 0), 0.3D, true);
+                        drawElectricArc(level, m1, m2, 8);
                     }
                 }
             } else if (!inWaterMobs.isEmpty() && now % 3 == 0) {

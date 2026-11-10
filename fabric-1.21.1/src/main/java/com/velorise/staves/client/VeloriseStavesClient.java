@@ -34,6 +34,24 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             });
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ElectricArcPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> {
+                ClientAuraTracker.addArc(
+                        payload.fromEntityId(),
+                        new net.minecraft.world.phys.Vec3(payload.startX(), payload.startY(), payload.startZ()),
+                        payload.toEntityId(),
+                        new net.minecraft.world.phys.Vec3(payload.endX(), payload.endY(), payload.endZ()),
+                        payload.durationTicks(),
+                        payload.color()
+                );
+            });
+        });
+
+        // Register World Render for 3D Electric Arcs
+        net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
+            ClientAuraRenderer.renderActiveElectricArcs(context.matrixStack(), context.consumers(), context.camera());
+        });
+
         // Register In-Game HUD overlay
         HudRenderCallback.EVENT.register((guiGraphics, tickCounter) -> {
             ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
