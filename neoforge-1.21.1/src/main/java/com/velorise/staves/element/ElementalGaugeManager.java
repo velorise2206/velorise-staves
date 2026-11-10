@@ -127,6 +127,9 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> LAST_FREEZE_STRUGGLE = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
     public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Boolean> IS_PROCESSING_THORNS = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Element> THORNS_CONTEXT_ELEMENT = new ThreadLocal<>();
+    private static final Map<Long, Long> LAST_THORNS_REFLECT = new ConcurrentHashMap<>();
 
     // Genshin Impact Simultaneous Reaction Priority order for coexisting auras
     private static final Element[] REACTION_PRIORITY_ORDER = {
@@ -392,6 +395,7 @@ public final class ElementalGaugeManager {
         SUPERCONDUCT_UNTIL.clear();
         ICD_TRACKER.clear();
         REACTION_ICD_TRACKER.clear();
+        LAST_THORNS_REFLECT.clear();
         DendroCoreManager.clearAll();
         CrystallizeShardManager.clearAll();
         ElectrifiedWaterManager.clearAll();
@@ -742,16 +746,132 @@ public final class ElementalGaugeManager {
         return 1.0F + 0.25F * Math.max(0, emLevel);
     }
 
+    public static boolean hasThornsEnchantment(LivingEntity entity) {
+        if (entity == null) return false;
+        for (ItemStack armor : entity.getArmorSlots()) {
+            if (armor.isEmpty()) continue;
+            var enchantments = armor.getEnchantments();
+            for (var entry : enchantments.entrySet()) {
+                if (entry.getIntValue() > 0
+                        && (entry.getKey().is(Enchantments.THORNS)
+                                || entry.getKey().unwrapKey().map(k -> k.location().getPath().equals("thorns")).orElse(false))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Nullable
+    private static Element pickDefenderAuraForThorns(LivingEntity defender) {
+        if (defender == null) return null;
+        UUID id = defender.getUUID();
+        Map<Element, GaugeState> gauges = GAUGES.get(id);
+        if (gauges != null && !gauges.isEmpty()) {
+            for (Element elem : REACTION_PRIORITY_ORDER) {
+                GaugeState gs = gauges.get(elem);
+                if (gs != null && !gs.isExpired()) {
+                    return elem;
+                }
+            }
+            for (Map.Entry<Element, GaugeState> entry : gauges.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().isExpired()) {
+                    return entry.getKey();
+                }
+            }
+        }
+        GaugeState frozen = FROZEN_GAUGES.get(id);
+        if (frozen != null && !frozen.isExpired()) {
+            return Element.CRYO;
+        }
+        GaugeState quicken = QUICKEN_GAUGES.get(id);
+        if (quicken != null && !quicken.isExpired()) {
+            return Element.DENDRO;
+        }
+        return null;
+    }
+
+    private static void reflectThornsElement(
+            ServerLevel level,
+            LivingEntity defender,
+            LivingEntity attacker,
+            long now,
+            @Nullable Element fallbackElement
+    ) {
+        if (level == null || defender == null || attacker == null
+                || defender == attacker || !attacker.isAlive() || attacker.isRemoved()
+                || IS_PROCESSING_THORNS.get()) {
+            return;
+        }
+
+        Element reflected = getInnateElement(defender);
+        if (reflected == null) {
+            reflected = pickDefenderAuraForThorns(defender);
+        }
+        if (reflected == null) {
+            reflected = fallbackElement;
+        }
+        if (reflected == null && defender.getRemainingFireTicks() > 0 && !defender.fireImmune() && !isEntityInWater(defender)) {
+            reflected = Element.PYRO;
+        }
+        if (reflected == null) {
+            return;
+        }
+
+        long dedupKey = (((long) attacker.getId()) << 32) | (defender.getId() & 0xFFFFFFFFL);
+        Long lastTick = LAST_THORNS_REFLECT.get(dedupKey);
+        if (lastTick != null && (now - lastTick) < 2L) {
+            return;
+        }
+        LAST_THORNS_REFLECT.put(dedupKey, now);
+
+        IS_PROCESSING_THORNS.set(true);
+        try {
+            ServerPlayer defenderPlayer = defender instanceof ServerPlayer sp ? sp : null;
+            applyElementBypassIcd(level, attacker, reflected, 0.5F, defenderPlayer, 0.0F);
+            Vec3 hitPos = attacker.getBoundingBox().getCenter();
+            level.sendParticles(ParticleTypes.ENCHANTED_HIT, hitPos.x, hitPos.y, hitPos.z,
+                    6, 0.25D, 0.25D, 0.25D, 0.05D);
+        } finally {
+            IS_PROCESSING_THORNS.set(false);
+        }
+    }
+
     /**
      * Handles environmental damage types and innate elemental mob attacks.
      */
     public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) {
         if (!target.isAlive() || target.isInvulnerable() || target.level().isClientSide()) return;
+        if (source.is(DamageTypes.THORNS)) {
+            if (target.level() instanceof ServerLevel level
+                    && source.getEntity() instanceof LivingEntity defender
+                    && defender != target
+                    && !IS_PROCESSING_THORNS.get()) {
+                reflectThornsElement(level, defender, target, level.getGameTime(), THORNS_CONTEXT_ELEMENT.get());
+            }
+            return;
+        }
         if (IS_PROCESSING_DAMAGE.get() || IS_PROCESSING_REACTION.get()) return;
 
         IS_PROCESSING_DAMAGE.set(true);
         try {
             if (target.level() instanceof ServerLevel level) {
+                Element preHitAura = hasThornsEnchantment(target) ? pickDefenderAuraForThorns(target) : null;
+                processIncomingDamageSources(level, target, source);
+                if (source.getEntity() instanceof LivingEntity attacker
+                        && attacker != target
+                        && attacker.isAlive()
+                        && !IS_PROCESSING_THORNS.get()
+                        && hasThornsEnchantment(target)) {
+                    reflectThornsElement(level, target, attacker, level.getGameTime(), preHitAura);
+                }
+            }
+        } finally {
+            IS_PROCESSING_DAMAGE.set(false);
+        }
+    }
+
+    private static void processIncomingDamageSources(ServerLevel level, LivingEntity target, DamageSource source) {
                 if ((target.getRemainingFireTicks() > 0 || target.isOnFire()) && isPyroInnate(target)) {
                     extinguishPyroInnate(target);
                 }
@@ -938,10 +1058,6 @@ public final class ElementalGaugeManager {
                         applyElementBypassIcd(level, target, innate, 1.0F, attackerPlayer, 0.0F);
                     }
                 }
-            }
-        } finally {
-            IS_PROCESSING_DAMAGE.set(false);
-        }
     }
 
     /**
@@ -1586,6 +1702,9 @@ public final class ElementalGaugeManager {
             EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, target.position(), 1.5D);
         }
 
+        Element preThornsAura = pickDefenderAuraForThorns(target);
+        Element thornsContext = preThornsAura != null ? preThornsAura : attackElement;
+
         // Same-element immunity (Genshin Impact): Innate elemental beings are 100% immune to their own element
         Element innateElement = getInnateElement(target);
         if (innateElement != null && attackElement == innateElement) {
@@ -1596,6 +1715,10 @@ public final class ElementalGaugeManager {
             }
             enforceFrozenPoseIfFrozen(target);
             syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
+            if (attacker != null && attacker != target && target.isAlive()
+                    && !IS_PROCESSING_THORNS.get() && hasThornsEnchantment(target)) {
+                reflectThornsElement(level, target, attacker, level.getGameTime(), innateElement);
+            }
             return;
         }
 
@@ -1609,8 +1732,19 @@ public final class ElementalGaugeManager {
         DamageSource elemDmgSource = getElementalDamageSource(level, attacker);
 
         if (!egtEnabled) {
-            target.hurt(elemDmgSource, effectiveDamage);
-            enforceFrozenPoseIfFrozen(target);
+            Element prevCtx = THORNS_CONTEXT_ELEMENT.get();
+            THORNS_CONTEXT_ELEMENT.set(thornsContext);
+            try {
+                target.hurt(elemDmgSource, effectiveDamage);
+                enforceFrozenPoseIfFrozen(target);
+            } finally {
+                if (prevCtx == null) THORNS_CONTEXT_ELEMENT.remove();
+                else THORNS_CONTEXT_ELEMENT.set(prevCtx);
+            }
+            if (attacker != null && attacker != target && target.isAlive()
+                    && !IS_PROCESSING_THORNS.get() && hasThornsEnchantment(target)) {
+                reflectThornsElement(level, target, attacker, level.getGameTime(), thornsContext);
+            }
             return;
         }
 
@@ -1620,18 +1754,38 @@ public final class ElementalGaugeManager {
         boolean canApply = bypassStandardIcd || checkStandardIcd(target, attackElement, attacker, now);
         if (!canApply) {
             if (effectiveDamage > 0.0F) {
-                target.hurt(elemDmgSource, effectiveDamage);
-                enforceFrozenPoseIfFrozen(target);
+                Element prevCtx = THORNS_CONTEXT_ELEMENT.get();
+                THORNS_CONTEXT_ELEMENT.set(thornsContext);
+                try {
+                    target.hurt(elemDmgSource, effectiveDamage);
+                    enforceFrozenPoseIfFrozen(target);
+                } finally {
+                    if (prevCtx == null) THORNS_CONTEXT_ELEMENT.remove();
+                    else THORNS_CONTEXT_ELEMENT.set(prevCtx);
+                }
+            }
+            if (attacker != null && attacker != target && target.isAlive()
+                    && !IS_PROCESSING_THORNS.get() && hasThornsEnchantment(target)) {
+                reflectThornsElement(level, target, attacker, now, thornsContext);
             }
             return;
         }
 
+        boolean prevReaction = IS_PROCESSING_REACTION.get();
+        Element prevCtx = THORNS_CONTEXT_ELEMENT.get();
         IS_PROCESSING_REACTION.set(true);
+        THORNS_CONTEXT_ELEMENT.set(thornsContext);
         try {
             applyElementInternal(level, target, attackElement, attackU, attacker, baseDamage, effectiveDamage, dmgMult, now);
             enforceFrozenPoseIfFrozen(target);
         } finally {
-            IS_PROCESSING_REACTION.set(false);
+            if (prevCtx == null) THORNS_CONTEXT_ELEMENT.remove();
+            else THORNS_CONTEXT_ELEMENT.set(prevCtx);
+            IS_PROCESSING_REACTION.set(prevReaction);
+        }
+        if (attacker != null && attacker != target && target.isAlive()
+                && !IS_PROCESSING_THORNS.get() && hasThornsEnchantment(target)) {
+            reflectThornsElement(level, target, attacker, now, thornsContext);
         }
     }
 
@@ -2387,6 +2541,7 @@ public final class ElementalGaugeManager {
             INNATE_COOLDOWN_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
             LAST_PROXIMITY_SHOCK.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
             LAST_BLOOM_SPAWN.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
+            LAST_THORNS_REFLECT.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
         }
 
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());

@@ -5,6 +5,7 @@ import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElectrifiedWaterManager;
+import com.velorise.staves.element.EnvironmentalBlockManager;
 import com.velorise.staves.event.ArcaneStaffEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -642,10 +643,18 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private static Vec3 rayEnd(ServerPlayer player, double range) {
+        return rayEnd(player, range, ClipContext.Block.COLLIDER);
+    }
+
+    private static Vec3 rayEndOutline(ServerPlayer player, double range) {
+        return rayEnd(player, range, ClipContext.Block.OUTLINE);
+    }
+
+    private static Vec3 rayEnd(ServerPlayer player, double range, ClipContext.Block blockMode) {
         Vec3 start = player.getEyePosition();
         Vec3 end = start.add(player.getLookAngle().scale(range));
         BlockHitResult hit = player.level().clip(new ClipContext(start, end,
-            ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+            blockMode, ClipContext.Fluid.NONE, player));
         return hit.getType() == HitResult.Type.MISS ? end : hit.getLocation();
     }
 
@@ -653,7 +662,7 @@ public final class ArcaneStaffItem extends Item {
         ServerLevel level = (ServerLevel) player.level();
         Vec3 start = player.getEyePosition();
         double range = isNetherite ? 28.0D : 24.0D;
-        Vec3 end = target == null ? rayEnd(player, range) : target.getBoundingBox().getCenter();
+        Vec3 end = target == null ? rayEndOutline(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
             float healthPct = player.getHealth() / Math.max(1.0F, player.getMaxHealth());
             float baseDmg;
@@ -667,6 +676,7 @@ public final class ArcaneStaffItem extends Item {
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
         }
+        EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, start, end, isNetherite ? 2.0D : 1.35D);
         drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
         level.playSound(null, player.blockPosition(), SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.9F, 1.2F);
     }

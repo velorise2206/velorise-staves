@@ -8,6 +8,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.AbstractCandleBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.LightningRodBlock;
@@ -46,6 +48,7 @@ public final class EnvironmentalBlockManager {
     private static final Map<BlockPos, Long> LAST_SENSOR_ZAP = new ConcurrentHashMap<>();
     private static final Map<Long, Long> LAST_OBSERVER_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> LAST_LIGHTNING_ROD_ZAP = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, Long> LAST_TESLA_COIL_ZAP = new ConcurrentHashMap<>();
 
     private EnvironmentalBlockManager() {}
 
@@ -54,6 +57,7 @@ public final class EnvironmentalBlockManager {
         LAST_SENSOR_ZAP.clear();
         LAST_OBSERVER_ZAP.clear();
         LAST_LIGHTNING_ROD_ZAP.clear();
+        LAST_TESLA_COIL_ZAP.clear();
     }
 
     /**
@@ -280,6 +284,7 @@ public final class EnvironmentalBlockManager {
             LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
             LAST_OBSERVER_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
             LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
+            LAST_TESLA_COIL_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -389,16 +394,33 @@ public final class EnvironmentalBlockManager {
             }
 
             Set<UUID> processed = new HashSet<>();
+            Set<BlockPos> tickedTeslaCoils = new HashSet<>();
             for (ServerPlayer player : players) {
-                // Also check powered Lightning Rods and block-form energized Redstone near players
+                // Check active Tesla Coils (Lightning Rod on Redstone Block), powered Lightning Rods, and block-form energized Redstone
                 BlockPos playerPos = player.blockPosition();
                 int redstoneArcBudget = (serverNow % 3L == 0L) ? 4 : 0;
-                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-8, -4, -8), playerPos.offset(8, 4, 8))) {
+                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-10, -5, -10), playerPos.offset(10, 5, 10))) {
                     if (!level.hasChunkAt(p)) continue;
                     BlockState st = level.getBlockState(p);
-                    if (st.is(Blocks.LIGHTNING_ROD) && st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
-                        dischargeLightningRod(level, p, serverNow);
+                    if (st.is(Blocks.LIGHTNING_ROD)) {
+                        BlockPos below = p.below();
+                        if (level.hasChunkAt(below) && level.getBlockState(below).is(Blocks.REDSTONE_BLOCK)) {
+                            if (tickedTeslaCoils.add(p.immutable())) {
+                                tickTeslaCoil(level, p, st, serverNow);
+                            }
+                            continue;
+                        }
+                        if (Math.abs(p.getX() - playerPos.getX()) <= 8
+                                && Math.abs(p.getY() - playerPos.getY()) <= 4
+                                && Math.abs(p.getZ() - playerPos.getZ()) <= 8
+                                && st.hasProperty(LightningRodBlock.POWERED)
+                                && st.getValue(LightningRodBlock.POWERED)) {
+                            dischargeLightningRod(level, p, serverNow);
+                        }
                     } else if (redstoneArcBudget > 0
+                            && Math.abs(p.getX() - playerPos.getX()) <= 8
+                            && Math.abs(p.getY() - playerPos.getY()) <= 4
+                            && Math.abs(p.getZ() - playerPos.getZ()) <= 8
                             && level.random.nextInt(8) == 0
                             && isBlockFormRedstoneLightningSource(st)
                             && hasExposedFace(level, p)) {
@@ -640,5 +662,210 @@ public final class EnvironmentalBlockManager {
 
     public static boolean isAmethystBlock(BlockState st) {
         return isSolidAmethystBlock(st) || isAmethystClusterOrBud(st);
+    }
+
+    /**
+     * Ticks an active Tesla Coil (Copper Lightning Rod placed on top of a Redstone Block).
+     * Every 1s (20 ticks), emits 3-5 lightning arcs in random directions up to 5 blocks away,
+     * propagating outward step-by-step and applying 1.0U Electro + 0.5 heart (1.0F dmg).
+     */
+    private static void tickTeslaCoil(ServerLevel level, BlockPos rodPos, BlockState rodState, long now) {
+        BlockPos immutableRod = rodPos.immutable();
+        Long last = LAST_TESLA_COIL_ZAP.get(immutableRod);
+        if (last != null && (now - last) < 20L) {
+            return;
+        }
+        LAST_TESLA_COIL_ZAP.put(immutableRod, now);
+
+        Direction facing = rodState.hasProperty(LightningRodBlock.FACING)
+                ? rodState.getValue(LightningRodBlock.FACING)
+                : Direction.UP;
+        Vec3 origin = Vec3.atCenterOf(immutableRod).add(
+                facing.getStepX() * 0.35D,
+                facing.getStepY() * 0.35D,
+                facing.getStepZ() * 0.35D
+        );
+
+        int boltCount = 3 + level.random.nextInt(3);
+        Set<UUID> hitEntitiesThisPulse = new HashSet<>();
+
+        for (int b = 0; b < boltCount; b++) {
+            int dx = 0;
+            int dy = 0;
+            int dz = 0;
+            boolean picked = false;
+            for (int attempt = 0; attempt < 8; attempt++) {
+                int tx = level.random.nextInt(11) - 5;
+                int ty = level.random.nextInt(5) - 1;
+                int tz = level.random.nextInt(11) - 5;
+                int d2 = tx * tx + ty * ty + tz * tz;
+                if (d2 >= 4 && d2 <= 25 && !(tx == 0 && ty == -1 && tz == 0)) {
+                    dx = tx;
+                    dy = ty;
+                    dz = tz;
+                    picked = true;
+                    break;
+                }
+            }
+            if (!picked) {
+                double angle = level.random.nextDouble() * Math.PI * 2.0D;
+                double distChoice = 2.5D + level.random.nextDouble() * 2.5D;
+                dx = (int) Math.round(Math.cos(angle) * distChoice);
+                dy = level.random.nextInt(4) - 1;
+                dz = (int) Math.round(Math.sin(angle) * distChoice);
+                if (dx == 0 && dz == 0) dx = 2;
+            }
+
+            BlockPos chosenPos = immutableRod.offset(dx, dy, dz);
+            Vec3 targetVec = Vec3.atCenterOf(chosenPos);
+            Vec3 delta = targetVec.subtract(origin);
+            double rayLen = delta.length();
+            if (rayLen < 0.5D) continue;
+
+            int steps = Math.max(4, (int) Math.ceil(rayLen / 0.45D));
+            Vec3 arcEnd = origin;
+
+            for (int s = 1; s <= steps; s++) {
+                double t = (double) s / (double) steps;
+                Vec3 pt = origin.add(delta.scale(t));
+                if (pt.distanceToSqr(origin) > 27.5D) {
+                    break;
+                }
+
+                BlockPos stepPos = BlockPos.containing(pt);
+                if (!level.hasChunkAt(stepPos)) {
+                    break;
+                }
+
+                boolean isSelfBlock = stepPos.equals(immutableRod) || stepPos.equals(immutableRod.below());
+                if (!isSelfBlock) {
+                    if (level.getFluidState(stepPos).is(FluidTags.WATER)) {
+                        ElectrifiedWaterManager.electrify(level, stepPos, 2.0D, 35, null, 1.0F);
+                    }
+                    DendroCoreManager.checkReactionsNear(level, pt, 1.25D, Element.ELECTRO, null);
+
+                    AABB hitBox = new AABB(
+                            pt.x - 1.15D, pt.y - 1.15D, pt.z - 1.15D,
+                            pt.x + 1.15D, pt.y + 1.15D, pt.z + 1.15D
+                    );
+                    LivingEntity struck = null;
+                    double bestDistSq = Double.MAX_VALUE;
+                    for (LivingEntity cand : level.getEntitiesOfClass(
+                            LivingEntity.class,
+                            hitBox,
+                            e -> e.isAlive()
+                                    && !e.isRemoved()
+                                    && !e.isSpectator()
+                                    && !ElementalGaugeManager.isPassiveAquaticOrAmbient(e)
+                                    && !hitEntitiesThisPulse.contains(e.getUUID())
+                    )) {
+                        Vec3 center = cand.getBoundingBox().getCenter();
+                        double dSq = center.distanceToSqr(pt);
+                        if (dSq < bestDistSq && center.distanceToSqr(origin) <= 27.5D) {
+                            bestDistSq = dSq;
+                            struck = cand;
+                        }
+                    }
+
+                    if (struck != null) {
+                        hitEntitiesThisPulse.add(struck.getUUID());
+                        arcEnd = struck.getBoundingBox().getCenter();
+                        ElementalGaugeManager.applyElementBypassIcd(level, struck, Element.ELECTRO, 1.0F, null, 1.0F);
+                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
+                                5, 0.2D, 0.2D, 0.2D, 0.04D);
+                        break;
+                    }
+
+                    if (level.getBlockState(stepPos).canOcclude()) {
+                        arcEnd = pt;
+                        break;
+                    }
+                }
+                arcEnd = pt;
+            }
+
+            if (arcEnd.distanceToSqr(origin) >= 0.35D) {
+                ElectrifiedWaterManager.drawElectricArc(level, origin, arcEnd, 0.24D, true);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
+                        2, 0.12D, 0.12D, 0.12D, 0.02D);
+            }
+        }
+
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, origin.x, origin.y, origin.z,
+                3, 0.1D, 0.1D, 0.1D, 0.02D);
+        level.playSound(null, origin.x, origin.y, origin.z,
+                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.25F, 1.9F);
+    }
+
+    /**
+     * Extinguishes environmental fire blocks (Fire, Soul Fire, lit Campfires, lit Candles / Candle Cakes)
+     * touched along a Hydro beam and within splash radius around the impact point.
+     */
+    public static void applyHydroEnvironmentEffects(ServerLevel level, Vec3 start, Vec3 end, double radius) {
+        if (level == null || start == null || end == null) return;
+        Vec3 delta = end.subtract(start);
+        double len = delta.length();
+        int steps = Math.max(1, (int) Math.ceil(len / 0.55D));
+        Set<BlockPos> checked = new HashSet<>();
+        int extinguishedCount = 0;
+
+        for (int s = 0; s <= steps; s++) {
+            double t = len < 1.0E-4D ? 1.0D : (double) s / (double) steps;
+            Vec3 pt = start.add(delta.scale(t));
+            BlockPos center = BlockPos.containing(pt);
+            for (BlockPos p : BlockPos.betweenClosed(center.offset(-1, -1, -1), center.offset(1, 1, 1))) {
+                if (p.distToCenterSqr(pt) <= 0.85D * 0.85D) {
+                    BlockPos imm = p.immutable();
+                    if (checked.add(imm) && tryExtinguishBlock(level, imm)) {
+                        extinguishedCount++;
+                    }
+                }
+            }
+        }
+
+        BlockPos endCenter = BlockPos.containing(end);
+        int rCeil = (int) Math.ceil(radius);
+        double rSq = radius * radius;
+        for (BlockPos p : BlockPos.betweenClosed(
+                endCenter.offset(-rCeil, -rCeil, -rCeil),
+                endCenter.offset(rCeil, rCeil, rCeil))) {
+            if (p.distToCenterSqr(end) <= rSq) {
+                BlockPos imm = p.immutable();
+                if (checked.add(imm) && tryExtinguishBlock(level, imm)) {
+                    extinguishedCount++;
+                }
+            }
+        }
+
+        if (extinguishedCount > 0) {
+            level.playSound(null, end.x, end.y, end.z,
+                    SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7F, 1.1F + level.random.nextFloat() * 0.25F);
+        }
+    }
+
+    private static boolean tryExtinguishBlock(ServerLevel level, BlockPos pos) {
+        if (!level.hasChunkAt(pos)) return false;
+        BlockState st = level.getBlockState(pos);
+        if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE)) {
+            level.removeBlock(pos, false);
+            spawnExtinguishParticles(level, pos);
+            return true;
+        }
+        if ((st.getBlock() instanceof CampfireBlock || st.getBlock() instanceof AbstractCandleBlock)
+                && st.hasProperty(BlockStateProperties.LIT)
+                && st.getValue(BlockStateProperties.LIT)) {
+            level.setBlock(pos, st.setValue(BlockStateProperties.LIT, false), 3);
+            spawnExtinguishParticles(level, pos);
+            return true;
+        }
+        return false;
+    }
+
+    private static void spawnExtinguishParticles(ServerLevel level, BlockPos pos) {
+        double cx = pos.getX() + 0.5D;
+        double cy = pos.getY() + 0.45D;
+        double cz = pos.getZ() + 0.5D;
+        level.sendParticles(ParticleTypes.SMOKE, cx, cy, cz, 4, 0.22D, 0.18D, 0.22D, 0.02D);
+        level.sendParticles(ParticleTypes.SPLASH, cx, cy, cz, 4, 0.25D, 0.18D, 0.25D, 0.05D);
     }
 }
