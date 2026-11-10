@@ -12,7 +12,8 @@
     "AbstractContainerScreenAccessor",
     "EntityTurnMixin",
     "CameraMixin",
-    "KeyboardInputMixin"
+    "KeyboardInputMixin",
+    "PlayerTabOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

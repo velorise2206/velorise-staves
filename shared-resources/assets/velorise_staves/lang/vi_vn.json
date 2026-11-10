@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "sum suê|bloom",
   "codex.velorise_staves.links.catalyze": "xúc tác|sinh trưởng|tăng cường|lan tràn|catalyze|quicken|aggravate|spread",
   "codex.velorise_staves.links.burning": "thiêu đốt|burning",
-  "codex.velorise_staves.links.crystallize": "kết tinh|crystallize|crystallized"
+  "codex.velorise_staves.links.crystallize": "kết tinh|crystallize|crystallized",
+  "item.velorise_staves.omni_staff": "Trượng Vạn Năng",
+  "item.velorise_staves.omni_staff.desc": "Hợp nhất từ 7 loại gậy nguyên tố. Bắn tinh thể cầu vồng tự động chọn phản ứng mạnh nhất hoặc khóa hệ qua vòng xoay Tab.",
+  "item.velorise_staves.netherite_omni_staff": "Trượng Vạn Năng Netherite",
+  "item.velorise_staves.netherite_omni_staff.desc": "Phiên bản Netherite tối thượng tầm 48m, 3U ấn nguyên tố và tự động tối ưu mọi phản ứng.",
+  "entity.velorise_staves.omni_orb": "Tinh Cầu Vạn Năng",
+  "element.velorise_staves.omni": "Vạn Năng",
+  "key.categories.velorise_staves": "Velorise's Staves",
+  "key.velorise_staves.omni_wheel": "Vòng Xoay Nguyên Tố (Omni)",
+  "tooltip.velorise_staves.staff_omni": "Trượng Vạn Năng (Tự Tối Ưu)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Trượng Vạn Năng Netherite (Tự Tối Ưu)",
+  "tooltip.velorise_staves.staff_omni.locked": "Trượng Vạn Năng (Hệ %s)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Trượng Vạn Năng Netherite (Hệ %s)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  Giữ [Tab] để mở Vòng Chọn Nguyên Tố",
+  "wheel.velorise_staves.omni.auto": "Tự chọn nguyên tố mạnh nhất",
+  "wheel.velorise_staves.omni.locked": "Cố định hệ nguyên tố đã chọn",
+  "codex.velorise_staves.staff.omni": "Ghép từ §67 gậy nguyên tố§r! Chế độ §6Vạn Năng§r tự chọn nguyên tố kích phản ứng mạnh nhất (Tan Chảy, Bốc Hơi, Nở Rộ...); giữ §e[Tab]§r để mở Vòng Xoay 8 ô."
 }

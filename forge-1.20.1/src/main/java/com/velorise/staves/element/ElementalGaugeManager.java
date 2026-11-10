@@ -203,6 +203,12 @@ public final class ElementalGaugeManager {
         return until != null && entity.level().getGameTime() < until;
     }
 
+    public static boolean isEntityQuickened(@Nullable Entity entity) {
+        if (entity == null) return false;
+        GaugeState qg = QUICKEN_GAUGES.get(entity.getUUID());
+        return qg != null && !qg.isExpired();
+    }
+
     /**
      * Returns all active display elements on the entity (including Quicken Dendro aura and Frozen Cryo aura).
      */

@@ -1,16 +1,20 @@
 package com.velorise.staves.item;
 
+import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElectrifiedWaterManager;
 import com.velorise.staves.element.EnvironmentalBlockManager;
+import com.velorise.staves.entity.OmniOrbEntity;
 import com.velorise.staves.event.ArcaneStaffEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -39,12 +43,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.List;
@@ -78,11 +84,47 @@ public final class ArcaneStaffItem extends Item {
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
         PLAYER_BURSTS.clear();
+        OmniOrbEntity.clearCycleCache();
     }
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB, WIND
+        WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB, WIND, OMNI
+    }
+
+    public static final String TAG_OMNI_MODE = "OmniMode";
+
+    public static boolean isOmniStaff(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof ArcaneStaffItem staff && staff.kind == Kind.OMNI;
+    }
+
+    public static int getOmniModeIndex(ItemStack stack) {
+        if (!isOmniStaff(stack)) return 0;
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        if (data == null) return 0;
+        return OmniOrbEntity.clampMode(data.copyTag().getInt(TAG_OMNI_MODE));
+    }
+
+    public static void setOmniModeIndex(ItemStack stack, int mode) {
+        if (!isOmniStaff(stack)) return;
+        int clamped = OmniOrbEntity.clampMode(mode);
+        if (clamped == 0) {
+            CustomData existing = stack.get(DataComponents.CUSTOM_DATA);
+            if (existing == null) return;
+            CompoundTag copy = existing.copyTag();
+            copy.remove(TAG_OMNI_MODE);
+            if (copy.isEmpty()) {
+                stack.remove(DataComponents.CUSTOM_DATA);
+            } else {
+                stack.set(DataComponents.CUSTOM_DATA, CustomData.of(copy));
+            }
+        } else {
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt(TAG_OMNI_MODE, clamped));
+        }
+    }
+
+    public static @Nullable Element getOmniActiveElement(ItemStack stack) {
+        return OmniOrbEntity.modeToElement(getOmniModeIndex(stack));
     }
 
     private final Kind kind;
@@ -157,6 +199,7 @@ public final class ArcaneStaffItem extends Item {
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
             case WIND -> shootWind(serverPlayer);
+            case OMNI -> shootOmni(serverPlayer, stack);
             case ECHO, GUARDIAN, LIGHTNING -> false;
         };
 
@@ -458,6 +501,19 @@ public final class ArcaneStaffItem extends Item {
         return true;
     }
 
+    private boolean shootOmni(ServerPlayer player, ItemStack stack) {
+        ServerLevel level = player.serverLevel();
+        int mode = getOmniModeIndex(stack);
+        OmniOrbEntity orb = new OmniOrbEntity(VeloriseStavesMod.OMNI_ORB, level, player, isNetherite, mode);
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 spawn = player.getEyePosition().add(look.scale(0.65D));
+        orb.setPos(spawn.x, spawn.y - 0.1D, spawn.z);
+        orb.shoot(look.x, look.y, look.z, isNetherite ? 2.1F : 1.85F, 0.0F);
+        level.addFreshEntity(orb);
+        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, isNetherite ? 1.35F : 1.15F);
+        return true;
+    }
+
     private boolean shootSnowball(ServerPlayer player, String kind, float velocity) {
         ServerLevel level = player.serverLevel();
         Snowball projectile = EntityType.SNOWBALL.create(level);
@@ -746,11 +802,12 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
             case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
             case EVOKER, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+            case OMNI -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.DIAMOND) || repair.is(Items.NETHER_STAR);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
     }
 
-    public Element getElement() {
+    public @Nullable Element getElement() {
         return switch (kind) {
             case DRAGONFIRE, SHULKER, LIGHTNING -> Element.ELECTRO;
             case ECHO, WIND -> Element.ANEMO;
@@ -759,6 +816,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> Element.GEO;
             case FROST -> Element.CRYO;
             case WEB, WITHER -> Element.DENDRO;
+            case OMNI -> null;
         };
     }
 
@@ -776,6 +834,7 @@ public final class ArcaneStaffItem extends Item {
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
             case WEB -> "28m";
             case WIND -> isNetherite ? "28m (4.5m AoE)" : "28m (3.5m AoE)";
+            case OMNI -> isNetherite ? "48m (2.5m AoE)" : "36m (1.75m AoE)";
         };
     }
 
@@ -793,8 +852,14 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public String getDamageDisplay() {
-        Element e = getElement();
-        String icon = e != null ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " " : "";
+        return getDamageDisplay(getElement());
+    }
+
+    public String getDamageDisplay(@Nullable Element overrideElement) {
+        Element e = overrideElement;
+        String icon = e != null
+                ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " "
+                : (kind == Kind.OMNI ? ChatFormatting.WHITE + "\uE00A" + ChatFormatting.BLUE + " " : "");
         String heart = ChatFormatting.WHITE.toString() + "\uE008" + ChatFormatting.BLUE;
         String cloudSuffix = Component.translatable("tooltip.velorise_staves.dmg_cloud").getString();
         String swirlTag = " (" + Component.translatable("reaction.velorise_staves.swirl").getString() + ")";
@@ -815,11 +880,16 @@ public final class ArcaneStaffItem extends Item {
             case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
             case WIND -> (isNetherite ? fmtHearts(2.5) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case OMNI -> (isNetherite ? fmtHearts(15.0) : fmtHearts(10.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
         };
     }
 
     @Override
     public Component getName(ItemStack stack) {
+        if (kind == Kind.OMNI) {
+            Element active = getOmniActiveElement(stack);
+            return Component.translatable(this.getDescriptionId(stack)).withStyle(active != null ? active.color() : ChatFormatting.GOLD);
+        }
         Element elem = getElement();
         if (elem != null) {
             return Component.translatable(this.getDescriptionId(stack)).withStyle(elem.color());
@@ -836,25 +906,44 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        Element elem = getElement();
-        if (elem != null) {
-            Component iconComp = Component.literal(elem.iconString()).withStyle(ChatFormatting.WHITE);
-            String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_element.netherite" : "tooltip.velorise_staves.staff_element";
-            Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey, Component.translatable(elem.translationKey()))).withStyle(elem.color());
-            tooltip.add(Component.empty().append(iconComp).append(textComp));
-        } else if (kind == Kind.WITHER) {
-            String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_wither.netherite" : "tooltip.velorise_staves.staff_wither";
-            tooltip.add(Component.literal("☠ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.DARK_GRAY));
+        if (kind == Kind.OMNI) {
+            Element active = getOmniActiveElement(stack);
+            if (active != null) {
+                Component iconComp = Component.literal(active.iconString()).withStyle(ChatFormatting.WHITE);
+                String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_omni.locked.netherite" : "tooltip.velorise_staves.staff_omni.locked";
+                Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey, Component.translatable(active.translationKey()))).withStyle(active.color());
+                tooltip.add(Component.empty().append(iconComp).append(textComp));
+            } else {
+                Component iconComp = Component.literal("\uE00A").withStyle(ChatFormatting.WHITE);
+                String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_omni.netherite" : "tooltip.velorise_staves.staff_omni";
+                Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.GOLD);
+                tooltip.add(Component.empty().append(iconComp).append(textComp));
+            }
+        } else {
+            Element elem = getElement();
+            if (elem != null) {
+                Component iconComp = Component.literal(elem.iconString()).withStyle(ChatFormatting.WHITE);
+                String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_element.netherite" : "tooltip.velorise_staves.staff_element";
+                Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey, Component.translatable(elem.translationKey()))).withStyle(elem.color());
+                tooltip.add(Component.empty().append(iconComp).append(textComp));
+            } else if (kind == Kind.WITHER) {
+                String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_wither.netherite" : "tooltip.velorise_staves.staff_wither";
+                tooltip.add(Component.literal("☠ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.DARK_GRAY));
+            }
         }
 
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.literal("  " + getDamageDisplay()).withStyle(ChatFormatting.BLUE));
+        Element dispElem = kind == Kind.OMNI ? getOmniActiveElement(stack) : getElement();
+        tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);
         if (emLvl > 0) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.elemental_mastery_bonus", emLvl * 15, emLvl * 30, emLvl * 25).withStyle(ChatFormatting.GOLD));
+        }
+        if (kind == Kind.OMNI) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.omni_wheel_hint").withStyle(ChatFormatting.YELLOW));
         }
 
         if (flag.isAdvanced()) {

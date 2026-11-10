@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "fleurissement",
   "codex.velorise_staves.links.catalyze": "catalyse|stimulation|suractivation|propagation",
   "codex.velorise_staves.links.burning": "brûlure",
-  "codex.velorise_staves.links.crystallize": "cristallisation"
+  "codex.velorise_staves.links.crystallize": "cristallisation",
+  "item.velorise_staves.omni_staff": "Bâton Omni",
+  "item.velorise_staves.omni_staff.desc": "Forgé à partir des 7 bâtons élémentaires. Tire des orbes prismatiques choisissant la meilleure réaction ou verrouillables via Tab.",
+  "item.velorise_staves.netherite_omni_staff": "Bâton Omni en Netherite",
+  "item.velorise_staves.netherite_omni_staff.desc": "Bâton prismatique suprême en Netherite : portée 48m, 3U d'élément et optimisation automatique des réactions.",
+  "entity.velorise_staves.omni_orb": "Orbe Prismatique Omni",
+  "element.velorise_staves.omni": "Omni",
+  "key.categories.velorise_staves": "Bâtons de Velorise",
+  "key.velorise_staves.omni_wheel": "Roue Élémentaire Omni",
+  "tooltip.velorise_staves.staff_omni": "Bâton Omni (Auto-Optimal)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Bâton Omni (Netherite Auto-Optimal)",
+  "tooltip.velorise_staves.staff_omni.locked": "Bâton Omni (Mode %s)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Bâton Omni (Netherite Mode %s)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  Maintenir [Tab] pour la Roue Élémentaire",
+  "wheel.velorise_staves.omni.auto": "Choisit auto la meilleure réaction",
+  "wheel.velorise_staves.omni.locked": "Verrouillé sur l'élément choisi",
+  "codex.velorise_staves.staff.omni": "Craft sans forme de §67 bâtons élémentaires§r ! En §6Mode Omni§r, choisit automatiquement le meilleur déclencheur (Fonte, Évaporation, Exubérance) ; maintenez §e[Tab]§r pour la Roue à 8 emplacements."
 }

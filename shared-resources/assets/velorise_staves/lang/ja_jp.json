@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "開花",
   "codex.velorise_staves.links.catalyze": "原激化|超激化|草激化|激化",
   "codex.velorise_staves.links.burning": "燃焼",
-  "codex.velorise_staves.links.crystallize": "結晶"
+  "codex.velorise_staves.links.crystallize": "結晶",
+  "item.velorise_staves.omni_staff": "万能の杖",
+  "item.velorise_staves.omni_staff.desc": "7元素の杖を融合して生成。万能モードでは最適な反応元素を自動選択し、Tab長押しのホイールで任意の元素に固定可能。",
+  "item.velorise_staves.netherite_omni_staff": "ネザライト万能の杖",
+  "item.velorise_staves.netherite_omni_staff.desc": "射程48m・3U付着量・反応自動最適化を備えた究極のネザライトプリズム杖。",
+  "entity.velorise_staves.omni_orb": "万能プリズムオーブ",
+  "element.velorise_staves.omni": "万能",
+  "key.categories.velorise_staves": "Veloriseの杖",
+  "key.velorise_staves.omni_wheel": "万能元素ホイール",
+  "tooltip.velorise_staves.staff_omni": "万能の杖 (自動最適)",
+  "tooltip.velorise_staves.staff_omni.netherite": "万能の杖 (ネザライト 自動最適)",
+  "tooltip.velorise_staves.staff_omni.locked": "万能の杖 (%sモード)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "万能の杖 (ネザライト %sモード)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  [Tab]長押しで元素ホイールを開く",
+  "wheel.velorise_staves.omni.auto": "最適な元素・反応を自動選択",
+  "wheel.velorise_staves.omni.locked": "選択した元素に固定",
+  "codex.velorise_staves.staff.omni": "§67種の元素杖§rから不定形クラフト！§6万能モード§rでは最高効率の反応（溶解・蒸発・超開花等）を自動選択し、§e[Tab]§r長押しで8枠ホイールを開きます。"
 }

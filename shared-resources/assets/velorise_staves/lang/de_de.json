@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "sprießen",
   "codex.velorise_staves.links.catalyze": "katalyse|urwuchs-aura|urwuchs|suprawuchs|rankenwuchs",
   "codex.velorise_staves.links.burning": "in brand",
-  "codex.velorise_staves.links.crystallize": "kristallisation|kristallisations-schilde"
+  "codex.velorise_staves.links.crystallize": "kristallisation|kristallisations-schilde",
+  "item.velorise_staves.omni_staff": "Omni-Stab",
+  "item.velorise_staves.omni_staff.desc": "Aus allen 7 Elementarstäben geschmiedet. Feuert Prismenkugeln, die im Omni-Modus automatisch die stärkste Reaktion wählen oder per Tab-Rad fixiert werden.",
+  "item.velorise_staves.netherite_omni_staff": "Netherit-Omni-Stab",
+  "item.velorise_staves.netherite_omni_staff.desc": "Verstärkter Netherit-Prismenstab mit 48m Reichweite, 3U Elementarmenge und automatischer Reaktionsoptimierung.",
+  "entity.velorise_staves.omni_orb": "Omni-Prismenkugel",
+  "element.velorise_staves.omni": "Omni",
+  "key.categories.velorise_staves": "Velorises Stäbe",
+  "key.velorise_staves.omni_wheel": "Omni-Elementrad",
+  "tooltip.velorise_staves.staff_omni": "Omni-Stab (Auto-Optimal)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Omni-Stab (Netherit Auto-Optimal)",
+  "tooltip.velorise_staves.staff_omni.locked": "Omni-Stab (%s-Modus)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Omni-Stab (Netherit %s-Modus)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  [Tab] gedrückt halten für Elementrad",
+  "wheel.velorise_staves.omni.auto": "Wählt automatisch bestes Element",
+  "wheel.velorise_staves.omni.locked": "Auf gewähltes Element fixiert",
+  "codex.velorise_staves.staff.omni": "Formlos aus §67 Elementarstäben§r! Im §6Omni-Modus§r wird automatisch der beste Reaktionstrigger gewählt (Schmelzen, Verdampfen, Supraspross); §e[Tab]§r halten für 8-Slot-Rad."
 }

@@ -72,6 +72,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item WIND_STAFF = registerItem("wind_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, false), false));
 
+    public static final Item OMNI_STAFF = registerItem("omni_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.OMNI, false), false));
+
     // Guidebook & Utility Artifacts
     public static final Item ELEMENTAL_CODEX = registerItem("elemental_codex",
         new ElementalCodexItem());
@@ -130,6 +133,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_WIND_STAFF = registerItem("netherite_wind_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, true), true));
 
+    public static final Item NETHERITE_OMNI_STAFF = registerItem("netherite_omni_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.OMNI, true), true));
+
     // Netherite Upgraded Utility Artifacts
     public static final Item NETHERITE_VOID_TRANSLOCATOR = registerItem("netherite_void_translocator",
         new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, true), 36.0D, true));
@@ -163,6 +169,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(FROSTBOLT_WAND);
             output.accept(WEBCASTER);
             output.accept(WIND_STAFF);
+            output.accept(OMNI_STAFF);
             output.accept(VOID_TRANSLOCATOR);
             output.accept(MAGIC_MIRROR);
 
@@ -179,6 +186,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_FROSTBOLT_WAND);
             output.accept(NETHERITE_WEBCASTER);
             output.accept(NETHERITE_WIND_STAFF);
+            output.accept(NETHERITE_OMNI_STAFF);
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(NETHERITE_MAGIC_MIRROR);
 
@@ -229,6 +237,21 @@ public final class VeloriseStavesMod implements ModInitializer {
                             .clientTrackingRange(8)
                             .updateInterval(1)
                             .build("dendro_core")
+            );
+
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.OmniOrbEntity> OMNI_ORB =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "omni_orb"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.OmniOrbEntity>of(
+                                    com.velorise.staves.entity.OmniOrbEntity::new,
+                                    net.minecraft.world.entity.MobCategory.MISC
+                            )
+                            .sized(0.45F, 0.45F)
+                            .clientTrackingRange(8)
+                            .updateInterval(1)
+                            .build("omni_orb")
             );
 
     @Override

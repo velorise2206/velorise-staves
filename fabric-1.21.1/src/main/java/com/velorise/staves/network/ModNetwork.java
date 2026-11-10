@@ -22,6 +22,10 @@ public final class ModNetwork {
         ServerPlayNetworking.registerGlobalReceiver(FreezeStrugglePayload.TYPE, (payload, context) -> {
             context.server().execute(() -> com.velorise.staves.element.ElementalGaugeManager.handlePlayerFreezeStruggle(context.player()));
         });
+        PayloadTypeRegistry.playC2S().register(SelectOmniModePayload.TYPE, SelectOmniModePayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(SelectOmniModePayload.TYPE, (payload, context) -> {
+            context.server().execute(() -> SelectOmniModePayload.applySelection(context.player(), payload.mode()));
+        });
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -110,5 +114,11 @@ public final class ModNetwork {
 
     public static void sendFreezeStruggle() {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new FreezeStrugglePayload());
+    }
+
+    public static void sendSelectOmniMode(int mode) {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                new SelectOmniModePayload((byte) com.velorise.staves.entity.OmniOrbEntity.clampMode(mode))
+        );
     }
 }

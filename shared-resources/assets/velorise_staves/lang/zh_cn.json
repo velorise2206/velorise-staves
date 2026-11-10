@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "绽放",
   "codex.velorise_staves.links.catalyze": "原激化|超激化|蔓激化|激化",
   "codex.velorise_staves.links.burning": "燃烧",
-  "codex.velorise_staves.links.crystallize": "结晶"
+  "codex.velorise_staves.links.crystallize": "结晶",
+  "item.velorise_staves.omni_staff": "万能法杖",
+  "item.velorise_staves.omni_staff.desc": "融合七大元素法杖锻造。发射棱镜晶球，在万能模式下自动选取最优触发元素，也可按住 Tab 通过轮盘锁定单元素。",
+  "item.velorise_staves.netherite_omni_staff": "下界合金万能法杖",
+  "item.velorise_staves.netherite_omni_staff.desc": "下界合金终极棱镜法杖，射程增至48米、附着3U元素量并自动优化元素反应。",
+  "entity.velorise_staves.omni_orb": "万能棱镜法球",
+  "element.velorise_staves.omni": "万能",
+  "key.categories.velorise_staves": "Velorise法杖",
+  "key.velorise_staves.omni_wheel": "万能元素轮盘",
+  "tooltip.velorise_staves.staff_omni": "万能法杖 (自动最优)",
+  "tooltip.velorise_staves.staff_omni.netherite": "万能法杖 (下界合金 自动最优)",
+  "tooltip.velorise_staves.staff_omni.locked": "万能法杖 (%s模式)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "万能法杖 (下界合金 %s模式)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  按住 [Tab] 打开元素轮盘",
+  "wheel.velorise_staves.omni.auto": "自动选取最强反应元素",
+  "wheel.velorise_staves.omni.locked": "锁定为所选元素",
+  "codex.velorise_staves.staff.omni": "由§6七大元素法杖§r无序合成！处于§6万能模式§r时自动选取最高收益反应（如融化、蒸发、超绽放）；按住§e[Tab]§r开启8槽轮盘。"
 }

@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "bloom",
   "codex.velorise_staves.links.catalyze": "catalyze|quicken|quickened|aggravate|spread",
   "codex.velorise_staves.links.burning": "burning",
-  "codex.velorise_staves.links.crystallize": "crystallize|crystallized"
+  "codex.velorise_staves.links.crystallize": "crystallize|crystallized",
+  "item.velorise_staves.omni_staff": "Omni Staff",
+  "item.velorise_staves.omni_staff.desc": "Forged from all 7 elemental staves. Fires prism crystals that auto-pick the strongest reaction element or lock onto any element held via Tab.",
+  "item.velorise_staves.netherite_omni_staff": "Netherite Omni Staff",
+  "item.velorise_staves.netherite_omni_staff.desc": "Netherite apex prism staff with amplified 48m reach, 3U gauge, and automatic reaction optimization.",
+  "entity.velorise_staves.omni_orb": "Omni Prism Orb",
+  "element.velorise_staves.omni": "Omni",
+  "key.categories.velorise_staves": "Velorise's Staves",
+  "key.velorise_staves.omni_wheel": "Omni Element Wheel",
+  "tooltip.velorise_staves.staff_omni": "Omni Staff (Auto Best)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Omni Staff (Netherite Auto Best)",
+  "tooltip.velorise_staves.staff_omni.locked": "Omni Staff (%s Mode)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Omni Staff (Netherite %s Mode)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  Hold [Tab] to open Element Wheel",
+  "wheel.velorise_staves.omni.auto": "Auto-pick best element & reaction",
+  "wheel.velorise_staves.omni.locked": "Locked to selected element",
+  "codex.velorise_staves.staff.omni": "Shapeless craft from all §67 Elemental Staves§r! In §6Omni Mode§r, auto-selects the highest-value reaction trigger (e.g. Melt, Vaporize, Hyperbloom); hold §e[Tab]§r to open the 8-slot Wheel."
 }

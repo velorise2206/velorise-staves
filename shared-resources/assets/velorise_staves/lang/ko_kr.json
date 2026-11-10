@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "개화",
   "codex.velorise_staves.links.catalyze": "원격화|활성 상태|촉진|발산",
   "codex.velorise_staves.links.burning": "연소",
-  "codex.velorise_staves.links.crystallize": "결정화|결정"
+  "codex.velorise_staves.links.crystallize": "결정화|결정",
+  "item.velorise_staves.omni_staff": "만능 지팡이",
+  "item.velorise_staves.omni_staff.desc": "7원소 지팡이를 모두 융합해 제작. 만능 모드에서는 최강의 반응 원소를 자동 선택하며, Tab 키를 눌러 휠로 고정할 수 있습니다.",
+  "item.velorise_staves.netherite_omni_staff": "네더라이트 만능 지팡이",
+  "item.velorise_staves.netherite_omni_staff.desc": "사거리 48m, 3U 원소량 및 자동 반응 최적화가 강화된 최상위 네더라이트 프리즘 지팡이.",
+  "entity.velorise_staves.omni_orb": "만능 프리즘 오브",
+  "element.velorise_staves.omni": "만능",
+  "key.categories.velorise_staves": "Velorise 지팡이",
+  "key.velorise_staves.omni_wheel": "만능 원소 휠",
+  "tooltip.velorise_staves.staff_omni": "만능 지팡이 (자동 최적)",
+  "tooltip.velorise_staves.staff_omni.netherite": "만능 지팡이 (네더라이트 자동 최적)",
+  "tooltip.velorise_staves.staff_omni.locked": "만능 지팡이 (%s 모드)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "만능 지팡이 (네더라이트 %s 모드)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  [Tab]을 길게 눌러 원소 휠 열기",
+  "wheel.velorise_staves.omni.auto": "최적의 원소 및 반응 자동 선택",
+  "wheel.velorise_staves.omni.locked": "선택한 원소로 고정됨",
+  "codex.velorise_staves.staff.omni": "§67종 원소 지팡이§r로 조합! §6만능 모드§r에서는 최고 효율 반응(융해, 증발, 만개 등)을 자동 발동하며, §e[Tab]§r을 누르고 있으면 8슬롯 휠이 열립니다."
 }

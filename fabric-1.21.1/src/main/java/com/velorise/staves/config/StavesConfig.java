@@ -52,6 +52,7 @@ public final class StavesConfig {
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue WIND_COOLDOWN = defineDouble("cooldowns", "wind_cooldown", 1.5D, 0.2D, 60.0D);
+    public static final DoubleValue OMNI_COOLDOWN = defineDouble("cooldowns", "omni_cooldown", 2.0D, 0.2D, 60.0D);
 
     // Durabilities
     public static final IntValue DRAGONFIRE_DURABILITY_BASIC = defineInt("durability", "dragonfire_basic", 130, 10, 5000);
@@ -78,6 +79,8 @@ public final class StavesConfig {
     public static final IntValue WEBCASTER_DURABILITY_NETHERITE = defineInt("durability", "webcaster_netherite", 500, 10, 5000);
     public static final IntValue WIND_DURABILITY_BASIC = defineInt("durability", "wind_basic", 140, 10, 5000);
     public static final IntValue WIND_DURABILITY_NETHERITE = defineInt("durability", "wind_netherite", 500, 10, 5000);
+    public static final IntValue OMNI_DURABILITY_BASIC = defineInt("durability", "omni_basic", 250, 10, 5000);
+    public static final IntValue OMNI_DURABILITY_NETHERITE = defineInt("durability", "omni_netherite", 900, 10, 5000);
     public static final IntValue VOID_TRANSLOCATOR_DURABILITY_BASIC = defineInt("durability", "void_translocator_basic", 80, 10, 5000);
     public static final IntValue VOID_TRANSLOCATOR_DURABILITY_NETHERITE = defineInt("durability", "void_translocator_netherite", 250, 10, 5000);
     public static final IntValue MAGIC_MIRROR_DURABILITY_BASIC = defineInt("durability", "magic_mirror_basic", 40, 10, 5000);
@@ -383,6 +386,7 @@ public final class StavesConfig {
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
             case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+            case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
         };
     }
 
@@ -416,6 +420,7 @@ public final class StavesConfig {
             case FROST -> FROSTBOLT_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();
             case WIND -> WIND_COOLDOWN.get();
+            case OMNI -> OMNI_COOLDOWN.get();
         };
     }
 

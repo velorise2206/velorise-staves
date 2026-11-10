@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "florecimiento",
   "codex.velorise_staves.links.catalyze": "catálisis|aceleración|intensificación|propagación",
   "codex.velorise_staves.links.burning": "quemadura",
-  "codex.velorise_staves.links.crystallize": "cristalización|escudos de cristalización"
+  "codex.velorise_staves.links.crystallize": "cristalización|escudos de cristalización",
+  "item.velorise_staves.omni_staff": "Bastón Omni",
+  "item.velorise_staves.omni_staff.desc": "Forjado con los 7 bastones elementales. Lanza orbes prismáticos que eligen la mejor reacción automáticamente o se fijan con Tab.",
+  "item.velorise_staves.netherite_omni_staff": "Bastón Omni de Netherite",
+  "item.velorise_staves.netherite_omni_staff.desc": "Bastón prismático supremo de Netherite con 48m de alcance, 3U elemental y optimización automática de reacciones.",
+  "entity.velorise_staves.omni_orb": "Orbe Prismático Omni",
+  "element.velorise_staves.omni": "Omni",
+  "key.categories.velorise_staves": "Bastones de Velorise",
+  "key.velorise_staves.omni_wheel": "Rueda Elemental Omni",
+  "tooltip.velorise_staves.staff_omni": "Bastón Omni (Auto-Óptimo)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Bastón Omni (Netherite Auto-Óptimo)",
+  "tooltip.velorise_staves.staff_omni.locked": "Bastón Omni (Modo %s)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Bastón Omni (Netherite Modo %s)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  Mantén [Tab] para abrir la Rueda",
+  "wheel.velorise_staves.omni.auto": "Elige automáticamente la mejor reacción",
+  "wheel.velorise_staves.omni.locked": "Bloqueado al elemento elegido",
+  "codex.velorise_staves.staff.omni": "¡Receta sin forma con §67 bastones elementales§r! En §6Modo Omni§r elige automáticamente el mejor disparador (Derretido, Vaporización, Sobreflorecimiento); mantén §e[Tab]§r para la Rueda de 8 espacios."
 }

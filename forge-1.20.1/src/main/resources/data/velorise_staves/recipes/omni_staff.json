@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    { "tag": "velorise_staves:pyro_staves" },
+    { "tag": "velorise_staves:hydro_staves" },
+    { "tag": "velorise_staves:cryo_staves" },
+    { "tag": "velorise_staves:electro_staves" },
+    { "tag": "velorise_staves:dendro_staves" },
+    { "tag": "velorise_staves:anemo_staves" },
+    { "tag": "velorise_staves:geo_staves" }
+  ],
+  "result": {
+    "item": "velorise_staves:omni_staff",
+    "count": 1
+  }
+}

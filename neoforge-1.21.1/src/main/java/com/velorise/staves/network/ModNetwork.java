@@ -20,6 +20,7 @@ public final class ModNetwork {
         registrar.playToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.STREAM_CODEC, ConfigSyncPayload::handle);
         registrar.playToClient(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC, ElectricArcPayload::handle);
         registrar.playToServer(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC, FreezeStrugglePayload::handle);
+        registrar.playToServer(SelectOmniModePayload.TYPE, SelectOmniModePayload.STREAM_CODEC, SelectOmniModePayload::handle);
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -99,5 +100,9 @@ public final class ModNetwork {
 
     public static void sendFreezeStruggle() {
         PacketDistributor.sendToServer(new FreezeStrugglePayload());
+    }
+
+    public static void sendSelectOmniMode(int mode) {
+        PacketDistributor.sendToServer(new SelectOmniModePayload((byte) com.velorise.staves.entity.OmniOrbEntity.clampMode(mode)));
     }
 }

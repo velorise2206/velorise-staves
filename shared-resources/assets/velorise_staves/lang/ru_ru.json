@@ -338,5 +338,21 @@
   "codex.velorise_staves.links.bloom": "бутонизация",
   "codex.velorise_staves.links.catalyze": "катализ|стимуляцию|стимуляции|стимуляция|обострение|разрастание",
   "codex.velorise_staves.links.burning": "горение",
-  "codex.velorise_staves.links.crystallize": "кристаллизации|кристаллизация|кристалл"
+  "codex.velorise_staves.links.crystallize": "кристаллизации|кристаллизация|кристалл",
+  "item.velorise_staves.omni_staff": "Универсальный посох",
+  "item.velorise_staves.omni_staff.desc": "Выкован из всех 7 стихийных посохов. Выпускает призматические сферы, авто-выбирающие сильнейшую реакцию или фиксируемые колесом Tab.",
+  "item.velorise_staves.netherite_omni_staff": "Незеритовый универсальный посох",
+  "item.velorise_staves.netherite_omni_staff.desc": "Незеритовый призматический посох с дальностью 48м, статусом 3U и авто-подбором лучших реакций.",
+  "entity.velorise_staves.omni_orb": "Призматическая сфера",
+  "element.velorise_staves.omni": "Универсальный",
+  "key.categories.velorise_staves": "Посохи Velorise",
+  "key.velorise_staves.omni_wheel": "Колесо стихий (Omni)",
+  "tooltip.velorise_staves.staff_omni": "Универсальный посох (Авто)",
+  "tooltip.velorise_staves.staff_omni.netherite": "Незеритовый Omni-посох (Авто)",
+  "tooltip.velorise_staves.staff_omni.locked": "Универсальный посох (%s)",
+  "tooltip.velorise_staves.staff_omni.locked.netherite": "Незеритовый Omni-посох (%s)",
+  "tooltip.velorise_staves.omni_wheel_hint": "  Удерживайте [Tab] для Колеса стихий",
+  "wheel.velorise_staves.omni.auto": "Авто-выбор лучшей стихии",
+  "wheel.velorise_staves.omni.locked": "Фиксированная выбранная стихия",
+  "codex.velorise_staves.staff.omni": "Бесформенный крафт из §67 стихийных посохов§r! В §6Универсальном режиме§r сам подбирает лучшую реакцию (Таяние, Пар, Вегетация); удерживайте §e[Tab]§r для колеса из 8 слотов."
 }

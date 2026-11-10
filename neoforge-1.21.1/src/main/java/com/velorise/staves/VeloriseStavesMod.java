@@ -45,6 +45,14 @@ public final class VeloriseStavesMod {
                     .updateInterval(1)
                     .build("dendro_core"));
 
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.OmniOrbEntity>> OMNI_ORB =
+            ENTITY_TYPES.register("omni_orb", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.OmniOrbEntity>of(com.velorise.staves.entity.OmniOrbEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.45F, 0.45F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("omni_orb"));
+
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));
@@ -85,6 +93,9 @@ public final class VeloriseStavesMod {
 
     public static final Supplier<Item> WIND_STAFF = ITEMS.register("wind_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 140, false));
+
+    public static final Supplier<Item> OMNI_STAFF = ITEMS.register("omni_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 250, false));
 
     // Guidebook & Utility Artifacts
     public static final Supplier<Item> ELEMENTAL_CODEX = ITEMS.register("elemental_codex",
@@ -144,6 +155,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_WIND_STAFF = ITEMS.register("netherite_wind_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 500, true));
 
+    public static final Supplier<Item> NETHERITE_OMNI_STAFF = ITEMS.register("netherite_omni_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 900, true));
+
     // Netherite Upgraded Utility Artifacts
     public static final Supplier<Item> NETHERITE_VOID_TRANSLOCATOR = ITEMS.register("netherite_void_translocator",
         () -> new VoidTranslocatorItem(250, 36.0D, true));
@@ -173,6 +187,7 @@ public final class VeloriseStavesMod {
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(WEBCASTER.get());
                 output.accept(WIND_STAFF.get());
+                output.accept(OMNI_STAFF.get());
                 output.accept(VOID_TRANSLOCATOR.get());
                 output.accept(MAGIC_MIRROR.get());
 
@@ -189,6 +204,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_WIND_STAFF.get());
+                output.accept(NETHERITE_OMNI_STAFF.get());
                 output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
 

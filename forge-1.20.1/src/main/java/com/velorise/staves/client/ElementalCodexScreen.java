@@ -646,7 +646,9 @@ public class ElementalCodexScreen extends Screen {
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
                                 fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.0 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
-                                fmtHearts(3.0 * dmgMult) + "§f\uE008§rx9", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"}
+                                fmtHearts(3.0 * dmgMult) + "§f\uE008§rx9", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"},
+                        {"omni_staff", ArcaneStaffItem.Kind.OMNI, null,
+                                fmtHearts(10.0 * dmgMult) + "§f\uE008§r 2U", "§6" + fmtHearts(15.0 * dmgMult) + "§f\uE008§6 3U", "36m➔48m", "codex.velorise_staves.staff.omni"}
                 };
                 for (Object[] def : staffDefs) {
                     String baseId = (String) def[0];
@@ -662,15 +664,18 @@ public class ElementalCodexScreen extends Screen {
                     int nDur = StavesConfig.getMaxDurability(kind, true);
 
                     ItemStack basicStack = getModItemStack(baseId);
+                    ItemStack secondStack = (kind == ArcaneStaffItem.Kind.OMNI) ? getModItemStack("netherite_omni_staff") : ItemStack.EMPTY;
                     String name = tr("item.velorise_staves." + baseId);
+                    int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
+                    String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f\uE00A§6 " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
                     String statsCombat = tr("codex.velorise_staves.staff.stats_combat",
                             bDmg, nDmg, String.format(Locale.ROOT, "%.1f", cdSec), rngStr);
                     String statsDur = tr("codex.velorise_staves.staff.stats_durability",
                             String.valueOf(bDur), String.valueOf(nDur));
                     cards.add(new GuideCard(
-                            name, ClientAuraRenderer.getElementBorderColor(el),
-                            el, null, basicStack, ItemStack.EMPTY,
-                            elemTitle(el).toUpperCase(Locale.ROOT), ClientAuraRenderer.getElementBorderColor(el),
+                            name, color,
+                            el, null, basicStack, secondStack,
+                            badge, color,
                             List.of(statsCombat, statsDur, tr(descKey))
                     ));
                 }

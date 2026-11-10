@@ -58,7 +58,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         // Register In-Game HUD overlay
         HudRenderCallback.EVENT.register((guiGraphics, tickCounter) -> {
             ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
+            OmniWheelOverlay.render(guiGraphics);
         });
+
+        net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OMNI_WHEEL_KEY);
 
         ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ConfigSyncPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> com.velorise.staves.config.StavesConfig.applyServerSync(payload.data()));
@@ -74,7 +77,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         });
 
         ClientTickEvents.START_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
-        ClientTickEvents.END_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ClientAuraRenderer.tickFrozenPlayer();
+            OmniWheelOverlay.tick(client);
+        });
 
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT,
@@ -84,10 +90,15 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.VeloriseStavesMod.DENDRO_CORE_ENTITY,
                 DendroCoreRenderer::new
         );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.OMNI_ORB,
+                OmniOrbRenderer::new
+        );
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
             ClientAuraRenderer.resetFrozenClientState();
+            OmniWheelOverlay.reset();
             com.velorise.staves.config.StavesConfig.clearServerSync();
         });
     }

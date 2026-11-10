@@ -51,6 +51,12 @@ public final class ModNetwork {
                 .encoder(ConfigSyncPacket::toBytes)
                 .consumerMainThread(ConfigSyncPacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(SelectOmniModePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .decoder(SelectOmniModePacket::new)
+                .encoder(SelectOmniModePacket::toBytes)
+                .consumerMainThread(SelectOmniModePacket::handle)
+                .add();
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -129,5 +135,9 @@ public final class ModNetwork {
 
     public static void sendFreezeStruggle() {
         CHANNEL.sendToServer(new FreezeStrugglePacket());
+    }
+
+    public static void sendSelectOmniMode(int mode) {
+        CHANNEL.sendToServer(new SelectOmniModePacket(mode));
     }
 }
