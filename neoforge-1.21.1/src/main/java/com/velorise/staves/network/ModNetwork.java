@@ -17,6 +17,7 @@ public final class ModNetwork {
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToClient(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC, AuraSyncPayload::handle);
+        registrar.playToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.STREAM_CODEC, ConfigSyncPayload::handle);
         registrar.playToClient(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC, ElectricArcPayload::handle);
         registrar.playToServer(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC, FreezeStrugglePayload::handle);
     }
@@ -89,6 +90,11 @@ public final class ModNetwork {
                 durationTicks
         );
         PacketDistributor.sendToPlayer(player, payload);
+    }
+
+    public static void sendConfigSyncToPlayer(ServerPlayer player) {
+        if (player == null) return;
+        PacketDistributor.sendToPlayer(player, new ConfigSyncPayload(com.velorise.staves.config.StavesConfig.createSnapshotFromLocal()));
     }
 
     public static void sendFreezeStruggle() {

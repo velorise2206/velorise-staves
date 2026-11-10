@@ -89,6 +89,9 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
         Element innateElement = ElementalGaugeManager.getInnateElement(living);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(living.getId());
+        if (innateElement == null && data != null && data.permanentInnateElement != null) {
+            innateElement = data.permanentInnateElement;
+        }
 
         long now = System.currentTimeMillis();
         List<Element> display = new ArrayList<>();

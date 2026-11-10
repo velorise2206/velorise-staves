@@ -1,6 +1,8 @@
 package com.velorise.staves.item;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.Element;
+import com.velorise.staves.element.ElementalGaugeManager;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,16 +31,15 @@ import java.util.List;
 /** Short-range blink teleportation tool powered by durability and cooldown. */
 public class VoidTranslocatorItem extends Item {
     public double getEffectiveRange() {
-        return isNetherite
-            ? StavesConfig.VOID_TRANSLOCATOR_RANGE_NETHERITE.get()
-            : StavesConfig.VOID_TRANSLOCATOR_RANGE_BASIC.get();
+        return StavesConfig.getVoidTranslocatorRange(isNetherite);
     }
 
     public int getCooldownTicks() {
-        double seconds = StavesConfig.VOID_TRANSLOCATOR_COOLDOWN_SECONDS.get();
-        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        double seconds = StavesConfig.getVoidTranslocatorCooldownSeconds();
+        double mult = StavesConfig.getCooldownMultiplier();
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
+
     private final double range;
     private final boolean isNetherite;
 
@@ -86,6 +87,10 @@ public class VoidTranslocatorItem extends Item {
 
             player.teleportTo(destination.x, destination.y, destination.z);
             player.fallDistance = 0.0F;
+
+            // Self-inflict Electro aura upon blink activation (1.0U Basic / 1.5U Netherite)
+            float selfElectroU = isNetherite ? 1.5F : 1.0F;
+            ElementalGaugeManager.applyElementBypassIcd(serverLevel, serverPlayer, Element.ELECTRO, selfElectroU, null, 0.0F);
 
             stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
             player.getCooldowns().addCooldown(this, getCooldownTicks());

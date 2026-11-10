@@ -1,6 +1,7 @@
 package com.velorise.staves;
 
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import net.minecraft.core.registries.Registries;
@@ -28,6 +29,11 @@ public final class VeloriseStavesMod {
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+    public static final DeferredRegister<net.minecraft.world.item.enchantment.Enchantment> ENCHANTMENTS = DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MODID);
+
+    // Enchantments
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.item.enchantment.Enchantment> ELEMENTAL_MASTERY =
+        ENCHANTMENTS.register("elemental_mastery", com.velorise.staves.enchantment.ElementalMasteryEnchantment::new);
 
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
@@ -67,7 +73,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> WEBCASTER = ITEMS.register("webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
 
-    // Basic Utility Artifacts
+    // Guidebook & Utility Artifacts
+    public static final Supplier<Item> ELEMENTAL_CODEX = ITEMS.register("elemental_codex",
+        ElementalCodexItem::new);
     public static final Supplier<Item> VOID_TRANSLOCATOR = ITEMS.register("void_translocator",
         () -> new VoidTranslocatorItem(80, 24.0D, false));
 
@@ -133,6 +141,9 @@ public final class VeloriseStavesMod {
             .title(Component.translatable("itemGroup.velorise_staves"))
             .icon(() -> new ItemStack(NETHERITE_DRAGONFIRE_SCEPTER.get()))
             .displayItems((parameters, output) -> {
+                // Guidebook
+                output.accept(ELEMENTAL_CODEX.get());
+
                 // Basic tier
                 output.accept(DRAGONFIRE_SCEPTER.get());
                 output.accept(RESONANT_ECHO.get());
@@ -165,6 +176,13 @@ public final class VeloriseStavesMod {
 
                 // Reactions
                 output.accept(DENDRO_CORE.get());
+
+                // Elemental Mastery I-III Enchanted Books
+                for (int lvl = 1; lvl <= 3; lvl++) {
+                    output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                        new net.minecraft.world.item.enchantment.EnchantmentInstance(ELEMENTAL_MASTERY.get(), lvl)
+                    ));
+                }
             })
             .build());
 
@@ -183,6 +201,7 @@ public final class VeloriseStavesMod {
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
+        ENCHANTMENTS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 }

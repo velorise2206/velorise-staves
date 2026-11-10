@@ -57,8 +57,28 @@ import net.minecraft.world.entity.monster.ZombifiedPiglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.FireworkRocketEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.animal.AbstractGolem;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.npc.Npc;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.PotionItem;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -86,6 +106,8 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> FROZEN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> QUICKEN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> BURNING_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> BURNING_EM_LEVEL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
@@ -199,7 +221,7 @@ public final class ElementalGaugeManager {
             set.add(Element.CRYO);
         }
         Element innate = getInnateElement(target);
-        if (innate != null && innate.isAura()) {
+        if (innate != null) {
             set.add(innate);
         }
         return set;
@@ -272,6 +294,80 @@ public final class ElementalGaugeManager {
                 || source.getEntity() instanceof net.minecraft.world.entity.player.Player;
     }
 
+    public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) {
+        if (attacker != null) {
+            return level.damageSources().indirectMagic(attacker, attacker);
+        }
+        return level.damageSources().magic();
+    }
+
+    public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) {
+        if (attacker == null || target == attacker || !target.isAlive()) return;
+        if (attacker instanceof Player p && (p.isCreative() || p.isSpectator())) {
+            return;
+        }
+        target.setLastHurtByMob(attacker);
+        if (attacker instanceof Player player) {
+            target.setLastHurtByPlayer(player);
+        }
+        if (target instanceof IronGolem golem && golem.isPlayerCreated() && attacker instanceof Player) {
+            golem.setPlayerCreated(false);
+        }
+        if (target instanceof NeutralMob neutral) {
+            neutral.setPersistentAngerTarget(attacker.getUUID());
+            neutral.startPersistentAngerTimer();
+        }
+        if (target instanceof Mob mob && !isEntityFrozen(mob)) {
+            mob.setTarget(attacker);
+        }
+    }
+
+    public static void clearEntityState(LivingEntity entity) {
+        if (entity == null) return;
+        UUID id = entity.getUUID();
+        GAUGES.remove(id);
+        FROZEN_GAUGES.remove(id);
+        QUICKEN_GAUGES.remove(id);
+        FROZEN_UNTIL.remove(id);
+        FROZEN_POSES.remove(id);
+        LAST_FREEZE_STRUGGLE.remove(id);
+        QUICKEN_UNTIL.remove(id);
+        BURNING_UNTIL.remove(id);
+        BURNING_EM_LEVEL.remove(id);
+        ELECTRO_CHARGE_EM_LEVEL.remove(id);
+        LAST_BURN_PYRO_REFRESH.remove(id);
+        INNATE_COOLDOWN_UNTIL.remove(id);
+        ELECTRO_CHARGE_TICK.remove(id);
+        LAST_BLOOM_SPAWN.remove(id);
+        SUPERCONDUCT_UNTIL.remove(id);
+        if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
+            mob.setNoAi(false);
+            mob.removeTag(TAG_FROZEN_STATUE);
+        }
+        if (!entity.level().isClientSide()) {
+            if (entity instanceof ServerPlayer sp) {
+                CrystallizeShardManager.clearPlayerShield(sp);
+            }
+            com.velorise.staves.network.ModNetwork.sendAuraSync(entity, Collections.emptyList(), null, null, null, 0.0F, 0);
+        }
+    }
+
+    public static void syncEntityOnStartTracking(ServerPlayer player, LivingEntity living) {
+        if (player == null || living == null || living.level().isClientSide()) return;
+        Element innate = getInnateElement(living);
+        Collection<Element> elements = getEffectiveElements(living, getEntityElements(living.getUUID()));
+        if (!elements.isEmpty()) {
+            int duration = (innate != null && elements.contains(innate)) ? -1 : getEntityMaxDurationTicks(living.getUUID());
+            com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
+        }
+    }
+
+    public static void enforceFrozenPoseIfFrozen(LivingEntity target) {
+        if (target != null && isEntityFrozen(target)) {
+            enforceFrozenPose(target, target.getUUID());
+        }
+    }
+
     public static void clearAll() {
         GAUGES.clear();
         FROZEN_GAUGES.clear();
@@ -281,6 +377,8 @@ public final class ElementalGaugeManager {
         LAST_FREEZE_STRUGGLE.clear();
         QUICKEN_UNTIL.clear();
         BURNING_UNTIL.clear();
+        BURNING_EM_LEVEL.clear();
+        ELECTRO_CHARGE_EM_LEVEL.clear();
         LAST_BURN_PYRO_REFRESH.clear();
         INNATE_COOLDOWN_UNTIL.clear();
         ELECTRO_CHARGE_TICK.clear();
@@ -305,22 +403,32 @@ public final class ElementalGaugeManager {
         if (slow != null) {
             target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
         }
-        target.setDeltaMovement(Vec3.ZERO);
-        target.hurtMarked = true;
         target.stopUsingItem();
+        target.releaseUsingItem();
+        target.setDeltaMovement(Vec3.ZERO);
+        target.hasImpulse = false;
+        target.hurtMarked = true;
 
         FROZEN_POSES.computeIfAbsent(targetId, k -> new FrozenPoseState(
                 target.getX(), target.getY(), target.getZ(),
                 target.getYRot(), target.getXRot(), target.getYHeadRot(), target.yBodyRot
         ));
 
-        if (target instanceof net.minecraft.world.entity.Mob mob) {
+        if (target instanceof Mob mob) {
             mob.getNavigation().stop();
+            mob.setAggressive(false);
+            mob.setZza(0.0F);
+            mob.setXxa(0.0F);
+            mob.setYya(0.0F);
+            mob.setSpeed(0.0F);
+            mob.setJumping(false);
             if (mob instanceof Creeper creeper) {
                 creeper.setSwellDir(-1);
             }
             if (!mob.isNoAi()) {
                 mob.setNoAi(true);
+            }
+            if (!mob.getTags().contains(TAG_FROZEN_STATUE)) {
                 mob.addTag(TAG_FROZEN_STATUE);
             }
         }
@@ -328,13 +436,18 @@ public final class ElementalGaugeManager {
 
     private static void enforceFrozenPose(LivingEntity target, UUID id) {
         target.setTicksFrozen(0);
-        target.stopUsingItem();
+        if (target.isUsingItem()) {
+            target.stopUsingItem();
+            target.releaseUsingItem();
+        }
         FrozenPoseState pose = FROZEN_POSES.get(id);
         if (pose != null) {
             double dy = target.onGround() ? 0.0D : Math.max(-0.08D, target.getDeltaMovement().y);
             target.setDeltaMovement(0.0D, dy, 0.0D);
-            if (target.distanceToSqr(pose.x(), target.getY(), pose.z()) > 0.0004D) {
-                target.setPos(pose.x(), target.getY(), pose.z());
+            target.hasImpulse = false;
+            target.hurtMarked = true;
+            if (target.distanceToSqr(pose.x(), target.getY(), pose.z()) > 0.0001D) {
+                target.teleportTo(pose.x(), target.getY(), pose.z());
             }
             target.setYRot(pose.yRot());
             target.setXRot(pose.xRot());
@@ -346,15 +459,25 @@ public final class ElementalGaugeManager {
             target.yBodyRotO = pose.yBodyRot();
         } else {
             target.setDeltaMovement(0.0D, target.getDeltaMovement().y < 0 ? -0.05D : 0.0D, 0.0D);
+            target.hasImpulse = false;
+            target.hurtMarked = true;
         }
 
-        if (target instanceof net.minecraft.world.entity.Mob mob) {
+        if (target instanceof Mob mob) {
             mob.getNavigation().stop();
+            mob.setAggressive(false);
+            mob.setZza(0.0F);
+            mob.setXxa(0.0F);
+            mob.setYya(0.0F);
+            mob.setSpeed(0.0F);
+            mob.setJumping(false);
             if (mob instanceof Creeper creeper) {
                 creeper.setSwellDir(-1);
             }
             if (!mob.isNoAi()) {
                 mob.setNoAi(true);
+            }
+            if (!mob.getTags().contains(TAG_FROZEN_STATUE)) {
                 mob.addTag(TAG_FROZEN_STATUE);
             }
         }
@@ -447,6 +570,165 @@ public final class ElementalGaugeManager {
         return isEntitySubmergedInWater(target) || target.isInWaterRainOrBubble() || target.isInWaterOrRain();
     }
 
+    public static boolean isTouchingSoulCampfire(LivingEntity target) {
+        if (target == null || target.level().isClientSide()) return false;
+        AABB box = target.getBoundingBox().inflate(0.10D, 0.20D, 0.10D);
+        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.15D, box.minZ);
+        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!target.level().hasChunkAt(p)) continue;
+            BlockState st = target.level().getBlockState(p);
+            if (st.is(Blocks.SOUL_CAMPFIRE) && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static @Nullable Element getElementForEffect(MobEffect effect) {
+        if (effect == null) return null;
+        if (effect == MobEffects.MOVEMENT_SPEED) return Element.ANEMO;
+        if (effect == MobEffects.MOVEMENT_SLOWDOWN) return Element.CRYO;
+        if (effect == MobEffects.DAMAGE_RESISTANCE) return Element.GEO;
+        if (effect == MobEffects.POISON) return Element.DENDRO;
+        String desc = effect.getDescriptionId();
+        if (desc != null) {
+            if (desc.contains("wind_charged")) return Element.ANEMO;
+            if (desc.contains("oozing")) return Element.DENDRO;
+            if (desc.contains("infested")) return Element.GEO;
+        }
+        return null;
+    }
+
+    public static List<Element> getElementsFromPotionStack(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return Collections.emptyList();
+        List<Element> result = new ArrayList<>();
+        Potion potion = PotionUtils.getPotion(stack);
+        if (potion == Potions.WATER) {
+            result.add(Element.HYDRO);
+        }
+        for (MobEffectInstance inst : PotionUtils.getMobEffects(stack)) {
+            Element mapped = getElementForEffect(inst.getEffect());
+            if (mapped != null && !result.contains(mapped)) {
+                result.add(mapped);
+            } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
+                result.add(Element.ELECTRO);
+            }
+        }
+        return result;
+    }
+
+    public static List<Element> getElementsFromArrow(ServerLevel level, Arrow arrow) {
+        if (arrow == null) return Collections.emptyList();
+        List<Element> result = new ArrayList<>();
+        try {
+            CompoundTag nbt = new CompoundTag();
+            arrow.saveWithoutId(nbt);
+            for (MobEffectInstance inst : PotionUtils.getAllEffects(nbt)) {
+                Element mapped = getElementForEffect(inst.getEffect());
+                if (mapped != null && !result.contains(mapped)) {
+                    result.add(mapped);
+                } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
+                    result.add(Element.ELECTRO);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return result;
+    }
+
+    public static List<Element> getElementsFromAreaEffectCloud(ServerLevel level, AreaEffectCloud cloud) {
+        if (cloud == null) return Collections.emptyList();
+        List<Element> result = new ArrayList<>();
+        try {
+            if (cloud.getPotion() == Potions.WATER) {
+                result.add(Element.HYDRO);
+            }
+            CompoundTag nbt = new CompoundTag();
+            cloud.saveWithoutId(nbt);
+            for (MobEffectInstance inst : PotionUtils.getAllEffects(nbt)) {
+                Element mapped = getElementForEffect(inst.getEffect());
+                if (mapped != null && !result.contains(mapped)) {
+                    result.add(mapped);
+                } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
+                    result.add(Element.ELECTRO);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return result;
+    }
+
+    public static void handleTippedArrowHit(ServerLevel level, Arrow arrow, LivingEntity target) {
+        if (arrow == null || target == null || !target.isAlive() || arrow.getTags().contains("velorise_staves:arrow_elem_applied")) {
+            return;
+        }
+        List<Element> elements = getElementsFromArrow(level, arrow);
+        if (elements.isEmpty()) return;
+        arrow.addTag("velorise_staves:arrow_elem_applied");
+        ServerPlayer shooter = arrow.getOwner() instanceof ServerPlayer sp ? sp : null;
+        for (Element elem : elements) {
+            applyElementBypassIcd(level, target, elem, 1.0F, shooter, 0.0F);
+        }
+    }
+
+    public static void handleItemUseFinish(ServerLevel level, LivingEntity entity, ItemStack stack) {
+        if (level == null || entity == null || !entity.isAlive() || stack == null || stack.isEmpty()) return;
+        if (!(stack.getItem() instanceof PotionItem)) return;
+        List<Element> elements = getElementsFromPotionStack(stack);
+        if (elements.isEmpty()) return;
+        ServerPlayer player = entity instanceof ServerPlayer sp ? sp : null;
+        for (Element elem : elements) {
+            applyElementBypassIcd(level, entity, elem, 1.0F, player, 0.0F);
+        }
+    }
+
+    public static int getMaceWindBurstLevel(LivingEntity attacker) {
+        if (attacker == null) return 0;
+        ItemStack mainHand = attacker.getMainHandItem();
+        if (mainHand.isEmpty()) return 0;
+        String desc = mainHand.getItem().getDescriptionId();
+        if (desc == null || !desc.contains("mace")) return 0;
+        var enchTags = mainHand.getEnchantmentTags();
+        for (int i = 0; i < enchTags.size(); i++) {
+            CompoundTag tag = enchTags.getCompound(i);
+            if (tag.getString("id").contains("wind_burst")) {
+                return Math.max(1, tag.getInt("lvl"));
+            }
+        }
+        return 0;
+    }
+
+
+    public static int getElementalMasteryLevel(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return 0;
+        var enchTags = stack.getEnchantmentTags();
+        for (int i = 0; i < enchTags.size(); i++) {
+            CompoundTag tag = enchTags.getCompound(i);
+            if (tag.getString("id").contains("elemental_mastery")) {
+                return Math.min(3, Math.max(0, tag.getInt("lvl")));
+            }
+        }
+        return 0;
+    }
+
+    public static int getElementalMasteryLevel(@Nullable LivingEntity attacker) {
+        if (attacker == null) return 0;
+        int mainLvl = getElementalMasteryLevel(attacker.getMainHandItem());
+        if (mainLvl > 0) return mainLvl;
+        return getElementalMasteryLevel(attacker.getOffhandItem());
+    }
+
+    public static float getAmplifyingMultiplier(int emLevel) {
+        return 1.0F + 0.15F * Math.max(0, emLevel);
+    }
+
+    public static float getTransformativeMultiplier(int emLevel) {
+        return 1.0F + 0.30F * Math.max(0, emLevel);
+    }
+
+    public static float getCatalyzeMultiplier(int emLevel) {
+        return 1.0F + 0.25F * Math.max(0, emLevel);
+    }
+
     /**
      * Handles environmental damage types and innate elemental mob attacks.
      */
@@ -494,7 +776,7 @@ public final class ElementalGaugeManager {
                 }
 
                 // 7. Wind Charge damage (Vanilla Wind Charge / Breeze) -> Anemo (1.0U)
-                if (source.type().msgId().contains("wind_charge") || source.type().msgId().contains("breeze")) {
+                if ((source.type().msgId().contains("wind_charge") || source.type().msgId().contains("breeze"))) {
                     ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
                     applyElement(level, target, Element.ANEMO, 1.0F, attacker, 1.0F);
                     return;
@@ -569,6 +851,25 @@ public final class ElementalGaugeManager {
                     ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
                     applyElement(level, target, Element.PYRO, 1.5F, attacker, 0.0F);
                     return;
+                }
+
+                // 15B. Tipped Arrow elemental application (1.0U mapped element)
+                if (source.getDirectEntity() instanceof Arrow arrow) {
+                    handleTippedArrowHit(level, arrow, target);
+                }
+
+                // 15C. Mace with Wind Burst enchantment -> deals bonus Anemo damage & triggers Swirl
+                if (source.getEntity() instanceof LivingEntity maceAttacker && maceAttacker != target
+                        && source.getDirectEntity() == maceAttacker) {
+                    int windBurstLvl = getMaceWindBurstLevel(maceAttacker);
+                    if (windBurstLvl > 0) {
+                        ServerPlayer attackerPlayer = maceAttacker instanceof ServerPlayer sp ? sp : null;
+                        float anemoU = 1.0F + (windBurstLvl - 1) * 0.5F;
+                        float bonusAnemoDmg = 2.0F + windBurstLvl * 1.5F;
+                        level.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.6D, target.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                        level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, 1.15F);
+                        applyElementBypassIcd(level, target, Element.ANEMO, anemoU, attackerPlayer, bonusAnemoDmg);
+                    }
                 }
 
                 // 16. Attacker with Innate Element
@@ -752,17 +1053,19 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // No reactive aura -> apply or refresh Pyro 1.0U (on normal mobs, innate mobs on fire, and players)
+        // No reactive aura -> apply or refresh Pyro (2.0U on Soul Campfire, 1.0U on regular fire/lava/campfire)
         if (innate != Element.PYRO) {
+            boolean soulFire = isTouchingSoulCampfire(target);
+            float appliedPyro = soulFire ? 2.5F : 1.25F; // 2.5F * 0.8 tax = 2.0U; 1.25F * 0.8 tax = 1.0U
             boolean wasMissing = !targetGauges.containsKey(Element.PYRO);
             if (wasMissing) {
-                targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
+                targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, appliedPyro));
                 syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
             } else {
                 GaugeState existing = targetGauges.get(Element.PYRO);
-                if (existing != null && (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
-                    existing.refresh(1.25F);
-                    if (now % 20 == 0) {
+                if (existing != null && (soulFire || target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
+                    existing.refresh(appliedPyro);
+                    if (soulFire || now % 20 == 0) {
                         syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
                     }
                 }
@@ -787,8 +1090,19 @@ public final class ElementalGaugeManager {
         UUID id = target.getUUID();
         Element innate = getInnateElement(target);
 
-        // 1A. Innate Dendro mob: immune to self-blooming in rain/water
+        // 1A. Innate Dendro mob (Bee, Bogged, Slime, Mutated Dendro) in water or rain -> Trigger Bloom & spawn Dendro Core!
         if (innate == Element.DENDRO) {
+            long now = target.level().getGameTime();
+            Long lastBloom = INNATE_COOLDOWN_UNTIL.get(id);
+            if (lastBloom == null || now >= lastBloom) {
+                INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
+                if (target.level() instanceof ServerLevel sl) {
+                    DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
+                    sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+                }
+                syncAuras(target, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
+            }
             return;
         }
 
@@ -850,6 +1164,8 @@ public final class ElementalGaugeManager {
         if (targetGauges.containsKey(Element.PYRO)) {
             targetGauges.remove(Element.PYRO);
             BURNING_UNTIL.remove(id);
+        BURNING_EM_LEVEL.remove(id);
+        ELECTRO_CHARGE_EM_LEVEL.remove(id);
             LAST_BURN_PYRO_REFRESH.remove(id);
             target.clearFire();
             boolean sensitive = isNaturallyWaterSensitive(target);
@@ -966,15 +1282,26 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static boolean isHostileMob(LivingEntity entity) {
+        if (entity == null) return false;
+        if (entity instanceof Player) return false;
+        if (entity instanceof Npc) return false;
+        if (entity instanceof Animal) return false;
+        if (entity instanceof AbstractGolem) return false;
+        if (isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return false;
+        return entity instanceof Enemy || entity.getType().getCategory() == MobCategory.MONSTER;
+    }
+
     public static void checkInnateMutation(LivingEntity entity) {
         if (entity.level().isClientSide()) return;
-        if (entity instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
+        if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
         }
-        if (entity instanceof net.minecraft.world.entity.player.Player || isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return;
+        // Only hostile mobs with attack capability can mutate (Villagers, passive animals, golems, etc. never mutate)
+        if (!isHostileMob(entity)) return;
 
-        net.minecraft.nbt.CompoundTag data = entity.getPersistentData();
+        CompoundTag data = entity.getPersistentData();
         if (data.contains("VeloriseInnateChecked") || entity.getTags().contains("VeloriseInnateChecked")) return;
         data.putBoolean("VeloriseInnateChecked", true);
         entity.addTag("VeloriseInnateChecked");
@@ -993,12 +1320,10 @@ public final class ElementalGaugeManager {
             data.putString("VeloriseInnate", chosen.name());
             entity.addTag("VeloriseInnate:" + chosen.name());
 
-            // Immediately initialize innate aura in GAUGES so it syncs and renders right away
-            if (chosen.isAura()) {
-                Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
-                gauges.put(chosen, new GaugeState(chosen, 1.25F));
-                syncAuras(entity, Collections.singleton(chosen), null, null, null, 0.0F);
-            }
+            // Immediately initialize mutated innate element in GAUGES (including Anemo & Geo) so it always syncs and renders overhead
+            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
+            gauges.put(chosen, new GaugeState(chosen, 1.25F));
+            syncAuras(entity, Collections.singleton(chosen), null, null, null, 0.0F);
         }
     }
 
@@ -1133,6 +1458,17 @@ public final class ElementalGaugeManager {
     /**
      * Resolves an elemental attack hitting a target entity.
      */
+    public static void applyElementBypassIcd(
+            ServerLevel level,
+            LivingEntity target,
+            Element attackElement,
+            float attackU,
+            @Nullable ServerPlayer attacker,
+            float baseDamage
+    ) {
+        applyElement(level, target, attackElement, attackU, attacker, baseDamage, true);
+    }
+
     public static void applyElement(
             ServerLevel level,
             LivingEntity target,
@@ -1141,7 +1477,22 @@ public final class ElementalGaugeManager {
             @Nullable ServerPlayer attacker,
             float baseDamage
     ) {
+        applyElement(level, target, attackElement, attackU, attacker, baseDamage, false);
+    }
+
+    private static void applyElement(
+            ServerLevel level,
+            LivingEntity target,
+            Element attackElement,
+            float attackU,
+            @Nullable ServerPlayer attacker,
+            float baseDamage,
+            boolean bypassStandardIcd
+    ) {
         if (!target.isAlive() || target.isInvulnerable()) return;
+
+        // Always notify mob aggro when a player attacks with staves/magic (including on Iron Golem & neutral mobs)
+        triggerMobAggro(level, target, attacker);
 
         boolean egtEnabled = StavesConfig.ENABLE_ELEMENTAL_GAUGE.get();
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
@@ -1160,12 +1511,19 @@ public final class ElementalGaugeManager {
 
         // Always allow Electro/Pyro attacks to detonate nearby physical 3D Dendro Cores (Hyperbloom / Burgeon)
         DendroCoreManager.checkReactionsNear(level, target.position(), 3.5D, attackElement, attacker);
+        if (attackElement == Element.PYRO) {
+            EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, target.position(), 1.5D);
+        }
 
         // Same-element immunity (Genshin Impact): Innate elemental beings are 100% immune to their own element
         Element innateElement = getInnateElement(target);
         if (innateElement != null && attackElement == innateElement) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
             Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(target.getUUID(), k -> new ConcurrentHashMap<>());
+            if (innateElement.isAura() || isMutatedInnate(target)) {
+                targetGauges.putIfAbsent(innateElement, new GaugeState(innateElement, 1.25F));
+            }
+            enforceFrozenPoseIfFrozen(target);
             syncAuras(target, targetGauges.keySet(), innateElement, attackElement, ElementalReaction.IMMUNE);
             return;
         }
@@ -1177,18 +1535,22 @@ public final class ElementalGaugeManager {
             effectiveDamage = 0.0F;
         }
 
+        DamageSource elemDmgSource = getElementalDamageSource(level, attacker);
+
         if (!egtEnabled) {
-            target.hurt(level.damageSources().magic(), effectiveDamage);
+            target.hurt(elemDmgSource, effectiveDamage);
+            enforceFrozenPoseIfFrozen(target);
             return;
         }
 
         long now = level.getGameTime();
 
         // Standard ICD check (3-Hit / 2.5s rule) for elemental attacks
-        boolean canApply = checkStandardIcd(target, attackElement, attacker, now);
+        boolean canApply = bypassStandardIcd || checkStandardIcd(target, attackElement, attacker, now);
         if (!canApply) {
             if (effectiveDamage > 0.0F) {
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                target.hurt(elemDmgSource, effectiveDamage);
+                enforceFrozenPoseIfFrozen(target);
             }
             return;
         }
@@ -1196,6 +1558,7 @@ public final class ElementalGaugeManager {
         IS_PROCESSING_REACTION.set(true);
         try {
             applyElementInternal(level, target, attackElement, attackU, attacker, baseDamage, effectiveDamage, dmgMult, now);
+            enforceFrozenPoseIfFrozen(target);
         } finally {
             IS_PROCESSING_REACTION.set(false);
         }
@@ -1214,6 +1577,10 @@ public final class ElementalGaugeManager {
     ) {
         UUID targetId = target.getUUID();
         Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(targetId, k -> new ConcurrentHashMap<>());
+        int emLevel = getElementalMasteryLevel(attacker);
+        float ampEmMult = getAmplifyingMultiplier(emLevel);
+        float transEmMult = getTransformativeMultiplier(emLevel);
+        float catEmMult = getCatalyzeMultiplier(emLevel);
 
         // 0A. Innate Elemental Creature Logic
         Element innateElement = getInnateElement(target);
@@ -1229,7 +1596,7 @@ public final class ElementalGaugeManager {
 
             if (innateElement == Element.ANEMO && (attackElement == Element.PYRO || attackElement == Element.HYDRO || attackElement == Element.ELECTRO || attackElement == Element.CRYO)) {
                 if (checkReactionIcd(target, ElementalReaction.SWIRL, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     float removedU = Math.min(1.0F, attackU * 0.5F);
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, attackElement, removedU, attacker, dmgMult);
                     syncAuras(target, Collections.singleton(Element.ANEMO), attackElement, Element.ANEMO, ElementalReaction.SWIRL, effectiveDamage);
@@ -1249,7 +1616,7 @@ public final class ElementalGaugeManager {
                 }
                 // If target has no attached coexisting auras (e.g. Dendro), finish Crystallize hit directly
                 if (!targetGauges.containsKey(Element.DENDRO)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     syncAuras(target, targetGauges.keySet(), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, effectiveDamage);
                     return;
                 }
@@ -1261,7 +1628,7 @@ public final class ElementalGaugeManager {
                 } else {
                     targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
                 }
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                 syncAuras(target, targetGauges.keySet(), Element.GEO, Element.DENDRO, null, effectiveDamage);
                 return;
             }
@@ -1309,7 +1676,7 @@ public final class ElementalGaugeManager {
         if (hasQuicken) {
             if (attackElement == Element.ELECTRO) {
                 if (checkReactionIcd(target, ElementalReaction.AGGRAVATE, now)) {
-                    float bonus = (float) (1.0F * dmgMult);
+                    float bonus = (float) (1.0F * dmgMult) * catEmMult;
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.AGGRAVATE;
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
@@ -1324,13 +1691,13 @@ public final class ElementalGaugeManager {
                             targetGauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, attackU));
                         }
                     }
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.ELECTRO, catalyzeReaction, effectiveDamage);
                     return;
                 }
             } else if (attackElement == Element.DENDRO) {
                 if (checkReactionIcd(target, ElementalReaction.SPREAD, now)) {
-                    float bonus = (float) (1.25F * dmgMult);
+                    float bonus = (float) (1.25F * dmgMult) * catEmMult;
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.SPREAD;
                     level.sendParticles(ParticleTypes.GLOW, target.getX(), target.getY() + 1.0D, target.getZ(), 20, 0.35D, 0.4D, 0.35D, 0.05D);
@@ -1345,7 +1712,7 @@ public final class ElementalGaugeManager {
                             targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
                         }
                     }
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     syncAuras(target, targetGauges.keySet(), Element.ELECTRO, Element.DENDRO, catalyzeReaction, effectiveDamage);
                     return;
                 }
@@ -1369,16 +1736,16 @@ public final class ElementalGaugeManager {
         if (isFrozen && freezeGauge != null) {
             if (attackElement == Element.GEO) {
                 if (!checkReactionIcd(target, ElementalReaction.SHATTER, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     return;
                 }
                 freezeGauge.consume(8.0F);
                 if (freezeGauge.isExpired()) {
                     clearFreezeState(target, targetId);
                 }
-                float bonus = (float) (10.0F * dmgMult);
+                float bonus = (float) (10.0F * dmgMult) * transEmMult;
                 float shatterDamage = effectiveDamage + bonus;
-                target.hurt(level.damageSources().magic(), shatterDamage);
+                target.hurt(getElementalDamageSource(level, attacker), shatterDamage);
                 level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
                 // Note: underlying HYDRO or CRYO in targetGauges is preserved (enabling Shatter-Crystallize or Shatter-Vape)!
@@ -1406,15 +1773,15 @@ public final class ElementalGaugeManager {
                 return;
             } else if (attackElement == Element.PYRO) {
                 if (!checkReactionIcd(target, ElementalReaction.FORWARD_MELT, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     return;
                 }
                 freezeGauge.consume(attackU * 2.0F);
                 if (freezeGauge.isExpired()) {
                     clearFreezeState(target, targetId);
                 }
-                float meltDamage = effectiveDamage * 2.0F;
-                target.hurt(level.damageSources().magic(), meltDamage);
+                float meltDamage = effectiveDamage * 2.0F * ampEmMult;
+                target.hurt(getElementalDamageSource(level, attacker), meltDamage);
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 25, 0.3D, 0.35D, 0.3D, 0.04D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.2F);
                 enforceInnateLock(target, targetGauges, targetId, innateElement, now);
@@ -1422,14 +1789,14 @@ public final class ElementalGaugeManager {
                 return;
             } else if (attackElement == Element.ELECTRO) {
                 if (!checkReactionIcd(target, ElementalReaction.SUPERCONDUCT, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     return;
                 }
                 freezeGauge.consume(attackU * 1.0F);
                 if (freezeGauge.isExpired()) {
                     clearFreezeState(target, targetId);
                 }
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                 executeReactionEffect(level, target, ElementalReaction.SUPERCONDUCT, Element.CRYO, attackU, attacker, dmgMult);
                 enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT, effectiveDamage);
@@ -1452,7 +1819,7 @@ public final class ElementalGaugeManager {
                         if (hydro.isExpired()) targetGauges.remove(Element.HYDRO);
                         executeReactionEffect(level, target, ElementalReaction.SWIRL, Element.HYDRO, removedHydroU, attacker, dmgMult);
                     }
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, Element.CRYO, removedFreezeU, attacker, dmgMult);
                     enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ANEMO, ElementalReaction.SWIRL, effectiveDamage);
@@ -1464,7 +1831,7 @@ public final class ElementalGaugeManager {
         // 3. Check Overvape (Target has both Hydro & Electro, attacked with Pyro)
         if (attackElement == Element.PYRO && targetGauges.containsKey(Element.HYDRO) && targetGauges.containsKey(Element.ELECTRO)) {
             if (!checkReactionIcd(target, ElementalReaction.OVERVAPE, now)) {
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                 return;
             }
             GaugeState electro = targetGauges.get(Element.ELECTRO);
@@ -1478,8 +1845,8 @@ public final class ElementalGaugeManager {
             hydro.consume(vapeConsumed);
             if (hydro.isExpired()) targetGauges.remove(Element.HYDRO);
 
-            float overvapeDmg = effectiveDamage * 1.5F;
-            target.hurt(level.damageSources().magic(), overvapeDmg);
+            float overvapeDmg = effectiveDamage * 1.5F * ampEmMult;
+            target.hurt(getElementalDamageSource(level, attacker), overvapeDmg);
             triggerOverloadExplosion(level, target, attacker, dmgMult);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
             enforceInnateLock(target, targetGauges, targetId, innateElement, now);
@@ -1493,7 +1860,7 @@ public final class ElementalGaugeManager {
             ElementalReaction reaction = determineReaction(auraElement, attackElement);
             if (reaction != ElementalReaction.NONE) {
                 if (!checkReactionIcd(target, reaction, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     return;
                 }
                 GaugeState aura = targetGauges.get(auraElement);
@@ -1519,8 +1886,9 @@ public final class ElementalGaugeManager {
                         enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     }
 
-                    float ecDmg = effectiveDamage + (float) (1.0F * dmgMult);
-                    target.hurt(level.damageSources().magic(), ecDmg);
+                    ELECTRO_CHARGE_EM_LEVEL.put(targetId, emLevel);
+                    float ecDmg = effectiveDamage + (float) (1.0F * dmgMult) * transEmMult;
+                    target.hurt(getElementalDamageSource(level, attacker), ecDmg);
                     executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
                     ELECTRO_CHARGE_TICK.put(targetId, 0);
                     syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, ecDmg);
@@ -1530,6 +1898,7 @@ public final class ElementalGaugeManager {
                 // Burning Coexistence: maintains 2.0U Burning Pyro state and consumes Dendro/Quicken at 0.4U/s until depleted
                 if (reaction == ElementalReaction.BURNING) {
                     BURNING_UNTIL.put(targetId, now + 200L);
+                    BURNING_EM_LEVEL.put(targetId, emLevel);
                     if (innateElement == null) {
                         targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
                         if (attackElement == Element.DENDRO) {
@@ -1544,7 +1913,7 @@ public final class ElementalGaugeManager {
                     }
                     LAST_BURN_PYRO_REFRESH.put(targetId, now);
                     target.setSecondsOnFire(5);
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
                     syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, effectiveDamage);
                     return;
@@ -1657,9 +2026,13 @@ public final class ElementalGaugeManager {
 
                 enforceInnateLock(target, targetGauges, targetId, innateElement, now);
 
-                float finalDmg = effectiveDamage * reaction.getDamageMultiplier();
+                float reactionMult = reaction.getDamageMultiplier();
+                if (reactionMult > 1.0F) {
+                    reactionMult *= ampEmMult;
+                }
+                float finalDmg = effectiveDamage * reactionMult;
                 if (finalDmg > 0.0F) {
-                    target.hurt(level.damageSources().magic(), finalDmg);
+                    target.hurt(getElementalDamageSource(level, attacker), finalDmg);
                 }
                 executeReactionEffect(level, target, reaction, auraElement, removedAuraU, attacker, dmgMult);
 
@@ -1674,15 +2047,15 @@ public final class ElementalGaugeManager {
         if (attackElement.isAura()) {
             if (attackElement == Element.PYRO && isEntityInWater(target)) {
                 target.clearFire();
-                float vapeDmg = effectiveDamage * 1.5F;
-                target.hurt(level.damageSources().magic(), vapeDmg);
+                float vapeDmg = effectiveDamage * 1.5F * ampEmMult;
+                target.hurt(getElementalDamageSource(level, attacker), vapeDmg);
                 syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, vapeDmg);
                 return;
             }
 
             if (innateElement != null && attackElement != innateElement) {
                 if (effectiveDamage > 0.0F) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
+                    target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                 }
                 syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, effectiveDamage);
                 return;
@@ -1697,14 +2070,14 @@ public final class ElementalGaugeManager {
             }
             syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, effectiveDamage);
             if (effectiveDamage > 0.0F) {
-                target.hurt(level.damageSources().magic(), effectiveDamage);
+                target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
             }
             return;
         }
 
         // Deal normal damage
         if (effectiveDamage > 0.0F) {
-            target.hurt(level.damageSources().magic(), effectiveDamage);
+            target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
         }
         syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, effectiveDamage);
     }
@@ -1722,7 +2095,7 @@ public final class ElementalGaugeManager {
         targetGauges.keySet().removeIf(e -> e != innateElement
                 && !(innateElement == Element.GEO && e == Element.DENDRO)
                 && !(isBurning && e == Element.PYRO));
-        if (innateElement.isAura() && !targetGauges.containsKey(innateElement)) {
+        if ((innateElement.isAura() || isMutatedInnate(target)) && !targetGauges.containsKey(innateElement)) {
             targetGauges.put(innateElement, new GaugeState(innateElement, 1.25F));
         }
     }
@@ -1788,6 +2161,8 @@ public final class ElementalGaugeManager {
             double dmgMult
     ) {
         Vec3 pos = target.position();
+        int emLevel = getElementalMasteryLevel(attacker);
+        float transEmMult = getTransformativeMultiplier(emLevel);
         switch (reaction) {
             case FORWARD_VAPORIZE, REVERSE_VAPORIZE -> {
                 if (reaction == ElementalReaction.FORWARD_VAPORIZE) {
@@ -1815,7 +2190,7 @@ public final class ElementalGaugeManager {
                 SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
                 AABB box = target.getBoundingBox().inflate(3.5D);
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    float dmg = (float) (1.0F * dmgMult); // 0.5 heart Cryo AoE damage
+                    float dmg = (float) (1.0F * dmgMult) * transEmMult; // 0.5 heart Cryo AoE damage scaled by EM
                     if (nearby instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.CRYO) {
                         dmg *= 0.4F;
                     }
@@ -1840,7 +2215,7 @@ public final class ElementalGaugeManager {
                 long now = level.getGameTime();
                 Long lastSpawn = LAST_BLOOM_SPAWN.get(target.getUUID());
                 if (lastSpawn == null || now - lastSpawn >= 10L) { // 0.5s ICD per target
-                    DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult);
+                    DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult * transEmMult);
                     LAST_BLOOM_SPAWN.put(target.getUUID(), now);
                 }
                 level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 25, 0.8D, 0.5D, 0.8D, 0.04D);
@@ -1848,6 +2223,8 @@ public final class ElementalGaugeManager {
             }
             case BURNING -> {
                 BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + 200L);
+                BURNING_EM_LEVEL.put(target.getUUID(), emLevel);
+                EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
                 target.setSecondsOnFire(5);
                 level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
             }
@@ -1857,7 +2234,10 @@ public final class ElementalGaugeManager {
                 // Genshin Impact rule: Pyro, Electro, Cryo Swirls deal AoE damage + spread element; Hydro Swirl only spreads Wet aura!
                 // Spread gauge formula: U_Swirl = (U_removed - 0.04) * 1.25 + 1.5
                 float swirlSpreadU = Math.max(0.5F, (Math.max(0.04F, removedAuraU) - 0.04F) * 1.25F + 1.5F);
-                float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult);
+                if (auraElement == Element.PYRO) {
+                    EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 3.5D);
+                }
+                float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult) * transEmMult;
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != target && e != attacker)) {
                     applyElement(level, nearby, auraElement, swirlSpreadU, attacker, swirlAoeDmg);
                 }
@@ -1866,7 +2246,7 @@ public final class ElementalGaugeManager {
                 double popY = target.getY() + target.getBbHeight() * 0.80D;
                 level.sendParticles(ParticleTypes.CRIT, target.getX(), popY, target.getZ(), 15, 0.35D, 0.35D, 0.35D, 0.05D);
                 level.playSound(null, target.getX(), popY, target.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
-                CrystallizeShardManager.spawn(level, target, auraElement, target.getUUID());
+                CrystallizeShardManager.spawn(level, target, auraElement, target.getUUID(), emLevel);
             }
             default -> {}
         }
@@ -1880,13 +2260,14 @@ public final class ElementalGaugeManager {
         EnvironmentalBlockManager.checkPyroAmethystMining(level, pos, 3.5D);
 
         AABB box = target.getBoundingBox().inflate(3.5D);
+        float transEmMult = getTransformativeMultiplier(getElementalMasteryLevel(attacker));
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-            float dmg = (float) (6.0F * dmgMult);
+            float dmg = (float) (6.0F * dmgMult) * transEmMult;
             if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.PYRO) {
                 dmg *= 0.4F;
             }
             victim.invulnerableTime = 0;
-            victim.hurt(level.damageSources().magic(), dmg);
+            victim.hurt(getElementalDamageSource(level, attacker), dmg);
             Vec3 diff = victim == target && attacker != null
                 ? target.position().subtract(attacker.position())
                 : victim.position().subtract(pos);
@@ -1959,6 +2340,8 @@ public final class ElementalGaugeManager {
                 LAST_FREEZE_STRUGGLE.remove(id);
                 QUICKEN_UNTIL.remove(id);
                 BURNING_UNTIL.remove(id);
+        BURNING_EM_LEVEL.remove(id);
+        ELECTRO_CHARGE_EM_LEVEL.remove(id);
                 LAST_BURN_PYRO_REFRESH.remove(id);
                 INNATE_COOLDOWN_UNTIL.remove(id);
                 ELECTRO_CHARGE_TICK.remove(id);
@@ -1986,15 +2369,14 @@ public final class ElementalGaugeManager {
                 maintainBurningPyroAura(target);
             }
 
-            // Electro Innate Mutant & Powered Creeper: Radiates electric shock within 1.0 block once per second (20 ticks)
-            if ((target instanceof Creeper creeper && creeper.isPowered())
-                    || (innate == Element.ELECTRO && isMutatedInnate(target))) {
+            // Powered Creeper (special lightning creature): radiates electric shock within 1.0 block in air & water once per second
+            if (target instanceof Creeper creeper && creeper.isPowered()) {
                 if (now % 20 == 0) {
                     final LivingEntity electroSource = target;
                     AABB auraField = electroSource.getBoundingBox().inflate(1.0D);
                     for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, auraField,
                             e -> e.isAlive() && !e.isRemoved() && e != electroSource && !e.isSpectator()
-                                    && !(e instanceof net.minecraft.world.entity.player.Player p && p.isCreative())
+                                    && !(e instanceof Player p && p.isCreative())
                                     && getInnateElement(e) != Element.ELECTRO)) {
                         drawVoltaicArc(targetLevel, electroSource, nearby);
                         applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
@@ -2003,6 +2385,11 @@ public final class ElementalGaugeManager {
                     if (isEntitySubmergedInWater(electroSource)) {
                         ElectrifiedWaterManager.electrify(targetLevel, electroSource.blockPosition(), 1.0D, 30, null, 1.0F);
                     }
+                }
+            } else if (innate == Element.ELECTRO && isMutatedInnate(target)) {
+                // Mutated Electro mob: does NOT radiate Electro into the air; only electrifies the 1 single water block it touches
+                if (now % 20 == 0 && isEntitySubmergedInWater(target)) {
+                    ElectrifiedWaterManager.electrifySingleBlock(targetLevel, target.blockPosition(), 30, null, 1.0F);
                 }
             }
 
@@ -2101,7 +2488,8 @@ public final class ElementalGaugeManager {
                 );
                 if (counter >= 20 || prematureFinalTick) {
                     counter = 0;
-                    float ecDmg = 1.0F;
+                    int ecEmLvl = ELECTRO_CHARGE_EM_LEVEL.getOrDefault(id, 0);
+                    float ecDmg = 1.0F * getTransformativeMultiplier(ecEmLvl);
                     if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, targetLevel.getGameTime()) == Element.ELECTRO) {
                         ecDmg *= 0.4F;
                     }
@@ -2148,10 +2536,13 @@ public final class ElementalGaugeManager {
                 boolean hasPyro = entityGauges.containsKey(Element.PYRO) || innate == Element.PYRO;
                 if (!hasDendroFuel || !hasPyro || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
+        BURNING_EM_LEVEL.remove(id);
+        ELECTRO_CHARGE_EM_LEVEL.remove(id);
                     LAST_BURN_PYRO_REFRESH.remove(id);
                     changed = true;
                 } else if (now % 5 == 0) {
-                    float burnDmg = 0.75F; // 0.75 per 0.25s = 3.0 DMG/s
+                    int burnEmLvl = BURNING_EM_LEVEL.getOrDefault(id, 0);
+                    float burnDmg = 0.75F * getTransformativeMultiplier(burnEmLvl); // 0.75 per 0.25s = 3.0 DMG/s scaled by EM
                     if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, now) == Element.PYRO) {
                         burnDmg *= 0.4F;
                     }
@@ -2194,6 +2585,8 @@ public final class ElementalGaugeManager {
 
                     if (!entityGauges.containsKey(Element.DENDRO) && !QUICKEN_GAUGES.containsKey(id) && innate != Element.DENDRO) {
                         BURNING_UNTIL.remove(id);
+        BURNING_EM_LEVEL.remove(id);
+        ELECTRO_CHARGE_EM_LEVEL.remove(id);
                         LAST_BURN_PYRO_REFRESH.remove(id);
                         changed = true;
                     }
@@ -2220,12 +2613,16 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 7. Environmental water, fire, poison & cryo checks on active online players
+        // 7. Environmental water, fire, lingering potion clouds & cryo checks on active online players
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (player.isAlive() && !player.isSpectator()) {
+            if (!player.isAlive() || player.isDeadOrDying()) {
+                clearEntityState(player);
+                continue;
+            }
+            if (!player.isSpectator()) {
                 if (isEntityInWater(player)) {
                     handleEnvironmentalWater(player);
-                } else if (player.isOnFire() || player.getRemainingFireTicks() > 0 || player.isInLava()) {
+                } else if (player.isOnFire() || player.getRemainingFireTicks() > 0 || player.isInLava() || isTouchingSoulCampfire(player)) {
                     maintainBurningPyroAura(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
@@ -2233,8 +2630,29 @@ public final class ElementalGaugeManager {
 
                 if (player.level() instanceof ServerLevel sl) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
+
+                    // Lingering Potion AreaEffectCloud elemental application (every 20 ticks = 1.0s)
+                    if (serverNow % 20 == 0) {
+                        for (AreaEffectCloud cloud : sl.getEntitiesOfClass(AreaEffectCloud.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
+                            if (cloud.getTags().contains("velorise_staves:dragonfire_cloud")
+                                    || cloud.getTags().contains("velorise_staves:ghastfire_field")) {
+                                continue;
+                            }
+                            List<Element> cloudElements = getElementsFromAreaEffectCloud(sl, cloud);
+                            if (!cloudElements.isEmpty()) {
+                                ServerPlayer cloudOwner = cloud.getOwner() instanceof ServerPlayer sp ? sp : null;
+                                for (LivingEntity inCloud : sl.getEntitiesOfClass(LivingEntity.class, cloud.getBoundingBox(),
+                                        e -> e.isAlive() && !e.isRemoved() && !e.isSpectator())) {
+                                    for (Element elem : cloudElements) {
+                                        applyElementBypassIcd(sl, inCloud, elem, 1.0F, cloudOwner, 0.0F);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
-                        if (nearby instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
+                        if (nearby instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
                             mob.setNoAi(false);
                             mob.removeTag(TAG_FROZEN_STATUE);
                         }
@@ -2245,16 +2663,21 @@ public final class ElementalGaugeManager {
                         if (nearbyInnate != null && player.tickCount % 20 == 0) {
                             if (isEntityInWater(nearby)) {
                                 handleEnvironmentalWater(nearby);
-                            } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava()) {
+                            } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava() || isTouchingSoulCampfire(nearby)) {
                                 maintainBurningPyroAura(nearby);
                             }
                         }
-                        if (((nearby instanceof Creeper creeper && creeper.isPowered())
-                                || (nearbyInnate == Element.ELECTRO && isMutatedInnate(nearby)))
-                                && !GAUGES.containsKey(nearby.getUUID())) {
+                        // Ensure Powered Creeper and ALL Mutated Mobs stay registered in GAUGES and synced to clients so their overhead icon is always visible
+                        if ((nearby instanceof Creeper creeper && creeper.isPowered())
+                                || (nearbyInnate != null && isMutatedInnate(nearby))) {
+                            Element innateToKeep = (nearby instanceof Creeper c && c.isPowered()) ? Element.ELECTRO : nearbyInnate;
                             Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(nearby.getUUID(), k -> new ConcurrentHashMap<>());
-                            gauges.put(Element.ELECTRO, new GaugeState(Element.ELECTRO, 1.25F));
-                            syncAuras(nearby, gauges.keySet(), null, null, null);
+                            if (!gauges.containsKey(innateToKeep)) {
+                                gauges.put(innateToKeep, new GaugeState(innateToKeep, 1.25F));
+                                syncAuras(nearby, gauges.keySet(), null, null, null);
+                            } else if (player.tickCount % 40 == 0) {
+                                syncAuras(nearby, gauges.keySet(), null, null, null);
+                            }
                         }
                     }
                 }

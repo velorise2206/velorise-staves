@@ -89,6 +89,7 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
         ClientAuraTracker.clear();
+        StavesConfig.clearServerSync();
     }
 
     @SubscribeEvent
@@ -139,16 +140,25 @@ public final class ClientAuraRenderer {
         }
         FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(entity.getId(), k -> new FrozenRenderState(entity));
         entity.setTicksFrozen(0);
+        if (entity.isUsingItem()) {
+            entity.stopUsingItem();
+        }
+        if (entity instanceof net.minecraft.world.entity.Mob mob) {
+            mob.setAggressive(false);
+        }
 
         float shakeOffset = 0.0F;
         Minecraft mc = Minecraft.getInstance();
         long now = System.currentTimeMillis();
+        double dy = entity.onGround() ? 0.0D : Math.max(-0.08D, entity.getDeltaMovement().y);
+        entity.setDeltaMovement(0.0D, dy, 0.0D);
+        entity.xo = entity.getX();
+        entity.zo = entity.getZ();
+
         if (mc.player != null && entity.getId() == mc.player.getId()) {
             if (now < struggleShakeUntil) {
                 shakeOffset = (float) Math.sin((struggleShakeUntil - now) * 0.85D) * 2.8F;
             }
-            double dy = entity.onGround() ? 0.0D : Math.max(-0.08D, entity.getDeltaMovement().y);
-            entity.setDeltaMovement(0.0D, dy, 0.0D);
             entity.setSprinting(false);
         }
 
@@ -220,15 +230,21 @@ public final class ClientAuraRenderer {
         if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
         if (entity != mc.player && !mc.player.hasLineOfSight(entity)) return;
 
-        // Check innate element on entity (e.g., Blaze/MagmaCube/Strider -> PYRO, Stray/SnowGolem -> CRYO, Guardian/Drowned -> HYDRO, Breeze -> ANEMO)
+        // Check innate element on entity (including server-synced mutated innate elements)
         Element innateElement = ElementalGaugeManager.getInnateElement(entity);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
+        if (innateElement == null && data != null && data.permanentInnateElement != null) {
+            innateElement = data.permanentInnateElement;
+        }
 
-        // Filter out passive ocean fish/squid unless explicitly hit in combat
         if (data == null && innateElement == null) return;
-        if (data == null && ElementalGaugeManager.isPassiveAquaticOrAmbient(entity)) return;
 
         long now = System.currentTimeMillis();
+        // Underwater fish / passive aquatic creatures only display overhead icons when an elemental reaction occurs
+        if (ElementalGaugeManager.isPassiveAquaticOrAmbient(entity)) {
+            boolean fishReactionActive = data != null && ((data.reaction != null && now < data.reactionUntil) || now < data.dualUntil);
+            if (!fishReactionActive) return;
+        }
         if (data != null) {
             if (data.expireTime > 0 && now >= data.expireTime && innateElement == null) {
                 data.elements.clear();
@@ -277,7 +293,9 @@ public final class ClientAuraRenderer {
 
         if ((!showIcons || display.isEmpty()) && !hasReaction && !hasDamage) return;
 
-        double height = entity.getBbHeight() + 0.55D;
+        double height = (entity instanceof net.minecraft.world.entity.player.Player)
+                ? entity.getBbHeight() + 0.22D
+                : entity.getBbHeight() + 0.55D;
         float iconSize = 16.0F;
         float gap = 3.0F;
 
@@ -485,6 +503,12 @@ public final class ClientAuraRenderer {
     public static void renderPlayerAuraHud(GuiGraphics guiGraphics) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) return;
+        if (!mc.player.isAlive() || mc.player.isDeadOrDying()) {
+            ClientAuraTracker.remove(mc.player.getId());
+            ClientAuraTracker.activeCrystallizeShield = null;
+            ClientAuraTracker.crystallizeShieldUntil = 0L;
+            return;
+        }
         if (mc.screen instanceof EffectRenderingInventoryScreen screen && screen.canSeeEffects()) {
             return;
         }
@@ -906,8 +930,6 @@ public final class ClientAuraRenderer {
             guiGraphics.blitSprite(EFFECT_BACKGROUND_SPRITE, x, y, 24, 24);
         }
 
-        renderCrystallizeShieldHudFrame(guiGraphics, x, y, getElementBorderColor(shield));
-
         // Draw only the Crystallize Shield texture (textures/mob_effect/*_shield.png, 18x18), never the round element icon
         ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
         if (shieldTex != null) {
@@ -975,7 +997,6 @@ public final class ClientAuraRenderer {
         if (!found) {
             guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
         }
-        renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
 
         // When vanilla already renders the active effect icon & tooltip, only draw our colored border frame
         // If not found in vanilla active effects, draw the shield texture and custom tooltip manually

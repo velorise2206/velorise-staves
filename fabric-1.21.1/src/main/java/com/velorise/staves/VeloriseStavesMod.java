@@ -3,10 +3,12 @@ package com.velorise.staves;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
@@ -70,7 +72,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item WIND_STAFF = registerItem("wind_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, false), false));
 
-    // Basic Utility Artifacts
+    // Guidebook & Utility Artifacts
+    public static final Item ELEMENTAL_CODEX = registerItem("elemental_codex",
+        new ElementalCodexItem());
     public static final Item VOID_TRANSLOCATOR = registerItem("void_translocator",
         new VoidTranslocatorItem(StavesConfig.getArtifactMaxDurability(true, false), 24.0D, false));
 
@@ -143,6 +147,9 @@ public final class VeloriseStavesMod implements ModInitializer {
         .title(Component.translatable("itemGroup.velorise_staves"))
         .icon(() -> new ItemStack(NETHERITE_DRAGONFIRE_SCEPTER))
         .displayItems((parameters, output) -> {
+            // Guidebook
+            output.accept(ELEMENTAL_CODEX);
+
             // Basic tier
             output.accept(DRAGONFIRE_SCEPTER);
             output.accept(RESONANT_ECHO);
@@ -177,6 +184,20 @@ public final class VeloriseStavesMod implements ModInitializer {
 
             // Reactions
             output.accept(DENDRO_CORE);
+
+            // Elemental Mastery I-III Enchanted Books
+            parameters.holders().lookup(Registries.ENCHANTMENT)
+                .flatMap(reg -> reg.get(ResourceKey.create(
+                    Registries.ENCHANTMENT,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "elemental_mastery")
+                )))
+                .ifPresent(holder -> {
+                    for (int lvl = 1; lvl <= 3; lvl++) {
+                        output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                            new net.minecraft.world.item.enchantment.EnchantmentInstance(holder, lvl)
+                        ));
+                    }
+                });
         })
         .build();
 
@@ -217,6 +238,7 @@ public final class VeloriseStavesMod implements ModInitializer {
 
         // Also add artifacts to vanilla Tools & Utilities tab
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(entries -> {
+            entries.accept(ELEMENTAL_CODEX);
             entries.accept(VOID_TRANSLOCATOR);
             entries.accept(MAGIC_MIRROR);
             entries.accept(NETHERITE_VOID_TRANSLOCATOR);
@@ -254,23 +276,33 @@ public final class VeloriseStavesMod implements ModInitializer {
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && !entity.level().isClientSide()) {
                 ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
             }
+        });
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
+            if (!entity.level().isClientSide()) {
+                ElementalGaugeManager.clearEntityState(entity);
+            }
+        });
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+            if (oldPlayer.getTags().contains("velorise_staves:received_codex")) {
+                newPlayer.addTag("velorise_staves:received_codex");
+            }
+            ElementalGaugeManager.clearEntityState(oldPlayer);
+            ElementalGaugeManager.clearEntityState(newPlayer);
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {
-                java.util.Collection<com.velorise.staves.element.Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
-                if (!elements.isEmpty()) {
-                    int duration = ElementalGaugeManager.getEntityMaxDurationTicks(living.getUUID());
-                    com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
-                }
+                ElementalGaugeManager.syncEntityOnStartTracking(player, living);
             }
         });
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             net.minecraft.server.level.ServerPlayer player = handler.getPlayer();
-            java.util.Collection<com.velorise.staves.element.Element> elements = ElementalGaugeManager.getEntityElements(player.getUUID());
-            if (!elements.isEmpty()) {
-                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(player.getUUID());
-                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, player, elements, duration);
+            com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
+            ElementalGaugeManager.syncEntityOnStartTracking(player, player);
+            if (!player.getTags().contains("velorise_staves:received_codex")) {
+                player.addTag("velorise_staves:received_codex");
+                player.getInventory().add(new ItemStack(ELEMENTAL_CODEX));
             }
         });
     }

@@ -49,13 +49,19 @@ public final class CrystallizeShardManager {
         public final Element element;
         public final long spawnTime;
         public final @Nullable UUID sourceMobId;
+        public final int emLevel;
 
         public ShardEntry(ItemEntity entity, ServerLevel level, Element element, long spawnTime, @Nullable UUID sourceMobId) {
+            this(entity, level, element, spawnTime, sourceMobId, 0);
+        }
+
+        public ShardEntry(ItemEntity entity, ServerLevel level, Element element, long spawnTime, @Nullable UUID sourceMobId, int emLevel) {
             this.entity = entity;
             this.level = level;
             this.element = element;
             this.spawnTime = spawnTime;
             this.sourceMobId = sourceMobId;
+            this.emLevel = Math.max(0, emLevel);
         }
     }
 
@@ -102,20 +108,24 @@ public final class CrystallizeShardManager {
     }
 
     public static void spawn(ServerLevel level, LivingEntity target, Element reactedElement, @Nullable UUID sourceMobId) {
+        spawn(level, target, reactedElement, sourceMobId, 0);
+    }
+
+    public static void spawn(ServerLevel level, LivingEntity target, Element reactedElement, @Nullable UUID sourceMobId, int emLevel) {
         double spawnY = target.getY() + target.getBbHeight() * 0.80D;
         Vec3 spawnPos = new Vec3(target.getX(), spawnY, target.getZ());
-        spawnAt(level, spawnPos, reactedElement, sourceMobId);
+        spawnAt(level, spawnPos, reactedElement, sourceMobId, emLevel);
     }
 
     public static void spawn(ServerLevel level, Vec3 pos, Element reactedElement) {
-        spawn(level, pos, reactedElement, null);
+        spawnAt(level, pos, reactedElement, null, 0);
     }
 
     public static void spawn(ServerLevel level, Vec3 pos, Element reactedElement, @Nullable UUID sourceMobId) {
-        spawnAt(level, pos, reactedElement, sourceMobId);
+        spawnAt(level, pos, reactedElement, sourceMobId, 0);
     }
 
-    private static void spawnAt(ServerLevel level, Vec3 pos, Element reactedElement, @Nullable UUID sourceMobId) {
+    private static void spawnAt(ServerLevel level, Vec3 pos, Element reactedElement, @Nullable UUID sourceMobId, int emLevel) {
         if (sourceMobId != null) {
             long now = level.getGameTime();
             Long lastSpawn = LAST_MOB_SHARD_TICK.get(sourceMobId);
@@ -150,7 +160,7 @@ public final class CrystallizeShardManager {
         item.setGlowingTag(false);
 
         level.addFreshEntity(item);
-        SHARDS.add(new ShardEntry(item, level, reactedElement, level.getGameTime(), sourceMobId));
+        SHARDS.add(new ShardEntry(item, level, reactedElement, level.getGameTime(), sourceMobId, emLevel));
 
         // Elemental crystal birth sound (clean amethyst chime)
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
@@ -192,7 +202,7 @@ public final class CrystallizeShardManager {
                     if (absInst != null && absInst.getAmplifier() == 0) {
                         player.removeEffect(MobEffects.ABSORPTION);
                     }
-                    if (expired && player.getAbsorptionAmount() <= 2.0F) {
+                    if (expired && player.getAbsorptionAmount() <= 5.0F) {
                         player.setAbsorptionAmount(0.0F);
                     }
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
@@ -231,7 +241,7 @@ public final class CrystallizeShardManager {
             List<ServerPlayer> nearbyPlayers = level.getEntitiesOfClass(ServerPlayer.class, pickupBox, pl -> pl.isAlive() && !pl.isSpectator());
             if (!nearbyPlayers.isEmpty()) {
                 ServerPlayer player = nearbyPlayers.get(0);
-                pickupShard(level, player, shard.element);
+                pickupShard(level, player, shard.element, shard.emLevel);
                 cleanUpShardTeam(shard);
                 shard.entity.discard();
                 SHARDS.remove(shard);
@@ -318,25 +328,27 @@ public final class CrystallizeShardManager {
         ModNetwork.sendCrystallizeShieldToPlayer(player, element, safeDuration);
     }
 
-    private static void pickupShard(ServerLevel level, ServerPlayer player, Element element) {
+    private static void pickupShard(ServerLevel level, ServerPlayer player, Element element, int emLevel) {
         // Replace any existing Crystallize shield (same or different element) and reset shield absorption
         ModMobEffects.removeAllShields(player);
         MobEffectInstance oldAbs = player.getEffect(MobEffects.ABSORPTION);
-        if (oldAbs != null && oldAbs.getAmplifier() == 0) {
+        if (oldAbs != null && oldAbs.getAmplifier() <= 1) {
             player.removeEffect(MobEffects.ABSORPTION);
-            if (player.getAbsorptionAmount() <= 2.0F) {
+            if (player.getAbsorptionAmount() <= 5.0F) {
                 player.setAbsorptionAmount(0.0F);
             }
         }
+        // Elemental Mastery I-III grants +1.0 HP (+0.5 golden heart) shield absorption per level: 2.0 / 3.0 / 4.0 / 5.0 HP
+        float shieldHp = 2.0F + 1.0F * Math.max(0, emLevel);
+        int shieldAmp = Math.max(0, emLevel);
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
-            // visible=false, showIcon=false → suppress vanilla HUD icon; custom ClientAuraRenderer handles display
-            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, false, false));
+            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, shieldAmp, false, false, false)); // showParticles=false, showIcon=false: suppress vanilla HUD
         }
 
-        // Grant fresh 15s vanilla Absorption (1 golden heart = 2.0F)
-        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, 0, false, false, false));
-        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), 2.0F));
+        // Grant fresh 15s vanilla Absorption scaled by Elemental Mastery
+        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, shieldAmp > 0 ? 1 : 0, false, false, false));
+        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
 
         onShieldApplied(player, element, SHIELD_DURATION_TICKS);
 

@@ -4,10 +4,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Iterator;
@@ -16,9 +19,10 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Manages active Dragonfire lingering AreaEffectClouds.
- * Continuously electrifies water beneath and around the cloud, periodically applies Electro (1.0U),
- * shocks all entities within the cloud (including survival players), and triggers Hyperbloom on nearby Dendro Cores until the cloud expires.
+ * Manages active Dragonfire lingering AreaEffectClouds (Ender Staff AoE).
+ * Instead of dense continuous random particles, renders expanding elemental rings
+ * synchronized with a 1.0s (20 ticks) pulse that applies Electro (1.0U), shocks entities,
+ * electrifies water, and triggers Hyperbloom on nearby Dendro Cores.
  */
 public final class DragonfireCloudManager {
     public static class CloudEntry {
@@ -26,12 +30,16 @@ public final class DragonfireCloudManager {
         public final ServerLevel level;
         public final @Nullable UUID ownerId;
         public final boolean isNetherite;
+        public final float radius;
+        public final long startTick;
 
-        public CloudEntry(AreaEffectCloud cloud, ServerLevel level, @Nullable UUID ownerId, boolean isNetherite) {
+        public CloudEntry(AreaEffectCloud cloud, ServerLevel level, @Nullable UUID ownerId, boolean isNetherite, float radius, long startTick) {
             this.cloud = cloud;
             this.level = level;
             this.ownerId = ownerId;
             this.isNetherite = isNetherite;
+            this.radius = radius;
+            this.startTick = startTick;
         }
     }
 
@@ -40,14 +48,22 @@ public final class DragonfireCloudManager {
     private DragonfireCloudManager() {}
 
     public static void register(AreaEffectCloud cloud, ServerLevel level, @Nullable ServerPlayer owner, boolean isNetherite) {
-        CLOUDS.add(new CloudEntry(cloud, level, owner != null ? owner.getUUID() : null, isNetherite));
+        float r = cloud.getRadius() > 0.1F ? cloud.getRadius() : (isNetherite ? 4.5F : 3.5F);
+        register(cloud, level, owner, isNetherite, r);
+    }
+
+    public static void register(AreaEffectCloud cloud, ServerLevel level, @Nullable ServerPlayer owner, boolean isNetherite, float radius) {
+        // Suppress vanilla dense continuous particle spam from AreaEffectCloud
+        cloud.setRadius(0.0F);
+        cloud.setRadiusPerTick(0.0F);
+        cloud.setWaitTime(cloud.getDuration() + 20);
+        CLOUDS.add(new CloudEntry(cloud, level, owner != null ? owner.getUUID() : null, isNetherite, radius, level.getGameTime()));
     }
 
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
-        if (now % 20 != 0) return; // Every 1.0s (20 ticks)
-
         Iterator<CloudEntry> it = CLOUDS.iterator();
+
         while (it.hasNext()) {
             CloudEntry entry = it.next();
             if (entry.level != level) continue;
@@ -57,24 +73,61 @@ public final class DragonfireCloudManager {
             }
 
             AreaEffectCloud cloud = entry.cloud;
-            float radius = cloud.getRadius();
-            BlockPos center = cloud.blockPosition();
-            ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
-            float damage = entry.isNetherite ? 2.5F : 1.8F;
+            float radius = entry.radius;
+            long age = Math.max(0L, now - entry.startTick);
+            int phase = (int) (age % 20L);
 
-            // 1. Periodically electrify water beneath and around the cloud (every 1s, 1.0F shock damage)
-            ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
-
-            // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud (including Survival players, excluding Creative/Spectator)
-            AABB box = cloud.getBoundingBox();
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 1.0F, owner, damage);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 6, 0.2D, 0.2D, 0.2D, 0.05D);
+            // Expanding elemental ring animation synchronized with the 20-tick (1.0s) aura application pulse
+            if (phase % 2 == 0) {
+                double progress = (double) (phase + 2) / 20.0D;
+                double ringRadius = radius * progress;
+                spawnExpandingElectroRing(level, cloud.position(), ringRadius);
             }
 
-            // 3. Detonate any Dendro Cores in the cloud (Hyperbloom)
-            DendroCoreManager.checkReactionsNear(level, cloud.position(), radius, Element.ELECTRO, owner);
+            // Every 20 ticks (1.0s) when the ring completes its expansion, apply Electro (1.0U) pulse
+            if (age > 0L && phase == 0) {
+                BlockPos center = cloud.blockPosition();
+                ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
+                float damage = entry.isNetherite ? 2.5F : 1.8F;
+
+                // 1. Periodically electrify water beneath and around the cloud (every 1s, 1.0F shock damage)
+                ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
+
+                // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud radius
+                Vec3 centerPos = cloud.position();
+                double r2 = (double) radius * (double) radius;
+                AABB box = new AABB(
+                        centerPos.x - radius, centerPos.y - 1.0D, centerPos.z - radius,
+                        centerPos.x + radius, centerPos.y + 2.0D, centerPos.z + radius
+                );
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                        e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
+                    double dx = target.getX() - centerPos.x;
+                    double dz = target.getZ() - centerPos.z;
+                    if (dx * dx + dz * dz <= r2) {
+                        ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, owner, damage);
+                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
+                    }
+                }
+
+                // 3. Detonate any Dendro Cores in the cloud (Hyperbloom)
+                DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.ELECTRO, owner);
+                level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.45F, 1.75F);
+            }
+        }
+    }
+
+    private static void spawnExpandingElectroRing(ServerLevel level, Vec3 center, double ringRadius) {
+        int points = Math.max(12, (int) Math.round(ringRadius * 8.0D));
+        double y = center.y + 0.15D;
+        for (int i = 0; i < points; i++) {
+            double angle = (2.0D * Math.PI * i) / points;
+            double px = center.x + Math.cos(angle) * ringRadius;
+            double pz = center.z + Math.sin(angle) * ringRadius;
+            level.sendParticles(ParticleTypes.DRAGON_BREATH, px, y, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            if (i % 3 == 0) {
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, px, y + 0.05D, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+            }
         }
     }
 

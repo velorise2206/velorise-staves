@@ -57,6 +57,7 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WEB_SHOTS = "web";
     private static final String TAG_WITHER_SHOTS = "wither";
     private static final String TAG_FROST_SHOTS = "frost";
+    private static final String TAG_SHULKER_SHOTS = "shulker";
     private static final int BURST_RESET_TICKS = 100; // 5.0s window to hold remaining burst shots
     private static final int BURST_INTERVAL_TICKS = 11; // 11 ticks (0.55s) between burst shots to bypass the vanilla 10-tick damage iframe
 
@@ -165,7 +166,7 @@ public final class ArcaneStaffItem extends Item {
         }
 
         if (isBurstKind()) {
-            advanceBurst(serverPlayer, burstKey(), 3, getCooldownTicks());
+            advanceBurst(serverPlayer, burstKey(), maxBurstShots(), getCooldownTicks());
         } else {
             player.getCooldowns().addCooldown(this, getCooldownTicks());
         }
@@ -203,7 +204,7 @@ public final class ArcaneStaffItem extends Item {
 
         long elapsed = level.getGameTime() - state.lastTime;
         if (slotChanged || elapsed >= BURST_RESET_TICKS) {
-            int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / 3.0D));
+            int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / (double) maxBurstShots()));
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             player.getCooldowns().addCooldown(this, cdForShots);
@@ -211,7 +212,11 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean isBurstKind() {
-        return kind == Kind.INFERNO || kind == Kind.WEB || kind == Kind.WITHER || kind == Kind.FROST;
+        return kind == Kind.INFERNO || kind == Kind.WEB || kind == Kind.WITHER || kind == Kind.FROST || kind == Kind.SHULKER;
+    }
+
+    private int maxBurstShots() {
+        return kind == Kind.SHULKER ? 2 : 3;
     }
 
     private String burstKey() {
@@ -220,6 +225,7 @@ public final class ArcaneStaffItem extends Item {
             case WEB -> TAG_WEB_SHOTS;
             case WITHER -> TAG_WITHER_SHOTS;
             case FROST -> TAG_FROST_SHOTS;
+            case SHULKER -> TAG_SHULKER_SHOTS;
             default -> "";
         };
         return isNetherite ? "netherite_" + base : base;
@@ -242,7 +248,7 @@ public final class ArcaneStaffItem extends Item {
 
     public int getCooldownTicks() {
         double seconds = StavesConfig.getStaffCooldownSeconds(kind);
-        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        double mult = StavesConfig.getCooldownMultiplier();
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
 
@@ -254,7 +260,7 @@ public final class ArcaneStaffItem extends Item {
         long elapsed = player.level().getGameTime() - state.lastTime;
         boolean slotChanged = player.getInventory().selected != state.slot;
         if (elapsed >= resetTicks || slotChanged) {
-            int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / 3.0D));
+            int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / (double) maxBurstShots()));
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             if (!player.getCooldowns().isOnCooldown(this)) {
@@ -420,28 +426,22 @@ public final class ArcaneStaffItem extends Item {
         ServerLevel level = player.serverLevel();
         double range = 30.0D;
         LivingEntity target = findTarget(player, range, 1.5D);
-        int shots = 2;
-        int spawned = 0;
         String kindTag = isNetherite ? "netherite_shulker" : "shulker";
-        for (int i = 0; i < shots; i++) {
-            Vec3 direction = fanDirection(player.getLookAngle(), i, shots, 9.0F);
-            Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
-            ShulkerBullet projectile;
-            if (target != null) {
-                projectile = new ShulkerBullet(level, player, target, Direction.Axis.Y);
-                projectile.moveTo(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z, player.getYRot(), player.getXRot());
-                projectile.setDeltaMovement(direction.scale(0.45D));
-                ArcaneStaffEvents.markKind(projectile, kindTag);
-                ArcaneStaffEvents.markRange(projectile, player.position(), range);
-            } else {
-                projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
-                prepareProjectile(projectile, player, kindTag, range, 1.25F, direction);
-                projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
-            }
-            level.addFreshEntity(projectile);
-            spawned++;
+        Vec3 direction = player.getLookAngle().normalize();
+        Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
+        ShulkerBullet projectile;
+        if (target != null) {
+            projectile = new ShulkerBullet(level, player, target, Direction.Axis.Y);
+            projectile.moveTo(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z, player.getYRot(), player.getXRot());
+            projectile.setDeltaMovement(direction.scale(0.55D));
+            ArcaneStaffEvents.markKind(projectile, kindTag);
+            ArcaneStaffEvents.markRange(projectile, player.position(), range);
+        } else {
+            projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
+            prepareProjectile(projectile, player, kindTag, range, 1.25F, direction);
+            projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
         }
-        if (spawned <= 0) return false;
+        level.addFreshEntity(projectile);
         level.playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, 0.8F, 1.15F);
         return true;
     }
@@ -751,22 +751,27 @@ public final class ArcaneStaffItem extends Item {
         };
     }
 
+    private static String fmtDmg(double base) {
+        double scaled = base * StavesConfig.getDamageMultiplier();
+        return String.format(java.util.Locale.ROOT, "%.1f", scaled);
+    }
+
     public String getDamageDisplay() {
         Element e = getElement();
         String icon = e != null ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " " : "";
         return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? "10.0 + Cloud " + icon + "2U" : "7.0 + Cloud " + icon + "2U";
-            case ECHO -> isNetherite ? "16.0 " + icon + "4U (Swirl)" : "11.0 " + icon + "2U (Swirl)";
-            case INFERNO -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";
-            case GHASTFIRE -> isNetherite ? "9.0 " + icon + "4U" : "6.0 " + icon + "2U";
-            case WITHER -> isNetherite ? "6.0 x 3 (Wither III)" : "4.0 x 3 (Wither II)";
-            case SHULKER -> isNetherite ? "6.0 x 2 " + icon + "1.5U" : "4.0 x 2 " + icon + "1U";
-            case GUARDIAN -> isNetherite ? "0.8-2.0 x 10 " + icon + "1.5U" : "0.5-1.5 x 10 " + icon + "1U";
-            case EVOKER -> isNetherite ? "4.5 / Fang " + icon + "1.5U" : "3.0 / Fang " + icon + "1U";
-            case LIGHTNING -> isNetherite ? "1.0 / hit " + icon + "1.5U" : "0.5 / hit " + icon + "1U";
-            case FROST -> isNetherite ? "4.5 x 3 " + icon + "1.5U" : "3.0 x 3 " + icon + "1U";
+            case DRAGONFIRE -> (isNetherite ? fmtDmg(10.0) : fmtDmg(7.0)) + " + Cloud " + icon + "2U";
+            case ECHO -> (isNetherite ? fmtDmg(16.0) : fmtDmg(11.0)) + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
+            case INFERNO -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GHASTFIRE -> (isNetherite ? fmtDmg(9.0) : fmtDmg(6.0)) + " " + icon + (isNetherite ? "4U" : "2U");
+            case WITHER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + (isNetherite ? " x 3 (Wither III)" : " x 3 (Wither II)");
+            case SHULKER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GUARDIAN -> (isNetherite ? (fmtDmg(0.8) + "-" + fmtDmg(2.0)) : (fmtDmg(0.5) + "-" + fmtDmg(1.5))) + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+            case EVOKER -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");
+            case LIGHTNING -> (isNetherite ? fmtDmg(1.0) : fmtDmg(0.5)) + " / hit " + icon + (isNetherite ? "1.5U" : "1U");
+            case FROST -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case WEB -> isNetherite ? "Trap + Poison " + icon + "1.5U" : "Trap + Poison " + icon + "1U";
-            case WIND -> isNetherite ? "2.5 " + icon + "1.5U (Swirl)" : "1.5 " + icon + "1U (Swirl)";
+            case WIND -> (isNetherite ? fmtDmg(2.5) : fmtDmg(1.5)) + " " + icon + (isNetherite ? "1.5U (Swirl)" : "1U (Swirl)");
         };
     }
 
@@ -803,7 +808,11 @@ public final class ArcaneStaffItem extends Item {
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.velorise_staves.damage", getDamageDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);
+        if (emLvl > 0) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.elemental_mastery_bonus", emLvl * 15, emLvl * 30, emLvl * 25).withStyle(ChatFormatting.GOLD));
+        }
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());

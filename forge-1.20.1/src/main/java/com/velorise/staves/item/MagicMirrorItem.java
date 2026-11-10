@@ -28,13 +28,13 @@ import java.util.Optional;
 /** Recall artifact that channels and returns the player to their bed or spawn. */
 public class MagicMirrorItem extends Item {
     public int getCooldownTicks() {
-        double seconds = StavesConfig.MAGIC_MIRROR_COOLDOWN_SECONDS.get();
-        double mult = StavesConfig.COOLDOWN_MULTIPLIER.get();
+        double seconds = StavesConfig.getMagicMirrorCooldownSeconds();
+        double mult = StavesConfig.getCooldownMultiplier();
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
 
     public int getUseDurationTicks() {
-        return Math.max(1, (int) Math.round(StavesConfig.MAGIC_MIRROR_CHANNEL_SECONDS.get() * 20.0D));
+        return Math.max(1, (int) Math.round(StavesConfig.getMagicMirrorChannelSeconds() * 20.0D));
     }
 
     @Override

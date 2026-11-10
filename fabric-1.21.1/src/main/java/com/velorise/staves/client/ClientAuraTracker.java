@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ClientAuraTracker {
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
+        public @Nullable Element permanentInnateElement = null;
         public @Nullable Element reactedAuraElement = null;
         public @Nullable Element dualTriggerElement = null;
         public long dualStartTime = 0;
@@ -130,8 +131,14 @@ public final class ClientAuraTracker {
             entry.expireTime = now + (long) durationTicks * 50L;
         } else if (durationTicks < 0) {
             entry.expireTime = -1L; // Permanent innate aura
+            if (entry.permanentInnateElement == null && !elements.isEmpty()) {
+                entry.permanentInnateElement = elements.get(0);
+            }
         } else {
-            entry.expireTime = 0L;
+            entry.expireTime = entry.permanentInnateElement != null ? -1L : 0L;
+        }
+        if (entry.permanentInnateElement != null && !entry.elements.contains(entry.permanentInnateElement)) {
+            entry.elements.add(0, entry.permanentInnateElement);
         }
 
         if (reaction != null && reaction != ElementalReaction.NONE) {
@@ -186,7 +193,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (elements.isEmpty() && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElement == null && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }

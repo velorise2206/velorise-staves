@@ -61,7 +61,142 @@ public final class EnvironmentalBlockManager {
      * When a Pyro attack or Overloaded explosion hits near an Amethyst Cluster,
      * it triggers an Overloaded detonation on the cluster and drops Amethyst Shards.
      */
+    /**
+     * Applies Pyro environmental effects around a hit position:
+     * 1. Melts ice (Frosted Ice, Ice, Packed Ice) and snow (Snow layer, Snow Block, Powder Snow, Powder Snow Cauldron).
+     * 2. Ignites unlit Campfires, unlit Candles, and TNT blocks.
+     * 3. Burns replaceable flammable vegetation/cobwebs and ignites flammable materials (wood, leaves, wool, hay, etc.).
+     */
+    public static void applyPyroEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius) {
+        BlockPos center = BlockPos.containing(hitPos);
+        int r = Math.max(1, (int) Math.ceil(radius));
+        double r2 = (radius + 0.65D) * (radius + 0.65D);
+        boolean isUltraWarm = level.dimensionType().ultraWarm();
+
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -1, -r), center.offset(r, 2, r))) {
+            if (!level.hasChunkAt(p)) continue;
+            Vec3 blockCenter = Vec3.atCenterOf(p);
+            if (blockCenter.distanceToSqr(hitPos) > r2) continue;
+
+            BlockState st = level.getBlockState(p);
+            if (st.isAir()) continue;
+
+            // A. Melt Ice & Snow
+            if (st.is(Blocks.FROSTED_ICE) || st.is(Blocks.ICE)) {
+                level.setBlockAndUpdate(p, isUltraWarm ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState());
+                level.sendParticles(ParticleTypes.CLOUD, blockCenter.x, blockCenter.y, blockCenter.z, 5, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 1.4F);
+                continue;
+            }
+            if (st.is(Blocks.PACKED_ICE) && radius >= 2.0D) {
+                level.setBlockAndUpdate(p, Blocks.ICE.defaultBlockState());
+                level.sendParticles(ParticleTypes.CLOUD, blockCenter.x, blockCenter.y, blockCenter.z, 4, 0.2D, 0.2D, 0.2D, 0.02D);
+                continue;
+            }
+            if (st.is(Blocks.SNOW) || st.is(Blocks.SNOW_BLOCK) || st.is(Blocks.POWDER_SNOW)) {
+                level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
+                level.sendParticles(ParticleTypes.CLOUD, blockCenter.x, blockCenter.y, blockCenter.z, 4, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.4F, 1.5F);
+                continue;
+            }
+            if (st.is(Blocks.POWDER_SNOW_CAULDRON)) {
+                level.setBlockAndUpdate(p, Blocks.WATER_CAULDRON.defaultBlockState());
+                level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.4F, 1.5F);
+                continue;
+            }
+
+            // B. Light unlit Campfires & Candles, or detonate TNT
+            if (st.getBlock() instanceof CampfireBlock && CampfireBlock.canLight(st)) {
+                level.setBlockAndUpdate(p, st.setValue(CampfireBlock.LIT, true));
+                level.playSound(null, p, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 0.8F, 1.1F);
+                continue;
+            }
+            if (st.getBlock() instanceof net.minecraft.world.level.block.CandleBlock && net.minecraft.world.level.block.CandleBlock.canLight(st)) {
+                level.setBlockAndUpdate(p, st.setValue(net.minecraft.world.level.block.CandleBlock.LIT, true));
+                level.playSound(null, p, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 0.7F, 1.2F);
+                continue;
+            }
+            if (st.is(Blocks.TNT)) {
+                level.removeBlock(p, false);
+                net.minecraft.world.entity.item.PrimedTnt tnt = new net.minecraft.world.entity.item.PrimedTnt(
+                        level, blockCenter.x, p.getY(), blockCenter.z, null
+                );
+                level.addFreshEntity(tnt);
+                level.playSound(null, p, SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0F, 1.0F);
+                continue;
+            }
+
+            // C. Burn cobwebs & dry vegetation, or ignite flammable materials (wood, planks, leaves, wool, hay, etc.)
+            if (isBurnableVegetationOrCobweb(st)) {
+                BlockPos below = p.below();
+                if (level.getBlockState(below).isSolidRender(level, below)) {
+                    level.setBlockAndUpdate(p, Blocks.FIRE.defaultBlockState());
+                } else {
+                    level.removeBlock(p, false);
+                }
+                level.sendParticles(ParticleTypes.FLAME, blockCenter.x, blockCenter.y, blockCenter.z, 6, 0.2D, 0.2D, 0.2D, 0.02D);
+                continue;
+            }
+
+            if (isFlammableMaterial(st)) {
+                BlockPos above = p.above();
+                if (level.getBlockState(above).isAir()
+                        && net.minecraft.world.level.block.BaseFireBlock.canBePlacedAt(level, above, Direction.UP)) {
+                    // Place fire on top of flammable block near center of impact
+                    if (blockCenter.distanceToSqr(hitPos) <= Math.max(2.25D, r2 * 0.55D)) {
+                        level.setBlockAndUpdate(above, Blocks.FIRE.defaultBlockState());
+                    }
+                }
+            }
+        }
+    }
+
+    private static boolean isBurnableVegetationOrCobweb(BlockState st) {
+        return st.is(Blocks.COBWEB)
+                || st.is(Blocks.DEAD_BUSH)
+                || st.is(Blocks.VINE)
+                || st.is(Blocks.TALL_GRASS)
+                || st.is(Blocks.FERN)
+                || st.is(Blocks.LARGE_FERN)
+                || st.is(Blocks.HANGING_ROOTS)
+                || st.is(Blocks.GLOW_LICHEN)
+                || st.is(net.minecraft.tags.BlockTags.FLOWERS)
+                || st.is(net.minecraft.tags.BlockTags.SAPLINGS);
+    }
+
+    private static boolean isFlammableMaterial(BlockState st) {
+        if (st.is(net.minecraft.tags.BlockTags.LOGS_THAT_BURN)
+                || st.is(net.minecraft.tags.BlockTags.PLANKS)
+                || st.is(net.minecraft.tags.BlockTags.LEAVES)
+                || st.is(net.minecraft.tags.BlockTags.WOOL)
+                || st.is(net.minecraft.tags.BlockTags.WOOL_CARPETS)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_FENCES)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_SLABS)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_STAIRS)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_DOORS)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS)
+                || st.is(Blocks.HAY_BLOCK)
+                || st.is(Blocks.BOOKSHELF)
+                || st.is(Blocks.DRIED_KELP_BLOCK)
+                || st.is(Blocks.SCAFFOLDING)
+                || st.is(Blocks.BAMBOO)
+                || st.is(Blocks.COAL_BLOCK)) {
+            return true;
+        }
+        // getBurnOdds is private in Fabric — use flammable block tag check instead
+        if (st.is(net.minecraft.tags.BlockTags.LOGS) || st.is(net.minecraft.tags.BlockTags.PLANKS)
+                || st.is(net.minecraft.tags.BlockTags.LEAVES) || st.is(net.minecraft.tags.BlockTags.WOOL)
+                || st.is(net.minecraft.tags.BlockTags.WOOL_CARPETS) || st.is(net.minecraft.tags.BlockTags.FENCE_GATES)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_FENCES) || st.is(net.minecraft.tags.BlockTags.WOODEN_DOORS)
+                || st.is(net.minecraft.tags.BlockTags.WOODEN_SLABS) || st.is(net.minecraft.tags.BlockTags.WOODEN_STAIRS)
+                || st.is(Blocks.BOOKSHELF) || st.is(Blocks.HAY_BLOCK)) {
+            return true;
+        }
+        return false;
+    }
+
     public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius) {
+        applyPyroEnvironmentEffects(level, hitPos, radius);
         BlockPos center = BlockPos.containing(hitPos);
         int r = Math.max(1, (int) Math.ceil(radius));
         double r2 = (radius + 0.75D) * (radius + 0.75D);

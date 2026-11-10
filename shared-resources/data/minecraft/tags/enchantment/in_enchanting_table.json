@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "velorise_staves:elemental_mastery",
+      "required": false
+    }
+  ]
+}

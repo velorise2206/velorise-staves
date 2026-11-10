@@ -45,6 +45,12 @@ public final class ModNetwork {
                 .encoder(FreezeStrugglePacket::toBytes)
                 .consumerMainThread(FreezeStrugglePacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(ConfigSyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(ConfigSyncPacket::new)
+                .encoder(ConfigSyncPacket::toBytes)
+                .consumerMainThread(ConfigSyncPacket::handle)
+                .add();
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -114,6 +120,11 @@ public final class ModNetwork {
                 durationTicks
         );
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+
+    public static void sendConfigSyncToPlayer(ServerPlayer player) {
+        if (player == null) return;
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ConfigSyncPacket(com.velorise.staves.config.StavesConfig.createSnapshotFromLocal()));
     }
 
     public static void sendFreezeStruggle() {

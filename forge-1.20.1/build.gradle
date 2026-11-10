@@ -76,6 +76,9 @@ dependencies {
 tasks.named('processResources', ProcessResources).configure {
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
     exclude 'data/velorise_staves/recipe/**'
+    exclude 'data/velorise_staves/enchantment/**'
+    exclude 'data/minecraft/tags/enchantment/**'
+    exclude 'data/velorise_staves/tags/item/**'
     exclude 'data/minecraft/tags/item/**'
     exclude 'data/velorise_staves/tags/entity_type/**'
     exclude 'assets/velorise_staves/models/item/*wind_staff.json'

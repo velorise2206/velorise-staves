@@ -59,8 +59,13 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             ClientAuraRenderer.renderPlayerAuraHud(guiGraphics);
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ConfigSyncPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> com.velorise.staves.config.StavesConfig.applyServerSync(payload.data()));
+        });
+
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
+            com.velorise.staves.config.StavesConfig.clearServerSync();
         });
     }
 }

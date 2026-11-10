@@ -2,6 +2,7 @@ package com.velorise.staves.element;
 
 import com.mojang.math.Transformation;
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -32,7 +33,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Manages Genshin Impact Dendro Cores in Fabric 1.21.1.
+ * Manages Genshin Impact Dendro Cores in Minecraft.
  * Handles Bloom seed physical dropping, water buoyancy, 6s timeout explosion,
  * Hyperbloom (50% seed projectile with Genshin crescent homing arc), and Burgeon (Pyro 5m AoE blast).
  */
@@ -274,11 +275,19 @@ public final class DendroCoreManager {
         core.level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.5D, pos.z, 25, 0.7D, 0.5D, 0.7D, 0.05D);
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.3F);
 
+        ServerPlayer owner = core.ownerId != null ? core.level.getServer().getPlayerList().getPlayer(core.ownerId) : null;
         float dmg = 8.0F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
-                victim.hurt(core.level.damageSources().magic(), dmg);
+                ElementalGaugeManager.triggerMobAggro(core.level, victim, owner);
+                // Genshin Impact: Innate Dendro beings are immune to Dendro Bloom damage
+                if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                    ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.DENDRO, ElementalReaction.IMMUNE, 0.0F);
+                    continue;
+                }
+                victim.hurt(ElementalGaugeManager.getElementalDamageSource(core.level, owner), dmg);
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
             }
         }
@@ -312,7 +321,8 @@ public final class DendroCoreManager {
             targetPos = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 12.0D, core.level.random.nextDouble() * 4.0D - 2.0D);
         }
 
-        float hyperbloomDmg = 16.0F * core.damageMultiplier;
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
+        float hyperbloomDmg = 16.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
 
         // Spawn fullbright, glowing Dendro Core seed projectile
         Display.ItemDisplay visualSeed = spawnVisualSeed(core.level, p0);
@@ -328,15 +338,23 @@ public final class DendroCoreManager {
         core.level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.5D, pos.z, 35, 0.8D, 0.5D, 0.8D, 0.08D);
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0F, 1.1F);
 
-        float burgeonDmg = 17.5F * core.damageMultiplier;
+        EnvironmentalBlockManager.applyPyroEnvironmentEffects(core.level, pos, 3.0D);
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
+        float burgeonDmg = 17.5F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
+                ElementalGaugeManager.triggerMobAggro(core.level, victim, attacker);
+                if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                    ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.PYRO, ElementalReaction.IMMUNE, 0.0F);
+                    continue;
+                }
                 float effectiveDmg = burgeonDmg;
                 if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, core.level.getGameTime()) == Element.PYRO) {
                     effectiveDmg *= 0.4F;
                 }
-                victim.hurt(core.level.damageSources().magic(), effectiveDmg);
+                victim.hurt(ElementalGaugeManager.getElementalDamageSource(core.level, attacker), effectiveDmg);
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
             }
         }
@@ -408,17 +426,30 @@ public final class DendroCoreManager {
                 boolean hitAny = false;
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
                     if (canTakeBloomDamage(nearby, level.getGameTime())) {
-                        nearby.hurt(level.damageSources().magic(), m.damage);
+                        ElementalGaugeManager.triggerMobAggro(level, nearby, m.attacker);
+                        if (ElementalGaugeManager.getInnateElement(nearby) == Element.DENDRO) {
+                            ElementalGaugeManager.syncAuras(nearby, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
+                            hitAny = true;
+                            continue;
+                        }
+                        nearby.hurt(ElementalGaugeManager.getElementalDamageSource(level, m.attacker), m.damage);
+                        ElementalGaugeManager.enforceFrozenPoseIfFrozen(nearby);
                         ElementalGaugeManager.syncAuras(nearby, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
                         hitAny = true;
                     }
                 }
                 LivingEntity victim = m.target;
                 if (!hitAny && victim != null && victim.isAlive() && !victim.isRemoved() && victim != m.attacker) {
-                    if (canTakeBloomDamage(victim, level.getGameTime())) {
-                        victim.hurt(level.damageSources().magic(), m.damage);
+                    ElementalGaugeManager.triggerMobAggro(level, victim, m.attacker);
+                    if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                        ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
+                    } else {
+                        if (canTakeBloomDamage(victim, level.getGameTime())) {
+                            victim.hurt(ElementalGaugeManager.getElementalDamageSource(level, m.attacker), m.damage);
+                            ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
+                        }
+                        ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
                     }
-                    ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
                 }
                 continue;
             }

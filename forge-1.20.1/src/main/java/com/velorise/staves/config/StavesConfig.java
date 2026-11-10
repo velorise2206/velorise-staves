@@ -189,7 +189,203 @@ public final class StavesConfig {
         } catch (Exception ignored) {}
     }
 
+    public static final class SyncedData {
+        public final double damageMultiplier;
+        public final double cooldownMultiplier;
+        public final double voidRangeBasic;
+        public final double voidRangeNetherite;
+        public final double voidCooldown;
+        public final double mirrorCooldown;
+        public final double mirrorChannel;
+        public final double[] staffCooldowns;
+        public final int[] staffDurabilitiesBasic;
+        public final int[] staffDurabilitiesNetherite;
+        public final int voidDurabilityBasic;
+        public final int voidDurabilityNetherite;
+        public final int mirrorDurabilityBasic;
+        public final int mirrorDurabilityNetherite;
+
+        public SyncedData(
+                double damageMultiplier,
+                double cooldownMultiplier,
+                double voidRangeBasic,
+                double voidRangeNetherite,
+                double voidCooldown,
+                double mirrorCooldown,
+                double mirrorChannel,
+                double[] staffCooldowns,
+                int[] staffDurabilitiesBasic,
+                int[] staffDurabilitiesNetherite,
+                int voidDurabilityBasic,
+                int voidDurabilityNetherite,
+                int mirrorDurabilityBasic,
+                int mirrorDurabilityNetherite
+        ) {
+            this.damageMultiplier = damageMultiplier;
+            this.cooldownMultiplier = cooldownMultiplier;
+            this.voidRangeBasic = voidRangeBasic;
+            this.voidRangeNetherite = voidRangeNetherite;
+            this.voidCooldown = voidCooldown;
+            this.mirrorCooldown = mirrorCooldown;
+            this.mirrorChannel = mirrorChannel;
+            this.staffCooldowns = staffCooldowns;
+            this.staffDurabilitiesBasic = staffDurabilitiesBasic;
+            this.staffDurabilitiesNetherite = staffDurabilitiesNetherite;
+            this.voidDurabilityBasic = voidDurabilityBasic;
+            this.voidDurabilityNetherite = voidDurabilityNetherite;
+            this.mirrorDurabilityBasic = mirrorDurabilityBasic;
+            this.mirrorDurabilityNetherite = mirrorDurabilityNetherite;
+        }
+
+        public void write(net.minecraft.network.FriendlyByteBuf buf) {
+            buf.writeDouble(damageMultiplier);
+            buf.writeDouble(cooldownMultiplier);
+            buf.writeDouble(voidRangeBasic);
+            buf.writeDouble(voidRangeNetherite);
+            buf.writeDouble(voidCooldown);
+            buf.writeDouble(mirrorCooldown);
+            buf.writeDouble(mirrorChannel);
+            buf.writeVarInt(staffCooldowns.length);
+            for (int i = 0; i < staffCooldowns.length; i++) {
+                buf.writeDouble(staffCooldowns[i]);
+                buf.writeVarInt(staffDurabilitiesBasic[i]);
+                buf.writeVarInt(staffDurabilitiesNetherite[i]);
+            }
+            buf.writeVarInt(voidDurabilityBasic);
+            buf.writeVarInt(voidDurabilityNetherite);
+            buf.writeVarInt(mirrorDurabilityBasic);
+            buf.writeVarInt(mirrorDurabilityNetherite);
+        }
+
+        public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
+            double dmgMult = buf.readDouble();
+            double cdMult = buf.readDouble();
+            double vBasic = buf.readDouble();
+            double vNeth = buf.readDouble();
+            double vCd = buf.readDouble();
+            double mCd = buf.readDouble();
+            double mCh = buf.readDouble();
+            int len = buf.readVarInt();
+            double[] cds = new double[len];
+            int[] dBasic = new int[len];
+            int[] dNeth = new int[len];
+            for (int i = 0; i < len; i++) {
+                cds[i] = buf.readDouble();
+                dBasic[i] = buf.readVarInt();
+                dNeth[i] = buf.readVarInt();
+            }
+            int vdBasic = buf.readVarInt();
+            int vdNeth = buf.readVarInt();
+            int mdBasic = buf.readVarInt();
+            int mdNeth = buf.readVarInt();
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth);
+        }
+    }
+
+    private static volatile SyncedData syncedServerData = null;
+
+    public static void applyServerSync(SyncedData data) {
+        syncedServerData = data;
+    }
+
+    public static void clearServerSync() {
+        syncedServerData = null;
+    }
+
+    public static SyncedData createSnapshotFromLocal() {
+        ArcaneStaffItem.Kind[] kinds = ArcaneStaffItem.Kind.values();
+        double[] cds = new double[kinds.length];
+        int[] dBasic = new int[kinds.length];
+        int[] dNeth = new int[kinds.length];
+        for (int i = 0; i < kinds.length; i++) {
+            cds[i] = getLocalStaffCooldownSeconds(kinds[i]);
+            dBasic[i] = getMaxDurability(kinds[i], false);
+            dNeth[i] = getMaxDurability(kinds[i], true);
+        }
+        return new SyncedData(
+                DAMAGE_MULTIPLIER.get(),
+                COOLDOWN_MULTIPLIER.get(),
+                VOID_TRANSLOCATOR_RANGE_BASIC.get(),
+                VOID_TRANSLOCATOR_RANGE_NETHERITE.get(),
+                VOID_TRANSLOCATOR_COOLDOWN_SECONDS.get(),
+                MAGIC_MIRROR_COOLDOWN_SECONDS.get(),
+                MAGIC_MIRROR_CHANNEL_SECONDS.get(),
+                cds,
+                dBasic,
+                dNeth,
+                VOID_TRANSLOCATOR_DURABILITY_BASIC.get(),
+                VOID_TRANSLOCATOR_DURABILITY_NETHERITE.get(),
+                MAGIC_MIRROR_DURABILITY_BASIC.get(),
+                MAGIC_MIRROR_DURABILITY_NETHERITE.get()
+        );
+    }
+
+    public static double getDamageMultiplier() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.damageMultiplier : DAMAGE_MULTIPLIER.get();
+    }
+
+    public static double getCooldownMultiplier() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.cooldownMultiplier : COOLDOWN_MULTIPLIER.get();
+    }
+
+    public static double getVoidTranslocatorRange(boolean isNetherite) {
+        SyncedData s = syncedServerData;
+        if (s != null) {
+            return isNetherite ? s.voidRangeNetherite : s.voidRangeBasic;
+        }
+        return isNetherite ? VOID_TRANSLOCATOR_RANGE_NETHERITE.get() : VOID_TRANSLOCATOR_RANGE_BASIC.get();
+    }
+
+    public static double getVoidTranslocatorCooldownSeconds() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.voidCooldown : VOID_TRANSLOCATOR_COOLDOWN_SECONDS.get();
+    }
+
+    public static double getMagicMirrorCooldownSeconds() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.mirrorCooldown : MAGIC_MIRROR_COOLDOWN_SECONDS.get();
+    }
+
+    public static double getMagicMirrorChannelSeconds() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.mirrorChannel : MAGIC_MIRROR_CHANNEL_SECONDS.get();
+    }
+
     public static double getStaffCooldownSeconds(ArcaneStaffItem.Kind kind) {
+        SyncedData s = syncedServerData;
+        if (s != null && kind.ordinal() < s.staffCooldowns.length) {
+            return s.staffCooldowns[kind.ordinal()];
+        }
+        return getLocalStaffCooldownSeconds(kind);
+    }
+
+    public static int getMaxDurability(ArcaneStaffItem.Kind kind, boolean isNetherite) {
+        SyncedData s = syncedServerData;
+        if (s != null && kind.ordinal() < s.staffDurabilitiesBasic.length) {
+            return isNetherite ? s.staffDurabilitiesNetherite[kind.ordinal()] : s.staffDurabilitiesBasic[kind.ordinal()];
+        }
+        return getMaxDurability(kind, isNetherite);
+    }
+
+    public static int getArtifactMaxDurability(boolean isTranslocator, boolean isNetherite) {
+        SyncedData s = syncedServerData;
+        if (s != null) {
+            if (isTranslocator) {
+                return isNetherite ? s.voidDurabilityNetherite : s.voidDurabilityBasic;
+            } else {
+                return isNetherite ? s.mirrorDurabilityNetherite : s.mirrorDurabilityBasic;
+            }
+        }
+        if (isTranslocator) {
+            return isNetherite ? VOID_TRANSLOCATOR_DURABILITY_NETHERITE.get() : VOID_TRANSLOCATOR_DURABILITY_BASIC.get();
+        } else {
+            return isNetherite ? MAGIC_MIRROR_DURABILITY_NETHERITE.get() : MAGIC_MIRROR_DURABILITY_BASIC.get();
+        }
+    }
+
+    private static double getLocalStaffCooldownSeconds(ArcaneStaffItem.Kind kind) {
         return switch (kind) {
             case DRAGONFIRE -> DRAGONFIRE_COOLDOWN.get();
             case ECHO -> ECHO_COOLDOWN.get();
@@ -205,27 +401,28 @@ public final class StavesConfig {
         };
     }
 
-    public static int getMaxDurability(ArcaneStaffItem.Kind kind, boolean isNetherite) {
-        return switch (kind) {
-            case DRAGONFIRE -> isNetherite ? DRAGONFIRE_DURABILITY_NETHERITE.get() : DRAGONFIRE_DURABILITY_BASIC.get();
-            case ECHO -> isNetherite ? ECHO_DURABILITY_NETHERITE.get() : ECHO_DURABILITY_BASIC.get();
-            case INFERNO -> isNetherite ? INFERNO_DURABILITY_NETHERITE.get() : INFERNO_DURABILITY_BASIC.get();
-            case GHASTFIRE -> isNetherite ? GHASTFIRE_DURABILITY_NETHERITE.get() : GHASTFIRE_DURABILITY_BASIC.get();
-            case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
-            case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
-            case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
-            case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
-            case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
-            case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
-            case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
-        };
+
+    // --- Compatibility helpers for ElementalCodexScreen ---
+
+    public static boolean isServerSynced() {
+        return false; // Forge uses ForgeConfigSpec; server-sync is not supported
     }
 
-    public static int getArtifactMaxDurability(boolean isTranslocator, boolean isNetherite) {
-        if (isTranslocator) {
-            return isNetherite ? VOID_TRANSLOCATOR_DURABILITY_NETHERITE.get() : VOID_TRANSLOCATOR_DURABILITY_BASIC.get();
-        } else {
-            return isNetherite ? MAGIC_MIRROR_DURABILITY_NETHERITE.get() : MAGIC_MIRROR_DURABILITY_BASIC.get();
-        }
+    public static int getBasicStaffDurability() {
+        return DRAGONFIRE_DURABILITY_BASIC.get();
     }
+
+    public static int getNetheriteStaffDurability() {
+        return DRAGONFIRE_DURABILITY_NETHERITE.get();
+    }
+
+    public static double getRangeMultiplier() {
+        return 1.0;
+    }
+
+
+    public static boolean isElementalGaugeEnabled() {
+        return ENABLE_ELEMENTAL_GAUGE.get();
+    }
+
 }

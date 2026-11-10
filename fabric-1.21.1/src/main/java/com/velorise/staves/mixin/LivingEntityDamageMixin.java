@@ -12,10 +12,20 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityDamageMixin {
+    @Inject(method = "completeUsingItem", at = @At("HEAD"))
+    private void velorise$onCompleteUsingItem(CallbackInfo ci) {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (!entity.level().isClientSide() && entity.level() instanceof ServerLevel sl) {
+            ElementalGaugeManager.handleItemUseFinish(sl, entity, entity.getUseItem());
+        }
+    }
+
     @ModifyVariable(
             method = "actuallyHurt",
             at = @At(value = "STORE", ordinal = 0),

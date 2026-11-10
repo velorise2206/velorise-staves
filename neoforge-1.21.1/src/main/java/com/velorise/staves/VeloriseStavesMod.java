@@ -1,6 +1,7 @@
 package com.velorise.staves;
 
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.config.StavesConfig;
@@ -68,7 +69,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> WIND_STAFF = ITEMS.register("wind_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 140, false));
 
-    // Basic Utility Artifacts
+    // Guidebook & Utility Artifacts
+    public static final Supplier<Item> ELEMENTAL_CODEX = ITEMS.register("elemental_codex",
+        ElementalCodexItem::new);
     public static final Supplier<Item> VOID_TRANSLOCATOR = ITEMS.register("void_translocator",
         () -> new VoidTranslocatorItem(80, 24.0D, false));
 
@@ -137,6 +140,9 @@ public final class VeloriseStavesMod {
             .title(Component.translatable("itemGroup.velorise_staves"))
             .icon(() -> new ItemStack(NETHERITE_DRAGONFIRE_SCEPTER.get()))
             .displayItems((parameters, output) -> {
+                // Guidebook
+                output.accept(ELEMENTAL_CODEX.get());
+
                 // Basic tier
                 output.accept(DRAGONFIRE_SCEPTER.get());
                 output.accept(RESONANT_ECHO.get());
@@ -171,6 +177,20 @@ public final class VeloriseStavesMod {
 
                 // Reactions
                 output.accept(DENDRO_CORE.get());
+
+                // Elemental Mastery I-III Enchanted Books
+                parameters.holders().lookup(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .flatMap(reg -> reg.get(net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.ENCHANTMENT,
+                        ResourceLocation.fromNamespaceAndPath(MODID, "elemental_mastery")
+                    )))
+                    .ifPresent(holder -> {
+                        for (int lvl = 1; lvl <= 3; lvl++) {
+                            output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                                new net.minecraft.world.item.enchantment.EnchantmentInstance(holder, lvl)
+                            ));
+                        }
+                    });
             })
             .build());
 

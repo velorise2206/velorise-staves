@@ -1,0 +1,29 @@
+{
+  "replace": false,
+  "values": [
+    "velorise_staves:dragonfire_scepter",
+    "velorise_staves:resonant_echo",
+    "velorise_staves:inferno_rod",
+    "velorise_staves:ghastfire_staff",
+    "velorise_staves:wither_scepter",
+    "velorise_staves:shulker_seeker",
+    "velorise_staves:guardian_lens",
+    "velorise_staves:evoker_fang_staff",
+    "velorise_staves:arc_caster",
+    "velorise_staves:frostbolt_wand",
+    "velorise_staves:webcaster",
+    "velorise_staves:wind_staff",
+    "velorise_staves:netherite_dragonfire_scepter",
+    "velorise_staves:netherite_resonant_echo",
+    "velorise_staves:netherite_inferno_rod",
+    "velorise_staves:netherite_ghastfire_staff",
+    "velorise_staves:netherite_wither_scepter",
+    "velorise_staves:netherite_shulker_seeker",
+    "velorise_staves:netherite_guardian_lens",
+    "velorise_staves:netherite_evoker_fang_staff",
+    "velorise_staves:netherite_arc_caster",
+    "velorise_staves:netherite_frostbolt_wand",
+    "velorise_staves:netherite_webcaster",
+    "velorise_staves:netherite_wind_staff"
+  ]
+}

@@ -8,8 +8,8 @@ import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.server.level.ServerLevel;
@@ -24,13 +24,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.Snowball;
 import net.minecraft.world.entity.projectile.ThrownPotion;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.alchemy.PotionContents;
-import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -42,6 +41,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
@@ -86,22 +88,40 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onLivingUseItemFinish(LivingEntityUseItemEvent.Finish event) {
+        if (!(event.getEntity().level() instanceof ServerLevel level)) return;
+        ElementalGaugeManager.handleItemUseFinish(level, event.getEntity(), event.getItem());
+    }
+
+    @SubscribeEvent
+    public static void onLivingDeath(LivingDeathEvent event) {
+        if (!event.getEntity().level().isClientSide()) {
+            ElementalGaugeManager.clearEntityState(event.getEntity());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
+            ElementalGaugeManager.clearEntityState(player);
+        }
+    }
+
+    @SubscribeEvent
     public static void onProjectileImpact(ProjectileImpactEvent event) {
         Projectile projectile = event.getProjectile();
         if (!(projectile.level() instanceof ServerLevel level)) return;
 
-        // Splash Water / Poison / Slowness Potion applies Hydro / Dendro / Cryo 1.0U
+        // Splash & Lingering Potions apply 1.0U mapped element(s) to entities in splash radius
         if (projectile instanceof ThrownPotion potion) {
-            ItemStack stack = potion.getItem();
-            PotionContents contents = stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
-            if (contents.is(Potions.WATER)) {
-                handleWaterPotionSplash(level, potion);
-            } else if (contents.is(Potions.POISON) || contents.is(Potions.LONG_POISON) || contents.is(Potions.STRONG_POISON)) {
-                handlePoisonPotionSplash(level, potion);
-            } else if (contents.is(Potions.SLOWNESS) || contents.is(Potions.LONG_SLOWNESS) || contents.is(Potions.STRONG_SLOWNESS)) {
-                handleSlownessPotionSplash(level, potion);
-            } else if (contents.is(Potions.HARMING) || contents.is(Potions.STRONG_HARMING)) {
-                handleHarmingPotionSplash(level, potion);
+            handlePotionSplash(level, potion, event.getRayTraceResult().getLocation());
+        }
+
+        // Tipped Arrows apply 1.0U mapped element(s) on direct hit
+        if (projectile instanceof Arrow arrow) {
+            LivingEntity directHit = hitEntity(event);
+            if (directHit != null) {
+                ElementalGaugeManager.handleTippedArrowHit(level, arrow, directHit);
             }
         }
 
@@ -207,6 +227,7 @@ public final class ArcaneStaffEvents {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
+        ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
     }
 
     @SubscribeEvent
@@ -290,11 +311,10 @@ public final class ArcaneStaffEvents {
         }
         cloud.setParticle(ParticleTypes.DRAGON_BREATH);
         float radius = isNetherite ? 4.5F : 3.5F;
-        cloud.setRadius(radius);
+        cloud.setRadius(0.0F);
         cloud.setDuration(120); // 6 seconds
-        cloud.setRadiusPerTick(((radius + 1.0F) - cloud.getRadius()) / (float) cloud.getDuration());
-        cloud.setWaitTime(10);
-        // Visual-only dragon breath cloud: vanilla MobEffects.HARM omitted to prevent unresistable vanilla magic damage
+        cloud.setRadiusPerTick(0.0F);
+        cloud.setWaitTime(140);
         cloud.addTag("velorise_staves:dragonfire_cloud");
         level.addFreshEntity(cloud);
 
@@ -305,10 +325,10 @@ public final class ArcaneStaffEvents {
         }
         DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, player);
 
-        // Immediately electrify water beneath/around impact pos and register continuous cloud electrification
+        // Immediately electrify water beneath/around impact pos and register 1s expanding ring manager
         BlockPos hitPos = BlockPos.containing(hit);
         com.velorise.staves.element.ElectrifiedWaterManager.electrify(level, hitPos, radius + 1.0D, 120, player, 1.0F);
-        com.velorise.staves.element.DragonfireCloudManager.register(cloud, level, player, isNetherite);
+        com.velorise.staves.element.DragonfireCloudManager.register(cloud, level, player, isNetherite, radius);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
     }
@@ -345,19 +365,19 @@ public final class ArcaneStaffEvents {
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 45 : 35,
             radius * 0.35D, radius * 0.25D, radius * 0.35D, 0.05D);
 
-        // Lingering 5-second (100 ticks) fire field AoE
+        // Lingering 5-second (100 ticks) fire field AoE with 1s expanding ring pulse
         AreaEffectCloud fireField = new AreaEffectCloud(level, hit.x, hit.y, hit.z);
         if (owner instanceof LivingEntity living) {
             fireField.setOwner(living);
         }
         fireField.setParticle(ParticleTypes.FLAME);
-        fireField.setRadius((float) radius);
+        fireField.setRadius(0.0F);
         fireField.setDuration(100); // 5 seconds
-        fireField.setRadiusPerTick(((float) radius - fireField.getRadius()) / 100.0F);
-        fireField.setWaitTime(0);
+        fireField.setRadiusPerTick(0.0F);
+        fireField.setWaitTime(120);
         fireField.addTag("velorise_staves:ghastfire_field");
         level.addFreshEntity(fireField);
-        com.velorise.staves.element.GhastfireFieldManager.register(fireField, level, player, isNetherite);
+        com.velorise.staves.element.GhastfireFieldManager.register(fireField, level, player, isNetherite, (float) radius);
 
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0F, 0.8F);
     }
@@ -379,8 +399,10 @@ public final class ArcaneStaffEvents {
         float finalDmg = (float) ((isNetherite ? 6.0F : 4.0F) * dmgMult);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
+            ElementalGaugeManager.triggerMobAggro(level, target, player);
             DamageSource source = player != null ? level.damageSources().indirectMagic(player, player) : level.damageSources().wither();
             target.hurt(source, finalDmg);
+            ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
             target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,
@@ -395,7 +417,9 @@ public final class ArcaneStaffEvents {
             float baseDmg = isNetherite ? 6.0F : 4.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
-            if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO && !ElementalGaugeManager.isBossEntity(target)) {
+            if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
+                    && !ElementalGaugeManager.isBossEntity(target)
+                    && !ElementalGaugeManager.isEntityFrozen(target)) {
                 target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 80 : 60, 0));
             }
         }
@@ -411,19 +435,25 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.CRYO, attackU, player, baseDmg);
-            if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO && !ElementalGaugeManager.isBossEntity(target)) {
+            if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO
+                    && !ElementalGaugeManager.isBossEntity(target)
+                    && !ElementalGaugeManager.isEntityFrozen(target)) {
                 target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 60, 1));
                 target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 140 : 100));
             }
+            ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
         }
         if (isNetherite) {
             for (LivingEntity splashTarget : targets(level, hit, 2.0D, owner)) {
                 if (splashTarget != target) {
                     ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, 1.0F, player, 2.5F);
-                    if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO && !ElementalGaugeManager.isBossEntity(splashTarget)) {
+                    if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO
+                            && !ElementalGaugeManager.isBossEntity(splashTarget)
+                            && !ElementalGaugeManager.isEntityFrozen(splashTarget)) {
                         splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0));
                         splashTarget.setTicksFrozen(100);
                     }
+                    ElementalGaugeManager.enforceFrozenPoseIfFrozen(splashTarget);
                 }
             }
         }
@@ -519,24 +549,66 @@ public final class ArcaneStaffEvents {
         float baseDmg = isNetherite ? 2.5F : 1.5F;
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
+        double radiusSqr = radius * radius;
 
-        level.sendParticles(ParticleTypes.GUST, hit.x, hit.y + 0.3D, hit.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, hit.x, hit.y + 0.2D, hit.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.sendParticles(ParticleTypes.GUST, hit.x, hit.y + 0.3D, hit.z, 2, 0.25D, 0.15D, 0.25D, 0.0D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
+        // 1. Self Wind-Jump / Knockback on the caster when shooting near themselves or at the ground (vanilla Wind Charge behavior)
+        if (owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
+            double distSqr = ownerLiving.position().distanceToSqr(hit);
+            if (distSqr <= radiusSqr) {
+                double dist = Math.sqrt(distSqr);
+                double falloff = Math.max(0.30D, 1.0D - (dist / (radius + 0.5D)));
+                Vec3 toOwner = ownerLiving.getBoundingBox().getCenter().subtract(hit);
+                Vec3 horizDir = new Vec3(toOwner.x, 0.0D, toOwner.z);
+                if (horizDir.lengthSqr() > 1.0E-4D) {
+                    horizDir = horizDir.normalize();
+                }
+                double boostScale = isNetherite ? 1.25D : 1.05D;
+                double vx = horizDir.x * 0.55D * falloff * boostScale;
+                double vz = horizDir.z * 0.55D * falloff * boostScale;
+                double vy = Math.max(0.78D, (0.95D * falloff + 0.20D) * boostScale);
+                Vec3 cur = ownerLiving.getDeltaMovement();
+                ownerLiving.setDeltaMovement(cur.x * 0.35D + vx, Math.max(cur.y, vy), cur.z * 0.35D + vz);
+                ownerLiving.fallDistance = 0.0F;
+                ownerLiving.hurtMarked = true;
+                if (ownerLiving instanceof ServerPlayer sp) {
+                    sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                }
+            }
+        }
+
+        // 2. Direct hit target
         LivingEntity directHit = hitEntity(event);
         if (directHit != null && directHit != owner) {
             ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
+            if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
+                Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
+                Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * 0.65D, 0.45D, knock.z * 0.65D));
+                directHit.hurtMarked = true;
+                if (directHit instanceof ServerPlayer sp) {
+                    sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                }
+            }
         }
 
+        // 3. Splash AoE targets
         AABB blastBox = new AABB(hit, hit).inflate(radius);
-        double radiusSqr = radius * radius;
         for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
             if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
-                Vec3 diff = nearby.position().subtract(hit);
-                Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.6D, 0.35D, knock.z * 0.6D));
-                nearby.hurtMarked = true;
                 ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
+                if (!ElementalGaugeManager.isEntityFrozen(nearby)) {
+                    Vec3 diff = nearby.position().subtract(hit);
+                    Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.65D, 0.42D, knock.z * 0.65D));
+                    nearby.hurtMarked = true;
+                    if (nearby instanceof ServerPlayer sp) {
+                        sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                    }
+                }
             }
         }
     }
@@ -566,54 +638,28 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
-    private static void handleWaterPotionSplash(ServerLevel level, ThrownPotion potion) {
-        Entity owner = potion.getOwner();
-        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
-        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
-        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
-        for (LivingEntity living : nearby) {
-            if (potion.distanceToSqr(living) <= 16.0D) {
-                ElementalGaugeManager.applyElement(level, living, Element.HYDRO, 1.0F, thrower, 0.0F);
-            }
-        }
-    }
+    private static void handlePotionSplash(ServerLevel level, ThrownPotion potion, Vec3 hitPos) {
+        ItemStack stack = potion.getItem();
+        List<Element> elements = ElementalGaugeManager.getElementsFromPotionStack(stack);
+        if (elements.isEmpty()) return;
 
-    private static void handlePoisonPotionSplash(ServerLevel level, ThrownPotion potion) {
         Entity owner = potion.getOwner();
         ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
-        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
+        AABB splashBox = new AABB(hitPos, hitPos).inflate(4.0D, 2.0D, 4.0D);
         List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
         for (LivingEntity living : nearby) {
-            if (potion.distanceToSqr(living) <= 16.0D) {
-                ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, thrower, 0.0F);
+            if (living.distanceToSqr(hitPos) <= 16.0D) {
+                for (Element elem : elements) {
+                    ElementalGaugeManager.applyElementBypassIcd(level, living, elem, 1.0F, thrower, 0.0F);
+                }
             }
         }
-    }
-
-    private static void handleSlownessPotionSplash(ServerLevel level, ThrownPotion potion) {
-        Entity owner = potion.getOwner();
-        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
-        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
-        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
-        for (LivingEntity living : nearby) {
-            if (potion.distanceToSqr(living) <= 16.0D) {
-                ElementalGaugeManager.applyElement(level, living, Element.CRYO, 1.0F, thrower, 0.0F);
-            }
+        if (elements.contains(Element.CRYO)) {
+            freezeWaterNear(level, hitPos, 2);
         }
-        freezeWaterNear(level, potion.position(), 2);
-    }
-
-    private static void handleHarmingPotionSplash(ServerLevel level, ThrownPotion potion) {
-        Entity owner = potion.getOwner();
-        ServerPlayer thrower = owner instanceof ServerPlayer sp ? sp : null;
-        AABB splashBox = potion.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
-        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && !e.isSpectator());
-        for (LivingEntity living : nearby) {
-            if (potion.distanceToSqr(living) <= 16.0D) {
-                ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, thrower, 0.0F);
-            }
+        if (elements.contains(Element.ELECTRO)) {
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 20, 0.5D, 0.3D, 0.5D, 0.05D);
         }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, potion.getX(), potion.getY(), potion.getZ(), 20, 0.5D, 0.3D, 0.5D, 0.05D);
     }
 
     private static LivingEntity hitEntity(ProjectileImpactEvent event) {
@@ -638,23 +684,20 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
-    public static void onStartTracking(net.neoforged.neoforge.event.entity.player.PlayerEvent.StartTracking event) {
+    public static void onStartTracking(PlayerEvent.StartTracking event) {
         if (event.getTarget() instanceof LivingEntity living && event.getEntity() instanceof ServerPlayer player) {
-            java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(living.getUUID());
-            if (!elements.isEmpty()) {
-                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(living.getUUID());
-                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
-            }
+            ElementalGaugeManager.syncEntityOnStartTracking(player, living);
         }
     }
 
     @SubscribeEvent
-    public static void onPlayerLoggedIn(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) {
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            java.util.Collection<Element> elements = ElementalGaugeManager.getEntityElements(player.getUUID());
-            if (!elements.isEmpty()) {
-                int duration = ElementalGaugeManager.getEntityMaxDurationTicks(player.getUUID());
-                com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, player, elements, duration);
+            com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
+            ElementalGaugeManager.syncEntityOnStartTracking(player, player);
+            if (!player.getTags().contains("velorise_staves:received_codex")) {
+                player.addTag("velorise_staves:received_codex");
+                player.getInventory().add(new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get()));
             }
         }
     }

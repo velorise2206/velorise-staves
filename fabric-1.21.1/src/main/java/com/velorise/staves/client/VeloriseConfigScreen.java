@@ -100,9 +100,15 @@ public class VeloriseConfigScreen extends Screen {
                     StavesConfig.COOLDOWN_MULTIPLIER.set(val);
                 }));
 
-        // Bottom Row: Reset Defaults (Left) & Done (Right)
-        int btnW = 140;
+        // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
+        int btnW = 98;
         int bottomY = startY + rowHeight * 4 + 14;
+
+        this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
+            if (this.minecraft != null) {
+                this.minecraft.setScreen(new ElementalCodexScreen(this));
+            }
+        }).bounds(centerX - btnW - 54, bottomY, btnW, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.reset"), btn -> {
             StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.set(true);
@@ -116,14 +122,14 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.save();
             this.clearWidgets();
             this.init();
-        }).bounds(centerX - btnW - 6, bottomY, btnW, 20).build());
+        }).bounds(centerX - 49, bottomY, btnW, 20).build());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> {
             StavesConfig.save();
             if (this.minecraft != null) {
                 this.minecraft.setScreen(this.parent);
             }
-        }).bounds(centerX + 6, bottomY, btnW, 20).build());
+        }).bounds(centerX + 54, bottomY, btnW, 20).build());
     }
 
     @Override
