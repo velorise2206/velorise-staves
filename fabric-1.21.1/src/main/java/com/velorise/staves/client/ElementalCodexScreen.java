@@ -1,24 +1,31 @@
 package com.velorise.staves.client;
 
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.math.Axis;
 import com.velorise.staves.VeloriseStavesMod;
-import com.velorise.staves.client.ClientAuraRenderer;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.item.ArcaneStaffItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.joml.Quaternionf;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -27,8 +34,8 @@ import java.util.Map;
 
 /**
  * Interactive in-game guidebook ("Elemental Codex") with categorized sidebar navigation,
- * element/item icons, beginner-friendly visual reaction equations, live server-synced
- * multipliers, and auto-detected custom screenshot slots.
+ * element/item icons, live 3D entity renders for innate mobs, visual reaction equations,
+ * and live server-synced config multipliers.
  */
 public class ElementalCodexScreen extends Screen {
     private static final int WIN_W = 436;
@@ -37,8 +44,6 @@ public class ElementalCodexScreen extends Screen {
     private static final int HEADER_H = 26;
 
     private static final Map<Element, ResourceLocation> ELEMENT_ICONS = new EnumMap<>(Element.class);
-    private static final ResourceLocation BLAZE_ICON = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/codex/blaze_icon.png");
-    private static final Map<String, Boolean> SCREENSHOT_CACHE = new HashMap<>();
 
     static {
         for (Element e : Element.values()) {
@@ -48,27 +53,21 @@ public class ElementalCodexScreen extends Screen {
     }
 
     public enum Tab {
-        BASICS("basics", "1.png", 1012, 778, 0xFF55EFC4, null),
-        ELEMENTS("elements", null, 0, 0, 0xFFFF6B4A, Element.PYRO),
-        REACTIONS_AMP("reactions_amp", "3.png", 1446, 785, 0xFF0A84FF, Element.HYDRO),
-        REACTIONS_DENDRO("reactions_dendro", "4.png", 1146, 736, 0xFF32D74B, Element.DENDRO),
-        INNATE("innate", "5.png", 1200, 879, 0xFFFF9F0A, null),
-        ENVIRONMENT("environment", "6.png", 1114, 654, 0xFF64D2FF, null),
-        STAVES("staves", null, 0, 0, 0xFFBF5AF2, null),
-        MASTERY("mastery", null, 0, 0, 0xFFFFD60A, null);
+        BASICS("basics", 0xFF55EFC4, null),
+        ELEMENTS("elements", 0xFFFF6B4A, Element.PYRO),
+        REACTIONS_AMP("reactions_amp", 0xFF0A84FF, Element.HYDRO),
+        REACTIONS_DENDRO("reactions_dendro", 0xFF32D74B, Element.DENDRO),
+        INNATE("innate", 0xFFFF9F0A, null),
+        ENVIRONMENT("environment", 0xFF64D2FF, null),
+        STAVES("staves", 0xFFBF5AF2, null),
+        MASTERY("mastery", 0xFFFFD60A, null);
 
         public final String key;
-        public final String screenshotFile;
-        public final int imgW;
-        public final int imgH;
         public final int accentColor;
         public final Element iconElement;
 
-        Tab(String key, String screenshotFile, int imgW, int imgH, int accentColor, Element iconElement) {
+        Tab(String key, int accentColor, Element iconElement) {
             this.key = key;
-            this.screenshotFile = screenshotFile;
-            this.imgW = imgW;
-            this.imgH = imgH;
             this.accentColor = accentColor;
             this.iconElement = iconElement;
         }
@@ -79,18 +78,50 @@ public class ElementalCodexScreen extends Screen {
             int borderColor,
             Element elem1,
             Element elem2,
+            List<Element> elemGroup,
             ItemStack item1,
             ItemStack item2,
+            EntityType<? extends LivingEntity> mob1,
+            EntityType<? extends LivingEntity> mob2,
             String badgeText,
             int badgeColor,
             List<String> paragraphs
-    ) {}
+    ) {
+        GuideCard(
+                String title,
+                int borderColor,
+                Element elem1,
+                Element elem2,
+                ItemStack item1,
+                ItemStack item2,
+                String badgeText,
+                int badgeColor,
+                List<String> paragraphs
+        ) {
+            this(title, borderColor, elem1, elem2, Collections.emptyList(), item1, item2, null, null, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard(
+                String title,
+                int borderColor,
+                Element elem1,
+                Element elem2,
+                EntityType<? extends LivingEntity> mob1,
+                EntityType<? extends LivingEntity> mob2,
+                String badgeText,
+                int badgeColor,
+                List<String> paragraphs
+        ) {
+            this(title, borderColor, elem1, elem2, Collections.emptyList(), ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
+        }
+    }
 
     private final Screen parent;
     private Tab currentTab = Tab.BASICS;
     private double scrollOffset = 0.0D;
     private int maxScroll = 0;
     private boolean draggingScrollbar = false;
+    private final Map<EntityType<?>, LivingEntity> dummyMobs = new HashMap<>();
 
     public ElementalCodexScreen(Screen parent) {
         super(Component.translatable("codex.velorise_staves.title"));
@@ -109,12 +140,60 @@ public class ElementalCodexScreen extends Screen {
     @Override
     protected void init() {
         super.init();
-        SCREENSHOT_CACHE.clear();
+        dummyMobs.clear();
     }
 
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    private LivingEntity getDummyMob(EntityType<? extends LivingEntity> type) {
+        if (type == null) return null;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return null;
+        return dummyMobs.computeIfAbsent(type, t -> {
+            try {
+                Entity e = t.create(mc.level);
+                if (e instanceof LivingEntity le) {
+                    le.yBodyRot = 210.0F;
+                    le.yBodyRotO = 210.0F;
+                    le.setYRot(210.0F);
+                    le.yRotO = 210.0F;
+                    le.yHeadRot = 210.0F;
+                    le.yHeadRotO = 210.0F;
+                    return le;
+                }
+            } catch (Exception ignored) {}
+            return null;
+        });
+    }
+
+    private void renderGuiMob(GuiGraphics guiGraphics, EntityType<? extends LivingEntity> type, int x, int y, float size) {
+        LivingEntity entity = getDummyMob(type);
+        if (entity == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        float maxDim = Math.max(0.85F, Math.max(entity.getBbWidth(), entity.getBbHeight()));
+        float scale = size / maxDim;
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(x + 8.0F, y + 15.0F, 50.0F);
+        guiGraphics.pose().scale(scale, scale, -scale);
+        Quaternionf rotZ = Axis.ZP.rotationDegrees(180.0F);
+        Quaternionf rotX = Axis.XP.rotationDegrees(20.0F);
+        rotZ.mul(rotX);
+        guiGraphics.pose().mulPose(rotZ);
+
+        Lighting.setupForEntityInInventory();
+        EntityRenderDispatcher dispatcher = mc.getEntityRenderDispatcher();
+        dispatcher.setRenderShadow(false);
+        RenderSystem.runAsFancy(() ->
+                dispatcher.render(entity, 0.0D, 0.0D, 0.0D, 0.0F, 1.0F, guiGraphics.pose(), guiGraphics.bufferSource(), 0xF000F0)
+        );
+        guiGraphics.flush();
+        dispatcher.setRenderShadow(true);
+        guiGraphics.pose().popPose();
+        Lighting.setupFor3DItems();
     }
 
     private static ItemStack getModItemStack(String id) {
@@ -131,23 +210,11 @@ public class ElementalCodexScreen extends Screen {
         return switch (tab) {
             case BASICS -> getModItemStack("elemental_codex");
             case REACTIONS_DENDRO -> getModItemStack("dendro_core");
-            case INNATE -> new ItemStack(Items.BLAZE_POWDER);
             case ENVIRONMENT -> new ItemStack(Items.SCULK_SENSOR);
             case STAVES -> getModItemStack("netherite_dragonfire_scepter");
             case MASTERY -> new ItemStack(Items.ENCHANTED_BOOK);
             default -> ItemStack.EMPTY;
         };
-    }
-
-    private boolean hasCustomScreenshot(String filename) {
-        return SCREENSHOT_CACHE.computeIfAbsent(filename, fn -> {
-            try {
-                ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/codex/" + fn);
-                return Minecraft.getInstance().getResourceManager().getResource(loc).isPresent();
-            } catch (Exception e) {
-                return false;
-            }
-        });
     }
 
     private static String tr(String key, Object... args) {
@@ -165,7 +232,6 @@ public class ElementalCodexScreen extends Screen {
         List<GuideCard> cards = new ArrayList<>();
         double dmgMult = StavesConfig.getDamageMultiplier();
         double cdMult = StavesConfig.getCooldownMultiplier();
-        double rngMult = StavesConfig.getRangeMultiplier();
 
         switch (tab) {
             case BASICS -> {
@@ -185,7 +251,7 @@ public class ElementalCodexScreen extends Screen {
                         tr("codex.velorise_staves.basics.card2.title"),
                         0xFFFFD60A,
                         Element.ELECTRO, Element.CRYO,
-                        getModItemStack("inferno_rod"), getModItemStack("netherite_inferno_rod"),
+                        getModItemStack("inferno_rod"), ItemStack.EMPTY,
                         "1.0U / 1.5U / 2.0U", 0xFFFFD60A,
                         List.of(
                                 tr("codex.velorise_staves.basics.card2.p1"),
@@ -219,7 +285,7 @@ public class ElementalCodexScreen extends Screen {
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.electro.title"), 0xFFBF5AF2,
-                        Element.ELECTRO, null, getModItemStack("arc_caster"), getModItemStack("dragonfire_scepter"),
+                        Element.ELECTRO, null, getModItemStack("arc_caster"), getModItemStack("shulker_seeker"),
                         "ELECTRO", 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.elem.electro.p1"), tr("codex.velorise_staves.elem.electro.p2"))
                 ));
@@ -237,13 +303,13 @@ public class ElementalCodexScreen extends Screen {
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
-                        Element.ANEMO, null, getModItemStack("resonant_echo"), getModItemStack("shulker_seeker"),
+                        Element.ANEMO, null, getModItemStack("wind_staff"), getModItemStack("resonant_echo"),
                         "ANEMO", 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.geo.title"), 0xFFFFD60A,
-                        Element.GEO, null, getModItemStack("evoker_fang_staff"), getModItemStack("pyro_crystallize_shard"),
+                        Element.GEO, null, getModItemStack("evoker_fang_staff"), ItemStack.EMPTY,
                         "GEO", 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.elem.geo.p1"), tr("codex.velorise_staves.elem.geo.p2"))
                 ));
@@ -263,7 +329,7 @@ public class ElementalCodexScreen extends Screen {
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.overvape.title"), 0xFFFF6B4A,
-                        Element.HYDRO, Element.ELECTRO, getModItemStack("inferno_rod"), ItemStack.EMPTY,
+                        Element.HYDRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
                         "x2.0 + " + fmt(5.0 * dmgMult) + " AoE", 0xFFFF6B4A,
                         List.of(tr("codex.velorise_staves.react.overvape.p1"))
                 ));
@@ -281,7 +347,7 @@ public class ElementalCodexScreen extends Screen {
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.frozen.title"), 0xFF64D2FF,
-                        Element.HYDRO, Element.CRYO, getModItemStack("evoker_fang_staff"), ItemStack.EMPTY,
+                        Element.HYDRO, Element.CRYO, ItemStack.EMPTY, ItemStack.EMPTY,
                         "Freeze + " + fmt(6.0 * dmgMult) + " Shatter", 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.react.frozen.p1"), tr("codex.velorise_staves.react.frozen.p2"))
                 ));
@@ -329,53 +395,57 @@ public class ElementalCodexScreen extends Screen {
                         fmt(1.0 * dmgMult) + " DMG / 0.5s", 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.react.burning.p1"))
                 ));
+                // Crystallize: Geo + ( Pyro | Hydro | Cryo | Electro ) = Crystallized
                 cards.add(new GuideCard(
-                        tr("codex.velorise_staves.react.crystallize.title"), 0xFFFFD60A,
-                        Element.GEO, Element.PYRO, getModItemStack("pyro_crystallize_shard"), getModItemStack("hydro_crystallize_shard"),
-                        "+" + fmt(2.0 * dmgMult) + " Shield HP (15s)", 0xFFFFD60A,
+                        "= Crystallized", 0xFFFFD60A,
+                        Element.GEO, null,
+                        List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
+                        ItemStack.EMPTY, ItemStack.EMPTY,
+                        null, null,
+                        "+" + fmt(2.0 * dmgMult) + " Shield HP", 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.react.crystallize.p1"), tr("codex.velorise_staves.react.crystallize.p2"))
                 ));
             }
             case INNATE -> {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.rules.title"), 0xFFFFD60A,
-                        Element.PYRO, Element.HYDRO, new ItemStack(Items.BLAZE_POWDER), ItemStack.EMPTY,
+                        Element.PYRO, Element.HYDRO, EntityType.BLAZE, EntityType.CREEPER,
                         "IMMUNE & 6% Mutate", 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.innate.rules.p1"), tr("codex.velorise_staves.innate.rules.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.pyro.title"), 0xFFFF453A,
-                        Element.PYRO, null, new ItemStack(Items.BLAZE_ROD), new ItemStack(Items.MAGMA_CREAM),
+                        Element.PYRO, null, EntityType.BLAZE, EntityType.MAGMA_CUBE,
                         "1.0U Pyro", 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.innate.pyro.p1"), tr("codex.velorise_staves.innate.pyro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.hydro.title"), 0xFF0A84FF,
-                        Element.HYDRO, null, new ItemStack(Items.PRISMARINE_SHARD), new ItemStack(Items.TRIDENT),
+                        Element.HYDRO, null, EntityType.GUARDIAN, EntityType.DROWNED,
                         "1.0U Hydro", 0xFF0A84FF,
                         List.of(tr("codex.velorise_staves.innate.hydro.p1"), tr("codex.velorise_staves.innate.hydro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.electro.title"), 0xFFBF5AF2,
-                        Element.ELECTRO, null, new ItemStack(Items.ENDER_PEARL), new ItemStack(Items.DRAGON_BREATH),
+                        Element.ELECTRO, null, EntityType.ENDERMAN, EntityType.SHULKER,
                         "1.0U–1.5U Electro", 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.innate.electro.p1"), tr("codex.velorise_staves.innate.electro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.cryo.title"), 0xFF64D2FF,
-                        Element.CRYO, null, new ItemStack(Items.SNOWBALL), new ItemStack(Items.PACKED_ICE),
+                        Element.CRYO, null, EntityType.STRAY, EntityType.SNOW_GOLEM,
                         "1.0U Cryo", 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.innate.cryo.p1"), tr("codex.velorise_staves.innate.cryo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.dendro.title"), 0xFF32D74B,
-                        Element.DENDRO, null, new ItemStack(Items.SLIME_BALL), new ItemStack(Items.SPIDER_EYE),
+                        Element.DENDRO, null, EntityType.CAVE_SPIDER, EntityType.SLIME,
                         "1.0U Dendro", 0xFF32D74B,
                         List.of(tr("codex.velorise_staves.innate.dendro.p1"), tr("codex.velorise_staves.innate.dendro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.anemo_geo.title"), 0xFF55EFC4,
-                        Element.ANEMO, Element.GEO, new ItemStack(Items.IRON_BLOCK), new ItemStack(Items.ECHO_SHARD),
+                        Element.ANEMO, Element.GEO, EntityType.WARDEN, EntityType.IRON_GOLEM,
                         "Anemo & Geo", 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.innate.anemo_geo.p1"), tr("codex.velorise_staves.innate.anemo_geo.p2"))
                 ));
@@ -419,54 +489,69 @@ public class ElementalCodexScreen extends Screen {
                 ));
             }
             case STAVES -> {
-                int basicDur = StavesConfig.getBasicStaffDurability();
-                int nethDur = StavesConfig.getNetheriteStaffDurability();
                 Object[][] staffDefs = new Object[][]{
-                        {"inferno_rod", Element.PYRO, 4.0, 6.0, 0.75, 0.6, 28.0, 35.0, "codex.velorise_staves.staff.inferno"},
-                        {"ghastfire_staff", Element.PYRO, 6.0, 9.0, 1.5, 1.2, 32.0, 40.0, "codex.velorise_staves.staff.ghastfire"},
-                        {"guardian_lens", Element.HYDRO, 4.0, 6.0, 0.9, 0.7, 24.0, 30.0, "codex.velorise_staves.staff.guardian"},
-                        {"frostbolt_wand", Element.CRYO, 3.0, 4.5, 0.6, 0.5, 24.0, 30.0, "codex.velorise_staves.staff.frostbolt"},
-                        {"arc_caster", Element.ELECTRO, 4.0, 6.0, 0.9, 0.7, 20.0, 25.0, "codex.velorise_staves.staff.arc"},
-                        {"dragonfire_scepter", Element.ELECTRO, 5.0, 7.5, 1.25, 1.0, 26.0, 32.5, "codex.velorise_staves.staff.dragonfire"},
-                        {"wither_scepter", Element.DENDRO, 4.0, 6.0, 1.0, 0.8, 26.0, 32.5, "codex.velorise_staves.staff.wither"},
-                        {"webcaster", Element.DENDRO, 2.0, 3.0, 0.9, 0.7, 22.0, 27.5, "codex.velorise_staves.staff.webcaster"},
-                        {"wind_staff", Element.ANEMO, 3.0, 4.5, 0.7, 0.55, 24.0, 30.0, "codex.velorise_staves.staff.wind"},
-                        {"resonant_echo", Element.ANEMO, 8.0, 12.0, 2.0, 1.6, 18.0, 22.5, "codex.velorise_staves.staff.echo"},
-                        {"shulker_seeker", Element.ANEMO, 4.0, 6.0, 1.1, 0.9, 28.0, 35.0, "codex.velorise_staves.staff.shulker"},
-                        {"evoker_fang_staff", Element.GEO, 6.0, 9.0, 1.25, 1.0, 18.0, 22.5, "codex.velorise_staves.staff.evoker"}
+                        {"inferno_rod", ArcaneStaffItem.Kind.INFERNO, Element.PYRO,
+                                fmt(3.0 * dmgMult) + "x3", fmt(4.5 * dmgMult) + "x3", "30m", "codex.velorise_staves.staff.inferno"},
+                        {"ghastfire_staff", ArcaneStaffItem.Kind.GHASTFIRE, Element.PYRO,
+                                fmt(6.0 * dmgMult), fmt(9.0 * dmgMult), "36m (AoE)", "codex.velorise_staves.staff.ghastfire"},
+                        {"guardian_lens", ArcaneStaffItem.Kind.GUARDIAN, Element.HYDRO,
+                                fmt(0.5 * dmgMult) + "–" + fmt(1.5 * dmgMult) + "x10",
+                                fmt(0.8 * dmgMult) + "–" + fmt(2.0 * dmgMult) + "x10", "24m➔28m", "codex.velorise_staves.staff.guardian"},
+                        {"frostbolt_wand", ArcaneStaffItem.Kind.FROST, Element.CRYO,
+                                fmt(3.0 * dmgMult) + "x3", fmt(4.5 * dmgMult) + "x3", "28m", "codex.velorise_staves.staff.frostbolt"},
+                        {"arc_caster", ArcaneStaffItem.Kind.LIGHTNING, Element.ELECTRO,
+                                fmt(0.5 * dmgMult) + "/hit", fmt(1.0 * dmgMult) + "/hit", "30m➔36m", "codex.velorise_staves.staff.arc"},
+                        {"dragonfire_scepter", ArcaneStaffItem.Kind.DRAGONFIRE, Element.ELECTRO,
+                                fmt(7.0 * dmgMult) + "+Cloud", fmt(10.0 * dmgMult) + "+Cloud", "32m (AoE)", "codex.velorise_staves.staff.dragonfire"},
+                        {"shulker_seeker", ArcaneStaffItem.Kind.SHULKER, Element.ELECTRO,
+                                fmt(4.0 * dmgMult) + "x2", fmt(6.0 * dmgMult) + "x2", "30m", "codex.velorise_staves.staff.shulker"},
+                        {"wither_scepter", ArcaneStaffItem.Kind.WITHER, Element.DENDRO,
+                                fmt(4.0 * dmgMult) + "x3", fmt(6.0 * dmgMult) + "x3", "32m (AoE)", "codex.velorise_staves.staff.wither"},
+                        {"webcaster", ArcaneStaffItem.Kind.WEB, Element.DENDRO,
+                                "Trap+Poison", "Trap+Poison", "28m", "codex.velorise_staves.staff.webcaster"},
+                        {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
+                                fmt(1.5 * dmgMult), fmt(2.5 * dmgMult), "28m (AoE)", "codex.velorise_staves.staff.wind"},
+                        {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
+                                fmt(11.0 * dmgMult), fmt(16.0 * dmgMult), "28m➔32m", "codex.velorise_staves.staff.echo"},
+                        {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
+                                fmt(3.0 * dmgMult) + "x9", fmt(4.5 * dmgMult) + "x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"}
                 };
                 for (Object[] def : staffDefs) {
                     String baseId = (String) def[0];
-                    Element el = (Element) def[1];
-                    double bDmg = (Double) def[2] * dmgMult;
-                    double nDmg = (Double) def[3] * dmgMult;
-                    double bCd = (Double) def[4] * cdMult;
-                    double nCd = (Double) def[5] * cdMult;
-                    double bRng = (Double) def[6] * rngMult;
-                    double nRng = (Double) def[7] * rngMult;
-                    String descKey = (String) def[8];
+                    ArcaneStaffItem.Kind kind = (ArcaneStaffItem.Kind) def[1];
+                    Element el = (Element) def[2];
+                    String bDmg = (String) def[3];
+                    String nDmg = (String) def[4];
+                    String rngStr = (String) def[5];
+                    String descKey = (String) def[6];
+
+                    double cdSec = StavesConfig.getStaffCooldownSeconds(kind) * cdMult;
+                    int bDur = StavesConfig.getMaxDurability(kind, false);
+                    int nDur = StavesConfig.getMaxDurability(kind, true);
 
                     ItemStack basicStack = getModItemStack(baseId);
-                    ItemStack nethStack = getModItemStack("netherite_" + baseId);
                     String name = tr("item.velorise_staves." + baseId);
-                    String stats = String.format(Locale.ROOT, "§eDMG:§r %s ➔ §6%s§r | §bCD:§r %.1fs ➔ §a%.1fs§r | §dRng:§r %sm ➔ %sm | §7Dur: %d/%d",
-                            fmt(bDmg), fmt(nDmg), bCd, nCd, fmt(bRng), fmt(nRng), basicDur, nethDur);
+                    String stats = String.format(Locale.ROOT, "§eDMG:§r %s ➔ §6%s§r | §bCD:§r %.1fs | §dRng:§r %s | §7Dur: %d/%d",
+                            bDmg, nDmg, cdSec, rngStr, bDur, nDur);
                     cards.add(new GuideCard(
                             name, ClientAuraRenderer.getElementBorderColor(el),
-                            el, null, basicStack, nethStack,
+                            el, null, basicStack, ItemStack.EMPTY,
                             el.name(), ClientAuraRenderer.getElementBorderColor(el),
                             List.of(stats, tr(descKey))
                     ));
                 }
                 // Utility Artifacts
+                double vBasic = StavesConfig.getVoidTranslocatorRange(false);
+                double vNeth = StavesConfig.getVoidTranslocatorRange(true);
+                double mCd = StavesConfig.getMagicMirrorCooldownSeconds() * cdMult;
                 cards.add(new GuideCard(
                         tr("item.velorise_staves.void_translocator") + " & " + tr("item.velorise_staves.magic_mirror"),
                         0xFFDA70D6, null, null,
-                        getModItemStack("netherite_void_translocator"), getModItemStack("netherite_magic_mirror"),
+                        getModItemStack("void_translocator"), getModItemStack("magic_mirror"),
                         "UTILITY", 0xFFDA70D6,
                         List.of(
-                                tr("codex.velorise_staves.staff.utility.p1", fmt(24.0 * rngMult), fmt(36.0 * rngMult)),
-                                tr("codex.velorise_staves.staff.utility.p2", fmt(StavesConfig.getMagicMirrorCooldownSeconds() * cdMult))
+                                tr("codex.velorise_staves.staff.utility.p1", fmt(vBasic), fmt(vNeth)),
+                                tr("codex.velorise_staves.staff.utility.p2", fmt(mCd))
                         )
                 ));
             }
@@ -499,11 +584,11 @@ public class ElementalCodexScreen extends Screen {
                         Element.HYDRO, Element.GEO, getModItemStack("elemental_codex"), ItemStack.EMPTY,
                         syncMode, StavesConfig.isServerSynced() ? 0xFF32D74B : 0xFF64D2FF,
                         List.of(
-                                String.format(Locale.ROOT, "• Damage Multiplier: %.2fx | Cooldown Multiplier: %.2fx | Range Multiplier: %.2fx",
-                                        StavesConfig.getDamageMultiplier(), StavesConfig.getCooldownMultiplier(), StavesConfig.getRangeMultiplier()),
-                                String.format(Locale.ROOT, "• Elemental Reactions (EGT): %s | Staff Durability: %d (Basic) / %d (Netherite)",
-                                        StavesConfig.isElementalGaugeEnabled() ? "ON" : "OFF",
-                                        StavesConfig.getBasicStaffDurability(), StavesConfig.getNetheriteStaffDurability()),
+                                String.format(Locale.ROOT, "• §eDamage Multiplier:§r §a%.2fx§r | §bCooldown Multiplier:§r §a%.2fx§r",
+                                        StavesConfig.getDamageMultiplier(), StavesConfig.getCooldownMultiplier()),
+                                String.format(Locale.ROOT, "• §dElemental Reactions (EGT):§r %s | §6Mutation Rate:§r §e%d%%§r",
+                                        StavesConfig.isElementalGaugeEnabled() ? "§aON§r" : "§cOFF§r",
+                                        Math.round(StavesConfig.INNATE_MUTATION_CHANCE.get() * 100.0)),
                                 tr("codex.velorise_staves.mastery.card3.p1")
                         )
                 ));
@@ -514,7 +599,6 @@ public class ElementalCodexScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        
         super.render(guiGraphics, mouseX, mouseY, partialTick);
 
         int winW = Math.min(WIN_W, this.width - 12);
@@ -535,7 +619,7 @@ public class ElementalCodexScreen extends Screen {
         guiGraphics.renderItem(codexIcon, left + 6, top + 5);
         guiGraphics.drawString(this.font, this.title, left + 26, top + 9, 0xFFFFE082, true);
 
-        // Header Right Buttons: [⚙ Config] and [✕]
+        // Header Right Buttons: [Config] and [✕]
         int closeBtnW = 20;
         int closeBtnX = left + winW - closeBtnW - 4;
         int closeBtnY = top + 4;
@@ -544,13 +628,13 @@ public class ElementalCodexScreen extends Screen {
         ClientAuraRenderer.renderColoredBorder(guiGraphics, closeBtnX, closeBtnY, closeBtnW, 18, hoverClose ? 0xFFFF5555 : 0xFF773333);
         guiGraphics.drawCenteredString(this.font, "✕", closeBtnX + closeBtnW / 2, closeBtnY + 5, 0xFFFFFFFF);
 
-        int cfgBtnW = 58;
+        int cfgBtnW = 48;
         int cfgBtnX = closeBtnX - cfgBtnW - 4;
         int cfgBtnY = top + 4;
         boolean hoverCfg = mouseX >= cfgBtnX && mouseX <= cfgBtnX + cfgBtnW && mouseY >= cfgBtnY && mouseY <= cfgBtnY + 18;
         guiGraphics.fill(cfgBtnX, cfgBtnY, cfgBtnX + cfgBtnW, cfgBtnY + 18, hoverCfg ? 0xFF253B5E : 0xFF18243A);
         ClientAuraRenderer.renderColoredBorder(guiGraphics, cfgBtnX, cfgBtnY, cfgBtnW, 18, hoverCfg ? 0xFF64D2FF : 0xFF3A5A88);
-        guiGraphics.drawCenteredString(this.font, "⚙ Config", cfgBtnX + cfgBtnW / 2, cfgBtnY + 5, 0xFFE0F2FF);
+        guiGraphics.drawCenteredString(this.font, "Config", cfgBtnX + cfgBtnW / 2, cfgBtnY + 5, 0xFFE0F2FF);
 
         // 3. Left Sidebar Category Tabs
         int sideX = left + 4;
@@ -575,13 +659,12 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.fill(tx, ty, tx + tw, ty + tabH, bg);
             ClientAuraRenderer.renderColoredBorder(guiGraphics, tx, ty, tw, tabH, border);
 
-            // Tab Icon (16x16 Element texture, Blaze texture, or ItemStack)
+            // Tab Icon (16x16 Element texture, 3D Blaze entity render, or ItemStack)
             int iconOffsetY = ty + (tabH - 16) / 2;
             if (tab.iconElement != null) {
                 drawElementIcon(guiGraphics, tab.iconElement, tx + 5, iconOffsetY);
             } else if (tab == Tab.INNATE) {
-                RenderSystem.enableBlend();
-                guiGraphics.blit(BLAZE_ICON, tx + 5, iconOffsetY, 0.0F, 0.0F, 16, 16, 16, 16);
+                renderGuiMob(guiGraphics, EntityType.BLAZE, tx + 5, iconOffsetY, 12.5F);
             } else {
                 ItemStack iconStack = getTabIconStack(tab);
                 if (!iconStack.isEmpty()) {
@@ -611,7 +694,7 @@ public class ElementalCodexScreen extends Screen {
 
         int curY = startY;
 
-        // 4A. Render Smart Illustration / Screenshot Showcase Box at top of tab
+        // 4A. Render Visual Diagram Showcase Box at top of tab
         curY += renderIllustrationBox(guiGraphics, this.currentTab, innerX, curY, innerW) + 6;
 
         // 4B. Render Guide Cards
@@ -643,34 +726,14 @@ public class ElementalCodexScreen extends Screen {
     }
 
     private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w) {
-        if (tab.screenshotFile != null && hasCustomScreenshot(tab.screenshotFile)) {
-            int h = 136;
-            guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
-            ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
-
-            int drawH = h - 8;
-            int drawW = (tab.imgW > 0 && tab.imgH > 0)
-                    ? Math.min(w - 8, Math.round(drawH * (float) tab.imgW / (float) tab.imgH))
-                    : (w - 8);
-            int imgX = x + (w - drawW) / 2;
-            int imgY = y + (h - drawH) / 2;
-
-            guiGraphics.fill(imgX - 1, imgY - 1, imgX + drawW + 1, imgY + drawH + 1, (0x88 << 24) | (tab.accentColor & 0x00FFFFFF));
-            ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/codex/" + tab.screenshotFile);
-            RenderSystem.enableBlend();
-            guiGraphics.blit(loc, imgX, imgY, 0.0F, 0.0F, drawW, drawH, drawW, drawH);
-            return h;
-        }
-
         int h = 48;
         guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
         ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
 
-        // Built-in interactive visual diagram
         String diagramTitle = tr("codex.velorise_staves.diagram." + tab.key);
         drawCenteredFitString(guiGraphics, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 6, w - 10, 0xFFFFE082);
 
-        int midY = y + 22;
+        int midY = y + 23;
         int cx = x + w / 2;
 
         switch (tab) {
@@ -708,26 +771,28 @@ public class ElementalCodexScreen extends Screen {
                 guiGraphics.drawString(this.font, "§b= FROZEN", cx + 58, midY + 4, 0xFF64D2FF, true);
             }
             case REACTIONS_DENDRO -> {
-                drawElementIcon(guiGraphics, Element.DENDRO, cx - 104, midY);
-                guiGraphics.drawString(this.font, "+", cx - 85, midY + 4, 0xFFFFFFFF, true);
-                drawElementIcon(guiGraphics, Element.HYDRO, cx - 76, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 56, midY + 4, 0xFF32D74B, true);
-                guiGraphics.renderItem(getModItemStack("dendro_core"), cx - 44, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 24, midY + 4, 0xFFFFD60A, true);
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 10, midY);
-                guiGraphics.drawString(this.font, "§6Burgeon", cx + 8, midY - 1, 0xFFFF9F0A, true);
-                drawElementIcon(guiGraphics, Element.ELECTRO, cx - 10, midY + 10);
-                guiGraphics.drawString(this.font, "§dHyperbloom", cx + 8, midY + 9, 0xFFDA70D6, true);
+                int sx = cx - 114;
+                drawElementIcon(guiGraphics, Element.DENDRO, sx, midY);
+                guiGraphics.drawString(this.font, "+", sx + 18, midY + 4, 0xFFFFFFFF, true);
+                drawElementIcon(guiGraphics, Element.HYDRO, sx + 26, midY);
+                guiGraphics.drawString(this.font, "➔", sx + 45, midY + 4, 0xFF32D74B, true);
+                guiGraphics.renderItem(getModItemStack("dendro_core"), sx + 55, midY);
+                guiGraphics.drawString(this.font, "➔", sx + 74, midY + 4, 0xFFFFD60A, true);
+                drawElementIcon(guiGraphics, Element.PYRO, sx + 85, midY);
+                guiGraphics.drawString(this.font, "§6Burgeon", sx + 103, midY + 4, 0xFFFF9F0A, true);
+                drawElementIcon(guiGraphics, Element.ELECTRO, sx + 150, midY);
+                guiGraphics.drawString(this.font, "§dHyperbloom", sx + 168, midY + 4, 0xFFDA70D6, true);
             }
             case INNATE -> {
-                guiGraphics.renderItem(new ItemStack(Items.BLAZE_ROD), cx - 118, midY);
+                renderGuiMob(guiGraphics, EntityType.BLAZE, cx - 118, midY, 13.0F);
                 drawElementIcon(guiGraphics, Element.PYRO, cx - 99, midY);
                 guiGraphics.drawString(this.font, "➔ §cIMMUNE", cx - 80, midY + 4, 0xFFFF5555, true);
 
                 guiGraphics.drawString(this.font, "|", cx - 22, midY + 4, 0xFF556688, false);
 
-                drawElementIcon(guiGraphics, Element.HYDRO, cx - 12, midY);
-                guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 8, midY + 4, 0xFFFFFFFF, true);
+                renderGuiMob(guiGraphics, EntityType.BLAZE, cx - 12, midY, 13.0F);
+                drawElementIcon(guiGraphics, Element.HYDRO, cx + 6, midY);
+                guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 25, midY + 4, 0xFFFFFFFF, true);
             }
             case ENVIRONMENT -> {
                 guiGraphics.renderItem(new ItemStack(Items.SCULK_SENSOR), cx - 118, midY);
@@ -804,23 +869,28 @@ public class ElementalCodexScreen extends Screen {
         int iconOffset = 6;
         if (card.elem1 != null) iconOffset += 17;
         if (card.elem2 != null) iconOffset += 6 + 17;
+        if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
+            iconOffset += 6 + 4 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 4 + 5;
+        }
         if (!card.item1.isEmpty()) iconOffset += 17;
         if (!card.item2.isEmpty()) iconOffset += 17;
+        if (card.mob1 != null) iconOffset += 18;
+        if (card.mob2 != null) iconOffset += 18;
         int titleStartX = x + iconOffset + 2;
 
         int badgeW = (card.badgeText != null && !card.badgeText.isEmpty()) ? (this.font.width(card.badgeText) + 8) : 0;
         int rightLimitWithBadge = (badgeW > 0) ? (x + w - badgeW - 7) : (x + w - 5);
         int availTitleW = rightLimitWithBadge - titleStartX;
-        int fullTitleW = Math.max(80, (x + w - 5) - titleStartX);
+        int fullTitleW = Math.max(60, (x + w - 5) - titleStartX);
 
         String boldTitle = "§l" + card.title;
         List<FormattedCharSequence> titleLines;
         boolean badgeBelowTitle = false;
-        if (badgeW > 0 && availTitleW < 92) {
+        if (badgeW > 0 && availTitleW < 65) {
             titleLines = this.font.split(Component.literal(boldTitle), fullTitleW);
             badgeBelowTitle = true;
         } else {
-            titleLines = this.font.split(Component.literal(boldTitle), Math.max(80, availTitleW));
+            titleLines = this.font.split(Component.literal(boldTitle), Math.max(60, availTitleW));
             if (badgeW > 0 && titleLines.size() > 2) {
                 titleLines = this.font.split(Component.literal(boldTitle), fullTitleW);
                 badgeBelowTitle = true;
@@ -863,6 +933,22 @@ public class ElementalCodexScreen extends Screen {
             drawElementIcon(guiGraphics, card.elem2, iconX, iconY);
             iconX += 17;
         }
+        if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
+            guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
+            iconX += 6;
+            guiGraphics.drawString(this.font, "(", iconX, iconY + 4, 0xFFA0B0C8, true);
+            iconX += 4;
+            for (int i = 0; i < card.elemGroup.size(); i++) {
+                drawElementIcon(guiGraphics, card.elemGroup.get(i), iconX, iconY);
+                iconX += 16;
+                if (i < card.elemGroup.size() - 1) {
+                    guiGraphics.drawString(this.font, "|", iconX + 1, iconY + 4, 0xFF708098, false);
+                    iconX += 4;
+                }
+            }
+            guiGraphics.drawString(this.font, ")", iconX + 1, iconY + 4, 0xFFA0B0C8, true);
+            iconX += 5;
+        }
         if (!card.item1.isEmpty()) {
             guiGraphics.renderItem(card.item1, iconX, iconY);
             iconX += 17;
@@ -871,15 +957,23 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.renderItem(card.item2, iconX, iconY);
             iconX += 17;
         }
+        if (card.mob1 != null) {
+            renderGuiMob(guiGraphics, card.mob1, iconX, iconY, 12.5F);
+            iconX += 18;
+        }
+        if (card.mob2 != null) {
+            renderGuiMob(guiGraphics, card.mob2, iconX, iconY, 12.5F);
+            iconX += 18;
+        }
 
-        // Card Title (wrapped so it never collides with badge or border)
+        // Card Title
         int titleY = (titleLines.size() == 1 && !badgeBelowTitle) ? (y + 7) : (y + 4);
         for (FormattedCharSequence tSeq : titleLines) {
             guiGraphics.drawString(this.font, tSeq, titleStartX, titleY, 0xFFFFFFFF, true);
             titleY += 10;
         }
 
-        // Badge on Top-Right of Card (or right below title if header has 4 icons + wide badge)
+        // Badge on Top-Right of Card
         if (badgeW > 0) {
             int bx = x + w - badgeW - 5;
             int by = badgeBelowTitle ? (titleY + 1) : (y + 4);
@@ -925,7 +1019,7 @@ public class ElementalCodexScreen extends Screen {
             }
 
             // Check Config button
-            int cfgBtnW = 58;
+            int cfgBtnW = 48;
             int cfgBtnX = closeBtnX - cfgBtnW - 4;
             int cfgBtnY = top + 4;
             if (mouseX >= cfgBtnX && mouseX <= cfgBtnX + cfgBtnW && mouseY >= cfgBtnY && mouseY <= cfgBtnY + 18) {

@@ -86,6 +86,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.damage_mult.desc")))
                 .create(leftColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.damage_mult"), (btn, val) -> {
                     StavesConfig.DAMAGE_MULTIPLIER.set(val);
+                    StavesConfig.save();
                 }));
 
         List<Double> cdMults = List.of(0.25D, 0.5D, 0.75D, 1.0D, 1.25D, 1.5D, 2.0D);
@@ -98,6 +99,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.cooldown_mult.desc")))
                 .create(rightColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.cooldown_mult"), (btn, val) -> {
                     StavesConfig.COOLDOWN_MULTIPLIER.set(val);
+                    StavesConfig.save();
                 }));
 
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
@@ -105,6 +107,7 @@ public class VeloriseConfigScreen extends Screen {
         int bottomY = startY + rowHeight * 4 + 14;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
+            StavesConfig.save();
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new ElementalCodexScreen(this));
             }

@@ -184,6 +184,9 @@ public final class StavesConfig {
         } catch (Exception e) {
             LOGGER.error("Failed to write velorise_staves.toml", e);
         }
+        if (syncedServerData != null) {
+            syncedServerData = createSnapshotFromLocal();
+        }
     }
 
     public static final class SyncedData {

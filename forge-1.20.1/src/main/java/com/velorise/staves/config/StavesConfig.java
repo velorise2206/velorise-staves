@@ -187,6 +187,9 @@ public final class StavesConfig {
         try {
             SPEC.save();
         } catch (Exception ignored) {}
+        if (syncedServerData != null) {
+            syncedServerData = createSnapshotFromLocal();
+        }
     }
 
     public static final class SyncedData {
