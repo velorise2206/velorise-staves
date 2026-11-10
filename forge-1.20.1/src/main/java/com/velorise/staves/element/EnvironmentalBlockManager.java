@@ -263,7 +263,11 @@ public final class EnvironmentalBlockManager {
     }
 
     public static boolean isSolidAmethystBlock(BlockState st) {
-        return st.is(Blocks.AMETHYST_BLOCK) || st.is(Blocks.BUDDING_AMETHYST);
+        return st.is(Blocks.AMETHYST_BLOCK)
+                || st.is(Blocks.BUDDING_AMETHYST)
+                || st.is(Blocks.SMALL_AMETHYST_BUD)
+                || st.is(Blocks.MEDIUM_AMETHYST_BUD)
+                || st.is(Blocks.LARGE_AMETHYST_BUD);
     }
 
     public static boolean isAmethystClusterOrBud(BlockState st) {

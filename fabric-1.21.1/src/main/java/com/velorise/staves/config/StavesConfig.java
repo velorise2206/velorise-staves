@@ -35,6 +35,9 @@ public final class StavesConfig {
     public static final BooleanValue ENABLE_ELEMENTAL_GAUGE = defineBool("elemental_gauge", "enable_elemental_gauge", true);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
+    public static final BooleanValue SHOW_REACTION_TEXT = defineBool("elemental_gauge", "show_reaction_text", true);
+    public static final BooleanValue SHOW_DAMAGE_NUMBERS = defineBool("elemental_gauge", "show_damage_numbers", true);
+    public static final DoubleValue INNATE_MUTATION_CHANCE = defineDouble("elemental_gauge", "innate_mutation_chance", 0.06D, 0.0D, 1.0D);
 
     // Cooldowns
     public static final DoubleValue DRAGONFIRE_COOLDOWN = defineDouble("cooldowns", "dragonfire_cooldown", 8.0D, 0.5D, 60.0D);
@@ -154,8 +157,14 @@ public final class StavesConfig {
                 writer.write("enable_elemental_gauge = " + ENABLE_ELEMENTAL_GAUGE.get() + "\n");
                 writer.write("# Show ambient elemental particles hovering around affected entities\n");
                 writer.write("show_elemental_particles = " + SHOW_ELEMENTAL_PARTICLES.get() + "\n");
-                writer.write("# Render Genshin-style overhead elemental aura icons and floating reaction text above afflicted mobs\n");
-                writer.write("show_overhead_element_icons = " + SHOW_OVERHEAD_ELEMENT_ICONS.get() + "\n\n");
+                writer.write("# Render Genshin-style overhead elemental aura icons above afflicted mobs\n");
+                writer.write("show_overhead_element_icons = " + SHOW_OVERHEAD_ELEMENT_ICONS.get() + "\n");
+                writer.write("# Render floating elemental reaction titles\n");
+                writer.write("show_reaction_text = " + SHOW_REACTION_TEXT.get() + "\n");
+                writer.write("# Render floating elemental damage numbers\n");
+                writer.write("show_damage_numbers = " + SHOW_DAMAGE_NUMBERS.get() + "\n");
+                writer.write("# Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element (Default: 0.06 = 6%)\n");
+                writer.write("innate_mutation_chance = " + INNATE_MUTATION_CHANCE.get() + "\n\n");
 
                 writer.write("[cooldowns]\n");
                 for (Map.Entry<String, ConfigEntry<?>> entry : ENTRIES.entrySet()) {
@@ -240,6 +249,10 @@ public final class StavesConfig {
             return value;
         }
 
+        public void set(double newValue) {
+            this.value = Math.max(min, Math.min(max, newValue));
+        }
+
         @Override
         public void parseAndSet(String raw) {
             try {
@@ -284,6 +297,10 @@ public final class StavesConfig {
         @Override
         public Boolean get() {
             return value;
+        }
+
+        public void set(boolean newValue) {
+            this.value = newValue;
         }
 
         @Override

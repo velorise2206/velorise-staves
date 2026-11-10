@@ -170,6 +170,14 @@ public final class VeloriseStavesMod {
 
     public VeloriseStavesMod() {
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
+        net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(net.minecraftforge.api.distmarker.Dist.CLIENT, () -> () -> {
+            ModLoadingContext.get().registerExtensionPoint(
+                net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory.class,
+                () -> new net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory(
+                    (mc, parent) -> new com.velorise.staves.client.VeloriseConfigScreen(parent)
+                )
+            );
+        });
         com.velorise.staves.network.ModNetwork.register();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modEventBus);

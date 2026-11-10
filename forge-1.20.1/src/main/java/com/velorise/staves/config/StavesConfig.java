@@ -22,6 +22,9 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
     public static final ForgeConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ForgeConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
+    public static final ForgeConfigSpec.BooleanValue SHOW_REACTION_TEXT;
+    public static final ForgeConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
+    public static final ForgeConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
 
     // Cooldowns
     public static final ForgeConfigSpec.DoubleValue DRAGONFIRE_COOLDOWN;
@@ -119,8 +122,17 @@ public final class StavesConfig {
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);
         SHOW_OVERHEAD_ELEMENT_ICONS = builder
-            .comment("Render Genshin-style overhead elemental aura icons and floating reaction text above afflicted mobs. Default: true")
+            .comment("Render Genshin-style overhead elemental aura icons above afflicted mobs. Default: true")
             .define("show_overhead_element_icons", true);
+        SHOW_REACTION_TEXT = builder
+            .comment("Render floating elemental reaction titles (MELT, VAPORIZE, OVERLOADED, etc.). Default: true")
+            .define("show_reaction_text", true);
+        SHOW_DAMAGE_NUMBERS = builder
+            .comment("Render floating elemental damage numbers in combat. Default: true")
+            .define("show_damage_numbers", true);
+        INNATE_MUTATION_CHANCE = builder
+            .comment("Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element. Default: 0.06 (6%)")
+            .defineInRange("innate_mutation_chance", 0.06D, 0.0D, 1.0D);
         builder.pop();
 
         builder.comment("Individual staff cooldowns in seconds").push("cooldowns");
@@ -170,6 +182,12 @@ public final class StavesConfig {
     }
 
     private StavesConfig() {}
+
+    public static void save() {
+        try {
+            SPEC.save();
+        } catch (Exception ignored) {}
+    }
 
     public static double getStaffCooldownSeconds(ArcaneStaffItem.Kind kind) {
         return switch (kind) {

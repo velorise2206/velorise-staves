@@ -176,6 +176,12 @@ public final class VeloriseStavesMod {
 
     public VeloriseStavesMod(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            modContainer.registerExtensionPoint(
+                net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
+                (container, parent) -> new com.velorise.staves.client.VeloriseConfigScreen(parent)
+            );
+        }
         modEventBus.addListener(com.velorise.staves.network.ModNetwork::registerPayloads);
         ITEMS.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);

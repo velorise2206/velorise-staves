@@ -22,6 +22,9 @@
     ],
     "jade": [
       "com.velorise.staves.compat.jade.VeloriseStavesJadePlugin"
+    ],
+    "modmenu": [
+      "com.velorise.staves.compat.modmenu.VeloriseModMenuIntegration"
     ]
   },
   "mixins": [
