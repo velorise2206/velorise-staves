@@ -129,6 +129,13 @@ public final class ArcaneStaffEvents {
         }
 
         String kind = getKind(projectile);
+        if (hitResult instanceof net.minecraft.world.phys.EntityHitResult ehr
+                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoConstructEntity construct) {
+            if (construct.handleProjectileBlocked(level, projectile, kind != null ? kind : "")) {
+                projectile.discard();
+            }
+            return true;
+        }
         if (kind == null || kind.isEmpty()) {
             if (projectile.isOnFire()
                     || projectile instanceof net.minecraft.world.entity.projectile.SmallFireball
@@ -281,7 +288,7 @@ public final class ArcaneStaffEvents {
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
-                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
+                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 1 : 0));
             }
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,

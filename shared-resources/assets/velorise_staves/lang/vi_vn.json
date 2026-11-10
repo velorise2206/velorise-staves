@@ -43,13 +43,13 @@
   "item.velorise_staves.netherite_ghastfire_staff": "Gậy Hỏa Cầu Ghast Netherite",
   "item.velorise_staves.netherite_ghastfire_staff.desc": "Phóng hỏa cầu Ghast khổng lồ tạo sóng xung kích nổ tàn phá.",
   "item.velorise_staves.netherite_wither_scepter": "Quyền Trượng Wither Netherite",
-  "item.velorise_staves.netherite_wither_scepter.desc": "Bắn liên hồi đầu lâu đen gây hiệu ứng Khô Héo III chí mạng.",
+  "item.velorise_staves.netherite_wither_scepter.desc": "Bắn liên hồi đầu lâu đen gây hiệu ứng Khô Héo II chí mạng.",
   "item.velorise_staves.netherite_shulker_seeker": "Đạn Tầm Nhiệt Shulker Netherite",
   "item.velorise_staves.netherite_shulker_seeker.desc": "Đạn Shulker tăng tốc tự tìm kẻ địch và gây lơ lửng kéo dài.",
   "item.velorise_staves.netherite_guardian_lens": "Thấu Kính Guardian Netherite",
   "item.velorise_staves.netherite_guardian_lens.desc": "Tia nhiệt Guardian hội tụ cực đại gây sát thương gia tăng liên tục.",
   "item.velorise_staves.netherite_evoker_fang_staff": "Gậy Nanh Ma Quái Netherite",
-  "item.velorise_staves.netherite_evoker_fang_staff.desc": "Triệu hồi dãy nanh Evoker vươn xa cày xới mặt đất.",
+  "item.velorise_staves.netherite_evoker_fang_staff.desc": "Triệu hồi 13 nanh và một Vật Nham 50 tim tại ô đầu tiên để chặn sát thương, đạn và tỏa Nham cộng hưởng.",
   "item.velorise_staves.netherite_arc_caster": "Gậy Phóng Hồ Quang Netherite",
   "item.velorise_staves.netherite_arc_caster.desc": "Phóng luồng điện hồ quang siêu áp với tầm bắn và tầm giật lan rộng hơn.",
   "item.velorise_staves.netherite_frostbolt_wand": "Đũa Phép Băng Giá Netherite",
@@ -206,7 +206,7 @@
   "codex.velorise_staves.staff.wind": "Phóng luồng gió Breeze đẩy lùi mục tiêu và kích hoạt Khuếch Tán (Swirl) diện rộng.",
   "codex.velorise_staves.staff.echo": "Phóng sóng âm Warden xuyên giáp/tường với sát thương cực lớn và kích hoạt Khuếch Tán.",
   "codex.velorise_staves.staff.shulker": "Bắn đạn tự đuổi Shulker hệ Phong làm mục tiêu bay lơ lửng và kích hoạt Khuếch Tán.",
-  "codex.velorise_staves.staff.evoker": "Triệu hồi hàng Nanh Evoker hệ Nham từ mặt đất, tạo Khiên Kết Tinh và đập Phá Băng.",
+  "codex.velorise_staves.staff.evoker": "Triệu hồi hàng Nanh Nham (bản Netherite tạo Vật Nham 50§f\uE008§r chặn đòn, đạn và cộng hưởng tỏa Nham).",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bHồi chiêu:§r %ss | §dTầm:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7Độ bền (Thường ➔ Netherite): §f%s ➔ §6%s",
   "codex.velorise_staves.staff.utility.p1": "• Void Translocator: Dịch chuyển tức thời theo hướng nhìn (%sm bản Thường / %sm bản Netherite) và xóa sát thương rơi.",
@@ -222,5 +222,6 @@
   "codex.velorise_staves.mastery.card3.title": "Trạng Thái Đồng Bộ Cấu Hình Máy Chủ (Live Server Config Sync)",
   "codex.velorise_staves.mastery.card3.p1": "• Toàn bộ chỉ số Sát thương, Hồi chiêu, Tầm bắn và Độ bền hiển thị trong cuốn Cẩm Nang này cũng như trên Tooltip vũ khí đều tự động đồng bộ trực tiếp theo cấu hình của Server!",
   "codex.velorise_staves.sync.server": "● Đã Đồng Bộ Server",
-  "codex.velorise_staves.sync.local": "● Cấu Hình Cục Bộ"
+  "codex.velorise_staves.sync.local": "● Cấu Hình Cục Bộ",
+  "entity.velorise_staves.geo_construct": "Vật Nham"
 }

@@ -1281,9 +1281,14 @@ public final class ClientAuraRenderer {
                 }
                 normal = normal.normalize();
 
-                // Pass 1: Thin outer electric lavender ribbon (~4cm wide)
-                drawQuadRibbon(consumer, matrix, a, b, normal, 0.02D, 185, 90, 255, 230);
-                // Pass 2: Ultra-thin inner white-hot plasma core (~1.5cm wide)
+                int c = arc.color;
+                int r = (c == 0 || c == 0xBF40FF) ? 185 : ((c >> 16) & 0xFF);
+                int g = (c == 0 || c == 0xBF40FF) ? 90 : ((c >> 8) & 0xFF);
+                int bCol = (c == 0 || c == 0xBF40FF) ? 255 : (c & 0xFF);
+
+                // Pass 1: Outer elemental lightning ribbon (~4cm wide)
+                drawQuadRibbon(consumer, matrix, a, b, normal, 0.02D, r, g, bCol, 230);
+                // Pass 2: Ultra-thin inner white-hot core (~1.5cm wide)
                 drawQuadRibbon(consumer, matrix, a, b, normal, 0.007D, 255, 255, 255, 255);
             }
         }

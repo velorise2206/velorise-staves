@@ -76,6 +76,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         ClientTickEvents.START_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
         ClientTickEvents.END_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
 
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT,
+                GeoConstructRenderer::new
+        );
+
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
             ClientAuraRenderer.resetFrozenClientState();

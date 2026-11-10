@@ -127,6 +127,15 @@ public final class ArcaneStaffEvents {
         }
 
         String kind = projectile.getPersistentData().getString(TAG_KIND);
+        if (event.getRayTraceResult() instanceof EntityHitResult ehr
+                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoConstructEntity construct) {
+            event.setCanceled(true);
+            TRACKED_PROJECTILES.remove(projectile);
+            if (construct.handleProjectileBlocked(level, projectile, kind)) {
+                projectile.discard();
+            }
+            return;
+        }
         if (kind.isEmpty()) {
             if (projectile.isOnFire()
                     || projectile instanceof net.minecraft.world.entity.projectile.SmallFireball
@@ -215,6 +224,13 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
         LivingEntity entity = event.getEntity();
+        DamageSource src = event.getSource();
+        if (!entity.level().isClientSide()
+                && !(src.getDirectEntity() instanceof EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
+                && com.velorise.staves.entity.GeoConstructEntity.interceptIncomingDamage(entity, src, event.getAmount())) {
+            event.setCanceled(true);
+            return;
+        }
         if (!entity.level().isClientSide()
                 && event.getSource().is(DamageTypeTags.IS_FIRE)
                 && ElementalGaugeManager.isPyroInnate(entity)) {
@@ -459,7 +475,7 @@ public final class ArcaneStaffEvents {
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
-                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
+                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 1 : 0));
             }
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,

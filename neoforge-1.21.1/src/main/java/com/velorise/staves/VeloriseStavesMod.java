@@ -26,7 +26,16 @@ public final class VeloriseStavesMod {
 
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, MODID);
+    public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB, MODID);
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoConstructEntity>> GEO_CONSTRUCT =
+            ENTITY_TYPES.register("geo_construct", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.GeoConstructEntity>of(com.velorise.staves.entity.GeoConstructEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.0F, 2.0F)
+                    .clientTrackingRange(10)
+                    .updateInterval(2)
+                    .build("geo_construct"));
 
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
@@ -204,6 +213,7 @@ public final class VeloriseStavesMod {
         }
         modEventBus.addListener(com.velorise.staves.network.ModNetwork::registerPayloads);
         ITEMS.register(modEventBus);
+        ENTITY_TYPES.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);

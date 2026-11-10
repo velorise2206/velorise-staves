@@ -524,6 +524,24 @@ public final class ArcaneStaffItem extends Item {
             }
             level.addFreshEntity(fangs);
         }
+        if (isNetherite) {
+            double firstX = player.getX() + flat.x * 1.5D;
+            double firstZ = player.getZ() + flat.z * 1.5D;
+            double constructX = Math.floor(firstX) + 0.5D;
+            double constructZ = Math.floor(firstZ) + 0.5D;
+            double constructY = findGroundY(level, constructX, player.getY(), constructZ);
+            com.velorise.staves.entity.GeoConstructEntity.enforceMaxConstructsForOwner(
+                    level, com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT.get(), player.getUUID());
+            com.velorise.staves.entity.GeoConstructEntity construct =
+                    new com.velorise.staves.entity.GeoConstructEntity(
+                            com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT.get(),
+                            level,
+                            constructX, constructY, constructZ,
+                            (float) Math.toDegrees(yaw),
+                            player
+                    );
+            level.addFreshEntity(construct);
+        }
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
         return true;
     }
@@ -783,7 +801,7 @@ public final class ArcaneStaffItem extends Item {
             case ECHO -> (isNetherite ? fmtHearts(16.0) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
             case INFERNO -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U");
-            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U (+Wither III)" : "1U (+Wither II)");
+            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U (+Wither II)" : "1U (+Wither I)");
             case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> (isNetherite ? (fmtHearts(0.8) + "-" + fmtHearts(2.0)) : (fmtHearts(0.5) + "-" + fmtHearts(1.5))) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");

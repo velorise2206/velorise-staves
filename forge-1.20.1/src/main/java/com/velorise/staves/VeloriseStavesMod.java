@@ -28,7 +28,16 @@ public final class VeloriseStavesMod {
 
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MODID);
+    public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoConstructEntity>> GEO_CONSTRUCT =
+            ENTITY_TYPES.register("geo_construct", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.GeoConstructEntity>of(com.velorise.staves.entity.GeoConstructEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.0F, 2.0F)
+                    .clientTrackingRange(10)
+                    .updateInterval(2)
+                    .build("geo_construct"));
     public static final DeferredRegister<net.minecraft.world.item.enchantment.Enchantment> ENCHANTMENTS = DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MODID);
 
     // Enchantments
@@ -199,6 +208,7 @@ public final class VeloriseStavesMod {
         com.velorise.staves.network.ModNetwork.register();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
         ITEMS.register(modEventBus);
+        ENTITY_TYPES.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ENCHANTMENTS.register(modEventBus);

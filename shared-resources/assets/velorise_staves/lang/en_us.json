@@ -45,13 +45,13 @@
   "item.velorise_staves.netherite_ghastfire_staff": "Netherite Ghastfire Staff",
   "item.velorise_staves.netherite_ghastfire_staff.desc": "Launches massive explosive fireballs creating devastating blasts.",
   "item.velorise_staves.netherite_wither_scepter": "Netherite Wither Scepter",
-  "item.velorise_staves.netherite_wither_scepter.desc": "Fires rapid wither skulls inflicting fatal Wither III decay.",
+  "item.velorise_staves.netherite_wither_scepter.desc": "Fires rapid wither skulls inflicting fatal Wither II decay.",
   "item.velorise_staves.netherite_shulker_seeker": "Netherite Shulker Seeker",
   "item.velorise_staves.netherite_shulker_seeker.desc": "Shoots fast homing bullets causing prolonged levitation.",
   "item.velorise_staves.netherite_guardian_lens": "Netherite Guardian Lens",
   "item.velorise_staves.netherite_guardian_lens.desc": "Focuses a concentrated guardian thermal ray with magnified damage.",
   "item.velorise_staves.netherite_evoker_fang_staff": "Netherite Evoker Fang Staff",
-  "item.velorise_staves.netherite_evoker_fang_staff.desc": "Summons an extended line of biting fangs tearing through earth.",
+  "item.velorise_staves.netherite_evoker_fang_staff.desc": "Summons 13 biting fangs and a 50-heart Geo Construct at the first block that pulses Geo and blocks attacks.",
   "item.velorise_staves.netherite_arc_caster": "Netherite Arc Caster",
   "item.velorise_staves.netherite_arc_caster.desc": "Projects high-voltage lightning streams with wide chaining.",
   "item.velorise_staves.netherite_frostbolt_wand": "Netherite Frostbolt Wand",
@@ -236,7 +236,7 @@
   "codex.velorise_staves.staff.wind": "Breeze §bAnemo§r wind charge; knockback + §e5.0m Swirl§r.",
   "codex.velorise_staves.staff.echo": "Warden §bAnemo§r sonic boom; pierces walls/armor + §bSwirl§r.",
   "codex.velorise_staves.staff.shulker": "Homing §dElectro§r Shulker bullets; applies §dElectro§r + §eLevitation§r.",
-  "codex.velorise_staves.staff.evoker": "Summons §6Geo§r Evoker Fangs; triggers §6Crystallize§r & §6Shatter§r.",
+  "codex.velorise_staves.staff.evoker": "Summons §6Geo§r Evoker Fangs; Netherite raises a 50§f\uE008§r Geo Construct blocking hits & resonating §6Geo§r.",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bCD:§r %ss | §dRange:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7Durability (Basic ➔ Netherite): §f%s ➔ §6%s",
   "codex.velorise_staves.staff.utility.p1": "• §dVoid Translocator:§r Instant blink (§e%sm§r / §e%sm§r) + fall-damage reset.",
@@ -252,5 +252,6 @@
   "codex.velorise_staves.mastery.card3.title": "Server Config Sync",
   "codex.velorise_staves.mastery.card3.p1": "• All Codex & Tooltip stats auto-sync with the active §aServer Config§r!",
   "codex.velorise_staves.sync.server": "● Server Synced",
-  "codex.velorise_staves.sync.local": "● Local Config"
+  "codex.velorise_staves.sync.local": "● Local Config",
+  "entity.velorise_staves.geo_construct": "Geo Construct"
 }

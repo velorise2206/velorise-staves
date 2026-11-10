@@ -384,13 +384,20 @@ public final class EnvironmentalBlockManager {
 
             Set<UUID> processed = new HashSet<>();
             for (ServerPlayer player : players) {
-                // Also check powered Lightning Rods near players
+                // Also check powered Lightning Rods and block-form energized Redstone near players
                 BlockPos playerPos = player.blockPosition();
+                int redstoneArcBudget = (serverNow % 3L == 0L) ? 4 : 0;
                 for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-8, -4, -8), playerPos.offset(8, 4, 8))) {
                     if (!level.hasChunkAt(p)) continue;
                     BlockState st = level.getBlockState(p);
                     if (st.is(Blocks.LIGHTNING_ROD) && st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
                         dischargeLightningRod(level, p, serverNow);
+                    } else if (redstoneArcBudget > 0
+                            && level.random.nextInt(8) == 0
+                            && isBlockFormRedstoneLightningSource(st)
+                            && hasExposedFace(level, p)) {
+                        emitRedstoneBlockLightningArc(level, p);
+                        redstoneArcBudget--;
                     }
                 }
 
@@ -466,18 +473,19 @@ public final class EnvironmentalBlockManager {
         BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY - 0.20D, touchBox.minZ);
         BlockPos max = BlockPos.containing(touchBox.maxX, touchBox.maxY, touchBox.maxZ);
         boolean touchingRedstone = false;
+        BlockPos redstoneArcPos = null;
         boolean touchingSlimeOrHoney = false;
         boolean touchingSoulCampfire = false;
         BlockPos amethystZapPos = null;
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
             if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
-            if (st.is(Blocks.REDSTONE_BLOCK)) {
+            if (isBlockFormRedstoneLightningSource(st)) {
                 touchingRedstone = true;
+                if (redstoneArcPos == null) {
+                    redstoneArcPos = p.immutable();
+                }
             } else if (st.is(Blocks.REDSTONE_WIRE) && st.hasProperty(RedStoneWireBlock.POWER) && st.getValue(RedStoneWireBlock.POWER) > 0) {
-                touchingRedstone = true;
-            } else if ((st.is(Blocks.REDSTONE_ORE) || st.is(Blocks.DEEPSLATE_REDSTONE_ORE))
-                    && st.hasProperty(BlockStateProperties.LIT) && st.getValue(BlockStateProperties.LIT)) {
                 touchingRedstone = true;
             }
             if (st.is(Blocks.SOUL_CAMPFIRE) && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
@@ -492,6 +500,15 @@ public final class EnvironmentalBlockManager {
         }
         if (touchingRedstone) {
             ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
+            if (redstoneArcPos != null) {
+                Vec3 start = Vec3.atCenterOf(redstoneArcPos).add(
+                        (level.random.nextDouble() - 0.5D) * 0.6D,
+                        0.45D,
+                        (level.random.nextDouble() - 0.5D) * 0.6D
+                );
+                Vec3 end = living.position().add(0, living.getBbHeight() * (0.35D + level.random.nextDouble() * 0.4D), 0);
+                ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.24D, true);
+            }
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.3D, living.getZ(), 2, 0.15D, 0.15D, 0.15D, 0.02D);
         }
         if (touchingSoulCampfire) {
@@ -533,6 +550,71 @@ public final class EnvironmentalBlockManager {
                         SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.4F, 1.9F);
             }
         }
+    }
+
+    public static boolean isBlockFormRedstoneLightningSource(BlockState st) {
+        if (st.is(Blocks.REDSTONE_BLOCK)) return true;
+        return (st.is(Blocks.REDSTONE_ORE) || st.is(Blocks.DEEPSLATE_REDSTONE_ORE) || st.is(Blocks.REDSTONE_LAMP))
+                && st.hasProperty(BlockStateProperties.LIT)
+                && st.getValue(BlockStateProperties.LIT);
+    }
+
+    private static boolean hasExposedFace(ServerLevel level, BlockPos pos) {
+        for (Direction dir : Direction.values()) {
+            BlockPos adj = pos.relative(dir);
+            if (!level.hasChunkAt(adj)) continue;
+            if (!level.getBlockState(adj).canOcclude()) return true;
+        }
+        return false;
+    }
+
+    private static void emitRedstoneBlockLightningArc(ServerLevel level, BlockPos pos) {
+        List<Direction> open = new ArrayList<>(6);
+        for (Direction dir : Direction.values()) {
+            BlockPos adj = pos.relative(dir);
+            if (level.hasChunkAt(adj) && !level.getBlockState(adj).canOcclude()) {
+                open.add(dir);
+            }
+        }
+        if (open.isEmpty()) return;
+        Direction face = open.get(level.random.nextInt(open.size()));
+        Vec3 center = Vec3.atCenterOf(pos);
+        Vec3 faceOffset = new Vec3(face.getStepX() * 0.54D, face.getStepY() * 0.54D, face.getStepZ() * 0.54D);
+        double rx = face.getAxis() == Direction.Axis.X ? 0.0D : (level.random.nextDouble() - 0.5D) * 0.92D;
+        double ry = face.getAxis() == Direction.Axis.Y ? 0.0D : (level.random.nextDouble() - 0.5D) * 0.92D;
+        double rz = face.getAxis() == Direction.Axis.Z ? 0.0D : (level.random.nextDouble() - 0.5D) * 0.92D;
+        Vec3 start = center.add(faceOffset).add(rx, ry, rz);
+
+        Vec3 end = null;
+        BlockPos neighborCandidate = pos.offset(
+                level.random.nextInt(5) - 2,
+                level.random.nextInt(3) - 1,
+                level.random.nextInt(5) - 2
+        );
+        if (!neighborCandidate.equals(pos) && level.hasChunkAt(neighborCandidate)
+                && isBlockFormRedstoneLightningSource(level.getBlockState(neighborCandidate))
+                && hasExposedFace(level, neighborCandidate)) {
+            end = Vec3.atCenterOf(neighborCandidate).add(faceOffset);
+        }
+        if (end == null) {
+            double ex = face.getAxis() == Direction.Axis.X
+                    ? (level.random.nextBoolean() ? face.getStepX() * 0.54D : (level.random.nextDouble() - 0.5D) * 0.5D)
+                    : (level.random.nextDouble() - 0.5D) * 1.1D;
+            double ey = face.getAxis() == Direction.Axis.Y
+                    ? (level.random.nextBoolean() ? face.getStepY() * 0.54D : (level.random.nextDouble() - 0.5D) * 0.5D)
+                    : (level.random.nextDouble() - 0.5D) * 1.1D;
+            double ez = face.getAxis() == Direction.Axis.Z
+                    ? (level.random.nextBoolean() ? face.getStepZ() * 0.54D : (level.random.nextDouble() - 0.5D) * 0.5D)
+                    : (level.random.nextDouble() - 0.5D) * 1.1D;
+            end = center.add(ex, ey, ez);
+            if (end.distanceToSqr(start) < 0.25D) {
+                end = center.add(-faceOffset.x * 1.05D, -faceOffset.y * 1.05D, -faceOffset.z * 1.05D)
+                        .add((level.random.nextDouble() - 0.5D) * 0.7D,
+                             (level.random.nextDouble() - 0.5D) * 0.7D,
+                             (level.random.nextDouble() - 0.5D) * 0.7D);
+            }
+        }
+        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.22D, level.random.nextFloat() < 0.45F);
     }
 
     public static boolean isSolidAmethystBlock(BlockState st) {
