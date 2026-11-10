@@ -258,6 +258,7 @@ public final class ArcaneStaffEvents {
         float finalDmg = (float) ((isNetherite ? 6.0F : 4.0F) * dmgMult);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
+            target.invulnerableTime = 0; // Bypass Minecraft iframe so burst wither skulls all deal damage
             DamageSource source = player != null ? level.damageSources().indirectMagic(player, player) : level.damageSources().wither();
             target.hurt(source, finalDmg);
             target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));

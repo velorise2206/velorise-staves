@@ -57,14 +57,16 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WEB_SHOTS = "web";
     private static final String TAG_WITHER_SHOTS = "wither";
     private static final String TAG_FROST_SHOTS = "frost";
-    private static final int BURST_RESET_TICKS = 20;
+    private static final int BURST_RESET_TICKS = 100; // 5.0s window per shot (was 20 / 1.0s)
 
     private static final class BurstState {
         int shots;
         long lastTime;
-        BurstState(int shots, long lastTime) {
+        int slot;
+        BurstState(int shots, long lastTime, int slot) {
             this.shots = shots;
             this.lastTime = lastTime;
+            this.slot = slot;
         }
     }
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
@@ -192,12 +194,17 @@ public final class ArcaneStaffItem extends Item {
         String key = burstKey();
         BurstState state = map.get(key);
         if (state == null || state.shots <= 0) return;
+
+        boolean slotChanged = player.getInventory().selected != state.slot
+                || (player.getMainHandItem() != stack && player.getOffhandItem() != stack);
+
         long elapsed = level.getGameTime() - state.lastTime;
-        if (elapsed >= BURST_RESET_TICKS) {
+        if (slotChanged || elapsed >= BURST_RESET_TICKS) {
+            int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / 3.0D));
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, getCooldownTicks());
+                player.getCooldowns().addCooldown(this, cdForShots);
             }
         }
     }
@@ -244,11 +251,13 @@ public final class ArcaneStaffItem extends Item {
         BurstState state = map.get(tagShots);
         if (state == null || state.shots <= 0) return false;
         long elapsed = player.level().getGameTime() - state.lastTime;
-        if (elapsed >= resetTicks) {
+        boolean slotChanged = player.getInventory().selected != state.slot;
+        if (elapsed >= resetTicks || slotChanged) {
+            int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / 3.0D));
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, getCooldownTicks());
+                player.getCooldowns().addCooldown(this, cd);
             }
             return true;
         }
@@ -257,15 +266,16 @@ public final class ArcaneStaffItem extends Item {
 
     private void advanceBurst(ServerPlayer player, String tagShots, int maxShots, int cdTicks) {
         Map<String, BurstState> map = PLAYER_BURSTS.computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>());
-        BurstState state = map.computeIfAbsent(tagShots, k -> new BurstState(0, 0L));
+        BurstState state = map.computeIfAbsent(tagShots, k -> new BurstState(0, 0L, player.getInventory().selected));
         state.shots++;
         state.lastTime = player.level().getGameTime();
+        state.slot = player.getInventory().selected;
         if (state.shots >= maxShots) {
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             player.getCooldowns().addCooldown(this, cdTicks);
         } else {
-            player.getCooldowns().addCooldown(this, 4);
+            player.getCooldowns().addCooldown(this, 2); // 2 ticks between burst shots (reduced auto-fire interval)
         }
     }
 

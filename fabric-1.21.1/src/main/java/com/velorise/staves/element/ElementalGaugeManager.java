@@ -804,6 +804,7 @@ public final class ElementalGaugeManager {
             float baseDamage
     ) {
         if (!target.isAlive() || target.isInvulnerable()) return;
+        target.invulnerableTime = 0; // Bypass Minecraft iframe so rapid/burst attacks always deal damage
 
         boolean egtEnabled = StavesConfig.ENABLE_ELEMENTAL_GAUGE.get();
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();

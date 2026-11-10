@@ -67,7 +67,7 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WITHER_LAST = "ArcaneStaffWitherLast";
     private static final String TAG_FROST_SHOTS = "ArcaneStaffFrostShots";
     private static final String TAG_FROST_LAST = "ArcaneStaffFrostLast";
-    private static final int BURST_RESET_TICKS = 20;
+    private static final int BURST_RESET_TICKS = 100; // 5.0s window per shot (was 20 / 1.0s)
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
@@ -127,7 +127,7 @@ public final class ArcaneStaffItem extends Item {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
 
         if (isBurstKind()) {
-            if (prepareBurst(serverPlayer, burstShotsTag(), burstLastTag(), BURST_RESET_TICKS)) {
+            if (prepareBurst(serverPlayer, burstShotsTag(), burstLastTag(), burstSlotTag(), BURST_RESET_TICKS)) {
                 return InteractionResultHolder.fail(stack);
             }
         }
@@ -153,7 +153,7 @@ public final class ArcaneStaffItem extends Item {
         }
 
         if (isBurstKind()) {
-            advanceBurst(serverPlayer, burstShotsTag(), burstLastTag(), 3, getCooldownTicks());
+            advanceBurst(serverPlayer, burstShotsTag(), burstLastTag(), burstSlotTag(), 3, getCooldownTicks());
         } else {
             player.getCooldowns().addCooldown(this, getCooldownTicks());
         }
@@ -182,14 +182,22 @@ public final class ArcaneStaffItem extends Item {
         if (!isBurstKind()) return;
         String tagShots = burstShotsTag();
         String tagLast = burstLastTag();
+        String tagSlot = burstSlotTag();
         int shots = player.getPersistentData().getInt(tagShots);
         if (shots <= 0) return;
+
+        int activeSlot = player.getPersistentData().getInt(tagSlot);
+        boolean slotChanged = player.getInventory().selected != activeSlot
+                || (player.getMainHandItem() != stack && player.getOffhandItem() != stack);
+
         long elapsed = level.getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (elapsed >= BURST_RESET_TICKS) {
+        if (slotChanged || elapsed >= BURST_RESET_TICKS) {
+            int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * shots / 3.0D));
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
+            player.getPersistentData().remove(tagSlot);
             if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, getCooldownTicks());
+                player.getCooldowns().addCooldown(this, cdForShots);
             }
         }
     }
@@ -220,6 +228,17 @@ public final class ArcaneStaffItem extends Item {
         return isNetherite ? base + "Netherite" : base;
     }
 
+    private String burstSlotTag() {
+        String base = switch (kind) {
+            case INFERNO -> "BurstSlotInferno";
+            case WEB -> "BurstSlotWeb";
+            case WITHER -> "BurstSlotWither";
+            case FROST -> "BurstSlotFrost";
+            default -> "BurstSlot";
+        };
+        return isNetherite ? base + "Netherite" : base;
+    }
+
     private boolean isFirstBurstShot(ServerPlayer player, String tagShots) {
         return player.getPersistentData().getInt(tagShots) <= 0;
     }
@@ -243,31 +262,37 @@ public final class ArcaneStaffItem extends Item {
         return StavesConfig.getMaxDurability(kind, isNetherite);
     }
 
-    private boolean prepareBurst(ServerPlayer player, String tagShots, String tagLast, int resetTicks) {
+    private boolean prepareBurst(ServerPlayer player, String tagShots, String tagLast, String tagSlot, int resetTicks) {
         int shots = player.getPersistentData().getInt(tagShots);
         if (shots <= 0) return false;
         long elapsed = player.level().getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (elapsed >= resetTicks) {
+        int activeSlot = player.getPersistentData().getInt(tagSlot);
+        boolean slotChanged = player.getInventory().selected != activeSlot;
+        if (elapsed >= resetTicks || slotChanged) {
+            int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * shots / 3.0D));
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
+            player.getPersistentData().remove(tagSlot);
             if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, getCooldownTicks());
+                player.getCooldowns().addCooldown(this, cd);
             }
             return true;
         }
         return false;
     }
 
-    private void advanceBurst(ServerPlayer player, String tagShots, String tagLast, int maxShots, int cdTicks) {
+    private void advanceBurst(ServerPlayer player, String tagShots, String tagLast, String tagSlot, int maxShots, int cdTicks) {
         int shots = player.getPersistentData().getInt(tagShots) + 1;
         player.getPersistentData().putLong(tagLast, player.level().getGameTime());
+        player.getPersistentData().putInt(tagSlot, player.getInventory().selected);
         if (shots >= maxShots) {
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
+            player.getPersistentData().remove(tagSlot);
             player.getCooldowns().addCooldown(this, cdTicks);
         } else {
             player.getPersistentData().putInt(tagShots, shots);
-            player.getCooldowns().addCooldown(this, 4);
+            player.getCooldowns().addCooldown(this, 2); // 2 ticks between burst shots (reduced auto-fire interval)
         }
     }
 
