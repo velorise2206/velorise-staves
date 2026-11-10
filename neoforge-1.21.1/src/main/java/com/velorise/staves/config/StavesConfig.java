@@ -305,8 +305,8 @@ public final class StavesConfig {
         int[] dNeth = new int[kinds.length];
         for (int i = 0; i < kinds.length; i++) {
             cds[i] = getLocalStaffCooldownSeconds(kinds[i]);
-            dBasic[i] = getMaxDurability(kinds[i], false);
-            dNeth[i] = getMaxDurability(kinds[i], true);
+            dBasic[i] = getLocalMaxDurability(kinds[i], false);
+            dNeth[i] = getLocalMaxDurability(kinds[i], true);
         }
         return new SyncedData(
                 DAMAGE_MULTIPLIER.get(),
@@ -372,7 +372,24 @@ public final class StavesConfig {
         if (s != null && kind.ordinal() < s.staffDurabilitiesBasic.length) {
             return isNetherite ? s.staffDurabilitiesNetherite[kind.ordinal()] : s.staffDurabilitiesBasic[kind.ordinal()];
         }
-        return getMaxDurability(kind, isNetherite);
+        return getLocalMaxDurability(kind, isNetherite);
+    }
+
+    private static int getLocalMaxDurability(ArcaneStaffItem.Kind kind, boolean isNetherite) {
+        return switch (kind) {
+            case DRAGONFIRE -> isNetherite ? DRAGONFIRE_DURABILITY_NETHERITE.get() : DRAGONFIRE_DURABILITY_BASIC.get();
+            case ECHO -> isNetherite ? ECHO_DURABILITY_NETHERITE.get() : ECHO_DURABILITY_BASIC.get();
+            case INFERNO -> isNetherite ? INFERNO_DURABILITY_NETHERITE.get() : INFERNO_DURABILITY_BASIC.get();
+            case GHASTFIRE -> isNetherite ? GHASTFIRE_DURABILITY_NETHERITE.get() : GHASTFIRE_DURABILITY_BASIC.get();
+            case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
+            case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
+            case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
+            case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
+            case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
+            case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
+            case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
+            case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+        };
     }
 
     public static int getArtifactMaxDurability(boolean isTranslocator, boolean isNetherite) {
