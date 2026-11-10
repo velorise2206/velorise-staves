@@ -276,6 +276,7 @@ public final class ElementalGaugeManager {
         CrystallizeShardManager.clearAll();
         ElectrifiedWaterManager.clearAll();
         DragonfireCloudManager.clearAll();
+        GhastfireFieldManager.clearAll();
         EnvironmentalBlockManager.clearAll();
     }
 
@@ -1593,6 +1594,7 @@ public final class ElementalGaugeManager {
             CrystallizeShardManager.tick(lvl);
             ElectrifiedWaterManager.tick(lvl);
             DragonfireCloudManager.tick(lvl);
+            GhastfireFieldManager.tick(lvl);
         }
         EnvironmentalBlockManager.tick(server);
 

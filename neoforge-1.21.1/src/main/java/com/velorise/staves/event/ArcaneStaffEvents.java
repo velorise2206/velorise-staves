@@ -333,6 +333,22 @@ public final class ArcaneStaffEvents {
         DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 45 : 35,
             radius * 0.35D, radius * 0.25D, radius * 0.35D, 0.05D);
+
+        // Lingering 5-second (100 ticks) fire field AoE
+        AreaEffectCloud fireField = new AreaEffectCloud(level, hit.x, hit.y, hit.z);
+        if (owner instanceof LivingEntity living) {
+            fireField.setOwner(living);
+        }
+        fireField.setParticle(ParticleTypes.FLAME);
+        fireField.setRadius((float) radius);
+        fireField.setDuration(100); // 5 seconds
+        fireField.setRadiusPerTick(((float) radius - fireField.getRadius()) / 100.0F);
+        fireField.setWaitTime(0);
+        fireField.addTag("velorise_staves:ghastfire_field");
+        level.addFreshEntity(fireField);
+        com.velorise.staves.element.GhastfireFieldManager.register(fireField, level, player, isNetherite);
+
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0F, 0.8F);
     }
 
     private static void meltIceNear(ServerLevel level, Vec3 hit, int radius) {

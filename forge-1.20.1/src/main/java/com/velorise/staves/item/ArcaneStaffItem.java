@@ -111,11 +111,13 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
+                    case GHASTFIRE -> SoundEvents.GHAST_WARN;
                     default -> SoundEvents.GUARDIAN_AMBIENT;
                 };
                 float cuePitch = switch (kind) {
                     case ECHO -> 0.85F;
                     case LIGHTNING -> 1.5F;
+                    case GHASTFIRE -> 0.9F;
                     default -> 1.25F;
                 };
                 level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, cuePitch);
@@ -244,7 +246,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING;
+        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE;
     }
 
     private boolean isChannelingKind() {
@@ -300,6 +302,7 @@ public final class ArcaneStaffItem extends Item {
     public int getUseDuration(ItemStack stack) {
         if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 50;
+        if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
         return isCharged() ? 30 : 0;
     }
 
@@ -332,6 +335,14 @@ public final class ArcaneStaffItem extends Item {
             }
             return;
         }
+        if (kind == Kind.GHASTFIRE) {
+            if (count % 3 == 0) {
+                Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.8D));
+                serverLevel.sendParticles(ParticleTypes.FLAME, eye.x, eye.y, eye.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
+                serverLevel.sendParticles(ParticleTypes.SMOKE, eye.x, eye.y, eye.z, 1, 0.08D, 0.08D, 0.08D, 0.01D);
+            }
+            return;
+        }
         if (count % 5 != 0) return;
         Vec3 eye = entity.getEyePosition();
         serverLevel.sendParticles(ParticleTypes.SCULK_CHARGE_POP, eye.x, eye.y, eye.z, 2, 0.18D, 0.18D, 0.18D, 0.02D);
@@ -346,6 +357,14 @@ public final class ArcaneStaffItem extends Item {
         }
         if (kind == Kind.GUARDIAN) {
             finishGuardianBeam(player);
+            return stack;
+        }
+        if (kind == Kind.GHASTFIRE) {
+            InteractionHand usedHand = player.getUsedItemHand();
+            shootGhastfire(player);
+            stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+            player.getCooldowns().addCooldown(this, getCooldownTicks());
+            player.awardStat(Stats.ITEM_USED.get(this));
             return stack;
         }
         InteractionHand usedHand = player.getUsedItemHand();
@@ -720,12 +739,12 @@ public final class ArcaneStaffItem extends Item {
             case DRAGONFIRE -> isNetherite ? "32m (4.5m AoE)" : "32m (3.5m AoE)";
             case ECHO -> isNetherite ? "32m" : "28m";
             case INFERNO -> "30m";
-            case GHASTFIRE -> isNetherite ? "36m (4.5m AoE)" : "36m (3.5m AoE)";
+            case GHASTFIRE -> isNetherite ? "36m (4.5m AoE / 5s Field)" : "36m (3.5m AoE / 5s Field)";
             case WITHER -> isNetherite ? "32m (4.0m AoE)" : "32m (3.0m AoE)";
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
-            case LIGHTNING -> isNetherite ? "36m Arc (4.0m Chain)" : "30m Arc (3.0m Chain)";
+            case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
             case WEB -> "28m";
         };
