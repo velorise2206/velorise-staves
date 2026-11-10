@@ -39,6 +39,7 @@ import java.util.*;
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
     private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
+    private static final Map<Element, ResourceLocation> SHIELD_TEXTURES = new EnumMap<>(Element.class);
     private static final ResourceLocation EFFECT_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/effect_background");
     private static final ResourceLocation EFFECT_BACKGROUND_LARGE_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_large");
     private static final ResourceLocation EFFECT_BACKGROUND_SMALL_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_small");
@@ -46,9 +47,13 @@ public final class ClientAuraRenderer {
 
     static {
         for (Element e : Element.values()) {
-            ResourceLocation res = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png");
+            String lower = e.name().toLowerCase(Locale.ROOT);
+            ResourceLocation res = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + lower + ".png");
             TEXTURES.put(e, res);
             HUD_TEXTURES.put(e, res);
+            if (e == Element.PYRO || e == Element.HYDRO || e == Element.ELECTRO || e == Element.CRYO) {
+                SHIELD_TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/mob_effect/" + lower + "_shield.png"));
+            }
         }
     }
 
@@ -105,6 +110,7 @@ public final class ClientAuraRenderer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
         if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
+        if (entity != mc.player && !mc.player.hasLineOfSight(entity)) return;
 
         // Check innate element on entity (e.g., Blaze/MagmaCube/Strider -> PYRO, Stray/SnowGolem -> CRYO, Guardian/Drowned -> HYDRO, Breeze -> ANEMO)
         Element innateElement = ElementalGaugeManager.getInnateElement(entity);
@@ -230,7 +236,6 @@ public final class ClientAuraRenderer {
                 for (Element e : display) {
                     ResourceLocation tex = TEXTURES.get(e);
                     if (tex != null) {
-                        bs.endBatch(RenderType.textSeeThrough(tex));
                         bs.endBatch(RenderType.text(tex));
                     }
                 }
@@ -314,13 +319,8 @@ public final class ClientAuraRenderer {
         if (texture == null) return;
 
         Matrix4f matrix = poseStack.last().pose();
-        int seeThroughAlpha = Math.max(10, Math.round(alpha * 0.4F));
 
-        // Pass 1: See-through layer (always visible through geometry)
-        VertexConsumer seeThrough = buffer.getBuffer(RenderType.textSeeThrough(texture));
-        drawDoubleSidedQuad(seeThrough, matrix, x, y, width, height, 255, 255, 255, seeThroughAlpha);
-
-        // Pass 2: Main vivid layer (with depth test)
+        // Main vivid layer (with depth test; never renders through solid blocks/terrain)
         VertexConsumer main = buffer.getBuffer(RenderType.text(texture));
         drawDoubleSidedQuad(main, matrix, x, y, width, height, 255, 255, 255, alpha);
     }
@@ -481,7 +481,7 @@ public final class ClientAuraRenderer {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen);
+        renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -511,8 +511,12 @@ public final class ClientAuraRenderer {
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
-        boolean isWide = availableWidth >= 120;
-        int vanillaCount = mc.player.getActiveEffects().size();
+        int vanillaCount = 0;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon()) {
+                vanillaCount++;
+            }
+        }
         int totalEffects = vanillaCount + data.elements.size();
         int yStep = 33;
         if (totalEffects > 5) {
@@ -544,44 +548,25 @@ public final class ClientAuraRenderer {
 
             ResourceLocation tex = HUD_TEXTURES.get(elem);
 
-            if (isWide) {
-                // Wide Mode: 120x32 effect card matching vanilla layout exactly
-                guiGraphics.blitSprite(EFFECT_BACKGROUND_LARGE_SPRITE, startX, y, 120, 32);
-                if (tex != null) {
-                    if (alpha < 1.0F) {
-                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
-                    }
-                    guiGraphics.blit(tex, startX + 7, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
-                    if (alpha < 1.0F) {
-                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-                        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-                    }
+            // Compact Mode (32x32 square) to avoid overlapping with JEI
+            guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
+            if (tex != null) {
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
                 }
-                guiGraphics.drawString(mc.font, title, startX + 28, y + 6, getElementTextColor(elem), true);
+                guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+                }
+            }
+            if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+                List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+                tooltip.add(net.minecraft.network.chat.Component.literal(title).withStyle(elem.color()));
                 if (!durationStr.isEmpty()) {
-                    guiGraphics.drawString(mc.font, durationStr, startX + 28, y + 17, 0x808080, false);
+                    tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
                 }
-            } else {
-                // Compact Mode: 32x32 square
-                guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
-                if (tex != null) {
-                    if (alpha < 1.0F) {
-                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
-                    }
-                    guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
-                    if (alpha < 1.0F) {
-                        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-                        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-                    }
-                }
-                if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
-                    List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
-                    tooltip.add(net.minecraft.network.chat.Component.literal(title));
-                    if (!durationStr.isEmpty()) {
-                        tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
-                    }
-                    guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
-                }
+                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
             }
 
             index++;
@@ -697,12 +682,13 @@ public final class ClientAuraRenderer {
 
         renderCrystallizeShieldHudFrame(guiGraphics, x, y, getElementBorderColor(shield));
 
-        ResourceLocation tex = HUD_TEXTURES.get(shield);
-        if (tex != null) {
+        // Draw only the Crystallize Shield texture (textures/mob_effect/*_shield.png, 18x18), never the round element icon
+        ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
+        if (shieldTex != null) {
             if (alpha < 1.0F) {
                 guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
             }
-            guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+            guiGraphics.blit(shieldTex, x + 3, y + 3, 0.0F, 0.0F, 18, 18, 18, 18);
             if (alpha < 1.0F) {
                 guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
                 RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -716,7 +702,9 @@ public final class ClientAuraRenderer {
             int leftPos,
             int topPos,
             int imageWidth,
-            EffectRenderingInventoryScreen<?> screen
+            EffectRenderingInventoryScreen<?> screen,
+            int mouseX,
+            int mouseY
     ) {
         if (mc.player == null) return;
         Element shield = ClientAuraTracker.getActiveCrystallizeShield();
@@ -729,7 +717,12 @@ public final class ClientAuraRenderer {
         int availableWidth = screen.width - startX;
         if (availableWidth < 32) return;
 
-        int vanillaCount = mc.player.getActiveEffects().size();
+        int vanillaCount = 0;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon()) {
+                vanillaCount++;
+            }
+        }
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         int auraCount = (data != null) ? data.elements.size() : 0;
         int totalEffects = vanillaCount + auraCount;
@@ -740,11 +733,13 @@ public final class ClientAuraRenderer {
 
         int effectIndex = 0;
         boolean found = false;
+        MobEffectInstance shieldInst = null;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
                 if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
                         || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
                     found = true;
+                    shieldInst = inst;
                     break;
                 }
                 effectIndex++;
@@ -752,10 +747,31 @@ public final class ClientAuraRenderer {
         }
 
         int y = topPos + effectIndex * yStep;
+        if (!found) {
+            guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
+        }
         renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
-        ResourceLocation tex = HUD_TEXTURES.get(shield);
-        if (tex != null) {
-            guiGraphics.blit(tex, startX + 7, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+
+        // Draw only the Crystallize Shield texture (textures/mob_effect/*_shield.png, 18x18), never the round element icon
+        ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
+        if (shieldTex != null) {
+            guiGraphics.blit(shieldTex, startX + 7, y + 7, 0.0F, 0.0F, 18, 18, 18, 18);
+        }
+
+        if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+            long now = System.currentTimeMillis();
+            long remSec;
+            if (shieldInst != null) {
+                remSec = Math.max(0, shieldInst.getDuration() / 20);
+            } else {
+                remSec = Math.max(0, (ClientAuraTracker.crystallizeShieldUntil - now) / 1000L);
+            }
+            String durationStr = String.format(Locale.ROOT, "%d:%02d", remSec / 60, remSec % 60);
+            String key = "effect.velorise_staves." + shield.name().toLowerCase(Locale.ROOT) + "_shield";
+            List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+            tooltip.add(net.minecraft.network.chat.Component.translatable(key).withStyle(shield.color()));
+            tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
+            guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
         }
     }
 
