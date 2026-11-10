@@ -153,9 +153,10 @@ public final class ClientAuraRenderer {
             }
         } else if (data != null && !data.elements.isEmpty()) {
             display.addAll(data.elements);
-        } else if (innateElement != null) {
-            // Always show innate element icon above Blaze, MagmaCube, Strider, Stray, SnowGolem, Guardian, Drowned, Breeze
-            display.add(innateElement);
+        }
+        if (innateElement != null && !display.contains(innateElement)) {
+            // Always show innate element icon (and allow coexisting auras like Dendro on Geo)
+            display.add(0, innateElement);
         }
 
         boolean hasReaction = data != null && data.reaction != null && now < data.reactionUntil;

@@ -104,8 +104,9 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             }
         } else if (data != null && !data.elements.isEmpty()) {
             display.addAll(data.elements);
-        } else if (innateElement != null) {
-            display.add(innateElement);
+        }
+        if (innateElement != null && !display.contains(innateElement)) {
+            display.add(0, innateElement);
         }
 
         if (display.isEmpty()) return;

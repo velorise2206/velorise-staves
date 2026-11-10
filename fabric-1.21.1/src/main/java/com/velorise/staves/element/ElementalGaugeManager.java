@@ -913,11 +913,25 @@ public final class ElementalGaugeManager {
                 }
             } else if (innateElement == Element.GEO && (attackElement == Element.PYRO || attackElement == Element.HYDRO || attackElement == Element.ELECTRO || attackElement == Element.CRYO)) {
                 if (checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
-                    target.hurt(level.damageSources().magic(), effectiveDamage);
                     executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, attackElement, 0.5F, attacker, dmgMult);
+                }
+                // If target has no attached coexisting auras (e.g. Dendro), finish Crystallize hit directly
+                if (!targetGauges.containsKey(Element.DENDRO)) {
+                    target.hurt(level.damageSources().magic(), effectiveDamage);
                     syncAuras(target, Collections.singleton(Element.GEO), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, effectiveDamage);
                     return;
                 }
+                // Otherwise, fall through to resolve reaction with the attached DENDRO aura (Quicken, Bloom, Burning)!
+            } else if (innateElement == Element.GEO && attackElement == Element.DENDRO) {
+                // Geo and Dendro do not react; Dendro attaches as an independent coexisting aura
+                if (targetGauges.containsKey(Element.DENDRO)) {
+                    targetGauges.get(Element.DENDRO).refresh(attackU);
+                } else {
+                    targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
+                }
+                target.hurt(level.damageSources().magic(), effectiveDamage);
+                syncAuras(target, targetGauges.keySet(), Element.GEO, Element.DENDRO, null, effectiveDamage);
+                return;
             }
 
             if (innateElement.isAura() && !targetGauges.containsKey(innateElement)) {
@@ -1368,7 +1382,8 @@ public final class ElementalGaugeManager {
             long now
     ) {
         if (innateElement == null) return;
-        targetGauges.keySet().removeIf(e -> e != innateElement);
+        // Allow DENDRO to coexist on GEO innate creatures (Genshin Impact mechanics)
+        targetGauges.keySet().removeIf(e -> e != innateElement && !(innateElement == Element.GEO && e == Element.DENDRO));
         if (innateElement.isAura() && !targetGauges.containsKey(innateElement)) {
             targetGauges.put(innateElement, new GaugeState(innateElement, 1.25F));
         }
