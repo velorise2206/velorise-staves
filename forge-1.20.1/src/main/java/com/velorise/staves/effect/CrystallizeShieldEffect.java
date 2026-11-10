@@ -21,7 +21,7 @@ public class CrystallizeShieldEffect extends MobEffect {
     public void addAttributeModifiers(LivingEntity entity, AttributeMap attributeMap, int amplifier) {
         // Mutual exclusivity guard: remove any other elemental shield effect immediately
         ModMobEffects.removeAllShieldsExcept(entity, this.element);
-        entity.setAbsorptionAmount(entity.getAbsorptionAmount() + 2.0F);
+        entity.setAbsorptionAmount(Math.max(entity.getAbsorptionAmount(), 2.0F));
         super.addAttributeModifiers(entity, attributeMap, amplifier);
 
         if (entity instanceof ServerPlayer player && !player.level().isClientSide) {

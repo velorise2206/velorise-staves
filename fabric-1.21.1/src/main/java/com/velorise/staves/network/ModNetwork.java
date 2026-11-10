@@ -17,6 +17,10 @@ public final class ModNetwork {
     public static void registerCommon() {
         PayloadTypeRegistry.playS2C().register(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(FreezeStrugglePayload.TYPE, (payload, context) -> {
+            context.server().execute(() -> com.velorise.staves.element.ElementalGaugeManager.handlePlayerFreezeStruggle(context.player()));
+        });
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -66,7 +70,7 @@ public final class ModNetwork {
             int durationTicks
     ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         for (ServerPlayer player : PlayerLookup.tracking(target)) {
             ServerPlayNetworking.send(player, payload);
         }
@@ -80,7 +84,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements, int durationTicks) {
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         ServerPlayNetworking.send(player, payload);
     }
 
@@ -96,5 +100,9 @@ public final class ModNetwork {
                 durationTicks
         );
         ServerPlayNetworking.send(player, payload);
+    }
+
+    public static void sendFreezeStruggle() {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new FreezeStrugglePayload());
     }
 }

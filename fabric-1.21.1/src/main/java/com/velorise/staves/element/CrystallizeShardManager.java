@@ -174,10 +174,19 @@ public final class CrystallizeShardManager {
                 boolean changed = (activeShield != null && activeShield != entry.element);
                 boolean cleared = (activeShield == null);
 
-                if (expired || changed || cleared || depleted) {
+                if (changed && !depleted) {
+                    // Shield was replaced with a different element (e.g. via command or new shard): sync to new element
+                    ACTIVE_SHIELDS.put(pid, new ShieldEntry(activeShield, now + SHIELD_DURATION_TICKS));
+                    ModNetwork.sendCrystallizeShieldToPlayer(player, activeShield, SHIELD_DURATION_TICKS);
+                } else if (expired || cleared || depleted) {
                     ACTIVE_SHIELDS.remove(pid);
-                    if (changed || cleared || depleted) {
-                        ModMobEffects.removeAllShields(player);
+                    ModMobEffects.removeAllShields(player);
+                    MobEffectInstance absInst = player.getEffect(MobEffects.ABSORPTION);
+                    if (absInst != null && absInst.getAmplifier() == 0) {
+                        player.removeEffect(MobEffects.ABSORPTION);
+                    }
+                    if (expired && player.getAbsorptionAmount() <= 2.0F) {
+                        player.setAbsorptionAmount(0.0F);
                     }
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
                     if (depleted) {
@@ -303,14 +312,21 @@ public final class CrystallizeShardManager {
     }
 
     private static void pickupShard(ServerLevel level, ServerPlayer player, Element element) {
-        // Remove any old crystallize shield effects
+        // Replace any existing Crystallize shield (same or different element) and reset shield absorption
         ModMobEffects.removeAllShields(player);
+        MobEffectInstance oldAbs = player.getEffect(MobEffects.ABSORPTION);
+        if (oldAbs != null && oldAbs.getAmplifier() == 0) {
+            player.removeEffect(MobEffects.ABSORPTION);
+            if (player.getAbsorptionAmount() <= 2.0F) {
+                player.setAbsorptionAmount(0.0F);
+            }
+        }
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
             player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, true, true));
         }
 
-        // Grant vanilla Absorption so absorption hearts and damage absorption work reliably
+        // Grant fresh 15s vanilla Absorption (1 golden heart = 2.0F)
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, 0, false, false, false));
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), 2.0F));
 

@@ -45,12 +45,16 @@ public class AuraSyncPacket {
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction,
             float damage,
-            int durationTicks
+            int durationTicks,
+            boolean isFrozen
     ) {
         this.entityId = entityId;
         byte mask = 0;
         for (Element e : elements) {
             mask |= (byte) (1 << e.ordinal());
+        }
+        if (isFrozen) {
+            mask |= (byte) 0x80;
         }
         this.activeMask = mask;
         this.reactedAuraOrdinal = reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0;
@@ -58,6 +62,18 @@ public class AuraSyncPacket {
         this.reactionOrdinal = reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0;
         this.damage = damage;
         this.durationTicks = durationTicks;
+    }
+
+    public AuraSyncPacket(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, reaction == ElementalReaction.FROZEN);
     }
 
     public AuraSyncPacket(
@@ -125,7 +141,8 @@ public class AuraSyncPacket {
             ElementalReaction reaction = (pkt.reactionOrdinal > 0 && pkt.reactionOrdinal <= ElementalReaction.values().length)
                     ? ElementalReaction.values()[pkt.reactionOrdinal - 1] : null;
 
-            com.velorise.staves.client.ClientAuraTracker.update(pkt.entityId, elements, reactedAura, trigger, reaction, pkt.damage, pkt.durationTicks);
+            boolean isFrozen = (pkt.activeMask & 0x80) != 0;
+            com.velorise.staves.client.ClientAuraTracker.update(pkt.entityId, elements, reactedAura, trigger, reaction, pkt.damage, pkt.durationTicks, isFrozen);
         }
     }
 }

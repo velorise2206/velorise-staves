@@ -36,6 +36,30 @@ public final class ClientAuraRenderer {
     private static final ResourceLocation EFFECT_BACKGROUND_LARGE_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_large");
     private static final ResourceLocation EFFECT_BACKGROUND_SMALL_SPRITE = ResourceLocation.withDefaultNamespace("container/inventory/effect_background_small");
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
+    private static final ResourceLocation FROSTED_ICE_TEXTURE = ResourceLocation.withDefaultNamespace("textures/block/frosted_ice_0.png");
+
+    private static final class FrozenRenderState {
+        final float yBodyRot;
+        final float yHeadRot;
+        final float xRot;
+        final float yRot;
+        final float walkAnimPos;
+        final float attackAnim;
+
+        FrozenRenderState(LivingEntity entity) {
+            this.yBodyRot = entity.yBodyRot;
+            this.yHeadRot = entity.yHeadRot;
+            this.xRot = entity.getXRot();
+            this.yRot = entity.getYRot();
+            this.walkAnimPos = entity.walkAnimation.position();
+            this.attackAnim = entity.attackAnim;
+        }
+    }
+
+    private static final Map<Integer, FrozenRenderState> FROZEN_RENDER_STATES = new HashMap<>();
+    private static boolean wasJumpKeyDown = false;
+    private static long lastStruggleSendTime = 0L;
+    private static long struggleShakeUntil = 0L;
 
     static {
         for (Element e : Element.values()) {
@@ -65,11 +89,87 @@ public final class ClientAuraRenderer {
         render(entity, poseStack, buffer);
     }
 
+    public static void applyFrozenPoseLock(LivingEntity entity) {
+        if (entity == null) return;
+        if (!ClientAuraTracker.isFrozen(entity.getId())) {
+            FROZEN_RENDER_STATES.remove(entity.getId());
+            return;
+        }
+        FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(entity.getId(), k -> new FrozenRenderState(entity));
+        entity.setTicksFrozen(0);
+
+        float shakeOffset = 0.0F;
+        Minecraft mc = Minecraft.getInstance();
+        long now = System.currentTimeMillis();
+        if (mc.player != null && entity.getId() == mc.player.getId()) {
+            if (now < struggleShakeUntil) {
+                shakeOffset = (float) Math.sin((struggleShakeUntil - now) * 0.85D) * 2.8F;
+            }
+            double dy = entity.onGround() ? 0.0D : Math.max(-0.08D, entity.getDeltaMovement().y);
+            entity.setDeltaMovement(0.0D, dy, 0.0D);
+            entity.setSprinting(false);
+        }
+
+        entity.yBodyRot = state.yBodyRot + shakeOffset;
+        entity.yBodyRotO = state.yBodyRot + shakeOffset;
+        entity.yHeadRot = state.yHeadRot + shakeOffset;
+        entity.yHeadRotO = state.yHeadRot + shakeOffset;
+        entity.setXRot(state.xRot);
+        entity.xRotO = state.xRot;
+        entity.setYRot(state.yRot + shakeOffset);
+        entity.yRotO = state.yRot + shakeOffset;
+        entity.attackAnim = state.attackAnim;
+        entity.oAttackAnim = state.attackAnim;
+        entity.walkAnimation.setSpeed(0.0F);
+    }
+
+    public static void renderFrozenIceOverlay(
+            LivingEntity entity,
+            net.minecraft.client.model.EntityModel<?> model,
+            PoseStack poseStack,
+            MultiBufferSource buffer
+    ) {
+        if (renderingScreen || entity == null || model == null) return;
+        if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        if (!ClientAuraTracker.isFrozen(entity.getId())) {
+            FROZEN_RENDER_STATES.remove(entity.getId());
+            return;
+        }
+
+        FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(entity.getId(), k -> new FrozenRenderState(entity));
+        float shakeOffset = 0.0F;
+        Minecraft mc = Minecraft.getInstance();
+        long now = System.currentTimeMillis();
+        if (mc.player != null && entity.getId() == mc.player.getId() && now < struggleShakeUntil) {
+            shakeOffset = (float) Math.sin((struggleShakeUntil - now) * 0.85D) * 2.8F;
+        }
+
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - (state.yBodyRot + shakeOffset)));
+        float entityScale = entity.getScale();
+        if (entity instanceof net.minecraft.world.entity.monster.Slime slime) {
+            entityScale *= 0.999F * (float) slime.getSize();
+        }
+        float iceScale = entityScale * 1.025F;
+        poseStack.scale(-iceScale, -iceScale, iceScale);
+        poseStack.translate(0.0F, -1.501F, 0.0F);
+
+        VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
+        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0x7378E1FF);
+        poseStack.popPose();
+    }
+
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen) return;
+        boolean showIcons = true;
+        boolean showReactionText = true;
+        boolean showDamageNumbers = true;
         try {
-            if (!StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get()) return;
+            showIcons = StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get();
+            showReactionText = StavesConfig.SHOW_REACTION_TEXT.get();
+            showDamageNumbers = StavesConfig.SHOW_DAMAGE_NUMBERS.get();
         } catch (Exception ignored) {}
+        if (!showIcons && !showReactionText && !showDamageNumbers) return;
 
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
 
@@ -130,17 +230,17 @@ public final class ClientAuraRenderer {
             display.add(0, innateElement);
         }
 
-        boolean hasReaction = data != null && data.reaction != null && now < data.reactionUntil;
-        boolean hasDamage = data != null && data.damageUntil > now && data.lastDamage > 0.0F;
+        boolean hasReaction = showReactionText && data != null && data.reaction != null && now < data.reactionUntil;
+        boolean hasDamage = showDamageNumbers && data != null && data.damageUntil > now && data.lastDamage > 0.0F;
 
-        if (display.isEmpty() && !hasReaction && !hasDamage) return;
+        if ((!showIcons || display.isEmpty()) && !hasReaction && !hasDamage) return;
 
         double height = entity.getBbHeight() + 0.55D;
         float iconSize = 16.0F;
         float gap = 3.0F;
 
         // Branch 1: Draw Overhead Element Icon(s) with Pop & Fade-out Animation
-        if (!display.isEmpty()) {
+        if (showIcons && !display.isEmpty()) {
             poseStack.pushPose();
             poseStack.translate(0.0D, height, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
@@ -353,6 +453,7 @@ public final class ClientAuraRenderer {
         }
 
         renderCrystallizeShieldHud(guiGraphics, mc);
+        renderFreezeStruggleHud(guiGraphics, mc);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -608,6 +709,64 @@ public final class ClientAuraRenderer {
 
     private static boolean isBeneficial(MobEffectInstance inst) {
         return inst.getEffect().value().isBeneficial();
+    }
+
+    private static void renderFreezeStruggleHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null) return;
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        if (data == null || !data.isFrozen) {
+            wasJumpKeyDown = false;
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (data.expireTime > 0 && now >= data.expireTime) {
+            data.isFrozen = false;
+            wasJumpKeyDown = false;
+            return;
+        }
+
+        boolean jumpDown = mc.screen == null && mc.options.keyJump.isDown();
+        if (jumpDown && !wasJumpKeyDown && (now - lastStruggleSendTime) >= 75L) {
+            lastStruggleSendTime = now;
+            struggleShakeUntil = now + 150L;
+            com.velorise.staves.network.ModNetwork.sendFreezeStruggle();
+            if (data.expireTime > now + 150L) {
+                data.expireTime = Math.max(now + 100L, data.expireTime - 350L);
+            }
+        }
+        wasJumpKeyDown = jumpDown;
+
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        int centerX = sw / 2;
+        int y = sh - 68;
+
+        String prompt = net.minecraft.network.chat.Component.translatable("message.velorise_staves.freeze_struggle").getString();
+        int textW = mc.font.width(prompt);
+        int boxW = Math.max(88, textW + 14);
+        int boxX = centerX - boxW / 2;
+
+        boolean pressedFlash = (now - lastStruggleSendTime) < 90L;
+        int bgColor = pressedFlash ? 0xCC1E4E68 : 0xAA0D2230;
+        int borderColor = pressedFlash ? 0xFF99F6FF : 0xFF4DF0FF;
+
+        guiGraphics.fill(boxX, y - 3, boxX + boxW, y + 18, bgColor);
+        renderColoredBorder(guiGraphics, boxX, y - 3, boxW, 21, borderColor);
+
+        int textColor = pressedFlash ? 0xFFFFFFFF : 0xFFB8F8FF;
+        guiGraphics.drawString(mc.font, prompt, centerX - textW / 2, y, textColor, true);
+
+        // Remaining freeze progress bar
+        float progress = 1.0F;
+        if (data.expireTime > now) {
+            progress = Math.max(0.05F, Math.min(1.0F, (float) (data.expireTime - now) / 4000.0F));
+        }
+        int barW = boxW - 10;
+        int barX = boxX + 5;
+        int barY = y + 11;
+        guiGraphics.fill(barX, barY, barX + barW, barY + 3, 0x88081520);
+        int fillW = Math.max(2, Math.round(barW * progress));
+        guiGraphics.fill(barX, barY, barX + fillW, barY + 3, 0xFF64D2FF);
     }
 
     private static void renderCrystallizeShieldHud(GuiGraphics guiGraphics, Minecraft mc) {

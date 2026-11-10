@@ -18,6 +18,7 @@ public final class ModNetwork {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToClient(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC, AuraSyncPayload::handle);
         registrar.playToClient(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC, ElectricArcPayload::handle);
+        registrar.playToServer(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC, FreezeStrugglePayload::handle);
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -63,7 +64,7 @@ public final class ModNetwork {
             int durationTicks
     ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
     }
 
@@ -72,7 +73,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements, int durationTicks) {
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks);
+        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, null, null, null, 0.0F, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         PacketDistributor.sendToPlayer(player, payload);
     }
 
@@ -88,5 +89,9 @@ public final class ModNetwork {
                 durationTicks
         );
         PacketDistributor.sendToPlayer(player, payload);
+    }
+
+    public static void sendFreezeStruggle() {
+        PacketDistributor.sendToServer(new FreezeStrugglePayload());
     }
 }

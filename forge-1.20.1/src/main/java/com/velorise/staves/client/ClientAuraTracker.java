@@ -30,6 +30,18 @@ public final class ClientAuraTracker {
         public long damageUntil = 0;
         public int durationTicks = 0;
         public long expireTime = 0; // ms timestamp when aura completely expires
+        public boolean isFrozen = false;
+        public long frozenUntil = 0L;
+        public long frozenTotalMs = 0L;
+        public boolean poseCaptured = false;
+        public float capturedWalkPos = 0.0F;
+        public float capturedWalkSpeed = 0.0F;
+        public float capturedAttackAnim = 0.0F;
+        public float capturedYBodyRot = 0.0F;
+        public float capturedYHeadRot = 0.0F;
+        public float capturedXRot = 0.0F;
+        public int capturedTickCount = 0;
+        public long lastStruggleTime = 0L;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -95,6 +107,19 @@ public final class ClientAuraTracker {
             float damage,
             int durationTicks
     ) {
+        update(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, reaction == ElementalReaction.FROZEN);
+    }
+
+    public static void update(
+            int entityId,
+            List<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks,
+            boolean isFrozenState
+    ) {
         long now = System.currentTimeMillis();
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
         entry.elements.clear();
@@ -147,9 +172,34 @@ public final class ClientAuraTracker {
             entry.damageUntil = now + 1500; // 30 ticks (1.5 seconds) floating damage number
         }
 
-        if (elements.isEmpty() && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (isFrozenState || reaction == ElementalReaction.FROZEN) {
+            entry.isFrozen = true;
+            long remMs = durationTicks > 0 ? (long) durationTicks * 50L : 4000L;
+            entry.frozenUntil = now + remMs;
+            if (entry.frozenTotalMs <= 0L || reaction == ElementalReaction.FROZEN || remMs > entry.frozenTotalMs) {
+                entry.frozenTotalMs = Math.max(500L, remMs);
+            }
+        } else {
+            entry.isFrozen = false;
+            entry.frozenUntil = 0L;
+            entry.frozenTotalMs = 0L;
+            entry.poseCaptured = false;
+        }
+
+        if (elements.isEmpty() && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
+    }
+
+    public static boolean isFrozen(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data == null || !data.isFrozen) return false;
+        if (System.currentTimeMillis() >= data.frozenUntil) {
+            data.isFrozen = false;
+            data.poseCaptured = false;
+            return false;
+        }
+        return true;
     }
 
     public static @Nullable AuraDisplayData get(int entityId) {
@@ -172,7 +222,7 @@ public final class ClientAuraTracker {
         if (mc.player == null) return null;
         Element mobShield = ModMobEffects.getActiveShield(mc.player);
         if (mobShield != null) {
-            if (activeCrystallizeShield != mobShield) {
+            if (activeCrystallizeShield != mobShield || crystallizeShieldUntil <= System.currentTimeMillis()) {
                 activeCrystallizeShield = mobShield;
                 crystallizeShieldUntil = System.currentTimeMillis() + 15000L;
             }

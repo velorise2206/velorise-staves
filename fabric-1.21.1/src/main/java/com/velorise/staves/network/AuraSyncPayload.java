@@ -53,17 +53,30 @@ public record AuraSyncPayload(
             @Nullable Element trigger,
             @Nullable ElementalReaction reaction,
             float damage,
-            int durationTicks
+            int durationTicks,
+            boolean isFrozen
     ) {
         this(
                 entityId,
-                toMask(elements),
+                (byte) (toMask(elements) | (isFrozen ? 0x80 : 0)),
                 reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
                 trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
                 reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
                 damage,
                 durationTicks
         );
+    }
+
+    public AuraSyncPayload(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, reaction == ElementalReaction.FROZEN);
     }
 
     public AuraSyncPayload(

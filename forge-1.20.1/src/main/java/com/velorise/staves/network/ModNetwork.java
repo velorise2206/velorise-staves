@@ -39,6 +39,12 @@ public final class ModNetwork {
                 .encoder(ElectricArcPacket::toBytes)
                 .consumerMainThread(ElectricArcPacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(FreezeStrugglePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .decoder(FreezeStrugglePacket::new)
+                .encoder(FreezeStrugglePacket::toBytes)
+                .consumerMainThread(FreezeStrugglePacket::handle)
+                .add();
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -84,7 +90,7 @@ public final class ModNetwork {
             int durationTicks
     ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
     }
 
@@ -93,7 +99,7 @@ public final class ModNetwork {
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements, int durationTicks) {
-        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null, 0.0F, durationTicks);
+        AuraSyncPacket packet = new AuraSyncPacket(target.getId(), elements, null, null, null, 0.0F, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
     }
 
@@ -108,5 +114,9 @@ public final class ModNetwork {
                 durationTicks
         );
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+    }
+
+    public static void sendFreezeStruggle() {
+        CHANNEL.sendToServer(new FreezeStrugglePacket());
     }
 }

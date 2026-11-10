@@ -95,6 +95,12 @@ public final class ElementalGaugeManager {
     private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPERCONDUCT_UNTIL = new ConcurrentHashMap<>();
+    public static final String TAG_FROZEN_STATUE = "velorise_staves:frozen_statue";
+
+    public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
+
+    private static final Map<UUID, FrozenPoseState> FROZEN_POSES = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_FREEZE_STRUGGLE = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
     public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
 
@@ -164,6 +170,15 @@ public final class ElementalGaugeManager {
 
     public static @Nullable GaugeState getFrozenGauge(UUID entityId) {
         return FROZEN_GAUGES.get(entityId);
+    }
+
+    public static boolean isEntityFrozen(@Nullable Entity entity) {
+        if (entity == null) return false;
+        UUID id = entity.getUUID();
+        GaugeState fg = FROZEN_GAUGES.get(id);
+        if (fg != null && !fg.isExpired()) return true;
+        Long until = FROZEN_UNTIL.get(id);
+        return until != null && entity.level().getGameTime() < until;
     }
 
     /**
@@ -265,6 +280,8 @@ public final class ElementalGaugeManager {
         FROZEN_GAUGES.clear();
         QUICKEN_GAUGES.clear();
         FROZEN_UNTIL.clear();
+        FROZEN_POSES.clear();
+        LAST_FREEZE_STRUGGLE.clear();
         QUICKEN_UNTIL.clear();
         BURNING_UNTIL.clear();
         LAST_BURN_PYRO_REFRESH.clear();
@@ -283,13 +300,124 @@ public final class ElementalGaugeManager {
         EnvironmentalBlockManager.clearAll();
     }
 
+    private static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) {
+        FROZEN_GAUGES.put(targetId, newFreeze);
+        FROZEN_UNTIL.put(targetId, now + freezeTicks);
+        target.setTicksFrozen(0);
+        MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        if (slow != null) {
+            target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        }
+        target.setDeltaMovement(Vec3.ZERO);
+        target.hurtMarked = true;
+        target.stopUsingItem();
+
+        FROZEN_POSES.computeIfAbsent(targetId, k -> new FrozenPoseState(
+                target.getX(), target.getY(), target.getZ(),
+                target.getYRot(), target.getXRot(), target.getYHeadRot(), target.yBodyRot
+        ));
+
+        if (target instanceof net.minecraft.world.entity.Mob mob) {
+            mob.getNavigation().stop();
+            if (mob instanceof Creeper creeper) {
+                creeper.setSwellDir(-1);
+            }
+            if (!mob.isNoAi()) {
+                mob.setNoAi(true);
+                mob.addTag(TAG_FROZEN_STATUE);
+            }
+        }
+    }
+
+    private static void enforceFrozenPose(LivingEntity target, UUID id) {
+        target.setTicksFrozen(0);
+        target.stopUsingItem();
+        FrozenPoseState pose = FROZEN_POSES.get(id);
+        if (pose != null) {
+            double dy = target.onGround() ? 0.0D : Math.max(-0.08D, target.getDeltaMovement().y);
+            target.setDeltaMovement(0.0D, dy, 0.0D);
+            if (target.distanceToSqr(pose.x(), target.getY(), pose.z()) > 0.0004D) {
+                target.setPos(pose.x(), target.getY(), pose.z());
+            }
+            target.setYRot(pose.yRot());
+            target.setXRot(pose.xRot());
+            target.setYHeadRot(pose.yHeadRot());
+            target.setYBodyRot(pose.yBodyRot());
+            target.yRotO = pose.yRot();
+            target.xRotO = pose.xRot();
+            target.yHeadRotO = pose.yHeadRot();
+            target.yBodyRotO = pose.yBodyRot();
+        } else {
+            target.setDeltaMovement(0.0D, target.getDeltaMovement().y < 0 ? -0.05D : 0.0D, 0.0D);
+        }
+
+        if (target instanceof net.minecraft.world.entity.Mob mob) {
+            mob.getNavigation().stop();
+            if (mob instanceof Creeper creeper) {
+                creeper.setSwellDir(-1);
+            }
+            if (!mob.isNoAi()) {
+                mob.setNoAi(true);
+                mob.addTag(TAG_FROZEN_STATUE);
+            }
+        }
+    }
+
     private static void clearFreezeState(LivingEntity target, UUID id) {
         FROZEN_GAUGES.remove(id);
         FROZEN_UNTIL.remove(id);
+        FROZEN_POSES.remove(id);
+        LAST_FREEZE_STRUGGLE.remove(id);
         target.setTicksFrozen(0);
         MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
         if (slow != null && slow.getAmplifier() >= 6) {
             target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
+        }
+        if (target instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
+            mob.setNoAi(false);
+            mob.removeTag(TAG_FROZEN_STATUE);
+        }
+    }
+
+    /**
+     * Genshin Impact Spacebar Struggle: allows a Frozen player to mash Space to shave off freeze duration faster.
+     */
+    public static void handlePlayerFreezeStruggle(ServerPlayer player) {
+        if (player == null || !player.isAlive() || player.level().isClientSide()) return;
+        UUID id = player.getUUID();
+        GaugeState fg = FROZEN_GAUGES.get(id);
+        Long frozenEnd = FROZEN_UNTIL.get(id);
+        long now = player.level().getGameTime();
+        if (fg == null && (frozenEnd == null || now >= frozenEnd)) return;
+
+        Long lastStruggle = LAST_FREEZE_STRUGGLE.get(id);
+        if (lastStruggle != null && (now - lastStruggle) < 2L) {
+            return; // Rate limit: max 1 struggle every 2 ticks (10 presses/sec)
+        }
+        LAST_FREEZE_STRUGGLE.put(id, now);
+
+        if (fg != null) {
+            fg.consume(0.35F);
+        }
+        long newEnd = (frozenEnd != null ? frozenEnd - 8L : now);
+        if (fg != null && !fg.isExpired()) {
+            newEnd = Math.min(newEnd, now + fg.getRemainingTicks());
+        }
+        FROZEN_UNTIL.put(id, newEnd);
+
+        ServerLevel level = (ServerLevel) player.level();
+        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 0.9D, player.getZ(), 5, 0.25D, 0.35D, 0.25D, 0.03D);
+        level.sendParticles(ParticleTypes.ITEM_SNOWBALL, player.getX(), player.getY() + 0.9D, player.getZ(), 4, 0.2D, 0.3D, 0.2D, 0.04D);
+
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
+        if ((fg != null && fg.isExpired()) || now >= newEnd) {
+            clearFreezeState(player, id);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.85F, 1.35F);
+            level.sendParticles(ParticleTypes.ITEM_SNOWBALL, player.getX(), player.getY() + 0.9D, player.getZ(), 18, 0.35D, 0.45D, 0.35D, 0.06D);
+            syncAuras(player, targetGauges.keySet(), null, null, null);
+        } else {
+            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_HIT, SoundSource.PLAYERS, 0.65F, 1.55F + player.getRandom().nextFloat() * 0.3F);
+            syncAuras(player, targetGauges.keySet(), null, null, null);
         }
     }
 
@@ -843,6 +971,10 @@ public final class ElementalGaugeManager {
 
     public static void checkInnateMutation(LivingEntity entity) {
         if (entity.level().isClientSide()) return;
+        if (entity instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
+            mob.setNoAi(false);
+            mob.removeTag(TAG_FROZEN_STATUE);
+        }
         if (entity instanceof net.minecraft.world.entity.player.Player || isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return;
 
         net.minecraft.nbt.CompoundTag data = entity.getPersistentData();
@@ -853,8 +985,12 @@ public final class ElementalGaugeManager {
         // If the entity already has a natural innate element, do not mutate it
         if (getNaturalInnateElement(entity) != null) return;
 
-        // 1% chance (0.01) to mutate into one of the 7 innate elements
-        if (entity.getRandom().nextFloat() < 0.01F) {
+        // Configurable chance (default 6% = 0.06) to mutate into one of the 7 innate elements
+        double mutateChance = 0.06D;
+        try {
+            mutateChance = StavesConfig.INNATE_MUTATION_CHANCE.get();
+        } catch (Exception ignored) {}
+        if (mutateChance > 0.0D && entity.getRandom().nextDouble() < mutateChance) {
             Element[] elements = Element.values();
             Element chosen = elements[entity.getRandom().nextInt(elements.length)];
             data.putString("VeloriseInnate", chosen.name());
@@ -1451,10 +1587,7 @@ public final class ElementalGaugeManager {
                     GaugeState newFreeze = GaugeState.createFrozen(Math.max(0.8F, freezeU));
                     int freezeTicks = newFreeze.getRemainingTicks();
                     if (innateElement == null && !isBossEntity(target)) {
-                        FROZEN_GAUGES.put(targetId, newFreeze);
-                        FROZEN_UNTIL.put(targetId, now + freezeTicks);
-                        target.setTicksFrozen(freezeTicks + 40);
-                        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks, 6));
+                        applyFreezeState(target, targetId, newFreeze, freezeTicks, now);
                     }
                 }
 
@@ -1511,10 +1644,7 @@ public final class ElementalGaugeManager {
                                     GaugeState newFreeze2 = GaugeState.createFrozen(Math.max(0.8F, freezeU2));
                                     int freezeTicks2 = newFreeze2.getRemainingTicks();
                                     if (innateElement == null && !isBossEntity(target)) {
-                                        FROZEN_GAUGES.put(targetId, newFreeze2);
-                                        FROZEN_UNTIL.put(targetId, now + freezeTicks2);
-                                        target.setTicksFrozen(freezeTicks2 + 40);
-                                        target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, freezeTicks2, 6));
+                                        applyFreezeState(target, targetId, newFreeze2, freezeTicks2, now);
                                     }
                                 }
                                 executeReactionEffect(level, target, secondaryReaction, secondaryAura, removed2, attacker, dmgMult);
@@ -1827,6 +1957,8 @@ public final class ElementalGaugeManager {
                 FROZEN_GAUGES.remove(id);
                 QUICKEN_GAUGES.remove(id);
                 FROZEN_UNTIL.remove(id);
+                FROZEN_POSES.remove(id);
+                LAST_FREEZE_STRUGGLE.remove(id);
                 QUICKEN_UNTIL.remove(id);
                 BURNING_UNTIL.remove(id);
                 LAST_BURN_PYRO_REFRESH.remove(id);
@@ -1911,7 +2043,7 @@ public final class ElementalGaugeManager {
                 changed = true;
             }
 
-            // Tick independent Freeze gauge
+            // Tick independent Freeze gauge (Genshin Statue Freeze: lock AI, position, and rotation)
             GaugeState fg = FROZEN_GAUGES.get(id);
             Long frozenEnd = FROZEN_UNTIL.get(id);
             if (isBossEntity(target)) {
@@ -1925,14 +2057,14 @@ public final class ElementalGaugeManager {
                     clearFreezeState(target, id);
                     changed = true;
                 } else {
-                    target.setDeltaMovement(0.0D, target.getDeltaMovement().y < 0 ? -0.05D : 0.0D, 0.0D);
+                    enforceFrozenPose(target, id);
                 }
             } else if (frozenEnd != null) {
                 if (now >= frozenEnd) {
                     clearFreezeState(target, id);
                     changed = true;
                 } else {
-                    target.setDeltaMovement(0.0D, target.getDeltaMovement().y < 0 ? -0.05D : 0.0D, 0.0D);
+                    enforceFrozenPose(target, id);
                 }
             }
 
@@ -2071,9 +2203,9 @@ public final class ElementalGaugeManager {
                 }
             }
 
-            // 5. Cryo Aura passive debuff (-15% Movement Speed, -15% Attack Speed)
-            boolean hasCryoOrFreeze = entityGauges.containsKey(Element.CRYO) || FROZEN_GAUGES.containsKey(id);
-            updateCryoDebuff(target, id, hasCryoOrFreeze, innate);
+            // 5. Cryo Aura passive debuff (-15% Movement Speed, -15% Attack Speed) when not Statue-Frozen
+            boolean hasUnfrozenCryo = entityGauges.containsKey(Element.CRYO) && !isEntityFrozen(target);
+            updateCryoDebuff(target, id, hasUnfrozenCryo, innate);
 
             if (entityGauges.isEmpty() && !QUICKEN_GAUGES.containsKey(id) && !FROZEN_GAUGES.containsKey(id)) {
                 updateCryoDebuff(target, id, false, innate);
@@ -2099,11 +2231,15 @@ public final class ElementalGaugeManager {
                     maintainBurningPyroAura(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
-                updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
+                updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO) && !isEntityFrozen(player), null);
 
                 if (player.level() instanceof ServerLevel sl) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
+                        if (nearby instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
+                            mob.setNoAi(false);
+                            mob.removeTag(TAG_FROZEN_STATUE);
+                        }
                         Element nearbyInnate = getInnateElement(nearby);
                         if (nearbyInnate == Element.CRYO || hasElement(nearby, Element.CRYO)) {
                             checkCryoWaterFreezing(nearby);
