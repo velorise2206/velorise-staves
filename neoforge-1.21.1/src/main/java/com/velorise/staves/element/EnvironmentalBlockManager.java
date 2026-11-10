@@ -31,17 +31,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class EnvironmentalBlockManager {
 
     private static final Map<UUID, Long> LAST_AMETHYST_ZAP = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, Long> LAST_SENSOR_ZAP = new ConcurrentHashMap<>();
 
     private EnvironmentalBlockManager() {}
 
     public static void clearAll() {
         LAST_AMETHYST_ZAP.clear();
+        LAST_SENSOR_ZAP.clear();
     }
 
     public static void tick(MinecraftServer server) {
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
             LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
+            LAST_SENSOR_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -77,6 +80,56 @@ public final class EnvironmentalBlockManager {
                 }
             }
 
+            // Sculk Sensor (8m) & Calibrated Sculk Sensor (16m):
+            // Only zaps the specific entity that triggered the sensor signal (closest entity within range)
+            for (BlockPos sensorPos : activeSensors8) {
+                Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
+                if (lastZap == null || serverNow - lastZap >= 20L) {
+                    AABB search = new AABB(sensorPos).inflate(8.0D);
+                    LivingEntity closest = level.getNearestEntity(
+                            LivingEntity.class,
+                            net.minecraft.world.entity.ai.targeting.TargetingConditions.forNonCombat().range(8.0D).ignoreLineOfSight(),
+                            null,
+                            sensorPos.getX() + 0.5D, sensorPos.getY() + 0.5D, sensorPos.getZ() + 0.5D,
+                            search
+                    );
+                    if (closest != null && !closest.isSpectator() && !ElementalGaugeManager.isPassiveAquaticOrAmbient(closest)) {
+                        LAST_SENSOR_ZAP.put(sensorPos.immutable(), serverNow);
+                        ElementalGaugeManager.applyElement(level, closest, Element.ELECTRO, 1.0F, null, 0.0F);
+                        Vec3 start = Vec3.atCenterOf(sensorPos);
+                        Vec3 end = closest.position().add(0, closest.getBbHeight() * 0.5D, 0);
+                        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.15D, false);
+                        level.sendParticles(ParticleTypes.SCULK_CHARGE_POP, end.x, end.y, end.z, 3, 0.2D, 0.2D, 0.2D, 0.02D);
+                        level.playSound(null, sensorPos.getX(), sensorPos.getY(), sensorPos.getZ(),
+                                SoundEvents.SCULK_CLICKING, SoundSource.BLOCKS, 0.8F, 1.4F);
+                    }
+                }
+            }
+
+            for (BlockPos sensorPos : activeCalibrated16) {
+                Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
+                if (lastZap == null || serverNow - lastZap >= 20L) {
+                    AABB search = new AABB(sensorPos).inflate(16.0D);
+                    LivingEntity closest = level.getNearestEntity(
+                            LivingEntity.class,
+                            net.minecraft.world.entity.ai.targeting.TargetingConditions.forNonCombat().range(16.0D).ignoreLineOfSight(),
+                            null,
+                            sensorPos.getX() + 0.5D, sensorPos.getY() + 0.5D, sensorPos.getZ() + 0.5D,
+                            search
+                    );
+                    if (closest != null && !closest.isSpectator() && !ElementalGaugeManager.isPassiveAquaticOrAmbient(closest)) {
+                        LAST_SENSOR_ZAP.put(sensorPos.immutable(), serverNow);
+                        ElementalGaugeManager.applyElement(level, closest, Element.ELECTRO, 1.0F, null, 0.0F);
+                        Vec3 start = Vec3.atCenterOf(sensorPos);
+                        Vec3 end = closest.position().add(0, closest.getBbHeight() * 0.5D, 0);
+                        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.15D, false);
+                        level.sendParticles(ParticleTypes.SCULK_CHARGE_POP, end.x, end.y, end.z, 3, 0.2D, 0.2D, 0.2D, 0.02D);
+                        level.playSound(null, sensorPos.getX(), sensorPos.getY(), sensorPos.getZ(),
+                                SoundEvents.SCULK_CLICKING, SoundSource.BLOCKS, 0.8F, 1.4F);
+                    }
+                }
+            }
+
             Set<UUID> processed = new HashSet<>();
             for (ServerPlayer player : players) {
                 AABB area = player.getBoundingBox().inflate(32.0D);
@@ -88,7 +141,7 @@ public final class EnvironmentalBlockManager {
                 for (LivingEntity living : entities) {
                     if (processed.add(living.getUUID())) {
                         if ((living.tickCount + Math.abs(living.getId())) % 20 == 0) {
-                            tickEntityEnvironmentalAuras(level, living, activeSensors8, activeCalibrated16);
+                            tickEntityEnvironmentalAuras(level, living);
                         }
                     }
                 }
@@ -98,57 +151,36 @@ public final class EnvironmentalBlockManager {
 
     private static void tickEntityEnvironmentalAuras(
             ServerLevel level,
-            LivingEntity living,
-            List<BlockPos> activeSensors8,
-            List<BlockPos> activeCalibrated16
+            LivingEntity living
     ) {
         BlockPos pos = living.blockPosition();
         if (!level.hasChunkAt(pos)) return;
 
-        // 1. Redstone Block (safe 4x2x4 scan in loaded chunks)
-        boolean nearRedstone = BlockPos.findClosestMatch(pos, 4, 2,
-                p -> level.hasChunkAt(p) && level.getBlockState(p).is(Blocks.REDSTONE_BLOCK)).isPresent();
-        if (nearRedstone) {
-            ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.5D, living.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.05D);
-        }
-
-        // 2. Slime Block & Honey Block: Emits Dendro aura when touching/standing on them
-        AABB touchBox = living.getBoundingBox().inflate(0.25D);
-        BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY, touchBox.minZ);
+        // 1. Redstone Block & Slime/Honey Block: Only when physically contacting or standing on them
+        AABB touchBox = living.getBoundingBox().inflate(0.10D, 0.10D, 0.10D);
+        BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY - 0.15D, touchBox.minZ);
         BlockPos max = BlockPos.containing(touchBox.maxX, touchBox.maxY, touchBox.maxZ);
+        boolean touchingRedstone = false;
+        boolean touchingSlimeOrHoney = false;
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
             if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
+            if (st.is(Blocks.REDSTONE_BLOCK)) {
+                touchingRedstone = true;
+            }
             if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)) {
-                ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
-                break;
+                touchingSlimeOrHoney = true;
             }
         }
-
-        // 3. Sculk Sensor (8m) & Calibrated Sculk Sensor (16m) via O(1) active BlockEntity list
-        boolean nearActiveSensor = false;
-        for (BlockPos sensorPos : activeSensors8) {
-            if (sensorPos.closerThan(pos, 8.0D)) {
-                nearActiveSensor = true;
-                break;
-            }
-        }
-        if (!nearActiveSensor) {
-            for (BlockPos sensorPos : activeCalibrated16) {
-                if (sensorPos.closerThan(pos, 16.0D)) {
-                    nearActiveSensor = true;
-                    break;
-                }
-            }
-        }
-        if (nearActiveSensor) {
+        if (touchingRedstone) {
             ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
-            level.sendParticles(ParticleTypes.SCULK_CHARGE_POP, living.getX(), living.getY() + 0.5D, living.getZ(), 3, 0.2D, 0.2D, 0.2D, 0.02D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.5D, living.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.05D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.3D, living.getZ(), 2, 0.15D, 0.15D, 0.15D, 0.02D);
+        }
+        if (touchingSlimeOrHoney) {
+            ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
         }
 
-        // 4. Amethyst Blocks: Innate Electro, zaps nearby entities within 1.2 blocks
+        // 2. Amethyst Blocks: Innate Electro, zaps nearby entities within 1.2 blocks
         AABB zapBox = living.getBoundingBox().inflate(1.2D);
         BlockPos minZap = BlockPos.containing(zapBox.minX, zapBox.minY, zapBox.minZ);
         BlockPos maxZap = BlockPos.containing(zapBox.maxX, zapBox.maxY, zapBox.maxZ);
