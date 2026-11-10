@@ -555,6 +555,7 @@ public final class ElementalGaugeManager {
         return target.isSensitiveToWater()
                 || target instanceof Blaze
                 || target instanceof Strider
+                || target instanceof MagmaCube
                 || target instanceof SnowGolem
                 || target instanceof EnderMan;
     }
@@ -727,7 +728,10 @@ public final class ElementalGaugeManager {
         if (target instanceof Blaze
                 || target instanceof MagmaCube
                 || target instanceof Strider
-                || target instanceof Ghast) {
+                || target instanceof Ghast
+                || target instanceof ZombifiedPiglin
+                || target instanceof Zoglin
+                || target instanceof WitherSkeleton) {
             return Element.PYRO;
         }
         if (target instanceof Stray || target instanceof SnowGolem || target instanceof PolarBear) {
