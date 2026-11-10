@@ -170,10 +170,18 @@ public final class ClientAuraTracker {
     public static @Nullable Element getActiveCrystallizeShield() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (mc.player == null) return null;
+        Element mobShield = ModMobEffects.getActiveShield(mc.player);
+        if (mobShield != null) {
+            if (activeCrystallizeShield == null) {
+                activeCrystallizeShield = mobShield;
+                crystallizeShieldUntil = System.currentTimeMillis() + 15000L;
+            }
+            return mobShield;
+        }
         if (activeCrystallizeShield != null) {
             long now = System.currentTimeMillis();
-            Element activeShield = ModMobEffects.getActiveShield(mc.player);
-            if (now >= crystallizeShieldUntil || mc.player.getAbsorptionAmount() <= 0.0F || (activeShield != null && activeShield != activeCrystallizeShield)) {
+            boolean depleted = !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
+            if (now >= crystallizeShieldUntil || depleted) {
                 activeCrystallizeShield = null;
                 return null;
             }

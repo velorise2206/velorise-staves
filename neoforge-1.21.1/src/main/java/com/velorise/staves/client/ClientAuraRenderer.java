@@ -656,9 +656,9 @@ public final class ClientAuraRenderer {
 
     private static void renderCrystallizeShieldHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null) return;
-        Element shield = ModMobEffects.getActiveShield(mc.player);
+        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
         if (shield == null) {
-            shield = ClientAuraTracker.getActiveCrystallizeShield();
+            shield = ModMobEffects.getActiveShield(mc.player);
         }
         if (shield == null) return;
 
@@ -675,14 +675,38 @@ public final class ClientAuraRenderer {
             }
         }
 
-        if (found) {
-            int screenWidth = guiGraphics.guiWidth();
-            int top = mc.isDemo() ? 16 : 1;
-            int col = beneficialIndex % 10;
-            int row = beneficialIndex / 10;
-            int x = screenWidth - 25 * (col + 1);
-            int y = top + 26 * row;
-            renderCrystallizeShieldHudFrame(guiGraphics, x, y, getElementBorderColor(shield));
+        int screenWidth = guiGraphics.guiWidth();
+        int top = mc.isDemo() ? 16 : 1;
+        int col = beneficialIndex % 10;
+        int row = beneficialIndex / 10;
+        int x = screenWidth - 25 * (col + 1);
+        int y = top + 26 * row;
+
+        long now = System.currentTimeMillis();
+        long remMs = Math.max(0, ClientAuraTracker.crystallizeShieldUntil - now);
+        float alpha = 1.0F;
+        if (remMs > 0 && remMs <= 3000L) {
+            alpha = Math.sin((remMs / 140.0D) * Math.PI) < 0 ? 0.35F : 1.0F;
+        }
+
+        RenderSystem.enableBlend();
+
+        if (!found) {
+            guiGraphics.blitSprite(EFFECT_BACKGROUND_SPRITE, x, y, 24, 24);
+        }
+
+        renderCrystallizeShieldHudFrame(guiGraphics, x, y, getElementBorderColor(shield));
+
+        ResourceLocation tex = HUD_TEXTURES.get(shield);
+        if (tex != null) {
+            if (alpha < 1.0F) {
+                guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+            }
+            guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+            if (alpha < 1.0F) {
+                guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            }
         }
     }
 
@@ -695,9 +719,9 @@ public final class ClientAuraRenderer {
             EffectRenderingInventoryScreen<?> screen
     ) {
         if (mc.player == null) return;
-        Element shield = ModMobEffects.getActiveShield(mc.player);
+        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
         if (shield == null) {
-            shield = ClientAuraTracker.getActiveCrystallizeShield();
+            shield = ModMobEffects.getActiveShield(mc.player);
         }
         if (shield == null) return;
 
@@ -727,9 +751,11 @@ public final class ClientAuraRenderer {
             }
         }
 
-        if (found) {
-            int y = topPos + effectIndex * yStep;
-            renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
+        int y = topPos + effectIndex * yStep;
+        renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getElementBorderColor(shield));
+        ResourceLocation tex = HUD_TEXTURES.get(shield);
+        if (tex != null) {
+            guiGraphics.blit(tex, startX + 7, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
         }
     }
 
@@ -912,34 +938,15 @@ public final class ClientAuraRenderer {
             poseStack.pushPose();
             poseStack.translate(cx - camPos.x, cy - camPos.y, cz - camPos.z);
 
-            // 1. Outer Translucent 3D Sphere (R = 0.36m, soft glowing energy bubble)
-            renderUvSphere(consumer, poseStack.last().pose(), 0.36F, 14, 20, r, g, b, 50);
+            // 1. Perfect Translucent 3D Spherical Shell (Genshin Impact style)
+            renderUvSphere(consumer, poseStack.last().pose(), 0.32F, 18, 28, r, g, b, 45);
+            renderUvSphere(consumer, poseStack.last().pose(), 0.25F, 14, 22, hr, hg, hb, 28);
 
-            // 2. Inner Soft Volumetric Shell (R = 0.28m, alpha = 35) for optical depth & fresnel rim
-            renderUvSphere(consumer, poseStack.last().pose(), 0.28F, 10, 16, r, g, b, 35);
-
-            // 3. Swirling Orbital Energy Rings (tilted, spinning around the bubble)
-            poseStack.pushPose();
-            poseStack.mulPose(new org.joml.Quaternionf().rotationX((float) Math.toRadians(22.0D)));
-            poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 3.2F)));
-            renderOrbitalRing(consumer, poseStack.last().pose(), 0.38F, 0.024F, 24, hr, hg, hb, 180);
-            poseStack.popPose();
-
-            poseStack.pushPose();
-            poseStack.mulPose(new org.joml.Quaternionf().rotationZ((float) Math.toRadians(18.0D)));
-            poseStack.mulPose(new org.joml.Quaternionf().rotationX((float) Math.toRadians(-26.0D)));
-            poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(-age * 2.6F)));
-            renderOrbitalRing(consumer, poseStack.last().pose(), 0.37F, 0.016F, 20, r, g, b, 140);
-            poseStack.popPose();
-
-            // 4. Central Spinning Faceted Octahedron Crystal Core
+            // 2. Central Spinning Faceted Crystal Core
             poseStack.pushPose();
             poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 2.2F)));
-            renderOctahedronCrystal(consumer, poseStack.last().pose(), 0.16F, 0.085F, r, g, b, hr, hg, hb);
+            renderOctahedronCrystal(consumer, poseStack.last().pose(), 0.15F, 0.08F, r, g, b, hr, hg, hb);
             poseStack.popPose();
-
-            // 5. Ambient swirling motes / sparkling energy points
-            renderSparkleMotes(consumer, poseStack.last().pose(), age, hr, hg, hb);
 
             poseStack.popPose();
         }
@@ -979,44 +986,13 @@ public final class ClientAuraRenderer {
                 float x12 = (float) (r1 * Math.cos(theta2));
                 float z12 = (float) (r1 * Math.sin(theta2));
 
-                drawQuad(consumer, matrix,
+                drawQuadBothSides(consumer, matrix,
                         x11, y1, z11,
                         x21, y2, z21,
                         x22, y2, z22,
                         x12, y1, z12,
                         r, g, b, alpha);
             }
-        }
-    }
-
-    private static void renderOrbitalRing(
-            VertexConsumer consumer, Matrix4f matrix,
-            float radius, float halfWidth, int segs,
-            int r, int g, int b, int alpha
-    ) {
-        float rInner = radius - halfWidth;
-        float rOuter = radius + halfWidth;
-
-        for (int i = 0; i < segs; i++) {
-            double theta1 = 2.0D * Math.PI * (double) i / (double) segs;
-            double theta2 = 2.0D * Math.PI * (double) (i + 1) / (double) segs;
-
-            float x1_in = (float) (rInner * Math.cos(theta1));
-            float z1_in = (float) (rInner * Math.sin(theta1));
-            float x1_out = (float) (rOuter * Math.cos(theta1));
-            float z1_out = (float) (rOuter * Math.sin(theta1));
-
-            float x2_in = (float) (rInner * Math.cos(theta2));
-            float z2_in = (float) (rInner * Math.sin(theta2));
-            float x2_out = (float) (rOuter * Math.cos(theta2));
-            float z2_out = (float) (rOuter * Math.sin(theta2));
-
-            drawQuad(consumer, matrix,
-                    x1_in, 0.0F, z1_in,
-                    x1_out, 0.0F, z1_out,
-                    x2_out, 0.0F, z2_out,
-                    x2_in, 0.0F, z2_in,
-                    r, g, b, alpha);
         }
     }
 
@@ -1056,7 +1032,7 @@ public final class ClientAuraRenderer {
             int fg = Math.min(255, (int) (g * shade));
             int fb = Math.min(255, (int) (b * shade));
 
-            drawTriangle(consumer, matrix,
+            drawTriangleBothSides(consumer, matrix,
                     0.0F, halfH, 0.0F,
                     ex[i], 0.0F, ez[i],
                     ex[next], 0.0F, ez[next],
@@ -1078,7 +1054,7 @@ public final class ClientAuraRenderer {
             int lfg = Math.min(255, (int) (g * lshade));
             int lfb = Math.min(255, (int) (b * lshade));
 
-            drawTriangle(consumer, matrix,
+            drawTriangleBothSides(consumer, matrix,
                     0.0F, -halfH, 0.0F,
                     ex[next], 0.0F, ez[next],
                     ex[i], 0.0F, ez[i],
@@ -1097,42 +1073,12 @@ public final class ClientAuraRenderer {
             float ix2 = (float) (innerR * Math.cos(a2));
             float iz2 = (float) (innerR * Math.sin(a2));
 
-            drawTriangle(consumer, matrix, 0.0F, innerH, 0.0F, ix1, 0.0F, iz1, ix2, 0.0F, iz2, hr, hg, hb, 210);
-            drawTriangle(consumer, matrix, 0.0F, -innerH, 0.0F, ix2, 0.0F, iz2, ix1, 0.0F, iz1, hr, hg, hb, 210);
+            drawTriangleBothSides(consumer, matrix, 0.0F, innerH, 0.0F, ix1, 0.0F, iz1, ix2, 0.0F, iz2, hr, hg, hb, 210);
+            drawTriangleBothSides(consumer, matrix, 0.0F, -innerH, 0.0F, ix2, 0.0F, iz2, ix1, 0.0F, iz1, hr, hg, hb, 210);
         }
     }
 
-    private static void renderSparkleMotes(
-            VertexConsumer consumer, Matrix4f matrix,
-            float age, int hr, int hg, int hb
-    ) {
-        int count = 6;
-        float size = 0.016F;
-        for (int i = 0; i < count; i++) {
-            double orbitAngle = (double) (age * (1.5F + 0.3F * i) + i * 60.0F) * (Math.PI / 180.0D);
-            double orbitRadius = 0.22D + 0.03D * (i % 3);
-            double orbitY = Math.sin((double) (age * 0.06F + i * 1.2F)) * 0.14D;
-
-            float sx = (float) (orbitRadius * Math.cos(orbitAngle));
-            float sy = (float) orbitY;
-            float sz = (float) (orbitRadius * Math.sin(orbitAngle));
-
-            drawQuad(consumer, matrix,
-                    sx - size, sy - size, sz,
-                    sx + size, sy - size, sz,
-                    sx + size, sy + size, sz,
-                    sx - size, sy + size, sz,
-                    hr, hg, hb, 220);
-            drawQuad(consumer, matrix,
-                    sx, sy - size, sz - size,
-                    sx, sy - size, sz + size,
-                    sx, sy + size, sz + size,
-                    sx, sy + size, sz - size,
-                    hr, hg, hb, 220);
-        }
-    }
-
-    private static void drawQuad(
+    private static void drawQuadBothSides(
             VertexConsumer consumer, Matrix4f matrix,
             float x1, float y1, float z1,
             float x2, float y2, float z2,
@@ -1144,9 +1090,14 @@ public final class ClientAuraRenderer {
         consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
         consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
         consumer.addVertex(matrix, x4, y4, z4).setColor(r, g, b, a);
+
+        consumer.addVertex(matrix, x4, y4, z4).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
     }
 
-    private static void drawTriangle(
+    private static void drawTriangleBothSides(
             VertexConsumer consumer, Matrix4f matrix,
             float x1, float y1, float z1,
             float x2, float y2, float z2,
@@ -1157,5 +1108,10 @@ public final class ClientAuraRenderer {
         consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
         consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
         consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+
+        consumer.addVertex(matrix, x3, y3, z3).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x2, y2, z2).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
+        consumer.addVertex(matrix, x1, y1, z1).setColor(r, g, b, a);
     }
 }

@@ -169,15 +169,19 @@ public final class CrystallizeShardManager {
             ACTIVE_SHIELDS.entrySet().removeIf(e -> now >= e.getValue().expireTick);
         }
 
-        // Break Crystallize shield immediately if player's Absorption hearts are depleted
+        // Break Crystallize shield if expired or depleted (creative players keep shield for duration)
         for (ServerPlayer player : level.players()) {
             UUID pid = player.getUUID();
             ShieldEntry entry = ACTIVE_SHIELDS.get(pid);
             if (entry != null) {
                 Element activeShield = ModMobEffects.getActiveShield(player);
-                if (now >= entry.expireTick || activeShield != entry.element || player.getAbsorptionAmount() <= 0.0F) {
+                boolean depleted = !player.isCreative() && player.getAbsorptionAmount() <= 0.0F;
+                if (now >= entry.expireTick || (activeShield != null && activeShield != entry.element) || depleted) {
                     ACTIVE_SHIELDS.remove(pid);
+                    ModMobEffects.removeAllShields(player);
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
+                    level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
                 } else if (now % 8 == 0) {
                     spawnShieldOrbitParticles(level, player, entry.element);
                 }
@@ -213,17 +217,6 @@ public final class CrystallizeShardManager {
                 cleanUpShardTeam(shard);
                 shard.entity.discard();
                 SHARDS.remove(shard);
-            }
-        }
-
-        // Check shield absorption depletion
-        for (ServerPlayer player : level.players()) {
-            if (player.getAbsorptionAmount() <= 0.0F && ModMobEffects.getActiveShield(player) != null) {
-                ModMobEffects.removeAllShields(player);
-                ACTIVE_SHIELDS.remove(player.getUUID());
-                ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
             }
         }
 
@@ -310,7 +303,8 @@ public final class CrystallizeShardManager {
             player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, 0, false, true, true));
         }
 
-        // Grant 1 golden heart (2 absorption health)
+        // Grant vanilla Absorption so absorption hearts and damage absorption work reliably
+        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, 0, false, false, false));
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), 2.0F));
 
         // Register 250% elemental counter shield
@@ -336,7 +330,7 @@ public final class CrystallizeShardManager {
     public static @Nullable Element getActiveShield(ServerPlayer player, long now) {
         Element shield = ModMobEffects.getActiveShield(player);
         if (shield != null) return shield;
-        if (player.getAbsorptionAmount() <= 0.0F) {
+        if (!player.isCreative() && player.getAbsorptionAmount() <= 0.0F) {
             ACTIVE_SHIELDS.remove(player.getUUID());
             return null;
         }
