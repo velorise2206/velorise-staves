@@ -594,20 +594,20 @@ public class ElementalCodexScreen extends Screen {
 
         // Built-in interactive visual diagram when user hasn't dropped a custom screenshot PNG yet
         String diagramTitle = tr("codex.velorise_staves.diagram." + tab.key);
-        guiGraphics.drawCenteredString(this.font, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 5, 0xFFFFE082);
+        drawCenteredFitString(guiGraphics, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 5, w - 10, 0xFFFFE082);
 
         int midY = y + 22;
         int cx = x + w / 2;
 
         switch (tab) {
             case BASICS -> {
-                guiGraphics.renderItem(getModItemStack("inferno_rod"), cx - 108, midY);
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 86, midY);
-                guiGraphics.drawString(this.font, "1.Aura", cx - 66, midY + 4, 0xFFFF6B4A, true);
-                guiGraphics.drawString(this.font, "+ ➔", cx - 26, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(getModItemStack("guardian_lens"), cx - 4, midY);
-                drawElementIcon(guiGraphics, Element.HYDRO, cx + 16, midY);
-                guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2.0!", cx + 36, midY + 4, 0xFFFFFFFF, true);
+                guiGraphics.renderItem(getModItemStack("inferno_rod"), cx - 114, midY);
+                drawElementIcon(guiGraphics, Element.PYRO, cx - 94, midY);
+                guiGraphics.drawString(this.font, "1.Aura", cx - 75, midY + 4, 0xFFFF6B4A, true);
+                guiGraphics.drawString(this.font, "+ ➔", cx - 37, midY + 4, 0xFFFFD60A, true);
+                guiGraphics.renderItem(getModItemStack("guardian_lens"), cx - 16, midY);
+                drawElementIcon(guiGraphics, Element.HYDRO, cx + 2, midY);
+                guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 21, midY + 4, 0xFFFFFFFF, true);
             }
             case ELEMENTS -> {
                 Element[] all = Element.values();
@@ -661,32 +661,80 @@ public class ElementalCodexScreen extends Screen {
                 guiGraphics.renderItem(new ItemStack(Items.CAMPFIRE), cx + 59, midY);
             }
             case STAVES -> {
-                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 92, midY);
-                guiGraphics.drawString(this.font, "+", cx - 72, midY + 4, 0xFFFFFFFF, true);
-                guiGraphics.renderItem(getModItemStack("dragonfire_scepter"), cx - 60, midY);
-                guiGraphics.drawString(this.font, "+", cx - 40, midY + 4, 0xFFFFFFFF, true);
-                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_INGOT), cx - 28, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 8, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(getModItemStack("netherite_dragonfire_scepter"), cx + 6, midY);
-                guiGraphics.drawString(this.font, "§6+50% DMG / +50% U", cx + 26, midY + 4, 0xFFFFD60A, true);
+                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 106, midY);
+                guiGraphics.drawString(this.font, "+", cx - 87, midY + 4, 0xFFFFFFFF, true);
+                guiGraphics.renderItem(getModItemStack("dragonfire_scepter"), cx - 76, midY);
+                guiGraphics.drawString(this.font, "+", cx - 57, midY + 4, 0xFFFFFFFF, true);
+                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_INGOT), cx - 46, midY);
+                guiGraphics.drawString(this.font, "➔", cx - 26, midY + 4, 0xFFFFD60A, true);
+                guiGraphics.renderItem(getModItemStack("netherite_dragonfire_scepter"), cx - 14, midY);
+                guiGraphics.drawString(this.font, "§6+50% DMG / +50% U", cx + 6, midY + 4, 0xFFFFD60A, true);
             }
             case MASTERY -> {
-                guiGraphics.renderItem(new ItemStack(Items.ENCHANTING_TABLE), cx - 96, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 76, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(new ItemStack(Items.ENCHANTED_BOOK), cx - 64, midY);
-                guiGraphics.drawString(this.font, "§dEM I–III ➔ +45% Amp / +90% Trans", cx - 42, midY + 4, 0xFFE0B0FF, true);
+                guiGraphics.renderItem(new ItemStack(Items.ENCHANTING_TABLE), cx - 110, midY);
+                guiGraphics.drawString(this.font, "➔", cx - 91, midY + 4, 0xFFFFD60A, true);
+                guiGraphics.renderItem(new ItemStack(Items.ENCHANTED_BOOK), cx - 79, midY);
+                guiGraphics.drawString(this.font, "§dEM I–III ➔ +45% Amp / +90% Trans", cx - 59, midY + 4, 0xFFE0B0FF, true);
             }
         }
 
         String hint = tr("codex.velorise_staves.screenshot_hint", "textures/gui/codex/" + tab.screenshotFile);
-        guiGraphics.drawCenteredString(this.font, hint, x + w / 2, y + h - 11, 0xFF6C7A96);
+        drawCenteredFitString(guiGraphics, hint, x + w / 2, y + h - 11, w - 10, 0xFF6C7A96);
         return h;
+    }
+
+    private void drawCenteredFitString(GuiGraphics guiGraphics, String text, int centerX, int y, int maxWidth, int color) {
+        int textW = this.font.width(text);
+        if (textW <= maxWidth || textW <= 0) {
+            guiGraphics.drawCenteredString(this.font, text, centerX, y, color);
+        } else {
+            float scale = (float) maxWidth / (float) textW;
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(centerX, y + 4.0F, 0.0F);
+            guiGraphics.pose().scale(scale, scale, 1.0F);
+            guiGraphics.drawString(this.font, text, -textW / 2, -4, color, true);
+            guiGraphics.pose().popPose();
+        }
     }
 
     private int renderGuideCard(GuiGraphics guiGraphics, GuideCard card, int x, int y, int w) {
         int pad = 6;
-        int headerH = 22;
         int textW = w - pad * 2 - 4;
+
+        int iconOffset = 6;
+        if (card.elem1 != null) iconOffset += 17;
+        if (card.elem2 != null) iconOffset += 6 + 17;
+        if (!card.item1.isEmpty()) iconOffset += 17;
+        if (!card.item2.isEmpty()) iconOffset += 17;
+        int titleStartX = x + iconOffset + 2;
+
+        int badgeW = (card.badgeText != null && !card.badgeText.isEmpty()) ? (this.font.width(card.badgeText) + 8) : 0;
+        int rightLimitWithBadge = (badgeW > 0) ? (x + w - badgeW - 7) : (x + w - 5);
+        int availTitleW = rightLimitWithBadge - titleStartX;
+        int fullTitleW = Math.max(80, (x + w - 5) - titleStartX);
+
+        String boldTitle = "§l" + card.title;
+        List<FormattedCharSequence> titleLines;
+        boolean badgeBelowTitle = false;
+        if (badgeW > 0 && availTitleW < 92) {
+            titleLines = this.font.split(Component.literal(boldTitle), fullTitleW);
+            badgeBelowTitle = true;
+        } else {
+            titleLines = this.font.split(Component.literal(boldTitle), Math.max(80, availTitleW));
+            if (badgeW > 0 && titleLines.size() > 2) {
+                titleLines = this.font.split(Component.literal(boldTitle), fullTitleW);
+                badgeBelowTitle = true;
+            }
+        }
+
+        int headerH;
+        if (badgeBelowTitle) {
+            headerH = Math.max(22, 4 + titleLines.size() * 10 + 16);
+        } else if (titleLines.size() <= 1) {
+            headerH = 22;
+        } else {
+            headerH = Math.max(22, 4 + titleLines.size() * 10 + 4);
+        }
 
         List<FormattedCharSequence> wrappedLines = new ArrayList<>();
         for (String p : card.paragraphs) {
@@ -704,41 +752,43 @@ public class ElementalCodexScreen extends Screen {
         // Header divider
         guiGraphics.fill(x + 3, y + headerH, x + w - 1, y + headerH + 1, 0x44FFFFFF);
 
-        int iconX = x + 7;
+        int iconX = x + 6;
         int iconY = y + 3;
 
         if (card.elem1 != null) {
             drawElementIcon(guiGraphics, card.elem1, iconX, iconY);
-            iconX += 18;
+            iconX += 17;
         }
         if (card.elem2 != null) {
-            guiGraphics.drawString(this.font, "+", iconX - 1, iconY + 4, 0xFFFFD60A, true);
-            iconX += 7;
+            guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
+            iconX += 6;
             drawElementIcon(guiGraphics, card.elem2, iconX, iconY);
-            iconX += 18;
+            iconX += 17;
         }
         if (!card.item1.isEmpty()) {
             guiGraphics.renderItem(card.item1, iconX, iconY);
-            iconX += 18;
+            iconX += 17;
         }
         if (!card.item2.isEmpty()) {
             guiGraphics.renderItem(card.item2, iconX, iconY);
-            iconX += 18;
+            iconX += 17;
         }
 
-        // Badge on Top-Right of Card
-        int badgeW = 0;
-        if (card.badgeText != null && !card.badgeText.isEmpty()) {
-            badgeW = this.font.width(card.badgeText) + 8;
+        // Card Title (wrapped so it never collides with badge or border)
+        int titleY = (titleLines.size() == 1 && !badgeBelowTitle) ? (y + 7) : (y + 4);
+        for (FormattedCharSequence tSeq : titleLines) {
+            guiGraphics.drawString(this.font, tSeq, titleStartX, titleY, 0xFFFFFFFF, true);
+            titleY += 10;
+        }
+
+        // Badge on Top-Right of Card (or right below title if header has 4 icons + wide badge)
+        if (badgeW > 0) {
             int bx = x + w - badgeW - 5;
-            int by = y + 4;
+            int by = badgeBelowTitle ? (titleY + 1) : (y + 4);
             guiGraphics.fill(bx, by, bx + badgeW, by + 14, 0xAA080B12);
             ClientAuraRenderer.renderColoredBorder(guiGraphics, bx, by, badgeW, 14, card.badgeColor);
             guiGraphics.drawString(this.font, card.badgeText, bx + 4, by + 3, card.badgeColor, true);
         }
-
-        // Card Title
-        guiGraphics.drawString(this.font, "§l" + card.title, iconX + 2, y + 7, 0xFFFFFFFF, true);
 
         // Wrapped Paragraphs
         int lineY = y + headerH + 5;
