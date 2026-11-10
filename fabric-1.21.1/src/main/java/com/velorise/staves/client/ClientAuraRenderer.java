@@ -252,8 +252,8 @@ public final class ClientAuraRenderer {
         if ((!showIcons || display.isEmpty()) && !hasReaction && !hasDamage) return;
 
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
-                ? entity.getBbHeight() + 0.22D
-                : entity.getBbHeight() + 0.55D;
+                ? entity.getBbHeight() + 0.18D
+                : entity.getBbHeight() + 0.15D;
         float iconSize = 16.0F;
         float gap = 3.0F;
 

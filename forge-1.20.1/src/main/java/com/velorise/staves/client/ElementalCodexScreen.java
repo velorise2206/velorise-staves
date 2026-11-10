@@ -31,12 +31,13 @@ import java.util.Map;
  * multipliers, and auto-detected custom screenshot slots.
  */
 public class ElementalCodexScreen extends Screen {
-    private static final int WIN_W = 420;
+    private static final int WIN_W = 436;
     private static final int WIN_H = 246;
-    private static final int SIDEBAR_W = 124;
+    private static final int SIDEBAR_W = 138;
     private static final int HEADER_H = 26;
 
     private static final Map<Element, ResourceLocation> ELEMENT_ICONS = new EnumMap<>(Element.class);
+    private static final ResourceLocation BLAZE_ICON = new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/codex/blaze_icon.png");
     private static final Map<String, Boolean> SCREENSHOT_CACHE = new HashMap<>();
 
     static {
@@ -47,23 +48,27 @@ public class ElementalCodexScreen extends Screen {
     }
 
     public enum Tab {
-        BASICS("basics", "tab_basics.png", 0xFF55EFC4, null),
-        ELEMENTS("elements", "tab_elements.png", 0xFFFF6B4A, Element.PYRO),
-        REACTIONS_AMP("reactions_amp", "tab_reactions_amp.png", 0xFF0A84FF, Element.HYDRO),
-        REACTIONS_DENDRO("reactions_dendro", "tab_reactions_dendro.png", 0xFF32D74B, Element.DENDRO),
-        INNATE("innate", "tab_innate.png", 0xFFFF9F0A, null),
-        ENVIRONMENT("environment", "tab_environment.png", 0xFF64D2FF, null),
-        STAVES("staves", "tab_staves.png", 0xFFBF5AF2, null),
-        MASTERY("mastery", "tab_mastery.png", 0xFFFFD60A, null);
+        BASICS("basics", "1.png", 1012, 778, 0xFF55EFC4, null),
+        ELEMENTS("elements", null, 0, 0, 0xFFFF6B4A, Element.PYRO),
+        REACTIONS_AMP("reactions_amp", "3.png", 1446, 785, 0xFF0A84FF, Element.HYDRO),
+        REACTIONS_DENDRO("reactions_dendro", "4.png", 1146, 736, 0xFF32D74B, Element.DENDRO),
+        INNATE("innate", "5.png", 1200, 879, 0xFFFF9F0A, null),
+        ENVIRONMENT("environment", "6.png", 1114, 654, 0xFF64D2FF, null),
+        STAVES("staves", null, 0, 0, 0xFFBF5AF2, null),
+        MASTERY("mastery", null, 0, 0, 0xFFFFD60A, null);
 
         public final String key;
         public final String screenshotFile;
+        public final int imgW;
+        public final int imgH;
         public final int accentColor;
         public final Element iconElement;
 
-        Tab(String key, String screenshotFile, int accentColor, Element iconElement) {
+        Tab(String key, String screenshotFile, int imgW, int imgH, int accentColor, Element iconElement) {
             this.key = key;
             this.screenshotFile = screenshotFile;
+            this.imgW = imgW;
+            this.imgH = imgH;
             this.accentColor = accentColor;
             this.iconElement = iconElement;
         }
@@ -555,7 +560,7 @@ public class ElementalCodexScreen extends Screen {
         ClientAuraRenderer.renderColoredBorder(guiGraphics, sideX, sideY, SIDEBAR_W, sideH, 0xFF2A3550);
 
         Tab[] tabs = Tab.values();
-        int tabH = Math.min(23, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
+        int tabH = Math.min(24, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
         for (int i = 0; i < tabs.length; i++) {
             Tab tab = tabs[i];
             int ty = sideY + 3 + i * (tabH + 2);
@@ -570,15 +575,13 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.fill(tx, ty, tx + tw, ty + tabH, bg);
             ClientAuraRenderer.renderColoredBorder(guiGraphics, tx, ty, tw, tabH, border);
 
-            // Left active accent bar
-            if (selected) {
-                guiGraphics.fill(tx, ty, tx + 3, ty + tabH, tab.accentColor);
-            }
-
-            // Tab Icon (16x16 Element texture or ItemStack)
-            int iconOffsetY = ty + Math.max(2, (tabH - 16) / 2);
+            // Tab Icon (16x16 Element texture, Blaze texture, or ItemStack)
+            int iconOffsetY = ty + (tabH - 16) / 2;
             if (tab.iconElement != null) {
-                drawElementIcon(guiGraphics, tab.iconElement, tx + 6, iconOffsetY);
+                drawElementIcon(guiGraphics, tab.iconElement, tx + 5, iconOffsetY);
+            } else if (tab == Tab.INNATE) {
+                RenderSystem.enableBlend();
+                guiGraphics.blit(BLAZE_ICON, tx + 5, iconOffsetY, 0.0F, 0.0F, 16, 16, 16, 16);
             } else {
                 ItemStack iconStack = getTabIconStack(tab);
                 if (!iconStack.isEmpty()) {
@@ -588,7 +591,7 @@ public class ElementalCodexScreen extends Screen {
 
             String tabLabel = tr("codex.velorise_staves.tab." + tab.key);
             int textColor = selected ? 0xFFFFFFFF : (hovered ? 0xFFD8E6FF : 0xFFA0B0C8);
-            guiGraphics.drawString(this.font, tabLabel, tx + 24, ty + Math.max(4, (tabH - 8) / 2), textColor, selected);
+            drawLeftFitString(guiGraphics, tabLabel, tx + 24, ty + (tabH - 8) / 2, tw - 28, textColor, selected);
         }
 
         // 4. Right Content Area (Scrollable with Scissor)
@@ -609,8 +612,7 @@ public class ElementalCodexScreen extends Screen {
         int curY = startY;
 
         // 4A. Render Smart Illustration / Screenshot Showcase Box at top of tab
-        int bannerH = 66;
-        curY += renderIllustrationBox(guiGraphics, this.currentTab, innerX, curY, innerW, bannerH) + 6;
+        curY += renderIllustrationBox(guiGraphics, this.currentTab, innerX, curY, innerW) + 6;
 
         // 4B. Render Guide Cards
         List<GuideCard> cards = buildCardsForTab(this.currentTab);
@@ -640,20 +642,33 @@ public class ElementalCodexScreen extends Screen {
         }
     }
 
-    private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w, int h) {
-        guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
-        ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
+    private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w) {
+        if (tab.screenshotFile != null && hasCustomScreenshot(tab.screenshotFile)) {
+            int h = 136;
+            guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
+            ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
 
-        if (hasCustomScreenshot(tab.screenshotFile)) {
+            int drawH = h - 8;
+            int drawW = (tab.imgW > 0 && tab.imgH > 0)
+                    ? Math.min(w - 8, Math.round(drawH * (float) tab.imgW / (float) tab.imgH))
+                    : (w - 8);
+            int imgX = x + (w - drawW) / 2;
+            int imgY = y + (h - drawH) / 2;
+
+            guiGraphics.fill(imgX - 1, imgY - 1, imgX + drawW + 1, imgY + drawH + 1, (0x88 << 24) | (tab.accentColor & 0x00FFFFFF));
             ResourceLocation loc = new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/codex/" + tab.screenshotFile);
             RenderSystem.enableBlend();
-            guiGraphics.blit(loc, x + 2, y + 2, 0.0F, 0.0F, w - 4, h - 4, w - 4, h - 4);
+            guiGraphics.blit(loc, imgX, imgY, 0.0F, 0.0F, drawW, drawH, drawW, drawH);
             return h;
         }
 
-        // Built-in interactive visual diagram when user hasn't dropped a custom screenshot PNG yet
+        int h = 48;
+        guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
+        ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
+
+        // Built-in interactive visual diagram
         String diagramTitle = tr("codex.velorise_staves.diagram." + tab.key);
-        drawCenteredFitString(guiGraphics, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 5, w - 10, 0xFFFFE082);
+        drawCenteredFitString(guiGraphics, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 6, w - 10, 0xFFFFE082);
 
         int midY = y + 22;
         int cx = x + w / 2;
@@ -751,9 +766,21 @@ public class ElementalCodexScreen extends Screen {
             }
         }
 
-        String hint = tr("codex.velorise_staves.screenshot_hint", "textures/gui/codex/" + tab.screenshotFile);
-        drawCenteredFitString(guiGraphics, hint, x + w / 2, y + h - 11, w - 10, 0xFF6C7A96);
         return h;
+    }
+
+    private void drawLeftFitString(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color, boolean shadow) {
+        int textW = this.font.width(text);
+        if (textW <= maxWidth || textW <= 0) {
+            guiGraphics.drawString(this.font, text, x, y, color, shadow);
+        } else {
+            float scale = (float) maxWidth / (float) textW;
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(x, y + 4.0F, 0.0F);
+            guiGraphics.pose().scale(scale, scale, 1.0F);
+            guiGraphics.drawString(this.font, text, 0, -4, color, shadow);
+            guiGraphics.pose().popPose();
+        }
     }
 
     private void drawCenteredFitString(GuiGraphics guiGraphics, String text, int centerX, int y, int maxWidth, int color) {
@@ -817,13 +844,11 @@ public class ElementalCodexScreen extends Screen {
         int bodyH = wrappedLines.size() * 11 + 6;
         int cardH = headerH + bodyH;
 
-        // Card Background & Border
+        // Card Background & Uniform 1px Border
         guiGraphics.fill(x, y, x + w, y + cardH, 0xE6141B2D);
         ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, cardH, card.borderColor);
-        // Colored left accent stripe
-        guiGraphics.fill(x, y, x + 3, y + cardH, card.borderColor);
         // Header divider
-        guiGraphics.fill(x + 3, y + headerH, x + w - 1, y + headerH + 1, 0x44FFFFFF);
+        guiGraphics.fill(x + 1, y + headerH, x + w - 1, y + headerH + 1, 0x44FFFFFF);
 
         int iconX = x + 6;
         int iconY = y + 3;
@@ -916,7 +941,7 @@ public class ElementalCodexScreen extends Screen {
             int sideY = top + HEADER_H + 4;
             int sideH = winH - HEADER_H - 8;
             Tab[] tabs = Tab.values();
-            int tabH = Math.min(23, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
+            int tabH = Math.min(24, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
             for (int i = 0; i < tabs.length; i++) {
                 int ty = sideY + 3 + i * (tabH + 2);
                 int tx = sideX + 3;
