@@ -6,6 +6,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 /**
  * Manages active Dragonfire lingering AreaEffectClouds.
  * Continuously electrifies water beneath and around the cloud, periodically applies Electro (1.0U),
- * shocks all entities within the cloud, and triggers Hyperbloom on nearby Dendro Cores until the cloud expires.
+ * shocks all entities within the cloud (including survival players), and triggers Hyperbloom on nearby Dendro Cores until the cloud expires.
  */
 public final class DragonfireCloudManager {
     public static class CloudEntry {
@@ -61,12 +62,13 @@ public final class DragonfireCloudManager {
             ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
             float damage = entry.isNetherite ? 2.5F : 1.8F;
 
-            // 1. Periodically electrify water beneath and around the cloud (every 1s)
-            ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, damage);
+            // 1. Periodically electrify water beneath and around the cloud (every 1s, 1.0F shock damage)
+            ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
 
-            // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud (every 1s)
+            // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud (including Survival players, excluding Creative/Spectator)
             AABB box = cloud.getBoundingBox();
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !e.isRemoved() && e != owner)) {
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
                 ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 1.0F, owner, damage);
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 6, 0.2D, 0.2D, 0.2D, 0.05D);
             }

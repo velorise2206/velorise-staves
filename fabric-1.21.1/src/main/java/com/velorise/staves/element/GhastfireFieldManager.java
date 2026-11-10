@@ -7,6 +7,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,8 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Manages active Ghastfire lingering AreaEffectClouds (5s fire fields).
- * Continuously burns and applies Pyro (1.0U) to all entities inside,
- * and triggers Burgeon on nearby Dendro Cores.
+ * Continuously burns and applies Pyro (1.0U) to all entities inside (including survival players),
+ * triggers Burgeon on nearby Dendro Cores, and mines Amethyst Clusters via Overloaded.
  */
 public final class GhastfireFieldManager {
     public static class FieldEntry {
@@ -61,16 +62,18 @@ public final class GhastfireFieldManager {
             ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
             float damage = entry.isNetherite ? 2.5F : 1.5F;
 
-            // 1. Burn and apply Pyro (1.0U) to all entities inside the fire field
+            // 1. Burn and apply Pyro (1.0U) to all entities inside the fire field (including Survival players, excluding Creative/Spectator)
             AABB box = cloud.getBoundingBox().inflate(0.5D);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !e.isRemoved() && e != owner)) {
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
                 target.igniteForSeconds(3);
                 ElementalGaugeManager.applyElement(level, target, Element.PYRO, 1.0F, owner, damage);
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
             }
 
-            // 2. Detonate any Dendro Cores in the fire field (Burgeon)
+            // 2. Detonate any Dendro Cores in the fire field (Burgeon) & mine Amethyst Clusters (Overloaded)
             DendroCoreManager.checkReactionsNear(level, cloud.position(), radius, Element.PYRO, owner);
+            EnvironmentalBlockManager.checkPyroAmethystMining(level, cloud.position(), radius);
 
             // 3. Ambient visual flame particles and crackling sound
             level.sendParticles(ParticleTypes.FLAME, cloud.getX(), cloud.getY() + 0.1D, cloud.getZ(), 6, radius * 0.4D, 0.15D, radius * 0.4D, 0.02D);

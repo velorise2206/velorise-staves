@@ -8,6 +8,9 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SculkSensorBlock;
@@ -38,6 +41,48 @@ public final class EnvironmentalBlockManager {
     public static void clearAll() {
         LAST_AMETHYST_ZAP.clear();
         LAST_SENSOR_ZAP.clear();
+    }
+
+    /**
+     * Genshin Impact Electro Crystal mining mechanic:
+     * When a Pyro attack or Overloaded explosion hits near an Amethyst Cluster,
+     * it triggers an Overloaded detonation on the cluster and drops Amethyst Shards.
+     */
+    public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius) {
+        BlockPos center = BlockPos.containing(hitPos);
+        int r = Math.max(1, (int) Math.ceil(radius));
+        double r2 = (radius + 0.75D) * (radius + 0.75D);
+
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
+            if (!level.hasChunkAt(p)) continue;
+            Vec3 blockCenter = Vec3.atCenterOf(p);
+            if (blockCenter.distanceToSqr(hitPos) > r2) continue;
+
+            BlockState st = level.getBlockState(p);
+            if (isAmethystClusterOrBud(st)) {
+                boolean isFullCluster = st.is(Blocks.AMETHYST_CLUSTER);
+                level.removeBlock(p, false);
+
+                // Overloaded detonation visuals & sound
+                level.sendParticles(ParticleTypes.EXPLOSION, blockCenter.x, blockCenter.y, blockCenter.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, blockCenter.x, blockCenter.y, blockCenter.z, 16, 0.35D, 0.35D, 0.35D, 0.06D);
+                level.sendParticles(ParticleTypes.FLAME, blockCenter.x, blockCenter.y, blockCenter.z, 12, 0.3D, 0.3D, 0.3D, 0.04D);
+                level.playSound(null, blockCenter.x, blockCenter.y, blockCenter.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.75F, 1.35F);
+                level.playSound(null, blockCenter.x, blockCenter.y, blockCenter.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.BLOCKS, 1.0F, 1.1F);
+
+                if (isFullCluster) {
+                    int dropCount = 2 + level.random.nextInt(3); // 2 to 4 amethyst shards
+                    ItemStack dropStack = new ItemStack(Items.AMETHYST_SHARD, dropCount);
+                    ItemEntity item = new ItemEntity(level, blockCenter.x, blockCenter.y, blockCenter.z, dropStack);
+                    item.setDeltaMovement(
+                            (level.random.nextDouble() - 0.5D) * 0.18D,
+                            0.25D,
+                            (level.random.nextDouble() - 0.5D) * 0.18D
+                    );
+                    level.addFreshEntity(item);
+                }
+            }
+        }
     }
 
     public static void tick(MinecraftServer server) {
@@ -156,12 +201,13 @@ public final class EnvironmentalBlockManager {
         BlockPos pos = living.blockPosition();
         if (!level.hasChunkAt(pos)) return;
 
-        // 1. Redstone Block & Slime/Honey Block: Only when physically contacting or standing on them
+        // 1. Physical contact check: Redstone Block, Slime/Honey Block, and solid Amethyst Block / Budding Amethyst
         AABB touchBox = living.getBoundingBox().inflate(0.10D, 0.10D, 0.10D);
         BlockPos min = BlockPos.containing(touchBox.minX, touchBox.minY - 0.15D, touchBox.minZ);
         BlockPos max = BlockPos.containing(touchBox.maxX, touchBox.maxY, touchBox.maxZ);
         boolean touchingRedstone = false;
         boolean touchingSlimeOrHoney = false;
+        BlockPos amethystZapPos = null;
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
             if (!level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
@@ -170,6 +216,9 @@ public final class EnvironmentalBlockManager {
             }
             if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)) {
                 touchingSlimeOrHoney = true;
+            }
+            if (isSolidAmethystBlock(st) && amethystZapPos == null) {
+                amethystZapPos = p.immutable();
             }
         }
         if (touchingRedstone) {
@@ -180,30 +229,32 @@ public final class EnvironmentalBlockManager {
             ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
         }
 
-        // 2. Amethyst Blocks: Innate Electro, zaps nearby entities within 1.2 blocks
-        AABB zapBox = living.getBoundingBox().inflate(1.2D);
-        BlockPos minZap = BlockPos.containing(zapBox.minX, zapBox.minY, zapBox.minZ);
-        BlockPos maxZap = BlockPos.containing(zapBox.maxX, zapBox.maxY, zapBox.maxZ);
-        BlockPos amethystPos = null;
-        for (BlockPos p : BlockPos.betweenClosed(minZap, maxZap)) {
-            if (!level.hasChunkAt(p)) continue;
-            BlockState st = level.getBlockState(p);
-            if (isAmethystBlock(st)) {
-                amethystPos = p.immutable();
-                break;
+        // 2. Amethyst Cluster: Radiates Electro aura within 1.0 block every 1s
+        if (amethystZapPos == null) {
+            AABB clusterBox = living.getBoundingBox().inflate(1.0D);
+            BlockPos minCluster = BlockPos.containing(clusterBox.minX, clusterBox.minY, clusterBox.minZ);
+            BlockPos maxCluster = BlockPos.containing(clusterBox.maxX, clusterBox.maxY, clusterBox.maxZ);
+            for (BlockPos p : BlockPos.betweenClosed(minCluster, maxCluster)) {
+                if (!level.hasChunkAt(p)) continue;
+                BlockState st = level.getBlockState(p);
+                if (st.is(Blocks.AMETHYST_CLUSTER)) {
+                    amethystZapPos = p.immutable();
+                    break;
+                }
             }
         }
-        if (amethystPos != null && ElementalGaugeManager.getInnateElement(living) != Element.ELECTRO) {
+
+        if (amethystZapPos != null && ElementalGaugeManager.getInnateElement(living) != Element.ELECTRO) {
             long now = level.getGameTime();
             Long lastZap = LAST_AMETHYST_ZAP.get(living.getUUID());
             if (lastZap == null || (now - lastZap) >= 20L) {
                 LAST_AMETHYST_ZAP.put(living.getUUID(), now);
-                living.hurt(level.damageSources().magic(), 1.0F);
-                ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
+                ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 1.0F);
 
                 Vec3 end = living.position().add(0, living.getBbHeight() * 0.5D, 0);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, end.x, end.y, end.z, 6, 0.25D, 0.25D, 0.25D, 0.05D);
-                level.playSound(null, amethystPos.getX(), amethystPos.getY(), amethystPos.getZ(),
+                ElectrifiedWaterManager.drawElectricArc(level, Vec3.atCenterOf(amethystZapPos), end, 0.15D, false);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.03D);
+                level.playSound(null, amethystZapPos.getX(), amethystZapPos.getY(), amethystZapPos.getZ(),
                         SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.0F, 1.6F);
                 level.playSound(null, living.getX(), living.getY(), living.getZ(),
                         SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.4F, 1.9F);
@@ -211,12 +262,18 @@ public final class EnvironmentalBlockManager {
         }
     }
 
-    public static boolean isAmethystBlock(BlockState st) {
-        return st.is(Blocks.AMETHYST_BLOCK)
-                || st.is(Blocks.BUDDING_AMETHYST)
-                || st.is(Blocks.AMETHYST_CLUSTER)
+    public static boolean isSolidAmethystBlock(BlockState st) {
+        return st.is(Blocks.AMETHYST_BLOCK) || st.is(Blocks.BUDDING_AMETHYST);
+    }
+
+    public static boolean isAmethystClusterOrBud(BlockState st) {
+        return st.is(Blocks.AMETHYST_CLUSTER)
                 || st.is(Blocks.LARGE_AMETHYST_BUD)
                 || st.is(Blocks.MEDIUM_AMETHYST_BUD)
                 || st.is(Blocks.SMALL_AMETHYST_BUD);
+    }
+
+    public static boolean isAmethystBlock(BlockState st) {
+        return isSolidAmethystBlock(st) || isAmethystClusterOrBud(st);
     }
 }

@@ -2,8 +2,6 @@ package com.velorise.staves.element;
 
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -11,11 +9,11 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -24,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Manages Genshin Impact Electrified Water in Minecraft.
  * When an Electro attack hits a body of water, or a mob carrying Electro enters water,
  * the water becomes electrified for 3.5 seconds (70 ticks), continuously crackling with electric sparks,
- * dealing periodic Electro damage, applying Electro aura, and triggering Electro-Charged reactions.
+ * dealing periodic 0.5 heart (1.0F) Electro damage, applying Electro aura, and triggering Electro-Charged reactions.
  */
 public final class ElectrifiedWaterManager {
     public static class WaterZone {
@@ -46,9 +44,6 @@ public final class ElectrifiedWaterManager {
     }
 
     private static final List<WaterZone> ZONES = new CopyOnWriteArrayList<>();
-    // Dense dual-layer 3D electric discharge particles
-    private static final DustParticleOptions ELECTRIC_DUST_VIOLET = new DustParticleOptions(new Vector3f(0.85F, 0.3F, 1.0F), 1.15F);
-    private static final DustParticleOptions ELECTRIC_DUST_CYAN = new DustParticleOptions(new Vector3f(0.2F, 0.85F, 1.0F), 1.15F);
 
     private ElectrifiedWaterManager() {}
 
@@ -70,7 +65,8 @@ public final class ElectrifiedWaterManager {
 
         long now = level.getGameTime();
         UUID attackerUuid = attacker != null ? attacker.getUUID() : null;
-        ZONES.add(new WaterZone(level, pos, radius, now + durationTicks, attackerUuid, damage));
+        float shockDmg = 1.0F; // Standardized 0.5 heart (1.0 damage) per electric shock
+        ZONES.add(new WaterZone(level, pos, radius, now + durationTicks, attackerUuid, shockDmg));
 
         // High voltage electric impact sizzle sound
         level.playSound(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
@@ -88,7 +84,7 @@ public final class ElectrifiedWaterManager {
         }
 
         // Immediate shock to anyone already in this water
-        shockEntities(level, pos, radius, attacker, damage);
+        shockEntities(level, pos, radius, attacker, shockDmg);
         return true;
     }
 
@@ -182,12 +178,12 @@ public final class ElectrifiedWaterManager {
         );
 
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            if (victim == attacker) continue;
+            if (victim.isSpectator() || (victim instanceof Player p && p.isCreative())) continue;
             // Innate Electro beings are immune to electrified water shocks
             if (ElementalGaugeManager.getInnateElement(victim) == Element.ELECTRO) continue;
             if (ElementalGaugeManager.isEntityInWater(victim)) {
-                // Apply 0.8U Electro aura with damage, reacting with environmental Hydro wetness
-                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, damage);
+                // Apply 0.8U Electro aura with 1.0F (0.5 heart) shock damage, reacting with environmental Hydro wetness
+                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, 1.0F);
             }
         }
     }
