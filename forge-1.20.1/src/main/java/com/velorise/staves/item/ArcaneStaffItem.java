@@ -67,7 +67,8 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WITHER_LAST = "ArcaneStaffWitherLast";
     private static final String TAG_FROST_SHOTS = "ArcaneStaffFrostShots";
     private static final String TAG_FROST_LAST = "ArcaneStaffFrostLast";
-    private static final int BURST_RESET_TICKS = 100; // 5.0s window per shot (was 20 / 1.0s)
+    private static final int BURST_RESET_TICKS = 100; // 5.0s window to hold remaining burst shots
+    private static final int BURST_INTERVAL_TICKS = 11; // 11 ticks (0.55s) between burst shots to bypass the vanilla 10-tick damage iframe
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
@@ -198,9 +199,7 @@ public final class ArcaneStaffItem extends Item {
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
             player.getPersistentData().remove(tagSlot);
-            if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, cdForShots);
-            }
+            player.getCooldowns().addCooldown(this, cdForShots);
         }
     }
 
@@ -294,7 +293,7 @@ public final class ArcaneStaffItem extends Item {
             player.getCooldowns().addCooldown(this, cdTicks);
         } else {
             player.getPersistentData().putInt(tagShots, shots);
-            player.getCooldowns().addCooldown(this, 2); // 2 ticks between burst shots (reduced auto-fire interval)
+            player.getCooldowns().addCooldown(this, BURST_INTERVAL_TICKS); // 11 ticks between burst shots to bypass vanilla 10-tick damage iframe
         }
     }
 

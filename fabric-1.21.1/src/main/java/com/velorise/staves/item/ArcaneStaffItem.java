@@ -57,7 +57,8 @@ public final class ArcaneStaffItem extends Item {
     private static final String TAG_WEB_SHOTS = "web";
     private static final String TAG_WITHER_SHOTS = "wither";
     private static final String TAG_FROST_SHOTS = "frost";
-    private static final int BURST_RESET_TICKS = 100; // 5.0s window per shot (was 20 / 1.0s)
+    private static final int BURST_RESET_TICKS = 100; // 5.0s window to hold remaining burst shots
+    private static final int BURST_INTERVAL_TICKS = 11; // 11 ticks (0.55s) between burst shots to bypass the vanilla 10-tick damage iframe
 
     private static final class BurstState {
         int shots;
@@ -205,9 +206,7 @@ public final class ArcaneStaffItem extends Item {
             int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / 3.0D));
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
-            if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, cdForShots);
-            }
+            player.getCooldowns().addCooldown(this, cdForShots);
         }
     }
 
@@ -277,7 +276,7 @@ public final class ArcaneStaffItem extends Item {
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             player.getCooldowns().addCooldown(this, cdTicks);
         } else {
-            player.getCooldowns().addCooldown(this, 2); // 2 ticks between burst shots (reduced auto-fire interval)
+            player.getCooldowns().addCooldown(this, BURST_INTERVAL_TICKS); // 11 ticks between burst shots to bypass vanilla 10-tick damage iframe
         }
     }
 
