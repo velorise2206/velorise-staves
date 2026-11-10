@@ -4,7 +4,6 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,7 +23,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Vector3f;
 
 import java.util.Iterator;
 import java.util.List;
@@ -158,10 +156,6 @@ public final class CrystallizeShardManager {
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
     }
 
-    private static void spawnBurstParticles(ServerLevel level, Vec3 pos, Element element) {
-        // Kept clean without heavy ground particles, matching Genshin style
-    }
-
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
         if (now % 100 == 0) {
@@ -245,17 +239,6 @@ public final class CrystallizeShardManager {
                         }
                     }
                 }
-            }
-        }
-
-        // Check shield absorption depletion
-        for (ServerPlayer player : level.players()) {
-            if (player.getAbsorptionAmount() <= 0.0F && ModMobEffects.getActiveShield(player) != null) {
-                ModMobEffects.removeAllShields(player);
-                ACTIVE_SHIELDS.remove(player.getUUID());
-                ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
-                level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
             }
         }
     }
