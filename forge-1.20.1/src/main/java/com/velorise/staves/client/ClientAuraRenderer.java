@@ -891,6 +891,11 @@ public final class ClientAuraRenderer {
         consumer.vertex(matrix, x2, y2, z2).color(r, g, bCol, alpha).endVertex();
         consumer.vertex(matrix, x3, y3, z3).color(r, g, bCol, alpha).endVertex();
         consumer.vertex(matrix, x4, y4, z4).color(r, g, bCol, alpha).endVertex();
+
+        consumer.vertex(matrix, x4, y4, z4).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x3, y3, z3).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x2, y2, z2).color(r, g, bCol, alpha).endVertex();
+        consumer.vertex(matrix, x1, y1, z1).color(r, g, bCol, alpha).endVertex();
     }
 
     public static Element getCrystallizeShardElement(ItemStack stack) {

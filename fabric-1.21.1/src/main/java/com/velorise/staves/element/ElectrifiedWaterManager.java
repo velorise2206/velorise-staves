@@ -188,8 +188,6 @@ public final class ElectrifiedWaterManager {
             if (ElementalGaugeManager.isEntityInWater(victim)) {
                 // Apply 0.8U Electro aura with damage, reacting with environmental Hydro wetness
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, damage);
-                level.sendParticles(ELECTRIC_DUST_VIOLET, victim.getX(), victim.getY() + 0.6D, victim.getZ(), 6, 0.2D, 0.25D, 0.2D, 0.02D);
-                level.sendParticles(ELECTRIC_DUST_CYAN, victim.getX(), victim.getY() + 0.6D, victim.getZ(), 4, 0.2D, 0.25D, 0.2D, 0.02D);
             }
         }
     }
