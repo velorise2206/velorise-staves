@@ -76,6 +76,9 @@ public final class ModMobEffects {
         }
         for (Holder<MobEffect> h : toRemove) {
             entity.removeEffect(h);
+            if (entity.level().isClientSide()) {
+                entity.getActiveEffectsMap().remove(h);
+            }
         }
         return latest != null ? latest : found;
     }
@@ -94,6 +97,9 @@ public final class ModMobEffects {
         }
         for (Holder<MobEffect> h : toRemove) {
             entity.removeEffect(h);
+            if (entity.level().isClientSide()) {
+                entity.getActiveEffectsMap().remove(h);
+            }
         }
     }
 }

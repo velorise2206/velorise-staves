@@ -122,6 +122,20 @@ public final class ClientAuraTracker {
             boolean isFrozenState
     ) {
         long now = System.currentTimeMillis();
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (reaction == ElementalReaction.CRYSTALLIZE && mc.player != null && mc.player.getId() == entityId && elements.isEmpty() && trigger == null) {
+            // Dedicated Crystallize Shield sync packet from server: do NOT overwrite player's active Aura or show dual icons!
+            if (reactedAura != null) {
+                activeCrystallizeShield = reactedAura;
+                crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
+                ModMobEffects.removeAllShieldsExcept(mc.player, reactedAura);
+            } else {
+                activeCrystallizeShield = null;
+                crystallizeShieldUntil = 0L;
+                ModMobEffects.removeAllShields(mc.player);
+            }
+            return;
+        }
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
         entry.elements.clear();
         entry.elements.addAll(elements);
@@ -151,19 +165,6 @@ public final class ClientAuraTracker {
                 entry.dualTriggerElement = trigger;
                 entry.dualStartTime = now;
                 entry.dualUntil = now + 1300; // 26 ticks (1.3 seconds) Genshin dual-icon pop & fade
-            }
-
-            if (reaction == ElementalReaction.CRYSTALLIZE) {
-                net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-                if (mc.player != null && mc.player.getId() == entityId) {
-                    if (reactedAura != null || trigger != null) {
-                        activeCrystallizeShield = reactedAura != null ? reactedAura : trigger;
-                        crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
-                    } else {
-                        activeCrystallizeShield = null;
-                        crystallizeShieldUntil = 0L;
-                    }
-                }
             }
         } else {
             entry.reaction = null;

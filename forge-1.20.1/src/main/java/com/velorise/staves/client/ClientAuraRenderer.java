@@ -578,6 +578,22 @@ public final class ClientAuraRenderer {
                 }
             }
         }
+        Element activeShield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (activeShield == null) {
+            activeShield = ModMobEffects.getActiveShield(mc.player);
+        }
+        if (activeShield != null) {
+            boolean shieldInVanilla = false;
+            for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+                if (inst.showIcon() && ModMobEffects.getShieldElement(inst.getEffect()) != null) {
+                    shieldInVanilla = true;
+                    break;
+                }
+            }
+            if (!shieldInVanilla) {
+                beneficialCount++;
+            }
+        }
 
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -674,12 +690,21 @@ public final class ClientAuraRenderer {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
 
         int vanillaCount = 0;
+        boolean shieldFoundInVanilla = false;
+        Element activeShield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (activeShield == null) {
+            activeShield = ModMobEffects.getActiveShield(mc.player);
+        }
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
                 vanillaCount++;
+                if (ModMobEffects.getShieldElement(inst.getEffect()) != null) {
+                    shieldFoundInVanilla = true;
+                }
             }
         }
-        int totalEffects = vanillaCount + data.elements.size();
+        int customShieldSlot = (activeShield != null && !shieldFoundInVanilla) ? 1 : 0;
+        int totalEffects = vanillaCount + customShieldSlot + data.elements.size();
         int yStep = 33;
         if (totalEffects > 5) {
             yStep = Math.max(1, 132 / (totalEffects - 1));
@@ -687,7 +712,7 @@ public final class ClientAuraRenderer {
 
         int index = 0;
         for (Element elem : data.elements) {
-            int y = topPos + (vanillaCount + index) * yStep;
+            int y = topPos + (vanillaCount + customShieldSlot + index) * yStep;
             long remMs = data.expireTime > 0 ? Math.max(0, data.expireTime - now) : 0;
             float alpha = 1.0F;
             if (data.expireTime > 0 && remMs <= 3000L) {
@@ -760,7 +785,7 @@ public final class ClientAuraRenderer {
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
                 vanillaCount++;
-                if (ModMobEffects.getShieldElement(inst.getEffect()) == shield) {
+                if (ModMobEffects.getShieldElement(inst.getEffect()) != null) {
                     shieldFoundInVanilla = true;
                 }
             }
@@ -931,7 +956,7 @@ public final class ClientAuraRenderer {
         boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon() && isBeneficial(inst)) {
-                if (ModMobEffects.getShieldElement(inst.getEffect()) == shield) {
+                if (ModMobEffects.getShieldElement(inst.getEffect()) != null) {
                     found = true;
                     break;
                 }
@@ -957,18 +982,16 @@ public final class ClientAuraRenderer {
 
         if (!found) {
             guiGraphics.blit(INVENTORY_LOCATION, x, y, 141, 166, 24, 24);
-        }
-
-        // Draw only the Crystallize Shield texture (textures/mob_effect/*_shield.png, 18x18), never the round element icon
-        ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
-        if (shieldTex != null) {
-            if (alpha < 1.0F) {
-                guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
-            }
-            guiGraphics.blit(shieldTex, x + 3, y + 3, 0.0F, 0.0F, 18, 18, 18, 18);
-            if (alpha < 1.0F) {
-                guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
+            if (shieldTex != null) {
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
+                }
+                guiGraphics.blit(shieldTex, x + 3, y + 3, 0.0F, 0.0F, 18, 18, 18, 18);
+                if (alpha < 1.0F) {
+                    guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+                    RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+                }
             }
         }
     }
@@ -995,48 +1018,40 @@ public final class ClientAuraRenderer {
         if (availableWidth < 32) return;
 
         int vanillaCount = 0;
+        int effectIndex = 0;
+        boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
+                if (!found) {
+                    if (ModMobEffects.getShieldElement(inst.getEffect()) != null) {
+                        found = true;
+                    } else {
+                        effectIndex++;
+                    }
+                }
                 vanillaCount++;
             }
         }
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
-        int auraCount = (data != null) ? data.elements.size() : 0;
-        int totalEffects = vanillaCount + auraCount;
+        long now = System.currentTimeMillis();
+        boolean hasAura = data != null && !data.elements.isEmpty() && (data.expireTime <= 0 || now < data.expireTime);
+        int auraCount = hasAura ? data.elements.size() : 0;
+        int customShieldSlot = found ? 0 : 1;
+        int totalEffects = vanillaCount + customShieldSlot + auraCount;
         int yStep = 33;
         if (totalEffects > 5) {
             yStep = Math.max(1, 132 / (totalEffects - 1));
         }
 
-        int effectIndex = 0;
-        boolean found = false;
-        MobEffectInstance shieldInst = null;
-        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
-            if (inst.showIcon()) {
-                if (ModMobEffects.getShieldElement(inst.getEffect()) == shield) {
-                    found = true;
-                    shieldInst = inst;
-                    break;
-                }
-                effectIndex++;
-            }
-        }
-
         int y = topPos + effectIndex * yStep;
         if (!found) {
             guiGraphics.blit(INVENTORY_LOCATION, startX, y, 141, 166, 32, 32);
-        }
-
-        // When vanilla already renders the active effect icon & tooltip, only draw our colored border frame
-        // If not found in vanilla active effects, draw the shield texture and custom tooltip manually
-        if (!found) {
             ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
             if (shieldTex != null) {
                 guiGraphics.blit(shieldTex, startX + 7, y + 7, 0.0F, 0.0F, 18, 18, 18, 18);
             }
 
             if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
-                long now = System.currentTimeMillis();
                 long remSec = Math.max(0, (ClientAuraTracker.crystallizeShieldUntil - now) / 1000L);
                 String durationStr = String.format(Locale.ROOT, "%d:%02d", remSec / 60, remSec % 60);
                 String key = "effect.velorise_staves." + shield.name().toLowerCase(Locale.ROOT) + "_shield";
