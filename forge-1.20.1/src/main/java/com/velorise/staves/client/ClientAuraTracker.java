@@ -1,5 +1,6 @@
 package com.velorise.staves.client;
 
+import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import org.jetbrains.annotations.Nullable;
@@ -143,7 +144,8 @@ public final class ClientAuraTracker {
         if (mc.player == null) return null;
         if (activeCrystallizeShield != null) {
             long now = System.currentTimeMillis();
-            if (now >= crystallizeShieldUntil || mc.player.getAbsorptionAmount() <= 0.0F || !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+            Element activeShield = ModMobEffects.getActiveShield(mc.player);
+            if (now >= crystallizeShieldUntil || mc.player.getAbsorptionAmount() <= 0.0F || (activeShield != null && activeShield != activeCrystallizeShield)) {
                 activeCrystallizeShield = null;
                 return null;
             }

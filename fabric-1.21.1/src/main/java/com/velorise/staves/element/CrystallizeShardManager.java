@@ -192,7 +192,8 @@ public final class CrystallizeShardManager {
             UUID pid = player.getUUID();
             ShieldEntry entry = ACTIVE_SHIELDS.get(pid);
             if (entry != null) {
-                if (now >= entry.expireTick || player.getAbsorptionAmount() <= 0.0F || !player.hasEffect(MobEffects.ABSORPTION)) {
+                Element activeShield = ModMobEffects.getActiveShield(player);
+                if (now >= entry.expireTick || activeShield != entry.element || player.getAbsorptionAmount() <= 0.0F) {
                     ACTIVE_SHIELDS.remove(pid);
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
                 } else if (now % 8 == 0) {
@@ -265,6 +266,8 @@ public final class CrystallizeShardManager {
         for (ServerPlayer player : level.players()) {
             if (player.getAbsorptionAmount() <= 0.0F && ModMobEffects.getActiveShield(player) != null) {
                 ModMobEffects.removeAllShields(player);
+                ACTIVE_SHIELDS.remove(player.getUUID());
+                ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
                 level.playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
             }
