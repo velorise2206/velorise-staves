@@ -1,21 +1,24 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  H",
-                    " B ",
-                    "B  "
-                ],
-    "key":  {
-                "H":  {
-                          "item":  "minecraft:heart_of_the_sea"
-                      },
-                "B":  {
-                          "item":  "minecraft:blaze_rod"
-                      }
-            },
-    "result":  {
-                   "id":  "velorise_staves:guardian_lens",
-                   "count":  1
-               }
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "pattern": [
+        "  H",
+        " S ",
+        "C  "
+    ],
+    "key": {
+        "H": {
+            "item": "minecraft:heart_of_the_sea"
+        },
+        "S": {
+            "item": "minecraft:prismarine_shard"
+        },
+        "C": {
+            "item": "minecraft:prismarine_crystals"
+        }
+    },
+    "result": {
+        "id": "velorise_staves:guardian_lens",
+        "count": 1
+    }
 }
