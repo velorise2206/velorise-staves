@@ -132,6 +132,26 @@ public final class ClientAuraRenderer {
         event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
+    @SubscribeEvent
+    public static void onClientEntityInteract(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract event) {
+        if (event.getLevel().isClientSide()
+                && event.getTarget() instanceof LivingEntity living
+                && ClientAuraTracker.isFrozen(living.getId())) {
+            event.setCanceled(true);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.FAIL);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onClientEntityInteractSpecific(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteractSpecific event) {
+        if (event.getLevel().isClientSide()
+                && event.getTarget() instanceof LivingEntity living
+                && ClientAuraTracker.isFrozen(living.getId())) {
+            event.setCanceled(true);
+            event.setCancellationResult(net.minecraft.world.InteractionResult.FAIL);
+        }
+    }
+
     public static void clearPyroInnateFire(LivingEntity entity) {
         if (entity == null) return;
         if (ClientAuraTracker.hasPyroInnate(entity.getId()) && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())) {
@@ -154,6 +174,9 @@ public final class ClientAuraRenderer {
         }
         if (entity instanceof net.minecraft.world.entity.Mob mob) {
             mob.setAggressive(false);
+        }
+        if (entity instanceof net.minecraft.world.entity.npc.AbstractVillager villager && villager.getUnhappyCounter() > 0) {
+            villager.setUnhappyCounter(0);
         }
 
         float shakeOffset = 0.0F;

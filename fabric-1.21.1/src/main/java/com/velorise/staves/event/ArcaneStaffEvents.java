@@ -275,15 +275,14 @@ public final class ArcaneStaffEvents {
 
     private static void resolveWither(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
         double radius = isNetherite ? 4.0D : 3.0D;
-        double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
-        float finalDmg = (float) ((isNetherite ? 6.0F : 4.0F) * dmgMult);
+        float baseDmg = isNetherite ? 6.0F : 4.0F;
+        float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            ElementalGaugeManager.triggerMobAggro(level, target, player);
-            DamageSource source = player != null ? level.damageSources().indirectMagic(player, player) : level.damageSources().wither();
-            target.hurt(source, finalDmg);
-            ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
-            target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
+            ElementalGaugeManager.applyElement(level, target, Element.DENDRO, attackU, player, baseDmg);
+            if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
+                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 2 : 1));
+            }
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,
             radius * 0.4D, radius * 0.35D, radius * 0.4D, 0.04D);

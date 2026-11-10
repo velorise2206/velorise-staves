@@ -250,8 +250,8 @@ public class ElementalCodexScreen extends Screen {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.basics.card2.title"),
                         0xFFFFD60A,
-                        Element.ELECTRO, Element.CRYO,
-                        getModItemStack("inferno_rod"), ItemStack.EMPTY,
+                        null, null,
+                        ItemStack.EMPTY, ItemStack.EMPTY,
                         "1.0U / 1.5U / 2.0U", 0xFFFFD60A,
                         List.of(
                                 tr("codex.velorise_staves.basics.card2.p1"),
@@ -261,7 +261,7 @@ public class ElementalCodexScreen extends Screen {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.basics.card3.title"),
                         0xFFBF5AF2,
-                        Element.GEO, Element.DENDRO,
+                        null, null,
                         ItemStack.EMPTY, ItemStack.EMPTY,
                         "Innate & Mutation", 0xFFBF5AF2,
                         List.of(
@@ -357,9 +357,13 @@ public class ElementalCodexScreen extends Screen {
                         fmt(2.5 * dmgMult) + " DMG +25% Vuln", 0xFF5AC8FA,
                         List.of(tr("codex.velorise_staves.react.superconduct.p1"))
                 ));
+                // Swirl: Anemo + ( Pyro | Hydro | Cryo | Electro )
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.swirl.title"), 0xFF55EFC4,
-                        Element.ANEMO, Element.PYRO, ItemStack.EMPTY, ItemStack.EMPTY,
+                        Element.ANEMO, null,
+                        List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
+                        ItemStack.EMPTY, ItemStack.EMPTY,
+                        null, null,
                         fmt(2.5 * dmgMult) + " DMG (5.0m Spread)", 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.react.swirl.p1"))
                 ));
@@ -395,9 +399,9 @@ public class ElementalCodexScreen extends Screen {
                         fmt(1.0 * dmgMult) + " DMG / 0.5s", 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.react.burning.p1"))
                 ));
-                // Crystallize: Geo + ( Pyro | Hydro | Cryo | Electro ) = Crystallized
+                // Crystallize: Geo + ( Pyro | Hydro | Cryo | Electro ) Crystallized
                 cards.add(new GuideCard(
-                        "= Crystallized", 0xFFFFD60A,
+                        "Crystallized", 0xFFFFD60A,
                         Element.GEO, null,
                         List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
                         ItemStack.EMPTY, ItemStack.EMPTY,
@@ -556,7 +560,7 @@ public class ElementalCodexScreen extends Screen {
             case MASTERY -> {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.mastery.card1.title"), 0xFFFFD60A,
-                        Element.PYRO, Element.ELECTRO, new ItemStack(Items.ENCHANTED_BOOK), getModItemStack("netherite_arc_caster"),
+                        null, null, new ItemStack(Items.ENCHANTED_BOOK), getModItemStack("netherite_arc_caster"),
                         "Max Level: III", 0xFFFFD60A,
                         List.of(
                                 tr("codex.velorise_staves.mastery.card1.p1"),
@@ -579,7 +583,7 @@ public class ElementalCodexScreen extends Screen {
                         : tr("codex.velorise_staves.sync.local");
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.mastery.card3.title"), 0xFF0A84FF,
-                        Element.HYDRO, Element.GEO, getModItemStack("elemental_codex"), ItemStack.EMPTY,
+                        null, null, getModItemStack("elemental_codex"), ItemStack.EMPTY,
                         syncMode, StavesConfig.isServerSynced() ? 0xFF32D74B : 0xFF64D2FF,
                         List.of(
                                 String.format(Locale.ROOT, "• §eDamage Multiplier:§r §a%.2fx§r | §bCooldown Multiplier:§r §a%.2fx§r",
@@ -868,7 +872,7 @@ public class ElementalCodexScreen extends Screen {
         if (card.elem1 != null) iconOffset += 17;
         if (card.elem2 != null) iconOffset += 6 + 17;
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
-            iconOffset += 6 + 4 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 4 + 5;
+            iconOffset += 6 + 5 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 5 + 7;
         }
         if (!card.item1.isEmpty()) iconOffset += 17;
         if (!card.item2.isEmpty()) iconOffset += 17;
@@ -884,7 +888,8 @@ public class ElementalCodexScreen extends Screen {
         String boldTitle = "§l" + card.title;
         List<FormattedCharSequence> titleLines;
         boolean badgeBelowTitle = false;
-        if (badgeW > 0 && availTitleW < 65) {
+        int singleW = this.font.width(boldTitle);
+        if (badgeW > 0 && (availTitleW < 40 || (availTitleW < 65 && singleW > availTitleW) || (!card.title.contains(" ") && singleW > availTitleW))) {
             titleLines = this.font.split(Component.literal(boldTitle), fullTitleW);
             badgeBelowTitle = true;
         } else {
@@ -935,17 +940,17 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
             iconX += 6;
             guiGraphics.drawString(this.font, "(", iconX, iconY + 4, 0xFFA0B0C8, true);
-            iconX += 4;
+            iconX += 5;
             for (int i = 0; i < card.elemGroup.size(); i++) {
                 drawElementIcon(guiGraphics, card.elemGroup.get(i), iconX, iconY);
                 iconX += 16;
                 if (i < card.elemGroup.size() - 1) {
-                    guiGraphics.drawString(this.font, "|", iconX + 1, iconY + 4, 0xFF708098, false);
-                    iconX += 4;
+                    guiGraphics.drawString(this.font, "|", iconX + 2, iconY + 4, 0xFF708098, false);
+                    iconX += 5;
                 }
             }
             guiGraphics.drawString(this.font, ")", iconX + 1, iconY + 4, 0xFFA0B0C8, true);
-            iconX += 5;
+            iconX += 7;
         }
         if (!card.item1.isEmpty()) {
             guiGraphics.renderItem(card.item1, iconX, iconY);

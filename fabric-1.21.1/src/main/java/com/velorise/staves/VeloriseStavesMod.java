@@ -254,6 +254,14 @@ public final class VeloriseStavesMod implements ModInitializer {
             ElementalGaugeManager.clearAll();
             ArcaneStaffItem.clearAll();
         });
+        net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (!world.isClientSide()
+                    && entity instanceof net.minecraft.world.entity.LivingEntity living
+                    && ElementalGaugeManager.isEntityFrozen(living)) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!entity.level().isClientSide()
                     && source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)

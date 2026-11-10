@@ -113,6 +113,9 @@ public final class ClientAuraRenderer {
         if (entity instanceof net.minecraft.world.entity.Mob mob) {
             mob.setAggressive(false);
         }
+        if (entity instanceof net.minecraft.world.entity.npc.AbstractVillager villager && villager.getUnhappyCounter() > 0) {
+            villager.setUnhappyCounter(0);
+        }
 
         float shakeOffset = 0.0F;
         Minecraft mc = Minecraft.getInstance();

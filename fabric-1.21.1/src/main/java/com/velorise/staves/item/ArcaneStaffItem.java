@@ -729,8 +729,7 @@ public final class ArcaneStaffItem extends Item {
             case GUARDIAN -> Element.HYDRO;
             case EVOKER -> Element.GEO;
             case FROST -> Element.CRYO;
-            case WEB -> Element.DENDRO;
-            case WITHER -> null;
+            case WEB, WITHER -> Element.DENDRO;
         };
     }
 
@@ -764,7 +763,7 @@ public final class ArcaneStaffItem extends Item {
             case ECHO -> (isNetherite ? fmtDmg(16.0) : fmtDmg(11.0)) + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
             case INFERNO -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case GHASTFIRE -> (isNetherite ? fmtDmg(9.0) : fmtDmg(6.0)) + " " + icon + (isNetherite ? "4U" : "2U");
-            case WITHER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + (isNetherite ? " x 3 (Wither III)" : " x 3 (Wither II)");
+            case WITHER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + " x 3 " + icon + (isNetherite ? "1.5U (+Wither III)" : "1U (+Wither II)");
             case SHULKER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> (isNetherite ? (fmtDmg(0.8) + "-" + fmtDmg(2.0)) : (fmtDmg(0.5) + "-" + fmtDmg(1.5))) + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
             case EVOKER -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");

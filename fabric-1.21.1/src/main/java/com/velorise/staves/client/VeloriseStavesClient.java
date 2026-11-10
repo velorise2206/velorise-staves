@@ -63,6 +63,15 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             context.client().execute(() -> com.velorise.staves.config.StavesConfig.applyServerSync(payload.data()));
         });
 
+        net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (world.isClientSide()
+                    && entity instanceof net.minecraft.world.entity.LivingEntity living
+                    && ClientAuraTracker.isFrozen(living.getId())) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
             com.velorise.staves.config.StavesConfig.clearServerSync();

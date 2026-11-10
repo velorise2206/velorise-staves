@@ -440,6 +440,9 @@ public final class ElementalGaugeManager {
             target.stopUsingItem();
             target.releaseUsingItem();
         }
+        if (target instanceof net.minecraft.world.entity.npc.AbstractVillager villager && villager.getUnhappyCounter() > 0) {
+            villager.setUnhappyCounter(0);
+        }
         FrozenPoseState pose = FROZEN_POSES.get(id);
         if (pose != null) {
             double dy = target.onGround() ? 0.0D : Math.max(-0.08D, target.getDeltaMovement().y);
