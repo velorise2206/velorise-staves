@@ -364,16 +364,16 @@ public class ElementalCodexScreen extends Screen {
                         List.of(tr("codex.velorise_staves.elem.hydro.p1"), tr("codex.velorise_staves.elem.hydro.p2"))
                 ));
                 cards.add(new GuideCard(
+                        tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
+                        Element.ANEMO, null, getModItemStack("wind_staff"), getModItemStack("resonant_echo"),
+                        "ANEMO", 0xFF55EFC4,
+                        List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
+                ));
+                cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.electro.title"), 0xFFBF5AF2,
                         Element.ELECTRO, null, getModItemStack("arc_caster"), getModItemStack("shulker_seeker"),
                         "ELECTRO", 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.elem.electro.p1"), tr("codex.velorise_staves.elem.electro.p2"))
-                ));
-                cards.add(new GuideCard(
-                        tr("codex.velorise_staves.elem.cryo.title"), 0xFF64D2FF,
-                        Element.CRYO, null, getModItemStack("frostbolt_wand"), ItemStack.EMPTY,
-                        "CRYO", 0xFF64D2FF,
-                        List.of(tr("codex.velorise_staves.elem.cryo.p1"), tr("codex.velorise_staves.elem.cryo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.dendro.title"), 0xFF32D74B,
@@ -382,10 +382,10 @@ public class ElementalCodexScreen extends Screen {
                         List.of(tr("codex.velorise_staves.elem.dendro.p1"), tr("codex.velorise_staves.elem.dendro.p2"))
                 ));
                 cards.add(new GuideCard(
-                        tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
-                        Element.ANEMO, null, getModItemStack("wind_staff"), getModItemStack("resonant_echo"),
-                        "ANEMO", 0xFF55EFC4,
-                        List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
+                        tr("codex.velorise_staves.elem.cryo.title"), 0xFF64D2FF,
+                        Element.CRYO, null, getModItemStack("frostbolt_wand"), ItemStack.EMPTY,
+                        "CRYO", 0xFF64D2FF,
+                        List.of(tr("codex.velorise_staves.elem.cryo.p1"), tr("codex.velorise_staves.elem.cryo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.geo.title"), 0xFFFFD60A,
@@ -849,7 +849,7 @@ public class ElementalCodexScreen extends Screen {
                 guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 21, midY + 4, 0xFFFFFFFF, true);
             }
             case ELEMENTS -> {
-                Element[] all = Element.values();
+                Element[] all = GENSHIN_ELEMENTS_ORDER;
                 int totalW = all.length * 28;
                 int sx = cx - totalW / 2 + 4;
                 for (int i = 0; i < all.length; i++) {
@@ -936,8 +936,12 @@ public class ElementalCodexScreen extends Screen {
         return h;
     }
 
+    private static final Element[] GENSHIN_ELEMENTS_ORDER = {
+            Element.PYRO, Element.HYDRO, Element.ANEMO, Element.ELECTRO, Element.DENDRO, Element.CRYO, Element.GEO
+    };
+
     private static void renderElementsSegmentedBorder(GuiGraphics guiGraphics, int x, int y, int w, int h) {
-        Element[] all = Element.values();
+        Element[] all = GENSHIN_ELEMENTS_ORDER;
         int cx = x + w / 2;
         int totalW = all.length * 28;
         int sx = cx - totalW / 2 + 4;

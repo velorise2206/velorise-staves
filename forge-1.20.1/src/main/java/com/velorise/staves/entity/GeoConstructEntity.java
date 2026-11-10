@@ -3,7 +3,6 @@ package com.velorise.staves.entity;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
-import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -18,6 +17,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
@@ -40,6 +40,7 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -47,16 +48,19 @@ import java.util.UUID;
 /**
  * Physical 1x2x1 Geo Stone Stele summoned by the Netherite Evoker Fang Staff.
  * Has 50 hearts (100 HP), lasts 30s (max 3 per player), blocks damage and projectiles,
- * pulses 1.0U Geo 2 blocks around every 1s, and resonates with nearby Geo Constructs.
+ * and emits expanding concentric Geo waves every 2s (4 blocks radius, 1U Geo, 1 Geo DMG)
+ * that trigger additional waves on nearby Geo Constructs on wave contact.
  */
 public class GeoConstructEntity extends Entity {
     public static final float MAX_HEALTH = 100.0F; // 50 hearts
     public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
     public static final int MAX_CONSTRUCTS_PER_OWNER = 3;
-    public static final int PULSE_INTERVAL_TICKS = 20; // 1 second
-    public static final double PULSE_AOE_INFLATE = 2.0D;
-    public static final double RESONANCE_RADIUS = 6.0D;
-    public static final int RESONANCE_BEAM_COLOR = 0xFFD60A;
+    public static final int PULSE_INTERVAL_TICKS = 40; // 2 seconds
+    public static final int WAVE_DURATION_TICKS = 20; // 1.0s outward travel
+    public static final double WAVE_START_RADIUS = 0.55D;
+    public static final double WAVE_END_RADIUS = 4.5D; // 4 blocks around 0.5m radius pillar
+    public static final float WAVE_GEO_DAMAGE = 1.0F;
+    public static final float WAVE_GEO_UNITS = 1.0F;
 
     private static final Vector3f GEO_GOLD_COLOR = new Vector3f(0.96F, 0.76F, 0.22F);
 
@@ -64,10 +68,20 @@ public class GeoConstructEntity extends Entity {
 
     private static final EntityDataAccessor<Float> DATA_HEALTH =
             SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.FLOAT);
-    private static final EntityDataAccessor<Integer> DATA_PULSE_TICK =
+    private static final EntityDataAccessor<Integer> DATA_PULSE_SEQ =
             SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_HURT_TICK =
             SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.INT);
+
+    private static final class ActiveGeoWave {
+        int age;
+        final Set<UUID> hitEntities = new HashSet<>();
+        final Set<UUID> triggeredConstructs;
+
+        ActiveGeoWave(Set<UUID> triggeredConstructs) {
+            this.triggeredConstructs = triggeredConstructs;
+        }
+    }
 
     @Nullable
     private UUID ownerUUID;
@@ -75,7 +89,13 @@ public class GeoConstructEntity extends Entity {
     private Entity cachedOwner;
     private int ageTicks;
     private long createdGameTime;
-    private long lastPulseServerTick = -100L;
+    private long lastWaveStartGameTime = -100L;
+    private final List<ActiveGeoWave> activeWaves = new ArrayList<>();
+
+    // Client-side concentric ring visual tracking
+    private int lastClientPulseSeq;
+    private int lastClientWaveStartTick = -100;
+    private final List<Float> clientWaveAges = new ArrayList<>();
 
     public GeoConstructEntity(EntityType<? extends GeoConstructEntity> type, Level level) {
         super(type, level);
@@ -102,7 +122,7 @@ public class GeoConstructEntity extends Entity {
     @Override
     protected void defineSynchedData() {
         this.entityData.define(DATA_HEALTH, MAX_HEALTH);
-        this.entityData.define(DATA_PULSE_TICK, -100);
+        this.entityData.define(DATA_PULSE_SEQ, 0);
         this.entityData.define(DATA_HURT_TICK, -100);
     }
 
@@ -119,12 +139,20 @@ public class GeoConstructEntity extends Entity {
         this.entityData.set(DATA_HEALTH, Math.max(0.0F, Math.min(MAX_HEALTH, health)));
     }
 
-    public int getLastPulseTick() {
-        return this.entityData.get(DATA_PULSE_TICK);
+    public int getPulseSeq() {
+        return this.entityData.get(DATA_PULSE_SEQ);
     }
 
     public int getLastHurtTick() {
         return this.entityData.get(DATA_HURT_TICK);
+    }
+
+    public int getLastClientWaveStartTick() {
+        return this.lastClientWaveStartTick;
+    }
+
+    public List<Float> getClientWaveAges() {
+        return this.clientWaveAges;
     }
 
     public void setOwner(@Nullable Entity owner) {
@@ -162,6 +190,11 @@ public class GeoConstructEntity extends Entity {
 
     public long getCreatedGameTime() {
         return this.createdGameTime;
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return this.getBoundingBox().inflate(WAVE_END_RADIUS, 0.5D, WAVE_END_RADIUS);
     }
 
     @Override
@@ -219,6 +252,7 @@ public class GeoConstructEntity extends Entity {
         this.setDeltaMovement(Vec3.ZERO);
 
         if (!(this.level() instanceof ServerLevel sl)) {
+            tickClientWaves();
             return;
         }
 
@@ -237,10 +271,40 @@ public class GeoConstructEntity extends Entity {
         }
 
         if (this.ageTicks == 4 || (this.ageTicks > 4 && (this.ageTicks - 4) % PULSE_INTERVAL_TICKS == 0)) {
-            long now = sl.getGameTime();
-            if (now - this.lastPulseServerTick >= 16L || this.ageTicks == 4) {
-                emitPulseAndResonate(sl, new HashSet<>());
+            Set<UUID> chain = new HashSet<>();
+            chain.add(this.getUUID());
+            startWave(sl, chain);
+        }
+
+        Iterator<ActiveGeoWave> it = this.activeWaves.iterator();
+        while (it.hasNext()) {
+            ActiveGeoWave wave = it.next();
+            tickActiveWave(sl, wave);
+            if (wave.age >= WAVE_DURATION_TICKS) {
+                it.remove();
             }
+        }
+    }
+
+    private void tickClientWaves() {
+        for (int i = this.clientWaveAges.size() - 1; i >= 0; i--) {
+            float next = this.clientWaveAges.get(i) + 1.0F;
+            if (next >= WAVE_DURATION_TICKS) {
+                this.clientWaveAges.remove(i);
+            } else {
+                this.clientWaveAges.set(i, next);
+            }
+        }
+        int seq = getPulseSeq();
+        if (this.tickCount <= 2 && seq > 1) {
+            this.lastClientPulseSeq = seq;
+        } else if (seq > this.lastClientPulseSeq) {
+            int diff = Math.min(2, seq - this.lastClientPulseSeq);
+            for (int i = 0; i < diff; i++) {
+                this.clientWaveAges.add(0.0F);
+            }
+            this.lastClientPulseSeq = seq;
+            this.lastClientWaveStartTick = this.tickCount;
         }
     }
 
@@ -258,68 +322,80 @@ public class GeoConstructEntity extends Entity {
         }
     }
 
-    public void emitPulseAndResonate(ServerLevel level, Set<UUID> chainVisited) {
+    public void startWave(ServerLevel level, Set<UUID> sharedChain) {
         if (!this.isAlive() || this.isRemoved()) return;
-        if (!chainVisited.add(this.getUUID())) return;
+        this.lastWaveStartGameTime = level.getGameTime();
+        this.entityData.set(DATA_PULSE_SEQ, getPulseSeq() + 1);
+        this.activeWaves.add(new ActiveGeoWave(sharedChain));
 
-        long now = level.getGameTime();
-        this.lastPulseServerTick = now;
-        this.entityData.set(DATA_PULSE_TICK, this.tickCount);
-
-        spawnGeoPulseRing(level);
         level.playSound(null, this.getX(), this.getY() + 1.0D, this.getZ(),
                 SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.75F, 0.9F + level.random.nextFloat() * 0.2F);
         level.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
-                SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.55F, 0.8F);
+                SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.5F, 0.8F);
+    }
+
+    private static double radiusAtAge(int age) {
+        double t = Mth.clamp((double) age / (double) WAVE_DURATION_TICKS, 0.0D, 1.0D);
+        return Mth.lerp(t, WAVE_START_RADIUS, WAVE_END_RADIUS);
+    }
+
+    private void tickActiveWave(ServerLevel level, ActiveGeoWave wave) {
+        double prevR = radiusAtAge(wave.age);
+        wave.age++;
+        double currR = radiusAtAge(wave.age);
+        double innerBand = Math.max(0.0D, prevR - 0.65D);
+
+        AABB scan = new AABB(
+                this.getX() - currR - 1.0D, this.getY() - 1.5D, this.getZ() - currR - 1.0D,
+                this.getX() + currR + 1.0D, this.getY() + 3.0D, this.getZ() + currR + 1.0D
+        );
 
         ServerPlayer ownerPlayer = resolveOwnerPlayer(level);
         Entity owner = getOwnerEntity();
-
-        AABB pulseBox = this.getBoundingBox().inflate(PULSE_AOE_INFLATE);
-        List<LivingEntity> targets = level.getEntitiesOfClass(
+        List<LivingEntity> candidates = level.getEntitiesOfClass(
                 LivingEntity.class,
-                pulseBox,
+                scan,
                 e -> e.isAlive() && !e.isRemoved() && !e.isSpectator()
         );
 
         IS_GEO_PULSE.set(Boolean.TRUE);
         try {
-            for (LivingEntity target : targets) {
+            for (LivingEntity target : candidates) {
+                if (wave.hitEntities.contains(target.getUUID())) continue;
                 if (this.ownerUUID != null && target.getUUID().equals(this.ownerUUID)) continue;
                 if (owner != null && target.isAlliedTo(owner)) continue;
-                ElementalGaugeManager.applyElement(level, target, Element.GEO, 1.0F, ownerPlayer, 2.0F);
+                double edgeDist = horizontalEdgeDistance(target);
+                if (edgeDist <= currR && edgeDist >= innerBand) {
+                    wave.hitEntities.add(target.getUUID());
+                    ElementalGaugeManager.applyElement(level, target, Element.GEO, WAVE_GEO_UNITS, ownerPlayer, WAVE_GEO_DAMAGE);
+                }
             }
         } finally {
             IS_GEO_PULSE.remove();
         }
 
-        Vec3 thisCenter = this.position().add(0.0D, 1.1D, 0.0D);
-        List<GeoConstructEntity> nearby = level.getEntitiesOfClass(
+        // Expanding ring physically triggers other Geo Constructs on contact to launch their own concentric ring
+        long now = level.getGameTime();
+        List<GeoConstructEntity> nearbyConstructs = level.getEntitiesOfClass(
                 GeoConstructEntity.class,
-                this.getBoundingBox().inflate(RESONANCE_RADIUS),
+                scan.inflate(0.5D, 1.0D, 0.5D),
                 other -> other != this && other.isAlive() && !other.isRemoved()
         );
-        for (GeoConstructEntity other : nearby) {
-            if (other.distanceToSqr(this) > RESONANCE_RADIUS * RESONANCE_RADIUS) continue;
-            Vec3 otherCenter = other.position().add(0.0D, 1.1D, 0.0D);
-            ModNetwork.sendElectricArc(level, thisCenter, otherCenter, 10, RESONANCE_BEAM_COLOR);
-            if (!chainVisited.contains(other.getUUID()) && (now - other.lastPulseServerTick) >= 4L) {
-                other.emitPulseAndResonate(level, chainVisited);
+        for (GeoConstructEntity other : nearbyConstructs) {
+            if (wave.triggeredConstructs.contains(other.getUUID())) continue;
+            double edgeDist = horizontalEdgeDistance(other);
+            if (edgeDist <= currR && (now - other.lastWaveStartGameTime) >= 4L) {
+                wave.triggeredConstructs.add(other.getUUID());
+                other.startWave(level, wave.triggeredConstructs);
             }
         }
     }
 
-    private void spawnGeoPulseRing(ServerLevel level) {
-        DustParticleOptions dust = new DustParticleOptions(GEO_GOLD_COLOR, 1.3F);
-        int points = 18;
-        double radius = 2.0D;
-        for (int i = 0; i < points; i++) {
-            double angle = (Math.PI * 2.0D * i) / points;
-            double px = this.getX() + Math.cos(angle) * radius;
-            double pz = this.getZ() + Math.sin(angle) * radius;
-            level.sendParticles(dust, px, this.getY() + 0.2D, pz, 1, 0.06D, 0.08D, 0.06D, 0.01D);
-        }
-        level.sendParticles(ParticleTypes.WAX_ON, this.getX(), this.getY() + 1.0D, this.getZ(), 6, 0.45D, 0.65D, 0.45D, 0.02D);
+    private double horizontalEdgeDistance(Entity target) {
+        AABB box = target.getBoundingBox();
+        double cx = Mth.clamp(this.getX(), box.minX, box.maxX);
+        double cz = Mth.clamp(this.getZ(), box.minZ, box.maxZ);
+        return Math.hypot(cx - this.getX(), cz - this.getZ());
     }
 
     @Override

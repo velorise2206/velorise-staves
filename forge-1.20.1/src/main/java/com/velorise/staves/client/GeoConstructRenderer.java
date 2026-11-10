@@ -1,13 +1,16 @@
 package com.velorise.staves.client;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.entity.GeoConstructEntity;
 import net.minecraft.client.model.EvokerFangsModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -17,12 +20,18 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.joml.Matrix4f;
 
-/** Renders the 1x2x1 Geo Construct pillar using the vanilla Evoker Fangs 3D model tinted golden Geo. */
+/**
+ * Renders the 1x2x1 Geo Construct pillar using the vanilla Evoker Fangs 3D model tinted golden Geo,
+ * along with smooth expanding concentric Geo shockwave rings.
+ */
 @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation("textures/entity/illager/evoker_fangs.png");
+    private static final RenderType RING_RENDER_TYPE = GeoRingRenderType.create();
+    private static final int RING_SEGMENTS = 64;
 
     private final EvokerFangsModel<GeoConstructEntity> model;
 
@@ -46,7 +55,7 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
             MultiBufferSource bufferSource,
             int packedLight
     ) {
-        int pulseElapsed = entity.tickCount - entity.getLastPulseTick();
+        int pulseElapsed = entity.tickCount - entity.getLastClientWaveStartTick();
         float pulseWave = (pulseElapsed >= -1 && pulseElapsed < 9)
                 ? Mth.sin((Mth.clamp(pulseElapsed + partialTicks, 0.0F, 9.0F) / 9.0F) * (float) Math.PI)
                 : 0.0F;
@@ -76,11 +85,106 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
         this.model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY, r, g, b, 1.0F);
         poseStack.popPose();
 
+        if (!entity.getClientWaveAges().isEmpty()) {
+            renderExpandingRings(entity, partialTicks, poseStack, bufferSource);
+        }
+
         super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
+    }
+
+    private static void renderExpandingRings(
+            GeoConstructEntity entity,
+            float partialTicks,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource
+    ) {
+        VertexConsumer ringConsumer = bufferSource.getBuffer(RING_RENDER_TYPE);
+        Matrix4f pose = poseStack.last().pose();
+
+        for (float waveAge : entity.getClientWaveAges()) {
+            float t = Mth.clamp((waveAge + partialTicks) / (float) GeoConstructEntity.WAVE_DURATION_TICKS, 0.0F, 1.0F);
+            float alpha = t < 0.10F
+                    ? (t / 0.10F)
+                    : (t > 0.72F ? Math.max(0.0F, (1.0F - t) / 0.28F) : 1.0F);
+            if (alpha <= 0.01F) continue;
+
+            float outerR = (float) Mth.lerp(t, GeoConstructEntity.WAVE_START_RADIUS, GeoConstructEntity.WAVE_END_RADIUS);
+            drawConcentricBand(ringConsumer, pose, outerR, 0.16F, 0.09F, 0.34F, 1.00F, 0.83F, 0.22F, alpha * 0.88F);
+
+            float innerR = (float) Mth.lerp(t, 0.40D, 3.05D);
+            drawConcentricBand(ringConsumer, pose, innerR, 0.09F, 0.11F, 0.22F, 1.00F, 0.92F, 0.48F, alpha * 0.65F);
+        }
+    }
+
+    private static void drawConcentricBand(
+            VertexConsumer consumer,
+            Matrix4f pose,
+            float radius,
+            float halfWidth,
+            float yBase,
+            float yWallTop,
+            float r,
+            float g,
+            float b,
+            float a
+    ) {
+        float rIn = Math.max(0.05F, radius - halfWidth);
+        float rOut = radius + halfWidth;
+        float wallAlpha = a * 0.72F;
+
+        for (int i = 0; i < RING_SEGMENTS; i++) {
+            double a0 = (Math.PI * 2.0D * i) / RING_SEGMENTS;
+            double a1 = (Math.PI * 2.0D * (i + 1)) / RING_SEGMENTS;
+            float c0 = (float) Math.cos(a0);
+            float s0 = (float) Math.sin(a0);
+            float c1 = (float) Math.cos(a1);
+            float s1 = (float) Math.sin(a1);
+
+            consumer.vertex(pose, c0 * rIn, yBase, s0 * rIn).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, c1 * rIn, yBase, s1 * rIn).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
+
+            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, c1 * rOut, yBase, s1 * rOut).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, c0 * rOut, yBase, s0 * rOut).color(r, g, b, 0.0F).endVertex();
+
+            consumer.vertex(pose, c0 * radius, yBase - 0.04F, s0 * radius).color(r, g, b, wallAlpha).endVertex();
+            consumer.vertex(pose, c1 * radius, yBase - 0.04F, s1 * radius).color(r, g, b, wallAlpha).endVertex();
+            consumer.vertex(pose, c1 * radius, yWallTop, s1 * radius).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, c0 * radius, yWallTop, s0 * radius).color(r, g, b, 0.0F).endVertex();
+        }
     }
 
     @Override
     public ResourceLocation getTextureLocation(GeoConstructEntity entity) {
         return TEXTURE;
+    }
+
+    protected static class GeoRingRenderType extends RenderType {
+        public static RenderType create() {
+            CompositeState state = CompositeState.builder()
+                    .setShaderState(POSITION_COLOR_SHADER)
+                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                    .setCullState(NO_CULL)
+                    .setLightmapState(NO_LIGHTMAP)
+                    .setWriteMaskState(COLOR_WRITE)
+                    .createCompositeState(false);
+            return create("velorise_geo_ring", DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 256, false, true, state);
+        }
+
+        private GeoRingRenderType(
+                String name,
+                VertexFormat format,
+                VertexFormat.Mode mode,
+                int bufferSize,
+                boolean affectsCrumbling,
+                boolean sortOnUpload,
+                Runnable setupState,
+                Runnable clearState
+        ) {
+            super(name, format, mode, bufferSize, affectsCrumbling, sortOnUpload, setupState, clearState);
+        }
     }
 }
