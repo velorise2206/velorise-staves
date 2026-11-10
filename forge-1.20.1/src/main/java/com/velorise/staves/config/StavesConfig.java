@@ -421,15 +421,15 @@ public final class StavesConfig {
     // --- Compatibility helpers for ElementalCodexScreen ---
 
     public static boolean isServerSynced() {
-        return false; // Forge uses ForgeConfigSpec; server-sync is not supported
+        return syncedServerData != null;
     }
 
     public static int getBasicStaffDurability() {
-        return DRAGONFIRE_DURABILITY_BASIC.get();
+        return getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, false);
     }
 
     public static int getNetheriteStaffDurability() {
-        return DRAGONFIRE_DURABILITY_NETHERITE.get();
+        return getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, true);
     }
 
     public static double getRangeMultiplier() {

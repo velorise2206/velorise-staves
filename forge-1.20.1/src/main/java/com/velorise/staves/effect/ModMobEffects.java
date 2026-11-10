@@ -50,7 +50,7 @@ public final class ModMobEffects {
             latest = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
         }
         if (latest == null && entity.level().isClientSide) {
-            latest = com.velorise.staves.client.ClientAuraTracker.getActiveCrystallizeShield();
+            latest = com.velorise.staves.client.ClientAuraTracker.getTrackedCrystallizeShield();
         }
 
         Element found = null;

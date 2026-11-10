@@ -224,6 +224,21 @@ public final class ClientAuraTracker {
         crystallizeShieldUntil = 0L;
     }
 
+    public static @Nullable Element getTrackedCrystallizeShield() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.player == null) return null;
+        if (activeCrystallizeShield != null) {
+            long now = System.currentTimeMillis();
+            boolean depleted = !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
+            if (now >= crystallizeShieldUntil || depleted) {
+                activeCrystallizeShield = null;
+                return null;
+            }
+            return activeCrystallizeShield;
+        }
+        return null;
+    }
+
     public static @Nullable Element getActiveCrystallizeShield() {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (mc.player == null) return null;
@@ -235,15 +250,6 @@ public final class ClientAuraTracker {
             }
             return mobShield;
         }
-        if (activeCrystallizeShield != null) {
-            long now = System.currentTimeMillis();
-            boolean depleted = !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
-            if (now >= crystallizeShieldUntil || depleted) {
-                activeCrystallizeShield = null;
-                return null;
-            }
-            return activeCrystallizeShield;
-        }
-        return null;
+        return getTrackedCrystallizeShield();
     }
 }
