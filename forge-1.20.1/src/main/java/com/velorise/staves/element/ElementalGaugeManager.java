@@ -736,20 +736,26 @@ public final class ElementalGaugeManager {
         return 1.0F + 0.25F * Math.max(0, emLevel);
     }
 
-    public static boolean hasThornsEnchantment(LivingEntity entity) {
-        if (entity == null) return false;
+    public static int getThornsEnchantmentLevel(LivingEntity entity) {
+        if (entity == null) return 0;
+        int maxLevel = 0;
         for (ItemStack armor : entity.getArmorSlots()) {
             if (armor.isEmpty()) continue;
             var enchTags = armor.getEnchantmentTags();
             for (int i = 0; i < enchTags.size(); i++) {
                 CompoundTag tag = enchTags.getCompound(i);
                 String id = tag.getString("id");
-                if (tag.getInt("lvl") > 0 && (id.equals("minecraft:thorns") || id.endsWith(":thorns"))) {
-                    return true;
+                int lvl = tag.getInt("lvl");
+                if (lvl > maxLevel && (id.equals("minecraft:thorns") || id.endsWith(":thorns"))) {
+                    maxLevel = lvl;
                 }
             }
         }
-        return false;
+        return maxLevel;
+    }
+
+    public static boolean hasThornsEnchantment(LivingEntity entity) {
+        return getThornsEnchantmentLevel(entity) > 0;
     }
 
     @Nullable
@@ -815,10 +821,16 @@ public final class ElementalGaugeManager {
         }
         LAST_THORNS_REFLECT.put(dedupKey, now);
 
+        int thornsLevel = getThornsEnchantmentLevel(defender);
+        if (thornsLevel <= 0) {
+            thornsLevel = 1; // e.g., Guardian natural Thorns spikes
+        }
+        float reflectU = 0.5F * thornsLevel;
+
         IS_PROCESSING_THORNS.set(true);
         try {
             ServerPlayer defenderPlayer = defender instanceof ServerPlayer sp ? sp : null;
-            applyElementBypassIcd(level, attacker, reflected, 0.5F, defenderPlayer, 0.0F);
+            applyElementBypassIcd(level, attacker, reflected, reflectU, defenderPlayer, 0.0F);
             Vec3 hitPos = attacker.getBoundingBox().getCenter();
             level.sendParticles(ParticleTypes.ENCHANTED_HIT, hitPos.x, hitPos.y, hitPos.z,
                     6, 0.25D, 0.25D, 0.25D, 0.05D);

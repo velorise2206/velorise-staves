@@ -47,12 +47,12 @@ import java.util.UUID;
 
 /**
  * Physical 1x2x1 Geo Stone Stele summoned by the Netherite Evoker Fang Staff.
- * Has 50 hearts (100 HP), lasts 30s (max 3 per player), blocks damage and projectiles,
+ * Max HP equals 2x the creator's max HP (40 HP fallback), lasts 30s (max 3 per player), blocks damage and projectiles,
  * and emits expanding concentric Geo waves every 2s (4 blocks radius, 1U Geo, 1 Geo DMG)
  * that trigger additional waves on nearby Geo Constructs on wave contact.
  */
 public class GeoConstructEntity extends Entity {
-    public static final float MAX_HEALTH = 100.0F; // 50 hearts
+    public static final float MAX_HEALTH = 40.0F; // Default fallback (2x standard 20 HP)
     public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
     public static final int MAX_CONSTRUCTS_PER_OWNER = 3;
     public static final int PULSE_INTERVAL_TICKS = 40; // 2 seconds
@@ -66,6 +66,8 @@ public class GeoConstructEntity extends Entity {
 
     public static final ThreadLocal<Boolean> IS_GEO_PULSE = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
+    private static final EntityDataAccessor<Float> DATA_MAX_HEALTH =
+            SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_HEALTH =
             SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_PULSE_SEQ =
@@ -116,11 +118,17 @@ public class GeoConstructEntity extends Entity {
         this.setPos(x, y, z);
         this.setYRot(yawDegrees);
         this.setOwner(owner);
+        if (owner != null) {
+            float scaledMax = Math.max(2.0F, owner.getMaxHealth() * 2.0F);
+            this.entityData.set(DATA_MAX_HEALTH, scaledMax);
+            this.entityData.set(DATA_HEALTH, scaledMax);
+        }
         this.createdGameTime = level.getGameTime();
     }
 
     @Override
     protected void defineSynchedData() {
+        this.entityData.define(DATA_MAX_HEALTH, MAX_HEALTH);
         this.entityData.define(DATA_HEALTH, MAX_HEALTH);
         this.entityData.define(DATA_PULSE_SEQ, 0);
         this.entityData.define(DATA_HURT_TICK, -100);
@@ -131,12 +139,16 @@ public class GeoConstructEntity extends Entity {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 
+    public float getMaxConstructHealth() {
+        return Math.max(2.0F, this.entityData.get(DATA_MAX_HEALTH));
+    }
+
     public float getHealth() {
         return this.entityData.get(DATA_HEALTH);
     }
 
     public void setHealth(float health) {
-        this.entityData.set(DATA_HEALTH, Math.max(0.0F, Math.min(MAX_HEALTH, health)));
+        this.entityData.set(DATA_HEALTH, Math.max(0.0F, Math.min(getMaxConstructHealth(), health)));
     }
 
     public int getPulseSeq() {
@@ -550,6 +562,9 @@ public class GeoConstructEntity extends Entity {
         if (tag.hasUUID("Owner")) {
             this.ownerUUID = tag.getUUID("Owner");
         }
+        if (tag.contains("ConstructMaxHealth")) {
+            this.entityData.set(DATA_MAX_HEALTH, Math.max(2.0F, tag.getFloat("ConstructMaxHealth")));
+        }
         if (tag.contains("ConstructHealth")) {
             setHealth(tag.getFloat("ConstructHealth"));
         }
@@ -562,6 +577,7 @@ public class GeoConstructEntity extends Entity {
         if (this.ownerUUID != null) {
             tag.putUUID("Owner", this.ownerUUID);
         }
+        tag.putFloat("ConstructMaxHealth", getMaxConstructHealth());
         tag.putFloat("ConstructHealth", getHealth());
         tag.putInt("Age", this.ageTicks);
         tag.putLong("CreatedGameTime", this.createdGameTime);

@@ -746,20 +746,26 @@ public final class ElementalGaugeManager {
         return 1.0F + 0.25F * Math.max(0, emLevel);
     }
 
-    public static boolean hasThornsEnchantment(LivingEntity entity) {
-        if (entity == null) return false;
+    public static int getThornsEnchantmentLevel(LivingEntity entity) {
+        if (entity == null) return 0;
+        int maxLevel = 0;
         for (ItemStack armor : entity.getArmorSlots()) {
             if (armor.isEmpty()) continue;
             var enchantments = armor.getEnchantments();
             for (var entry : enchantments.entrySet()) {
-                if (entry.getIntValue() > 0
+                int lvl = entry.getIntValue();
+                if (lvl > maxLevel
                         && (entry.getKey().is(Enchantments.THORNS)
                                 || entry.getKey().unwrapKey().map(k -> k.location().getPath().equals("thorns")).orElse(false))) {
-                    return true;
+                    maxLevel = lvl;
                 }
             }
         }
-        return false;
+        return maxLevel;
+    }
+
+    public static boolean hasThornsEnchantment(LivingEntity entity) {
+        return getThornsEnchantmentLevel(entity) > 0;
     }
 
     @Nullable
@@ -825,10 +831,16 @@ public final class ElementalGaugeManager {
         }
         LAST_THORNS_REFLECT.put(dedupKey, now);
 
+        int thornsLevel = getThornsEnchantmentLevel(defender);
+        if (thornsLevel <= 0) {
+            thornsLevel = 1; // e.g., Guardian natural Thorns spikes
+        }
+        float reflectU = 0.5F * thornsLevel;
+
         IS_PROCESSING_THORNS.set(true);
         try {
             ServerPlayer defenderPlayer = defender instanceof ServerPlayer sp ? sp : null;
-            applyElementBypassIcd(level, attacker, reflected, 0.5F, defenderPlayer, 0.0F);
+            applyElementBypassIcd(level, attacker, reflected, reflectU, defenderPlayer, 0.0F);
             Vec3 hitPos = attacker.getBoundingBox().getCenter();
             level.sendParticles(ParticleTypes.ENCHANTED_HIT, hitPos.x, hitPos.y, hitPos.z,
                     6, 0.25D, 0.25D, 0.25D, 0.05D);
