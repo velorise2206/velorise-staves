@@ -1,21 +1,21 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  E",
-                    " B ",
-                    "B  "
-                ],
-    "key":  {
-                "B":  {
-                          "item":  "minecraft:blaze_rod"
-                      },
-                "E":  {
-                          "item":  "minecraft:echo_shard"
-                      }
-            },
-    "result":  {
-                   "item":  "velorise_staves:resonant_echo",
-                   "count":  1
-               }
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "pattern": [
+        "  C",
+        " E ",
+        "E  "
+    ],
+    "key": {
+        "C": {
+            "item": "minecraft:calibrated_sculk_sensor"
+        },
+        "E": {
+            "item": "minecraft:echo_shard"
+        }
+    },
+    "result": {
+        "item": "velorise_staves:resonant_echo",
+        "count": 1
+    }
 }
