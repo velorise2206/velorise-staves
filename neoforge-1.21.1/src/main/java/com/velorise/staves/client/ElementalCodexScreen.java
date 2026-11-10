@@ -51,7 +51,8 @@ public class ElementalCodexScreen extends Screen {
         ELEMENTS("elements", "tab_elements.png", 0xFFFF6B4A, Element.PYRO),
         REACTIONS_AMP("reactions_amp", "tab_reactions_amp.png", 0xFF0A84FF, Element.HYDRO),
         REACTIONS_DENDRO("reactions_dendro", "tab_reactions_dendro.png", 0xFF32D74B, Element.DENDRO),
-        ENVIRONMENT("environment", "tab_environment.png", 0xFF64D2FF, Element.CRYO),
+        INNATE("innate", "tab_innate.png", 0xFFFF9F0A, null),
+        ENVIRONMENT("environment", "tab_environment.png", 0xFF64D2FF, null),
         STAVES("staves", "tab_staves.png", 0xFFBF5AF2, null),
         MASTERY("mastery", "tab_mastery.png", 0xFFFFD60A, null);
 
@@ -125,6 +126,8 @@ public class ElementalCodexScreen extends Screen {
         return switch (tab) {
             case BASICS -> getModItemStack("elemental_codex");
             case REACTIONS_DENDRO -> getModItemStack("dendro_core");
+            case INNATE -> new ItemStack(Items.BLAZE_POWDER);
+            case ENVIRONMENT -> new ItemStack(Items.SCULK_SENSOR);
             case STAVES -> getModItemStack("netherite_dragonfire_scepter");
             case MASTERY -> new ItemStack(Items.ENCHANTED_BOOK);
             default -> ItemStack.EMPTY;
@@ -181,8 +184,7 @@ public class ElementalCodexScreen extends Screen {
                         "1.0U / 1.5U / 2.0U", 0xFFFFD60A,
                         List.of(
                                 tr("codex.velorise_staves.basics.card2.p1"),
-                                tr("codex.velorise_staves.basics.card2.p2"),
-                                tr("codex.velorise_staves.basics.card2.p3")
+                                tr("codex.velorise_staves.basics.card2.p2")
                         )
                 ));
                 cards.add(new GuideCard(
@@ -329,30 +331,86 @@ public class ElementalCodexScreen extends Screen {
                         List.of(tr("codex.velorise_staves.react.crystallize.p1"), tr("codex.velorise_staves.react.crystallize.p2"))
                 ));
             }
+            case INNATE -> {
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.rules.title"), 0xFFFFD60A,
+                        Element.PYRO, Element.HYDRO, new ItemStack(Items.BLAZE_POWDER), ItemStack.EMPTY,
+                        "IMMUNE & 6% Mutate", 0xFFFFD60A,
+                        List.of(tr("codex.velorise_staves.innate.rules.p1"), tr("codex.velorise_staves.innate.rules.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.pyro.title"), 0xFFFF453A,
+                        Element.PYRO, null, new ItemStack(Items.BLAZE_ROD), new ItemStack(Items.MAGMA_CREAM),
+                        "1.0U Pyro", 0xFFFF453A,
+                        List.of(tr("codex.velorise_staves.innate.pyro.p1"), tr("codex.velorise_staves.innate.pyro.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.hydro.title"), 0xFF0A84FF,
+                        Element.HYDRO, null, new ItemStack(Items.PRISMARINE_SHARD), new ItemStack(Items.TRIDENT),
+                        "1.0U Hydro", 0xFF0A84FF,
+                        List.of(tr("codex.velorise_staves.innate.hydro.p1"), tr("codex.velorise_staves.innate.hydro.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.electro.title"), 0xFFBF5AF2,
+                        Element.ELECTRO, null, new ItemStack(Items.ENDER_PEARL), new ItemStack(Items.DRAGON_BREATH),
+                        "1.0U–1.5U Electro", 0xFFBF5AF2,
+                        List.of(tr("codex.velorise_staves.innate.electro.p1"), tr("codex.velorise_staves.innate.electro.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.cryo.title"), 0xFF64D2FF,
+                        Element.CRYO, null, new ItemStack(Items.SNOWBALL), new ItemStack(Items.PACKED_ICE),
+                        "1.0U Cryo", 0xFF64D2FF,
+                        List.of(tr("codex.velorise_staves.innate.cryo.p1"), tr("codex.velorise_staves.innate.cryo.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.dendro.title"), 0xFF32D74B,
+                        Element.DENDRO, null, new ItemStack(Items.SLIME_BALL), new ItemStack(Items.SPIDER_EYE),
+                        "1.0U Dendro", 0xFF32D74B,
+                        List.of(tr("codex.velorise_staves.innate.dendro.p1"), tr("codex.velorise_staves.innate.dendro.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.anemo_geo.title"), 0xFF55EFC4,
+                        Element.ANEMO, Element.GEO, new ItemStack(Items.IRON_BLOCK), new ItemStack(Items.ECHO_SHARD),
+                        "Anemo & Geo", 0xFF55EFC4,
+                        List.of(tr("codex.velorise_staves.innate.anemo_geo.p1"), tr("codex.velorise_staves.innate.anemo_geo.p2"))
+                ));
+            }
             case ENVIRONMENT -> {
                 cards.add(new GuideCard(
-                        tr("codex.velorise_staves.env.pyro_melt.title"), 0xFFFF453A,
+                        tr("codex.velorise_staves.env.sculk.title"), 0xFF00D2D3,
+                        Element.ELECTRO, null, new ItemStack(Items.SCULK_SENSOR), new ItemStack(Items.CALIBRATED_SCULK_SENSOR),
+                        "8m / 16m Zap", 0xFF00D2D3,
+                        List.of(tr("codex.velorise_staves.env.sculk.p1"), tr("codex.velorise_staves.env.sculk.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.env.redstone.title"), 0xFFFF453A,
+                        Element.ELECTRO, null, new ItemStack(Items.LIGHTNING_ROD), new ItemStack(Items.OBSERVER),
+                        "Redstone Zap", 0xFFFF453A,
+                        List.of(tr("codex.velorise_staves.env.redstone.p1"), tr("codex.velorise_staves.env.redstone.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.env.amethyst.title"), 0xFFBF5AF2,
+                        Element.ELECTRO, Element.PYRO, new ItemStack(Items.AMETHYST_CLUSTER), new ItemStack(Items.AMETHYST_SHARD),
+                        "2–4 Shards", 0xFFBF5AF2,
+                        List.of(tr("codex.velorise_staves.env.amethyst.p1"), tr("codex.velorise_staves.env.amethyst.p2"))
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.env.pyro_melt.title"), 0xFFFF6B4A,
                         Element.PYRO, Element.CRYO, new ItemStack(Items.ICE), new ItemStack(Items.WATER_BUCKET),
-                        "Ice & Snow Melt", 0xFFFF453A,
+                        "Melt Physics", 0xFFFF6B4A,
                         List.of(tr("codex.velorise_staves.env.pyro_melt.p1"), tr("codex.velorise_staves.env.pyro_melt.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.pyro_burn.title"), 0xFFFF8C33,
                         Element.PYRO, null, new ItemStack(Items.TNT), new ItemStack(Items.CAMPFIRE),
-                        "Ignite & Detonate", 0xFFFF8C33,
+                        "Ignite & Blast", 0xFFFF8C33,
                         List.of(tr("codex.velorise_staves.env.pyro_burn.p1"), tr("codex.velorise_staves.env.pyro_burn.p2"))
                 ));
                 cards.add(new GuideCard(
-                        tr("codex.velorise_staves.env.hydro_cryo.title"), 0xFF0A84FF,
-                        Element.HYDRO, Element.CRYO, new ItemStack(Items.WATER_BUCKET), new ItemStack(Items.PACKED_ICE),
-                        "Wet & Frost Bridge", 0xFF0A84FF,
-                        List.of(tr("codex.velorise_staves.env.hydro_cryo.p1"))
-                ));
-                cards.add(new GuideCard(
-                        tr("codex.velorise_staves.env.electro_water.title"), 0xFFBF5AF2,
-                        Element.ELECTRO, Element.HYDRO, getModItemStack("arc_caster"), new ItemStack(Items.WATER_BUCKET),
-                        "Electrified Water (5s)", 0xFFBF5AF2,
-                        List.of(tr("codex.velorise_staves.env.electro_water.p1"))
+                        tr("codex.velorise_staves.env.world_traps.title"), 0xFF32D74B,
+                        Element.HYDRO, Element.DENDRO, new ItemStack(Items.SOUL_CAMPFIRE), new ItemStack(Items.POINTED_DRIPSTONE),
+                        "World & Gear", 0xFF32D74B,
+                        List.of(tr("codex.velorise_staves.env.world_traps.p1"), tr("codex.velorise_staves.env.world_traps.p2"))
                 ));
             }
             case STAVES -> {
@@ -385,8 +443,8 @@ public class ElementalCodexScreen extends Screen {
 
                     ItemStack basicStack = getModItemStack(baseId);
                     ItemStack nethStack = getModItemStack("netherite_" + baseId);
-                    String name = tr("item.velorise_staves." + baseId) + " / Netherite";
-                    String stats = String.format(Locale.ROOT, "DMG: %s ➔ %s | CD: %.1fs ➔ %.1fs | Rng: %sm ➔ %sm | Dur: %d/%d",
+                    String name = tr("item.velorise_staves." + baseId);
+                    String stats = String.format(Locale.ROOT, "§eDMG:§r %s ➔ §6%s§r | §bCD:§r %.1fs ➔ §a%.1fs§r | §dRng:§r %sm ➔ %sm | §7Dur: %d/%d",
                             fmt(bDmg), fmt(nDmg), bCd, nCd, fmt(bRng), fmt(nRng), basicDur, nethDur);
                     cards.add(new GuideCard(
                             name, ClientAuraRenderer.getElementBorderColor(el),
@@ -497,10 +555,10 @@ public class ElementalCodexScreen extends Screen {
         ClientAuraRenderer.renderColoredBorder(guiGraphics, sideX, sideY, SIDEBAR_W, sideH, 0xFF2A3550);
 
         Tab[] tabs = Tab.values();
-        int tabH = 27;
+        int tabH = Math.min(23, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
         for (int i = 0; i < tabs.length; i++) {
             Tab tab = tabs[i];
-            int ty = sideY + 4 + i * (tabH + 2);
+            int ty = sideY + 3 + i * (tabH + 2);
             int tx = sideX + 3;
             int tw = SIDEBAR_W - 6;
 
@@ -518,18 +576,19 @@ public class ElementalCodexScreen extends Screen {
             }
 
             // Tab Icon (16x16 Element texture or ItemStack)
+            int iconOffsetY = ty + Math.max(2, (tabH - 16) / 2);
             if (tab.iconElement != null) {
-                drawElementIcon(guiGraphics, tab.iconElement, tx + 6, ty + 5);
+                drawElementIcon(guiGraphics, tab.iconElement, tx + 6, iconOffsetY);
             } else {
                 ItemStack iconStack = getTabIconStack(tab);
                 if (!iconStack.isEmpty()) {
-                    guiGraphics.renderItem(iconStack, tx + 5, ty + 5);
+                    guiGraphics.renderItem(iconStack, tx + 5, iconOffsetY);
                 }
             }
 
             String tabLabel = tr("codex.velorise_staves.tab." + tab.key);
             int textColor = selected ? 0xFFFFFFFF : (hovered ? 0xFFD8E6FF : 0xFFA0B0C8);
-            guiGraphics.drawString(this.font, tabLabel, tx + 25, ty + 9, textColor, selected);
+            guiGraphics.drawString(this.font, tabLabel, tx + 24, ty + Math.max(4, (tabH - 8) / 2), textColor, selected);
         }
 
         // 4. Right Content Area (Scrollable with Scissor)
@@ -645,20 +704,34 @@ public class ElementalCodexScreen extends Screen {
                 drawElementIcon(guiGraphics, Element.ELECTRO, cx - 10, midY + 10);
                 guiGraphics.drawString(this.font, "§dHyperbloom", cx + 8, midY + 9, 0xFFDA70D6, true);
             }
+            case INNATE -> {
+                guiGraphics.renderItem(new ItemStack(Items.BLAZE_ROD), cx - 118, midY);
+                drawElementIcon(guiGraphics, Element.PYRO, cx - 99, midY);
+                guiGraphics.drawString(this.font, "➔ §cIMMUNE", cx - 80, midY + 4, 0xFFFF5555, true);
+
+                guiGraphics.drawString(this.font, "|", cx - 22, midY + 4, 0xFF556688, false);
+
+                drawElementIcon(guiGraphics, Element.HYDRO, cx - 12, midY);
+                guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 8, midY + 4, 0xFFFFFFFF, true);
+            }
             case ENVIRONMENT -> {
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 105, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 86, midY + 4, 0xFFFF453A, true);
-                guiGraphics.renderItem(new ItemStack(Items.ICE), cx - 74, midY);
-                guiGraphics.drawString(this.font, "➔", cx - 55, midY + 4, 0xFF0A84FF, true);
-                guiGraphics.renderItem(new ItemStack(Items.WATER_BUCKET), cx - 43, midY);
+                guiGraphics.renderItem(new ItemStack(Items.SCULK_SENSOR), cx - 118, midY);
+                guiGraphics.drawString(this.font, "➔", cx - 99, midY + 4, 0xFF00D2D3, true);
+                drawElementIcon(guiGraphics, Element.ELECTRO, cx - 88, midY);
 
-                guiGraphics.drawString(this.font, "|", cx - 20, midY + 4, 0xFF556688, false);
+                guiGraphics.drawString(this.font, "|", cx - 68, midY + 4, 0xFF556688, false);
 
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 10, midY);
-                guiGraphics.drawString(this.font, "➔", cx + 9, midY + 4, 0xFFFF8C33, true);
-                guiGraphics.renderItem(new ItemStack(Items.TNT), cx + 21, midY);
-                guiGraphics.renderItem(new ItemStack(Items.OAK_LOG), cx + 40, midY);
-                guiGraphics.renderItem(new ItemStack(Items.CAMPFIRE), cx + 59, midY);
+                guiGraphics.renderItem(new ItemStack(Items.AMETHYST_CLUSTER), cx - 58, midY);
+                drawElementIcon(guiGraphics, Element.PYRO, cx - 40, midY);
+                guiGraphics.drawString(this.font, "➔", cx - 22, midY + 4, 0xFFFF8C33, true);
+                guiGraphics.renderItem(new ItemStack(Items.AMETHYST_SHARD), cx - 11, midY);
+
+                guiGraphics.drawString(this.font, "|", cx + 9, midY + 4, 0xFF556688, false);
+
+                drawElementIcon(guiGraphics, Element.PYRO, cx + 18, midY);
+                guiGraphics.renderItem(new ItemStack(Items.ICE), cx + 36, midY);
+                guiGraphics.drawString(this.font, "➔", cx + 54, midY + 4, 0xFF0A84FF, true);
+                guiGraphics.renderItem(new ItemStack(Items.WATER_BUCKET), cx + 65, midY);
             }
             case STAVES -> {
                 guiGraphics.renderItem(new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 106, midY);
@@ -841,10 +914,11 @@ public class ElementalCodexScreen extends Screen {
             // Check Sidebar Tabs
             int sideX = left + 4;
             int sideY = top + HEADER_H + 4;
+            int sideH = winH - HEADER_H - 8;
             Tab[] tabs = Tab.values();
-            int tabH = 27;
+            int tabH = Math.min(23, (sideH - 6 - (tabs.length - 1) * 2) / tabs.length);
             for (int i = 0; i < tabs.length; i++) {
-                int ty = sideY + 4 + i * (tabH + 2);
+                int ty = sideY + 3 + i * (tabH + 2);
                 int tx = sideX + 3;
                 int tw = SIDEBAR_W - 6;
                 if (mouseX >= tx && mouseX <= tx + tw && mouseY >= ty && mouseY <= ty + tabH) {
