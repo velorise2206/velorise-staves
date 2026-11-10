@@ -9,7 +9,10 @@
   "client": [
     "LivingEntityRendererMixin",
     "ScreenMixin",
-    "AbstractContainerScreenAccessor"
+    "AbstractContainerScreenAccessor",
+    "EntityTurnMixin",
+    "CameraMixin",
+    "KeyboardInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

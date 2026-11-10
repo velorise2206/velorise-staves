@@ -19,7 +19,9 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.player.Input;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -27,10 +29,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
@@ -68,6 +73,10 @@ public final class ClientAuraRenderer {
     private static boolean wasJumpKeyDown = false;
     private static long lastStruggleSendTime = 0L;
     private static long struggleShakeUntil = 0L;
+    private static boolean hasFrozenCam = false;
+    private static boolean wasFrozenFirstPerson = false;
+    private static float frozenCamYaw = 0.0F;
+    private static float frozenCamPitch = 0.0F;
 
     static {
         for (Element e : Element.values()) {
@@ -88,7 +97,105 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientLogout(net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
         ClientAuraTracker.clear();
+        FROZEN_RENDER_STATES.clear();
+        hasFrozenCam = false;
+        wasFrozenFirstPerson = false;
         StavesConfig.clearServerSync();
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
+        syncAndLockFrozenPlayer(false);
+    }
+
+    @SubscribeEvent
+    public static void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase == TickEvent.Phase.START) {
+            syncAndLockFrozenPlayer(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onComputeCameraAngles(ViewportEvent.ComputeCameraAngles event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null
+                && event.getCamera().getEntity() == mc.player
+                && ClientAuraTracker.isFrozen(mc.player.getId())) {
+            FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+            if (!mc.options.getCameraType().isFirstPerson() && hasFrozenCam) {
+                event.setYaw(frozenCamYaw);
+                event.setPitch(frozenCamPitch);
+            } else {
+                event.setYaw(state.yRot);
+                event.setPitch(state.xRot);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onMovementInputUpdate(MovementInputUpdateEvent event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null
+                && event.getEntity() == mc.player
+                && ClientAuraTracker.isFrozen(mc.player.getId())) {
+            Input input = event.getInput();
+            input.forwardImpulse = 0.0F;
+            input.leftImpulse = 0.0F;
+            input.up = false;
+            input.down = false;
+            input.left = false;
+            input.right = false;
+            input.jumping = false;
+            input.shiftKeyDown = false;
+        }
+    }
+
+    private static void syncAndLockFrozenPlayer(boolean captureMouseDelta) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !ClientAuraTracker.isFrozen(mc.player.getId())) {
+            if (mc.player != null) {
+                FROZEN_RENDER_STATES.remove(mc.player.getId());
+            }
+            hasFrozenCam = false;
+            wasFrozenFirstPerson = false;
+            return;
+        }
+        FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+        if (!hasFrozenCam) {
+            frozenCamYaw = state.yRot;
+            frozenCamPitch = state.xRot;
+            hasFrozenCam = true;
+            wasFrozenFirstPerson = firstPerson;
+        }
+        if (captureMouseDelta) {
+            float dYaw = Mth.wrapDegrees(mc.player.getYRot() - state.yRot);
+            float dPitch = mc.player.getXRot() - state.xRot;
+            if (!firstPerson) {
+                if (wasFrozenFirstPerson) {
+                    frozenCamYaw = state.yRot;
+                    frozenCamPitch = state.xRot;
+                    wasFrozenFirstPerson = false;
+                }
+                frozenCamYaw = Mth.wrapDegrees(frozenCamYaw + dYaw);
+                frozenCamPitch = Mth.clamp(frozenCamPitch + dPitch, -90.0F, 90.0F);
+            } else {
+                wasFrozenFirstPerson = true;
+            }
+        }
+        mc.player.setSprinting(false);
+        mc.player.setYRot(state.yRot);
+        mc.player.yRotO = state.yRot;
+        mc.player.setXRot(state.xRot);
+        mc.player.xRotO = state.xRot;
+        mc.player.yHeadRot = state.yHeadRot;
+        mc.player.yHeadRotO = state.yHeadRot;
+        mc.player.yBodyRot = state.yBodyRot;
+        mc.player.yBodyRotO = state.yBodyRot;
+        mc.player.xBob = state.xRot;
+        mc.player.xBobO = state.xRot;
+        mc.player.yBob = state.yRot;
+        mc.player.yBobO = state.yRot;
     }
 
     @SubscribeEvent
@@ -188,7 +295,8 @@ public final class ClientAuraRenderer {
         entity.xo = entity.getX();
         entity.zo = entity.getZ();
 
-        if (mc.player != null && entity.getId() == mc.player.getId()) {
+        boolean isLocalPlayer = mc.player != null && entity.getId() == mc.player.getId();
+        if (isLocalPlayer) {
             if (now < struggleShakeUntil) {
                 shakeOffset = (float) Math.sin((struggleShakeUntil - now) * 0.85D) * 2.8F;
             }
@@ -201,8 +309,9 @@ public final class ClientAuraRenderer {
         entity.yHeadRotO = state.yHeadRot + shakeOffset;
         entity.setXRot(state.xRot);
         entity.xRotO = state.xRot;
-        entity.setYRot(state.yRot + shakeOffset);
-        entity.yRotO = state.yRot + shakeOffset;
+        float appliedYRot = isLocalPlayer ? state.yRot : (state.yRot + shakeOffset);
+        entity.setYRot(appliedYRot);
+        entity.yRotO = appliedYRot;
         entity.attackAnim = state.attackAnim;
         entity.oAttackAnim = state.attackAnim;
         entity.walkAnimation.setSpeed(0.0F);

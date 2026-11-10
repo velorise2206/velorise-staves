@@ -14,6 +14,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.FormattedCharSequence;
@@ -27,11 +29,13 @@ import org.joml.Quaternionf;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Interactive in-game guidebook ("Elemental Codex") with categorized sidebar navigation,
@@ -74,12 +78,44 @@ public class ElementalCodexScreen extends Screen {
         }
     }
 
+    private record ReactionLink(String keyword, Tab tab, String cardKey) {}
+    private record ReactionMatch(int start, int end, Tab tab, String cardKey) {}
+
+    private static final List<ReactionLink> REACTION_LINKS;
+    static {
+        List<ReactionLink> raw = new ArrayList<>();
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "overvape", "quá tải bốc hơi", "overvape");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "vaporize", "bốc hơi", "vaporize");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "melt", "tan chảy", "melt");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "overloaded", "overloaded", "overload", "quá tải");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "electro_charged", "electro-charged", "điện cảm");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "frozen", "đóng băng", "phá băng", "shatters", "shatter", "frozen");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "superconduct", "superconduct", "siêu dẫn");
+        addReactionKeywords(raw, Tab.REACTIONS_AMP, "swirl", "khuếch tán", "swirl");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "hyperbloom", "hyperbloom", "nở rộ");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "burgeon", "burgeon", "bung tỏa");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "bloom", "sum suê", "bloom");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "catalyze", "sinh trưởng", "tăng cường", "aggravate", "quickened", "lan tràn", "catalyze", "xúc tác", "quicken", "spread");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "burning", "thiêu đốt", "burning");
+        addReactionKeywords(raw, Tab.REACTIONS_DENDRO, "crystallize", "crystallized", "crystallize", "kết tinh");
+        raw.sort(Comparator.comparingInt((ReactionLink l) -> l.keyword().length()).reversed());
+        REACTION_LINKS = List.copyOf(raw);
+    }
+
+    private static void addReactionKeywords(List<ReactionLink> out, Tab tab, String cardKey, String... words) {
+        for (String w : words) {
+            out.add(new ReactionLink(w.toLowerCase(Locale.ROOT), tab, cardKey));
+        }
+    }
+
     private record GuideCard(
+            String cardKey,
             String title,
             int borderColor,
             Element elem1,
             Element elem2,
             List<Element> elemGroup,
+            boolean plusBeforeItem1,
             ItemStack item1,
             ItemStack item2,
             EntityType<? extends LivingEntity> mob1,
@@ -99,7 +135,24 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(title, borderColor, elem1, elem2, Collections.emptyList(), item1, item2, null, null, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, item1, item2, null, null, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard(
+                String title,
+                int borderColor,
+                Element elem1,
+                Element elem2,
+                List<Element> elemGroup,
+                ItemStack item1,
+                ItemStack item2,
+                EntityType<? extends LivingEntity> mob1,
+                EntityType<? extends LivingEntity> mob2,
+                String badgeText,
+                int badgeColor,
+                List<String> paragraphs
+        ) {
+            this(null, title, borderColor, elem1, elem2, elemGroup, false, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard(
@@ -113,7 +166,15 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(title, borderColor, elem1, elem2, Collections.emptyList(), ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard withKey(String key) {
+            return new GuideCard(key, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard withPlusItem1() {
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, true, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
     }
 
@@ -126,6 +187,8 @@ public class ElementalCodexScreen extends Screen {
     private ItemStack pendingTooltipItem = ItemStack.EMPTY;
     private List<Component> pendingTooltipLines = null;
     private boolean canTriggerContentHover = false;
+    private Tab pendingClickTab = null;
+    private String pendingClickCardKey = null;
 
     public ElementalCodexScreen(Screen parent) {
         super(Component.translatable("codex.velorise_staves.title"));
@@ -232,6 +295,19 @@ public class ElementalCodexScreen extends Screen {
         return String.format(Locale.ROOT, "%.1f", val);
     }
 
+    private static String fmtHearts(double hp) {
+        double hearts = hp / 2.0D;
+        double rounded = Math.round(hearts * 100.0D) / 100.0D;
+        if (Math.abs(rounded - Math.round(rounded)) < 0.005D) {
+            return String.valueOf(Math.round(rounded));
+        }
+        double tenths = Math.round(rounded * 10.0D) / 10.0D;
+        if (Math.abs(rounded - tenths) < 0.005D) {
+            return String.format(Locale.ROOT, "%.1f", tenths);
+        }
+        return String.format(Locale.ROOT, "%.2f", rounded);
+    }
+
     private List<GuideCard> buildCardsForTab(Tab tab) {
         List<GuideCard> cards = new ArrayList<>();
         double dmgMult = StavesConfig.getDamageMultiplier();
@@ -322,45 +398,45 @@ public class ElementalCodexScreen extends Screen {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.vaporize.title"), 0xFFFF8C33,
                         Element.PYRO, Element.HYDRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        "x2.0 / x1.5 DMG", 0xFFFF8C33,
+                        "x2.0 / x1.5", 0xFFFF8C33,
                         List.of(tr("codex.velorise_staves.react.vaporize.p1"), tr("codex.velorise_staves.react.vaporize.p2"))
-                ));
+                ).withKey("vaporize"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.melt.title"), 0xFFFF3B30,
                         Element.CRYO, Element.PYRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        "x2.0 / x1.5 DMG", 0xFFFF3B30,
+                        "x2.0 / x1.5", 0xFFFF3B30,
                         List.of(tr("codex.velorise_staves.react.melt.p1"), tr("codex.velorise_staves.react.melt.p2"))
-                ));
+                ).withKey("melt"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.overvape.title"), 0xFFFF6B4A,
                         Element.HYDRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        "x2.0 + " + fmt(5.0 * dmgMult) + " AoE", 0xFFFF6B4A,
+                        "x2.0 + " + fmtHearts(6.0 * dmgMult) + "§f\uE008§r AoE", 0xFFFF6B4A,
                         List.of(tr("codex.velorise_staves.react.overvape.p1"))
-                ));
+                ).withKey("overvape"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.overloaded.title"), 0xFFFF6B4A,
                         Element.PYRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        fmt(5.0 * dmgMult) + " DMG (3.0m AoE)", 0xFFFF6B4A,
+                        fmtHearts(6.0 * dmgMult) + "§f\uE008§r (3.5m AoE)", 0xFFFF6B4A,
                         List.of(tr("codex.velorise_staves.react.overloaded.p1"))
-                ));
+                ).withKey("overloaded"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.electro_charged.title"), 0xFFBF5AF2,
                         Element.HYDRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        fmt(2.0 * dmgMult) + " DMG/s (5.0m)", 0xFFBF5AF2,
+                        fmtHearts(1.0 * dmgMult) + "§f\uE008§r/s (5.0m)", 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.react.electro_charged.p1"))
-                ));
+                ).withKey("electro_charged"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.frozen.title"), 0xFF64D2FF,
                         Element.HYDRO, Element.CRYO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        "Freeze + " + fmt(6.0 * dmgMult) + " Shatter", 0xFF64D2FF,
+                        "Freeze + " + fmtHearts(10.0 * dmgMult) + "§f\uE008§r Shatter", 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.react.frozen.p1"), tr("codex.velorise_staves.react.frozen.p2"))
-                ));
+                ).withKey("frozen"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.superconduct.title"), 0xFF5AC8FA,
                         Element.CRYO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        fmt(2.5 * dmgMult) + " DMG +25% Vuln", 0xFF5AC8FA,
+                        fmtHearts(1.0 * dmgMult) + "§f\uE008§r +40% Phys", 0xFF5AC8FA,
                         List.of(tr("codex.velorise_staves.react.superconduct.p1"))
-                ));
+                ).withKey("superconduct"));
                 // Swirl: Anemo + ( Pyro | Hydro | Cryo | Electro )
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.swirl.title"), 0xFF55EFC4,
@@ -368,41 +444,41 @@ public class ElementalCodexScreen extends Screen {
                         List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
                         ItemStack.EMPTY, ItemStack.EMPTY,
                         null, null,
-                        fmt(2.5 * dmgMult) + " DMG (5.0m Spread)", 0xFF55EFC4,
+                        fmtHearts(4.0 * dmgMult) + "§f\uE008§r (5.0m Spread)", 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.react.swirl.p1"))
-                ));
+                ).withKey("swirl"));
             }
             case REACTIONS_DENDRO -> {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.bloom.title"), 0xFF32D74B,
                         Element.DENDRO, Element.HYDRO, getModItemStack("dendro_core"), ItemStack.EMPTY,
-                        "Core (" + fmt(4.0 * dmgMult) + " DMG / 5s)", 0xFF32D74B,
+                        "Core (" + fmtHearts(4.0 * dmgMult) + "§f\uE008§r / 5s)", 0xFF32D74B,
                         List.of(tr("codex.velorise_staves.react.bloom.p1"))
-                ));
+                ).withKey("bloom"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.burgeon.title"), 0xFFFF9F0A,
-                        Element.PYRO, Element.DENDRO, getModItemStack("dendro_core"), ItemStack.EMPTY,
-                        fmt(8.0 * dmgMult) + " DMG (4.0m AoE)", 0xFFFF9F0A,
+                        Element.PYRO, null, getModItemStack("dendro_core"), ItemStack.EMPTY,
+                        fmtHearts(8.0 * dmgMult) + "§f\uE008§r (4.0m AoE)", 0xFFFF9F0A,
                         List.of(tr("codex.velorise_staves.react.burgeon.p1"))
-                ));
+                ).withKey("burgeon").withPlusItem1());
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.hyperbloom.title"), 0xFFDA70D6,
-                        Element.ELECTRO, Element.DENDRO, getModItemStack("dendro_core"), ItemStack.EMPTY,
-                        fmt(8.0 * dmgMult) + " Homing Shot", 0xFFDA70D6,
+                        Element.ELECTRO, null, getModItemStack("dendro_core"), ItemStack.EMPTY,
+                        fmtHearts(8.0 * dmgMult) + "§f\uE008§r Homing Shot", 0xFFDA70D6,
                         List.of(tr("codex.velorise_staves.react.hyperbloom.p1"))
-                ));
+                ).withKey("hyperbloom").withPlusItem1());
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.catalyze.title"), 0xFFA8E063,
                         Element.DENDRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        "+" + fmt(3.0 * dmgMult) + " / +" + fmt(3.5 * dmgMult) + " DMG", 0xFFA8E063,
+                        "+" + fmtHearts(1.0 * dmgMult) + "§f\uE008§r / +" + fmtHearts(1.25 * dmgMult) + "§f\uE008§r", 0xFFA8E063,
                         List.of(tr("codex.velorise_staves.react.catalyze.p1"), tr("codex.velorise_staves.react.catalyze.p2"))
-                ));
+                ).withKey("catalyze"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.burning.title"), 0xFFFF453A,
                         Element.DENDRO, Element.PYRO, ItemStack.EMPTY, ItemStack.EMPTY,
-                        fmt(1.0 * dmgMult) + " DMG / 0.5s", 0xFFFF453A,
+                        fmtHearts(3.0 * dmgMult) + "§f\uE008§r / s", 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.react.burning.p1"))
-                ));
+                ).withKey("burning"));
                 // Crystallize: Geo + ( Pyro | Hydro | Cryo | Electro ) Crystallized
                 cards.add(new GuideCard(
                         "Crystallized", 0xFFFFD60A,
@@ -410,9 +486,9 @@ public class ElementalCodexScreen extends Screen {
                         List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
                         ItemStack.EMPTY, ItemStack.EMPTY,
                         null, null,
-                        "+" + fmt(2.0 * dmgMult) + " Shield HP", 0xFFFFD60A,
+                        "§f\uE009§r +" + fmtHearts(2.0), 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.react.crystallize.p1"), tr("codex.velorise_staves.react.crystallize.p2"))
-                ));
+                ).withKey("crystallize"));
             }
             case INNATE -> {
                 cards.add(new GuideCard(
@@ -499,30 +575,30 @@ public class ElementalCodexScreen extends Screen {
             case STAVES -> {
                 Object[][] staffDefs = new Object[][]{
                         {"inferno_rod", ArcaneStaffItem.Kind.INFERNO, Element.PYRO,
-                                fmt(3.0 * dmgMult) + "x3", fmt(4.5 * dmgMult) + "x3", "30m", "codex.velorise_staves.staff.inferno"},
+                                fmtHearts(3.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x3", "30m", "codex.velorise_staves.staff.inferno"},
                         {"ghastfire_staff", ArcaneStaffItem.Kind.GHASTFIRE, Element.PYRO,
-                                fmt(6.0 * dmgMult), fmt(9.0 * dmgMult), "36m (AoE)", "codex.velorise_staves.staff.ghastfire"},
+                                fmtHearts(6.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(9.0 * dmgMult) + "§f\uE008§6", "36m (AoE)", "codex.velorise_staves.staff.ghastfire"},
                         {"guardian_lens", ArcaneStaffItem.Kind.GUARDIAN, Element.HYDRO,
-                                fmt(0.5 * dmgMult) + "–" + fmt(1.5 * dmgMult) + "x10",
-                                fmt(0.8 * dmgMult) + "–" + fmt(2.0 * dmgMult) + "x10", "24m➔28m", "codex.velorise_staves.staff.guardian"},
+                                fmtHearts(0.5 * dmgMult) + "–" + fmtHearts(1.5 * dmgMult) + "§f\uE008§rx10",
+                                "§6" + fmtHearts(0.8 * dmgMult) + "–" + fmtHearts(2.0 * dmgMult) + "§f\uE008§6x10", "24m➔28m", "codex.velorise_staves.staff.guardian"},
                         {"frostbolt_wand", ArcaneStaffItem.Kind.FROST, Element.CRYO,
-                                fmt(3.0 * dmgMult) + "x3", fmt(4.5 * dmgMult) + "x3", "28m", "codex.velorise_staves.staff.frostbolt"},
+                                fmtHearts(3.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x3", "28m", "codex.velorise_staves.staff.frostbolt"},
                         {"arc_caster", ArcaneStaffItem.Kind.LIGHTNING, Element.ELECTRO,
-                                fmt(0.5 * dmgMult) + "/hit", fmt(1.0 * dmgMult) + "/hit", "30m➔36m", "codex.velorise_staves.staff.arc"},
+                                fmtHearts(0.5 * dmgMult) + "§f\uE008§r/hit", "§6" + fmtHearts(1.0 * dmgMult) + "§f\uE008§6/hit", "30m➔36m", "codex.velorise_staves.staff.arc"},
                         {"dragonfire_scepter", ArcaneStaffItem.Kind.DRAGONFIRE, Element.ELECTRO,
-                                fmt(7.0 * dmgMult) + "+Cloud", fmt(10.0 * dmgMult) + "+Cloud", "32m (AoE)", "codex.velorise_staves.staff.dragonfire"},
+                                fmtHearts(7.0 * dmgMult) + "§f\uE008§r+Cloud", "§6" + fmtHearts(10.0 * dmgMult) + "§f\uE008§6+Cloud", "32m (AoE)", "codex.velorise_staves.staff.dragonfire"},
                         {"shulker_seeker", ArcaneStaffItem.Kind.SHULKER, Element.ELECTRO,
-                                fmt(4.0 * dmgMult) + "x2", fmt(6.0 * dmgMult) + "x2", "30m", "codex.velorise_staves.staff.shulker"},
+                                fmtHearts(4.0 * dmgMult) + "§f\uE008§rx2", "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6x2", "30m", "codex.velorise_staves.staff.shulker"},
                         {"wither_scepter", ArcaneStaffItem.Kind.WITHER, Element.DENDRO,
-                                fmt(4.0 * dmgMult) + "x3", fmt(6.0 * dmgMult) + "x3", "32m (AoE)", "codex.velorise_staves.staff.wither"},
+                                fmtHearts(4.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6x3", "32m (AoE)", "codex.velorise_staves.staff.wither"},
                         {"webcaster", ArcaneStaffItem.Kind.WEB, Element.DENDRO,
                                 "Trap+Poison", "Trap+Poison", "28m", "codex.velorise_staves.staff.webcaster"},
                         {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
-                                fmt(1.5 * dmgMult), fmt(2.5 * dmgMult), "28m (AoE)", "codex.velorise_staves.staff.wind"},
+                                fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.5 * dmgMult) + "§f\uE008§6", "28m (AoE)", "codex.velorise_staves.staff.wind"},
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
-                                fmt(11.0 * dmgMult), fmt(16.0 * dmgMult), "28m➔32m", "codex.velorise_staves.staff.echo"},
+                                fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.0 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
-                                fmt(3.0 * dmgMult) + "x9", fmt(4.5 * dmgMult) + "x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"}
+                                fmtHearts(3.0 * dmgMult) + "§f\uE008§rx9", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"}
                 };
                 for (Object[] def : staffDefs) {
                     String baseId = (String) def[0];
@@ -539,7 +615,7 @@ public class ElementalCodexScreen extends Screen {
 
                     ItemStack basicStack = getModItemStack(baseId);
                     String name = tr("item.velorise_staves." + baseId);
-                    String stats = String.format(Locale.ROOT, "§eDMG:§r %s ➔ §6%s§r | §bCD:§r %.1fs | §dRng:§r %s | §7Dur: %d/%d",
+                    String stats = String.format(Locale.ROOT, "%s ➔ %s§r | §bCD:§r %.1fs | §dRng:§r %s | §7Dur: %d/%d",
                             bDmg, nDmg, cdSec, rngStr, bDur, nDur);
                     cards.add(new GuideCard(
                             name, ClientAuraRenderer.getElementBorderColor(el),
@@ -700,6 +776,8 @@ public class ElementalCodexScreen extends Screen {
 
         this.pendingTooltipItem = ItemStack.EMPTY;
         this.pendingTooltipLines = null;
+        this.pendingClickTab = null;
+        this.pendingClickCardKey = null;
         this.canTriggerContentHover = mouseX >= contentX + 2 && mouseX <= contentX + contentW - 2
                 && mouseY >= contentY + 2 && mouseY <= contentY + contentH - 2;
 
@@ -748,7 +826,11 @@ public class ElementalCodexScreen extends Screen {
     private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w, int mouseX, int mouseY) {
         int h = 48;
         guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
-        ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
+        if (tab == Tab.ELEMENTS) {
+            renderElementsSegmentedBorder(guiGraphics, x, y, w, h);
+        } else {
+            ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
+        }
 
         String diagramTitle = tr("codex.velorise_staves.diagram." + tab.key);
         drawCenteredFitString(guiGraphics, "§e✦ " + diagramTitle + " ✦", x + w / 2, y + 6, w - 10, 0xFFFFE082);
@@ -854,6 +936,40 @@ public class ElementalCodexScreen extends Screen {
         return h;
     }
 
+    private static void renderElementsSegmentedBorder(GuiGraphics guiGraphics, int x, int y, int w, int h) {
+        Element[] all = Element.values();
+        int cx = x + w / 2;
+        int totalW = all.length * 28;
+        int sx = cx - totalW / 2 + 4;
+        for (int i = 0; i < all.length; i++) {
+            int segX0 = (i == 0) ? x : (sx + (i - 1) * 28 + 22);
+            int segX1 = (i == all.length - 1) ? (x + w) : (sx + i * 28 + 22);
+            int color = ClientAuraRenderer.getElementBorderColor(all[i]);
+            int alpha = (color >> 24) & 0xFF;
+            int glow = ((Math.max(40, alpha / 3)) << 24) | (color & 0x00FFFFFF);
+
+            int g0 = segX0 - (i == 0 ? 1 : 0);
+            int g1 = segX1 + (i == all.length - 1 ? 1 : 0);
+            guiGraphics.fill(g0, y - 1, g1, y, glow);
+            guiGraphics.fill(g0, y + h, g1, y + h + 1, glow);
+            guiGraphics.fill(segX0, y, segX1, y + 1, color);
+            guiGraphics.fill(segX0, y + h - 1, segX1, y + h, color);
+
+            if (i == 0) {
+                guiGraphics.fill(x - 1, y, x, y + h, glow);
+                guiGraphics.fill(x, y, x + 1, y + h, color);
+            }
+            if (i == all.length - 1) {
+                guiGraphics.fill(x + w, y, x + w + 1, y + h, glow);
+                guiGraphics.fill(x + w - 1, y, x + w, y + h, color);
+            }
+
+            int wash0 = (i == 0) ? x + 1 : segX0;
+            int wash1 = (i == all.length - 1) ? (x + w - 1) : segX1;
+            guiGraphics.fill(wash0, y + 1, wash1, y + h - 1, (0x16 << 24) | (color & 0x00FFFFFF));
+        }
+    }
+
     private void drawLeftFitString(GuiGraphics guiGraphics, String text, int x, int y, int maxWidth, int color, boolean shadow) {
         int textW = this.font.width(text);
         if (textW <= maxWidth || textW <= 0) {
@@ -882,7 +998,17 @@ public class ElementalCodexScreen extends Screen {
         }
     }
 
-    private int renderGuideCard(GuiGraphics guiGraphics, GuideCard card, int x, int y, int w, int mouseX, int mouseY) {
+    private record CardLayout(
+            List<FormattedCharSequence> titleLines,
+            List<FormattedCharSequence> wrappedLines,
+            int badgeW,
+            int titleStartX,
+            boolean badgeBelowTitle,
+            int headerH,
+            int cardH
+    ) {}
+
+    private CardLayout layoutGuideCard(GuideCard card, int x, int w) {
         int pad = 6;
         int textW = w - pad * 2 - 4;
 
@@ -892,6 +1018,7 @@ public class ElementalCodexScreen extends Screen {
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
             iconOffset += 6 + 5 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 5 + 7;
         }
+        if (card.plusBeforeItem1 && !card.item1.isEmpty()) iconOffset += 6;
         if (!card.item1.isEmpty()) iconOffset += 17;
         if (!card.item2.isEmpty()) iconOffset += 17;
         if (card.mob1 != null) iconOffset += 18;
@@ -934,6 +1061,19 @@ public class ElementalCodexScreen extends Screen {
 
         int bodyH = wrappedLines.size() * 11 + 6;
         int cardH = headerH + bodyH;
+        return new CardLayout(titleLines, wrappedLines, badgeW, titleStartX, badgeBelowTitle, headerH, cardH);
+    }
+
+    private int renderGuideCard(GuiGraphics guiGraphics, GuideCard card, int x, int y, int w, int mouseX, int mouseY) {
+        int pad = 6;
+        CardLayout layout = layoutGuideCard(card, x, w);
+        List<FormattedCharSequence> titleLines = layout.titleLines();
+        List<FormattedCharSequence> wrappedLines = layout.wrappedLines();
+        int badgeW = layout.badgeW();
+        int titleStartX = layout.titleStartX();
+        boolean badgeBelowTitle = layout.badgeBelowTitle();
+        int headerH = layout.headerH();
+        int cardH = layout.cardH();
 
         // Card Background & Uniform 1px Border
         guiGraphics.fill(x, y, x + w, y + cardH, 0xE6141B2D);
@@ -970,6 +1110,10 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.drawString(this.font, ")", iconX + 1, iconY + 4, 0xFFA0B0C8, true);
             iconX += 7;
         }
+        if (card.plusBeforeItem1 && !card.item1.isEmpty()) {
+            guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
+            iconX += 6;
+        }
         if (!card.item1.isEmpty()) {
             renderHoveredItem(guiGraphics, card.item1, iconX, iconY, mouseX, mouseY);
             iconX += 17;
@@ -1003,14 +1147,139 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.drawString(this.font, card.badgeText, bx + 4, by + 3, card.badgeColor, true);
         }
 
-        // Wrapped Paragraphs
+        // Wrapped Paragraphs (with hoverable reaction links)
         int lineY = y + headerH + 5;
         for (FormattedCharSequence seq : wrappedLines) {
-            guiGraphics.drawString(this.font, seq, x + pad + 2, lineY, 0xFFD4DEEE, false);
+            renderParagraphLineWithLinks(guiGraphics, seq, x + pad + 2, lineY, card.cardKey, mouseX, mouseY);
             lineY += 11;
         }
 
         return cardH;
+    }
+
+    private void renderParagraphLineWithLinks(
+            GuiGraphics guiGraphics,
+            FormattedCharSequence seq,
+            int lineX,
+            int lineY,
+            String ownCardKey,
+            int mouseX,
+            int mouseY
+    ) {
+        List<Integer> cps = new ArrayList<>();
+        List<Style> styles = new ArrayList<>();
+        seq.accept((idx, style, cp) -> {
+            cps.add(cp);
+            styles.add(style);
+            return true;
+        });
+        int n = cps.size();
+        if (n == 0) return;
+
+        StringBuilder plainBuilder = new StringBuilder(n);
+        for (int cp : cps) {
+            plainBuilder.appendCodePoint(cp);
+        }
+        String plain = plainBuilder.toString();
+        String lower = plain.toLowerCase(Locale.ROOT);
+
+        List<ReactionMatch> matches = new ArrayList<>();
+        boolean[] used = new boolean[n];
+        for (ReactionLink link : REACTION_LINKS) {
+            if (ownCardKey != null && ownCardKey.equals(link.cardKey())) continue;
+            String kw = link.keyword();
+            int len = kw.length();
+            if (len == 0 || len > lower.length()) continue;
+            int from = 0;
+            while (from <= lower.length() - len) {
+                int pos = lower.indexOf(kw, from);
+                if (pos < 0) break;
+                int end = pos + len;
+                boolean leftOk = (pos == 0) || !Character.isLetterOrDigit(plain.charAt(pos - 1));
+                boolean rightOk = (end == plain.length()) || !Character.isLetterOrDigit(plain.charAt(end));
+                boolean overlap = false;
+                if (leftOk && rightOk && end <= n) {
+                    for (int k = pos; k < end; k++) {
+                        if (used[k]) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                    if (!overlap) {
+                        for (int k = pos; k < end; k++) used[k] = true;
+                        matches.add(new ReactionMatch(pos, end, link.tab(), link.cardKey()));
+                    }
+                }
+                from = pos + 1;
+            }
+        }
+
+        if (matches.isEmpty()) {
+            guiGraphics.drawString(this.font, seq, lineX, lineY, 0xFFD4DEEE, false);
+            return;
+        }
+
+        ReactionMatch hovered = null;
+        for (ReactionMatch m : matches) {
+            int x0 = lineX + this.font.width(buildStyledComponent(cps, styles, 0, m.start(), false));
+            int x1 = lineX + this.font.width(buildStyledComponent(cps, styles, 0, m.end(), false));
+            if (isMouseOverBox(x0, lineY - 1, Math.max(1, x1 - x0), 10, mouseX, mouseY)) {
+                hovered = m;
+                this.pendingClickTab = m.tab();
+                this.pendingClickCardKey = m.cardKey();
+                break;
+            }
+        }
+
+        if (hovered == null) {
+            guiGraphics.drawString(this.font, seq, lineX, lineY, 0xFFD4DEEE, false);
+            return;
+        }
+
+        MutableComponent lineComp = Component.empty();
+        if (hovered.start() > 0) {
+            lineComp.append(buildStyledComponent(cps, styles, 0, hovered.start(), false));
+        }
+        lineComp.append(buildStyledComponent(cps, styles, hovered.start(), hovered.end(), true));
+        if (hovered.end() < n) {
+            lineComp.append(buildStyledComponent(cps, styles, hovered.end(), n, false));
+        }
+        guiGraphics.drawString(this.font, lineComp, lineX, lineY, 0xFFD4DEEE, false);
+    }
+
+    private static MutableComponent buildStyledComponent(List<Integer> cps, List<Style> styles, int start, int end, boolean underline) {
+        MutableComponent out = Component.empty();
+        if (start >= end) return out;
+        StringBuilder run = new StringBuilder();
+        Style runStyle = underline ? styles.get(start).withUnderlined(true) : styles.get(start);
+        for (int i = start; i < end; i++) {
+            Style st = underline ? styles.get(i).withUnderlined(true) : styles.get(i);
+            if (!Objects.equals(st, runStyle)) {
+                out.append(Component.literal(run.toString()).withStyle(runStyle));
+                run.setLength(0);
+                runStyle = st;
+            }
+            run.appendCodePoint(cps.get(i));
+        }
+        if (run.length() > 0) {
+            out.append(Component.literal(run.toString()).withStyle(runStyle));
+        }
+        return out;
+    }
+
+    private int computeCardScrollOffset(Tab tab, String targetCardKey, int innerW, int contentH) {
+        int totalH = 48 + 6;
+        int cardOffset = 0;
+        for (GuideCard c : buildCardsForTab(tab)) {
+            int ch = layoutGuideCard(c, 0, innerW).cardH();
+            if (targetCardKey != null && targetCardKey.equals(c.cardKey())) {
+                cardOffset = totalH;
+            }
+            totalH += ch + 6;
+        }
+        totalH += 8;
+        int maxS = Math.max(0, totalH - contentH);
+        return Math.max(0, Math.min(maxS, cardOffset));
     }
 
     private boolean isMouseOverBox(int x, int y, int w, int h, int mouseX, int mouseY) {
@@ -1109,12 +1378,23 @@ public class ElementalCodexScreen extends Screen {
                 }
             }
 
-            // Check Scrollbar drag start
+            // Check Clickable Reaction Name Links inside Content Area
             int contentX = sideX + SIDEBAR_W + 4;
             int contentW = winW - SIDEBAR_W - 12;
+            int sbH = winH - HEADER_H - 8;
+            if (this.pendingClickTab != null) {
+                this.currentTab = this.pendingClickTab;
+                int innerW = contentW - 18;
+                this.scrollOffset = computeCardScrollOffset(this.currentTab, this.pendingClickCardKey, innerW, sbH);
+                this.pendingClickTab = null;
+                this.pendingClickCardKey = null;
+                playClickSound();
+                return true;
+            }
+
+            // Check Scrollbar drag start
             int sbX = contentX + contentW - 10;
             int sbY = sideY;
-            int sbH = winH - HEADER_H - 8;
             if (mouseX >= sbX && mouseX <= sbX + 10 && mouseY >= sbY && mouseY <= sbY + sbH) {
                 this.draggingScrollbar = true;
                 updateScrollFromMouse(mouseY, sbY + 4, sbH - 8);

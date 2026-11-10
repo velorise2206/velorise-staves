@@ -761,25 +761,34 @@ public final class ArcaneStaffItem extends Item {
         };
     }
 
-    private static String fmtDmg(double base) {
-        double scaled = base * StavesConfig.getDamageMultiplier();
-        return String.format(java.util.Locale.ROOT, "%.1f", scaled);
+    private static String fmtHearts(double baseDamage) {
+        double scaledHearts = (baseDamage * StavesConfig.getDamageMultiplier()) / 2.0D;
+        double rounded = Math.round(scaledHearts * 100.0D) / 100.0D;
+        if (Math.abs(rounded - Math.round(rounded)) < 0.005D) {
+            return String.valueOf(Math.round(rounded));
+        }
+        double tenths = Math.round(rounded * 10.0D) / 10.0D;
+        if (Math.abs(rounded - tenths) < 0.005D) {
+            return String.format(java.util.Locale.ROOT, "%.1f", tenths);
+        }
+        return String.format(java.util.Locale.ROOT, "%.2f", rounded);
     }
 
     public String getDamageDisplay() {
         Element e = getElement();
         String icon = e != null ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " " : "";
+        String heart = ChatFormatting.WHITE.toString() + "\uE008" + ChatFormatting.BLUE;
         return switch (kind) {
-            case DRAGONFIRE -> (isNetherite ? fmtDmg(10.0) : fmtDmg(7.0)) + " + Cloud " + icon + "2U";
-            case ECHO -> (isNetherite ? fmtDmg(16.0) : fmtDmg(11.0)) + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
-            case INFERNO -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
-            case GHASTFIRE -> (isNetherite ? fmtDmg(9.0) : fmtDmg(6.0)) + " " + icon + (isNetherite ? "4U" : "2U");
-            case WITHER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + " x 3 " + icon + (isNetherite ? "1.5U (+Wither III)" : "1U (+Wither II)");
-            case SHULKER -> (isNetherite ? fmtDmg(6.0) : fmtDmg(4.0)) + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
-            case GUARDIAN -> (isNetherite ? (fmtDmg(0.8) + "-" + fmtDmg(2.0)) : (fmtDmg(0.5) + "-" + fmtDmg(1.5))) + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
-            case EVOKER -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");
-            case LIGHTNING -> (isNetherite ? fmtDmg(1.0) : fmtDmg(0.5)) + " / hit " + icon + (isNetherite ? "1.5U" : "1U");
-            case FROST -> (isNetherite ? fmtDmg(4.5) : fmtDmg(3.0)) + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.0) : fmtHearts(7.0)) + heart + " + Cloud " + icon + "2U";
+            case ECHO -> (isNetherite ? fmtHearts(16.0) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "4U (Swirl)" : "2U (Swirl)");
+            case INFERNO -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U");
+            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U (+Wither III)" : "1U (+Wither II)");
+            case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GUARDIAN -> (isNetherite ? (fmtHearts(0.8) + "-" + fmtHearts(2.0)) : (fmtHearts(0.5) + "-" + fmtHearts(1.5))) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+            case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " / Fang " + icon + (isNetherite ? "1.5U" : "1U");
+            case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + " / hit " + icon + (isNetherite ? "1.5U" : "1U");
+            case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case WEB -> isNetherite ? "Trap + Poison " + icon + "1.5U" : "Trap + Poison " + icon + "1U";
         };
     }
@@ -815,7 +824,7 @@ public final class ArcaneStaffItem extends Item {
 
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.damage", getDamageDisplay()).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.literal("  " + getDamageDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);

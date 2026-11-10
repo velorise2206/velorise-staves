@@ -19,7 +19,9 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
@@ -61,6 +63,10 @@ public final class ClientAuraRenderer {
     private static boolean wasJumpKeyDown = false;
     private static long lastStruggleSendTime = 0L;
     private static long struggleShakeUntil = 0L;
+    private static boolean hasFrozenCam = false;
+    private static boolean wasFrozenFirstPerson = false;
+    private static float frozenCamYaw = 0.0F;
+    private static float frozenCamPitch = 0.0F;
 
     static {
         for (Element e : Element.values()) {
@@ -85,6 +91,135 @@ public final class ClientAuraRenderer {
     }
 
     private ClientAuraRenderer() {}
+
+    public static void resetFrozenClientState() {
+        FROZEN_RENDER_STATES.clear();
+        hasFrozenCam = false;
+        wasFrozenFirstPerson = false;
+    }
+
+    public static boolean isLocalPlayerFrozen() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && ClientAuraTracker.isFrozen(mc.player.getId());
+    }
+
+    public static void tickFrozenPlayer() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !ClientAuraTracker.isFrozen(mc.player.getId())) {
+            if (mc.player != null) {
+                FROZEN_RENDER_STATES.remove(mc.player.getId());
+            }
+            hasFrozenCam = false;
+            wasFrozenFirstPerson = false;
+            return;
+        }
+        FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+        if (!hasFrozenCam) {
+            frozenCamYaw = state.yRot;
+            frozenCamPitch = state.xRot;
+            hasFrozenCam = true;
+            wasFrozenFirstPerson = firstPerson;
+        } else if (firstPerson) {
+            wasFrozenFirstPerson = true;
+        } else if (wasFrozenFirstPerson) {
+            frozenCamYaw = state.yRot;
+            frozenCamPitch = state.xRot;
+            wasFrozenFirstPerson = false;
+        }
+        mc.player.setSprinting(false);
+        mc.player.setYRot(state.yRot);
+        mc.player.yRotO = state.yRot;
+        mc.player.setXRot(state.xRot);
+        mc.player.xRotO = state.xRot;
+        mc.player.yHeadRot = state.yHeadRot;
+        mc.player.yHeadRotO = state.yHeadRot;
+        mc.player.yBodyRot = state.yBodyRot;
+        mc.player.yBodyRotO = state.yBodyRot;
+        mc.player.xBob = state.xRot;
+        mc.player.xBobO = state.xRot;
+        mc.player.yBob = state.yRot;
+        mc.player.yBobO = state.yRot;
+    }
+
+    public static boolean handleFrozenPlayerTurn(Entity entity, double rawYaw, double rawPitch) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || entity != mc.player || !ClientAuraTracker.isFrozen(mc.player.getId())) {
+            return false;
+        }
+        FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+        boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+        if (!hasFrozenCam) {
+            frozenCamYaw = state.yRot;
+            frozenCamPitch = state.xRot;
+            hasFrozenCam = true;
+            wasFrozenFirstPerson = firstPerson;
+        }
+        if (!firstPerson) {
+            if (wasFrozenFirstPerson) {
+                frozenCamYaw = state.yRot;
+                frozenCamPitch = state.xRot;
+                wasFrozenFirstPerson = false;
+            }
+            float dYaw = (float) rawYaw * 0.15F;
+            float dPitch = (float) rawPitch * 0.15F;
+            frozenCamYaw = Mth.wrapDegrees(frozenCamYaw + dYaw);
+            frozenCamPitch = Mth.clamp(frozenCamPitch + dPitch, -90.0F, 90.0F);
+        } else {
+            wasFrozenFirstPerson = true;
+        }
+        return true;
+    }
+
+    public static float getFrozenCameraYaw(Entity entity, float fallback) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity == mc.player && ClientAuraTracker.isFrozen(mc.player.getId())) {
+            FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+            boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+            if (!hasFrozenCam) {
+                frozenCamYaw = state.yRot;
+                frozenCamPitch = state.xRot;
+                hasFrozenCam = true;
+                wasFrozenFirstPerson = firstPerson;
+            }
+            if (!firstPerson) {
+                if (wasFrozenFirstPerson) {
+                    frozenCamYaw = state.yRot;
+                    frozenCamPitch = state.xRot;
+                    wasFrozenFirstPerson = false;
+                }
+                return frozenCamYaw;
+            }
+            wasFrozenFirstPerson = true;
+            return state.yRot;
+        }
+        return fallback;
+    }
+
+    public static float getFrozenCameraPitch(Entity entity, float fallback) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity == mc.player && ClientAuraTracker.isFrozen(mc.player.getId())) {
+            FrozenRenderState state = FROZEN_RENDER_STATES.computeIfAbsent(mc.player.getId(), k -> new FrozenRenderState(mc.player));
+            boolean firstPerson = mc.options.getCameraType().isFirstPerson();
+            if (!hasFrozenCam) {
+                frozenCamYaw = state.yRot;
+                frozenCamPitch = state.xRot;
+                hasFrozenCam = true;
+                wasFrozenFirstPerson = firstPerson;
+            }
+            if (!firstPerson) {
+                if (wasFrozenFirstPerson) {
+                    frozenCamYaw = state.yRot;
+                    frozenCamPitch = state.xRot;
+                    wasFrozenFirstPerson = false;
+                }
+                return frozenCamPitch;
+            }
+            wasFrozenFirstPerson = true;
+            return state.xRot;
+        }
+        return fallback;
+    }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {
         render(entity, poseStack, buffer);
@@ -125,7 +260,8 @@ public final class ClientAuraRenderer {
         entity.xo = entity.getX();
         entity.zo = entity.getZ();
 
-        if (mc.player != null && entity.getId() == mc.player.getId()) {
+        boolean isLocalPlayer = mc.player != null && entity.getId() == mc.player.getId();
+        if (isLocalPlayer) {
             if (now < struggleShakeUntil) {
                 shakeOffset = (float) Math.sin((struggleShakeUntil - now) * 0.85D) * 2.8F;
             }
@@ -138,8 +274,9 @@ public final class ClientAuraRenderer {
         entity.yHeadRotO = state.yHeadRot + shakeOffset;
         entity.setXRot(state.xRot);
         entity.xRotO = state.xRot;
-        entity.setYRot(state.yRot + shakeOffset);
-        entity.yRotO = state.yRot + shakeOffset;
+        float appliedYRot = isLocalPlayer ? state.yRot : (state.yRot + shakeOffset);
+        entity.setYRot(appliedYRot);
+        entity.yRotO = appliedYRot;
         entity.attackAnim = state.attackAnim;
         entity.oAttackAnim = state.attackAnim;
         entity.walkAnimation.setSpeed(0.0F);

@@ -4,6 +4,7 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalReaction;
 import com.velorise.staves.network.AuraSyncPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
@@ -72,8 +73,12 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             return net.minecraft.world.InteractionResult.PASS;
         });
 
+        ClientTickEvents.START_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
+        ClientTickEvents.END_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
+
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
+            ClientAuraRenderer.resetFrozenClientState();
             com.velorise.staves.config.StavesConfig.clearServerSync();
         });
     }
