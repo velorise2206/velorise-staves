@@ -1049,13 +1049,20 @@ public final class ElementalGaugeManager {
         GaugeState qg = QUICKEN_GAUGES.get(id);
         boolean hasQuicken = qg != null && !qg.isExpired();
         if (targetGauges.containsKey(Element.DENDRO) || hasQuicken || innate == Element.DENDRO) {
-            if (!BURNING_UNTIL.containsKey(id)) {
-                BURNING_UNTIL.put(id, now + 200L);
+            if (target.fireImmune() || target instanceof Warden) {
+                return;
+            }
+            if (!BURNING_UNTIL.containsKey(id) && checkReactionIcd(target, ElementalReaction.BURNING, now)) {
+                long burnTicks = (innate == Element.DENDRO) ? 100L : 200L;
+                BURNING_UNTIL.put(id, now + burnTicks);
                 LAST_BURN_PYRO_REFRESH.put(id, now);
-                if (innate == null) {
+                if (innate == null || innate == Element.DENDRO || innate == Element.GEO) {
                     targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
                 }
-                target.setSecondsOnFire(5);
+                if (target.getRemainingFireTicks() < 100) {
+                    target.setSecondsOnFire(5);
+                }
+                enforceInnateLock(target, targetGauges, id, innate, now);
                 syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
             }
             return;
@@ -1466,7 +1473,7 @@ public final class ElementalGaugeManager {
             case BLOOM, REVERSE_BLOOM, HYPERBLOOM, BURGEON -> 10; // 0.5s (10 ticks)
             case CRYSTALLIZE -> 20; // 1.0s (20 ticks - Genshin shard drop cooldown)
             case FROZEN -> 10; // 0.5s (10 ticks)
-            case BURNING -> 8; // 0.4s
+            case BURNING -> 40; // 2.0s
             case AGGRAVATE, SPREAD -> 5; // 0.25s
             case FORWARD_VAPORIZE, REVERSE_VAPORIZE, FORWARD_MELT, REVERSE_MELT, OVERVAPE -> 8; // 0.4s
             default -> 5;
@@ -1888,7 +1895,8 @@ public final class ElementalGaugeManager {
         if (auraElement != null && auraElement != attackElement) {
             ElementalReaction reaction = determineReaction(auraElement, attackElement);
             if (reaction != ElementalReaction.NONE) {
-                if (!checkReactionIcd(target, reaction, now)) {
+                boolean alreadyBurning = reaction == ElementalReaction.BURNING && BURNING_UNTIL.containsKey(targetId);
+                if (!alreadyBurning && !checkReactionIcd(target, reaction, now)) {
                     target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
                     return;
                 }
@@ -1926,25 +1934,32 @@ public final class ElementalGaugeManager {
 
                 // Burning Coexistence: maintains 2.0U Burning Pyro state and consumes Dendro/Quicken at 0.4U/s until depleted
                 if (reaction == ElementalReaction.BURNING) {
-                    BURNING_UNTIL.put(targetId, now + 200L);
-                    BURNING_EM_LEVEL.put(targetId, emLevel);
-                    if (innateElement == null) {
-                        targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
-                        if (attackElement == Element.DENDRO) {
-                            if (targetGauges.containsKey(Element.DENDRO)) {
-                                targetGauges.get(Element.DENDRO).refresh(attackU);
-                            } else {
-                                targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
+                    boolean immuneToBurn = innateElement == Element.PYRO || target.fireImmune() || target instanceof Warden;
+                    if (!immuneToBurn) {
+                        long burnTicks = (innateElement == Element.DENDRO) ? 100L : 200L;
+                        BURNING_UNTIL.put(targetId, now + burnTicks);
+                        BURNING_EM_LEVEL.put(targetId, emLevel);
+                        if (innateElement == null || innateElement == Element.DENDRO || innateElement == Element.GEO) {
+                            targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
+                            if (attackElement == Element.DENDRO && innateElement != Element.DENDRO) {
+                                if (targetGauges.containsKey(Element.DENDRO)) {
+                                    targetGauges.get(Element.DENDRO).refresh(attackU);
+                                } else {
+                                    targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
+                                }
                             }
                         }
-                    } else {
-                        enforceInnateLock(target, targetGauges, targetId, innateElement, now);
+                        LAST_BURN_PYRO_REFRESH.put(targetId, now);
+                        target.setSecondsOnFire(5);
                     }
-                    LAST_BURN_PYRO_REFRESH.put(targetId, now);
-                    target.setSecondsOnFire(5);
+                    enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     target.hurt(getElementalDamageSource(level, attacker), effectiveDamage);
-                    executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
-                    syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, effectiveDamage);
+                    if (!alreadyBurning) {
+                        executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
+                        syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, effectiveDamage);
+                    } else {
+                        syncAuras(target, targetGauges.keySet(), null, attackElement, null, effectiveDamage);
+                    }
                     return;
                 }
 
@@ -2119,7 +2134,7 @@ public final class ElementalGaugeManager {
             long now
     ) {
         if (innateElement == null) return;
-        boolean isBurning = target != null && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava());
+        boolean isBurning = target != null && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava() || BURNING_UNTIL.containsKey(targetId));
         // Allow DENDRO to coexist on GEO innate creatures, and allow PYRO when actively burning on fire/lava
         targetGauges.keySet().removeIf(e -> e != innateElement
                 && !(innateElement == Element.GEO && e == Element.DENDRO)
@@ -2251,11 +2266,13 @@ public final class ElementalGaugeManager {
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.1F);
             }
             case BURNING -> {
-                BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + 200L);
-                BURNING_EM_LEVEL.put(target.getUUID(), emLevel);
-                EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
-                target.setSecondsOnFire(5);
-                level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
+                if (getInnateElement(target) != Element.PYRO && !target.fireImmune() && !(target instanceof Warden)) {
+                    BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + (getInnateElement(target) == Element.DENDRO ? 100L : 200L));
+                    BURNING_EM_LEVEL.put(target.getUUID(), emLevel);
+                    EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
+                    target.setSecondsOnFire(5);
+                    level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
+                }
             }
             case SWIRL -> {
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.9F, 1.1F);
@@ -2565,13 +2582,20 @@ public final class ElementalGaugeManager {
             // 4. Burning periodic damage (Genshin standard: ticks every 0.25s = 5 ticks, consumes 0.4U/s Dendro/Quicken = 0.1U per 5 ticks,
             //    and continues until all Dendro & Quicken gauges are completely depleted!)
             if (BURNING_UNTIL.containsKey(id)) {
+                Long burningEnd = BURNING_UNTIL.get(id);
                 boolean hasDendroFuel = entityGauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(id) || innate == Element.DENDRO;
                 boolean hasPyro = entityGauges.containsKey(Element.PYRO) || innate == Element.PYRO;
-                if (!hasDendroFuel || !hasPyro || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
+                boolean innateDendroExpired = (innate == Element.DENDRO && burningEnd != null && now >= burningEnd);
+                if (!hasDendroFuel || !hasPyro || innateDendroExpired || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
-        BURNING_EM_LEVEL.remove(id);
-        ELECTRO_CHARGE_EM_LEVEL.remove(id);
+                    BURNING_EM_LEVEL.remove(id);
                     LAST_BURN_PYRO_REFRESH.remove(id);
+                    if (innate == Element.DENDRO) {
+                        entityGauges.remove(Element.PYRO);
+                        if (!target.isInLava()) {
+                            target.clearFire();
+                        }
+                    }
                     changed = true;
                 } else if (now % 5 == 0) {
                     int burnEmLvl = BURNING_EM_LEVEL.getOrDefault(id, 0);
@@ -2585,7 +2609,9 @@ public final class ElementalGaugeManager {
                     } finally {
                         IS_PROCESSING_REACTION.set(false);
                     }
-                    target.setSecondsOnFire(2);
+                    if (innate != Element.DENDRO) {
+                        target.setSecondsOnFire(2);
+                    }
 
                     // Consume 0.1U per 5 ticks (= 0.4U/s) from Dendro and Quicken gauges
                     GaugeState dendroState = entityGauges.get(Element.DENDRO);
@@ -2607,7 +2633,7 @@ public final class ElementalGaugeManager {
 
                     // Re-apply 1U Pyro aura every 2.0s (40 ticks) per Genshin Burning self-refresh ICD
                     Long lastPyroRefresh = LAST_BURN_PYRO_REFRESH.get(id);
-                    if (innate == null && (lastPyroRefresh == null || now - lastPyroRefresh >= 40L)) {
+                    if ((innate == null || innate == Element.GEO) && (lastPyroRefresh == null || now - lastPyroRefresh >= 40L)) {
                         LAST_BURN_PYRO_REFRESH.put(id, now);
                         if (entityGauges.containsKey(Element.PYRO)) {
                             entityGauges.get(Element.PYRO).refresh(1.0F);
@@ -2618,8 +2644,7 @@ public final class ElementalGaugeManager {
 
                     if (!entityGauges.containsKey(Element.DENDRO) && !QUICKEN_GAUGES.containsKey(id) && innate != Element.DENDRO) {
                         BURNING_UNTIL.remove(id);
-        BURNING_EM_LEVEL.remove(id);
-        ELECTRO_CHARGE_EM_LEVEL.remove(id);
+                        BURNING_EM_LEVEL.remove(id);
                         LAST_BURN_PYRO_REFRESH.remove(id);
                         changed = true;
                     }

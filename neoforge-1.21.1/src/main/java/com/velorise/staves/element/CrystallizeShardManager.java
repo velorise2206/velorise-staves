@@ -198,11 +198,7 @@ public final class CrystallizeShardManager {
                 } else if (expired || cleared || depleted) {
                     ACTIVE_SHIELDS.remove(pid);
                     ModMobEffects.removeAllShields(player);
-                    MobEffectInstance absInst = player.getEffect(MobEffects.ABSORPTION);
-                    if (absInst != null && absInst.getAmplifier() == 0) {
-                        player.removeEffect(MobEffects.ABSORPTION);
-                    }
-                    if (expired && player.getAbsorptionAmount() <= 5.0F) {
+                    if ((expired || cleared) && !player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 5.0F) {
                         player.setAbsorptionAmount(0.0F);
                     }
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
@@ -331,23 +327,17 @@ public final class CrystallizeShardManager {
     private static void pickupShard(ServerLevel level, ServerPlayer player, Element element, int emLevel) {
         // Replace any existing Crystallize shield (same or different element) and reset shield absorption
         ModMobEffects.removeAllShields(player);
-        MobEffectInstance oldAbs = player.getEffect(MobEffects.ABSORPTION);
-        if (oldAbs != null && oldAbs.getAmplifier() <= 1) {
-            player.removeEffect(MobEffects.ABSORPTION);
-            if (player.getAbsorptionAmount() <= 5.0F) {
-                player.setAbsorptionAmount(0.0F);
-            }
+        if (!player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 5.0F) {
+            player.setAbsorptionAmount(0.0F);
         }
         // Elemental Mastery I-III grants +1.0 HP (+0.5 golden heart) shield absorption per level: 2.0 / 3.0 / 4.0 / 5.0 HP
         float shieldHp = 2.0F + 1.0F * Math.max(0, emLevel);
         int shieldAmp = Math.max(0, emLevel);
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
-            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, shieldAmp, false, false, false)); // showParticles=false, showIcon=false: suppress vanilla HUD
+            player.addEffect(new MobEffectInstance(shieldObj, SHIELD_DURATION_TICKS, shieldAmp, false, false, true));
         }
 
-        // Grant fresh 15s vanilla Absorption scaled by Elemental Mastery
-        player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, shieldAmp > 0 ? 1 : 0, false, false, false));
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
 
         onShieldApplied(player, element, SHIELD_DURATION_TICKS);

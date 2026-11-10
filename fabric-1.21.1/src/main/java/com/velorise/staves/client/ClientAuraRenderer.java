@@ -642,11 +642,9 @@ public final class ClientAuraRenderer {
             activeShield = ModMobEffects.getActiveShield(mc.player);
         }
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
-            if (inst.showIcon()) {
-                vanillaCount++;
-                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
-                    shieldFoundInVanilla = true;
-                }
+            vanillaCount++;
+            if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
+                shieldFoundInVanilla = true;
             }
         }
         int customShieldSlot = (activeShield != null && !shieldFoundInVanilla) ? 1 : 0;
@@ -730,11 +728,9 @@ public final class ClientAuraRenderer {
         int vanillaCount = 0;
         boolean shieldFoundInVanilla = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
-            if (inst.showIcon()) {
-                vanillaCount++;
-                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
-                    shieldFoundInVanilla = true;
-                }
+            vanillaCount++;
+            if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
+                shieldFoundInVanilla = true;
             }
         }
 
@@ -968,16 +964,14 @@ public final class ClientAuraRenderer {
         int effectIndex = 0;
         boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
-            if (inst.showIcon()) {
-                if (!found) {
-                    if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
-                        found = true;
-                    } else {
-                        effectIndex++;
-                    }
+            if (!found) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null) {
+                    found = true;
+                } else {
+                    effectIndex++;
                 }
-                vanillaCount++;
             }
+            vanillaCount++;
         }
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         long now = System.currentTimeMillis();

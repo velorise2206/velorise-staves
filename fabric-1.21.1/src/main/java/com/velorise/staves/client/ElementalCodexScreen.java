@@ -7,6 +7,7 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -122,6 +123,9 @@ public class ElementalCodexScreen extends Screen {
     private int maxScroll = 0;
     private boolean draggingScrollbar = false;
     private final Map<EntityType<?>, LivingEntity> dummyMobs = new HashMap<>();
+    private ItemStack pendingTooltipItem = ItemStack.EMPTY;
+    private List<Component> pendingTooltipLines = null;
+    private boolean canTriggerContentHover = false;
 
     public ElementalCodexScreen(Screen parent) {
         super(Component.translatable("codex.velorise_staves.title"));
@@ -694,17 +698,22 @@ public class ElementalCodexScreen extends Screen {
         int innerW = contentW - 18; // leave 10px on right for scrollbar
         int startY = contentY + 6 - (int) Math.round(this.scrollOffset);
 
+        this.pendingTooltipItem = ItemStack.EMPTY;
+        this.pendingTooltipLines = null;
+        this.canTriggerContentHover = mouseX >= contentX + 2 && mouseX <= contentX + contentW - 2
+                && mouseY >= contentY + 2 && mouseY <= contentY + contentH - 2;
+
         guiGraphics.enableScissor(contentX + 2, contentY + 2, contentX + contentW - 2, contentY + contentH - 2);
 
         int curY = startY;
 
         // 4A. Render Visual Diagram Showcase Box at top of tab
-        curY += renderIllustrationBox(guiGraphics, this.currentTab, innerX, curY, innerW) + 6;
+        curY += renderIllustrationBox(guiGraphics, this.currentTab, innerX, curY, innerW, mouseX, mouseY) + 6;
 
         // 4B. Render Guide Cards
         List<GuideCard> cards = buildCardsForTab(this.currentTab);
         for (GuideCard card : cards) {
-            curY += renderGuideCard(guiGraphics, card, innerX, curY, innerW) + 6;
+            curY += renderGuideCard(guiGraphics, card, innerX, curY, innerW, mouseX, mouseY) + 6;
         }
 
         guiGraphics.disableScissor();
@@ -727,9 +736,16 @@ public class ElementalCodexScreen extends Screen {
         } else {
             guiGraphics.fill(sbX, sbY, sbX + 4, sbY + sbH, 0x443A4A68);
         }
+
+        // 6. Render Hover Tooltip (outside Scissor region)
+        if (this.pendingTooltipItem != null && !this.pendingTooltipItem.isEmpty()) {
+            guiGraphics.renderTooltip(this.font, this.pendingTooltipItem, mouseX, mouseY);
+        } else if (this.pendingTooltipLines != null && !this.pendingTooltipLines.isEmpty()) {
+            guiGraphics.renderComponentTooltip(this.font, this.pendingTooltipLines, mouseX, mouseY);
+        }
     }
 
-    private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w) {
+    private int renderIllustrationBox(GuiGraphics guiGraphics, Tab tab, int x, int y, int w, int mouseX, int mouseY) {
         int h = 48;
         guiGraphics.fill(x, y, x + w, y + h, 0xFF131A2C);
         ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, h, tab.accentColor);
@@ -742,12 +758,12 @@ public class ElementalCodexScreen extends Screen {
 
         switch (tab) {
             case BASICS -> {
-                guiGraphics.renderItem(getModItemStack("inferno_rod"), cx - 114, midY);
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 94, midY);
+                renderHoveredItem(guiGraphics, getModItemStack("inferno_rod"), cx - 114, midY, mouseX, mouseY);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 94, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "1.Aura", cx - 75, midY + 4, 0xFFFF6B4A, true);
                 guiGraphics.drawString(this.font, "+ ➔", cx - 37, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(getModItemStack("guardian_lens"), cx - 16, midY);
-                drawElementIcon(guiGraphics, Element.HYDRO, cx + 2, midY);
+                renderHoveredItem(guiGraphics, getModItemStack("guardian_lens"), cx - 16, midY, mouseX, mouseY);
+                renderHoveredElement(guiGraphics, Element.HYDRO, cx + 2, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 21, midY + 4, 0xFFFFFFFF, true);
             }
             case ELEMENTS -> {
@@ -758,79 +774,79 @@ public class ElementalCodexScreen extends Screen {
                     int ex = sx + i * 28;
                     guiGraphics.fill(ex - 2, midY - 2, ex + 18, midY + 18, 0x88101828);
                     ClientAuraRenderer.renderColoredBorder(guiGraphics, ex - 2, midY - 2, 20, 20, ClientAuraRenderer.getElementBorderColor(all[i]));
-                    drawElementIcon(guiGraphics, all[i], ex, midY);
+                    renderHoveredElement(guiGraphics, all[i], ex, midY, mouseX, mouseY);
                 }
             }
             case REACTIONS_AMP -> {
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 96, midY);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 96, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "+", cx - 76, midY + 4, 0xFFFFFFFF, true);
-                drawElementIcon(guiGraphics, Element.HYDRO, cx - 66, midY);
+                renderHoveredElement(guiGraphics, Element.HYDRO, cx - 66, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§6= x2.0", cx - 46, midY + 4, 0xFFFFAA00, true);
 
                 guiGraphics.drawString(this.font, "|", cx - 4, midY + 4, 0xFF556688, false);
 
-                drawElementIcon(guiGraphics, Element.HYDRO, cx + 8, midY);
+                renderHoveredElement(guiGraphics, Element.HYDRO, cx + 8, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "+", cx + 28, midY + 4, 0xFFFFFFFF, true);
-                drawElementIcon(guiGraphics, Element.CRYO, cx + 38, midY);
+                renderHoveredElement(guiGraphics, Element.CRYO, cx + 38, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§b= FROZEN", cx + 58, midY + 4, 0xFF64D2FF, true);
             }
             case REACTIONS_DENDRO -> {
                 int sx = cx - 114;
-                drawElementIcon(guiGraphics, Element.DENDRO, sx, midY);
+                renderHoveredElement(guiGraphics, Element.DENDRO, sx, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "+", sx + 18, midY + 4, 0xFFFFFFFF, true);
-                drawElementIcon(guiGraphics, Element.HYDRO, sx + 26, midY);
+                renderHoveredElement(guiGraphics, Element.HYDRO, sx + 26, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", sx + 45, midY + 4, 0xFF32D74B, true);
-                guiGraphics.renderItem(getModItemStack("dendro_core"), sx + 55, midY);
+                renderHoveredItem(guiGraphics, getModItemStack("dendro_core"), sx + 55, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", sx + 74, midY + 4, 0xFFFFD60A, true);
-                drawElementIcon(guiGraphics, Element.PYRO, sx + 85, midY);
+                renderHoveredElement(guiGraphics, Element.PYRO, sx + 85, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§6Burgeon", sx + 103, midY + 4, 0xFFFF9F0A, true);
-                drawElementIcon(guiGraphics, Element.ELECTRO, sx + 150, midY);
+                renderHoveredElement(guiGraphics, Element.ELECTRO, sx + 150, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§dHyperbloom", sx + 168, midY + 4, 0xFFDA70D6, true);
             }
             case INNATE -> {
-                renderGuiMob(guiGraphics, EntityType.BLAZE, cx - 118, midY, 13.0F);
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 99, midY);
+                renderHoveredMob(guiGraphics, EntityType.BLAZE, cx - 118, midY, 13.0F, mouseX, mouseY);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 99, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔ §cIMMUNE", cx - 80, midY + 4, 0xFFFF5555, true);
 
                 guiGraphics.drawString(this.font, "|", cx - 22, midY + 4, 0xFF556688, false);
 
-                renderGuiMob(guiGraphics, EntityType.BLAZE, cx - 12, midY, 13.0F);
-                drawElementIcon(guiGraphics, Element.HYDRO, cx + 6, midY);
+                renderHoveredMob(guiGraphics, EntityType.BLAZE, cx - 12, midY, 13.0F, mouseX, mouseY);
+                renderHoveredElement(guiGraphics, Element.HYDRO, cx + 6, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔ §b§lVAPORIZE x2!", cx + 25, midY + 4, 0xFFFFFFFF, true);
             }
             case ENVIRONMENT -> {
-                guiGraphics.renderItem(new ItemStack(Items.SCULK_SENSOR), cx - 118, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.SCULK_SENSOR), cx - 118, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx - 99, midY + 4, 0xFF00D2D3, true);
-                drawElementIcon(guiGraphics, Element.ELECTRO, cx - 88, midY);
+                renderHoveredElement(guiGraphics, Element.ELECTRO, cx - 88, midY, mouseX, mouseY);
 
                 guiGraphics.drawString(this.font, "|", cx - 68, midY + 4, 0xFF556688, false);
 
-                guiGraphics.renderItem(new ItemStack(Items.AMETHYST_CLUSTER), cx - 58, midY);
-                drawElementIcon(guiGraphics, Element.PYRO, cx - 40, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.AMETHYST_CLUSTER), cx - 58, midY, mouseX, mouseY);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 40, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx - 22, midY + 4, 0xFFFF8C33, true);
-                guiGraphics.renderItem(new ItemStack(Items.AMETHYST_SHARD), cx - 11, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.AMETHYST_SHARD), cx - 11, midY, mouseX, mouseY);
 
                 guiGraphics.drawString(this.font, "|", cx + 9, midY + 4, 0xFF556688, false);
 
-                drawElementIcon(guiGraphics, Element.PYRO, cx + 18, midY);
-                guiGraphics.renderItem(new ItemStack(Items.ICE), cx + 36, midY);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx + 18, midY, mouseX, mouseY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.ICE), cx + 36, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx + 54, midY + 4, 0xFF0A84FF, true);
-                guiGraphics.renderItem(new ItemStack(Items.WATER_BUCKET), cx + 65, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.WATER_BUCKET), cx + 65, midY, mouseX, mouseY);
             }
             case STAVES -> {
-                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 106, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 106, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "+", cx - 87, midY + 4, 0xFFFFFFFF, true);
-                guiGraphics.renderItem(getModItemStack("dragonfire_scepter"), cx - 76, midY);
+                renderHoveredItem(guiGraphics, getModItemStack("dragonfire_scepter"), cx - 76, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "+", cx - 57, midY + 4, 0xFFFFFFFF, true);
-                guiGraphics.renderItem(new ItemStack(Items.NETHERITE_INGOT), cx - 46, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.NETHERITE_INGOT), cx - 46, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx - 26, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(getModItemStack("netherite_dragonfire_scepter"), cx - 14, midY);
+                renderHoveredItem(guiGraphics, getModItemStack("netherite_dragonfire_scepter"), cx - 14, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§6+50% DMG / +50% U", cx + 6, midY + 4, 0xFFFFD60A, true);
             }
             case MASTERY -> {
-                guiGraphics.renderItem(new ItemStack(Items.ENCHANTING_TABLE), cx - 110, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.ENCHANTING_TABLE), cx - 110, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "➔", cx - 91, midY + 4, 0xFFFFD60A, true);
-                guiGraphics.renderItem(new ItemStack(Items.ENCHANTED_BOOK), cx - 79, midY);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.ENCHANTED_BOOK), cx - 79, midY, mouseX, mouseY);
                 guiGraphics.drawString(this.font, "§dEM I–III ➔ +45% Amp / +90% Trans", cx - 59, midY + 4, 0xFFE0B0FF, true);
             }
         }
@@ -866,7 +882,7 @@ public class ElementalCodexScreen extends Screen {
         }
     }
 
-    private int renderGuideCard(GuiGraphics guiGraphics, GuideCard card, int x, int y, int w) {
+    private int renderGuideCard(GuiGraphics guiGraphics, GuideCard card, int x, int y, int w, int mouseX, int mouseY) {
         int pad = 6;
         int textW = w - pad * 2 - 4;
 
@@ -929,13 +945,13 @@ public class ElementalCodexScreen extends Screen {
         int iconY = y + 3;
 
         if (card.elem1 != null) {
-            drawElementIcon(guiGraphics, card.elem1, iconX, iconY);
+            renderHoveredElement(guiGraphics, card.elem1, iconX, iconY, mouseX, mouseY);
             iconX += 17;
         }
         if (card.elem2 != null) {
             guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
             iconX += 6;
-            drawElementIcon(guiGraphics, card.elem2, iconX, iconY);
+            renderHoveredElement(guiGraphics, card.elem2, iconX, iconY, mouseX, mouseY);
             iconX += 17;
         }
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
@@ -944,7 +960,7 @@ public class ElementalCodexScreen extends Screen {
             guiGraphics.drawString(this.font, "(", iconX, iconY + 4, 0xFFA0B0C8, true);
             iconX += 5;
             for (int i = 0; i < card.elemGroup.size(); i++) {
-                drawElementIcon(guiGraphics, card.elemGroup.get(i), iconX, iconY);
+                renderHoveredElement(guiGraphics, card.elemGroup.get(i), iconX, iconY, mouseX, mouseY);
                 iconX += 16;
                 if (i < card.elemGroup.size() - 1) {
                     guiGraphics.drawString(this.font, "|", iconX + 2, iconY + 4, 0xFF708098, false);
@@ -955,19 +971,19 @@ public class ElementalCodexScreen extends Screen {
             iconX += 7;
         }
         if (!card.item1.isEmpty()) {
-            guiGraphics.renderItem(card.item1, iconX, iconY);
+            renderHoveredItem(guiGraphics, card.item1, iconX, iconY, mouseX, mouseY);
             iconX += 17;
         }
         if (!card.item2.isEmpty()) {
-            guiGraphics.renderItem(card.item2, iconX, iconY);
+            renderHoveredItem(guiGraphics, card.item2, iconX, iconY, mouseX, mouseY);
             iconX += 17;
         }
         if (card.mob1 != null) {
-            renderGuiMob(guiGraphics, card.mob1, iconX, iconY, 12.5F);
+            renderHoveredMob(guiGraphics, card.mob1, iconX, iconY, 12.5F, mouseX, mouseY);
             iconX += 18;
         }
         if (card.mob2 != null) {
-            renderGuiMob(guiGraphics, card.mob2, iconX, iconY, 12.5F);
+            renderHoveredMob(guiGraphics, card.mob2, iconX, iconY, 12.5F, mouseX, mouseY);
             iconX += 18;
         }
 
@@ -995,6 +1011,44 @@ public class ElementalCodexScreen extends Screen {
         }
 
         return cardH;
+    }
+
+    private boolean isMouseOverBox(int x, int y, int w, int h, int mouseX, int mouseY) {
+        return this.canTriggerContentHover && mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+    }
+
+    private void renderHoveredItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y, int mouseX, int mouseY) {
+        if (stack == null || stack.isEmpty()) return;
+        if (isMouseOverBox(x, y, 16, 16, mouseX, mouseY)) {
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0x33FFFFFF);
+            this.pendingTooltipItem = stack;
+            this.pendingTooltipLines = null;
+        }
+        guiGraphics.renderItem(stack, x, y);
+    }
+
+    private void renderHoveredElement(GuiGraphics guiGraphics, Element element, int x, int y, int mouseX, int mouseY) {
+        if (element == null) return;
+        if (isMouseOverBox(x, y, 16, 16, mouseX, mouseY)) {
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0x33FFFFFF);
+            this.pendingTooltipItem = ItemStack.EMPTY;
+            this.pendingTooltipLines = List.of(
+                    Component.empty()
+                            .append(Component.literal(element.iconString()).withStyle(ChatFormatting.WHITE))
+                            .append(Component.literal(" " + element.displayName()).withStyle(element.color()))
+            );
+        }
+        drawElementIcon(guiGraphics, element, x, y);
+    }
+
+    private void renderHoveredMob(GuiGraphics guiGraphics, EntityType<? extends LivingEntity> type, int x, int y, float size, int mouseX, int mouseY) {
+        if (type == null) return;
+        if (isMouseOverBox(x, y, 16, 16, mouseX, mouseY)) {
+            guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0x33FFFFFF);
+            this.pendingTooltipItem = ItemStack.EMPTY;
+            this.pendingTooltipLines = List.of(type.getDescription().copy().withStyle(ChatFormatting.GOLD));
+        }
+        renderGuiMob(guiGraphics, type, x, y, size);
     }
 
     private void drawElementIcon(GuiGraphics guiGraphics, Element element, int x, int y) {
