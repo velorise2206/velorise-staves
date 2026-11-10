@@ -253,5 +253,6 @@
   "codex.velorise_staves.mastery.card3.p1": "• All Codex & Tooltip stats auto-sync with the active §aServer Config§r!",
   "codex.velorise_staves.sync.server": "● Server Synced",
   "codex.velorise_staves.sync.local": "● Local Config",
-  "entity.velorise_staves.geo_construct": "Geo Construct"
+  "entity.velorise_staves.geo_construct": "Geo Construct",
+  "entity.velorise_staves.dendro_core": "Dendro Core"
 }

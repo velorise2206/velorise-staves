@@ -80,6 +80,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT,
                 GeoConstructRenderer::new
         );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.DENDRO_CORE_ENTITY,
+                DendroCoreRenderer::new
+        );
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();

@@ -37,6 +37,14 @@ public final class VeloriseStavesMod {
                     .updateInterval(2)
                     .build("geo_construct"));
 
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity>> DENDRO_CORE_ENTITY =
+            ENTITY_TYPES.register("dendro_core", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.DendroCoreEntity>of(com.velorise.staves.entity.DendroCoreEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("dendro_core"));
+
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));

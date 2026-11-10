@@ -216,6 +216,21 @@ public final class VeloriseStavesMod implements ModInitializer {
                             .build("geo_construct")
             );
 
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity> DENDRO_CORE_ENTITY =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "dendro_core"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.DendroCoreEntity>of(
+                                    com.velorise.staves.entity.DendroCoreEntity::new,
+                                    net.minecraft.world.entity.MobCategory.MISC
+                            )
+                            .sized(0.5F, 0.5F)
+                            .clientTrackingRange(8)
+                            .updateInterval(1)
+                            .build("dendro_core")
+            );
+
     @Override
     public void onInitialize() {
         StavesConfig.load();

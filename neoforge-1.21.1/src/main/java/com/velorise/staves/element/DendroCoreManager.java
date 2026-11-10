@@ -1,32 +1,20 @@
 package com.velorise.staves.element;
 
-import com.mojang.math.Transformation;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
-import net.minecraft.ChatFormatting;
+import com.velorise.staves.entity.DendroCoreEntity;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.Scoreboard;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.DoubleTag;
-import net.minecraft.nbt.FloatTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -44,13 +32,13 @@ public final class DendroCoreManager {
     private static final int CORE_LIFETIME_TICKS = 120; // 6 seconds
 
     public static class CoreEntry {
-        public final ItemEntity entity;
+        public final DendroCoreEntity entity;
         public final ServerLevel level;
         public final long spawnTime;
         public final @Nullable UUID ownerId;
         public final float damageMultiplier;
 
-        public CoreEntry(ItemEntity entity, ServerLevel level, long spawnTime, @Nullable UUID ownerId, float damageMultiplier) {
+        public CoreEntry(DendroCoreEntity entity, ServerLevel level, long spawnTime, @Nullable UUID ownerId, float damageMultiplier) {
             this.entity = entity;
             this.level = level;
             this.spawnTime = spawnTime;
@@ -67,7 +55,7 @@ public final class DendroCoreManager {
         public final float damage;
         public final @Nullable LivingEntity attacker;
         public int currentTick;
-        public final @Nullable Display.ItemDisplay visualEntity;
+        public final @Nullable DendroCoreEntity visualEntity;
 
         public HyperbloomMissile(
                 ServerLevel level,
@@ -76,7 +64,7 @@ public final class DendroCoreManager {
                 Vec3 initialTargetPos,
                 float damage,
                 @Nullable LivingEntity attacker,
-                @Nullable Display.ItemDisplay visualEntity
+                @Nullable DendroCoreEntity visualEntity
         ) {
             this.level = level;
             this.pos = initialPos;
@@ -99,74 +87,13 @@ public final class DendroCoreManager {
 
     private DendroCoreManager() {}
 
-    private static @Nullable Display.ItemDisplay spawnVisualSeed(ServerLevel level, Vec3 pos) {
-        try {
-            Display.ItemDisplay display = EntityType.ITEM_DISPLAY.create(level);
-            if (display == null) return null;
-            display.setPos(pos.x, pos.y, pos.z);
-            display.getSlot(0).set(new ItemStack(VeloriseStavesMod.DENDRO_CORE.get()));
-            display.setNoGravity(true);
-            display.noPhysics = true;
-            display.addTag(TAG_HYPERBLOOM_VISUAL);
-
-            CompoundTag nbt = new CompoundTag();
-            ListTag posList = new ListTag();
-            posList.add(DoubleTag.valueOf(pos.x));
-            posList.add(DoubleTag.valueOf(pos.y));
-            posList.add(DoubleTag.valueOf(pos.z));
-            nbt.put("Pos", posList);
-
-            ListTag rotList = new ListTag();
-            rotList.add(FloatTag.valueOf(0.0F));
-            rotList.add(FloatTag.valueOf(0.0F));
-            nbt.put("Rotation", rotList);
-
-            nbt.putString("billboard", "center");
-
-            // Fullbright (15 sky, 15 block) so it shines brilliantly even in darkness
-            CompoundTag brightnessTag = new CompoundTag();
-            brightnessTag.putInt("sky", 15);
-            brightnessTag.putInt("block", 15);
-            nbt.put("brightness", brightnessTag);
-
-            // Glowing outline tag & vibrant neon lime color override
-            nbt.putByte("Glowing", (byte) 1);
-            nbt.putInt("glow_color_override", 0x55FF22);
-            nbt.putInt("teleport_duration", 1);
-
-            // Scale to 65% (0.65F, 0.65F, 0.65F)
-            Transformation transformation = new Transformation(
-                    new Vector3f(0.0F, 0.0F, 0.0F),
-                    new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F),
-                    new Vector3f(0.65F, 0.65F, 0.65F),
-                    new Quaternionf(0.0F, 0.0F, 0.0F, 1.0F)
-            );
-            Tag transTag = Transformation.EXTENDED_CODEC.encodeStart(NbtOps.INSTANCE, transformation).result().orElse(null);
-            if (transTag != null) {
-                nbt.put("transformation", transTag);
-            }
-
-            display.load(nbt);
-            display.addTag(TAG_HYPERBLOOM_VISUAL);
-            display.getSlot(0).set(new ItemStack(VeloriseStavesMod.DENDRO_CORE.get()));
-            display.setGlowingTag(true);
-
-            try {
-                Scoreboard sb = level.getScoreboard();
-                PlayerTeam team = sb.getPlayerTeam("vs_dendro");
-                if (team == null) {
-                    team = sb.addPlayerTeam("vs_dendro");
-                    team.setColor(ChatFormatting.GREEN);
-                }
-                sb.addPlayerToTeam(display.getScoreboardName(), team);
-            } catch (Throwable ignored) {}
-
-            level.addFreshEntity(display);
-            ACTIVE_MISSILE_VISUALS.add(display.getUUID());
-            return display;
-        } catch (Throwable ignored) {
-            return null;
-        }
+    private static @Nullable DendroCoreEntity spawnVisualSeed(ServerLevel level, Vec3 pos) {
+        DendroCoreEntity visual = new DendroCoreEntity(VeloriseStavesMod.DENDRO_CORE_ENTITY.get(), level, pos.x, pos.y, pos.z);
+        visual.setHyperbloomVisual(true);
+        visual.addTag(TAG_HYPERBLOOM_VISUAL);
+        level.addFreshEntity(visual);
+        ACTIVE_MISSILE_VISUALS.add(visual.getUUID());
+        return visual;
     }
 
     private static boolean canTakeBloomDamage(LivingEntity victim, long now) {
@@ -207,27 +134,14 @@ public final class DendroCoreManager {
             CORES.remove(oldestOwnerCore);
         }
 
-        ItemStack seedItem = new ItemStack(VeloriseStavesMod.DENDRO_CORE.get());
-        ItemEntity item = new ItemEntity(level, pos.x, pos.y + 0.1D, pos.z, seedItem);
-        item.setPickUpDelay(32767);
-        item.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
-        item.addTag(TAG_DENDRO_CORE);
-        level.addFreshEntity(item);
+        DendroCoreEntity coreEntity = new DendroCoreEntity(VeloriseStavesMod.DENDRO_CORE_ENTITY.get(), level, pos.x, pos.y + 0.1D, pos.z);
+        coreEntity.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
+        coreEntity.addTag(TAG_DENDRO_CORE);
+        level.addFreshEntity(coreEntity);
 
-        level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.5D, pos.z, 20, 0.4D, 0.4D, 0.4D, 0.05D);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.2F);
 
-        CORES.add(new CoreEntry(item, level, level.getGameTime(), owner != null ? owner.getUUID() : null, damageMultiplier));
-    }
-
-    private static void cleanUpCoreTeam(CoreEntry core) {
-        try {
-            Scoreboard sb = core.level.getScoreboard();
-            PlayerTeam team = sb.getPlayerTeam("vs_dendro");
-            if (team != null) {
-                sb.removePlayerFromTeam(core.entity.getScoreboardName(), team);
-            }
-        } catch (Throwable ignored) {}
+        CORES.add(new CoreEntry(coreEntity, level, level.getGameTime(), owner != null ? owner.getUUID() : null, damageMultiplier));
     }
 
     public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable LivingEntity attacker) {
@@ -239,7 +153,6 @@ public final class DendroCoreManager {
                 continue;
             }
             if (!core.entity.isAlive() || core.entity.isRemoved()) {
-                cleanUpCoreTeam(core);
                 CORES.remove(core);
                 continue;
             }
@@ -255,20 +168,17 @@ public final class DendroCoreManager {
 
         // Also detect and react any untracked or orphaned seeds in the blast zone
         AABB box = new AABB(hitPos.x - radius, hitPos.y - radius, hitPos.z - radius, hitPos.x + radius, hitPos.y + radius, hitPos.z + radius);
-        for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, box, e -> e.isAlive() && !e.isRemoved())) {
-            if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == VeloriseStavesMod.DENDRO_CORE.get()) {
-                CoreEntry tempCore = new CoreEntry(item, level, level.getGameTime(), attacker != null ? attacker.getUUID() : null, 1.0F);
-                if (attackElement == Element.ELECTRO) {
-                    triggerHyperbloom(tempCore, attacker);
-                } else if (attackElement == Element.PYRO) {
-                    triggerBurgeon(tempCore, attacker);
-                }
+        for (DendroCoreEntity coreEntity : level.getEntitiesOfClass(DendroCoreEntity.class, box, e -> e.isAlive() && !e.isRemoved() && !e.isHyperbloomVisual())) {
+            CoreEntry tempCore = new CoreEntry(coreEntity, level, level.getGameTime(), attacker != null ? attacker.getUUID() : null, 1.0F);
+            if (attackElement == Element.ELECTRO) {
+                triggerHyperbloom(tempCore, attacker);
+            } else if (attackElement == Element.PYRO) {
+                triggerBurgeon(tempCore, attacker);
             }
         }
     }
 
     private static void detonateBloom(CoreEntry core) {
-        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
         core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.3D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
@@ -294,7 +204,6 @@ public final class DendroCoreManager {
     }
 
     private static void triggerHyperbloom(CoreEntry core, @Nullable LivingEntity attacker) {
-        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
 
@@ -324,14 +233,13 @@ public final class DendroCoreManager {
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
         float hyperbloomDmg = 16.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
 
-        // Spawn fullbright, glowing Dendro Core seed projectile
-        Display.ItemDisplay visualSeed = spawnVisualSeed(core.level, p0);
+        // Spawn self-lit 3D Dendro Core seed projectile
+        DendroCoreEntity visualSeed = spawnVisualSeed(core.level, p0);
 
         MISSILES.add(new HyperbloomMissile(core.level, p0, chosenTarget, targetPos, hyperbloomDmg, attacker, visualSeed));
     }
 
     private static void triggerBurgeon(CoreEntry core, @Nullable LivingEntity attacker) {
-        cleanUpCoreTeam(core);
         Vec3 pos = core.entity.position();
         core.entity.discard();
         core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 3, 0.3D, 0.3D, 0.3D, 0.0D);
@@ -402,13 +310,6 @@ public final class DendroCoreManager {
             if (hit || m.currentTick > 100) { // Hit or timeout (5 seconds)
                 MISSILES.remove(m);
                 if (m.visualEntity != null) {
-                    try {
-                        Scoreboard sb = level.getScoreboard();
-                        PlayerTeam team = sb.getPlayerTeam("vs_dendro");
-                        if (team != null) {
-                            sb.removePlayerFromTeam(m.visualEntity.getScoreboardName(), team);
-                        }
-                    } catch (Throwable ignored) {}
                     ACTIVE_MISSILE_VISUALS.remove(m.visualEntity.getUUID());
                     m.visualEntity.discard();
                 }
@@ -497,7 +398,6 @@ public final class DendroCoreManager {
             CoreEntry core = it.next();
             if (core.level != level) continue;
             if (!core.entity.isAlive() || core.entity.isRemoved()) {
-                cleanUpCoreTeam(core);
                 CORES.remove(core);
                 continue;
             }
@@ -532,14 +432,6 @@ public final class DendroCoreManager {
                 continue;
             }
 
-            // Ambient pulsating green particles and soft glowing aura around the Dendro Core
-            if (now % 6 == 0) {
-                Vec3 p = core.entity.position();
-                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, p.x, p.y + 0.25D, p.z, 3, 0.2D, 0.2D, 0.2D, 0.02D);
-                level.sendParticles(ParticleTypes.GLOW, p.x, p.y + 0.25D, p.z, 2, 0.15D, 0.15D, 0.15D, 0.01D);
-                level.sendParticles(new DustParticleOptions(new Vector3f(0.38F, 0.95F, 0.2F), 0.75F), p.x, p.y + 0.25D, p.z, 2, 0.12D, 0.12D, 0.12D, 0.02D);
-            }
-
             // Explode after 6 seconds (120 ticks)
             if (now - core.spawnTime >= CORE_LIFETIME_TICKS) {
                 CORES.remove(core);
@@ -547,41 +439,44 @@ public final class DendroCoreManager {
             }
         }
 
-        // 3. Auto-Purge Orphaned Seeds & Visual Entities
+        // 3. Auto-Purge Orphaned Seeds & Legacy Visual Entities
         if (now % 20 == 0) {
             net.minecraft.world.item.Item dendroCoreItem = VeloriseStavesMod.DENDRO_CORE.get();
             for (ServerPlayer player : level.players()) {
                 AABB scanBox = player.getBoundingBox().inflate(64.0D);
 
-                // A. Purge orphaned ItemDisplay seeds (from previous crashes, disconnects, etc.)
-                List<Display.ItemDisplay> displays = level.getEntitiesOfClass(Display.ItemDisplay.class, scanBox);
-                for (Display.ItemDisplay disp : displays) {
-                    if (disp.getTags().contains(TAG_HYPERBLOOM_VISUAL)
-                            || disp.getSlot(0).get().getItem() == dendroCoreItem) {
-                        if (!ACTIVE_MISSILE_VISUALS.contains(disp.getUUID())) {
-                            disp.discard();
-                        }
+                // A. Purge orphaned legacy ItemDisplay/ItemEntity seeds
+                for (Display.ItemDisplay disp : level.getEntitiesOfClass(Display.ItemDisplay.class, scanBox)) {
+                    if (disp.getTags().contains(TAG_HYPERBLOOM_VISUAL) || disp.getSlot(0).get().getItem() == dendroCoreItem) {
+                        disp.discard();
+                    }
+                }
+                for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, scanBox)) {
+                    if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == dendroCoreItem) {
+                        item.discard();
                     }
                 }
 
-                // B. Adopt or clean orphaned ItemEntity Bloom seeds
-                List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, scanBox);
-                for (ItemEntity item : items) {
-                    if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == dendroCoreItem) {
-                        boolean tracked = false;
-                        for (CoreEntry c : CORES) {
-                            if (c.entity == item || c.entity.getUUID().equals(item.getUUID())) {
-                                tracked = true;
-                                break;
-                            }
+                // B. Adopt or purge orphaned DendroCoreEntity instances
+                for (DendroCoreEntity coreEntity : level.getEntitiesOfClass(DendroCoreEntity.class, scanBox)) {
+                    if (coreEntity.isHyperbloomVisual() || coreEntity.getTags().contains(TAG_HYPERBLOOM_VISUAL)) {
+                        if (!ACTIVE_MISSILE_VISUALS.contains(coreEntity.getUUID())) {
+                            coreEntity.discard();
                         }
-                        if (!tracked) {
-                            if (item.getAge() >= CORE_LIFETIME_TICKS) {
-                                cleanUpCoreTeam(new CoreEntry(item, level, now, null, 1.0F));
-                                item.discard();
-                            } else {
-                                CORES.add(new CoreEntry(item, level, now - Math.max(0, item.getAge()), null, 1.0F));
-                            }
+                        continue;
+                    }
+                    boolean tracked = false;
+                    for (CoreEntry c : CORES) {
+                        if (c.entity == coreEntity || c.entity.getUUID().equals(coreEntity.getUUID())) {
+                            tracked = true;
+                            break;
+                        }
+                    }
+                    if (!tracked) {
+                        if (coreEntity.getServerAgeTicks() >= CORE_LIFETIME_TICKS) {
+                            coreEntity.discard();
+                        } else {
+                            CORES.add(new CoreEntry(coreEntity, level, now - Math.max(0, coreEntity.getServerAgeTicks()), null, 1.0F));
                         }
                     }
                 }
@@ -591,19 +486,11 @@ public final class DendroCoreManager {
 
     public static void clearAll() {
         for (CoreEntry core : CORES) {
-            cleanUpCoreTeam(core);
             core.entity.discard();
         }
         CORES.clear();
         for (HyperbloomMissile m : MISSILES) {
             if (m.visualEntity != null) {
-                try {
-                    Scoreboard sb = m.level.getScoreboard();
-                    PlayerTeam team = sb.getPlayerTeam("vs_dendro");
-                    if (team != null) {
-                        sb.removePlayerFromTeam(m.visualEntity.getScoreboardName(), team);
-                    }
-                } catch (Throwable ignored) {}
                 m.visualEntity.discard();
             }
         }

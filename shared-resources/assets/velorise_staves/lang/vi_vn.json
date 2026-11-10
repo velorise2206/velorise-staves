@@ -223,5 +223,6 @@
   "codex.velorise_staves.mastery.card3.p1": "• Toàn bộ chỉ số Sát thương, Hồi chiêu, Tầm bắn và Độ bền hiển thị trong cuốn Cẩm Nang này cũng như trên Tooltip vũ khí đều tự động đồng bộ trực tiếp theo cấu hình của Server!",
   "codex.velorise_staves.sync.server": "● Đã Đồng Bộ Server",
   "codex.velorise_staves.sync.local": "● Cấu Hình Cục Bộ",
-  "entity.velorise_staves.geo_construct": "Vật Nham"
+  "entity.velorise_staves.geo_construct": "Vật Nham",
+  "entity.velorise_staves.dendro_core": "Hạt Nhân Thảo"
 }

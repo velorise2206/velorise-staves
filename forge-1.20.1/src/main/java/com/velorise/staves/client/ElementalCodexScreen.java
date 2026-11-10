@@ -372,7 +372,7 @@ public class ElementalCodexScreen extends Screen {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.cryo.title"), 0xFF64D2FF,
                         Element.CRYO, null, getModItemStack("frostbolt_wand"), ItemStack.EMPTY,
-                        "CRYO (-30% SPD)", 0xFF64D2FF,
+                        "CRYO", 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.elem.cryo.p1"), tr("codex.velorise_staves.elem.cryo.p2"))
                 ));
                 cards.add(new GuideCard(

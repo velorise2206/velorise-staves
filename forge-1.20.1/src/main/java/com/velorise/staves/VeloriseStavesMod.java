@@ -38,6 +38,14 @@ public final class VeloriseStavesMod {
                     .clientTrackingRange(10)
                     .updateInterval(2)
                     .build("geo_construct"));
+
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity>> DENDRO_CORE_ENTITY =
+            ENTITY_TYPES.register("dendro_core", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.DendroCoreEntity>of(com.velorise.staves.entity.DendroCoreEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("dendro_core"));
     public static final DeferredRegister<net.minecraft.world.item.enchantment.Enchantment> ENCHANTMENTS = DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MODID);
 
     // Enchantments
