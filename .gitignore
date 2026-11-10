@@ -27,6 +27,7 @@ net/
 /assets/
 *.png
 !shared-resources/assets/**
+!shared-resources/logo.png
 
 # Materials / Docs scratch
 mats/
