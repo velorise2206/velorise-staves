@@ -707,8 +707,7 @@ public final class ClientAuraRenderer {
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
                 vanillaCount++;
-                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
-                        || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) == shield) {
                     shieldFoundInVanilla = true;
                 }
             }
@@ -879,8 +878,7 @@ public final class ClientAuraRenderer {
         boolean found = false;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon() && isBeneficial(inst)) {
-                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
-                        || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) == shield) {
                     found = true;
                     break;
                 }
@@ -964,8 +962,7 @@ public final class ClientAuraRenderer {
         MobEffectInstance shieldInst = null;
         for (MobEffectInstance inst : mc.player.getActiveEffects()) {
             if (inst.showIcon()) {
-                if (ModMobEffects.getShieldElement(inst.getEffect().value()) != null
-                        || inst.is(net.minecraft.world.effect.MobEffects.ABSORPTION)) {
+                if (ModMobEffects.getShieldElement(inst.getEffect().value()) == shield) {
                     found = true;
                     shieldInst = inst;
                     break;

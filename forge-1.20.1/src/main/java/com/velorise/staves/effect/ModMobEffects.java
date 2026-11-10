@@ -9,6 +9,9 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public final class ModMobEffects {
     public static final DeferredRegister<MobEffect> MOB_EFFECTS =
             DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, VeloriseStavesMod.MODID);
@@ -42,19 +45,38 @@ public final class ModMobEffects {
     }
 
     public static @Nullable Element getActiveShield(LivingEntity entity) {
-        Element active = null;
-        for (Element elem : new Element[]{Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO}) {
-            var ro = getShieldForElement(elem);
-            if (ro != null && ro.isPresent() && entity.hasEffect(ro.get())) {
-                if (active == null) {
-                    active = elem;
-                } else if (!entity.level().isClientSide()) {
-                    // Mutual exclusivity safety guard: if multiple shield effects exist, remove the extras immediately
-                    entity.removeEffect(ro.get());
+        Element latest = null;
+        if (entity instanceof net.minecraft.server.level.ServerPlayer sp) {
+            latest = com.velorise.staves.element.CrystallizeShardManager.getActiveShield(sp.getUUID(), sp.level().getGameTime());
+        }
+        if (latest == null && entity.level().isClientSide) {
+            latest = com.velorise.staves.client.ClientAuraTracker.getActiveCrystallizeShield();
+        }
+
+        Element found = null;
+        List<MobEffect> toRemove = new ArrayList<>();
+        for (net.minecraft.world.effect.MobEffectInstance inst : entity.getActiveEffects()) {
+            Element elem = getShieldElement(inst.getEffect());
+            if (elem != null) {
+                if (latest != null) {
+                    if (elem == latest) {
+                        found = elem;
+                    } else {
+                        toRemove.add(inst.getEffect());
+                    }
+                } else {
+                    if (found == null) {
+                        found = elem;
+                    } else {
+                        toRemove.add(inst.getEffect());
+                    }
                 }
             }
         }
-        return active;
+        for (MobEffect eff : toRemove) {
+            entity.removeEffect(eff);
+        }
+        return latest != null ? latest : found;
     }
 
     public static void removeAllShields(LivingEntity entity) {
@@ -62,13 +84,15 @@ public final class ModMobEffects {
     }
 
     public static void removeAllShieldsExcept(LivingEntity entity, @Nullable Element keepElement) {
-        for (Element elem : new Element[]{Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO}) {
-            if (elem != keepElement) {
-                var ro = getShieldForElement(elem);
-                if (ro != null && ro.isPresent() && entity.hasEffect(ro.get())) {
-                    entity.removeEffect(ro.get());
-                }
+        List<MobEffect> toRemove = new ArrayList<>();
+        for (net.minecraft.world.effect.MobEffectInstance inst : entity.getActiveEffects()) {
+            Element elem = getShieldElement(inst.getEffect());
+            if (elem != null && elem != keepElement) {
+                toRemove.add(inst.getEffect());
             }
+        }
+        for (MobEffect eff : toRemove) {
+            entity.removeEffect(eff);
         }
     }
 }
