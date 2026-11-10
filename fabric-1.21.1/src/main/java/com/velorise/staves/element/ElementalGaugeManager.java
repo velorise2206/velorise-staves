@@ -450,8 +450,24 @@ public final class ElementalGaugeManager {
                 if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
                     Element innate = getInnateElement(attackerMob);
                     if (innate != null) {
-                        ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
-                        applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
+                        boolean isMutated = isMutatedInnate(attackerMob);
+                        boolean canApply = true;
+                        if (isMutated) {
+                            // Mutated mobs only apply their innate element on plain, unenchanted attacks/projectiles
+                            if (source.is(DamageTypeTags.IS_FIRE)
+                                    || (source.getDirectEntity() != null && source.getDirectEntity().isOnFire())
+                                    || attackerMob.getMainHandItem().isEnchanted()) {
+                                canApply = false;
+                            } else if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Arrow arrow) {
+                                if (arrow.getColor() > 0) {
+                                    canApply = false;
+                                }
+                            }
+                        }
+                        if (canApply) {
+                            ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
+                            applyElement(level, target, innate, 1.0F, attackerPlayer, 0.0F);
+                        }
                     }
                 }
             }
@@ -757,6 +773,13 @@ public final class ElementalGaugeManager {
             }
         }
         return getNaturalInnateElement(target);
+    }
+
+    public static boolean isMutatedInnate(LivingEntity entity) {
+        for (String tag : entity.getTags()) {
+            if (tag.startsWith("VeloriseInnate:")) return true;
+        }
+        return false;
     }
 
     public static @Nullable Element getNaturalInnateElement(LivingEntity target) {
