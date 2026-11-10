@@ -620,19 +620,9 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // 1D. Innate Cryo mob physically in water -> Freeze Water!
+        // 1D. Innate Cryo mob physically in water or stepping on water surface -> Freeze Water!
         if (innate == Element.CRYO) {
-            if (isEntitySubmergedInWater(target)) {
-                long now = target.level().getGameTime();
-                Long lastFreeze = INNATE_COOLDOWN_UNTIL.get(id);
-                if (lastFreeze == null || now >= lastFreeze) {
-                    INNATE_COOLDOWN_UNTIL.put(id, now + 20L);
-                    if (target.level() instanceof ServerLevel sl) {
-                        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(sl, target.position(), 1);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
-                    }
-                }
-            }
+            checkCryoWaterFreezing(target);
             return;
         }
 
@@ -715,13 +705,27 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static void checkCryoWaterFreezing(LivingEntity entity) {
+        if (entity.level().isClientSide() || !(entity.level() instanceof ServerLevel sl)) return;
+        if (entity.tickCount % 2 != 0) return;
+        if (getInnateElement(entity) != Element.CRYO) return;
+
+        BlockPos pos = entity.blockPosition();
+        BlockPos below = pos.below();
+        boolean touchingWater = entity.isInWater() || isEntityInWater(entity)
+                || sl.getFluidState(pos).is(FluidTags.WATER)
+                || sl.getFluidState(below).is(FluidTags.WATER);
+        if (touchingWater) {
+            com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(sl, entity.position(), 2);
+        }
+    }
+
     public static void checkInnateMutation(LivingEntity entity) {
         if (entity.level().isClientSide()) return;
         if (entity instanceof net.minecraft.world.entity.player.Player || isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return;
 
-        net.minecraft.nbt.CompoundTag data = entity.getPersistentData();
-        if (data.contains("VeloriseInnateChecked")) return;
-        data.putBoolean("VeloriseInnateChecked", true);
+        if (entity.getTags().contains("VeloriseInnateChecked")) return;
+        entity.addTag("VeloriseInnateChecked");
 
         // If the entity already has a natural innate element, do not mutate it
         if (getNaturalInnateElement(entity) != null) return;
@@ -730,7 +734,7 @@ public final class ElementalGaugeManager {
         if (entity.getRandom().nextFloat() < 0.01F) {
             Element[] elements = Element.values();
             Element chosen = elements[entity.getRandom().nextInt(elements.length)];
-            data.putString("VeloriseInnate", chosen.name());
+            entity.addTag("VeloriseInnate:" + chosen.name());
 
             // Immediately initialize innate aura in GAUGES so it syncs and renders right away
             if (chosen.isAura()) {
@@ -742,14 +746,15 @@ public final class ElementalGaugeManager {
     }
 
     public static @Nullable Element getInnateElement(LivingEntity target) {
-        if (!target.level().isClientSide() && !target.getPersistentData().contains("VeloriseInnateChecked")) {
+        if (!target.level().isClientSide() && !target.getTags().contains("VeloriseInnateChecked")) {
             checkInnateMutation(target);
         }
-        if (target.getPersistentData().contains("VeloriseInnate")) {
-            String elemName = target.getPersistentData().getString("VeloriseInnate");
-            try {
-                return Element.valueOf(elemName);
-            } catch (IllegalArgumentException ignored) {}
+        for (String tag : target.getTags()) {
+            if (tag.startsWith("VeloriseInnate:")) {
+                try {
+                    return Element.valueOf(tag.substring("VeloriseInnate:".length()));
+                } catch (IllegalArgumentException ignored) {}
+            }
         }
         return getNaturalInnateElement(target);
     }
@@ -1943,15 +1948,20 @@ public final class ElementalGaugeManager {
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO), null);
 
-                if (player.level() instanceof ServerLevel sl && player.tickCount % 20 == 0) {
+                if (player.level() instanceof ServerLevel sl && player.tickCount % 2 == 0) {
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
                         Element nearbyInnate = getInnateElement(nearby);
                         if (nearbyInnate != null) {
-                            if (isEntityInWater(nearby)) {
-                                handleEnvironmentalWater(nearby);
-                            } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava()) {
-                                handleEnvironmentalFireDamage(nearby);
+                            if (nearbyInnate == Element.CRYO) {
+                                checkCryoWaterFreezing(nearby);
+                            }
+                            if (player.tickCount % 20 == 0) {
+                                if (isEntityInWater(nearby)) {
+                                    handleEnvironmentalWater(nearby);
+                                } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava()) {
+                                    handleEnvironmentalFireDamage(nearby);
+                                }
                             }
                         }
                         if (nearby instanceof Creeper creeper && creeper.isPowered() && !GAUGES.containsKey(creeper.getUUID())) {
