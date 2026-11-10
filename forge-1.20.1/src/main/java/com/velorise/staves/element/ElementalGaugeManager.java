@@ -480,7 +480,7 @@ public final class ElementalGaugeManager {
             } else {
                 targetGauges.remove(Element.CRYO);
             }
-            enforceInnateLock(targetGauges, id, innate, now);
+            enforceInnateLock(target, targetGauges, id, innate, now);
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
@@ -493,7 +493,7 @@ public final class ElementalGaugeManager {
         if (targetGauges.containsKey(Element.ELECTRO) || innate == Element.ELECTRO) {
             if (!checkReactionIcd(target, ElementalReaction.OVERLOADED, now)) return;
             targetGauges.remove(Element.ELECTRO);
-            enforceInnateLock(targetGauges, id, innate, now);
+            enforceInnateLock(target, targetGauges, id, innate, now);
             if (target.level() instanceof ServerLevel sl) {
                 triggerOverloadExplosion(sl, target, null, 1.0D);
             }
@@ -505,7 +505,7 @@ public final class ElementalGaugeManager {
         if (targetGauges.containsKey(Element.HYDRO) || innate == Element.HYDRO) {
             if (!checkReactionIcd(target, ElementalReaction.REVERSE_VAPORIZE, now)) return;
             targetGauges.remove(Element.HYDRO);
-            enforceInnateLock(targetGauges, id, innate, now);
+            enforceInnateLock(target, targetGauges, id, innate, now);
             target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -530,15 +530,19 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // No reactive aura -> apply Pyro 1.0U (on normal mobs and players)
-        if (innate == null) {
-            if (!targetGauges.containsKey(Element.PYRO)) {
+        // No reactive aura -> apply or refresh Pyro 1.0U (on normal mobs, innate mobs on fire, and players)
+        if (innate != Element.PYRO) {
+            boolean wasMissing = !targetGauges.containsKey(Element.PYRO);
+            if (wasMissing) {
                 targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.25F));
                 syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
             } else {
                 GaugeState existing = targetGauges.get(Element.PYRO);
                 if (existing != null && (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
                     existing.refresh(1.25F);
+                    if (now % 20 == 0) {
+                        syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
+                    }
                 }
             }
         }
@@ -913,10 +917,18 @@ public final class ElementalGaugeManager {
                 if (checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
                     executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, attackElement, 0.5F, attacker, dmgMult);
                 }
+                // If target was set on fire or is burning and hit by Pyro, ensure Pyro is attached/refreshed
+                if (attackElement == Element.PYRO && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava())) {
+                    if (targetGauges.containsKey(Element.PYRO)) {
+                        targetGauges.get(Element.PYRO).refresh(attackU);
+                    } else {
+                        targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, attackU));
+                    }
+                }
                 // If target has no attached coexisting auras (e.g. Dendro), finish Crystallize hit directly
                 if (!targetGauges.containsKey(Element.DENDRO)) {
                     target.hurt(level.damageSources().magic(), effectiveDamage);
-                    syncAuras(target, Collections.singleton(Element.GEO), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, effectiveDamage);
+                    syncAuras(target, targetGauges.keySet(), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, effectiveDamage);
                     return;
                 }
                 // Otherwise, fall through to resolve reaction with the attached DENDRO aura (Quicken, Bloom, Burning)!
@@ -1067,7 +1079,7 @@ public final class ElementalGaugeManager {
                     }
                     executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, underlying, removedU, attacker, dmgMult);
                 }
-                enforceInnateLock(targetGauges, targetId, innateElement, now);
+                enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, attackElement, ElementalReaction.SHATTER, shatterDamage);
                 return;
             } else if (attackElement == Element.PYRO) {
@@ -1083,7 +1095,7 @@ public final class ElementalGaugeManager {
                 target.hurt(level.damageSources().magic(), meltDamage);
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 25, 0.3D, 0.35D, 0.3D, 0.04D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.2F);
-                enforceInnateLock(targetGauges, targetId, innateElement, now);
+                enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, meltDamage);
                 return;
             } else if (attackElement == Element.ELECTRO) {
@@ -1097,7 +1109,7 @@ public final class ElementalGaugeManager {
                 }
                 target.hurt(level.damageSources().magic(), effectiveDamage);
                 executeReactionEffect(level, target, ElementalReaction.SUPERCONDUCT, Element.CRYO, attackU, attacker, dmgMult);
-                enforceInnateLock(targetGauges, targetId, innateElement, now);
+                enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT, effectiveDamage);
                 return;
             } else if (attackElement == Element.ANEMO) {
@@ -1120,7 +1132,7 @@ public final class ElementalGaugeManager {
                     }
                     target.hurt(level.damageSources().magic(), effectiveDamage);
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, Element.CRYO, removedFreezeU, attacker, dmgMult);
-                    enforceInnateLock(targetGauges, targetId, innateElement, now);
+                    enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ANEMO, ElementalReaction.SWIRL, effectiveDamage);
                     return;
                 }
@@ -1148,7 +1160,7 @@ public final class ElementalGaugeManager {
             target.hurt(level.damageSources().magic(), overvapeDmg);
             triggerOverloadExplosion(level, target, attacker, dmgMult);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
-            enforceInnateLock(targetGauges, targetId, innateElement, now);
+            enforceInnateLock(target, targetGauges, targetId, innateElement, now);
             syncAuras(target, targetGauges.keySet(), Element.ELECTRO, attackElement, ElementalReaction.OVERVAPE, overvapeDmg);
             return;
         }
@@ -1182,7 +1194,7 @@ public final class ElementalGaugeManager {
                     } else {
                         aura.consume(0.4F);
                         if (aura.isExpired()) targetGauges.remove(auraElement);
-                        enforceInnateLock(targetGauges, targetId, innateElement, now);
+                        enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     }
 
                     float ecDmg = effectiveDamage + (float) (2.5F * dmgMult);
@@ -1206,7 +1218,7 @@ public final class ElementalGaugeManager {
                             }
                         }
                     } else {
-                        enforceInnateLock(targetGauges, targetId, innateElement, now);
+                        enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     }
                     LAST_BURN_PYRO_REFRESH.put(targetId, now);
                     target.setSecondsOnFire(5);
@@ -1327,7 +1339,7 @@ public final class ElementalGaugeManager {
                     target.clearFire();
                 }
 
-                enforceInnateLock(targetGauges, targetId, innateElement, now);
+                enforceInnateLock(target, targetGauges, targetId, innateElement, now);
 
                 float finalDmg = effectiveDamage * reaction.getDamageMultiplier();
                 target.hurt(level.damageSources().magic(), finalDmg);
@@ -1374,14 +1386,18 @@ public final class ElementalGaugeManager {
     }
 
     private static void enforceInnateLock(
+            @Nullable LivingEntity target,
             Map<Element, GaugeState> targetGauges,
             UUID targetId,
             @Nullable Element innateElement,
             long now
     ) {
         if (innateElement == null) return;
-        // Allow DENDRO to coexist on GEO innate creatures (Genshin Impact mechanics)
-        targetGauges.keySet().removeIf(e -> e != innateElement && !(innateElement == Element.GEO && e == Element.DENDRO));
+        boolean isBurning = target != null && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava());
+        // Allow DENDRO to coexist on GEO innate creatures, and allow PYRO when actively burning on fire/lava
+        targetGauges.keySet().removeIf(e -> e != innateElement
+                && !(innateElement == Element.GEO && e == Element.DENDRO)
+                && !(isBurning && e == Element.PYRO));
         if (innateElement.isAura() && !targetGauges.containsKey(innateElement)) {
             targetGauges.put(innateElement, new GaugeState(innateElement, 1.25F));
         }
