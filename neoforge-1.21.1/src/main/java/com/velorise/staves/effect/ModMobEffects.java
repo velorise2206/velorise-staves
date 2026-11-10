@@ -42,17 +42,33 @@ public final class ModMobEffects {
     }
 
     public static @Nullable Element getActiveShield(LivingEntity entity) {
-        if (entity.hasEffect(PYRO_SHIELD)) return Element.PYRO;
-        if (entity.hasEffect(HYDRO_SHIELD)) return Element.HYDRO;
-        if (entity.hasEffect(ELECTRO_SHIELD)) return Element.ELECTRO;
-        if (entity.hasEffect(CRYO_SHIELD)) return Element.CRYO;
-        return null;
+        Element active = null;
+        for (Element elem : new Element[]{Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO}) {
+            var holder = getShieldForElement(elem);
+            if (holder != null && entity.hasEffect(holder)) {
+                if (active == null) {
+                    active = elem;
+                } else if (!entity.level().isClientSide()) {
+                    // Mutual exclusivity safety guard: if multiple shield effects exist, remove the extras immediately
+                    entity.removeEffect(holder);
+                }
+            }
+        }
+        return active;
     }
 
     public static void removeAllShields(LivingEntity entity) {
-        entity.removeEffect(PYRO_SHIELD);
-        entity.removeEffect(HYDRO_SHIELD);
-        entity.removeEffect(ELECTRO_SHIELD);
-        entity.removeEffect(CRYO_SHIELD);
+        removeAllShieldsExcept(entity, null);
+    }
+
+    public static void removeAllShieldsExcept(LivingEntity entity, @Nullable Element keepElement) {
+        for (Element elem : new Element[]{Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO}) {
+            if (elem != keepElement) {
+                var holder = getShieldForElement(elem);
+                if (holder != null && entity.hasEffect(holder)) {
+                    entity.removeEffect(holder);
+                }
+            }
+        }
     }
 }

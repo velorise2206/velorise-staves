@@ -172,7 +172,7 @@ public final class ClientAuraTracker {
         if (mc.player == null) return null;
         Element mobShield = ModMobEffects.getActiveShield(mc.player);
         if (mobShield != null) {
-            if (activeCrystallizeShield == null) {
+            if (activeCrystallizeShield != mobShield) {
                 activeCrystallizeShield = mobShield;
                 crystallizeShieldUntil = System.currentTimeMillis() + 15000L;
             }

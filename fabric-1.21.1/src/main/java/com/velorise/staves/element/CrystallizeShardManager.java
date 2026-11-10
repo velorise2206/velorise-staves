@@ -170,12 +170,20 @@ public final class CrystallizeShardManager {
             if (entry != null) {
                 Element activeShield = ModMobEffects.getActiveShield(player);
                 boolean depleted = !player.isCreative() && player.getAbsorptionAmount() <= 0.0F;
-                if (now >= entry.expireTick || (activeShield != null && activeShield != entry.element) || depleted) {
+                boolean expired = now >= entry.expireTick;
+                boolean changed = (activeShield != null && activeShield != entry.element);
+                boolean cleared = (activeShield == null);
+
+                if (expired || changed || cleared || depleted) {
                     ACTIVE_SHIELDS.remove(pid);
-                    ModMobEffects.removeAllShields(player);
+                    if (changed || cleared || depleted) {
+                        ModMobEffects.removeAllShields(player);
+                    }
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
-                    level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                            SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
+                    if (depleted) {
+                        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                                SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.6F, 1.6F);
+                    }
                 } else if (now % 8 == 0) {
                     spawnShieldOrbitParticles(level, player, entry.element);
                 }
@@ -287,9 +295,14 @@ public final class CrystallizeShardManager {
         }
     }
 
-    private static void pickupShard(ServerLevel level, ServerPlayer player, Element element) {
-        long now = level.getGameTime();
+    public static void onShieldApplied(ServerPlayer player, Element element, int durationTicks) {
+        long now = player.serverLevel().getGameTime();
+        int safeDuration = durationTicks > 0 ? durationTicks : SHIELD_DURATION_TICKS;
+        ACTIVE_SHIELDS.put(player.getUUID(), new ShieldEntry(element, now + safeDuration));
+        ModNetwork.sendCrystallizeShieldToPlayer(player, element, safeDuration);
+    }
 
+    private static void pickupShard(ServerLevel level, ServerPlayer player, Element element) {
         // Remove any old crystallize shield effects
         ModMobEffects.removeAllShields(player);
         var shieldObj = ModMobEffects.getShieldForElement(element);
@@ -301,9 +314,7 @@ public final class CrystallizeShardManager {
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, SHIELD_DURATION_TICKS, 0, false, false, false));
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), 2.0F));
 
-        // Register 250% elemental counter shield
-        ACTIVE_SHIELDS.put(player.getUUID(), new ShieldEntry(element, now + SHIELD_DURATION_TICKS));
-        ModNetwork.sendCrystallizeShieldToPlayer(player, element, SHIELD_DURATION_TICKS);
+        onShieldApplied(player, element, SHIELD_DURATION_TICKS);
 
         // Pickup chime sound
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
