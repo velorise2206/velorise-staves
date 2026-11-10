@@ -211,7 +211,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bCảm Biến Sculk:§r Khi kích hoạt, phóng §d1.0U Lôi§r vào sinh vật gần nhất trong §e8m§r mỗi §e0.5s§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dCảm Biến Sculk Hiệu Chỉnh:§r Cường hóa tầm lên §e16m§r gắn §d2.0U Lôi Mạnh§r!",
   "codex.velorise_staves.env.redstone.title": "Cuộn Tesla, Cột Thu Lôi & Redstone",
-  "codex.velorise_staves.env.redstone.p1": "• §6Cuộn Tesla:§r Đặt §6Cột Thu Lôi§r lên §cKhối Redstone§r phóng §d3–5 tia sét§r (5m, mỗi 1s) gắn §d1.0U Lôi§r (0.5§f§r), kích §dNở Rộ§r; cột cấp nguồn/sét đánh xả 4.5m.",
+  "codex.velorise_staves.env.redstone.p1": "• §6Cuộn Tesla:§r Đặt §6Cột Thu Lôi§r lên §cKhối Redstone§r phóng §d3–5 tia§r (5m, mỗi 2s, §d0.5U Lôi§r, 0.5§f§r), kích §dNở Rộ§r. Mưa hoặc Sét (30s): §ex2 mọi thông số§r!",
   "codex.velorise_staves.env.redstone.p2": "• §cObserver & Redstone:§r Tín hiệu Observer, §cKhối Redstone§r, §cDây điện§r & §cQuặng phát sáng§r gắn §d1.0U Lôi§r.",
   "codex.velorise_staves.env.amethyst.title": "Hốc Thạch Anh Tím & Khai Thác",
   "codex.velorise_staves.env.amethyst.p1": "• §dBức Xạ Lôi:§r Chạm §dKhối/Cụm Thạch Anh Tím§r bị gắn §d1.0U Lôi§r (0.5§f§r/s).",

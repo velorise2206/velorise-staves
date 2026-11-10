@@ -620,6 +620,7 @@ public final class ArcaneStaffItem extends Item {
 
         double aoeRadius = isNetherite ? 4.5D : 2.0D;
         DendroCoreManager.checkReactionsNear(level, strikePos, aoeRadius, Element.ELECTRO, player);
+        EnvironmentalBlockManager.activateTeslaCoilsNear(level, strikePos, 1.5D);
         // Electrify water if strikePos is in water
         BlockPos strikeBlock = BlockPos.containing(strikePos);
         ElectrifiedWaterManager.electrify(level, strikeBlock, aoeRadius, 70, player, damagePerTick);

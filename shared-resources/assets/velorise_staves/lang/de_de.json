@@ -211,7 +211,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bSculk-Sensor:§r Schockt bei Aktivität alle §e0.5s§r die nächste Kreatur in §e8m§r mit §d1.0U Elektro§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dKalibrierter Sensor:§r Überladene §e16m Reichweite§r mit §d2.0U Stark-Elektro§r!",
   "codex.velorise_staves.env.redstone.title": "Teslaspule, Blitzableiter & Redstone",
-  "codex.velorise_staves.env.redstone.p1": "• §6Teslaspule:§r §6Blitzableiter§r auf §cRedstone-Block§r feuert jede Sek. §d3–5 Blitze§r (5m) mit §d1.0U Elektro§r (0.5§f§r) & zündet §dSupraspross§r; sonst 4.5m bei Blitz/Signal.",
+  "codex.velorise_staves.env.redstone.p1": "• §6Teslaspule:§r §6Blitzableiter§r auf §cRedstone-Block§r feuert alle 2s §d3–5 Blitze§r (5m, §d0.5U Elektro§r, 0.5§f§r) & zündet §dSupraspross§r. Regen oder Blitz (30s): §ealle Werte ×2§r!",
   "codex.velorise_staves.env.redstone.p2": "• §cBeobachter & Redstone:§r Rückimpuls, §cRedstone-Block§r, aktives §cKabel§r & §cErz§r setzen §d1.0U Elektro§r.",
   "codex.velorise_staves.env.amethyst.title": "Amethystgeode & Kristallabbau",
   "codex.velorise_staves.env.amethyst.p1": "• §dElektro-Strahlung:§r Berühren von §dAmethystblöcken/-haufen§r setzt §d1.0U Elektro§r (0.5§f§r/s).",

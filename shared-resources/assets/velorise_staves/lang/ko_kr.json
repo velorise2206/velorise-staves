@@ -211,7 +211,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §b스컬크 감지체:§r 작동 중 §e0.5s§r 마다 §e8m§r 내 가장 가까운 생물에게 §d1.0U 번개§r 방전.",
   "codex.velorise_staves.env.sculk.p2": "• §d조율된 스컬크 감지체:§r §e16m 범위§r 로 강화되어 §d2.0U 강번개§r 를 부여!",
   "codex.velorise_staves.env.redstone.title": "테슬라 코일, 피뢰침 & 레드스톤",
-  "codex.velorise_staves.env.redstone.p1": "• §6테슬라 코일:§r §c레드스톤 블록§r 위의 §6피뢰침§r 이 매초 §d3–5갈래 전격§r(5m, §d1.0U 번개§r·0.5§f§r)을 방출해 §d만개§r 발동; 낙뢰/신호 시 4.5m 방전.",
+  "codex.velorise_staves.env.redstone.p1": "• §6테슬라 코일:§r §c레드스톤 블록§r 위의 §6피뢰침§r 이 2초마다 §d3–5갈래 전격§r(5m, §d0.5U 번개§r·0.5§f§r)으로 §d만개§r 발동; 비 또는 번개(30초) 시 §e모든 능력 2배§r!",
   "codex.velorise_staves.env.redstone.p2": "• §c관측기 & 레드스톤:§r 관측기 펄스, §c레드스톤 블록§r, 통전된 §c선§r, 켜진 §c광석§r 이 §d1.0U 번개§r 부여.",
   "codex.velorise_staves.env.amethyst.title": "자수정 정동 & 폭파 채굴",
   "codex.velorise_staves.env.amethyst.p1": "• §d번개 방사:§r §d자수정 블록/군집§r 에 닿으면 §d1.0U 번개§r 부착(0.5§f§r/s).",

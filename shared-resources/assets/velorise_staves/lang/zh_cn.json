@@ -211,7 +211,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §b幽匿感测体：§r 激活时每 §e0.5s§r 对 §e8m§r 内最近生物释放 §d1.0U 雷§r。",
   "codex.velorise_staves.env.sculk.p2": "• §d校频幽匿感测体：§r 过载至 §e16m 范围§r 并施加 §d2.0U 强雷§r！",
   "codex.velorise_staves.env.redstone.title": "特斯拉线圈、避雷针与红石",
-  "codex.velorise_staves.env.redstone.p1": "• §6特斯拉线圈：§r 将 §6避雷针§r 置于 §c红石块§r 上每秒发射 §d3–5 道电弧§r（5m，§d1.0U 雷§r、0.5§f§r），可触发 §d超绽放§r；遭雷击或充能时放电 4.5m。",
+  "codex.velorise_staves.env.redstone.p1": "• §6特斯拉线圈：§r 将 §6避雷针§r 置于 §c红石块§r 上每2秒发射 §d3–5 道电弧§r（5m，§d0.5U 雷§r、0.5§f§r），可触发 §d超绽放§r；雨天或雷击(30秒) §e全属性×2§r！",
   "codex.velorise_staves.env.redstone.p2": "• §c侦测器与红石：§r 侦测器脉冲、§c红石块§r、充能 §c红石线§r 与点亮 §c红石矿§r 施加 §d1.0U 雷§r。",
   "codex.velorise_staves.env.amethyst.title": "紫水晶洞与爆破采矿",
   "codex.velorise_staves.env.amethyst.p1": "• §d雷元素辐射：§r 触碰 §d紫水晶块/簇§r 会附着 §d1.0U 雷§r（0.5§f§r/s）。",

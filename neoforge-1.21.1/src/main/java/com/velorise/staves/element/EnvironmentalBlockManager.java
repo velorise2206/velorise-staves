@@ -49,6 +49,7 @@ public final class EnvironmentalBlockManager {
     private static final Map<Long, Long> LAST_OBSERVER_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> LAST_LIGHTNING_ROD_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> LAST_TESLA_COIL_ZAP = new ConcurrentHashMap<>();
+    private static final Map<BlockPos, Long> TESLA_COIL_OVERCHARGE_UNTIL = new ConcurrentHashMap<>();
 
     private EnvironmentalBlockManager() {}
 
@@ -58,6 +59,7 @@ public final class EnvironmentalBlockManager {
         LAST_OBSERVER_ZAP.clear();
         LAST_LIGHTNING_ROD_ZAP.clear();
         LAST_TESLA_COIL_ZAP.clear();
+        TESLA_COIL_OVERCHARGE_UNTIL.clear();
     }
 
     /**
@@ -279,6 +281,7 @@ public final class EnvironmentalBlockManager {
             LAST_OBSERVER_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
             LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
             LAST_TESLA_COIL_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
+            TESLA_COIL_OVERCHARGE_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -381,7 +384,11 @@ public final class EnvironmentalBlockManager {
                     BlockPos bp = bolt.blockPosition();
                     for (BlockPos check : new BlockPos[]{bp, bp.below(), bp.above(), bp.north(), bp.south(), bp.east(), bp.west()}) {
                         if (level.hasChunkAt(check) && level.getBlockState(check).is(Blocks.LIGHTNING_ROD)) {
-                            dischargeLightningRod(level, check, serverNow);
+                            if (isTeslaCoilBlock(level, check)) {
+                                activateTeslaCoil(level, check, serverNow);
+                            } else {
+                                dischargeLightningRod(level, check, serverNow);
+                            }
                         }
                     }
                 }
@@ -393,12 +400,15 @@ public final class EnvironmentalBlockManager {
                 // Check active Tesla Coils (Lightning Rod on Redstone Block), powered Lightning Rods, and block-form energized Redstone
                 BlockPos playerPos = player.blockPosition();
                 int redstoneArcBudget = (serverNow % 3L == 0L) ? 4 : 0;
-                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-10, -5, -10), playerPos.offset(10, 5, 10))) {
+                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-14, -6, -14), playerPos.offset(14, 6, 14))) {
                     if (!level.hasChunkAt(p)) continue;
                     BlockState st = level.getBlockState(p);
                     if (st.is(Blocks.LIGHTNING_ROD)) {
                         BlockPos below = p.below();
                         if (level.hasChunkAt(below) && level.getBlockState(below).is(Blocks.REDSTONE_BLOCK)) {
+                            if (st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
+                                activateTeslaCoil(level, p, serverNow);
+                            }
                             if (tickedTeslaCoils.add(p.immutable())) {
                                 tickTeslaCoil(level, p, st, serverNow);
                             }
@@ -658,18 +668,52 @@ public final class EnvironmentalBlockManager {
         return isSolidAmethystBlock(st) || isAmethystClusterOrBud(st);
     }
 
+    public static boolean isTeslaCoilBlock(ServerLevel level, BlockPos pos) {
+        if (!level.hasChunkAt(pos) || !level.hasChunkAt(pos.below())) return false;
+        return level.getBlockState(pos).is(Blocks.LIGHTNING_ROD)
+                && level.getBlockState(pos.below()).is(Blocks.REDSTONE_BLOCK);
+    }
+
+    public static void activateTeslaCoil(ServerLevel level, BlockPos rodPos, long now) {
+        if (!isTeslaCoilBlock(level, rodPos)) return;
+        BlockPos immutableRod = rodPos.immutable();
+        Long currentUntil = TESLA_COIL_OVERCHARGE_UNTIL.get(immutableRod);
+        long newUntil = now + 600L; // 30s
+        boolean freshActivation = currentUntil == null || currentUntil <= now || (newUntil - currentUntil) > 15L;
+        TESLA_COIL_OVERCHARGE_UNTIL.put(immutableRod, Math.max(currentUntil != null ? currentUntil : 0L, newUntil));
+        if (freshActivation) {
+            Vec3 tip = Vec3.atCenterOf(immutableRod).add(0.0D, 0.35D, 0.0D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, tip.x, tip.y, tip.z, 10, 0.25D, 0.25D, 0.25D, 0.08D);
+        }
+    }
+
+    public static void activateTeslaCoilsNear(ServerLevel level, Vec3 pos, double radius) {
+        if (level == null || pos == null) return;
+        long now = level.getGameTime();
+        int rCeil = (int) Math.ceil(radius);
+        double rSq = radius * radius;
+        BlockPos center = BlockPos.containing(pos);
+        for (BlockPos p : BlockPos.betweenClosed(
+                center.offset(-rCeil, -rCeil, -rCeil),
+                center.offset(rCeil, rCeil, rCeil))) {
+            if (p.distToCenterSqr(pos) <= rSq && isTeslaCoilBlock(level, p)) {
+                activateTeslaCoil(level, p, now);
+            }
+        }
+    }
+
     /**
      * Ticks an active Tesla Coil (Copper Lightning Rod placed on top of a Redstone Block).
-     * Every 1s (20 ticks), emits 3-5 lightning arcs in random directions up to 5 blocks away,
-     * propagating outward step-by-step and applying 1.0U Electro + 0.5 heart (1.0F dmg).
+     * Normal mode: every 2s (40 ticks), 3-5 bolts in 5 blocks applying 0.5U Electro + 0.5 heart (1.0F dmg).
+     * Overcharged mode (during rain or 30s after lightning): all stats x2
+     * (every 1s, 6-10 bolts in 10 blocks applying 1.0U Electro + 1.0 heart (2.0F dmg)).
      */
     private static void tickTeslaCoil(ServerLevel level, BlockPos rodPos, BlockState rodState, long now) {
         BlockPos immutableRod = rodPos.immutable();
-        Long last = LAST_TESLA_COIL_ZAP.get(immutableRod);
-        if (last != null && (now - last) < 20L) {
-            return;
-        }
-        LAST_TESLA_COIL_ZAP.put(immutableRod, now);
+        Long overchargeUntil = TESLA_COIL_OVERCHARGE_UNTIL.get(immutableRod);
+        boolean lightningActive = overchargeUntil != null && now < overchargeUntil;
+        boolean rainActive = level.isRainingAt(immutableRod.above());
+        boolean overcharged = lightningActive || rainActive;
 
         Direction facing = rodState.hasProperty(LightningRodBlock.FACING)
                 ? rodState.getValue(LightningRodBlock.FACING)
@@ -680,7 +724,33 @@ public final class EnvironmentalBlockManager {
                 facing.getStepZ() * 0.35D
         );
 
-        int boltCount = 3 + level.random.nextInt(3);
+        if (overcharged && (now % 10L == 0L)) {
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, origin.x, origin.y, origin.z,
+                    3, 0.16D, 0.12D, 0.16D, 0.03D);
+        }
+
+        long intervalTicks = overcharged ? 20L : 40L;
+        Long last = LAST_TESLA_COIL_ZAP.get(immutableRod);
+        if (last != null && (now - last) < intervalTicks) {
+            return;
+        }
+        LAST_TESLA_COIL_ZAP.put(immutableRod, now);
+
+        int rangeBlocks = overcharged ? 10 : 5;
+        int maxRangeSq = rangeBlocks * rangeBlocks;
+        double maxRayDistSq = overcharged ? 105.0D : 27.5D;
+        int boltCount = overcharged
+                ? (6 + level.random.nextInt(5))
+                : (3 + level.random.nextInt(3));
+        float electroU = overcharged ? 1.0F : 0.5F;
+        float boltDamage = overcharged ? 2.0F : 1.0F;
+        double waterRadius = overcharged ? 4.0D : 2.0D;
+        int waterDuration = overcharged ? 70 : 35;
+        double dendroCoreRadius = overcharged ? 2.5D : 1.25D;
+
+        int span = rangeBlocks * 2 + 1;
+        int tyMin = overcharged ? -2 : -1;
+        int tyCount = overcharged ? 8 : 5;
         Set<UUID> hitEntitiesThisPulse = new HashSet<>();
 
         for (int b = 0; b < boltCount; b++) {
@@ -688,12 +758,12 @@ public final class EnvironmentalBlockManager {
             int dy = 0;
             int dz = 0;
             boolean picked = false;
-            for (int attempt = 0; attempt < 8; attempt++) {
-                int tx = level.random.nextInt(11) - 5;
-                int ty = level.random.nextInt(5) - 1;
-                int tz = level.random.nextInt(11) - 5;
+            for (int attempt = 0; attempt < 10; attempt++) {
+                int tx = level.random.nextInt(span) - rangeBlocks;
+                int ty = level.random.nextInt(tyCount) + tyMin;
+                int tz = level.random.nextInt(span) - rangeBlocks;
                 int d2 = tx * tx + ty * ty + tz * tz;
-                if (d2 >= 4 && d2 <= 25 && !(tx == 0 && ty == -1 && tz == 0)) {
+                if (d2 >= 4 && d2 <= maxRangeSq && !(tx == 0 && ty == -1 && tz == 0)) {
                     dx = tx;
                     dy = ty;
                     dz = tz;
@@ -703,7 +773,8 @@ public final class EnvironmentalBlockManager {
             }
             if (!picked) {
                 double angle = level.random.nextDouble() * Math.PI * 2.0D;
-                double distChoice = 2.5D + level.random.nextDouble() * 2.5D;
+                double minFallback = overcharged ? 4.0D : 2.5D;
+                double distChoice = minFallback + level.random.nextDouble() * (rangeBlocks - minFallback);
                 dx = (int) Math.round(Math.cos(angle) * distChoice);
                 dy = level.random.nextInt(4) - 1;
                 dz = (int) Math.round(Math.sin(angle) * distChoice);
@@ -722,7 +793,7 @@ public final class EnvironmentalBlockManager {
             for (int s = 1; s <= steps; s++) {
                 double t = (double) s / (double) steps;
                 Vec3 pt = origin.add(delta.scale(t));
-                if (pt.distanceToSqr(origin) > 27.5D) {
+                if (pt.distanceToSqr(origin) > maxRayDistSq) {
                     break;
                 }
 
@@ -734,9 +805,9 @@ public final class EnvironmentalBlockManager {
                 boolean isSelfBlock = stepPos.equals(immutableRod) || stepPos.equals(immutableRod.below());
                 if (!isSelfBlock) {
                     if (level.getFluidState(stepPos).is(FluidTags.WATER)) {
-                        ElectrifiedWaterManager.electrify(level, stepPos, 2.0D, 35, null, 1.0F);
+                        ElectrifiedWaterManager.electrify(level, stepPos, waterRadius, waterDuration, null, electroU);
                     }
-                    DendroCoreManager.checkReactionsNear(level, pt, 1.25D, Element.ELECTRO, null);
+                    DendroCoreManager.checkReactionsNear(level, pt, dendroCoreRadius, Element.ELECTRO, null);
 
                     AABB hitBox = new AABB(
                             pt.x - 1.15D, pt.y - 1.15D, pt.z - 1.15D,
@@ -755,7 +826,7 @@ public final class EnvironmentalBlockManager {
                     )) {
                         Vec3 center = cand.getBoundingBox().getCenter();
                         double dSq = center.distanceToSqr(pt);
-                        if (dSq < bestDistSq && center.distanceToSqr(origin) <= 27.5D) {
+                        if (dSq < bestDistSq && center.distanceToSqr(origin) <= maxRayDistSq) {
                             bestDistSq = dSq;
                             struck = cand;
                         }
@@ -764,7 +835,7 @@ public final class EnvironmentalBlockManager {
                     if (struck != null) {
                         hitEntitiesThisPulse.add(struck.getUUID());
                         arcEnd = struck.getBoundingBox().getCenter();
-                        ElementalGaugeManager.applyElementBypassIcd(level, struck, Element.ELECTRO, 1.0F, null, 1.0F);
+                        ElementalGaugeManager.applyElementBypassIcd(level, struck, Element.ELECTRO, electroU, null, boltDamage);
                         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
                                 5, 0.2D, 0.2D, 0.2D, 0.04D);
                         break;
@@ -779,16 +850,17 @@ public final class EnvironmentalBlockManager {
             }
 
             if (arcEnd.distanceToSqr(origin) >= 0.35D) {
-                ElectrifiedWaterManager.drawElectricArc(level, origin, arcEnd, 0.24D, true);
+                ElectrifiedWaterManager.drawElectricArc(level, origin, arcEnd, overcharged ? 0.30D : 0.24D, true);
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
-                        2, 0.12D, 0.12D, 0.12D, 0.02D);
+                        overcharged ? 3 : 2, 0.12D, 0.12D, 0.12D, 0.02D);
             }
         }
 
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, origin.x, origin.y, origin.z,
-                3, 0.1D, 0.1D, 0.1D, 0.02D);
+                overcharged ? 5 : 3, 0.12D, 0.12D, 0.12D, 0.02D);
         level.playSound(null, origin.x, origin.y, origin.z,
-                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.25F, 1.9F);
+                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS,
+                overcharged ? 0.38F : 0.25F, overcharged ? 1.75F : 1.9F);
     }
 
     /**
