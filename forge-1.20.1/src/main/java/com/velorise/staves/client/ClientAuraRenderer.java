@@ -17,6 +17,7 @@ import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -711,6 +712,67 @@ public final class ClientAuraRenderer {
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    public static List<Rect2i> getInventoryExtraAreas(EffectRenderingInventoryScreen<?> screen) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !screen.canSeeEffects()) return Collections.emptyList();
+
+        int leftPos = screen.getGuiLeft();
+        int topPos = screen.getGuiTop();
+        int imageWidth = screen.getXSize();
+
+        int startX = leftPos + imageWidth + 2;
+        int availableWidth = screen.width - startX;
+        if (availableWidth < 32) return Collections.emptyList();
+
+        Element shield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (shield == null) {
+            shield = ModMobEffects.getActiveShield(mc.player);
+        }
+
+        int vanillaCount = 0;
+        boolean shieldFoundInVanilla = false;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon()) {
+                vanillaCount++;
+                if (ModMobEffects.getShieldElement(inst.getEffect()) != null
+                        || inst.getEffect() == net.minecraft.world.effect.MobEffects.ABSORPTION) {
+                    shieldFoundInVanilla = true;
+                }
+            }
+        }
+
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        long now = System.currentTimeMillis();
+        boolean hasAura = data != null && !data.elements.isEmpty() && (data.expireTime <= 0 || now < data.expireTime);
+        int auraCount = hasAura ? data.elements.size() : 0;
+        boolean customShield = shield != null && !shieldFoundInVanilla;
+
+        int totalEffects = vanillaCount + auraCount + (customShield ? 1 : 0);
+        if (totalEffects == 0) return Collections.emptyList();
+
+        int yStep = 33;
+        if (totalEffects > 5) {
+            yStep = Math.max(1, 132 / (totalEffects - 1));
+        }
+
+        List<Rect2i> areas = new ArrayList<>();
+
+        if (customShield) {
+            int y = topPos + vanillaCount * yStep;
+            areas.add(new Rect2i(startX, y, 32, 32));
+        }
+
+        if (hasAura) {
+            int baseIndex = vanillaCount + (customShield ? 1 : 0);
+            for (int i = 0; i < data.elements.size(); i++) {
+                int y = topPos + (baseIndex + i) * yStep;
+                areas.add(new Rect2i(startX, y, 32, 32));
+            }
+        }
+
+        return areas;
     }
 
     public static int getElementBorderColor(Element element) {

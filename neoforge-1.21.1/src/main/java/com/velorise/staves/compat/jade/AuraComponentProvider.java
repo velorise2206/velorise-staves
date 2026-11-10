@@ -54,7 +54,11 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             if (this.texture == null) return;
             com.mojang.blaze3d.systems.RenderSystem.enableBlend();
             com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             guiGraphics.blit(this.texture, Math.round(x), Math.round(y), 0.0F, 0.0F, (int) this.size.x, (int) this.size.y, (int) this.size.x, (int) this.size.y);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             com.mojang.blaze3d.systems.RenderSystem.disableBlend();
         }
     }

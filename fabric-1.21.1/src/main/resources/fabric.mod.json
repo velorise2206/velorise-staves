@@ -25,6 +25,9 @@
     ],
     "modmenu": [
       "com.velorise.staves.compat.modmenu.VeloriseModMenuIntegration"
+    ],
+    "jei_mod_plugin": [
+      "com.velorise.staves.compat.jei.VeloriseJeiPlugin"
     ]
   },
   "mixins": [
