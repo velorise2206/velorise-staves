@@ -544,6 +544,14 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static boolean isNaturallyWaterSensitive(LivingEntity target) {
+        return target.isSensitiveToWater()
+                || target instanceof Blaze
+                || target instanceof Strider
+                || target instanceof SnowGolem
+                || target instanceof EnderMan;
+    }
+
     /**
      * Handles environmental water/rain on entities holding active auras.
      */
@@ -563,12 +571,16 @@ public final class ElementalGaugeManager {
             Long lastVape = INNATE_COOLDOWN_UNTIL.get(id);
             if (lastVape == null || now >= lastVape) {
                 INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
+                boolean sensitive = isNaturallyWaterSensitive(target);
+                float vapeDmg = sensitive ? 3.0F : 0.0F;
                 if (target.level() instanceof ServerLevel sl) {
                     sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 14, 0.3D, 0.3D, 0.3D, 0.04D);
                     sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.2F);
-                    target.hurt(sl.damageSources().magic(), 3.0F);
+                    if (sensitive) {
+                        target.hurt(sl.damageSources().magic(), vapeDmg);
+                    }
                 }
-                syncAuras(target, Collections.singleton(Element.PYRO), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 3.0F);
+                syncAuras(target, Collections.singleton(Element.PYRO), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
             }
             return;
         }
@@ -624,12 +636,16 @@ public final class ElementalGaugeManager {
             BURNING_UNTIL.remove(id);
             LAST_BURN_PYRO_REFRESH.remove(id);
             target.clearFire();
+            boolean sensitive = isNaturallyWaterSensitive(target);
+            float vapeDmg = sensitive ? 2.5F : 0.0F;
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.03D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
+                if (sensitive) {
+                    target.hurt(target.level().damageSources().magic(), vapeDmg);
+                }
             }
-            target.hurt(target.level().damageSources().magic(), 2.5F);
-            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, 2.5F);
+            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
             return;
         }
 
@@ -704,10 +720,7 @@ public final class ElementalGaugeManager {
         if (target instanceof Blaze
                 || target instanceof MagmaCube
                 || target instanceof Strider
-                || target instanceof Ghast
-                || target instanceof WitherSkeleton
-                || target instanceof ZombifiedPiglin
-                || target instanceof Zoglin) {
+                || target instanceof Ghast) {
             return Element.PYRO;
         }
         if (target instanceof Stray || target instanceof SnowGolem || target instanceof PolarBear) {
