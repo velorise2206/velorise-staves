@@ -4,7 +4,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
 
-A lightweight Minecraft magic & combat mod introducing **12 elemental combat staves**, **2 utility artifacts**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)**.
+A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves** (12 on 1.20.1), **2 utility artifacts**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -12,7 +12,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ## Features
 
-### Combat Staves (12 Types + Netherite Upgrades)
+### Combat Staves (13 Types + Netherite Upgrades)
 
 - **Inferno Rod** (![Pyro][pyro] Pyro): Rapid-fires blazing fireballs in tight bursts.
 - **Ghastfire Staff** (![Pyro][pyro] Pyro): Launches explosive fireballs that detonate on contact.
@@ -22,15 +22,16 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Wind Staff** (![Anemo][anemo] Anemo, 1.21+ only): Fires gusting wind charges that trigger rapid Swirl reactions.
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
 - **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
-- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs; the Netherite tier also raises a **Geo Construct** (`HP = 2x creator's max HP`, up to 3 active) that blocks attacks/projectiles and pulses 4m concentric Geo waves every 2s.
+- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs; the Netherite tier also raises a **Geo Fang Pillar** (`HP = 2x creator's max HP`, up to 3 active) that blocks attacks/projectiles and pulses 4m concentric Geo waves every 2s.
 - **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
 - **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Dendro/Nether): Discharges a 3-skull spread inflicting Wither decay and applying Dendro.
+- **Omni Staff** (![Omni][omni] Omni): Shapelessly crafted from any 1 staff of each of the 7 elements. Fires iridescent prism orbs (`5♥` / `2U` at `36m`, Netherite `7.5♥` / `3U` at `48m`) that automatically choose the highest-value reaction element in **Omni Mode**, or hold **`[Tab]`** to open the **8-slot Element Wheel** to lock onto any of the 7 elements.
 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns, and scale with the custom **Elemental Mastery I–III** enchantment.*
 
 > [!NOTE]
-> **Version Note:** The **Wind Staff** is exclusive to Minecraft 1.21.1 (NeoForge & Fabric), as its crafting recipe and mechanics utilize Breeze Rods and Wind Charges introduced in the 1.21 Tricky Trials update (Trial Chambers). Minecraft 1.20.1 (Forge) purposefully features 11 combat staves and uses **Resonant Echo** as its primary Anemo weapon.
+> **Version Note:** The **Wind Staff** is exclusive to Minecraft 1.21.1 (NeoForge & Fabric), as its crafting recipe and mechanics utilize Breeze Rods and Wind Charges introduced in the 1.21 Tricky Trials update (Trial Chambers). Minecraft 1.20.1 (Forge) purposefully features 12 combat staves and uses **Resonant Echo** as its primary Anemo weapon.
 
 ### Utility Artifacts & Codex
 
@@ -44,7 +45,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 Built upon **Elemental Gauge Theory**, attacks and the environment apply elemental auras with decay, internal cooldowns (ICD), and reactions:
 
-- **7 Elements**: Pyro ![Pyro][pyro], Hydro ![Hydro][hydro], Cryo ![Cryo][cryo], Electro ![Electro][electro], Anemo ![Anemo][anemo], Geo ![Geo][geo], Dendro ![Dendro][dendro].
+- **7 Elements** (+ ![Omni][omni] **Omni**): Pyro ![Pyro][pyro], Hydro ![Hydro][hydro], Cryo ![Cryo][cryo], Electro ![Electro][electro], Anemo ![Anemo][anemo], Geo ![Geo][geo], Dendro ![Dendro][dendro].
 - **Core Reactions**:
   - **Vaporize** (![Hydro][hydro] + ![Pyro][pyro]) & **Melt** (![Pyro][pyro] + ![Cryo][cryo]) — Multiplicative damage scaling.
   - **Overloaded** (![Pyro][pyro] + ![Electro][electro]) — High-knockback AOE explosion.
@@ -102,4 +103,5 @@ Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved (Code & Documentation
 [anemo]: shared-resources/assets/velorise_staves/textures/element/anemo.png
 [geo]: shared-resources/assets/velorise_staves/textures/element/geo.png
 [dendro]: shared-resources/assets/velorise_staves/textures/element/dendro.png
+[omni]: shared-resources/assets/velorise_staves/textures/element/omni.png
 
