@@ -22,10 +22,12 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractCandleBlock;
 import net.minecraft.world.level.block.Blocks;
@@ -42,8 +44,10 @@ import org.joml.Vector3f;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -83,6 +87,8 @@ public class OmniOrbEntity extends ThrowableProjectile {
     private double maxRange = 36.0D;
     private float baseDamage = 10.0F;
     private float attackU = 2.0F;
+    private final Set<UUID> zappedEntities = new HashSet<>();
+    private @Nullable Vec3 lastWaterElectrifyPos;
 
     public OmniOrbEntity(EntityType<? extends OmniOrbEntity> type, Level level) {
         super(type, level);
@@ -165,14 +171,40 @@ public class OmniOrbEntity extends ThrowableProjectile {
 
     @Override
     public void tick() {
+        Vec3 prevPos = this.position();
         super.tick();
 
         if (!this.level().isClientSide()) {
-            if (this.origin == null) {
-                this.origin = this.position();
+            if (this.isRemoved() || !(this.level() instanceof ServerLevel serverLevel)) {
+                return;
             }
+            if (this.origin == null) {
+                this.origin = prevPos;
+            }
+
+            Element fixedElem = modeToElement(getOmniMode());
+            if (fixedElem == Element.CRYO) {
+                BlockHitResult fluidHit = serverLevel.clip(new ClipContext(
+                        prevPos,
+                        this.position(),
+                        ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.ANY,
+                        this
+                ));
+                if (fluidHit.getType() == HitResult.Type.BLOCK && serverLevel.getFluidState(fluidHit.getBlockPos()).is(FluidTags.WATER)) {
+                    detonate(serverLevel, null, fluidHit.getLocation(), false);
+                    return;
+                }
+                if (this.isInWater() || serverLevel.getFluidState(this.blockPosition()).is(FluidTags.WATER)) {
+                    detonate(serverLevel, null, this.position(), false);
+                    return;
+                }
+            } else if (fixedElem == Element.ELECTRO) {
+                tickBallLightningPath(serverLevel, prevPos, this.position());
+            }
+
             if (this.position().distanceToSqr(this.origin) >= this.maxRange * this.maxRange || this.tickCount > 110) {
-                this.discard();
+                detonate(serverLevel, null, this.position(), true);
             }
             return;
         }
@@ -195,9 +227,94 @@ public class OmniOrbEntity extends ThrowableProjectile {
                 this.getX(), this.getY(), this.getZ(),
                 0.0D, 0.0D, 0.0D
         );
+        if (fixed == Element.ELECTRO) {
+            double rx = (this.random.nextDouble() - 0.5D) * 1.5D;
+            double ry = (this.random.nextDouble() - 0.5D) * 1.5D;
+            double rz = (this.random.nextDouble() - 0.5D) * 1.5D;
+            this.level().addParticle(
+                    ParticleTypes.ELECTRIC_SPARK,
+                    this.getX() + rx, this.getY() + ry, this.getZ() + rz,
+                    0.0D, 0.0D, 0.0D
+            );
+        }
         if (this.tickCount % 2 == 0) {
             this.level().addParticle(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 0.0D, 0.0D, 0.0D);
         }
+    }
+
+    private void tickBallLightningPath(ServerLevel level, Vec3 from, Vec3 to) {
+        boolean neth = isNetheriteTier();
+        ServerPlayer attacker = this.getOwner() instanceof ServerPlayer sp ? sp : null;
+        double auraRadius = 1.0D;
+        double auraRadiusSq = auraRadius * auraRadius;
+        float zapU = neth ? 1.5F : 1.0F;
+        float zapDmg = this.baseDamage * 0.35F;
+
+        // 1. Zap nearby LivingEntities within 1 block of the flight segment
+        AABB swept = new AABB(from, to).inflate(auraRadius + 0.5D);
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, swept,
+                e -> e.isAlive() && e != this.getOwner() && !e.isSpectator()
+                        && !this.zappedEntities.contains(e.getUUID()))) {
+            AABB bb = target.getBoundingBox();
+            Vec3 center = bb.getCenter();
+            Vec3 segPt = closestPointOnSegment(from, to, center);
+            double cx = Mth.clamp(segPt.x, bb.minX, bb.maxX);
+            double cy = Mth.clamp(segPt.y, bb.minY, bb.maxY);
+            double cz = Mth.clamp(segPt.z, bb.minZ, bb.maxZ);
+            Vec3 hitPt = new Vec3(cx, cy, cz);
+            Vec3 orbPt = closestPointOnSegment(from, to, hitPt);
+            if (orbPt.distanceToSqr(hitPt) <= auraRadiusSq) {
+                this.zappedEntities.add(target.getUUID());
+                Vec3 arcEnd = hitPt.lerp(center, 0.45D);
+                ElectrifiedWaterManager.drawElectricArc(level, orbPt, arcEnd, 0.18D, true);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z, 6, 0.2D, 0.2D, 0.2D, 0.04D);
+                level.playSound(null, orbPt.x, orbPt.y, orbPt.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.25F, 1.9F);
+                ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, zapU, attacker, zapDmg);
+            }
+        }
+
+        // 2. Electrify water, Tesla Coils & Dendro Cores within 1 block along the path
+        Vec3 delta = to.subtract(from);
+        double len = delta.length();
+        int steps = Math.max(1, (int) Math.ceil(len / 0.85D));
+        for (int s = 0; s <= steps; s++) {
+            double t = len < 1.0E-4D ? 1.0D : (double) s / (double) steps;
+            Vec3 pt = from.add(delta.scale(t));
+            DendroCoreManager.checkReactionsNear(level, pt, 1.35D, Element.ELECTRO, attacker);
+            EnvironmentalBlockManager.activateTeslaCoilsNear(level, pt, 1.35D);
+
+            if (this.lastWaterElectrifyPos == null || pt.distanceToSqr(this.lastWaterElectrifyPos) >= 2.25D) {
+                BlockPos centerBlock = BlockPos.containing(pt);
+                for (BlockPos p : BlockPos.betweenClosed(centerBlock.offset(-1, -1, -1), centerBlock.offset(1, 1, 1))) {
+                    if (level.hasChunkAt(p) && level.getFluidState(p).is(FluidTags.WATER) && p.distToCenterSqr(pt) <= 1.5625D) {
+                        this.lastWaterElectrifyPos = pt;
+                        ElectrifiedWaterManager.electrify(level, p.immutable(), neth ? 1.5D : 1.0D, 70, attacker, neth ? 1.5F : 1.0F);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Ambient crackling ball-lightning arcs radiating ~1 block around the orb
+        if (this.tickCount % 2 == 0) {
+            double yaw = this.random.nextDouble() * Math.PI * 2.0D;
+            double pitch = (this.random.nextDouble() - 0.5D) * Math.PI;
+            double r = 0.7D + this.random.nextDouble() * 0.35D;
+            Vec3 arcEnd = to.add(
+                    Math.cos(yaw) * Math.cos(pitch) * r,
+                    Math.sin(pitch) * r,
+                    Math.sin(yaw) * Math.cos(pitch) * r
+            );
+            ElectrifiedWaterManager.drawElectricArc(level, to, arcEnd, 0.14D, false);
+        }
+    }
+
+    private static Vec3 closestPointOnSegment(Vec3 a, Vec3 b, Vec3 p) {
+        Vec3 ab = b.subtract(a);
+        double lenSq = ab.lengthSqr();
+        if (lenSq <= 1.0E-6D) return a;
+        double t = Mth.clamp(p.subtract(a).dot(ab) / lenSq, 0.0D, 1.0D);
+        return a.add(ab.scale(t));
     }
 
     @Override
@@ -209,8 +326,13 @@ public class OmniOrbEntity extends ThrowableProjectile {
             this.discard();
             return;
         }
+        detonate(serverLevel, hitResult, hitResult.getLocation(), false);
+    }
 
-        Vec3 hitPos = hitResult.getLocation();
+    private void detonate(ServerLevel serverLevel, @Nullable HitResult hitResult, Vec3 hitPos, boolean isTimeout) {
+        if (this.isRemoved()) {
+            return;
+        }
         ServerPlayer attacker = this.getOwner() instanceof ServerPlayer sp ? sp : null;
         int mode = getOmniMode();
         Element chosen = modeToElement(mode);
@@ -242,6 +364,9 @@ public class OmniOrbEntity extends ThrowableProjectile {
 
         applyEnvironmentImpact(serverLevel, hitPos, chosen, attacker);
         spawnImpactEffects(serverLevel, hitPos, chosen, mode == 0);
+        if (isTimeout) {
+            serverLevel.sendParticles(ParticleTypes.EXPLOSION, hitPos.x, hitPos.y + 0.1D, hitPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+        }
         this.discard();
     }
 
@@ -269,7 +394,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
         switch (element) {
             case PYRO -> EnvironmentalBlockManager.checkPyroAmethystMining(level, hitPos, envRadius);
             case HYDRO -> EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, hitPos, hitPos, envRadius);
-            case CRYO -> ArcaneStaffEvents.freezeWaterNear(level, hitPos, neth ? 2 : 1);
+            case CRYO -> ArcaneStaffEvents.freezeWaterNear(level, hitPos, neth ? 3 : 2);
             case ELECTRO -> {
                 EnvironmentalBlockManager.activateTeslaCoilsNear(level, hitPos, envRadius + 0.5D);
                 BlockPos hitBlock = BlockPos.containing(hitPos);

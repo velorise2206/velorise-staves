@@ -6,9 +6,6 @@
       "required": false
     },
     "minecraft:phantom",
-    "minecraft:vex",
-    "minecraft:allay",
-    "minecraft:parrot",
-    "minecraft:bat"
+    "minecraft:vex"
   ]
 }

@@ -8,8 +8,11 @@ import net.minecraft.util.StringUtil;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -56,11 +59,50 @@ public final class SwordImbueHelper {
         return result;
     }
 
+    public static boolean hasFireAspect(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        return containsFireAspect(stack.getEnchantments())
+                || containsFireAspect(stack.get(DataComponents.STORED_ENCHANTMENTS));
+    }
+
+    private static boolean containsFireAspect(@Nullable ItemEnchantments enchantments) {
+        if (enchantments == null || enchantments.isEmpty()) return false;
+        for (var entry : enchantments.entrySet()) {
+            if (entry.getIntValue() > 0 && (entry.getKey().is(Enchantments.FIRE_ASPECT)
+                    || entry.getKey().unwrapKey().map(k -> k.location().getPath().equals("fire_aspect")).orElse(false))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isNonPyroImbued(ItemStack stack) {
+        String key = getImbuedKey(stack);
+        return key != null && !Element.PYRO.name().equals(key);
+    }
+
+    public static boolean isFireAspectElementConflict(ItemStack left, ItemStack right) {
+        if (left == null || left.isEmpty() || right == null || right.isEmpty()) return false;
+        if (left.getItem() instanceof SwordItem && right.getItem() instanceof ElementItem elemItem) {
+            return hasFireAspect(left) && elemItem.getElement() != Element.PYRO;
+        }
+        if (left.getItem() instanceof SwordItem && hasFireAspect(right)) {
+            return isNonPyroImbued(left);
+        }
+        if (right.getItem() instanceof SwordItem && hasFireAspect(left)) {
+            return isNonPyroImbued(right);
+        }
+        return false;
+    }
+
     public static @Nullable AnvilResult tryBuildAnvilResult(ItemStack left, ItemStack right, @Nullable String itemName) {
         if (left.isEmpty() || right.isEmpty()) return null;
         if (!(left.getItem() instanceof SwordItem) || !(right.getItem() instanceof ElementItem elemItem)) return null;
 
         Element rightElem = elemItem.getElement();
+        if (hasFireAspect(left) && rightElem != Element.PYRO) {
+            return null;
+        }
         String targetKey = rightElem != null ? rightElem.name() : OMNI_KEY;
         if (targetKey.equals(getImbuedKey(left))) {
             return null;
@@ -101,9 +143,12 @@ public final class SwordImbueHelper {
                     .append(Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(elem.color()));
         }
 
-        Component hint = Component.translatable("tooltip.velorise_staves.imbued.hint").withStyle(ChatFormatting.DARK_GRAY);
+        List<Component> wrappedHint = new ArrayList<>();
+        ArcaneStaffItem.appendWrappedTooltip(wrappedHint,
+                Component.translatable("tooltip.velorise_staves.imbued.hint"),
+                ChatFormatting.DARK_GRAY, 44, "  ");
         int insertAt = tooltip.isEmpty() ? 0 : 1;
         tooltip.add(insertAt, badge);
-        tooltip.add(insertAt + 1, hint);
+        tooltip.addAll(insertAt + 1, wrappedHint);
     }
 }

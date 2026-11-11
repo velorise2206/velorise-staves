@@ -10,7 +10,6 @@ import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.manager.TemporaryWebManager;
-import com.velorise.staves.recipe.OmniStaffUpgradeRecipe;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -28,8 +27,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import org.jetbrains.annotations.Nullable;
 
 public final class VeloriseStavesMod implements ModInitializer {
@@ -118,12 +115,6 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item CRYO_ELEMENT = registerItem("cryo_element", new ElementItem(Element.CRYO));
     public static final Item GEO_ELEMENT = registerItem("geo_element", new ElementItem(Element.GEO));
     public static final Item OMNI_ELEMENT = registerItem("omni_element", new ElementItem(null));
-
-    public static final RecipeSerializer<OmniStaffUpgradeRecipe> OMNI_STAFF_UPGRADE_SERIALIZER = Registry.register(
-            BuiltInRegistries.RECIPE_SERIALIZER,
-            ResourceLocation.fromNamespaceAndPath(MODID, "omni_staff_upgrade"),
-            new SimpleCraftingRecipeSerializer<>(OmniStaffUpgradeRecipe::new)
-    );
 
     public static Item getElementItem(@Nullable Element element) {
         if (element == null) return OMNI_ELEMENT;

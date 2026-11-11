@@ -161,7 +161,7 @@ public class VoidTranslocatorItem extends Item {
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());
-            tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.DARK_GRAY));
+            ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable(getDescriptionId() + ".desc"), ChatFormatting.DARK_GRAY);
         }
     }
 }

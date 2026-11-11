@@ -14,17 +14,11 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CraftingRecipe;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.RecipeHolder;
-import net.minecraft.world.item.crafting.ShapelessRecipe;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,40 +77,7 @@ public final class VeloriseJeiPlugin implements IModPlugin {
         anvilRecipes.add(createRepairExample(factory, VeloriseStavesMod.ARC_CASTER.get(), VeloriseStavesMod.OMNI_ELEMENT.get(), "jei_repair_omni"));
         registration.addRecipes(RecipeTypes.ANVIL, anvilRecipes);
 
-        // 3. Crafting examples for Omni Staff Upgrade CustomRecipe
-        Ingredient basicStaves = Ingredient.of(
-                VeloriseStavesMod.DRAGONFIRE_SCEPTER.get(), VeloriseStavesMod.RESONANT_ECHO.get(),
-                VeloriseStavesMod.INFERNO_ROD.get(), VeloriseStavesMod.GHASTFIRE_STAFF.get(),
-                VeloriseStavesMod.WITHER_SCEPTER.get(), VeloriseStavesMod.SHULKER_SEEKER.get(),
-                VeloriseStavesMod.GUARDIAN_LENS.get(), VeloriseStavesMod.EVOKER_FANG_STAFF.get(),
-                VeloriseStavesMod.ARC_CASTER.get(), VeloriseStavesMod.FROSTBOLT_WAND.get(),
-                VeloriseStavesMod.WEBCASTER.get(), VeloriseStavesMod.WIND_STAFF.get()
-        );
-        Ingredient netheriteStaves = Ingredient.of(
-                VeloriseStavesMod.NETHERITE_DRAGONFIRE_SCEPTER.get(), VeloriseStavesMod.NETHERITE_RESONANT_ECHO.get(),
-                VeloriseStavesMod.NETHERITE_INFERNO_ROD.get(), VeloriseStavesMod.NETHERITE_GHASTFIRE_STAFF.get(),
-                VeloriseStavesMod.NETHERITE_WITHER_SCEPTER.get(), VeloriseStavesMod.NETHERITE_SHULKER_SEEKER.get(),
-                VeloriseStavesMod.NETHERITE_GUARDIAN_LENS.get(), VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF.get(),
-                VeloriseStavesMod.NETHERITE_ARC_CASTER.get(), VeloriseStavesMod.NETHERITE_FROSTBOLT_WAND.get(),
-                VeloriseStavesMod.NETHERITE_WEBCASTER.get(), VeloriseStavesMod.NETHERITE_WIND_STAFF.get()
-        );
-        Ingredient omniIngredient = Ingredient.of(VeloriseStavesMod.OMNI_ELEMENT.get());
-
-        List<RecipeHolder<CraftingRecipe>> upgradeHolders = List.of(
-                new RecipeHolder<>(
-                        ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "jei_omni_upgrade_basic"),
-                        new ShapelessRecipe("omni_staff_upgrade", CraftingBookCategory.EQUIPMENT,
-                                new ItemStack(VeloriseStavesMod.OMNI_STAFF.get()),
-                                NonNullList.of(Ingredient.EMPTY, basicStaves, omniIngredient))
-                ),
-                new RecipeHolder<>(
-                        ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "jei_omni_upgrade_netherite"),
-                        new ShapelessRecipe("omni_staff_upgrade", CraftingBookCategory.EQUIPMENT,
-                                new ItemStack(VeloriseStavesMod.NETHERITE_OMNI_STAFF.get()),
-                                NonNullList.of(Ingredient.EMPTY, netheriteStaves, omniIngredient))
-                )
-        );
-        registration.addRecipes(RecipeTypes.CRAFTING, upgradeHolders);
+        // 3. Omni Staff Smithing upgrades are native minecraft:smithing_transform recipes in datapack JSON.
 
         // 4. Elemental Essence Info tabs in JEI
         for (Element e : Element.values()) {

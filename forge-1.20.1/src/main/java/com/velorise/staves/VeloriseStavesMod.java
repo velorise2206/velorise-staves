@@ -8,7 +8,6 @@ import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.item.WindChargeItem;
-import com.velorise.staves.recipe.OmniStaffUpgradeRecipe;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -17,8 +16,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraftforge.eventbus.api.IEventBus;
 import com.velorise.staves.config.StavesConfig;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -75,9 +72,6 @@ public final class VeloriseStavesMod {
                     .updateInterval(10)
                     .build("wind_charge"));
 
-    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, MODID);
-    public static final net.minecraftforge.registries.RegistryObject<RecipeSerializer<OmniStaffUpgradeRecipe>> OMNI_STAFF_UPGRADE_SERIALIZER =
-            RECIPE_SERIALIZERS.register("omni_staff_upgrade", () -> new SimpleCraftingRecipeSerializer<>(OmniStaffUpgradeRecipe::new));
     public static final DeferredRegister<net.minecraft.world.item.enchantment.Enchantment> ENCHANTMENTS = DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MODID);
 
     // Enchantments
@@ -326,7 +320,6 @@ public final class VeloriseStavesMod {
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ENCHANTMENTS.register(modEventBus);
-        RECIPE_SERIALIZERS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 }

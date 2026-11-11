@@ -25,15 +25,12 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ambient.AmbientCreature;
-import net.minecraft.world.entity.ambient.Bat;
 import net.minecraft.world.entity.animal.Bee;
-import net.minecraft.world.entity.animal.Parrot;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.MushroomCow;
 import net.minecraft.world.entity.animal.PolarBear;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.animal.WaterAnimal;
-import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.entity.animal.armadillo.Armadillo;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -86,8 +83,10 @@ import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
+import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -109,6 +108,7 @@ public final class ElementalGaugeManager {
     public static final TagKey<EntityType<?>> DENDRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "dendro_creatures"));
     public static final TagKey<EntityType<?>> ANEMO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "anemo_creatures"));
     public static final TagKey<EntityType<?>> GEO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "geo_creatures"));
+    public static final TagKey<Block> MUSHROOM_BLOCKS = TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mushroom_blocks"));
 
     private static final Map<UUID, Map<Element, GaugeState>> GAUGES = new ConcurrentHashMap<>();
     private static final Map<UUID, GaugeState> FROZEN_GAUGES = new ConcurrentHashMap<>();
@@ -128,6 +128,10 @@ public final class ElementalGaugeManager {
     public static final String TAG_INNATE_OMNI = "velorise_staves:innate_omni";
     private static final Set<UUID> OMNI_INNATE_ENTITIES = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private static final Map<UUID, Long> LAST_OMNI_ENV_IMMUNE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_MUSHROOM_CONTACT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> PLAYER_LAST_HP = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> PLAYER_HP_CHANGE_BUFF_UNTIL = new ConcurrentHashMap<>();
+    private static final long HP_CHANGE_BUFF_TICKS = 200L;
 
     public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
 
@@ -450,6 +454,9 @@ public final class ElementalGaugeManager {
         SUPERCONDUCT_UNTIL.remove(id);
         OMNI_INNATE_ENTITIES.remove(id);
         LAST_OMNI_ENV_IMMUNE.remove(id);
+        LAST_MUSHROOM_CONTACT.remove(id);
+        PLAYER_LAST_HP.remove(id);
+        PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
         if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
@@ -502,6 +509,9 @@ public final class ElementalGaugeManager {
         SUPERCONDUCT_UNTIL.clear();
         OMNI_INNATE_ENTITIES.clear();
         LAST_OMNI_ENV_IMMUNE.clear();
+        LAST_MUSHROOM_CONTACT.clear();
+        PLAYER_LAST_HP.clear();
+        PLAYER_HP_CHANGE_BUFF_UNTIL.clear();
         ICD_TRACKER.clear();
         REACTION_ICD_TRACKER.clear();
         LAST_THORNS_REFLECT.clear();
@@ -705,6 +715,56 @@ public final class ElementalGaugeManager {
             }
         }
         return false;
+    }
+
+    public static boolean isTouchingMushroomBlock(LivingEntity target) {
+        if (target == null || target.level().isClientSide()) return false;
+        AABB box = target.getBoundingBox().inflate(0.08D, 0.08D, 0.08D);
+        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.12D, box.minZ);
+        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!target.level().hasChunkAt(p)) continue;
+            BlockState st = target.level().getBlockState(p);
+            if (st.is(MUSHROOM_BLOCKS)
+                    || st.getBlock() instanceof HugeMushroomBlock
+                    || st.is(Blocks.BROWN_MUSHROOM_BLOCK)
+                    || st.is(Blocks.RED_MUSHROOM_BLOCK)
+                    || st.is(Blocks.MUSHROOM_STEM)
+                    || st.is(Blocks.BROWN_MUSHROOM)
+                    || st.is(Blocks.RED_MUSHROOM)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) {
+        if (target == null || !target.isAlive() || target.isSpectator()) return;
+        if (isOmniInnate(target) || getInnateElement(target) == Element.DENDRO) return;
+        UUID id = target.getUUID();
+        Long last = LAST_MUSHROOM_CONTACT.get(id);
+        if (last != null && now - last < 20L) return;
+        if (!isTouchingMushroomBlock(target)) return;
+        LAST_MUSHROOM_CONTACT.put(id, now);
+        applyElementBypassIcd(level, target, Element.DENDRO, 1.25F, null, 0.0F);
+    }
+
+    public static void updatePlayerHpTracking(ServerPlayer player, long now) {
+        if (player == null || !player.isAlive()) return;
+        UUID id = player.getUUID();
+        float curHp = player.getHealth();
+        Float prevHp = PLAYER_LAST_HP.put(id, curHp);
+        if (prevHp != null && Math.abs(curHp - prevHp) > 0.01F) {
+            PLAYER_HP_CHANGE_BUFF_UNTIL.put(id, now + HP_CHANGE_BUFF_TICKS);
+        }
+    }
+
+    public static boolean hasRecentHpChangeBuff(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return false;
+        long now = player.level().getGameTime();
+        updatePlayerHpTracking(player, now);
+        Long until = PLAYER_HP_CHANGE_BUFF_UNTIL.get(player.getUUID());
+        return until != null && now < until;
     }
 
     public static @Nullable Element getElementForEffect(Holder<MobEffect> effectHolder) {
@@ -1819,10 +1879,7 @@ public final class ElementalGaugeManager {
         }
         if (target instanceof Breeze
                 || target instanceof Phantom
-                || target instanceof Vex
-                || target instanceof Allay
-                || target instanceof Parrot
-                || target instanceof Bat) {
+                || target instanceof Vex) {
             return Element.ANEMO;
         }
         if ((target instanceof Creeper creeper && creeper.isPowered())
@@ -2914,6 +2971,7 @@ public final class ElementalGaugeManager {
             LAST_BLOOM_SPAWN.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
             LAST_THORNS_REFLECT.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
             LAST_OMNI_ENV_IMMUNE.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
+            LAST_MUSHROOM_CONTACT.entrySet().removeIf(e -> Math.abs(serverNow - e.getValue()) > 100L);
         }
 
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
@@ -2957,6 +3015,9 @@ public final class ElementalGaugeManager {
                 SUPERCONDUCT_UNTIL.remove(id);
         OMNI_INNATE_ENTITIES.remove(id);
         LAST_OMNI_ENV_IMMUNE.remove(id);
+        LAST_MUSHROOM_CONTACT.remove(id);
+        PLAYER_LAST_HP.remove(id);
+        PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
                 continue;
             }
 
@@ -3241,6 +3302,7 @@ public final class ElementalGaugeManager {
                 clearEntityState(player);
                 continue;
             }
+            updatePlayerHpTracking(player, player.level().getGameTime());
             ElementalResonanceManager.tickPlayer(player);
             if (!player.isSpectator()) {
                 if (isEntityInWater(player)) {
@@ -3252,6 +3314,9 @@ public final class ElementalGaugeManager {
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO) && !isEntityFrozen(player), null);
 
                 if (player.level() instanceof ServerLevel sl) {
+                    if (serverNow % 5 == 0) {
+                        tryApplyMushroomContactAura(sl, player, sl.getGameTime());
+                    }
                     AABB searchBox = player.getBoundingBox().inflate(32.0D);
 
                     // Lingering Potion AreaEffectCloud elemental application (every 20 ticks = 1.0s)
@@ -3289,6 +3354,9 @@ public final class ElementalGaugeManager {
                             } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava() || isTouchingSoulCampfire(nearby)) {
                                 maintainBurningPyroAura(nearby);
                             }
+                        }
+                        if (player.tickCount % 5 == 0 && !isPassiveAquaticOrAmbient(nearby)) {
+                            tryApplyMushroomContactAura(sl, nearby, sl.getGameTime());
                         }
                         if (isOmniInnate(nearby)) {
                             OMNI_INNATE_ENTITIES.add(nearby.getUUID());

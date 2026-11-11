@@ -89,6 +89,24 @@
       "chars": [
         "\uE00A"
       ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:gui/resonance.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE00B"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:gui/moonsign.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE00C"
+      ]
     }
   ]
 }

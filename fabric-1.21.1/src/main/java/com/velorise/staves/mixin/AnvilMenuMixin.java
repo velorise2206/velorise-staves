@@ -30,6 +30,14 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
     private void velorise$handleSwordImbue(CallbackInfo ci) {
         ItemStack left = this.inputSlots.getItem(0);
         ItemStack right = this.inputSlots.getItem(1);
+        if (SwordImbueHelper.isFireAspectElementConflict(left, right)) {
+            this.resultSlots.setItem(0, ItemStack.EMPTY);
+            this.cost.set(0);
+            this.repairItemCountCost = 0;
+            this.broadcastChanges();
+            ci.cancel();
+            return;
+        }
         SwordImbueHelper.AnvilResult res = SwordImbueHelper.tryBuildAnvilResult(left, right, this.itemName);
         if (res != null) {
             this.resultSlots.setItem(0, res.output());

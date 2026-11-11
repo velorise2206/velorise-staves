@@ -248,7 +248,7 @@ public final class DendroCoreManager {
         }
 
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
-        float hyperbloomDmg = 16.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
+        float hyperbloomDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
 
         // Spawn self-lit 3D Dendro Core seed projectile
         DendroCoreEntity visualSeed = spawnVisualSeed(core.level, p0);
@@ -276,7 +276,7 @@ public final class DendroCoreManager {
 
         EnvironmentalBlockManager.applyPyroEnvironmentEffects(core.level, pos, 3.0D);
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
-        float burgeonDmg = 17.5F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
+        float burgeonDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {

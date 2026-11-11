@@ -8,7 +8,6 @@ import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.config.StavesConfig;
-import com.velorise.staves.recipe.OmniStaffUpgradeRecipe;
 import net.minecraft.advancements.CriterionTrigger;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -17,8 +16,6 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -37,10 +34,6 @@ public final class VeloriseStavesMod {
     public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB, MODID);
     public static final DeferredRegister<CriterionTrigger<?>> TRIGGER_TYPES = DeferredRegister.create(BuiltInRegistries.TRIGGER_TYPES, MODID);
-    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(BuiltInRegistries.RECIPE_SERIALIZER, MODID);
-
-    public static final Supplier<RecipeSerializer<OmniStaffUpgradeRecipe>> OMNI_STAFF_UPGRADE_SERIALIZER =
-            RECIPE_SERIALIZERS.register("omni_staff_upgrade", () -> new SimpleCraftingRecipeSerializer<>(OmniStaffUpgradeRecipe::new));
 
     public static final Supplier<VeloriseCriterionTrigger> ADVANCEMENT_TRIGGER =
             TRIGGER_TYPES.register("advancement_event", VeloriseCriterionTrigger::new);
@@ -307,7 +300,6 @@ public final class VeloriseStavesMod {
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         TRIGGER_TYPES.register(modEventBus);
-        RECIPE_SERIALIZERS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 }

@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:smithing_transform",
+  "template": {
+    "item": "minecraft:netherite_upgrade_smithing_template"
+  },
+  "base": {
+    "tag": "velorise_staves:omni_upgradeable_netherite_staves"
+  },
+  "addition": {
+    "item": "velorise_staves:omni_element"
+  },
+  "result": {
+    "item": "velorise_staves:netherite_omni_staff"
+  }
+}

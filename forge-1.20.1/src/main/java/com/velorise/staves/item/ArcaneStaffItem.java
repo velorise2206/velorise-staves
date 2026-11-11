@@ -749,17 +749,13 @@ public final class ArcaneStaffItem extends Item {
         double range = isNetherite ? 28.0D : 24.0D;
         Vec3 end = target == null ? rayEndOutline(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
-            float healthPct = player.getHealth() / Math.max(1.0F, player.getMaxHealth());
-            float baseDmg;
-            if (healthPct < 0.20F) {
-                baseDmg = isNetherite ? 2.0F : 1.5F; // < 20% hp -> 1.5 damage
-            } else if (healthPct < 0.50F) {
-                baseDmg = isNetherite ? 1.4F : 1.0F; // < 50% hp -> 1.0 damage
-            } else {
-                baseDmg = isNetherite ? 0.8F : 0.5F; // Full hp / >= 50% -> 0.5 damage
-            }
+            boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);
+            float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * (hpBuff ? 2.0F : 1.0F);
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
+            if (hpBuff) {
+                level.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.05D);
+            }
         }
         EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, start, end, isNetherite ? 2.0D : 1.35D);
         drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
@@ -895,6 +891,23 @@ public final class ArcaneStaffItem extends Item {
         return String.format(java.util.Locale.ROOT, "%.2f", rounded);
     }
 
+    public static float computeGuardianBaseDamage(float maxHp, boolean netherite) {
+        float basic = Math.max(0.0F, maxHp) * 0.10F;
+        return netherite ? basic * 1.5F : basic;
+    }
+
+    private static float getDisplayMaxHp() {
+        try {
+            Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
+            Object res = cls.getMethod("getClientPlayerMaxHp").invoke(null);
+            if (res instanceof Float f && f > 0.0F) {
+                return f;
+            }
+        } catch (Throwable ignored) {
+        }
+        return 20.0F;
+    }
+
     public String getDamageDisplay() {
         return getDamageDisplay(getElement());
     }
@@ -918,7 +931,10 @@ public final class ArcaneStaffItem extends Item {
             case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U");
             case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
             case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
-            case GUARDIAN -> (isNetherite ? (fmtHearts(0.8) + "-" + fmtHearts(2.0)) : (fmtHearts(0.5) + "-" + fmtHearts(1.5))) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GUARDIAN -> {
+                float basicDmg = computeGuardianBaseDamage(getDisplayMaxHp(), isNetherite);
+                yield (fmtHearts(basicDmg) + "-" + fmtHearts(basicDmg * 2.0F)) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+            }
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
             case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
             case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
@@ -984,7 +1000,9 @@ public final class ArcaneStaffItem extends Item {
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);
         if (emLvl > 0) {
-            tooltip.add(Component.translatable("tooltip.velorise_staves.elemental_mastery_bonus", emLvl * 15, emLvl * 30, emLvl * 25).withStyle(ChatFormatting.GOLD));
+            appendWrappedTooltip(tooltip,
+                    Component.translatable("tooltip.velorise_staves.elemental_mastery_bonus", emLvl * 15, emLvl * 30, emLvl * 25),
+                    ChatFormatting.GOLD, 44, "    ");
         }
         if (kind == Kind.OMNI) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.omni_wheel_hint").withStyle(ChatFormatting.YELLOW));
@@ -992,7 +1010,102 @@ public final class ArcaneStaffItem extends Item {
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());
-            tooltip.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.DARK_GRAY));
+            appendWrappedTooltip(tooltip, Component.translatable(getDescriptionId() + ".desc"), ChatFormatting.DARK_GRAY);
         }
+    }
+
+    public static void appendWrappedTooltip(List<Component> tooltip, Component component, ChatFormatting color) {
+        appendWrappedTooltip(tooltip, component, color, 44, "");
+    }
+
+    public static void appendWrappedTooltip(List<Component> tooltip, Component component, ChatFormatting color, int maxUnits, String contIndent) {
+        String raw = component.getString();
+        if (raw == null || raw.isEmpty()) return;
+        for (String paragraph : raw.split("\n")) {
+            if (paragraph.isEmpty()) {
+                tooltip.add(Component.empty());
+                continue;
+            }
+            StringBuilder line = new StringBuilder();
+            double lineUnits = 0.0D;
+            boolean firstLine = true;
+            int i = 0;
+            int n = paragraph.length();
+            while (i < n) {
+                char c = paragraph.charAt(i);
+                if (c == ' ' && line.isEmpty() && firstLine) {
+                    line.append(c);
+                    lineUnits += 0.7D;
+                    i++;
+                    continue;
+                }
+                if (c == ' ' && line.isEmpty()) {
+                    i++;
+                    continue;
+                }
+                if (isWideTooltipChar(c)) {
+                    double w = 1.85D;
+                    if (lineUnits > contIndent.length() * 0.7D + 0.01D && lineUnits + w > maxUnits) {
+                        tooltip.add(Component.literal(line.toString()).withStyle(color));
+                        line.setLength(0);
+                        line.append(contIndent);
+                        lineUnits = contIndent.length() * 0.7D;
+                        firstLine = false;
+                    }
+                    line.append(c);
+                    lineUnits += w;
+                    i++;
+                    continue;
+                }
+                int end = i;
+                double wordUnits = 0.0D;
+                while (end < n) {
+                    char wc = paragraph.charAt(end);
+                    if (wc == ' ' || isWideTooltipChar(wc)) break;
+                    if (wc == '\u00A7' && end + 1 < n) {
+                        end += 2;
+                        continue;
+                    }
+                    wordUnits += charTooltipUnits(wc);
+                    end++;
+                }
+                String word = paragraph.substring(i, end);
+                boolean hasSpaceBefore = !line.isEmpty() && line.charAt(line.length() - 1) != ' ';
+                double added = (hasSpaceBefore ? 0.7D : 0.0D) + wordUnits;
+                if (lineUnits > contIndent.length() * 0.7D + 0.01D && lineUnits + added > maxUnits) {
+                    tooltip.add(Component.literal(line.toString()).withStyle(color));
+                    line.setLength(0);
+                    line.append(contIndent);
+                    lineUnits = contIndent.length() * 0.7D;
+                    firstLine = false;
+                } else if (hasSpaceBefore) {
+                    line.append(' ');
+                    lineUnits += 0.7D;
+                }
+                line.append(word);
+                lineUnits += wordUnits;
+                i = end;
+                while (i < n && paragraph.charAt(i) == ' ') {
+                    i++;
+                }
+            }
+            if (!line.isEmpty()) {
+                tooltip.add(Component.literal(line.toString()).withStyle(color));
+            }
+        }
+    }
+
+    private static boolean isWideTooltipChar(char c) {
+        return (c >= '\u2E80' && c <= '\u9FFF')
+                || (c >= '\uAC00' && c <= '\uD7AF')
+                || (c >= '\uF900' && c <= '\uFAFF')
+                || (c >= '\uFF00' && c <= '\uFFEF');
+    }
+
+    private static double charTooltipUnits(char c) {
+        if (c == 'i' || c == 'l' || c == '.' || c == ',' || c == ':' || c == ';' || c == '!' || c == '\'') {
+            return 0.55D;
+        }
+        return Character.isUpperCase(c) ? 1.08D : 0.95D;
     }
 }

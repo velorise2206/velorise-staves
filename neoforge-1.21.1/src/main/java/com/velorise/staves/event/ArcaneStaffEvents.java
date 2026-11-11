@@ -105,6 +105,10 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onAnvilUpdate(net.neoforged.neoforge.event.AnvilUpdateEvent event) {
+        if (SwordImbueHelper.isFireAspectElementConflict(event.getLeft(), event.getRight())) {
+            event.setCanceled(true);
+            return;
+        }
         SwordImbueHelper.AnvilResult res = SwordImbueHelper.tryBuildAnvilResult(event.getLeft(), event.getRight(), event.getName());
         if (res != null) {
             event.setOutput(res.output());

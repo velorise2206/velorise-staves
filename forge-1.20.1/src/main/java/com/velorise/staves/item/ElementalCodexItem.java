@@ -51,8 +51,8 @@ public class ElementalCodexItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("tooltip.velorise_staves.codex.subtitle").withStyle(ChatFormatting.GOLD));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.codex.desc1").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.codex.desc2").withStyle(ChatFormatting.GRAY));
+        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.codex.desc1"), ChatFormatting.GRAY);
+        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.codex.desc2"), ChatFormatting.GRAY);
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.codex.use_hint").withStyle(ChatFormatting.AQUA));
     }

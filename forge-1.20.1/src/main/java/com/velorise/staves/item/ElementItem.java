@@ -49,12 +49,12 @@ public final class ElementItem extends Item {
             Component icon = Component.literal(element.iconString()).withStyle(ChatFormatting.WHITE);
             Component elemName = Component.translatable(element.translationKey()).withStyle(element.color());
             tooltip.add(Component.empty().append(icon).append(Component.literal(" ")).append(elemName));
-            tooltip.add(Component.translatable("tooltip.velorise_staves.element_item.hint").withStyle(ChatFormatting.GRAY));
+            ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.element_item.hint"), ChatFormatting.GRAY);
         } else {
             Component icon = Component.literal("\uE00A").withStyle(ChatFormatting.WHITE);
             Component elemName = Component.translatable("tooltip.velorise_staves.omni_element.tag").withStyle(ChatFormatting.GOLD);
             tooltip.add(Component.empty().append(icon).append(Component.literal(" ")).append(elemName));
-            tooltip.add(Component.translatable("tooltip.velorise_staves.omni_element_item.hint").withStyle(ChatFormatting.GRAY));
+            ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.omni_element_item.hint"), ChatFormatting.GRAY);
         }
     }
 }
