@@ -12,7 +12,19 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ## Showcase
 
+### Combat & Reactions (GIFs)
+
 <table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/omni_staff.gif" alt="Omni Staff Auto & Wheel" width="100%"/><br/>
+      <b>Omni Staff</b> — Auto best-reaction &amp; <code>[Tab]</code> Element Wheel
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/geo_construct.gif" alt="Geo Fang Pillar & Crystallize" width="100%"/><br/>
+      <b>Geo Construct &amp; Crystallize</b> — Pillar taunt, Geo waves &amp; 3D Shard
+    </td>
+  </tr>
   <tr>
     <td align="center" width="50%">
       <img src="docs/showcase/vaporize.gif" alt="Vaporize Reaction" width="100%"/><br/>
@@ -41,6 +53,31 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
     <td align="center" width="50%">
       <img src="docs/showcase/sculk_sensor_electro.gif" alt="Sculk Sensor Electro" width="100%"/><br/>
       <b>Sculk Sensor Hazard</b> — Sound trigger zaps nearby mobs
+    </td>
+  </tr>
+</table>
+
+### UI, Items & Crafting
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/codex.png" alt="Elemental Codex UI" width="100%"/><br/>
+      <b>Elemental Codex</b> — Interactive 9-tab guidebook &amp; live config
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/omni%20staff%20wheel.png" alt="Omni Staff Wheel UI" width="100%"/><br/>
+      <b>Omni Element Wheel</b> — Lock elements or keep Auto Best
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/ingame%20items.png" alt="Ingame Items" width="100%"/><br/>
+      <b>Staves &amp; Essences</b> — 13 staves, utility artifacts, elements &amp; books
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/omni%20craft%20recipe.png" alt="Omni Element Crafting" width="100%"/><br/>
+      <b>Omni Element Recipe</b> — Combine all 7 Elemental Essences
     </td>
   </tr>
 </table>

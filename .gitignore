@@ -29,6 +29,7 @@ net/
 !shared-resources/assets/**
 !shared-resources/logo.png
 !forge-1.20.1/src/main/resources/assets/velorise_staves/textures/**/*.png
+!docs/**/*.png
 
 # Materials / Docs scratch
 mats/
