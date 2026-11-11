@@ -331,11 +331,9 @@ public final class OmniWheelOverlay {
         Component label = el != null
                 ? Component.translatable(el.translationKey())
                 : Component.translatable("element.velorise_staves.omni");
-        String keyHint = "[" + OMNI_WHEEL_KEY.getTranslatedKeyMessage().getString() + "]";
 
         int textW = font.width(label);
-        int keyW = font.width(keyHint);
-        int badgeW = 20 + textW + 4 + keyW + 5;
+        int badgeW = 20 + textW + 5;
         int badgeX = guiGraphics.guiWidth() / 2 + 98;
         if (badgeX + badgeW > guiGraphics.guiWidth() - 4) {
             badgeX = guiGraphics.guiWidth() / 2 - 98 - badgeW;
@@ -349,7 +347,6 @@ public final class OmniWheelOverlay {
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         guiGraphics.blit(SLOT_TEXTURES[mode], badgeX + 3, badgeY + 2, 0.0F, 0.0F, 14, 14, 14, 14);
         guiGraphics.drawString(font, label, badgeX + 20, badgeY + 5, accent, true);
-        guiGraphics.drawString(font, keyHint, badgeX + 24 + textW, badgeY + 5, 0xFFAAAAAA, true);
     }
 
     private static int getSlotAccentRgb(int slot, long timeMs) {

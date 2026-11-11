@@ -80,6 +80,15 @@
       "chars": [
         "\uE009"
       ]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/omni.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": [
+        "\uE00A"
+      ]
     }
   ]
 }
