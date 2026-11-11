@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -201,7 +202,8 @@ public final class DendroCoreManager {
                     continue;
                 }
                 float dmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, rawDmg);
-                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(core.level, owner), dmg);
+                DamageSource bloomSource = ElementalDeathMessageHelper.createDamageSource(core.level, owner, ElementalReaction.BLOOM, Element.DENDRO);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, bloomSource, dmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
                 MobHazardAvoidanceManager.reportReactionOrHazard(victim, owner, pos, Element.DENDRO, Element.HYDRO);
@@ -296,7 +298,8 @@ public final class DendroCoreManager {
                     effectiveDmg *= 0.4F;
                 }
                 ElementalGaugeManager.ensurePreDeathPyroIgnite(victim, 3);
-                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(core.level, attacker), effectiveDmg);
+                DamageSource burgeonSource = ElementalDeathMessageHelper.createDamageSource(core.level, attacker, ElementalReaction.BURGEON, Element.PYRO);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, burgeonSource, effectiveDmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
                 MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, pos, Element.DENDRO, Element.PYRO);
@@ -376,7 +379,8 @@ public final class DendroCoreManager {
                             continue;
                         }
                         float hDmg = ElementalGaugeManager.applyMobElementalResistance(nearby, Element.DENDRO, m.damage);
-                        ElementalGaugeManager.hurtWithPreAppliedElementalRes(nearby, ElementalGaugeManager.getElementalDamageSource(level, m.attacker), hDmg);
+                        DamageSource hyperSource = ElementalDeathMessageHelper.createDamageSource(level, m.attacker, ElementalReaction.HYPERBLOOM, Element.ELECTRO);
+                        ElementalGaugeManager.hurtWithPreAppliedElementalRes(nearby, hyperSource, hDmg);
                         ElementalGaugeManager.enforceFrozenPoseIfFrozen(nearby);
                         ElementalGaugeManager.syncAuras(nearby, ElementalGaugeManager.getEntityElements(nearby.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
                         MobHazardAvoidanceManager.reportReactionOrHazard(nearby, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
@@ -393,7 +397,8 @@ public final class DendroCoreManager {
                     } else {
                         if (canTakeBloomDamage(victim, level.getGameTime())) {
                             float hDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, m.damage);
-                            ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(level, m.attacker), hDmg);
+                            DamageSource hyperSource = ElementalDeathMessageHelper.createDamageSource(level, m.attacker, ElementalReaction.HYPERBLOOM, Element.ELECTRO);
+                            ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, hyperSource, hDmg);
                             ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                             ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
                             MobHazardAvoidanceManager.reportReactionOrHazard(victim, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);

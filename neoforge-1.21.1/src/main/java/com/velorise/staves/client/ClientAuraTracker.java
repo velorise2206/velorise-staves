@@ -251,6 +251,30 @@ public final class ClientAuraTracker {
             }
             return;
         }
+        if (durationTicks == -3) {
+            if (damage > 0.0F) {
+                if (mc.player != null && entityId == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+                    return;
+                }
+                double bx = posX;
+                double by = posY;
+                double bz = posZ;
+                if (!hasPos || Double.isNaN(bx) || Double.isNaN(by) || Double.isNaN(bz)) {
+                    net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
+                    if (e != null) {
+                        bx = e.getX();
+                        by = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
+                        bz = e.getZ();
+                    } else {
+                        bx = Double.NaN;
+                    }
+                }
+                if (!Double.isNaN(bx)) {
+                    addFloatingText(bx, by, bz, null, damage, null);
+                }
+            }
+            return;
+        }
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
         entry.elements.clear();
         entry.elements.addAll(elements);

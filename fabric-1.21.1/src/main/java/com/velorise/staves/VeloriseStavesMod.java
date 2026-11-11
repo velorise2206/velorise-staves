@@ -395,6 +395,13 @@ public final class VeloriseStavesMod implements ModInitializer {
                 return false;
             }
             if (!entity.level().isClientSide()
+                    && source.is(net.minecraft.tags.DamageTypeTags.IS_FALL)
+                    && !source.is(net.minecraft.world.damagesource.DamageTypes.STALAGMITE)
+                    && ElementalGaugeManager.isAnemoInnateMob(entity)) {
+                entity.fallDistance = 0.0F;
+                return false;
+            }
+            if (!entity.level().isClientSide()
                     && source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE)
                     && ElementalGaugeManager.isPyroInnate(entity)) {
                 ElementalGaugeManager.extinguishPyroInnate(entity);
@@ -421,6 +428,7 @@ public final class VeloriseStavesMod implements ModInitializer {
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && !entity.level().isClientSide()) {
+                ElementalGaugeManager.trySendPhysicalDamageFloat(entity, source, afterDamage);
                 ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
             }

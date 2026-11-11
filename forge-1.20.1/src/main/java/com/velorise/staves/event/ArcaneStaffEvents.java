@@ -101,6 +101,7 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
+            com.velorise.staves.element.ElementalDeathMessageHelper.enhanceLivingDeath(event.getEntity());
             ElementalGaugeManager.tryDropElementOnDeath(event.getEntity(), event.getSource());
             ElementalGaugeManager.clearEntityState(event.getEntity());
         }
@@ -269,6 +270,14 @@ public final class ArcaneStaffEvents {
             return;
         }
         if (!entity.level().isClientSide()
+                && event.getSource().is(DamageTypeTags.IS_FALL)
+                && !event.getSource().is(net.minecraft.world.damagesource.DamageTypes.STALAGMITE)
+                && ElementalGaugeManager.isAnemoInnateMob(entity)) {
+            entity.fallDistance = 0.0F;
+            event.setCanceled(true);
+            return;
+        }
+        if (!entity.level().isClientSide()
                 && event.getSource().is(DamageTypeTags.IS_FIRE)
                 && ElementalGaugeManager.isPyroInnate(entity)) {
             ElementalGaugeManager.extinguishPyroInnate(entity);
@@ -290,6 +299,7 @@ public final class ArcaneStaffEvents {
     public static void onLivingHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
+        ElementalGaugeManager.beginDamageFloatTracking(entity);
         DamageSource src = event.getSource();
 
         event.setAmount(ElementalGaugeManager.modifyIncomingEnvironmentalDamage(entity, src, event.getAmount()));
@@ -309,6 +319,13 @@ public final class ArcaneStaffEvents {
         event.setAmount(resDmg);
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
         ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
+    }
+
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onLivingDamage(net.minecraftforge.event.entity.living.LivingDamageEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (entity.level().isClientSide()) return;
+        ElementalGaugeManager.trySendPhysicalDamageFloat(entity, event.getSource(), event.getAmount());
     }
 
     @SubscribeEvent

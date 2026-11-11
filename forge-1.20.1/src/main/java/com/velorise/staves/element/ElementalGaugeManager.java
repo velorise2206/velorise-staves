@@ -112,7 +112,9 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> QUICKEN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> BURNING_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> BURNING_EM_LEVEL = new ConcurrentHashMap<>();
+    private static final Map<UUID, UUID> BURNING_ATTACKER_UUID = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
@@ -136,6 +138,7 @@ public final class ElementalGaugeManager {
     public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Boolean> IS_PROCESSING_THORNS = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Boolean> IS_PROCESSING_SWORD_IMBUE = ThreadLocal.withInitial(() -> false);
+    private static final ThreadLocal<Boolean> IS_MODIFYING_ENV_DAMAGE = ThreadLocal.withInitial(() -> false);
     private static final ThreadLocal<Boolean> ELEMENTAL_RES_APPLIED = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final ThreadLocal<Integer> REACTION_DEPTH = ThreadLocal.withInitial(() -> 0);
     private static final int MAX_REACTION_DEPTH = 4;
@@ -282,6 +285,12 @@ public final class ElementalGaugeManager {
                 durationTicks = -1; // -1 represents permanent innate aura
             }
         }
+        if (damage > 0.0F && (Boolean.TRUE.equals(IS_PROCESSING_SWORD_IMBUE.get()) || Boolean.TRUE.equals(IS_MODIFYING_ENV_DAMAGE.get()))) {
+            SUPPRESSED_PHYSICAL_FLOAT_TICK.put(id, now);
+        }
+        if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
+            ElementalDeathMessageHelper.recordReactionForDeath(target, reaction, trigger != null ? trigger : reactedAura, CURRENT_REACTION_ATTACKER.get());
+        }
         if (alive && reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE
                 && reaction != ElementalReaction.BLOOM && reaction != ElementalReaction.REVERSE_BLOOM
                 && reaction != ElementalReaction.BURGEON && reaction != ElementalReaction.HYPERBLOOM) {
@@ -419,10 +428,80 @@ public final class ElementalGaugeManager {
     }
 
     public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) {
-        if (attacker != null && !Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get())) {
-            return level.damageSources().indirectMagic(attacker, attacker);
+        return getElementalDamageSource(level, attacker, null, null);
+    }
+
+    public static DamageSource getElementalDamageSource(
+            ServerLevel level,
+            @Nullable LivingEntity attacker,
+            @Nullable ElementalReaction reaction,
+            @Nullable Element element
+    ) {
+        LivingEntity credit = (attacker != null && !Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get()))
+                ? attacker
+                : (!Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get())
+                    ? CURRENT_REACTION_ATTACKER.get()
+                    : null);
+        return ElementalDeathMessageHelper.createDamageSource(level, credit, reaction, element);
+    }
+
+    public static boolean hasBurning(@Nullable UUID id) {
+        return id != null && BURNING_UNTIL.containsKey(id);
+    }
+
+    public static @Nullable UUID getBurningAttackerUuid(@Nullable UUID id) {
+        return id != null ? BURNING_ATTACKER_UUID.get(id) : null;
+    }
+
+    public static boolean isGeoInnateMob(@Nullable Entity entity) {
+        return entity instanceof Mob mob && getInnateElement(mob) == Element.GEO;
+    }
+
+    public static boolean isAnemoInnateMob(@Nullable Entity entity) {
+        return entity instanceof Mob mob && getInnateElement(mob) == Element.ANEMO;
+    }
+
+    public static boolean isProjectileDamageSource(@Nullable DamageSource source) {
+        return source != null && (source.is(DamageTypeTags.IS_PROJECTILE)
+                || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile);
+    }
+
+    public static boolean isFallDamageImmunityApplicable(@Nullable LivingEntity entity, @Nullable DamageSource source) {
+        return entity != null && source != null
+                && source.is(DamageTypeTags.IS_FALL)
+                && !source.is(DamageTypes.STALAGMITE)
+                && isAnemoInnateMob(entity);
+    }
+
+    public static void beginDamageFloatTracking(@Nullable LivingEntity entity) {
+        if (entity != null && !entity.level().isClientSide()) {
+            SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(entity.getUUID());
         }
-        return level.damageSources().magic();
+    }
+
+    public static void trySendPhysicalDamageFloat(@Nullable LivingEntity target, @Nullable DamageSource source, float finalDamage) {
+        if (target == null || source == null || target.level().isClientSide()) return;
+        Long suppressed = SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(target.getUUID());
+        if (finalDamage <= 0.05F) return;
+        try {
+            if (!StavesConfig.SHOW_DAMAGE_NUMBERS.get()) return;
+        } catch (Exception ignored) {}
+        if (suppressed != null && suppressed == target.level().getGameTime()) return;
+        if (Boolean.TRUE.equals(IS_PROCESSING_REACTION.get()) || Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get())) return;
+        if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource) return;
+        if (isVanillaPhysicalDisplayDamage(source)) {
+            com.velorise.staves.network.ModNetwork.sendPhysicalDamage(target, finalDamage);
+        }
+    }
+
+    public static boolean isVanillaPhysicalDisplayDamage(DamageSource source) {
+        return isPhysicalDamage(source)
+                || source.is(DamageTypeTags.IS_EXPLOSION)
+                || source.is(DamageTypeTags.IS_FALL)
+                || source.is(DamageTypes.FALLING_ANVIL)
+                || source.is(DamageTypes.FALLING_BLOCK)
+                || source.is(DamageTypes.FALLING_STALACTITE)
+                || source.is(DamageTypes.STALAGMITE);
     }
 
     public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) {
@@ -438,10 +517,18 @@ public final class ElementalGaugeManager {
     }
 
     public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) {
+        return getEffectivePhysicalMultiplier(target, null, now);
+    }
+
+    public static float getEffectivePhysicalMultiplier(LivingEntity target, @Nullable DamageSource source, long now) {
         float res = getMobPhysicalResistance(target);
+        if (source != null && (isProjectileDamageSource(source) || source.is(DamageTypeTags.IS_EXPLOSION)) && isGeoInnateMob(target)) {
+            res += 0.50F;
+        }
         if (hasSuperconductDebuff(target, now)) {
             res -= 0.40F;
         }
+        res = Math.min(0.90F, res);
         return res >= 0.0F ? Math.max(0.0F, 1.0F - res) : (1.0F - res);
     }
 
@@ -479,9 +566,16 @@ public final class ElementalGaugeManager {
         if (amount <= 0.0F || entity == null || !entity.isAlive() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return amount;
         }
+        if (isFallDamageImmunityApplicable(entity, source)) {
+            entity.fallDistance = 0.0F;
+            return 0.0F;
+        }
         long now = entity.level().getGameTime();
+        boolean isGeoProjOrExp = isGeoInnateMob(entity) && (source.is(DamageTypeTags.IS_EXPLOSION)
+                || isProjectileDamageSource(source)
+                || (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.isExplosionReaction()));
         if (isPhysicalDamage(source)) {
-            float mult = getEffectivePhysicalMultiplier(entity, now);
+            float mult = getEffectivePhysicalMultiplier(entity, source, now);
             if (hasSuperconductDebuff(entity, now) && entity.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(),
                         8, 0.25D, 0.25D, 0.25D, 0.05D);
@@ -489,7 +583,17 @@ public final class ElementalGaugeManager {
             return amount * mult;
         }
         if (!Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get()) && isElementalOrMagicDamage(source)) {
-            return applyMobElementalResistance(entity, inferElementFromDamageSource(source), amount);
+            Element elem = (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.getElement() != null)
+                    ? erds.getElement()
+                    : inferElementFromDamageSource(source);
+            float elemRes = getMobElementalResistance(entity, elem);
+            if (isGeoProjOrExp) {
+                elemRes = Math.min(0.90F, elemRes + 0.50F);
+            }
+            return entity instanceof Mob ? amount * Math.max(0.0F, 1.0F - elemRes) : amount;
+        }
+        if (isGeoProjOrExp) {
+            return amount * 0.50F;
         }
         return amount;
     }
@@ -527,7 +631,10 @@ public final class ElementalGaugeManager {
         QUICKEN_UNTIL.remove(id);
         BURNING_UNTIL.remove(id);
         BURNING_EM_LEVEL.remove(id);
+        BURNING_ATTACKER_UUID.remove(id);
         ELECTRO_CHARGE_EM_LEVEL.remove(id);
+        SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(id);
+        ElementalDeathMessageHelper.clearEntityState(entity);
         LAST_BURN_PYRO_REFRESH.remove(id);
         INNATE_COOLDOWN_UNTIL.remove(id);
         ELECTRO_CHARGE_TICK.remove(id);
@@ -607,6 +714,9 @@ public final class ElementalGaugeManager {
         EnvironmentalBlockManager.clearAll();
         ElementalResonanceManager.clearAll();
         MobHazardAvoidanceManager.clearAll();
+        ElementalDeathMessageHelper.clearAll();
+        BURNING_ATTACKER_UUID.clear();
+        SUPPRESSED_PHYSICAL_FLOAT_TICK.clear();
     }
 
     private static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) {
@@ -1144,7 +1254,18 @@ public final class ElementalGaugeManager {
         try {
             if (target.level() instanceof ServerLevel level) {
                 Element preHitAura = hasThornsEnchantment(target) ? pickDefenderAuraForThorns(target) : null;
-                processIncomingDamageSources(level, target, source);
+                LivingEntity prevCredit = CURRENT_REACTION_ATTACKER.get();
+                LivingEntity sourceAttacker = source.getEntity() instanceof LivingEntity le && le != target
+                        ? le : (source.getDirectEntity() instanceof LivingEntity de && de != target ? de : null);
+                if (sourceAttacker != null) {
+                    CURRENT_REACTION_ATTACKER.set(sourceAttacker);
+                }
+                try {
+                    processIncomingDamageSources(level, target, source);
+                } finally {
+                    if (prevCredit == null) CURRENT_REACTION_ATTACKER.remove();
+                    else CURRENT_REACTION_ATTACKER.set(prevCredit);
+                }
                 if (source.getEntity() instanceof LivingEntity attacker
                         && attacker != target
                         && attacker.isAlive()
@@ -1183,7 +1304,7 @@ public final class ElementalGaugeManager {
                         if (fireDmg > 0.0F) {
                             int prevInvuln = target.invulnerableTime;
                             target.invulnerableTime = 0;
-                            target.hurt(level.damageSources().onFire(), fireDmg);
+                            target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), omniAttacker, null, Element.PYRO), fireDmg);
                             target.invulnerableTime = prevInvuln;
                         }
                         level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
@@ -1221,7 +1342,7 @@ public final class ElementalGaugeManager {
                             if (fireDmg > 0.0F) {
                                 int prevInvuln = target.invulnerableTime;
                                 target.invulnerableTime = 0;
-                                target.hurt(level.damageSources().onFire(), fireDmg);
+                                target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), mutatedAttacker, null, Element.PYRO), fireDmg);
                                 target.invulnerableTime = prevInvuln;
                             }
                             level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
@@ -1384,6 +1505,16 @@ public final class ElementalGaugeManager {
      * Amplifies incoming fire damage when Forward Melt (2.0x) or Reverse Vaporize (1.5x) is triggered.
      */
     public static float modifyIncomingEnvironmentalDamage(LivingEntity target, DamageSource source, float amount) {
+        boolean prev = Boolean.TRUE.equals(IS_MODIFYING_ENV_DAMAGE.get());
+        IS_MODIFYING_ENV_DAMAGE.set(Boolean.TRUE);
+        try {
+            return modifyIncomingEnvironmentalDamageInternal(target, source, amount);
+        } finally {
+            IS_MODIFYING_ENV_DAMAGE.set(prev);
+        }
+    }
+
+    private static float modifyIncomingEnvironmentalDamageInternal(LivingEntity target, DamageSource source, float amount) {
         if (!target.isAlive() || target.isSpectator() || target.level().isClientSide()) return amount;
         if (IS_PROCESSING_REACTION.get()) return amount;
         if (!source.is(DamageTypeTags.IS_FIRE)) return amount;
@@ -1616,7 +1747,7 @@ public final class ElementalGaugeManager {
                     sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 14, 0.3D, 0.3D, 0.3D, 0.04D);
                     sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.2F);
                     if (sensitive && vapeDmg > 0.0F) {
-                        hurtWithPreAppliedElementalRes(target, sl.damageSources().magic(), vapeDmg);
+                        hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.FORWARD_VAPORIZE, Element.HYDRO), vapeDmg);
                     }
                 }
                 syncAuras(target, Collections.singleton(Element.PYRO), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
@@ -1662,8 +1793,9 @@ public final class ElementalGaugeManager {
         if (targetGauges.containsKey(Element.PYRO)) {
             targetGauges.remove(Element.PYRO);
             BURNING_UNTIL.remove(id);
-        BURNING_EM_LEVEL.remove(id);
-        ELECTRO_CHARGE_EM_LEVEL.remove(id);
+            BURNING_EM_LEVEL.remove(id);
+            BURNING_ATTACKER_UUID.remove(id);
+            ELECTRO_CHARGE_EM_LEVEL.remove(id);
             LAST_BURN_PYRO_REFRESH.remove(id);
             target.clearFire();
             boolean sensitive = isNaturallyWaterSensitive(target);
@@ -1672,7 +1804,7 @@ public final class ElementalGaugeManager {
                 sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.03D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
                 if (sensitive && vapeDmg > 0.0F) {
-                    hurtWithPreAppliedElementalRes(target, target.level().damageSources().magic(), vapeDmg);
+                    hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.FORWARD_VAPORIZE, Element.HYDRO), vapeDmg);
                 }
             }
             syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
@@ -1717,7 +1849,7 @@ public final class ElementalGaugeManager {
             if (target.level() instanceof ServerLevel sl) {
                 sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
                 sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
-                hurtWithPreAppliedElementalRes(target, sl.damageSources().magic(), ecDmg);
+                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
             }
             syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
             return;
@@ -2164,13 +2296,28 @@ public final class ElementalGaugeManager {
             Element attackElement,
             float @Nullable [] meleeOut
     ) {
+        return dealOrDeferDamage(level, target, attacker, damage, attackElement, meleeOut, null);
+    }
+
+    private static float dealOrDeferDamage(
+            ServerLevel level,
+            LivingEntity target,
+            @Nullable ServerPlayer attacker,
+            float damage,
+            Element attackElement,
+            float @Nullable [] meleeOut,
+            @Nullable ElementalReaction reaction
+    ) {
         if (meleeOut != null) {
             meleeOut[0] = damage;
             return damage * getEffectivePhysicalMultiplier(target, level.getGameTime());
         }
         float resDamage = applyMobElementalResistance(target, attackElement, damage);
         if (resDamage > 0.0F) {
-            hurtWithPreAppliedElementalRes(target, getElementalDamageSource(level, attacker), resDamage);
+            if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
+                ElementalDeathMessageHelper.recordReactionForDeath(target, reaction, attackElement, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get());
+            }
+            hurtWithPreAppliedElementalRes(target, getElementalDamageSource(level, attacker, reaction, attackElement), resDamage);
         }
         return resDamage;
     }
@@ -2193,7 +2340,7 @@ public final class ElementalGaugeManager {
         }
         REACTION_DEPTH.set(depth + 1);
         LivingEntity prevAttacker = CURRENT_REACTION_ATTACKER.get();
-        CURRENT_REACTION_ATTACKER.set(attacker);
+        CURRENT_REACTION_ATTACKER.set(attacker != null ? attacker : prevAttacker);
         try {
             applyElementGuarded(level, target, attackElement, attackU, attacker, baseDamage, bypassStandardIcd, meleeOut);
         } finally {
@@ -2295,7 +2442,7 @@ public final class ElementalGaugeManager {
                     level, target, attackElement, attacker, effectiveDamage);
         }
 
-        DamageSource elemDmgSource = getElementalDamageSource(level, attacker);
+        DamageSource elemDmgSource = getElementalDamageSource(level, attacker, null, attackElement);
 
         if (!egtEnabled) {
             if (physicalMelee) {
@@ -2399,7 +2546,7 @@ public final class ElementalGaugeManager {
 
             if (innateElement == Element.ANEMO && (attackElement == Element.PYRO || attackElement == Element.HYDRO || attackElement == Element.ELECTRO || attackElement == Element.CRYO)) {
                 if (checkReactionIcd(target, ElementalReaction.SWIRL, now)) {
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SWIRL);
                     float removedU = Math.min(1.0F, attackU * 0.5F);
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, attackElement, removedU, attacker, dmgMult);
                     syncAuras(target, Collections.singleton(Element.ANEMO), attackElement, Element.ANEMO, ElementalReaction.SWIRL, resDmg);
@@ -2419,7 +2566,7 @@ public final class ElementalGaugeManager {
                 }
                 // If target has no attached coexisting auras (e.g. Dendro), finish Crystallize hit directly
                 if (!targetGauges.containsKey(Element.DENDRO)) {
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.CRYSTALLIZE);
                     syncAuras(target, targetGauges.keySet(), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, resDmg);
                     return;
                 }
@@ -2496,7 +2643,7 @@ public final class ElementalGaugeManager {
                             targetGauges.put(Element.ELECTRO, createAuraGauge(target, Element.ELECTRO, attackU));
                         }
                     }
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
                     syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.ELECTRO, catalyzeReaction, resDmg);
                     return;
                 }
@@ -2519,7 +2666,7 @@ public final class ElementalGaugeManager {
                             targetGauges.put(Element.DENDRO, new GaugeState(Element.DENDRO, attackU));
                         }
                     }
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
                     syncAuras(target, targetGauges.keySet(), Element.ELECTRO, Element.DENDRO, catalyzeReaction, resDmg);
                     return;
                 }
@@ -2553,7 +2700,7 @@ public final class ElementalGaugeManager {
                 }
                 float bonus = (float) (10.0F * dmgMult) * transEmMult;
                 float shatterDamage = effectiveDamage + bonus;
-                float resShatter = dealOrDeferDamage(level, target, attacker, shatterDamage, attackElement, meleeOut);
+                float resShatter = dealOrDeferDamage(level, target, attacker, shatterDamage, attackElement, meleeOut, ElementalReaction.SHATTER);
                 level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
                 // Note: underlying HYDRO or CRYO in targetGauges is preserved (enabling Shatter-Crystallize or Shatter-Vape)!
@@ -2591,7 +2738,7 @@ public final class ElementalGaugeManager {
                     clearFreezeState(target, targetId);
                 }
                 float meltDamage = effectiveDamage * 2.0F * ampEmMult;
-                float resMelt = dealOrDeferDamage(level, target, attacker, meltDamage, attackElement, meleeOut);
+                float resMelt = dealOrDeferDamage(level, target, attacker, meltDamage, attackElement, meleeOut, ElementalReaction.FORWARD_MELT);
                 level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 25, 0.3D, 0.35D, 0.3D, 0.04D);
                 level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.2F);
                 enforceInnateLock(target, targetGauges, targetId, innateElement, now);
@@ -2608,7 +2755,7 @@ public final class ElementalGaugeManager {
                 if (freezeGauge.isExpired()) {
                     clearFreezeState(target, targetId);
                 }
-                float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SUPERCONDUCT);
                 executeReactionEffect(level, target, ElementalReaction.SUPERCONDUCT, Element.CRYO, attackU, attacker, dmgMult);
                 enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                 syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT, resDmg);
@@ -2631,7 +2778,7 @@ public final class ElementalGaugeManager {
                         if (hydro.isExpired()) targetGauges.remove(Element.HYDRO);
                         executeReactionEffect(level, target, ElementalReaction.SWIRL, Element.HYDRO, removedHydroU, attacker, dmgMult);
                     }
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SWIRL);
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, Element.CRYO, removedFreezeU, attacker, dmgMult);
                     enforceInnateLock(target, targetGauges, targetId, innateElement, now);
                     syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.ANEMO, ElementalReaction.SWIRL, resDmg);
@@ -2659,7 +2806,7 @@ public final class ElementalGaugeManager {
             if (hydro.isExpired()) targetGauges.remove(Element.HYDRO);
 
             float overvapeDmg = effectiveDamage * 1.5F * ampEmMult;
-            float resOvervape = dealOrDeferDamage(level, target, attacker, overvapeDmg, attackElement, meleeOut);
+            float resOvervape = dealOrDeferDamage(level, target, attacker, overvapeDmg, attackElement, meleeOut, ElementalReaction.OVERVAPE);
             triggerOverloadExplosion(level, target, attacker, dmgMult);
             notifyResonanceReaction(ElementalReaction.OVERVAPE, attacker, now);
             level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.2F);
@@ -2705,7 +2852,7 @@ public final class ElementalGaugeManager {
 
                     ELECTRO_CHARGE_EM_LEVEL.put(targetId, emLevel);
                     float ecDmg = effectiveDamage + (float) (1.0F * dmgMult) * transEmMult;
-                    float resEc = dealOrDeferDamage(level, target, attacker, ecDmg, attackElement, meleeOut);
+                    float resEc = dealOrDeferDamage(level, target, attacker, ecDmg, attackElement, meleeOut, reaction);
                     executeReactionEffect(level, target, reaction, auraElement, 0.4F, attacker, dmgMult);
                     ELECTRO_CHARGE_TICK.put(targetId, 0);
                     syncAuras(target, targetGauges.keySet(), auraElement, attackElement, reaction, resEc);
@@ -2720,6 +2867,10 @@ public final class ElementalGaugeManager {
                                 target, (innateElement == Element.DENDRO) ? 100L : 200L);
                         BURNING_UNTIL.put(targetId, now + burnTicks);
                         BURNING_EM_LEVEL.put(targetId, emLevel);
+                        LivingEntity burnCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+                        if (burnCredit != null && burnCredit != target) {
+                            BURNING_ATTACKER_UUID.put(targetId, burnCredit.getUUID());
+                        }
                         if (innateElement == null || innateElement == Element.DENDRO || innateElement == Element.GEO) {
                             targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
                             if (attackElement == Element.DENDRO && innateElement != Element.DENDRO) {
@@ -2856,14 +3007,14 @@ public final class ElementalGaugeManager {
                     reactionMult *= ampEmMult;
                 }
                 float finalDmg = effectiveDamage * reactionMult;
+                ElementalReaction displayReaction = (catalyzeReaction != null && reaction == ElementalReaction.QUICKEN)
+                        ? catalyzeReaction : reaction;
                 float resFinalDmg = 0.0F;
                 if (finalDmg > 0.0F) {
-                    resFinalDmg = dealOrDeferDamage(level, target, attacker, finalDmg, attackElement, meleeOut);
+                    resFinalDmg = dealOrDeferDamage(level, target, attacker, finalDmg, attackElement, meleeOut, displayReaction);
                 }
                 executeReactionEffect(level, target, reaction, auraElement, removedAuraU, attacker, dmgMult);
 
-                ElementalReaction displayReaction = (catalyzeReaction != null && reaction == ElementalReaction.QUICKEN)
-                        ? catalyzeReaction : reaction;
                 syncAuras(target, targetGauges.keySet(), auraElement, attackElement, displayReaction, resFinalDmg);
                 return;
             }
@@ -2874,7 +3025,7 @@ public final class ElementalGaugeManager {
             if (attackElement == Element.PYRO && isEntityInWater(target)) {
                 target.clearFire();
                 float vapeDmg = effectiveDamage * 1.5F * ampEmMult;
-                float resVape = dealOrDeferDamage(level, target, attacker, vapeDmg, attackElement, meleeOut);
+                float resVape = dealOrDeferDamage(level, target, attacker, vapeDmg, attackElement, meleeOut, ElementalReaction.REVERSE_VAPORIZE);
                 syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, resVape);
                 return;
             }
@@ -2882,7 +3033,7 @@ public final class ElementalGaugeManager {
             if (innateElement != null && attackElement != innateElement) {
                 float resDmg = 0.0F;
                 if (effectiveDamage > 0.0F) {
-                    resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                    resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
                 }
                 syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, resDmg);
                 return;
@@ -2900,7 +3051,7 @@ public final class ElementalGaugeManager {
                     : applyMobElementalResistance(target, attackElement, effectiveDamage);
             syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, previewResDmg);
             if (effectiveDamage > 0.0F) {
-                dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
             }
             return;
         }
@@ -2908,7 +3059,7 @@ public final class ElementalGaugeManager {
         // Deal normal damage
         float resNormalDmg = 0.0F;
         if (effectiveDamage > 0.0F) {
-            resNormalDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+            resNormalDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
         }
         syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, resNormalDmg);
     }
@@ -3036,7 +3187,9 @@ public final class ElementalGaugeManager {
                         dmg *= 0.4F;
                     }
                     nearby.invulnerableTime = 0;
-                    hurtWithPreAppliedElementalRes(nearby, level.damageSources().freeze(), dmg);
+                    LivingEntity scCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createTypedDamageSource(
+                            level.damageSources().freeze(), scCredit, ElementalReaction.SUPERCONDUCT, Element.CRYO), dmg);
                     SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
                     nearby.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 0));
                     if (nearby != target && dmg > 0.0F) {
@@ -3071,6 +3224,10 @@ public final class ElementalGaugeManager {
                             target, getInnateElement(target) == Element.DENDRO ? 100L : 200L);
                     BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + burnTicks);
                     BURNING_EM_LEVEL.put(target.getUUID(), emLevel);
+                    LivingEntity burnCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+                    if (burnCredit != null && burnCredit != target) {
+                        BURNING_ATTACKER_UUID.put(target.getUUID(), burnCredit.getUUID());
+                    }
                     EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
                     target.setSecondsOnFire(5);
                     level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
@@ -3120,7 +3277,11 @@ public final class ElementalGaugeManager {
             }
             ensurePreDeathPyroIgnite(victim, 3);
             victim.invulnerableTime = 0;
-            hurtWithPreAppliedElementalRes(victim, getElementalDamageSource(level, attacker), dmg);
+            LivingEntity olCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+            if (dmg > 0.0F) {
+                ElementalDeathMessageHelper.recordReactionForDeath(victim, ElementalReaction.OVERLOADED, Element.PYRO, olCredit);
+            }
+            hurtWithPreAppliedElementalRes(victim, getElementalDamageSource(level, attacker, ElementalReaction.OVERLOADED, Element.PYRO), dmg);
             if (victim != target && dmg > 0.0F) {
                 syncAuras(victim, getEntityElements(victim.getUUID()), Element.ELECTRO, Element.PYRO, ElementalReaction.OVERLOADED, dmg);
             }
@@ -3172,7 +3333,10 @@ public final class ElementalGaugeManager {
             FROZEN_UNTIL.entrySet().removeIf(e -> !FROZEN_GAUGES.containsKey(e.getKey()) && (serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L));
             BURNING_UNTIL.entrySet().removeIf(e -> !GAUGES.containsKey(e.getKey()) && (serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L));
             BURNING_EM_LEVEL.keySet().removeIf(id -> !BURNING_UNTIL.containsKey(id));
+            BURNING_ATTACKER_UUID.keySet().removeIf(id -> !BURNING_UNTIL.containsKey(id));
             LAST_BURN_PYRO_REFRESH.keySet().removeIf(id -> !BURNING_UNTIL.containsKey(id));
+            SUPPRESSED_PHYSICAL_FLOAT_TICK.entrySet().removeIf(e -> Math.abs(serverNow - e.getValue()) > 20L);
+            ElementalDeathMessageHelper.cleanupStale(serverNow);
             ELECTRO_CHARGE_EM_LEVEL.keySet().removeIf(id -> !GAUGES.containsKey(id));
             ELECTRO_CHARGE_TICK.keySet().removeIf(id -> !GAUGES.containsKey(id));
             FROZEN_POSES.keySet().removeIf(id -> !FROZEN_GAUGES.containsKey(id) && !FROZEN_UNTIL.containsKey(id));
@@ -3221,8 +3385,10 @@ public final class ElementalGaugeManager {
                 LAST_FREEZE_STRUGGLE.remove(id);
                 QUICKEN_UNTIL.remove(id);
                 BURNING_UNTIL.remove(id);
-        BURNING_EM_LEVEL.remove(id);
-        ELECTRO_CHARGE_EM_LEVEL.remove(id);
+                BURNING_EM_LEVEL.remove(id);
+                BURNING_ATTACKER_UUID.remove(id);
+                ELECTRO_CHARGE_EM_LEVEL.remove(id);
+                SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(id);
                 LAST_BURN_PYRO_REFRESH.remove(id);
                 INNATE_COOLDOWN_UNTIL.remove(id);
                 ELECTRO_CHARGE_TICK.remove(id);
@@ -3358,7 +3524,7 @@ public final class ElementalGaugeManager {
                             applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
                             if (innate != Element.ELECTRO) {
                                 float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
-                                hurtWithPreAppliedElementalRes(target, targetLevel.damageSources().magic(), ecDmg);
+                                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
                                 syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
                             }
                             break;
@@ -3386,7 +3552,7 @@ public final class ElementalGaugeManager {
                         ecDmg *= 0.4F;
                     }
                     if (innate != Element.ELECTRO) {
-                        hurtWithPreAppliedElementalRes(target, targetLevel.damageSources().magic(), ecDmg);
+                        hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
                         syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
                     }
 
@@ -3431,6 +3597,7 @@ public final class ElementalGaugeManager {
                 if (!hasDendroFuel || !hasPyro || innateDendroExpired || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
                     BURNING_UNTIL.remove(id);
                     BURNING_EM_LEVEL.remove(id);
+                    BURNING_ATTACKER_UUID.remove(id);
                     LAST_BURN_PYRO_REFRESH.remove(id);
                     if (innate == Element.DENDRO) {
                         entityGauges.remove(Element.PYRO);
@@ -3446,9 +3613,13 @@ public final class ElementalGaugeManager {
                     if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, now) == Element.PYRO) {
                         burnDmg *= 0.4F;
                     }
+                    UUID burnCreditId = BURNING_ATTACKER_UUID.get(id);
+                    Entity burnCreditEnt = burnCreditId != null ? targetLevel.getEntity(burnCreditId) : null;
+                    LivingEntity burnCredit = burnCreditEnt instanceof LivingEntity livingCredit ? livingCredit : null;
                     IS_PROCESSING_REACTION.set(true);
                     try {
-                        hurtWithPreAppliedElementalRes(target, targetLevel.damageSources().inFire(), burnDmg);
+                        hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createTypedDamageSource(
+                                targetLevel.damageSources().inFire(), burnCredit, ElementalReaction.BURNING, Element.PYRO), burnDmg);
                     } finally {
                         IS_PROCESSING_REACTION.set(false);
                     }

@@ -99,6 +99,7 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
+            com.velorise.staves.element.ElementalDeathMessageHelper.enhanceLivingDeath(event.getEntity());
             ElementalGaugeManager.tryDropElementOnDeath(event.getEntity(), event.getSource());
             ElementalGaugeManager.clearEntityState(event.getEntity());
         }
@@ -235,12 +236,19 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onEntityInvulnerabilityCheck(net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent event) {
-        if (!event.getEntity().level().isClientSide()
-                && event.getSource().is(DamageTypeTags.IS_FIRE)
-                && event.getEntity() instanceof LivingEntity living
-                && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
-            ElementalGaugeManager.extinguishPyroInnate(living);
-            event.setInvulnerable(true);
+        if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof LivingEntity living) {
+            if (event.getSource().is(DamageTypeTags.IS_FALL)
+                    && !event.getSource().is(net.minecraft.world.damagesource.DamageTypes.STALAGMITE)
+                    && ElementalGaugeManager.isAnemoInnateMob(living)) {
+                living.fallDistance = 0.0F;
+                event.setInvulnerable(true);
+                return;
+            }
+            if (event.getSource().is(DamageTypeTags.IS_FIRE)
+                    && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
+                ElementalGaugeManager.extinguishPyroInnate(living);
+                event.setInvulnerable(true);
+            }
         }
     }
 
@@ -300,6 +308,7 @@ public final class ArcaneStaffEvents {
     public static void onLivingDamagePre(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Pre event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
+        ElementalGaugeManager.beginDamageFloatTracking(entity);
         long now = entity.level().getGameTime();
         DamageSource src = event.getSource();
 
@@ -332,6 +341,7 @@ public final class ArcaneStaffEvents {
     public static void onLivingDamage(net.neoforged.neoforge.event.entity.living.LivingDamageEvent.Post event) {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
+        ElementalGaugeManager.trySendPhysicalDamageFloat(entity, event.getSource(), event.getNewDamage());
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
         ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
     }

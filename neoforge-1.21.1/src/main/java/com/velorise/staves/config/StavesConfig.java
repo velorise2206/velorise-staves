@@ -142,7 +142,7 @@ public final class StavesConfig {
             .comment("Render floating elemental reaction titles (MELT, VAPORIZE, OVERLOADED, etc.). Default: true")
             .define("show_reaction_text", true);
         SHOW_DAMAGE_NUMBERS = builder
-            .comment("Render floating elemental damage numbers in combat. Default: true")
+            .comment("Render floating elemental & physical damage numbers in combat. Default: true")
             .define("show_damage_numbers", true);
         INNATE_MUTATION_CHANCE = builder
             .comment("Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")

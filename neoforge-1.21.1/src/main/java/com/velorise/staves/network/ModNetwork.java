@@ -76,7 +76,23 @@ public final class ModNetwork {
                 com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target),
                 hasPos, px, py, pz
         );
-        if (hasPos && target.isRemoved() && target.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+        if (hasPos && (!target.isAlive() || target.isRemoved()) && target.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+            PacketDistributor.sendToPlayersNear(sl, null, px, py, pz, 64.0D, payload);
+        } else {
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
+        }
+    }
+
+    public static void sendPhysicalDamage(Entity target, float damage) {
+        if (target == null || target.level().isClientSide() || damage <= 0.0F) return;
+        double px = target.getX();
+        double py = target.getY() + Math.max(0.65D, target.getBbHeight() * 0.65D);
+        double pz = target.getZ();
+        AuraSyncPayload payload = new AuraSyncPayload(
+                target.getId(), java.util.Collections.emptyList(), null, null, null, damage, -3,
+                false, true, px, py, pz
+        );
+        if ((!target.isAlive() || target.isRemoved()) && target.level() instanceof net.minecraft.server.level.ServerLevel sl) {
             PacketDistributor.sendToPlayersNear(sl, null, px, py, pz, 64.0D, payload);
         } else {
             PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);

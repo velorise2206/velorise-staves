@@ -44,6 +44,7 @@ public abstract class LivingEntityDamageMixin {
     private float velorise$modifyIncomingDamage(float amount, DamageSource source) {
         LivingEntity entity = (LivingEntity) (Object) this;
         if (entity.level().isClientSide() || amount <= 0.0F) return amount;
+        ElementalGaugeManager.beginDamageFloatTracking(entity);
         long now = entity.level().getGameTime();
 
         amount = ElementalGaugeManager.modifyIncomingEnvironmentalDamage(entity, source, amount);
