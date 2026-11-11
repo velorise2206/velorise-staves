@@ -68,7 +68,7 @@ public final class StavesConfig {
     public static final BooleanValue ALLOW_GOLEM_MUTATION = defineBool("innate_mutation", "allow_golem_mutation", true);
     public static final BooleanValue ALLOW_NEUTRAL_AND_PASSIVE_MUTATION = defineBool("innate_mutation", "allow_neutral_and_passive_mutation", false);
     public static final DoubleValue OMNI_MUTATION_SHARE = defineDouble("innate_mutation", "omni_mutation_share", 0.143D, 0.0D, 1.0D);
-    public static final StringListValue MUTABLE_MOB_WHITELIST = defineStringList("innate_mutation", "mutable_mob_whitelist", List.of("minecraft:iron_golem"));
+    public static final StringListValue MUTABLE_MOB_WHITELIST = defineStringList("innate_mutation", "mutable_mob_whitelist", List.of("minecraft:iron_golem", "minecraft:wolf", "minecraft:fox"));
     public static final StringListValue MUTABLE_MOB_BLACKLIST = defineStringList("innate_mutation", "mutable_mob_blacklist", List.of());
     public static final StringListValue CUSTOM_MOB_MUTATION_RATES = defineStringList("innate_mutation", "custom_mob_mutation_rates", List.of());
 
@@ -244,7 +244,7 @@ public final class StavesConfig {
                 writer.write("allow_neutral_and_passive_mutation = " + ALLOW_NEUTRAL_AND_PASSIVE_MUTATION.get() + "\n");
                 writer.write("# Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (Default: 0.143 ~= 1/7)\n");
                 writer.write("omni_mutation_share = " + OMNI_MUTATION_SHARE.get() + "\n");
-                writer.write("# Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:zombie\") or entity tags (\"#minecraft:raiders\") always allowed to mutate\n");
+                writer.write("# Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:wolf\", \"minecraft:fox\") or entity tags (\"#minecraft:raiders\") always allowed to mutate\n");
                 writer.write("mutable_mob_whitelist = " + formatTomlStringList(MUTABLE_MOB_WHITELIST.get()) + "\n");
                 writer.write("# Entity IDs or tags (\"#...\") excluded from innate mutation. Example: [\"minecraft:creeper\", \"minecraft:phantom\"]\n");
                 writer.write("mutable_mob_blacklist = " + formatTomlStringList(MUTABLE_MOB_BLACKLIST.get()) + "\n");

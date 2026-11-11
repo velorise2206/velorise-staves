@@ -301,7 +301,9 @@ public final class ElementalGaugeManager {
         }
         if (alive && reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE
                 && reaction != ElementalReaction.BLOOM && reaction != ElementalReaction.REVERSE_BLOOM
-                && reaction != ElementalReaction.BURGEON && reaction != ElementalReaction.HYPERBLOOM) {
+                && reaction != ElementalReaction.BURGEON && reaction != ElementalReaction.HYPERBLOOM
+                && !(reaction == ElementalReaction.BURNING
+                        && (hasInnateElement(target, Element.PYRO) || target.fireImmune() || target instanceof Warden))) {
             MobHazardAvoidanceManager.reportReactionOrHazard(target, CURRENT_REACTION_ATTACKER.get(), target.position(), reactedAura, trigger);
         }
         com.velorise.staves.network.ModNetwork.sendAuraSync(target, effective, reactedAura, trigger, reaction, damage, durationTicks);

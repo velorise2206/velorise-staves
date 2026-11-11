@@ -131,6 +131,10 @@ public final class MobHazardAvoidanceManager {
 
     private static boolean isImmuneToAllElements(Mob mob, @Nullable Element e1, @Nullable Element e2) {
         if (e1 == null && e2 == null) return false;
+        if (((e1 == Element.DENDRO && e2 == Element.PYRO) || (e1 == Element.PYRO && e2 == Element.DENDRO))
+                && isHazardImmune(mob, Element.PYRO)) {
+            return true;
+        }
         boolean imm1 = (e1 == null) || isHazardImmune(mob, e1);
         boolean imm2 = (e2 == null) || isHazardImmune(mob, e2);
         return imm1 && imm2;
@@ -139,8 +143,7 @@ public final class MobHazardAvoidanceManager {
     private static boolean isHazardImmune(Mob mob, @Nullable Element elem) {
         if (elem == null) return false;
         if (ElementalGaugeManager.isOmniInnate(mob)) return true;
-        Element innate = ElementalGaugeManager.getInnateElement(mob);
-        if (innate == elem) return true;
+        if (ElementalGaugeManager.hasInnateElement(mob, elem)) return true;
         return elem == Element.PYRO && (mob.fireImmune() || mob.hasEffect(net.minecraft.world.effect.MobEffects.FIRE_RESISTANCE));
     }
 
@@ -190,6 +193,7 @@ public final class MobHazardAvoidanceManager {
             return Element.ELECTRO;
         }
         if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)
+                || isDendroMushroomBlock(st)
                 || st.is(Blocks.CACTUS) || st.is(Blocks.SWEET_BERRY_BUSH)
                 || st.is(Blocks.COBWEB) || TemporaryWebManager.isTemporaryWeb(level, pos)) {
             return Element.DENDRO;
@@ -200,12 +204,42 @@ public final class MobHazardAvoidanceManager {
         return null;
     }
 
+    private static boolean isDendroMushroomBlock(BlockState st) {
+        return st.is(ElementalGaugeManager.MUSHROOM_BLOCKS)
+                || st.getBlock() instanceof net.minecraft.world.level.block.HugeMushroomBlock
+                || st.is(Blocks.BROWN_MUSHROOM_BLOCK)
+                || st.is(Blocks.RED_MUSHROOM_BLOCK)
+                || st.is(Blocks.MUSHROOM_STEM)
+                || st.is(Blocks.BROWN_MUSHROOM)
+                || st.is(Blocks.RED_MUSHROOM);
+    }
+
+    private static boolean isNonDamagingDendroAuraBlock(BlockState st) {
+        return st.is(Blocks.SLIME_BLOCK)
+                || st.is(Blocks.HONEY_BLOCK)
+                || isDendroMushroomBlock(st);
+    }
+
+    private static @Nullable Element getUnsafeBlockHazardAt(ServerLevel level, BlockPos pos, Mob mob) {
+        Element elem = getBlockHazardElement(level, pos);
+        if (elem == null || isHazardImmune(mob, elem)) {
+            return null;
+        }
+        BlockState st = level.getBlockState(pos);
+        // Pyro-immune mobs take 0 Burning damage and should not avoid harmless Dendro aura blocks
+        if (elem == Element.DENDRO && isNonDamagingDendroAuraBlock(st) && isHazardImmune(mob, Element.PYRO)) {
+            return null;
+        }
+        if (st.is(Blocks.SWEET_BERRY_BUSH) && mob instanceof net.minecraft.world.entity.animal.Fox) {
+            return null;
+        }
+        return elem;
+    }
+
     private static @Nullable Element checkPosHazard(ServerLevel level, BlockPos pos, Mob mob) {
-        Element feet = getBlockHazardElement(level, pos);
-        if (feet != null && !isHazardImmune(mob, feet)) return feet;
-        Element below = getBlockHazardElement(level, pos.below());
-        if (below != null && !isHazardImmune(mob, below)) return below;
-        return null;
+        Element feet = getUnsafeBlockHazardAt(level, pos, mob);
+        if (feet != null) return feet;
+        return getUnsafeBlockHazardAt(level, pos.below(), mob);
     }
 
     private static @Nullable Vec3 findZoneHazard(ServerLevel level, Vec3 pos, double margin, Mob mob) {
@@ -255,7 +289,7 @@ public final class MobHazardAvoidanceManager {
         Path path = mob.getNavigation().getPath();
         if (path != null && !path.isDone()) {
             int idx = path.getNextNodeIndex();
-            int limit = Math.min(path.getNodeCount(), idx + 2);
+            int limit = Math.min(path.getNodeCount(), idx + 3);
             for (int i = idx; i < limit; i++) {
                 Node node = path.getNode(i);
                 BlockPos nodePos = new BlockPos(node.x, node.y, node.z);
@@ -343,7 +377,7 @@ public final class MobHazardAvoidanceManager {
             if (now < this.avoidCooldownUntil || now < this.nextCheckTick) {
                 return false;
             }
-            this.nextCheckTick = now + 5L;
+            this.nextCheckTick = now + 3L;
 
             Vec3 hazard = findImmediateHazardForMob(mob, level);
             if (hazard == null) {
@@ -352,7 +386,7 @@ public final class MobHazardAvoidanceManager {
 
             boolean inCombat = mob.getTarget() != null && mob.getTarget().isAlive();
             Vec3 away = findSafeAwaySpot(mob, level, hazard, inCombat ? 6 : 9, inCombat ? 3 : 4);
-            this.avoidCooldownUntil = now + (inCombat ? 24L : 14L);
+            this.avoidCooldownUntil = now + (inCombat ? 10L : 8L);
             if (away == null) {
                 return false;
             }

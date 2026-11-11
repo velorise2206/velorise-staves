@@ -77,6 +77,7 @@ public final class ClientAuraTracker {
     }
 
     public static class FloatingCombatText {
+        public final int entityId;
         public final double worldX;
         public final double worldY;
         public final double worldZ;
@@ -89,6 +90,7 @@ public final class ClientAuraTracker {
         public final long until;
 
         public FloatingCombatText(
+                int entityId,
                 double worldX,
                 double worldY,
                 double worldZ,
@@ -99,6 +101,7 @@ public final class ClientAuraTracker {
                 long reactionUntil,
                 long damageUntil
         ) {
+            this.entityId = entityId;
             this.worldX = worldX;
             this.worldY = worldY;
             this.worldZ = worldZ;
@@ -115,7 +118,77 @@ public final class ClientAuraTracker {
     public static final List<ActiveArc> ACTIVE_ARCS = new java.util.concurrent.CopyOnWriteArrayList<>();
     public static final List<FloatingCombatText> FLOATING_TEXTS = new java.util.concurrent.CopyOnWriteArrayList<>();
 
+    private static boolean matchesFloatingTarget(FloatingCombatText t, int entityId, double x, double y, double z) {
+        if (entityId > 0 && t.entityId > 0) {
+            return t.entityId == entityId;
+        }
+        if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(z)) {
+            return false;
+        }
+        double dx = t.worldX - x;
+        double dy = t.worldY - y;
+        double dz = t.worldZ - z;
+        return (dx * dx + dy * dy + dz * dz) <= 2.25D;
+    }
+
+    private static boolean hasActiveReactionText(
+            int entityId,
+            double x,
+            double y,
+            double z,
+            @Nullable ElementalReaction reaction,
+            long now
+    ) {
+        if (reaction == null || reaction == ElementalReaction.NONE || FLOATING_TEXTS.isEmpty()) {
+            return false;
+        }
+        for (FloatingCombatText t : FLOATING_TEXTS) {
+            if (t.reaction == reaction && now < t.reactionUntil && matchesFloatingTarget(t, entityId, x, y, z)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasRecentIdenticalDamage(
+            int entityId,
+            double x,
+            double y,
+            double z,
+            float damage,
+            @Nullable Element damageElement,
+            long now
+    ) {
+        if (damage <= 0.0F || FLOATING_TEXTS.isEmpty()) {
+            return false;
+        }
+        int rounded = Math.round(damage * 10.0F);
+        for (FloatingCombatText t : FLOATING_TEXTS) {
+            if (t.damage > 0.0F
+                    && (now - t.startTime) < 250L
+                    && now < t.damageUntil
+                    && Math.round(t.damage * 10.0F) == rounded
+                    && java.util.Objects.equals(t.damageElement, damageElement)
+                    && matchesFloatingTarget(t, entityId, x, y, z)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void addFloatingText(
+            double x,
+            double y,
+            double z,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            @Nullable Element damageElement
+    ) {
+        addFloatingText(-1, x, y, z, reaction, damage, damageElement);
+    }
+
+    public static void addFloatingText(
+            int entityId,
             double x,
             double y,
             double z,
@@ -125,8 +198,17 @@ public final class ClientAuraTracker {
     ) {
         if ((reaction == null || reaction == ElementalReaction.NONE) && damage <= 0.0F) return;
         long now = System.currentTimeMillis();
-        if (FLOATING_TEXTS.size() > 256) {
+        if (!FLOATING_TEXTS.isEmpty()) {
             FLOATING_TEXTS.removeIf(t -> now >= t.until);
+        }
+        if (reaction != null && hasActiveReactionText(entityId, x, y, z, reaction, now)) {
+            reaction = null;
+        }
+        if (damage > 0.0F && hasRecentIdenticalDamage(entityId, x, y, z, damage, damageElement, now)) {
+            damage = 0.0F;
+        }
+        if ((reaction == null || reaction == ElementalReaction.NONE) && damage <= 0.0F) return;
+        if (FLOATING_TEXTS.size() > 256) {
             while (FLOATING_TEXTS.size() > 256) {
                 FLOATING_TEXTS.remove(0);
             }
@@ -136,6 +218,7 @@ public final class ClientAuraTracker {
         double oy = (rng.nextDouble() - 0.5D) * 0.28D;
         double oz = (rng.nextDouble() - 0.5D) * 0.56D;
         FLOATING_TEXTS.add(new FloatingCombatText(
+                entityId,
                 x + ox,
                 y + oy,
                 z + oz,
@@ -271,7 +354,7 @@ public final class ClientAuraTracker {
                     }
                 }
                 if (!Double.isNaN(bx)) {
-                    addFloatingText(bx, by, bz, null, damage, null);
+                    addFloatingText(entityId, bx, by, bz, null, damage, null);
                 }
             }
             return;
@@ -306,12 +389,25 @@ public final class ClientAuraTracker {
             entry.elements.add(0, entry.permanentInnateElement);
         }
 
+        double resolvedX = posX;
+        double resolvedY = posY;
+        double resolvedZ = posZ;
+        if (!hasPos || Double.isNaN(resolvedX) || Double.isNaN(resolvedY) || Double.isNaN(resolvedZ)) {
+            net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
+            if (e != null) {
+                resolvedX = e.getX();
+                resolvedY = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
+                resolvedZ = e.getZ();
+            } else {
+                resolvedX = Double.NaN;
+            }
+        }
+
         boolean spawnReaction = false;
         if (reaction != null && reaction != ElementalReaction.NONE) {
-            boolean keepOngoingBurningBanner = (reaction == ElementalReaction.BURNING
-                    && entry.reaction == ElementalReaction.BURNING
-                    && now < entry.reactionUntil);
-            if (!keepOngoingBurningBanner) {
+            boolean keepOngoingText = (entry.reaction == reaction && now < entry.reactionUntil)
+                    || hasActiveReactionText(entityId, resolvedX, resolvedY, resolvedZ, reaction, now);
+            if (!keepOngoingText) {
                 spawnReaction = true;
                 entry.reaction = reaction;
                 entry.reactionStartTime = now;
@@ -334,24 +430,9 @@ public final class ClientAuraTracker {
             entry.damageUntil = now + 1500; // 30 ticks (1.5 seconds) floating damage number
         }
 
-        if (spawnReaction || spawnDamage) {
-            double bx = posX;
-            double by = posY;
-            double bz = posZ;
-            if (!hasPos || Double.isNaN(bx) || Double.isNaN(by) || Double.isNaN(bz)) {
-                net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
-                if (e != null) {
-                    bx = e.getX();
-                    by = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
-                    bz = e.getZ();
-                } else {
-                    bx = Double.NaN;
-                }
-            }
-            if (!Double.isNaN(bx)) {
-                Element dmgElem = trigger != null ? trigger : reactedAura;
-                addFloatingText(bx, by, bz, spawnReaction ? reaction : null, spawnDamage ? damage : 0.0F, dmgElem);
-            }
+        if ((spawnReaction || spawnDamage) && !Double.isNaN(resolvedX)) {
+            Element dmgElem = trigger != null ? trigger : reactedAura;
+            addFloatingText(entityId, resolvedX, resolvedY, resolvedZ, spawnReaction ? reaction : null, spawnDamage ? damage : 0.0F, dmgElem);
         }
 
         if (isFrozenState || reaction == ElementalReaction.FROZEN) {

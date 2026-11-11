@@ -197,8 +197,8 @@ public final class StavesConfig {
             .comment("Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (remaining become 1 of the 7 elements). Default: 0.143 (~1/7 -> 1% Omni at 7% rate)")
             .defineInRange("omni_mutation_share", 0.143D, 0.0D, 1.0D);
         MUTABLE_MOB_WHITELIST = builder
-            .comment("Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:zombie\") or entity tags (\"#minecraft:raiders\") always allowed to mutate.")
-            .defineListAllowEmpty("mutable_mob_whitelist", List.of("minecraft:iron_golem"), () -> "", o -> o instanceof String s && !s.trim().isEmpty());
+            .comment("Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:wolf\", \"minecraft:fox\") or entity tags (\"#minecraft:raiders\") always allowed to mutate.")
+            .defineListAllowEmpty("mutable_mob_whitelist", List.of("minecraft:iron_golem", "minecraft:wolf", "minecraft:fox"), () -> "", o -> o instanceof String s && !s.trim().isEmpty());
         MUTABLE_MOB_BLACKLIST = builder
             .comment("Entity IDs or tags (\"#...\") excluded from innate mutation even if their category is enabled. Example: [\"minecraft:creeper\", \"minecraft:phantom\"]")
             .defineListAllowEmpty("mutable_mob_blacklist", List.of(), () -> "", o -> o instanceof String s && !s.trim().isEmpty());
