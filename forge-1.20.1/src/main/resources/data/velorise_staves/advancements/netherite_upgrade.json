@@ -1,0 +1,51 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:netherite_dragonfire_scepter"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.netherite_upgrade.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.netherite_upgrade.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_netherite_staff": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "velorise_staves:netherite_dragonfire_scepter",
+              "velorise_staves:netherite_resonant_echo",
+              "velorise_staves:netherite_inferno_rod",
+              "velorise_staves:netherite_ghastfire_staff",
+              "velorise_staves:netherite_wither_scepter",
+              "velorise_staves:netherite_shulker_seeker",
+              "velorise_staves:netherite_guardian_lens",
+              "velorise_staves:netherite_evoker_fang_staff",
+              "velorise_staves:netherite_arc_caster",
+              "velorise_staves:netherite_frostbolt_wand",
+              "velorise_staves:netherite_webcaster",
+              "velorise_staves:netherite_wind_staff",
+              "velorise_staves:netherite_omni_staff",
+              "velorise_staves:netherite_void_translocator",
+              "velorise_staves:netherite_magic_mirror"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_netherite_staff"
+    ]
+  ]
+}

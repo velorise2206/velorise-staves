@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "id": "minecraft:enchanted_book"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.elemental_mastery.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.elemental_mastery.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_elemental_mastery": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "elemental_mastery"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_elemental_mastery"
+    ]
+  ]
+}

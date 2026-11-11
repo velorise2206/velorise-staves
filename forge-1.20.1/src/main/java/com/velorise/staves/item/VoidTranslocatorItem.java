@@ -97,12 +97,14 @@ public class VoidTranslocatorItem extends Item {
             );
 
             stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
-            player.getCooldowns().addCooldown(this, getCooldownTicks());
+            com.velorise.staves.element.ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
 
             spawnPortalParticles(serverLevel, destination.add(0, 1.0, 0));
             level.playSound(null, destination.x, destination.y, destination.z,
                 SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.0F);
 
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    serverPlayer, com.velorise.staves.advancement.ModAdvancements.EVENT_SPATIAL_TRAVELER);
             return InteractionResultHolder.success(stack);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
@@ -154,7 +156,8 @@ public class VoidTranslocatorItem extends Item {
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) getEffectiveRange() + "m").withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+        float cdSec = com.velorise.staves.element.ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", cdSec)).withStyle(ChatFormatting.BLUE));
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());

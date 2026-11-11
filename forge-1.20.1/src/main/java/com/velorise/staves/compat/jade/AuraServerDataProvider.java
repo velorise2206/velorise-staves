@@ -4,6 +4,7 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.GaugeState;
+import com.velorise.staves.entity.GeoFangPillarEntity;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
@@ -27,8 +28,15 @@ public enum AuraServerDataProvider implements IServerDataProvider<EntityAccessor
     @Override
     public void appendServerData(CompoundTag tag, EntityAccessor accessor) {
         Entity entity = accessor.getEntity();
+        if (entity instanceof GeoFangPillarEntity pillar) {
+            GeoConstructJadeHelper.appendServerData(tag, pillar);
+            return;
+        }
         if (!(entity instanceof LivingEntity living)) return;
         UUID id = living.getUUID();
+        if (ElementalGaugeManager.isOmniInnate(living)) {
+            tag.putBoolean("vs_omni", true);
+        }
         Element innate = ElementalGaugeManager.getInnateElement(living);
         if (innate != null) {
             tag.putString("vs_innate", innate.name());

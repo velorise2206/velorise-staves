@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "velorise_staves:anemo_element" }
+  ],
+  "result": {
+    "item": "velorise_staves:wind_charge",
+    "count": 4
+  }
+}

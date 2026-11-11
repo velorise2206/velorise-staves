@@ -20,6 +20,8 @@ public final class StavesConfig {
 
     // Elemental Gauge Theory (EGT)
     public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
+    public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_RESONANCE;
+    public static final ModConfigSpec.IntValue MAX_STAVES_IN_INVENTORY;
     public static final ModConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ModConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
     public static final ModConfigSpec.BooleanValue SHOW_REACTION_TEXT;
@@ -124,6 +126,12 @@ public final class StavesConfig {
         ENABLE_ELEMENTAL_GAUGE = builder
             .comment("Enable Genshin-style Elemental Gauge Theory (EGT) reactions, U-consumption, and decay. Default: true")
             .define("enable_elemental_gauge", true);
+        ENABLE_ELEMENTAL_RESONANCE = builder
+            .comment("Enable 8-type Genshin Elemental Resonance buffs & 4-Staff inventory limit. Default: true")
+            .define("enable_elemental_resonance", true);
+        MAX_STAVES_IN_INVENTORY = builder
+            .comment("Maximum Arcane Staves carried directly in inventory before Arcane Overload triggers (0 = unlimited). Default: 4")
+            .defineInRange("max_staves_in_inventory", 4, 0, 36);
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);
@@ -137,8 +145,8 @@ public final class StavesConfig {
             .comment("Render floating elemental damage numbers in combat. Default: true")
             .define("show_damage_numbers", true);
         INNATE_MUTATION_CHANCE = builder
-            .comment("Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element. Default: 0.06 (6%)")
-            .defineInRange("innate_mutation_chance", 0.06D, 0.0D, 1.0D);
+            .comment("Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
+            .defineInRange("innate_mutation_chance", 0.07D, 0.0D, 1.0D);
         builder.pop();
 
         builder.comment("Individual staff cooldowns in seconds").push("cooldowns");
@@ -223,6 +231,10 @@ public final class StavesConfig {
         public final int voidDurabilityNetherite;
         public final int mirrorDurabilityBasic;
         public final int mirrorDurabilityNetherite;
+        public final boolean enableElementalGauge;
+        public final double innateMutationChance;
+        public final boolean enableElementalResonance;
+        public final int maxStavesInInventory;
 
         public SyncedData(
                 double damageMultiplier,
@@ -238,7 +250,11 @@ public final class StavesConfig {
                 int voidDurabilityBasic,
                 int voidDurabilityNetherite,
                 int mirrorDurabilityBasic,
-                int mirrorDurabilityNetherite
+                int mirrorDurabilityNetherite,
+                boolean enableElementalGauge,
+                double innateMutationChance,
+                boolean enableElementalResonance,
+                int maxStavesInInventory
         ) {
             this.damageMultiplier = damageMultiplier;
             this.cooldownMultiplier = cooldownMultiplier;
@@ -254,6 +270,10 @@ public final class StavesConfig {
             this.voidDurabilityNetherite = voidDurabilityNetherite;
             this.mirrorDurabilityBasic = mirrorDurabilityBasic;
             this.mirrorDurabilityNetherite = mirrorDurabilityNetherite;
+            this.enableElementalGauge = enableElementalGauge;
+            this.innateMutationChance = innateMutationChance;
+            this.enableElementalResonance = enableElementalResonance;
+            this.maxStavesInInventory = maxStavesInInventory;
         }
 
         public void write(net.minecraft.network.FriendlyByteBuf buf) {
@@ -274,6 +294,10 @@ public final class StavesConfig {
             buf.writeVarInt(voidDurabilityNetherite);
             buf.writeVarInt(mirrorDurabilityBasic);
             buf.writeVarInt(mirrorDurabilityNetherite);
+            buf.writeBoolean(enableElementalGauge);
+            buf.writeDouble(innateMutationChance);
+            buf.writeBoolean(enableElementalResonance);
+            buf.writeVarInt(maxStavesInInventory);
         }
 
         public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
@@ -297,7 +321,11 @@ public final class StavesConfig {
             int vdNeth = buf.readVarInt();
             int mdBasic = buf.readVarInt();
             int mdNeth = buf.readVarInt();
-            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth);
+            boolean egtOn = buf.isReadable() ? buf.readBoolean() : true;
+            double mutChance = buf.isReadable() ? buf.readDouble() : 0.07D;
+            boolean resOn = buf.isReadable() ? buf.readBoolean() : true;
+            int maxCap = buf.isReadable() ? buf.readVarInt() : 4;
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap);
         }
     }
 
@@ -335,7 +363,11 @@ public final class StavesConfig {
                 VOID_TRANSLOCATOR_DURABILITY_BASIC.get(),
                 VOID_TRANSLOCATOR_DURABILITY_NETHERITE.get(),
                 MAGIC_MIRROR_DURABILITY_BASIC.get(),
-                MAGIC_MIRROR_DURABILITY_NETHERITE.get()
+                MAGIC_MIRROR_DURABILITY_NETHERITE.get(),
+                ENABLE_ELEMENTAL_GAUGE.get(),
+                INNATE_MUTATION_CHANCE.get(),
+                ENABLE_ELEMENTAL_RESONANCE.get(),
+                MAX_STAVES_IN_INVENTORY.get()
         );
     }
 
@@ -469,7 +501,23 @@ public final class StavesConfig {
     }
 
     public static boolean isElementalGaugeEnabled() {
-        return ENABLE_ELEMENTAL_GAUGE.get();
+        SyncedData s = syncedServerData;
+        return s != null ? s.enableElementalGauge : ENABLE_ELEMENTAL_GAUGE.get();
+    }
+
+    public static double getInnateMutationChance() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.innateMutationChance : INNATE_MUTATION_CHANCE.get();
+    }
+
+    public static boolean isElementalResonanceEnabled() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.enableElementalResonance : ENABLE_ELEMENTAL_RESONANCE.get();
+    }
+
+    public static int getMaxStavesInInventory() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.maxStavesInInventory : MAX_STAVES_IN_INVENTORY.get();
     }
 
 }

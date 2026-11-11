@@ -192,6 +192,10 @@ public final class DendroCoreManager {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, owner);
                 // Genshin Impact: Innate Dendro beings are immune to Dendro Bloom damage
+                if (ElementalGaugeManager.isOmniInnate(victim)) {
+                    ElementalGaugeManager.notifyOmniImmuneEnvironmental(core.level, victim);
+                    continue;
+                }
                 if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
                     ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.DENDRO, ElementalReaction.IMMUNE, 0.0F);
                     continue;
@@ -204,6 +208,19 @@ public final class DendroCoreManager {
     }
 
     private static void triggerHyperbloom(CoreEntry core, @Nullable LivingEntity attacker) {
+        if (attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            long now = core.level.getGameTime();
+            ElementalResonanceManager.onElectroReactionTriggered(sp, now);
+            ElementalResonanceManager.onDendroReactionTriggered(sp, now);
+        }
+        if (core.ownerId != null && core.level.getServer() != null) {
+            ServerPlayer ownerPl = core.level.getServer().getPlayerList().getPlayer(core.ownerId);
+            if (ownerPl != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(ownerPl, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            }
+        }
         Vec3 pos = core.entity.position();
         core.entity.discard();
 
@@ -240,6 +257,17 @@ public final class DendroCoreManager {
     }
 
     private static void triggerBurgeon(CoreEntry core, @Nullable LivingEntity attacker) {
+        if (attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            ElementalResonanceManager.onDendroReactionTriggered(sp, core.level.getGameTime());
+        }
+        if (core.ownerId != null && core.level.getServer() != null) {
+            ServerPlayer ownerPl = core.level.getServer().getPlayerList().getPlayer(core.ownerId);
+            if (ownerPl != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(ownerPl, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            }
+        }
         Vec3 pos = core.entity.position();
         core.entity.discard();
         core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 3, 0.3D, 0.3D, 0.3D, 0.0D);
@@ -253,6 +281,10 @@ public final class DendroCoreManager {
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, attacker);
+                if (ElementalGaugeManager.isOmniInnate(victim)) {
+                    ElementalGaugeManager.notifyOmniImmuneEnvironmental(core.level, victim);
+                    continue;
+                }
                 if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
                     ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.PYRO, ElementalReaction.IMMUNE, 0.0F);
                     continue;
@@ -328,6 +360,11 @@ public final class DendroCoreManager {
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
                     if (canTakeBloomDamage(nearby, level.getGameTime())) {
                         ElementalGaugeManager.triggerMobAggro(level, nearby, m.attacker);
+                        if (ElementalGaugeManager.isOmniInnate(nearby)) {
+                            ElementalGaugeManager.notifyOmniImmuneEnvironmental(level, nearby);
+                            hitAny = true;
+                            continue;
+                        }
                         if (ElementalGaugeManager.getInnateElement(nearby) == Element.DENDRO) {
                             ElementalGaugeManager.syncAuras(nearby, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
                             hitAny = true;
@@ -342,7 +379,9 @@ public final class DendroCoreManager {
                 LivingEntity victim = m.target;
                 if (!hitAny && victim != null && victim.isAlive() && !victim.isRemoved() && victim != m.attacker) {
                     ElementalGaugeManager.triggerMobAggro(level, victim, m.attacker);
-                    if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                    if (ElementalGaugeManager.isOmniInnate(victim)) {
+                        ElementalGaugeManager.notifyOmniImmuneEnvironmental(level, victim);
+                    } else if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
                         ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
                     } else {
                         if (canTakeBloomDamage(victim, level.getGameTime())) {

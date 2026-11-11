@@ -4,6 +4,11 @@
     {
       "id": "minecraft:breeze",
       "required": false
-    }
+    },
+    "minecraft:phantom",
+    "minecraft:vex",
+    "minecraft:allay",
+    "minecraft:parrot",
+    "minecraft:bat"
   ]
 }

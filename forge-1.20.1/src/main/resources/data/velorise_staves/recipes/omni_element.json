@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "velorise_staves:pyro_element" },
+    { "item": "velorise_staves:hydro_element" },
+    { "item": "velorise_staves:anemo_element" },
+    { "item": "velorise_staves:electro_element" },
+    { "item": "velorise_staves:dendro_element" },
+    { "item": "velorise_staves:cryo_element" },
+    { "item": "velorise_staves:geo_element" }
+  ],
+  "result": {
+    "item": "velorise_staves:omni_element",
+    "count": 1
+  }
+}

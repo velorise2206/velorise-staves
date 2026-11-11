@@ -1,12 +1,16 @@
 package com.velorise.staves;
 
+import com.velorise.staves.advancement.VeloriseCriterionTrigger;
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementItem;
 import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
 import com.velorise.staves.manager.TemporaryWebManager;
+import com.velorise.staves.recipe.OmniStaffUpgradeRecipe;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -24,6 +28,9 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
+import org.jetbrains.annotations.Nullable;
 
 public final class VeloriseStavesMod implements ModInitializer {
     public static final String MODID = "velorise_staves";
@@ -31,6 +38,12 @@ public final class VeloriseStavesMod implements ModInitializer {
     static {
         StavesConfig.load();
     }
+
+    public static final VeloriseCriterionTrigger ADVANCEMENT_TRIGGER = Registry.register(
+            BuiltInRegistries.TRIGGER_TYPES,
+            ResourceLocation.fromNamespaceAndPath(MODID, "advancement_event"),
+            new VeloriseCriterionTrigger()
+    );
 
     // Sounds
     public static final SoundEvent MAGIC_MIRROR_USE_SOUND = registerSound("magic_mirror_use");
@@ -95,6 +108,46 @@ public final class VeloriseStavesMod implements ModInitializer {
         new Item(new Item.Properties()));
     public static final Item CRYO_CRYSTALLIZE_SHARD = registerItem("cryo_crystallize_shard",
         new Item(new Item.Properties()));
+
+    // Elemental Essences
+    public static final Item PYRO_ELEMENT = registerItem("pyro_element", new ElementItem(Element.PYRO));
+    public static final Item HYDRO_ELEMENT = registerItem("hydro_element", new ElementItem(Element.HYDRO));
+    public static final Item ANEMO_ELEMENT = registerItem("anemo_element", new ElementItem(Element.ANEMO));
+    public static final Item ELECTRO_ELEMENT = registerItem("electro_element", new ElementItem(Element.ELECTRO));
+    public static final Item DENDRO_ELEMENT = registerItem("dendro_element", new ElementItem(Element.DENDRO));
+    public static final Item CRYO_ELEMENT = registerItem("cryo_element", new ElementItem(Element.CRYO));
+    public static final Item GEO_ELEMENT = registerItem("geo_element", new ElementItem(Element.GEO));
+    public static final Item OMNI_ELEMENT = registerItem("omni_element", new ElementItem(null));
+
+    public static final RecipeSerializer<OmniStaffUpgradeRecipe> OMNI_STAFF_UPGRADE_SERIALIZER = Registry.register(
+            BuiltInRegistries.RECIPE_SERIALIZER,
+            ResourceLocation.fromNamespaceAndPath(MODID, "omni_staff_upgrade"),
+            new SimpleCraftingRecipeSerializer<>(OmniStaffUpgradeRecipe::new)
+    );
+
+    public static Item getElementItem(@Nullable Element element) {
+        if (element == null) return OMNI_ELEMENT;
+        return switch (element) {
+            case PYRO -> PYRO_ELEMENT;
+            case HYDRO -> HYDRO_ELEMENT;
+            case ANEMO -> ANEMO_ELEMENT;
+            case ELECTRO -> ELECTRO_ELEMENT;
+            case DENDRO -> DENDRO_ELEMENT;
+            case CRYO -> CRYO_ELEMENT;
+            case GEO -> GEO_ELEMENT;
+        };
+    }
+
+    public static @Nullable Element elementFromItem(ItemStack stack) {
+        if (!stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem) {
+            return elemItem.getElement();
+        }
+        return null;
+    }
+
+    public static boolean isOmniElementItem(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem && elemItem.isOmni();
+    }
 
     // Netherite Upgraded Combat Staves
     public static final Item NETHERITE_DRAGONFIRE_SCEPTER = registerItem("netherite_dragonfire_scepter",
@@ -190,8 +243,16 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(NETHERITE_MAGIC_MIRROR);
 
-            // Reactions
+            // Reactions & Elements
             output.accept(DENDRO_CORE);
+            output.accept(PYRO_ELEMENT);
+            output.accept(HYDRO_ELEMENT);
+            output.accept(ANEMO_ELEMENT);
+            output.accept(ELECTRO_ELEMENT);
+            output.accept(DENDRO_ELEMENT);
+            output.accept(CRYO_ELEMENT);
+            output.accept(GEO_ELEMENT);
+            output.accept(OMNI_ELEMENT);
 
             // Elemental Mastery I-III Enchanted Books
             parameters.holders().lookup(Registries.ENCHANTMENT)
@@ -218,7 +279,7 @@ public final class VeloriseStavesMod implements ModInitializer {
                                     com.velorise.staves.entity.GeoFangPillarEntity::new,
                                     net.minecraft.world.entity.MobCategory.MISC
                             )
-                            .sized(1.0F, 2.0F)
+                            .sized(1.0F, 1.0F)
                             .clientTrackingRange(10)
                             .updateInterval(2)
                             .build("geo_fang_pillar")
@@ -300,6 +361,17 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_MAGIC_MIRROR);
         });
 
+        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.INGREDIENTS).register(entries -> {
+            entries.accept(PYRO_ELEMENT);
+            entries.accept(HYDRO_ELEMENT);
+            entries.accept(ANEMO_ELEMENT);
+            entries.accept(ELECTRO_ELEMENT);
+            entries.accept(DENDRO_ELEMENT);
+            entries.accept(CRYO_ELEMENT);
+            entries.accept(GEO_ELEMENT);
+            entries.accept(OMNI_ELEMENT);
+        });
+
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             TemporaryWebManager.tick(server);
             ElementalGaugeManager.tick(server);
@@ -318,6 +390,14 @@ public final class VeloriseStavesMod implements ModInitializer {
             return net.minecraft.world.InteractionResult.PASS;
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (!entity.level().isClientSide()
+                    && ElementalGaugeManager.isOmniInnate(entity)
+                    && ElementalGaugeManager.isElementalOrMagicDamage(source)) {
+                if (entity.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+                    ElementalGaugeManager.notifyOmniImmuneEnvironmental(sl, entity);
+                }
+                return false;
+            }
             if (!entity.level().isClientSide()
                     && !(source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
                     && com.velorise.staves.entity.GeoFangPillarEntity.interceptIncomingDamage(entity, source, amount)) {
@@ -355,6 +435,7 @@ public final class VeloriseStavesMod implements ModInitializer {
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (!entity.level().isClientSide()) {
+                ElementalGaugeManager.tryDropElementOnDeath(entity, damageSource);
                 ElementalGaugeManager.clearEntityState(entity);
             }
         });
@@ -364,6 +445,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             }
             ElementalGaugeManager.clearEntityState(oldPlayer);
             ElementalGaugeManager.clearEntityState(newPlayer);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(newPlayer);
         });
         net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !entity.level().isClientSide()) {
@@ -374,6 +456,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             net.minecraft.server.level.ServerPlayer player = handler.getPlayer();
             com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
             ElementalGaugeManager.syncEntityOnStartTracking(player, player);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
             if (!player.getTags().contains("velorise_staves:received_codex")) {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(ELEMENTAL_CODEX));

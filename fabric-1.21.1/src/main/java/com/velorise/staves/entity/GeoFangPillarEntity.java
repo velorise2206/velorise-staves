@@ -1,5 +1,6 @@
 package com.velorise.staves.entity;
 
+import com.velorise.staves.advancement.ModAdvancements;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
@@ -16,18 +17,45 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.IronGolem;
+import net.minecraft.world.entity.animal.SnowGolem;
+import net.minecraft.world.entity.monster.Blaze;
+import net.minecraft.world.entity.monster.Ravager;
+import net.minecraft.world.entity.monster.Witch;
+import net.minecraft.world.entity.monster.Zoglin;
+import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.AbstractHurtingProjectile;
 import net.minecraft.world.entity.projectile.EvokerFangs;
 import net.minecraft.world.entity.projectile.LargeFireball;
 import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.entity.projectile.ShulkerBullet;
+import net.minecraft.world.entity.projectile.SmallFireball;
+import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.entity.projectile.ThrownTrident;
 import net.minecraft.world.entity.projectile.WitherSkull;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.CrossbowItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.TridentItem;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -36,28 +64,38 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Physical 1x2x1 Geo Stone Stele summoned by the Netherite Evoker Fang Staff.
- * Max HP equals 2x the creator's max HP (40 HP fallback), lasts 30s (max 3 per player), blocks damage and projectiles,
- * and emits expanding concentric Geo waves every 2s (4 blocks radius, 1U Geo, 1 Geo DMG)
- * that trigger additional waves on nearby Geo Constructs on wave contact.
+ * Physical Geo Stone Stele summoned by Evoker Fang Staff (Basic: 1x1x1, 1x creator MaxHP)
+ * and Netherite Evoker Fang Staff (Netherite: 1x2x1, 2x creator MaxHP).
+ * Lasts 30s (max 3 per player), blocks damage and projectiles, taunts hit mobs onto the pillar
+ * without aggroing them onto the creator, and emits expanding square Geo waves every 2s
+ * (Basic: 3 blocks, 0.5 heart / 0.5U; Netherite: 5 blocks, 1 heart / 1U) that resonate with nearby Geo Constructs.
  */
 public class GeoFangPillarEntity extends Entity {
-    public static final float MAX_HEALTH = 40.0F; // Default fallback (2x standard 20 HP)
+    public static final float MAX_HEALTH = 40.0F; // Default fallback for Netherite (2x standard 20 HP)
+    public static final float BASIC_MAX_HEALTH = 20.0F; // Default fallback for Basic (1x standard 20 HP)
     public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
     public static final int MAX_CONSTRUCTS_PER_OWNER = 3;
     public static final int PULSE_INTERVAL_TICKS = 40; // 2 seconds
     public static final int WAVE_DURATION_TICKS = 20; // 1.0s outward travel
     public static final double WAVE_START_RADIUS = 0.55D;
-    public static final double WAVE_END_RADIUS = 4.5D; // 4 blocks around 0.5m radius pillar
-    public static final float WAVE_GEO_DAMAGE = 1.0F;
-    public static final float WAVE_GEO_UNITS = 1.0F;
+    public static final double BASIC_WAVE_END_RADIUS = 3.5D; // 3 blocks around 0.5m half-width pillar
+    public static final double NETHERITE_WAVE_END_RADIUS = 5.5D; // 5 blocks around 0.5m half-width pillar
+    public static final double WAVE_END_RADIUS = NETHERITE_WAVE_END_RADIUS;
+    public static final float BASIC_WAVE_GEO_DAMAGE = 1.0F; // 0.5 heart
+    public static final float NETHERITE_WAVE_GEO_DAMAGE = 2.0F; // 1.0 heart
+    public static final float WAVE_GEO_DAMAGE = BASIC_WAVE_GEO_DAMAGE;
+    public static final float BASIC_WAVE_GEO_UNITS = 0.5F;
+    public static final float NETHERITE_WAVE_GEO_UNITS = 1.0F;
+    public static final float WAVE_GEO_UNITS = BASIC_WAVE_GEO_UNITS;
 
     private static final Vector3f GEO_GOLD_COLOR = new Vector3f(0.96F, 0.76F, 0.22F);
 
@@ -71,6 +109,8 @@ public class GeoFangPillarEntity extends Entity {
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_HURT_TICK =
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_NETHERITE =
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BOOLEAN);
 
     private static final class ActiveGeoWave {
         int age;
@@ -90,6 +130,8 @@ public class GeoFangPillarEntity extends Entity {
     private long createdGameTime;
     private long lastWaveStartGameTime = -100L;
     private final List<ActiveGeoWave> activeWaves = new ArrayList<>();
+    private final Set<UUID> tauntedMobs = new HashSet<>();
+    private final Map<UUID, Long> lastTauntAttackTime = new HashMap<>();
 
     // Client-side concentric ring visual tracking
     private int lastClientPulseSeq;
@@ -100,6 +142,7 @@ public class GeoFangPillarEntity extends Entity {
         super(type, level);
         this.setNoGravity(true);
         this.blocksBuilding = true;
+        this.refreshDimensions();
     }
 
     public GeoFangPillarEntity(
@@ -111,15 +154,30 @@ public class GeoFangPillarEntity extends Entity {
             float yawDegrees,
             @Nullable LivingEntity owner
     ) {
+        this(type, level, x, y, z, yawDegrees, owner, true);
+    }
+
+    public GeoFangPillarEntity(
+            EntityType<? extends GeoFangPillarEntity> type,
+            Level level,
+            double x,
+            double y,
+            double z,
+            float yawDegrees,
+            @Nullable LivingEntity owner,
+            boolean isNetherite
+    ) {
         this(type, level);
+        this.setNetherite(isNetherite);
         this.setPos(x, y, z);
         this.setYRot(yawDegrees);
         this.setOwner(owner);
-        if (owner != null) {
-            float scaledMax = Math.max(2.0F, owner.getMaxHealth() * 2.0F);
-            this.entityData.set(DATA_MAX_HEALTH, scaledMax);
-            this.entityData.set(DATA_HEALTH, scaledMax);
-        }
+        float mult = isNetherite ? 2.0F : 1.0F;
+        float fallbackMax = isNetherite ? MAX_HEALTH : BASIC_MAX_HEALTH;
+        float scaledMax = owner != null ? Math.max(2.0F, owner.getMaxHealth() * mult) : fallbackMax;
+        this.entityData.set(DATA_MAX_HEALTH, scaledMax);
+        this.entityData.set(DATA_HEALTH, scaledMax);
+        this.refreshDimensions();
         this.createdGameTime = level.getGameTime();
     }
 
@@ -129,6 +187,41 @@ public class GeoFangPillarEntity extends Entity {
         builder.define(DATA_HEALTH, MAX_HEALTH);
         builder.define(DATA_PULSE_SEQ, 0);
         builder.define(DATA_HURT_TICK, -100);
+        builder.define(DATA_NETHERITE, false);
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (DATA_NETHERITE.equals(key)) {
+            this.refreshDimensions();
+        }
+    }
+
+    @Override
+    public EntityDimensions getDimensions(Pose pose) {
+        return EntityDimensions.scalable(1.0F, isNetherite() ? 2.0F : 1.0F);
+    }
+
+    public boolean isNetherite() {
+        return this.entityData.get(DATA_NETHERITE);
+    }
+
+    public void setNetherite(boolean netherite) {
+        this.entityData.set(DATA_NETHERITE, netherite);
+        this.refreshDimensions();
+    }
+
+    public double getWaveEndRadius() {
+        return isNetherite() ? NETHERITE_WAVE_END_RADIUS : BASIC_WAVE_END_RADIUS;
+    }
+
+    public float getWaveGeoDamage() {
+        return isNetherite() ? NETHERITE_WAVE_GEO_DAMAGE : BASIC_WAVE_GEO_DAMAGE;
+    }
+
+    public float getWaveGeoUnits() {
+        return isNetherite() ? NETHERITE_WAVE_GEO_UNITS : BASIC_WAVE_GEO_UNITS;
     }
 
     public float getMaxConstructHealth() {
@@ -153,6 +246,10 @@ public class GeoFangPillarEntity extends Entity {
 
     public int getLastClientWaveStartTick() {
         return this.lastClientWaveStartTick;
+    }
+
+    public int getAgeTicks() {
+        return this.ageTicks;
     }
 
     public List<Float> getClientWaveAges() {
@@ -198,7 +295,8 @@ public class GeoFangPillarEntity extends Entity {
 
     @Override
     public AABB getBoundingBoxForCulling() {
-        return this.getBoundingBox().inflate(WAVE_END_RADIUS, 0.5D, WAVE_END_RADIUS);
+        double cullR = getWaveEndRadius() + 0.5D;
+        return this.getBoundingBox().inflate(cullR, 0.5D, cullR);
     }
 
     @Override
@@ -254,6 +352,10 @@ public class GeoFangPillarEntity extends Entity {
     public void tick() {
         super.tick();
         this.setDeltaMovement(Vec3.ZERO);
+        float expectedHeight = isNetherite() ? 2.0F : 1.0F;
+        if (Math.abs(this.getBbHeight() - expectedHeight) > 0.01F) {
+            this.refreshDimensions();
+        }
 
         if (!(this.level() instanceof ServerLevel sl)) {
             tickClientWaves();
@@ -261,6 +363,7 @@ public class GeoFangPillarEntity extends Entity {
         }
 
         if (this.ageTicks == 0) {
+            this.refreshDimensions();
             liftOverlappingEntities(sl);
             sl.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
                     SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 0.75F);
@@ -288,6 +391,8 @@ public class GeoFangPillarEntity extends Entity {
                 it.remove();
             }
         }
+
+        tickTauntedMobs(sl);
     }
 
     private void tickClientWaves() {
@@ -332,21 +437,22 @@ public class GeoFangPillarEntity extends Entity {
         this.entityData.set(DATA_PULSE_SEQ, getPulseSeq() + 1);
         this.activeWaves.add(new ActiveGeoWave(sharedChain));
 
-        level.playSound(null, this.getX(), this.getY() + 1.0D, this.getZ(),
+        double centerH = isNetherite() ? 1.0D : 0.5D;
+        level.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.75F, 0.9F + level.random.nextFloat() * 0.2F);
         level.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
                 SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 0.5F, 0.8F);
     }
 
-    private static double radiusAtAge(int age) {
+    private double extentAtAge(int age) {
         double t = Mth.clamp((double) age / (double) WAVE_DURATION_TICKS, 0.0D, 1.0D);
-        return Mth.lerp(t, WAVE_START_RADIUS, WAVE_END_RADIUS);
+        return Mth.lerp(t, WAVE_START_RADIUS, getWaveEndRadius());
     }
 
     private void tickActiveWave(ServerLevel level, ActiveGeoWave wave) {
-        double prevR = radiusAtAge(wave.age);
+        double prevR = extentAtAge(wave.age);
         wave.age++;
-        double currR = radiusAtAge(wave.age);
+        double currR = extentAtAge(wave.age);
         double innerBand = Math.max(0.0D, prevR - 0.65D);
 
         AABB scan = new AABB(
@@ -356,6 +462,8 @@ public class GeoFangPillarEntity extends Entity {
 
         ServerPlayer ownerPlayer = resolveOwnerPlayer(level);
         Entity owner = getOwnerEntity();
+        float waveDamage = getWaveGeoDamage();
+        float waveUnits = getWaveGeoUnits();
         List<LivingEntity> candidates = level.getEntitiesOfClass(
                 LivingEntity.class,
                 scan,
@@ -368,17 +476,18 @@ public class GeoFangPillarEntity extends Entity {
                 if (wave.hitEntities.contains(target.getUUID())) continue;
                 if (this.ownerUUID != null && target.getUUID().equals(this.ownerUUID)) continue;
                 if (owner != null && target.isAlliedTo(owner)) continue;
-                double edgeDist = horizontalEdgeDistance(target);
+                double edgeDist = horizontalSquareEdgeDistance(target);
                 if (edgeDist <= currR && edgeDist >= innerBand) {
                     wave.hitEntities.add(target.getUUID());
-                    ElementalGaugeManager.applyElement(level, target, Element.GEO, WAVE_GEO_UNITS, ownerPlayer, WAVE_GEO_DAMAGE);
+                    ElementalGaugeManager.applyElement(level, target, Element.GEO, waveUnits, ownerPlayer, waveDamage);
+                    tauntMob(target, owner);
                 }
             }
         } finally {
             IS_GEO_PULSE.remove();
         }
 
-        // Expanding ring physically triggers other Geo Constructs on contact to launch their own concentric ring
+        // Expanding square wave physically triggers other Geo Constructs on contact to launch their own wave
         long now = level.getGameTime();
         List<GeoFangPillarEntity> nearbyConstructs = level.getEntitiesOfClass(
                 GeoFangPillarEntity.class,
@@ -387,11 +496,284 @@ public class GeoFangPillarEntity extends Entity {
         );
         for (GeoFangPillarEntity other : nearbyConstructs) {
             if (wave.triggeredConstructs.contains(other.getUUID())) continue;
-            double edgeDist = horizontalEdgeDistance(other);
+            double edgeDist = horizontalSquareEdgeDistance(other);
             if (edgeDist <= currR && (now - other.lastWaveStartGameTime) >= 4L) {
                 wave.triggeredConstructs.add(other.getUUID());
                 other.startWave(level, wave.triggeredConstructs);
+                if (ownerPlayer != null) {
+                    ModAdvancements.trigger(ownerPlayer, ModAdvancements.EVENT_GEO_FANG_PILLAR);
+                }
             }
+        }
+    }
+
+    /**
+     * Redirects a hit mob's hostility away from the pillar's owner and lures it toward this construct.
+     */
+    public void tauntMob(LivingEntity target, @Nullable Entity owner) {
+        if (!(target instanceof Mob mob) || !mob.isAlive() || mob.isRemoved() || ElementalGaugeManager.isEntityFrozen(mob)) {
+            return;
+        }
+        if (owner != null && mob.isAlliedTo(owner)) {
+            return;
+        }
+        this.tauntedMobs.add(mob.getUUID());
+        redirectMobToConstruct(mob, owner);
+    }
+
+    private void clearOwnerAggro(Mob mob, @Nullable Entity owner) {
+        LivingEntity currentTarget = mob.getTarget();
+        if (currentTarget != null && ((this.ownerUUID != null && currentTarget.getUUID().equals(this.ownerUUID))
+                || (owner != null && (currentTarget == owner || currentTarget.isAlliedTo(owner))))) {
+            mob.setTarget(null);
+        }
+        LivingEntity lastHurtBy = mob.getLastHurtByMob();
+        if (lastHurtBy != null && ((this.ownerUUID != null && lastHurtBy.getUUID().equals(this.ownerUUID))
+                || (owner != null && (lastHurtBy == owner || lastHurtBy.isAlliedTo(owner))))) {
+            mob.setLastHurtByMob(null);
+        }
+        if (mob instanceof NeutralMob neutral && this.ownerUUID != null && this.ownerUUID.equals(neutral.getPersistentAngerTarget())) {
+            neutral.stopBeingAngry();
+        }
+    }
+
+    @Nullable
+    private static InteractionHand findWeaponHand(Mob mob, Class<?> itemClass) {
+        if (itemClass.isInstance(mob.getMainHandItem().getItem())) return InteractionHand.MAIN_HAND;
+        if (itemClass.isInstance(mob.getOffhandItem().getItem())) return InteractionHand.OFF_HAND;
+        return null;
+    }
+
+    private enum TauntCombatStyle {
+        BOW, CROSSBOW, TRIDENT_RANGED, BLAZE_FIREBALL, WITCH_POTION, SNOWBALL, MELEE
+    }
+
+    private static TauntCombatStyle classifyCombatStyle(Mob mob, double edgeDist) {
+        if (findWeaponHand(mob, BowItem.class) != null) return TauntCombatStyle.BOW;
+        if (findWeaponHand(mob, CrossbowItem.class) != null) return TauntCombatStyle.CROSSBOW;
+        if (findWeaponHand(mob, TridentItem.class) != null && edgeDist > 2.2D) return TauntCombatStyle.TRIDENT_RANGED;
+        if (mob instanceof Blaze) return TauntCombatStyle.BLAZE_FIREBALL;
+        if (mob instanceof Witch) return TauntCombatStyle.WITCH_POTION;
+        if (mob instanceof SnowGolem) return TauntCombatStyle.SNOWBALL;
+        return TauntCombatStyle.MELEE;
+    }
+
+    private static double getPreferredRange(TauntCombatStyle style) {
+        return switch (style) {
+            case BLAZE_FIREBALL -> 12.0D;
+            case BOW, CROSSBOW, TRIDENT_RANGED, SNOWBALL -> 10.0D;
+            case WITCH_POTION -> 8.0D;
+            case MELEE -> 0.0D;
+        };
+    }
+
+    private void redirectMobToConstruct(Mob mob, @Nullable Entity owner) {
+        clearOwnerAggro(mob, owner);
+        mob.getLookControl().setLookAt(this.getX(), this.getY() + (isNetherite() ? 1.0D : 0.5D), this.getZ(), 30.0F, 30.0F);
+        double edgeDist = horizontalEdgeDistance(mob);
+        TauntCombatStyle style = classifyCombatStyle(mob, edgeDist);
+        if (style != TauntCombatStyle.MELEE) {
+            double preferredRange = getPreferredRange(style);
+            if (edgeDist <= preferredRange && mob.hasLineOfSight(this)) {
+                mob.getNavigation().stop();
+                return;
+            }
+        } else {
+            double meleeStop = Math.max(0.75D, mob.getBbWidth() * 0.62D);
+            if (edgeDist <= meleeStop) {
+                mob.getNavigation().stop();
+                return;
+            }
+        }
+        mob.getNavigation().moveTo(this.getX(), this.getY(), this.getZ(), 1.15D);
+    }
+
+    private void tickTauntedMobs(ServerLevel level) {
+        if (this.tauntedMobs.isEmpty()) return;
+        long now = level.getGameTime();
+        Entity owner = getOwnerEntity();
+        double tetherLimit = Math.max(13.0D, getWaveEndRadius() + 7.5D);
+        Iterator<UUID> it = this.tauntedMobs.iterator();
+        while (it.hasNext()) {
+            UUID mobId = it.next();
+            Entity e = level.getEntity(mobId);
+            if (!(e instanceof Mob mob) || !mob.isAlive() || mob.isRemoved()) {
+                it.remove();
+                this.lastTauntAttackTime.remove(mobId);
+                continue;
+            }
+            if (ElementalGaugeManager.isEntityFrozen(mob)) {
+                mob.stopUsingItem();
+                continue;
+            }
+            clearOwnerAggro(mob, owner);
+            double edgeDist = horizontalEdgeDistance(mob);
+            if (edgeDist > tetherLimit) {
+                mob.stopUsingItem();
+                it.remove();
+                this.lastTauntAttackTime.remove(mobId);
+                continue;
+            }
+            if ((now + mob.getId()) % 4L == 0L) {
+                redirectMobToConstruct(mob, owner);
+            }
+
+            TauntCombatStyle style = classifyCombatStyle(mob, edgeDist);
+            if (style != TauntCombatStyle.MELEE) {
+                mob.getLookControl().setLookAt(this.getX(), this.getY() + (isNetherite() ? 1.0D : 0.5D), this.getZ(), 30.0F, 30.0F);
+                handleTauntedRangedAttack(level, mob, mobId, style, edgeDist, now);
+                continue;
+            }
+
+            mob.stopUsingItem();
+            double dy = Math.abs(mob.getY() - this.getY());
+            double meleeReach = Math.max(1.35D, mob.getBbWidth() * 1.05D);
+            if (edgeDist <= meleeReach && dy <= 2.2D) {
+                Long lastAtk = this.lastTauntAttackTime.get(mobId);
+                boolean heavyMob = mob instanceof IronGolem || mob instanceof Ravager || mob instanceof Warden
+                        || mob instanceof Hoglin || mob instanceof Zoglin;
+                long atkCooldown = heavyMob ? 24L : 20L;
+                if (lastAtk == null) {
+                    // Brief windup upon reaching the construct so the attack animation plays cleanly
+                    this.lastTauntAttackTime.put(mobId, now - (atkCooldown - 10L));
+                    continue;
+                }
+                if ((now - lastAtk) >= atkCooldown) {
+                    this.lastTauntAttackTime.put(mobId, now);
+                    if (heavyMob) {
+                        level.broadcastEntityEvent(mob, (byte) 4);
+                        if (mob instanceof IronGolem) {
+                            level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                                    SoundEvents.IRON_GOLEM_ATTACK, SoundSource.NEUTRAL, 1.0F, 1.0F);
+                        }
+                    } else {
+                        mob.swing(InteractionHand.MAIN_HAND);
+                    }
+                    float atkDmg = 3.0F;
+                    AttributeInstance inst = mob.getAttribute(Attributes.ATTACK_DAMAGE);
+                    if (inst != null && inst.getValue() > 0.0D) {
+                        atkDmg = (float) inst.getValue();
+                    }
+                    this.hurt(level.damageSources().mobAttack(mob), atkDmg);
+                    if (!this.isAlive() || this.isRemoved()) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private void handleTauntedRangedAttack(
+            ServerLevel level,
+            Mob mob,
+            UUID mobId,
+            TauntCombatStyle style,
+            double edgeDist,
+            long now
+    ) {
+        double maxRange = getPreferredRange(style);
+        if (edgeDist > maxRange || !mob.hasLineOfSight(this)) {
+            mob.stopUsingItem();
+            return;
+        }
+        mob.getNavigation().stop();
+        long interval = switch (style) {
+            case BLAZE_FIREBALL, WITCH_POTION -> 45L;
+            case SNOWBALL -> 25L;
+            default -> 40L;
+        };
+        Long lastAtk = this.lastTauntAttackTime.get(mobId);
+        if (lastAtk == null) {
+            lastAtk = now - Math.max(0L, interval - 22L);
+            this.lastTauntAttackTime.put(mobId, lastAtk);
+        }
+        long elapsed = now - lastAtk;
+        if (elapsed < interval) {
+            if ((style == TauntCombatStyle.BOW || style == TauntCombatStyle.CROSSBOW) && elapsed >= interval - 20L) {
+                InteractionHand hand = findWeaponHand(mob, style == TauntCombatStyle.BOW ? BowItem.class : CrossbowItem.class);
+                if (hand != null && !mob.isUsingItem()) {
+                    mob.startUsingItem(hand);
+                }
+            }
+            return;
+        }
+
+        this.lastTauntAttackTime.put(mobId, now);
+        mob.stopUsingItem();
+
+        double targetY = this.getY() + (isNetherite() ? 1.0D : 0.5D);
+        double dx = this.getX() - mob.getX();
+        double dy = targetY - mob.getEyeY();
+        double dz = this.getZ() - mob.getZ();
+        double horiz = Math.hypot(dx, dz);
+
+        switch (style) {
+            case BOW -> {
+                InteractionHand hand = findWeaponHand(mob, BowItem.class);
+                if (hand == null) return;
+                ItemStack bow = mob.getItemInHand(hand);
+                ItemStack ammo = mob.getProjectile(bow);
+                if (ammo.isEmpty()) ammo = new ItemStack(Items.ARROW);
+                AbstractArrow arrow = ProjectileUtil.getMobArrow(mob, ammo, 1.0F, bow);
+                arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
+                arrow.shoot(dx, dy + horiz * 0.2D, dz, 1.6F, 2.5F);
+                level.addFreshEntity(arrow);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.SKELETON_SHOOT, SoundSource.HOSTILE, 1.0F, 1.0F / (level.random.nextFloat() * 0.4F + 0.8F));
+            }
+            case CROSSBOW -> {
+                InteractionHand hand = findWeaponHand(mob, CrossbowItem.class);
+                if (hand == null) return;
+                ItemStack crossbow = mob.getItemInHand(hand);
+                ItemStack ammo = mob.getProjectile(crossbow);
+                if (ammo.isEmpty()) ammo = new ItemStack(Items.ARROW);
+                AbstractArrow bolt = ProjectileUtil.getMobArrow(mob, ammo, 1.0F, crossbow);
+                bolt.setCritArrow(true);
+                bolt.pickup = AbstractArrow.Pickup.DISALLOWED;
+                bolt.shoot(dx, dy + horiz * 0.08D, dz, 1.8F, 1.5F);
+                level.addFreshEntity(bolt);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.CROSSBOW_SHOOT, SoundSource.HOSTILE, 1.0F, 1.0F);
+            }
+            case TRIDENT_RANGED -> {
+                InteractionHand hand = findWeaponHand(mob, TridentItem.class);
+                if (hand == null) return;
+                ThrownTrident trident = new ThrownTrident(level, mob, mob.getItemInHand(hand).copy());
+                trident.pickup = AbstractArrow.Pickup.DISALLOWED;
+                trident.shoot(dx, dy + horiz * 0.2D, dz, 1.6F, 2.0F);
+                level.addFreshEntity(trident);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.DROWNED_SHOOT, SoundSource.HOSTILE, 1.0F, 1.0F);
+            }
+            case BLAZE_FIREBALL -> {
+                double spread = Math.sqrt(Math.sqrt(horiz * horiz + dy * dy)) * 0.35D;
+                Vec3 aim = new Vec3(
+                        dx + mob.getRandom().triangle(0.0D, 0.25D * spread),
+                        dy,
+                        dz + mob.getRandom().triangle(0.0D, 0.25D * spread)
+                );
+                SmallFireball fireball = new SmallFireball(level, mob, aim);
+                fireball.setPos(mob.getX(), mob.getY(0.5D) + 0.5D, mob.getZ());
+                level.addFreshEntity(fireball);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.BLAZE_SHOOT, SoundSource.HOSTILE, 1.0F, 1.0F);
+            }
+            case WITCH_POTION -> {
+                ThrownPotion potion = new ThrownPotion(level, mob);
+                potion.setItem(PotionContents.createItemStack(Items.SPLASH_POTION, Potions.HARMING));
+                potion.shoot(dx, dy + horiz * 0.2D, dz, 0.75F, 4.0F);
+                level.addFreshEntity(potion);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.WITCH_THROW, SoundSource.HOSTILE, 1.0F, 0.8F + level.random.nextFloat() * 0.4F);
+            }
+            case SNOWBALL -> {
+                Snowball snowball = new Snowball(level, mob);
+                snowball.shoot(dx, dy + horiz * 0.15D, dz, 1.4F, 4.0F);
+                level.addFreshEntity(snowball);
+                level.playSound(null, mob.getX(), mob.getY(), mob.getZ(),
+                        SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.NEUTRAL, 1.0F, 1.0F);
+            }
+            case MELEE -> {}
         }
     }
 
@@ -400,6 +782,13 @@ public class GeoFangPillarEntity extends Entity {
         double cx = Mth.clamp(this.getX(), box.minX, box.maxX);
         double cz = Mth.clamp(this.getZ(), box.minZ, box.maxZ);
         return Math.hypot(cx - this.getX(), cz - this.getZ());
+    }
+
+    private double horizontalSquareEdgeDistance(Entity target) {
+        AABB box = target.getBoundingBox();
+        double cx = Mth.clamp(this.getX(), box.minX, box.maxX);
+        double cz = Mth.clamp(this.getZ(), box.minZ, box.maxZ);
+        return Math.max(Math.abs(cx - this.getX()), Math.abs(cz - this.getZ()));
     }
 
     @Override
@@ -434,11 +823,12 @@ public class GeoFangPillarEntity extends Entity {
         setHealth(nextHp);
         this.entityData.set(DATA_HURT_TICK, this.tickCount);
 
+        double centerH = isNetherite() ? 1.0D : 0.5D;
         ServerLevel sl = (ServerLevel) this.level();
-        sl.playSound(null, this.getX(), this.getY() + 1.0D, this.getZ(),
+        sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.STONE_HIT, SoundSource.BLOCKS, 0.9F, 0.85F + sl.random.nextFloat() * 0.25F);
         sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.15F),
-                this.getX(), this.getY() + 1.0D, this.getZ(), 7, 0.35D, 0.65D, 0.35D, 0.02D);
+                this.getX(), this.getY() + centerH, this.getZ(), 7, 0.35D, isNetherite() ? 0.65D : 0.35D, 0.35D, 0.02D);
 
         if (nextHp <= 0.0F) {
             shatter();
@@ -461,8 +851,14 @@ public class GeoFangPillarEntity extends Entity {
                 default -> 1.0F;
             };
             dmg = (float) (base * StavesConfig.DAMAGE_MULTIPLIER.get());
+        } else if (projectile instanceof ThrownTrident) {
+            dmg = 8.0F;
         } else if (projectile instanceof AbstractArrow arrow) {
             dmg = (float) Math.max(2.0D, arrow.getDeltaMovement().length() * arrow.getBaseDamage());
+        } else if (projectile instanceof ThrownPotion) {
+            dmg = 3.0F;
+        } else if (projectile instanceof Snowball) {
+            dmg = 0.5F;
         } else if (projectile instanceof AbstractHurtingProjectile) {
             dmg = (projectile instanceof LargeFireball || projectile instanceof WitherSkull) ? 6.0F : 3.0F;
         } else if (projectile instanceof ShulkerBullet) {
@@ -471,7 +867,8 @@ public class GeoFangPillarEntity extends Entity {
             dmg = 2.0F;
         }
 
-        level.playSound(null, this.getX(), this.getY() + 1.0D, this.getZ(),
+        double centerH = isNetherite() ? 1.0D : 0.5D;
+        level.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.05F);
         level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
                 projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -510,11 +907,12 @@ public class GeoFangPillarEntity extends Entity {
             if (shieldBox.contains(origin)) continue;
             if (shieldBox.clip(origin, victimCenter).isPresent() || shieldBox.clip(origin, victimEyes).isPresent()) {
                 if (construct.hurt(source, amount)) {
-                    level.playSound(null, construct.getX(), construct.getY() + 1.0D, construct.getZ(),
+                    double centerH = construct.isNetherite() ? 1.0D : 0.5D;
+                    level.playSound(null, construct.getX(), construct.getY() + centerH, construct.getZ(),
                             SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.0F);
                     level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
-                            construct.getX(), construct.getY() + 1.0D, construct.getZ(),
-                            10, 0.4D, 0.6D, 0.4D, 0.03D);
+                            construct.getX(), construct.getY() + centerH, construct.getZ(),
+                            10, 0.4D, construct.isNetherite() ? 0.6D : 0.35D, 0.4D, 0.03D);
                     return true;
                 }
             }
@@ -539,12 +937,23 @@ public class GeoFangPillarEntity extends Entity {
     public void shatter() {
         if (this.isRemoved()) return;
         if (this.level() instanceof ServerLevel sl) {
-            sl.playSound(null, this.getX(), this.getY() + 1.0D, this.getZ(),
+            for (UUID mobId : this.tauntedMobs) {
+                if (sl.getEntity(mobId) instanceof Mob mob) {
+                    mob.stopUsingItem();
+                }
+            }
+        }
+        this.tauntedMobs.clear();
+        this.lastTauntAttackTime.clear();
+        if (this.level() instanceof ServerLevel sl) {
+            double centerH = isNetherite() ? 1.0D : 0.5D;
+            double spreadY = isNetherite() ? 0.8D : 0.45D;
+            sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                     SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.1F, 0.85F);
             sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.5F),
-                    this.getX(), this.getY() + 1.0D, this.getZ(), 24, 0.45D, 0.8D, 0.45D, 0.06D);
+                    this.getX(), this.getY() + centerH, this.getZ(), 24, 0.45D, spreadY, 0.45D, 0.06D);
             sl.sendParticles(ParticleTypes.WAX_ON,
-                    this.getX(), this.getY() + 1.0D, this.getZ(), 10, 0.4D, 0.7D, 0.4D, 0.04D);
+                    this.getX(), this.getY() + centerH, this.getZ(), 10, 0.4D, spreadY, 0.4D, 0.04D);
         }
         this.discard();
     }
@@ -553,6 +962,9 @@ public class GeoFangPillarEntity extends Entity {
     protected void readAdditionalSaveData(CompoundTag tag) {
         if (tag.hasUUID("Owner")) {
             this.ownerUUID = tag.getUUID("Owner");
+        }
+        if (tag.contains("IsNetherite")) {
+            setNetherite(tag.getBoolean("IsNetherite"));
         }
         if (tag.contains("ConstructMaxHealth")) {
             this.entityData.set(DATA_MAX_HEALTH, Math.max(2.0F, tag.getFloat("ConstructMaxHealth")));
@@ -569,6 +981,7 @@ public class GeoFangPillarEntity extends Entity {
         if (this.ownerUUID != null) {
             tag.putUUID("Owner", this.ownerUUID);
         }
+        tag.putBoolean("IsNetherite", isNetherite());
         tag.putFloat("ConstructMaxHealth", getMaxConstructHealth());
         tag.putFloat("ConstructHealth", getHealth());
         tag.putInt("Age", this.ageTicks);

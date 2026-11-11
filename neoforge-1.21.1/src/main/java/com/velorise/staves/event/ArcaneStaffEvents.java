@@ -6,6 +6,7 @@ import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.SwordImbueHelper;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -97,14 +98,31 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
+            ElementalGaugeManager.tryDropElementOnDeath(event.getEntity(), event.getSource());
             ElementalGaugeManager.clearEntityState(event.getEntity());
         }
+    }
+
+    @SubscribeEvent
+    public static void onAnvilUpdate(net.neoforged.neoforge.event.AnvilUpdateEvent event) {
+        SwordImbueHelper.AnvilResult res = SwordImbueHelper.tryBuildAnvilResult(event.getLeft(), event.getRight(), event.getName());
+        if (res != null) {
+            event.setOutput(res.output());
+            event.setCost(res.cost());
+            event.setMaterialCost(res.materialCost());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onItemTooltip(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event) {
+        SwordImbueHelper.appendImbueTooltip(event.getItemStack(), event.getToolTip());
     }
 
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
             ElementalGaugeManager.clearEntityState(player);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
         }
     }
 
@@ -215,7 +233,7 @@ public final class ArcaneStaffEvents {
         if (!event.getEntity().level().isClientSide()
                 && event.getSource().is(DamageTypeTags.IS_FIRE)
                 && event.getEntity() instanceof LivingEntity living
-                && ElementalGaugeManager.isPyroInnate(living)) {
+                && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
             ElementalGaugeManager.extinguishPyroInnate(living);
             event.setInvulnerable(true);
         }
@@ -228,6 +246,15 @@ public final class ArcaneStaffEvents {
         if (!entity.level().isClientSide()
                 && !(src.getDirectEntity() instanceof EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
                 && com.velorise.staves.entity.GeoFangPillarEntity.interceptIncomingDamage(entity, src, event.getAmount())) {
+            event.setCanceled(true);
+            return;
+        }
+        if (!entity.level().isClientSide()
+                && ElementalGaugeManager.isOmniInnate(entity)
+                && ElementalGaugeManager.isElementalOrMagicDamage(src)) {
+            if (entity.level() instanceof ServerLevel sl) {
+                ElementalGaugeManager.notifyOmniImmuneEnvironmental(sl, entity);
+            }
             event.setCanceled(true);
             return;
         }
@@ -245,7 +272,7 @@ public final class ArcaneStaffEvents {
         if (!entity.level().isClientSide()
                 && entity instanceof LivingEntity living
                 && (living.getRemainingFireTicks() > 0 || living.isOnFire())
-                && ElementalGaugeManager.isPyroInnate(living)) {
+                && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
             ElementalGaugeManager.extinguishPyroInnate(living);
         }
     }
@@ -284,6 +311,9 @@ public final class ArcaneStaffEvents {
             }
         }
 
+        // 1B. Imbued Sword elemental hit (full-strength swing >= 0.9F applies 1U + scales physical damage on reactions)
+        event.setNewDamage(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getNewDamage()));
+
         // 2. Superconduct Physical RES Shred (-40% Physical Resistance -> +40% Physical Damage Taken)
         if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(event.getSource())) {
             event.setNewDamage(event.getNewDamage() * 1.4F);
@@ -291,6 +321,11 @@ public final class ArcaneStaffEvents {
                 sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.05D);
             }
         }
+
+        // 3. Elemental Resonance: Geo Shield DMG, Cryo CRIT on physical hits, Protective Canopy DMG reduction
+        float resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, src, event.getNewDamage());
+        resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyIncomingDefenseDamage(entity, src, resDmg);
+        event.setNewDamage(resDmg);
     }
 
     @SubscribeEvent
@@ -769,6 +804,7 @@ public final class ArcaneStaffEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
             ElementalGaugeManager.syncEntityOnStartTracking(player, player);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
             if (!player.getTags().contains("velorise_staves:received_codex")) {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get()));

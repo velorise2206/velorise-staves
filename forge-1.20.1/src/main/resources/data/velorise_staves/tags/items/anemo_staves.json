@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "velorise_staves:resonant_echo"
+    "velorise_staves:resonant_echo",
+    "velorise_staves:wind_staff"
   ]
 }

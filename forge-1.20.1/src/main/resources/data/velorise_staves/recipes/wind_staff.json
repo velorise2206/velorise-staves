@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  W",
+    " B ",
+    "B  "
+  ],
+  "key": {
+    "B": {
+      "item": "velorise_staves:breeze_rod"
+    },
+    "W": {
+      "item": "velorise_staves:wind_charge"
+    }
+  },
+  "result": {
+    "item": "velorise_staves:wind_staff",
+    "count": 1
+  }
+}

@@ -18,6 +18,7 @@ public final class ModNetwork {
         PayloadRegistrar registrar = event.registrar("1");
         registrar.playToClient(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC, AuraSyncPayload::handle);
         registrar.playToClient(ConfigSyncPayload.TYPE, ConfigSyncPayload.STREAM_CODEC, ConfigSyncPayload::handle);
+        registrar.playToClient(ResonanceSyncPayload.TYPE, ResonanceSyncPayload.STREAM_CODEC, ResonanceSyncPayload::handle);
         registrar.playToClient(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC, ElectricArcPayload::handle);
         registrar.playToServer(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC, FreezeStrugglePayload::handle);
         registrar.playToServer(SelectOmniModePayload.TYPE, SelectOmniModePayload.STREAM_CODEC, SelectOmniModePayload::handle);
@@ -96,6 +97,11 @@ public final class ModNetwork {
     public static void sendConfigSyncToPlayer(ServerPlayer player) {
         if (player == null) return;
         PacketDistributor.sendToPlayer(player, new ConfigSyncPayload(com.velorise.staves.config.StavesConfig.createSnapshotFromLocal()));
+    }
+
+    public static void sendResonanceSyncToPlayer(ServerPlayer player, int mask, boolean overloaded, int staffCount) {
+        if (player == null) return;
+        PacketDistributor.sendToPlayer(player, new ResonanceSyncPayload(mask, overloaded, staffCount));
     }
 
     public static void sendFreezeStruggle() {

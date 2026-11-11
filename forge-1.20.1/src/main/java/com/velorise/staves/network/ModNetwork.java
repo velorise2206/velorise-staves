@@ -52,6 +52,12 @@ public final class ModNetwork {
                 .consumerMainThread(ConfigSyncPacket::handle)
                 .add();
 
+        CHANNEL.messageBuilder(ResonanceSyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(ResonanceSyncPacket::new)
+                .encoder(ResonanceSyncPacket::toBytes)
+                .consumerMainThread(ResonanceSyncPacket::handle)
+                .add();
+
         CHANNEL.messageBuilder(SelectOmniModePacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
                 .decoder(SelectOmniModePacket::new)
                 .encoder(SelectOmniModePacket::toBytes)
@@ -131,6 +137,11 @@ public final class ModNetwork {
     public static void sendConfigSyncToPlayer(ServerPlayer player) {
         if (player == null) return;
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ConfigSyncPacket(com.velorise.staves.config.StavesConfig.createSnapshotFromLocal()));
+    }
+
+    public static void sendResonanceSyncToPlayer(ServerPlayer player, int mask, boolean overloaded, int staffCount) {
+        if (player == null) return;
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new ResonanceSyncPacket(mask, overloaded, staffCount));
     }
 
     public static void sendFreezeStruggle() {

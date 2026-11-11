@@ -1,0 +1,38 @@
+{
+  "parent": "velorise_staves:netherite_upgrade",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:netherite_omni_staff"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.omni_staff.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.omni_staff.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_omni_staff": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "velorise_staves:omni_staff",
+              "velorise_staves:netherite_omni_staff"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_omni_staff"
+    ]
+  ]
+}

@@ -32,8 +32,8 @@ public class VeloriseConfigScreen extends Screen {
         int colGap = 12;
         int leftColX = centerX - colWidth - (colGap / 2);
         int rightColX = centerX + (colGap / 2);
-        int startY = 48;
-        int rowHeight = 26;
+        int startY = 44;
+        int rowHeight = 25;
 
         // Row 1: Overhead Icons (Left) & Reaction Text (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get())
@@ -68,9 +68,9 @@ public class VeloriseConfigScreen extends Screen {
                     StavesConfig.ENABLE_ELEMENTAL_GAUGE.set(val);
                 }));
 
-        List<Double> mutateRates = List.of(0.0D, 0.02D, 0.04D, 0.06D, 0.10D, 0.15D, 0.25D, 0.50D, 1.0D);
+        List<Double> mutateRates = List.of(0.0D, 0.02D, 0.04D, 0.07D, 0.10D, 0.15D, 0.25D, 0.50D, 1.0D);
         double curRate = StavesConfig.INNATE_MUTATION_CHANCE.get();
-        Double initialRate = mutateRates.stream().min((a, b) -> Double.compare(Math.abs(a - curRate), Math.abs(b - curRate))).orElse(0.06D);
+        Double initialRate = mutateRates.stream().min((a, b) -> Double.compare(Math.abs(a - curRate), Math.abs(b - curRate))).orElse(0.07D);
 
         this.addRenderableWidget(CycleButton.<Double>builder(val -> Component.literal(Math.round(val * 100.0) + "%"))
                 .withValues(mutateRates)
@@ -107,9 +107,29 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }));
 
+        // Row 5: Elemental Resonance (Left) & Max Staves Cap (Right)
+        this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_ELEMENTAL_RESONANCE.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.resonance.desc")))
+                .create(leftColX, startY + rowHeight * 4, colWidth, 20, Component.translatable("config.velorise_staves.resonance"), (btn, val) -> {
+                    StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        List<Integer> maxStavesOpts = List.of(4, 6, 8, 12, 0);
+        int curCap = StavesConfig.MAX_STAVES_IN_INVENTORY.get();
+        Integer initialCap = maxStavesOpts.contains(curCap) ? curCap : 4;
+        this.addRenderableWidget(CycleButton.<Integer>builder(val -> Component.literal(val <= 0 ? "∞" : String.valueOf(val)))
+                .withValues(maxStavesOpts)
+                .withInitialValue(initialCap)
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.max_staves.desc")))
+                .create(rightColX, startY + rowHeight * 4, colWidth, 20, Component.translatable("config.velorise_staves.max_staves"), (btn, val) -> {
+                    StavesConfig.MAX_STAVES_IN_INVENTORY.set(val);
+                    this.saveLocalConfig();
+                }));
+
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
         int btnW = 98;
-        int bottomY = startY + rowHeight * 4 + 14;
+        int bottomY = startY + rowHeight * 5 + 9;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
             this.saveLocalConfig();
@@ -124,7 +144,9 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.SHOW_DAMAGE_NUMBERS.set(true);
             StavesConfig.SHOW_ELEMENTAL_PARTICLES.set(true);
             StavesConfig.ENABLE_ELEMENTAL_GAUGE.set(true);
-            StavesConfig.INNATE_MUTATION_CHANCE.set(0.06D);
+            StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(true);
+            StavesConfig.MAX_STAVES_IN_INVENTORY.set(4);
+            StavesConfig.INNATE_MUTATION_CHANCE.set(0.07D);
             StavesConfig.DAMAGE_MULTIPLIER.set(1.0D);
             StavesConfig.COOLDOWN_MULTIPLIER.set(1.0D);
             this.saveLocalConfig();

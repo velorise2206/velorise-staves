@@ -6,9 +6,11 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.SwordImbueHelper;
 import com.velorise.staves.manager.TemporaryWebManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.block.Blocks;
@@ -98,14 +100,31 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
+            ElementalGaugeManager.tryDropElementOnDeath(event.getEntity(), event.getSource());
             ElementalGaugeManager.clearEntityState(event.getEntity());
         }
+    }
+
+    @SubscribeEvent
+    public static void onAnvilUpdate(net.minecraftforge.event.AnvilUpdateEvent event) {
+        SwordImbueHelper.AnvilResult res = SwordImbueHelper.tryBuildAnvilResult(event.getLeft(), event.getRight(), event.getName());
+        if (res != null) {
+            event.setOutput(res.output());
+            event.setCost(res.cost());
+            event.setMaterialCost(res.materialCost());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onItemTooltip(net.minecraftforge.event.entity.player.ItemTooltipEvent event) {
+        SwordImbueHelper.appendImbueTooltip(event.getItemStack(), event.getToolTip());
     }
 
     @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
             ElementalGaugeManager.clearEntityState(player);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
         }
     }
 
@@ -185,6 +204,7 @@ public final class ArcaneStaffEvents {
             case "shulker" -> resolveShulker(level, hit, owner, event, isNetherite);
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
+            case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
             default -> {}
         }
         projectile.discard();
@@ -221,6 +241,15 @@ public final class ArcaneStaffEvents {
             return;
         }
         if (!entity.level().isClientSide()
+                && ElementalGaugeManager.isOmniInnate(entity)
+                && ElementalGaugeManager.isElementalOrMagicDamage(src)) {
+            if (entity.level() instanceof ServerLevel sl) {
+                ElementalGaugeManager.notifyOmniImmuneEnvironmental(sl, entity);
+            }
+            event.setCanceled(true);
+            return;
+        }
+        if (!entity.level().isClientSide()
                 && event.getSource().is(DamageTypeTags.IS_FIRE)
                 && ElementalGaugeManager.isPyroInnate(entity)) {
             ElementalGaugeManager.extinguishPyroInnate(entity);
@@ -233,7 +262,7 @@ public final class ArcaneStaffEvents {
         LivingEntity entity = event.getEntity();
         if (!entity.level().isClientSide()
                 && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())
-                && ElementalGaugeManager.isPyroInnate(entity)) {
+                && (ElementalGaugeManager.isPyroInnate(entity) || ElementalGaugeManager.isOmniInnate(entity))) {
             ElementalGaugeManager.extinguishPyroInnate(entity);
         }
     }
@@ -268,6 +297,7 @@ public final class ArcaneStaffEvents {
                         SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
             }
         }
+        event.setAmount(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getAmount()));
         long now = entity.level().getGameTime();
         if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(event.getSource())) {
             event.setAmount(event.getAmount() * 1.4F);
@@ -275,6 +305,9 @@ public final class ArcaneStaffEvents {
                 sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.05D);
             }
         }
+        float resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, src, event.getAmount());
+        resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyIncomingDefenseDamage(entity, src, resDmg);
+        event.setAmount(resDmg);
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
         ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
     }
@@ -600,6 +633,85 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.7F, 1.5F);
     }
 
+    private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        float baseDmg = isNetherite ? 2.5F : 1.5F;
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        double radius = isNetherite ? 4.5D : 3.5D;
+        double boostScale = isNetherite ? 1.25D : 1.05D;
+        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale);
+    }
+
+    public static void resolveWindBurst(
+            ServerLevel level,
+            Vec3 hit,
+            @org.jetbrains.annotations.Nullable Entity owner,
+            @org.jetbrains.annotations.Nullable LivingEntity directHit,
+            float baseDmg,
+            float attackU,
+            double radius,
+            double boostScale
+    ) {
+        ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        double radiusSqr = radius * radius;
+
+        level.sendParticles(ParticleTypes.POOF, hit.x, hit.y + 0.2D, hit.z, 18, radius * 0.25D, 0.2D, radius * 0.25D, 0.14D);
+        level.sendParticles(ParticleTypes.CLOUD, hit.x, hit.y + 0.3D, hit.z, 10, 0.3D, 0.2D, 0.3D, 0.08D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.ENDER_DRAGON_FLAP, SoundSource.PLAYERS, 0.9F, 1.45F);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.35F, 1.85F);
+
+        if (owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
+            double distSqr = ownerLiving.position().distanceToSqr(hit);
+            if (distSqr <= radiusSqr) {
+                double dist = Math.sqrt(distSqr);
+                double falloff = Math.max(0.30D, 1.0D - (dist / (radius + 0.5D)));
+                Vec3 toOwner = ownerLiving.getBoundingBox().getCenter().subtract(hit);
+                Vec3 horizDir = new Vec3(toOwner.x, 0.0D, toOwner.z);
+                if (horizDir.lengthSqr() > 1.0E-4D) {
+                    horizDir = horizDir.normalize();
+                }
+                double vx = horizDir.x * 0.55D * falloff * boostScale;
+                double vz = horizDir.z * 0.55D * falloff * boostScale;
+                double vy = Math.max(0.78D, (0.95D * falloff + 0.20D) * boostScale);
+                Vec3 cur = ownerLiving.getDeltaMovement();
+                ownerLiving.setDeltaMovement(cur.x * 0.35D + vx, Math.max(cur.y, vy), cur.z * 0.35D + vz);
+                ownerLiving.fallDistance = 0.0F;
+                ownerLiving.hurtMarked = true;
+                if (ownerLiving instanceof ServerPlayer sp) {
+                    sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                }
+            }
+        }
+
+        if (directHit != null && directHit != owner) {
+            ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
+            if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
+                Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
+                Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * 0.65D, 0.45D, knock.z * 0.65D));
+                directHit.hurtMarked = true;
+                if (directHit instanceof ServerPlayer sp) {
+                    sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                }
+            }
+        }
+
+        AABB blastBox = new AABB(hit, hit).inflate(radius);
+        for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
+            if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
+                ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
+                if (!ElementalGaugeManager.isEntityFrozen(nearby)) {
+                    Vec3 diff = nearby.position().subtract(hit);
+                    Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
+                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.65D, 0.42D, knock.z * 0.65D));
+                    nearby.hurtMarked = true;
+                    if (nearby instanceof ServerPlayer sp) {
+                        sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                    }
+                }
+            }
+        }
+    }
+
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite) {
         resolveLightning(level, hit, owner, isNetherite, null);
     }
@@ -682,6 +794,7 @@ public final class ArcaneStaffEvents {
         if (event.getEntity() instanceof ServerPlayer player) {
             com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
             ElementalGaugeManager.syncEntityOnStartTracking(player, player);
+            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
             if (!player.getTags().contains("velorise_staves:received_codex")) {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get()));

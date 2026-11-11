@@ -22,7 +22,8 @@ public class CrystallizeShieldEffect extends MobEffect {
                 VeloriseStavesMod.MODID,
                 "effect." + element.name().toLowerCase(java.util.Locale.ROOT) + "_shield_absorption"
         );
-        this.addAttributeModifier(Attributes.MAX_ABSORPTION, modifierId, 2.0D, AttributeModifier.Operation.ADD_VALUE);
+        // Allow sufficient MAX_ABSORPTION headroom for EM + Geo Resonance (+15%) shields
+        this.addAttributeModifier(Attributes.MAX_ABSORPTION, modifierId, 3.0D, AttributeModifier.Operation.ADD_VALUE);
     }
 
     @Override

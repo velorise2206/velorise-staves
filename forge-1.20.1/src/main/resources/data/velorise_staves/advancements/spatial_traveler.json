@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:root",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:void_translocator"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.spatial_traveler.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.spatial_traveler.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "teleported": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "spatial_traveler"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "teleported"
+    ]
+  ]
+}

@@ -127,7 +127,9 @@ public class MagicMirrorItem extends Item {
             }
 
             stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-            player.getCooldowns().addCooldown(this, getCooldownTicks());
+            com.velorise.staves.element.ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    player, com.velorise.staves.advancement.ModAdvancements.EVENT_SPATIAL_TRAVELER);
         }
         return stack;
     }
@@ -154,7 +156,8 @@ public class MagicMirrorItem extends Item {
         tooltip.add(Component.literal("✦ ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.LIGHT_PURPLE));
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+        float cdSec = com.velorise.staves.element.ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", cdSec)).withStyle(ChatFormatting.BLUE));
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());

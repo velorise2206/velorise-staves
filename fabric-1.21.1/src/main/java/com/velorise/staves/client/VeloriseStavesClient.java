@@ -67,6 +67,17 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             context.client().execute(() -> com.velorise.staves.config.StavesConfig.applyServerSync(payload.data()));
         });
 
+        ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ResonanceSyncPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> {
+                com.velorise.staves.element.ElementalResonanceManager.setClientResonanceState(payload.resonanceMask(), payload.overloaded(), payload.staffCount());
+                ClientAuraTracker.updateLocalResonance(payload.resonanceMask(), payload.overloaded(), payload.staffCount());
+            });
+        });
+
+        net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback.EVENT.register((stack, tooltipContext, tooltipType, lines) -> {
+            com.velorise.staves.item.SwordImbueHelper.appendImbueTooltip(stack, lines);
+        });
+
         net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
             if (world.isClientSide()
                     && entity instanceof net.minecraft.world.entity.LivingEntity living
@@ -97,6 +108,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();
+            com.velorise.staves.element.ElementalResonanceManager.clearClientState();
             ClientAuraRenderer.resetFrozenClientState();
             OmniWheelOverlay.reset();
             com.velorise.staves.config.StavesConfig.clearServerSync();

@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:first_reaction",
+  "display": {
+    "icon": {
+      "id": "minecraft:lightning_rod"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.tesla_coil.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.tesla_coil.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "activated_tesla_coil": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "tesla_coil"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "activated_tesla_coil"
+    ]
+  ]
+}

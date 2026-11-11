@@ -4,7 +4,7 @@
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
 
-A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves** (12 on 1.20.1), **2 utility artifacts**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)**.
+A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **11 custom advancements**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -19,10 +19,10 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Guardian Lens** (![Hydro][hydro] Hydro): Channels a continuous prismatic beam that damages targets and extinguishes environmental fire, soul fire, campfires, and candles.
 - **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
 - **Stormcaller** (![Electro][electro] Electro): Summons instant lightning strikes onto your crosshair.
-- **Wind Staff** (![Anemo][anemo] Anemo, 1.21+ only): Fires gusting wind charges that trigger rapid Swirl reactions.
+- **Wind Staff** (![Anemo][anemo] Anemo): Fires gusting wind charges that trigger rapid Swirl reactions (backported to Forge 1.20.1 using custom Breeze Rods & Wind Charges crafted from Anemo Essence).
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
 - **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
-- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs; the Netherite tier also raises a **Geo Fang Pillar** (`HP = 2x creator's max HP`, up to 3 active) that blocks attacks/projectiles and pulses 4m concentric Geo waves every 2s.
+- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs and raises a **Geo Fang Pillar** (Basic: `1x1x1` hitbox, `HP = 1x creator's max HP`, `3m` square waves `0.5♥ / 0.5U` every 2s; Netherite: `1x2x1` hitbox, `HP = 2x creator's max HP`, `5m` square waves `1♥ / 1U` every 2s, up to 3 active) that taunts enemies onto the pillar and blocks attacks/projectiles.
 - **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
 - **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Dendro/Nether): Discharges a 3-skull spread inflicting Wither decay and applying Dendro.
@@ -31,13 +31,19 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns, and scale with the custom **Elemental Mastery I–III** enchantment.*
 
 > [!NOTE]
-> **Version Note:** The **Wind Staff** is exclusive to Minecraft 1.21.1 (NeoForge & Fabric), as its crafting recipe and mechanics utilize Breeze Rods and Wind Charges introduced in the 1.21 Tricky Trials update (Trial Chambers). Minecraft 1.20.1 (Forge) purposefully features 12 combat staves and uses **Resonant Echo** as its primary Anemo weapon.
+> **Full 1.20.1 & 1.21.1 Parity:** All **13 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges and Breeze Rods crafted from `anemo_element`).
 
-### Utility Artifacts & Codex
+### Elemental Essences, Anvil Repair & Imbued Swords
+
+- **8 Elemental Essences** (`pyro_element`..`geo_element`, `omni_element`): Dropped at fixed player-kill hostile rates with **no Looting scaling** (`5%` Natural Innate, `15%` Mutated, `25%` Omni Mutated). Combine all 7 into `omni_element`, repair matching Staves (`omni_element` repairs all), replace Lightning Rod in `arc_caster`, convert Anemo into Wind Charges / Breeze Rods, or upgrade any Staff + `omni_element` directly to **Omni Staff** keeping Enchantments & Netherite tier.
+- **Imbued Swords**: Combine any `SwordItem` with an Element in an **Anvil** keeping Enchantments & Netherite tier. Full-strength swings (`>= 90%` charge) apply `1.0U` and amplify sword damage via EGT reactions (excluded from Elemental Resonance and the 4-Staff Cap).
+
+### Utility Artifacts, Advancements & Codex
 
 - **Void Translocator**: Blink forward up to 24 blocks (36 Netherite) through solid obstacles safely.
 - **Magic Mirror**: Channel to recall back to your bed or world spawn point (cross-dimensional on Netherite).
 - **Elemental Codex**: Interactive in-game guidebook with clickable reaction links, heart-rendered damage stats, live server config sync, and **9-language** localization (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`).
+- **Advancements Tab (11 Advancements)**: Dedicated advancement tree covering weapon crafting, Netherite smithing, Elemental Mastery, Omni Staff, EGT reactions, Dendro Cores, Crystallize shields, Geo Fang Pillars, Tesla Coils, and spatial artifacts.
 
 ---
 
@@ -59,7 +65,7 @@ Built upon **Elemental Gauge Theory**, attacks and the environment apply element
 
 ### World & Creature Interactions
 
-- **Innate Creature Elements**: Nether mobs (Blaze, Magma Cube, Piglin) possess Innate Pyro; Strays have Innate Cryo; Guardians have Innate Hydro; Endermen have Innate Electro; Iron Golems have Innate Geo, etc. When attacking, they inflict their innate element; same-element attacks trigger **IMMUNE**.
+- **Innate Creature Elements & 7% Mutation (6% Elemental + 1% Omni Mutated)**: Nether mobs (Blaze, Magma Cube, Piglin) possess Innate Pyro; Strays have Innate Cryo; Guardians have Innate Hydro; Endermen have Innate Electro; Iron Golems have Innate Geo, etc. Normal hostile mobs have a configurable **7% default chance** to spawn mutated: **6%** roll one of the 7 standard elements (immune to their own element), and **1%** become **Omni Mutated** (![Omni][omni] `Omni ∞` — 100% `IMMUNE` to all elemental/reaction damage, vulnerable only to physical attacks, and automatically triggering the strongest elemental reaction against targets with an active Aura or applying a random element when the target has no Aura).
 - **Environmental Afflictions & Tesla Coil**: Water & Rain apply Hydro (and Hydro beams extinguish fire/campfires/candles); Lava & Fire apply Pyro; Powder Snow applies Cryo; Cactus & Sweet Berries apply Dendro; Stalactites apply Geo; Thorns armor reflects **0.5U per level** of the target's element back to attackers. Placing a Copper Lightning Rod atop a Redstone Block builds a **Tesla Coil** firing 3–5 Electro arcs every 2s (2x stats during rain or 30s on lightning strike).
 
 ---
@@ -67,8 +73,8 @@ Built upon **Elemental Gauge Theory**, attacks and the environment apply element
 ## Visual & Combat Feedback
 
 - **3D Floating Combat Text**: Reaction titles (`VAPORIZE`, `IMMUNE`, etc.) and elemental damage numbers pop cleanly at torso height.
-- **HD Overhead Element Icons**: 32x32 pixel-art icons above mobs displaying active auras and dual-reaction animations.
-- **Jade / Waila HUD**: Native tooltip integration showing active element gauges and remaining durations.
+- **HD Overhead Element Icons**: 32x32 pixel-art icons above mobs displaying active auras, dual-reaction animations, and `Omni` mutation badges.
+- **Jade / Waila HUD**: Native tooltip integration showing active element gauges, `Omni ∞`, and remaining durations.
 
 ---
 
@@ -104,4 +110,3 @@ Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved (Code & Documentation
 [geo]: shared-resources/assets/velorise_staves/textures/element/geo.png
 [dendro]: shared-resources/assets/velorise_staves/textures/element/dendro.png
 [omni]: shared-resources/assets/velorise_staves/textures/element/omni.png
-

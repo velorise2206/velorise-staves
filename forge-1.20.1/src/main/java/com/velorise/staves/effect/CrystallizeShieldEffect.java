@@ -34,7 +34,9 @@ public class CrystallizeShieldEffect extends MobEffect {
 
     @Override
     public void removeAttributeModifiers(LivingEntity entity, AttributeMap attributeMap, int amplifier) {
-        float removedShield = 2.0F + (1.0F * amplifier);
+        float removedShield = (2.0F + (1.0F * amplifier))
+                * (com.velorise.staves.element.ElementalResonanceManager.hasResonance(
+                        entity, com.velorise.staves.element.ElementalResonanceManager.ResonanceType.GEO) ? 1.15F : 1.0F);
         entity.setAbsorptionAmount(Math.max(entity.getAbsorptionAmount() - removedShield, 0.0F));
         super.removeAttributeModifiers(entity, attributeMap, amplifier);
     }

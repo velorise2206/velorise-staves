@@ -28,6 +28,7 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "elemental_aura");
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final ResourceLocation OMNI_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni.png");
 
     static {
         for (Element e : Element.values()) {
@@ -86,6 +87,21 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
         Entity entity = accessor.getEntity();
         if (!(entity instanceof LivingEntity living)) return;
         if (!living.isAlive()) return;
+
+        CompoundTag serverDataCheck = accessor.getServerData();
+        boolean isOmni = ElementalGaugeManager.isOmniInnate(living)
+                || ClientAuraTracker.hasOmniInnate(living.getId())
+                || (serverDataCheck != null && serverDataCheck.getBoolean("vs_omni"));
+        if (isOmni) {
+            IElementHelper helper = IElementHelper.get();
+            tooltip.add(new ElementIcon(OMNI_TEXTURE, 12, 12));
+            tooltip.append(helper.spacer(2, 0));
+            Component comp = Component.translatable("element.velorise_staves.omni")
+                    .append(Component.literal(" ∞"))
+                    .withStyle(ChatFormatting.GOLD);
+            tooltip.append(helper.text(comp));
+            return;
+        }
 
         Element innateElement = ElementalGaugeManager.getInnateElement(living);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(living.getId());

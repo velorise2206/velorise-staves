@@ -327,11 +327,14 @@ public final class CrystallizeShardManager {
     private static void pickupShard(ServerLevel level, ServerPlayer player, Element element, int emLevel) {
         // Replace any existing Crystallize shield (same or different element) and reset shield absorption
         ModMobEffects.removeAllShields(player);
-        if (!player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 5.0F) {
+        if (!player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 8.0F) {
             player.setAbsorptionAmount(0.0F);
         }
         // Elemental Mastery I-III grants +1.0 HP (+0.5 golden heart) shield absorption per level: 2.0 / 3.0 / 4.0 / 5.0 HP
         float shieldHp = 2.0F + 1.0F * Math.max(0, emLevel);
+        if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
+            shieldHp *= 1.15F;
+        }
         int shieldAmp = Math.max(0, emLevel);
         var shieldObj = ModMobEffects.getShieldForElement(element);
         if (shieldObj != null) {
@@ -341,6 +344,7 @@ public final class CrystallizeShardManager {
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
 
         onShieldApplied(player, element, SHIELD_DURATION_TICKS);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_CRYSTALLIZE_SHIELD);
 
         // Pickup chime sound
         level.playSound(null, player.getX(), player.getY(), player.getZ(),

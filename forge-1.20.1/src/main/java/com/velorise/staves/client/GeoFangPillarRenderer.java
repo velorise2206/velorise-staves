@@ -23,15 +23,20 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
 
 /**
- * Renders the 1x2x1 Geo Construct pillar using the vanilla Evoker Fangs 3D model tinted golden Geo,
- * along with smooth expanding concentric Geo shockwave rings.
+ * Renders the Geo Construct pillar (1x1x1 for Basic, 1x2x1 for Netherite) using the vanilla
+ * Evoker Fangs 3D model tinted golden Geo, along with smooth expanding concentric square Geo shockwaves.
  */
 @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
     private static final ResourceLocation TEXTURE =
             new ResourceLocation("textures/entity/illager/evoker_fangs.png");
     private static final RenderType RING_RENDER_TYPE = GeoRingRenderType.create();
-    private static final int RING_SEGMENTS = 64;
+    private static final float[][] SQUARE_CORNERS = {
+            {-1.0F, -1.0F},
+            { 1.0F, -1.0F},
+            { 1.0F,  1.0F},
+            {-1.0F,  1.0F}
+    };
 
     private final EvokerFangsModel<GeoFangPillarEntity> model;
 
@@ -55,6 +60,9 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
             MultiBufferSource bufferSource,
             int packedLight
     ) {
+        boolean netherite = entity.isNetherite();
+        this.shadowRadius = netherite ? 0.5F : 0.38F;
+
         int pulseElapsed = entity.tickCount - entity.getLastClientWaveStartTick();
         float pulseWave = (pulseElapsed >= -1 && pulseElapsed < 9)
                 ? Mth.sin((Mth.clamp(pulseElapsed + partialTicks, 0.0F, 9.0F) / 9.0F) * (float) Math.PI)
@@ -73,8 +81,8 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
 
         this.model.setupAnim(entity, biteProgress, 0.0F, 0.0F, entity.getYRot(), entity.getXRot());
         float f2 = (biteProgress + Mth.sin(biteProgress * 2.7F)) * 0.6F * 12.0F;
-        float scaleXZ = 1.52F + pulseWave * 0.12F;
-        float scaleY = 1.23F + pulseWave * 0.06F;
+        float scaleXZ = (netherite ? 1.52F : 1.05F) + pulseWave * (netherite ? 0.12F : 0.08F);
+        float scaleY = (netherite ? 1.23F : 0.62F) + pulseWave * (netherite ? 0.06F : 0.04F);
         poseStack.scale(-scaleXZ, -scaleY, scaleXZ);
         poseStack.translate(0.0F, -(36.0F - f2) / 16.0F + ((1.0F - rise) + sink) * 1.35F, 0.0F);
 
@@ -100,6 +108,8 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
     ) {
         VertexConsumer ringConsumer = bufferSource.getBuffer(RING_RENDER_TYPE);
         Matrix4f pose = poseStack.last().pose();
+        float maxExtent = (float) entity.getWaveEndRadius();
+        float innerEnd = Math.max(1.8F, maxExtent * 0.68F);
 
         for (float waveAge : entity.getClientWaveAges()) {
             float t = Mth.clamp((waveAge + partialTicks) / (float) GeoFangPillarEntity.WAVE_DURATION_TICKS, 0.0F, 1.0F);
@@ -108,18 +118,18 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
                     : (t > 0.72F ? Math.max(0.0F, (1.0F - t) / 0.28F) : 1.0F);
             if (alpha <= 0.01F) continue;
 
-            float outerR = (float) Mth.lerp(t, GeoFangPillarEntity.WAVE_START_RADIUS, GeoFangPillarEntity.WAVE_END_RADIUS);
-            drawConcentricBand(ringConsumer, pose, outerR, 0.16F, 0.09F, 0.34F, 1.00F, 0.83F, 0.22F, alpha * 0.88F);
+            float outerR = Mth.lerp(t, (float) GeoFangPillarEntity.WAVE_START_RADIUS, maxExtent);
+            drawConcentricSquareBand(ringConsumer, pose, outerR, 0.16F, 0.09F, 0.34F, 1.00F, 0.83F, 0.22F, alpha * 0.88F);
 
-            float innerR = (float) Mth.lerp(t, 0.40D, 3.05D);
-            drawConcentricBand(ringConsumer, pose, innerR, 0.09F, 0.11F, 0.22F, 1.00F, 0.92F, 0.48F, alpha * 0.65F);
+            float innerR = Mth.lerp(t, 0.40F, innerEnd);
+            drawConcentricSquareBand(ringConsumer, pose, innerR, 0.09F, 0.11F, 0.22F, 1.00F, 0.92F, 0.48F, alpha * 0.65F);
         }
     }
 
-    private static void drawConcentricBand(
+    private static void drawConcentricSquareBand(
             VertexConsumer consumer,
             Matrix4f pose,
-            float radius,
+            float halfExtent,
             float halfWidth,
             float yBase,
             float yWallTop,
@@ -128,32 +138,30 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
             float b,
             float a
     ) {
-        float rIn = Math.max(0.05F, radius - halfWidth);
-        float rOut = radius + halfWidth;
+        float rIn = Math.max(0.05F, halfExtent - halfWidth);
+        float rOut = halfExtent + halfWidth;
         float wallAlpha = a * 0.72F;
 
-        for (int i = 0; i < RING_SEGMENTS; i++) {
-            double a0 = (Math.PI * 2.0D * i) / RING_SEGMENTS;
-            double a1 = (Math.PI * 2.0D * (i + 1)) / RING_SEGMENTS;
-            float c0 = (float) Math.cos(a0);
-            float s0 = (float) Math.sin(a0);
-            float c1 = (float) Math.cos(a1);
-            float s1 = (float) Math.sin(a1);
+        for (int i = 0; i < SQUARE_CORNERS.length; i++) {
+            float[] c0 = SQUARE_CORNERS[i];
+            float[] c1 = SQUARE_CORNERS[(i + 1) % SQUARE_CORNERS.length];
+            float x0 = c0[0], z0 = c0[1];
+            float x1 = c1[0], z1 = c1[1];
 
-            consumer.vertex(pose, c0 * rIn, yBase, s0 * rIn).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c1 * rIn, yBase, s1 * rIn).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, x0 * rIn, yBase, z0 * rIn).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x1 * rIn, yBase, z1 * rIn).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x1 * halfExtent, yBase, z1 * halfExtent).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, x0 * halfExtent, yBase, z0 * halfExtent).color(r, g, b, a).endVertex();
 
-            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c1 * rOut, yBase, s1 * rOut).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c0 * rOut, yBase, s0 * rOut).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x0 * halfExtent, yBase, z0 * halfExtent).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, x1 * halfExtent, yBase, z1 * halfExtent).color(r, g, b, a).endVertex();
+            consumer.vertex(pose, x1 * rOut, yBase, z1 * rOut).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x0 * rOut, yBase, z0 * rOut).color(r, g, b, 0.0F).endVertex();
 
-            consumer.vertex(pose, c0 * radius, yBase - 0.04F, s0 * radius).color(r, g, b, wallAlpha).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase - 0.04F, s1 * radius).color(r, g, b, wallAlpha).endVertex();
-            consumer.vertex(pose, c1 * radius, yWallTop, s1 * radius).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c0 * radius, yWallTop, s0 * radius).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x0 * halfExtent, yBase - 0.04F, z0 * halfExtent).color(r, g, b, wallAlpha).endVertex();
+            consumer.vertex(pose, x1 * halfExtent, yBase - 0.04F, z1 * halfExtent).color(r, g, b, wallAlpha).endVertex();
+            consumer.vertex(pose, x1 * halfExtent, yWallTop, z1 * halfExtent).color(r, g, b, 0.0F).endVertex();
+            consumer.vertex(pose, x0 * halfExtent, yWallTop, z0 * halfExtent).color(r, g, b, 0.0F).endVertex();
         }
     }
 

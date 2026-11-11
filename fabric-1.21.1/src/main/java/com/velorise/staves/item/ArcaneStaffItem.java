@@ -5,6 +5,7 @@ import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.DendroCoreManager;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
+import com.velorise.staves.element.ElementalResonanceManager;
 import com.velorise.staves.element.ElectrifiedWaterManager;
 import com.velorise.staves.element.EnvironmentalBlockManager;
 import com.velorise.staves.entity.OmniOrbEntity;
@@ -153,6 +154,15 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (ElementalResonanceManager.isOverloaded(player)) {
+            if (!level.isClientSide()) {
+                player.displayClientMessage(
+                        Component.translatable("message.velorise_staves.staff_overload", StavesConfig.getMaxStavesInInventory())
+                                .withStyle(ChatFormatting.RED),
+                        true);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
         if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (isCharged()) {
@@ -212,7 +222,7 @@ public final class ArcaneStaffItem extends Item {
         if (isBurstKind()) {
             advanceBurst(serverPlayer, burstKey(), maxBurstShots(), getCooldownTicks());
         } else {
-            player.getCooldowns().addCooldown(this, getCooldownTicks());
+            ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         }
 
         player.awardStat(Stats.ITEM_USED.get(this));
@@ -223,6 +233,10 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
         if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
+        if (level.getGameTime() % 20L == 0L && ElementalGaugeManager.getElementalMasteryLevel(stack) > 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    player, com.velorise.staves.advancement.ModAdvancements.EVENT_ELEMENTAL_MASTERY);
+        }
 
         if (isChannelingKind()) {
             ItemStack chStack = ACTIVE_CHANNELING.get(player.getUUID());
@@ -230,7 +244,7 @@ public final class ArcaneStaffItem extends Item {
                 if (!player.isUsingItem() || player.getUseItem() != stack) {
                     ACTIVE_CHANNELING.remove(player.getUUID());
                     if (!player.getCooldowns().isOnCooldown(this)) {
-                        player.getCooldowns().addCooldown(this, getCooldownTicks());
+                        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
                     }
                 }
             }
@@ -251,7 +265,7 @@ public final class ArcaneStaffItem extends Item {
             int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / (double) maxBurstShots()));
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
-            player.getCooldowns().addCooldown(this, cdForShots);
+            ElementalResonanceManager.applyCooldown(player, this, cdForShots);
         }
     }
 
@@ -308,7 +322,7 @@ public final class ArcaneStaffItem extends Item {
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
             if (!player.getCooldowns().isOnCooldown(this)) {
-                player.getCooldowns().addCooldown(this, cd);
+                ElementalResonanceManager.applyCooldown(player, this, cd);
             }
             return true;
         }
@@ -324,7 +338,7 @@ public final class ArcaneStaffItem extends Item {
         if (state.shots >= maxShots) {
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
-            player.getCooldowns().addCooldown(this, cdTicks);
+            ElementalResonanceManager.applyCooldown(player, this, cdTicks);
         } else {
             player.getCooldowns().addCooldown(this, BURST_INTERVAL_TICKS); // 11 ticks between burst shots to bypass vanilla 10-tick damage iframe
         }
@@ -346,6 +360,10 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int count) {
         if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(entity instanceof ServerPlayer player)) return;
+        if (ElementalResonanceManager.isOverloaded(player)) {
+            player.stopUsingItem();
+            return;
+        }
         if (kind == Kind.LIGHTNING) {
             int elapsed = 60 - count;
             if (elapsed < 0 || elapsed % 5 != 0) return;
@@ -389,16 +407,17 @@ public final class ArcaneStaffItem extends Item {
             finishGuardianBeam(player);
             return stack;
         }
+        if (ElementalResonanceManager.isOverloaded(player)) return stack;
         if (kind == Kind.GHASTFIRE) {
             shootGhastfire(player);
             stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-            player.getCooldowns().addCooldown(this, getCooldownTicks());
+            ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
             player.awardStat(Stats.ITEM_USED.get(this));
             return stack;
         }
         fireEcho(player);
         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-        player.getCooldowns().addCooldown(this, getCooldownTicks());
+        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
         return stack;
     }
@@ -416,13 +435,13 @@ public final class ArcaneStaffItem extends Item {
 
     private void finishLightningStorm(ServerPlayer player) {
         ACTIVE_CHANNELING.remove(player.getUUID());
-        player.getCooldowns().addCooldown(this, getCooldownTicks());
+        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
 
     private void finishGuardianBeam(ServerPlayer player) {
         ACTIVE_CHANNELING.remove(player.getUUID());
-        player.getCooldowns().addCooldown(this, getCooldownTicks());
+        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
 
@@ -568,24 +587,25 @@ public final class ArcaneStaffItem extends Item {
             }
             level.addFreshEntity(fangs);
         }
-        if (isNetherite) {
-            double firstX = player.getX() + flat.x * 1.5D;
-            double firstZ = player.getZ() + flat.z * 1.5D;
-            double constructX = Math.floor(firstX) + 0.5D;
-            double constructZ = Math.floor(firstZ) + 0.5D;
-            double constructY = findGroundY(level, constructX, player.getY(), constructZ);
-            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
-                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
-            com.velorise.staves.entity.GeoFangPillarEntity construct =
-                    new com.velorise.staves.entity.GeoFangPillarEntity(
-                            com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
-                            level,
-                            constructX, constructY, constructZ,
-                            (float) Math.toDegrees(yaw),
-                            player
-                    );
-            level.addFreshEntity(construct);
-        }
+        double firstX = player.getX() + flat.x * 1.5D;
+        double firstZ = player.getZ() + flat.z * 1.5D;
+        double constructX = Math.floor(firstX) + 0.5D;
+        double constructZ = Math.floor(firstZ) + 0.5D;
+        double constructY = findGroundY(level, constructX, player.getY(), constructZ);
+        com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
+                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
+        com.velorise.staves.entity.GeoFangPillarEntity construct =
+                new com.velorise.staves.entity.GeoFangPillarEntity(
+                        com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
+                        level,
+                        constructX, constructY, constructZ,
+                        (float) Math.toDegrees(yaw),
+                        player,
+                        isNetherite
+                );
+        level.addFreshEntity(construct);
+        com.velorise.staves.advancement.ModAdvancements.trigger(
+                player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
         return true;
     }
@@ -793,6 +813,9 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
+        if (VeloriseStavesMod.isOmniElementItem(repair)) return true;
+        Element repairElem = VeloriseStavesMod.elementFromItem(repair);
+        if (repairElem != null && repairElem == getElement()) return true;
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
         boolean validBase = switch (kind) {
             case DRAGONFIRE, INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
@@ -937,7 +960,7 @@ public final class ArcaneStaffItem extends Item {
         Element dispElem = kind == Kind.OMNI ? getOmniActiveElement(stack) : getElement();
         tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", getCooldownTicks() / 20.0F)).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);
         if (emLvl > 0) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.elemental_mastery_bonus", emLvl * 15, emLvl * 30, emLvl * 25).withStyle(ChatFormatting.GOLD));

@@ -31,7 +31,7 @@ public abstract class LivingEntityDamageMixin {
         LivingEntity entity = (LivingEntity) (Object) this;
         if (!entity.level().isClientSide()
                 && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())
-                && ElementalGaugeManager.isPyroInnate(entity)) {
+                && (ElementalGaugeManager.isPyroInnate(entity) || ElementalGaugeManager.isOmniInnate(entity))) {
             ElementalGaugeManager.extinguishPyroInnate(entity);
         }
     }
@@ -57,6 +57,8 @@ public abstract class LivingEntityDamageMixin {
             }
         }
 
+        amount = ElementalGaugeManager.applyImbuedSwordHit(entity, source, amount);
+
         if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(source)) {
             amount *= 1.4F;
             if (entity.level() instanceof ServerLevel sl) {
@@ -64,6 +66,9 @@ public abstract class LivingEntityDamageMixin {
                         8, 0.25D, 0.25D, 0.25D, 0.05D);
             }
         }
+
+        amount = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, source, amount);
+        amount = com.velorise.staves.element.ElementalResonanceManager.modifyIncomingDefenseDamage(entity, source, amount);
         return amount;
     }
 }

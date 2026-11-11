@@ -5,7 +5,8 @@
   "mixins": [
     "ProjectileMixin",
     "LivingEntityDamageMixin",
-    "ItemStackMixin"
+    "ItemStackMixin",
+    "AnvilMenuMixin"
   ],
   "client": [
     "LivingEntityRendererMixin",

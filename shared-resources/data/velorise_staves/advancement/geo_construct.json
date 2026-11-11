@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:crystallize",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:evoker_fang_staff"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.geo_construct.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.geo_construct.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "summoned_pillar": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "geo_fang_pillar"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "summoned_pillar"
+    ]
+  ]
+}

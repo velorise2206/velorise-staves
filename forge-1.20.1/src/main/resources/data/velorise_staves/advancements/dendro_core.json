@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:first_reaction",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:dendro_core"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.dendro_core.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.dendro_core.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "dendro_core_reaction": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "dendro_core_reaction"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "dendro_core_reaction"
+    ]
+  ]
+}

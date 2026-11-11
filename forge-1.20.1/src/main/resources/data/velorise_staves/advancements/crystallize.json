@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:first_reaction",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:pyro_crystallize_shard"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.crystallize.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.crystallize.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "picked_up_shard": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "crystallize_shield"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "picked_up_shard"
+    ]
+  ]
+}

@@ -20,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Manages active Dragonfire lingering AreaEffectClouds (Ender Staff AoE).
- * Instead of dense continuous random particles, renders expanding elemental rings
+ * Instead of dense continuous random particles, renders expanding square elemental waves
  * synchronized with a 1.0s (20 ticks) pulse that applies Electro (1.0U), shocks entities,
  * electrifies water, and triggers Hyperbloom on nearby Dendro Cores.
  */
@@ -77,14 +77,17 @@ public final class DragonfireCloudManager {
             long age = Math.max(0L, now - entry.startTick);
             int phase = (int) (age % 20L);
 
-            // Expanding elemental ring animation synchronized with the 20-tick (1.0s) aura application pulse
+            // Expanding elemental square wave animation synchronized with the 20-tick (1.0s) pulse
             if (phase % 2 == 0) {
                 double progress = (double) (phase + 2) / 20.0D;
-                double ringRadius = radius * progress;
-                spawnExpandingElectroRing(level, cloud.position(), ringRadius);
+                double halfExtent = radius * progress;
+                ElementalGaugeManager.spawnExpandingSquareParticles(
+                        level, cloud.position(), halfExtent, 0.15D,
+                        ParticleTypes.DRAGON_BREATH, ParticleTypes.ELECTRIC_SPARK, 3
+                );
             }
 
-            // Every 20 ticks (1.0s) when the ring completes its expansion, apply Electro (1.0U) pulse
+            // Every 20 ticks (1.0s) when the square wave completes its expansion, apply Electro (1.0U) pulse
             if (age > 0L && phase == 0) {
                 BlockPos center = cloud.blockPosition();
                 ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
@@ -93,40 +96,21 @@ public final class DragonfireCloudManager {
                 // 1. Periodically electrify water beneath and around the cloud (every 1s, 1.0F shock damage)
                 ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
 
-                // 2. Periodically shock and apply Electro (1.0U) to all entities inside the cloud radius
+                // 2. Periodically shock and apply Electro (1.0U) to all entities inside the square AoE
                 Vec3 centerPos = cloud.position();
-                double r2 = (double) radius * (double) radius;
                 AABB box = new AABB(
                         centerPos.x - radius, centerPos.y - 1.0D, centerPos.z - radius,
                         centerPos.x + radius, centerPos.y + 2.0D, centerPos.z + radius
                 );
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                    double dx = target.getX() - centerPos.x;
-                    double dz = target.getZ() - centerPos.z;
-                    if (dx * dx + dz * dz <= r2) {
-                        ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, owner, damage);
-                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
-                    }
+                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, owner, damage);
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
                 }
 
                 // 3. Detonate any Dendro Cores in the cloud (Hyperbloom)
                 DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.ELECTRO, owner);
                 level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.45F, 1.75F);
-            }
-        }
-    }
-
-    private static void spawnExpandingElectroRing(ServerLevel level, Vec3 center, double ringRadius) {
-        int points = Math.max(12, (int) Math.round(ringRadius * 8.0D));
-        double y = center.y + 0.15D;
-        for (int i = 0; i < points; i++) {
-            double angle = (2.0D * Math.PI * i) / points;
-            double px = center.x + Math.cos(angle) * ringRadius;
-            double pz = center.z + Math.sin(angle) * ringRadius;
-            level.sendParticles(ParticleTypes.DRAGON_BREATH, px, y, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-            if (i % 3 == 0) {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, px, y + 0.05D, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
             }
         }
     }

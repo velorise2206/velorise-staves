@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:root",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:arc_caster"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.first_reaction.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.first_reaction.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "triggered_reaction": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "first_reaction"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "triggered_reaction"
+    ]
+  ]
+}

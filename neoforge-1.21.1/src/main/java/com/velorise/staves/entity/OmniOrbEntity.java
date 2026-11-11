@@ -344,10 +344,10 @@ public class OmniOrbEntity extends ThrowableProjectile {
             return chooseBestElementForTarget(nearestMob, attacker);
         }
 
-        return nextCyclicElement(attacker, false);
+        return nextCyclicElement(attacker != null ? attacker.getUUID() : this.getUUID(), false);
     }
 
-    private Element chooseBestElementForTarget(LivingEntity target, @Nullable ServerPlayer attacker) {
+    public static Element chooseBestElementForTarget(LivingEntity target, @Nullable ServerPlayer attacker) {
         Element innate = ElementalGaugeManager.getInnateElement(target);
         Collection<Element> active = ElementalGaugeManager.getEntityElements(target.getUUID());
         boolean frozen = ElementalGaugeManager.isEntityFrozen(target);
@@ -397,11 +397,10 @@ public class OmniOrbEntity extends ThrowableProjectile {
         }
 
         // 7. Aura-less target -> cleanly rotate aura element so next shot detonates a 2.0x reaction
-        return nextCyclicElement(attacker, avoidPyroDamage);
+        return nextCyclicElement(attacker != null ? attacker.getUUID() : target.getUUID(), avoidPyroDamage);
     }
 
-    private Element nextCyclicElement(@Nullable ServerPlayer attacker, boolean avoidPyro) {
-        UUID key = attacker != null ? attacker.getUUID() : this.getUUID();
+    private static Element nextCyclicElement(UUID key, boolean avoidPyro) {
         int idx = OMNI_CYCLE_MAP.getOrDefault(key, 0);
         Element picked = AURA_CYCLE_ORDER[Math.floorMod(idx, AURA_CYCLE_ORDER.length)];
         if (avoidPyro && picked == Element.PYRO) {

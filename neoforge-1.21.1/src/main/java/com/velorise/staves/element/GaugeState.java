@@ -19,14 +19,23 @@ public final class GaugeState {
     private int ageTicks;
 
     public GaugeState(Element element, float appliedUnits) {
+        this(element, appliedUnits, 1.0F);
+    }
+
+    public GaugeState(Element element, float appliedUnits, float durationScale) {
         this.element = element;
         // Aura Tax: 0.8x of applied attack units
         this.units = Math.max(0.01F, appliedUnits * 0.8F);
         // Genshin standard duration formula: 2.5 * appliedUnits + 7.0 seconds
-        float durationSeconds = 2.5F * appliedUnits + 7.0F;
-        this.maxDurationTicks = Math.max(20, Math.round(durationSeconds * 20.0F));
+        float scale = Math.max(0.1F, durationScale);
+        float durationSeconds = (2.5F * appliedUnits + 7.0F) * scale;
+        this.maxDurationTicks = Math.max(10, Math.round(durationSeconds * 20.0F));
         this.decayPerTick = this.units / (float) this.maxDurationTicks;
         this.ageTicks = 0;
+    }
+
+    public static GaugeState createWithDurationScale(Element element, float appliedUnits, float durationScale) {
+        return new GaugeState(element, appliedUnits, durationScale);
     }
 
     private GaugeState(Element element, float directUnits, int customDurationTicks) {
@@ -122,13 +131,18 @@ public final class GaugeState {
      *   otherwise retain the current decayPerTick.
      */
     public void refresh(float appliedUnits) {
+        refresh(appliedUnits, 1.0F);
+    }
+
+    public void refresh(float appliedUnits, float durationScale) {
         float taxed = Math.max(0.01F, appliedUnits * 0.8F);
-        float triggerDurationSeconds = 2.5F * appliedUnits + 7.0F;
-        int triggerMaxTicks = Math.max(20, Math.round(triggerDurationSeconds * 20.0F));
+        float scale = Math.max(0.1F, durationScale);
+        float triggerDurationSeconds = (2.5F * appliedUnits + 7.0F) * scale;
+        int triggerMaxTicks = Math.max(10, Math.round(triggerDurationSeconds * 20.0F));
         float triggerDecayPerTick = taxed / (float) triggerMaxTicks;
 
-        if (this.element == Element.PYRO) {
-            if (taxed > this.units || this.decayPerTick <= 1.0E-6F) {
+        if (this.element == Element.PYRO || scale < 1.0F) {
+            if (taxed > this.units || scale < 1.0F || this.decayPerTick <= 1.0E-6F) {
                 this.decayPerTick = triggerDecayPerTick;
             }
         } else if (this.decayPerTick <= 1.0E-6F) {

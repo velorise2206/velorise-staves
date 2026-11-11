@@ -17,6 +17,7 @@ public final class ModNetwork {
     public static void registerCommon() {
         PayloadTypeRegistry.playS2C().register(AuraSyncPayload.TYPE, AuraSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(ConfigSyncPayload.TYPE, ConfigSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(ResonanceSyncPayload.TYPE, ResonanceSyncPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(ElectricArcPayload.TYPE, ElectricArcPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(FreezeStrugglePayload.TYPE, FreezeStrugglePayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(FreezeStrugglePayload.TYPE, (payload, context) -> {
@@ -110,6 +111,11 @@ public final class ModNetwork {
     public static void sendConfigSyncToPlayer(ServerPlayer player) {
         if (player == null) return;
         ServerPlayNetworking.send(player, new ConfigSyncPayload(com.velorise.staves.config.StavesConfig.createSnapshotFromLocal()));
+    }
+
+    public static void sendResonanceSyncToPlayer(ServerPlayer player, int mask, boolean overloaded, int staffCount) {
+        if (player == null) return;
+        ServerPlayNetworking.send(player, new ResonanceSyncPayload(mask, overloaded, staffCount));
     }
 
     public static void sendFreezeStruggle() {

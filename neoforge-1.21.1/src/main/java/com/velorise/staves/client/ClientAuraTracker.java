@@ -17,6 +17,7 @@ public final class ClientAuraTracker {
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
+        public boolean permanentOmniInnate = false;
         public @Nullable Element reactedAuraElement = null;
         public @Nullable Element dualTriggerElement = null;
         public long dualStartTime = 0;
@@ -48,6 +49,19 @@ public final class ClientAuraTracker {
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
     public static @Nullable Element activeCrystallizeShield = null;
     public static long crystallizeShieldUntil = 0L;
+    public static int localResonanceMask = 0;
+    public static boolean localOverloaded = false;
+    public static int localStaffCount = 0;
+
+    public static void updateLocalResonance(int mask, boolean overloaded, int staffCount) {
+        localResonanceMask = mask;
+        localOverloaded = overloaded;
+        localStaffCount = staffCount;
+    }
+
+    public static boolean hasLocalResonance(int ordinal) {
+        return !localOverloaded && (localResonanceMask & (1 << ordinal)) != 0;
+    }
 
     public static class ActiveArc {
         public int fromEntityId;
@@ -141,7 +155,10 @@ public final class ClientAuraTracker {
         entry.elements.addAll(elements);
         entry.appliedTime = now;
         entry.durationTicks = durationTicks;
-        if (durationTicks > 0) {
+        if (durationTicks == -2) {
+            entry.permanentOmniInnate = true;
+            entry.expireTime = -1L; // Permanent Omni Mutated state
+        } else if (durationTicks > 0) {
             entry.expireTime = now + (long) durationTicks * 50L;
         } else if (durationTicks < 0) {
             entry.expireTime = -1L; // Permanent innate aura
@@ -149,7 +166,7 @@ public final class ClientAuraTracker {
                 entry.permanentInnateElement = elements.get(0);
             }
         } else {
-            entry.expireTime = entry.permanentInnateElement != null ? -1L : 0L;
+            entry.expireTime = (entry.permanentInnateElement != null || entry.permanentOmniInnate) ? -1L : 0L;
         }
         if (entry.permanentInnateElement != null && !entry.elements.contains(entry.permanentInnateElement)) {
             entry.elements.add(0, entry.permanentInnateElement);
@@ -194,7 +211,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElement == null && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -202,6 +219,11 @@ public final class ClientAuraTracker {
     public static boolean hasPyroInnate(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         return data != null && data.permanentInnateElement == Element.PYRO;
+    }
+
+    public static boolean hasOmniInnate(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.permanentOmniInnate;
     }
 
     public static boolean isFrozen(int entityId) {
@@ -228,6 +250,9 @@ public final class ClientAuraTracker {
         ACTIVE_ARCS.clear();
         activeCrystallizeShield = null;
         crystallizeShieldUntil = 0L;
+        localResonanceMask = 0;
+        localOverloaded = false;
+        localStaffCount = 0;
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

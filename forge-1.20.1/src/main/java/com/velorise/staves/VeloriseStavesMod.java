@@ -1,9 +1,15 @@
 package com.velorise.staves;
 
+import com.velorise.staves.advancement.VeloriseCriterionTrigger;
+import com.velorise.staves.element.Element;
 import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementItem;
 import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
+import com.velorise.staves.item.WindChargeItem;
+import com.velorise.staves.recipe.OmniStaffUpgradeRecipe;
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -11,6 +17,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraftforge.eventbus.api.IEventBus;
 import com.velorise.staves.config.StavesConfig;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -19,12 +27,16 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Supplier;
 
 @Mod(VeloriseStavesMod.MODID)
 public final class VeloriseStavesMod {
     public static final String MODID = "velorise_staves";
+
+    public static final VeloriseCriterionTrigger ADVANCEMENT_TRIGGER =
+            CriteriaTriggers.register(new VeloriseCriterionTrigger());
 
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MODID);
@@ -34,7 +46,7 @@ public final class VeloriseStavesMod {
     public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity>> GEO_FANG_PILLAR =
             ENTITY_TYPES.register("geo_fang_pillar", () -> net.minecraft.world.entity.EntityType.Builder
                     .<com.velorise.staves.entity.GeoFangPillarEntity>of(com.velorise.staves.entity.GeoFangPillarEntity::new, net.minecraft.world.entity.MobCategory.MISC)
-                    .sized(1.0F, 2.0F)
+                    .sized(1.0F, 1.0F)
                     .clientTrackingRange(10)
                     .updateInterval(2)
                     .build("geo_fang_pillar"));
@@ -54,6 +66,18 @@ public final class VeloriseStavesMod {
                     .clientTrackingRange(8)
                     .updateInterval(1)
                     .build("omni_orb"));
+
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.WindChargeEntity>> WIND_CHARGE_ENTITY =
+            ENTITY_TYPES.register("wind_charge", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.WindChargeEntity>of(com.velorise.staves.entity.WindChargeEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.3125F, 0.3125F)
+                    .clientTrackingRange(4)
+                    .updateInterval(10)
+                    .build("wind_charge"));
+
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, MODID);
+    public static final net.minecraftforge.registries.RegistryObject<RecipeSerializer<OmniStaffUpgradeRecipe>> OMNI_STAFF_UPGRADE_SERIALIZER =
+            RECIPE_SERIALIZERS.register("omni_staff_upgrade", () -> new SimpleCraftingRecipeSerializer<>(OmniStaffUpgradeRecipe::new));
     public static final DeferredRegister<net.minecraft.world.item.enchantment.Enchantment> ENCHANTMENTS = DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, MODID);
 
     // Enchantments
@@ -98,6 +122,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> WEBCASTER = ITEMS.register("webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
 
+    public static final Supplier<Item> WIND_STAFF = ITEMS.register("wind_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 140, false));
+
     public static final Supplier<Item> OMNI_STAFF = ITEMS.register("omni_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 250, false));
 
@@ -122,6 +149,54 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> CRYO_CRYSTALLIZE_SHARD = ITEMS.register("cryo_crystallize_shard",
         () -> new Item(new Item.Properties()));
 
+    // 1.20.1 Wind Backport Materials
+    public static final Supplier<Item> BREEZE_ROD = ITEMS.register("breeze_rod",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> WIND_CHARGE = ITEMS.register("wind_charge",
+        WindChargeItem::new);
+
+    // Elemental Essences
+    public static final Supplier<Item> PYRO_ELEMENT = ITEMS.register("pyro_element",
+        () -> new ElementItem(Element.PYRO));
+    public static final Supplier<Item> HYDRO_ELEMENT = ITEMS.register("hydro_element",
+        () -> new ElementItem(Element.HYDRO));
+    public static final Supplier<Item> ANEMO_ELEMENT = ITEMS.register("anemo_element",
+        () -> new ElementItem(Element.ANEMO));
+    public static final Supplier<Item> ELECTRO_ELEMENT = ITEMS.register("electro_element",
+        () -> new ElementItem(Element.ELECTRO));
+    public static final Supplier<Item> DENDRO_ELEMENT = ITEMS.register("dendro_element",
+        () -> new ElementItem(Element.DENDRO));
+    public static final Supplier<Item> CRYO_ELEMENT = ITEMS.register("cryo_element",
+        () -> new ElementItem(Element.CRYO));
+    public static final Supplier<Item> GEO_ELEMENT = ITEMS.register("geo_element",
+        () -> new ElementItem(Element.GEO));
+    public static final Supplier<Item> OMNI_ELEMENT = ITEMS.register("omni_element",
+        () -> new ElementItem(null));
+
+    public static Item getElementItem(@Nullable Element element) {
+        if (element == null) return OMNI_ELEMENT.get();
+        return switch (element) {
+            case PYRO -> PYRO_ELEMENT.get();
+            case HYDRO -> HYDRO_ELEMENT.get();
+            case ANEMO -> ANEMO_ELEMENT.get();
+            case ELECTRO -> ELECTRO_ELEMENT.get();
+            case DENDRO -> DENDRO_ELEMENT.get();
+            case CRYO -> CRYO_ELEMENT.get();
+            case GEO -> GEO_ELEMENT.get();
+        };
+    }
+
+    public static @Nullable Element elementFromItem(ItemStack stack) {
+        if (!stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem) {
+            return elemItem.getElement();
+        }
+        return null;
+    }
+
+    public static boolean isOmniElementItem(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem && elemItem.isOmni();
+    }
+
     // Netherite Upgraded Combat Staves
     public static final Supplier<Item> NETHERITE_DRAGONFIRE_SCEPTER = ITEMS.register("netherite_dragonfire_scepter",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 500, true));
@@ -141,7 +216,7 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_SHULKER_SEEKER = ITEMS.register("netherite_shulker_seeker",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 500, true));
 
-    public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("netherite_guardian_lens",
+    public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("guardian_lens_netherite".equals("netherite_guardian_lens") ? "netherite_guardian_lens" : "netherite_guardian_lens",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 500, true));
 
     public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
@@ -155,6 +230,9 @@ public final class VeloriseStavesMod {
 
     public static final Supplier<Item> NETHERITE_WEBCASTER = ITEMS.register("netherite_webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
+
+    public static final Supplier<Item> NETHERITE_WIND_STAFF = ITEMS.register("netherite_wind_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 500, true));
 
     public static final Supplier<Item> NETHERITE_OMNI_STAFF = ITEMS.register("netherite_omni_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 900, true));
@@ -187,6 +265,7 @@ public final class VeloriseStavesMod {
                 output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(WEBCASTER.get());
+                output.accept(WIND_STAFF.get());
                 output.accept(OMNI_STAFF.get());
                 output.accept(VOID_TRANSLOCATOR.get());
                 output.accept(MAGIC_MIRROR.get());
@@ -203,12 +282,23 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_WEBCASTER.get());
+                output.accept(NETHERITE_WIND_STAFF.get());
                 output.accept(NETHERITE_OMNI_STAFF.get());
                 output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
 
-                // Reactions
+                // Reactions & Materials
                 output.accept(DENDRO_CORE.get());
+                output.accept(BREEZE_ROD.get());
+                output.accept(WIND_CHARGE.get());
+                output.accept(PYRO_ELEMENT.get());
+                output.accept(HYDRO_ELEMENT.get());
+                output.accept(ANEMO_ELEMENT.get());
+                output.accept(ELECTRO_ELEMENT.get());
+                output.accept(DENDRO_ELEMENT.get());
+                output.accept(CRYO_ELEMENT.get());
+                output.accept(GEO_ELEMENT.get());
+                output.accept(OMNI_ELEMENT.get());
 
                 // Elemental Mastery I-III Enchanted Books
                 for (int lvl = 1; lvl <= 3; lvl++) {
@@ -236,6 +326,7 @@ public final class VeloriseStavesMod {
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ENCHANTMENTS.register(modEventBus);
+        RECIPE_SERIALIZERS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 }

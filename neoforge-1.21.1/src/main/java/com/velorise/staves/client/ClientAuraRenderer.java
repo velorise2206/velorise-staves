@@ -9,6 +9,7 @@ import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalReaction;
+import com.velorise.staves.element.ElementalResonanceManager;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -45,6 +46,7 @@ import java.util.*;
 @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final ResourceLocation OMNI_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni.png");
     private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
     private static final Map<Element, ResourceLocation> SHIELD_TEXTURES = new EnumMap<>(Element.class);
     private static final ResourceLocation EFFECT_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/effect_background");
@@ -99,6 +101,7 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
         ClientAuraTracker.clear();
+        com.velorise.staves.element.ElementalResonanceManager.clearClientState();
         FROZEN_RENDER_STATES.clear();
         hasFrozenCam = false;
         wasFrozenFirstPerson = false;
@@ -265,7 +268,7 @@ public final class ClientAuraRenderer {
 
     public static void clearPyroInnateFire(LivingEntity entity) {
         if (entity == null) return;
-        if (ClientAuraTracker.hasPyroInnate(entity.getId()) && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())) {
+        if ((ClientAuraTracker.hasPyroInnate(entity.getId()) || ClientAuraTracker.hasOmniInnate(entity.getId())) && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())) {
             entity.clearFire();
             entity.setSharedFlagOnFire(false);
         }
@@ -375,14 +378,15 @@ public final class ClientAuraRenderer {
         if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
         if (entity != mc.player && !mc.player.hasLineOfSight(entity)) return;
 
-        // Check innate element on entity (including server-synced mutated innate elements)
+        // Check innate element on entity (including server-synced mutated innate elements and Omni Mutated)
         Element innateElement = ElementalGaugeManager.getInnateElement(entity);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
         if (innateElement == null && data != null && data.permanentInnateElement != null) {
             innateElement = data.permanentInnateElement;
         }
+        boolean omniInnate = ElementalGaugeManager.isOmniInnate(entity) || (data != null && data.permanentOmniInnate);
 
-        if (data == null && innateElement == null) return;
+        if (data == null && innateElement == null && !omniInnate) return;
 
         long now = System.currentTimeMillis();
         // Underwater fish / passive aquatic creatures only display overhead icons when an elemental reaction occurs
@@ -404,7 +408,7 @@ public final class ClientAuraRenderer {
             if (data.damageUntil <= now) {
                 data.lastDamage = 0.0F;
             }
-            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && innateElement == null) {
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && innateElement == null && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -436,7 +440,7 @@ public final class ClientAuraRenderer {
         boolean hasReaction = showReactionText && data != null && data.reaction != null && now < data.reactionUntil;
         boolean hasDamage = showDamageNumbers && data != null && data.damageUntil > now && data.lastDamage > 0.0F;
 
-        if ((!showIcons || display.isEmpty()) && !hasReaction && !hasDamage) return;
+        if ((!showIcons || (display.isEmpty() && !omniInnate)) && !hasReaction && !hasDamage) return;
 
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
                 ? entity.getBbHeight() + 0.18D
@@ -445,7 +449,7 @@ public final class ClientAuraRenderer {
         float gap = 3.0F;
 
         // Branch 1: Draw Overhead Element Icon(s) with Pop & Fade-out Animation
-        if (showIcons && !display.isEmpty()) {
+        if (showIcons && (!display.isEmpty() || omniInnate)) {
             poseStack.pushPose();
             poseStack.translate(0.0D, height, 0.0D);
             poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
@@ -483,31 +487,38 @@ public final class ClientAuraRenderer {
 
             poseStack.scale(0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
 
-            int count = display.size();
-            float totalWidth = count * iconSize + (count - 1) * gap;
-            float startX = -totalWidth / 2.0F;
-
-            for (int i = 0; i < count; i++) {
-                Element elem = display.get(i);
-                int elemAlpha = iconAlpha;
-                if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
-                    long dualAge = Math.max(0L, now - data.dualStartTime);
-                    long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
-                    float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
-                    if (dualProgress > 0.55F) {
-                        float fade = (1.0F - dualProgress) / 0.45F;
-                        elemAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
-                    }
+            if (omniInnate) {
+                drawOmniIcon(poseStack, buffer, entity, -iconSize / 2.0F, -iconSize, iconSize, iconSize, 255);
+                if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                    bs.endBatch(RenderType.text(OMNI_TEXTURE));
                 }
-                drawIcon(poseStack, buffer, elem, startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, elemAlpha);
-            }
+            } else {
+                int count = display.size();
+                float totalWidth = count * iconSize + (count - 1) * gap;
+                float startX = -totalWidth / 2.0F;
 
-            // Flush icon render types BEFORE popping icon PoseStack
-            if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                for (Element e : display) {
-                    ResourceLocation tex = TEXTURES.get(e);
-                    if (tex != null) {
-                        bs.endBatch(RenderType.text(tex));
+                for (int i = 0; i < count; i++) {
+                    Element elem = display.get(i);
+                    int elemAlpha = iconAlpha;
+                    if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
+                        long dualAge = Math.max(0L, now - data.dualStartTime);
+                        long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
+                        float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
+                        if (dualProgress > 0.55F) {
+                            float fade = (1.0F - dualProgress) / 0.45F;
+                            elemAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
+                        }
+                    }
+                    drawIcon(poseStack, buffer, elem, startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, elemAlpha);
+                }
+
+                // Flush icon render types BEFORE popping icon PoseStack
+                if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                    for (Element e : display) {
+                        ResourceLocation tex = TEXTURES.get(e);
+                        if (tex != null) {
+                            bs.endBatch(RenderType.text(tex));
+                        }
                     }
                 }
             }
@@ -589,6 +600,16 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static void drawOmniIcon(PoseStack poseStack, MultiBufferSource buffer, LivingEntity entity, float x, float y, float width, float height, int alpha) {
+        Matrix4f matrix = poseStack.last().pose();
+        int rgb = com.velorise.staves.entity.OmniOrbEntity.getIridescentRgb(entity.tickCount + entity.getId() * 3.0F);
+        int r = Math.min(255, 165 + (((rgb >> 16) & 0xFF) * 90) / 255);
+        int g = Math.min(255, 165 + (((rgb >> 8) & 0xFF) * 90) / 255);
+        int b = Math.min(255, 165 + ((rgb & 0xFF) * 90) / 255);
+        VertexConsumer main = buffer.getBuffer(RenderType.text(OMNI_TEXTURE));
+        drawDoubleSidedQuad(main, matrix, x, y, width, height, r, g, b, alpha);
+    }
+
     private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height, int alpha) {
         ResourceLocation texture = TEXTURES.get(element);
         if (texture == null) return;
@@ -663,6 +684,7 @@ public final class ClientAuraRenderer {
         }
 
         renderCrystallizeShieldHud(guiGraphics, mc);
+        renderResonanceHud(guiGraphics, mc);
         renderFreezeStruggleHud(guiGraphics, mc);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
@@ -714,6 +736,7 @@ public final class ClientAuraRenderer {
                 beneficialCount++;
             }
         }
+        beneficialCount += getResonanceHudSlotCount();
 
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -780,6 +803,7 @@ public final class ClientAuraRenderer {
         if (mc.player == null) return;
 
         renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
+        renderResonanceInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -822,7 +846,7 @@ public final class ClientAuraRenderer {
             }
         }
         int customShieldSlot = (activeShield != null && !shieldFoundInVanilla) ? 1 : 0;
-        int totalEffects = vanillaCount + customShieldSlot + data.elements.size();
+        int totalEffects = vanillaCount + customShieldSlot + data.elements.size() + getResonanceHudSlotCount();
         int yStep = 33;
         if (totalEffects > 5) {
             yStep = Math.max(1, 132 / (totalEffects - 1));
@@ -914,7 +938,9 @@ public final class ClientAuraRenderer {
         int auraCount = hasAura ? data.elements.size() : 0;
         boolean customShield = shield != null && !shieldFoundInVanilla;
 
-        int totalEffects = vanillaCount + auraCount + (customShield ? 1 : 0);
+        int resonanceCount = getResonanceHudSlotCount();
+
+        int totalEffects = vanillaCount + auraCount + (customShield ? 1 : 0) + resonanceCount;
         if (totalEffects == 0) return Collections.emptyList();
 
         int yStep = 33;
@@ -933,6 +959,14 @@ public final class ClientAuraRenderer {
             int baseIndex = vanillaCount + (customShield ? 1 : 0);
             for (int i = 0; i < data.elements.size(); i++) {
                 int y = topPos + (baseIndex + i) * yStep;
+                areas.add(new Rect2i(startX, y, 32, 32));
+            }
+        }
+
+        if (resonanceCount > 0) {
+            int resBase = vanillaCount + (customShield ? 1 : 0) + auraCount;
+            for (int i = 0; i < resonanceCount; i++) {
+                int y = topPos + (resBase + i) * yStep;
                 areas.add(new Rect2i(startX, y, 32, 32));
             }
         }
@@ -1152,7 +1186,7 @@ public final class ClientAuraRenderer {
         boolean hasAura = data != null && !data.elements.isEmpty() && (data.expireTime <= 0 || now < data.expireTime);
         int auraCount = hasAura ? data.elements.size() : 0;
         int customShieldSlot = found ? 0 : 1;
-        int totalEffects = vanillaCount + customShieldSlot + auraCount;
+        int totalEffects = vanillaCount + customShieldSlot + auraCount + getResonanceHudSlotCount();
         int yStep = 33;
         if (totalEffects > 5) {
             yStep = Math.max(1, 132 / (totalEffects - 1));
@@ -1176,6 +1210,203 @@ public final class ClientAuraRenderer {
                 guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
             }
         }
+    }
+
+    private static List<ElementalResonanceManager.ResonanceType> getActiveResonancesForHud() {
+        if (!StavesConfig.isElementalResonanceEnabled() || ClientAuraTracker.localOverloaded) {
+            return Collections.emptyList();
+        }
+        List<ElementalResonanceManager.ResonanceType> list = new ArrayList<>(2);
+        for (ElementalResonanceManager.ResonanceType type : ElementalResonanceManager.ResonanceType.values()) {
+            if (ClientAuraTracker.hasLocalResonance(type.ordinal())) {
+                list.add(type);
+            }
+        }
+        return list;
+    }
+
+    private static int getResonanceHudSlotCount() {
+        if (!StavesConfig.isElementalResonanceEnabled()) return 0;
+        if (ClientAuraTracker.localOverloaded) return 1;
+        return getActiveResonancesForHud().size();
+    }
+
+    private static int getResonanceBorderColor(ElementalResonanceManager.ResonanceType type) {
+        return type.element() != null ? getElementBorderColor(type.element()) : 0xFFFFD60A;
+    }
+
+    private static boolean isShieldEffect(MobEffectInstance inst) {
+        return ModMobEffects.getShieldElement(inst.getEffect().value()) != null;
+    }
+
+    private static void drawHudEffectBox(GuiGraphics guiGraphics, int x, int y) {
+        guiGraphics.blitSprite(EFFECT_BACKGROUND_SPRITE, x, y, 24, 24);
+    }
+
+    private static void drawInventoryEffectBox(GuiGraphics guiGraphics, int startX, int y) {
+        guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
+    }
+
+    private static void renderResonanceHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null || !StavesConfig.isElementalResonanceEnabled()) return;
+        boolean overloaded = ClientAuraTracker.localOverloaded;
+        List<ElementalResonanceManager.ResonanceType> resonances = overloaded ? Collections.emptyList() : getActiveResonancesForHud();
+        if (!overloaded && resonances.isEmpty()) return;
+
+        int beneficialStart = 0;
+        boolean shieldFoundInVanilla = false;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            if (inst.showIcon() && isBeneficial(inst)) {
+                beneficialStart++;
+                if (isShieldEffect(inst)) {
+                    shieldFoundInVanilla = true;
+                }
+            }
+        }
+        Element activeShield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (activeShield == null) {
+            activeShield = ModMobEffects.getActiveShield(mc.player);
+        }
+        if (activeShield != null && !shieldFoundInVanilla) {
+            beneficialStart++;
+        }
+
+        int screenWidth = guiGraphics.guiWidth();
+        int top = mc.isDemo() ? 16 : 1;
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableBlend();
+
+        if (overloaded) {
+            int col = beneficialStart % 10;
+            int row = beneficialStart / 10;
+            int x = screenWidth - 25 * (col + 1);
+            int y = top + 26 * row;
+            drawHudEffectBox(guiGraphics, x, y);
+            renderCrystallizeShieldHudFrame(guiGraphics, x, y, 0xFFFF3333);
+            guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
+            guiGraphics.blit(OMNI_TEXTURE, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.drawString(mc.font, "!", x + 17, y + 14, 0xFFFF4444, true);
+        } else {
+            for (int i = 0; i < resonances.size(); i++) {
+                ElementalResonanceManager.ResonanceType type = resonances.get(i);
+                int idx = beneficialStart + i;
+                int col = idx % 10;
+                int row = idx / 10;
+                int x = screenWidth - 25 * (col + 1);
+                int y = top + 26 * row;
+                drawHudEffectBox(guiGraphics, x, y);
+                renderCrystallizeShieldHudFrame(guiGraphics, x, y, getResonanceBorderColor(type));
+                ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
+                if (tex != null) {
+                    guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+                }
+            }
+        }
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    private static void renderResonanceInventory(
+            GuiGraphics guiGraphics,
+            Minecraft mc,
+            int leftPos,
+            int topPos,
+            int imageWidth,
+            EffectRenderingInventoryScreen<?> screen,
+            int mouseX,
+            int mouseY
+    ) {
+        if (mc.player == null || !StavesConfig.isElementalResonanceEnabled()) return;
+        boolean overloaded = ClientAuraTracker.localOverloaded;
+        List<ElementalResonanceManager.ResonanceType> resonances = overloaded ? Collections.emptyList() : getActiveResonancesForHud();
+        if (!overloaded && resonances.isEmpty()) return;
+
+        int startX = leftPos + imageWidth + 2;
+        int availableWidth = screen.width - startX;
+        if (availableWidth < 32) return;
+
+        int vanillaCount = 0;
+        boolean shieldFoundInVanilla = false;
+        for (MobEffectInstance inst : mc.player.getActiveEffects()) {
+            vanillaCount++;
+            if (isShieldEffect(inst)) {
+                shieldFoundInVanilla = true;
+            }
+        }
+        Element activeShield = ClientAuraTracker.getActiveCrystallizeShield();
+        if (activeShield == null) {
+            activeShield = ModMobEffects.getActiveShield(mc.player);
+        }
+        int customShieldSlot = (activeShield != null && !shieldFoundInVanilla) ? 1 : 0;
+
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
+        long now = System.currentTimeMillis();
+        boolean hasAura = data != null && !data.elements.isEmpty() && (data.expireTime <= 0 || now < data.expireTime);
+        int auraCount = hasAura ? data.elements.size() : 0;
+        int resonanceCount = overloaded ? 1 : resonances.size();
+
+        int totalEffects = vanillaCount + customShieldSlot + auraCount + resonanceCount;
+        int yStep = 33;
+        if (totalEffects > 5) {
+            yStep = Math.max(1, 132 / (totalEffects - 1));
+        }
+
+        int baseIndex = vanillaCount + customShieldSlot + auraCount;
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableBlend();
+
+        if (overloaded) {
+            int y = topPos + baseIndex * yStep;
+            drawInventoryEffectBox(guiGraphics, startX, y);
+            renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, 0xFFFF3333);
+            guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
+            guiGraphics.blit(OMNI_TEXTURE, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.drawString(mc.font, "!", startX + 23, y + 20, 0xFFFF4444, true);
+
+            if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+                List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+                tooltip.add(net.minecraft.network.chat.Component.translatable(
+                        "hud.velorise_staves.overload_title",
+                        ClientAuraTracker.localStaffCount,
+                        StavesConfig.getMaxStavesInInventory()).withStyle(net.minecraft.ChatFormatting.RED));
+                tooltip.add(net.minecraft.network.chat.Component.translatable(
+                        "hud.velorise_staves.overload_hint",
+                        StavesConfig.getMaxStavesInInventory()).withStyle(net.minecraft.ChatFormatting.GRAY));
+                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+            }
+        } else {
+            for (int i = 0; i < resonances.size(); i++) {
+                ElementalResonanceManager.ResonanceType type = resonances.get(i);
+                int y = topPos + (baseIndex + i) * yStep;
+                drawInventoryEffectBox(guiGraphics, startX, y);
+                renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getResonanceBorderColor(type));
+                ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
+                if (tex != null) {
+                    guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                }
+
+                if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
+                    net.minecraft.ChatFormatting color = type.element() != null ? type.element().color() : net.minecraft.ChatFormatting.GOLD;
+                    List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
+                    tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey()).withStyle(color));
+                    tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey() + ".desc")
+                            .withStyle(net.minecraft.ChatFormatting.GRAY));
+                    guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                }
+            }
+        }
+        guiGraphics.flush();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @SubscribeEvent

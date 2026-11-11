@@ -684,6 +684,9 @@ public final class EnvironmentalBlockManager {
         if (freshActivation) {
             Vec3 tip = Vec3.atCenterOf(immutableRod).add(0.0D, 0.35D, 0.0D);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, tip.x, tip.y, tip.z, 10, 0.25D, 0.25D, 0.25D, 0.08D);
+            for (ServerPlayer sp : level.getEntitiesOfClass(ServerPlayer.class, new AABB(immutableRod).inflate(24.0D), p -> p.isAlive() && !p.isSpectator())) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_TESLA_COIL);
+            }
         }
     }
 
@@ -735,6 +738,9 @@ public final class EnvironmentalBlockManager {
             return;
         }
         LAST_TESLA_COIL_ZAP.put(immutableRod, now);
+        for (ServerPlayer sp : level.getEntitiesOfClass(ServerPlayer.class, new AABB(immutableRod).inflate(16.0D), p -> p.isAlive() && !p.isSpectator())) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_TESLA_COIL);
+        }
 
         int rangeBlocks = overcharged ? 10 : 5;
         int maxRangeSq = rangeBlocks * rangeBlocks;

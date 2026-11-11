@@ -51,6 +51,8 @@ public class ElementalCodexScreen extends Screen {
     private static final int HEADER_H = 26;
 
     private static final Map<Element, ResourceLocation> ELEMENT_ICONS = new EnumMap<>(Element.class);
+    private static final ResourceLocation OMNI_ICON =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/omni.png");
 
     static {
         for (Element e : Element.values()) {
@@ -67,7 +69,8 @@ public class ElementalCodexScreen extends Screen {
         INNATE("innate", 0xFFFF9F0A, null),
         ENVIRONMENT("environment", 0xFF64D2FF, null),
         STAVES("staves", 0xFFBF5AF2, null),
-        MASTERY("mastery", 0xFFFFD60A, null);
+        MASTERY("mastery", 0xFFFFD60A, null),
+        RESONANCE("resonance", 0xFF40E0D0, null);
 
         public final String key;
         public final int accentColor;
@@ -156,6 +159,7 @@ public class ElementalCodexScreen extends Screen {
             Element elem2,
             List<Element> elemGroup,
             boolean plusBeforeItem1,
+            boolean omniElem1,
             ItemStack item1,
             ItemStack item2,
             EntityType<? extends LivingEntity> mob1,
@@ -175,7 +179,7 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, item1, item2, null, null, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, item1, item2, null, null, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard(
@@ -192,7 +196,7 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, elemGroup, false, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, elemGroup, false, false, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard(
@@ -206,15 +210,19 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withKey(String key) {
-            return new GuideCard(key, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(key, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, omniElem1, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withPlusItem1() {
-            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, true, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, true, omniElem1, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard withOmniIcon() {
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, true, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
     }
 
@@ -323,6 +331,7 @@ public class ElementalCodexScreen extends Screen {
             case ENVIRONMENT -> new ItemStack(Items.SCULK_SENSOR);
             case STAVES -> getModItemStack("netherite_dragonfire_scepter");
             case MASTERY -> new ItemStack(Items.ENCHANTED_BOOK);
+            case RESONANCE -> getModItemStack("omni_staff");
             default -> ItemStack.EMPTY;
         };
     }
@@ -394,6 +403,18 @@ public class ElementalCodexScreen extends Screen {
                         List.of(
                                 tr("codex.velorise_staves.basics.card3.p1"),
                                 tr("codex.velorise_staves.basics.card3.p2")
+                        )
+                ));
+                cards.add(new GuideCard(
+                        tr("codex.velorise_staves.basics.card4.title"),
+                        0xFFFFD60A,
+                        null, null,
+                        new ItemStack(Items.NETHERITE_SWORD), getModItemStack("omni_element"),
+                        tr("codex.velorise_staves.badge.sword_imbue"), 0xFFFFD60A,
+                        List.of(
+                                tr("codex.velorise_staves.basics.card4.p1"),
+                                tr("codex.velorise_staves.basics.card4.p2"),
+                                tr("codex.velorise_staves.basics.card4.p3")
                         )
                 ));
             }
@@ -545,6 +566,16 @@ public class ElementalCodexScreen extends Screen {
                         List.of(tr("codex.velorise_staves.innate.rules.p1"), tr("codex.velorise_staves.innate.rules.p2"))
                 ));
                 cards.add(new GuideCard(
+                        tr("codex.velorise_staves.innate.drops.title"), 0xFFFF9F0A,
+                        null, null, getModItemStack("pyro_element"), getModItemStack("omni_element"),
+                        "5% / 15% / 25%", 0xFFFF9F0A,
+                        List.of(
+                                tr("codex.velorise_staves.innate.drops.p1"),
+                                tr("codex.velorise_staves.innate.drops.p2"),
+                                tr("codex.velorise_staves.innate.drops.p3")
+                        )
+                ));
+                cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.pyro.title"), 0xFFFF453A,
                         Element.PYRO, null, EntityType.BLAZE, EntityType.MAGMA_CUBE,
                         "1.0U " + elemTitle(Element.PYRO), 0xFFFF453A,
@@ -643,6 +674,8 @@ public class ElementalCodexScreen extends Screen {
                                 fmtHearts(4.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6x3", "32m (AoE)", "codex.velorise_staves.staff.wither"},
                         {"webcaster", ArcaneStaffItem.Kind.WEB, Element.DENDRO,
                                 trapPoison, trapPoison, "28m", "codex.velorise_staves.staff.webcaster"},
+                        {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
+                                fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.5 * dmgMult) + "§f\uE008§6", "28m (AoE)", "codex.velorise_staves.staff.wind"},
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
                                 fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.0 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
@@ -664,7 +697,6 @@ public class ElementalCodexScreen extends Screen {
                     int nDur = StavesConfig.getMaxDurability(kind, true);
 
                     ItemStack basicStack = getModItemStack(baseId);
-                    ItemStack secondStack = (kind == ArcaneStaffItem.Kind.OMNI) ? getModItemStack("netherite_omni_staff") : ItemStack.EMPTY;
                     String name = tr("item.velorise_staves." + baseId);
                     int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
                     String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f\uE00A§6 " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
@@ -672,12 +704,13 @@ public class ElementalCodexScreen extends Screen {
                             bDmg, nDmg, String.format(Locale.ROOT, "%.1f", cdSec), rngStr);
                     String statsDur = tr("codex.velorise_staves.staff.stats_durability",
                             String.valueOf(bDur), String.valueOf(nDur));
-                    cards.add(new GuideCard(
+                    GuideCard staffCard = new GuideCard(
                             name, color,
-                            el, null, basicStack, secondStack,
+                            el, null, basicStack, ItemStack.EMPTY,
                             badge, color,
                             List.of(statsCombat, statsDur, tr(descKey))
-                    ));
+                    );
+                    cards.add(kind == ArcaneStaffItem.Kind.OMNI ? staffCard.withOmniIcon() : staffCard);
                 }
                 // Utility Artifacts
                 double vBasic = StavesConfig.getVoidTranslocatorRange(false);
@@ -731,13 +764,84 @@ public class ElementalCodexScreen extends Screen {
                                         String.format(Locale.ROOT, "%.2f", StavesConfig.getCooldownMultiplier())),
                                 tr("codex.velorise_staves.mastery.card3.egt_mutate",
                                         egtStatus,
-                                        Math.round(StavesConfig.INNATE_MUTATION_CHANCE.get() * 100.0)),
+                                        Math.round(StavesConfig.getInnateMutationChance() * 100.0)),
                                 tr("codex.velorise_staves.mastery.card3.p1")
                         )
                 ));
             }
+            case RESONANCE -> addResonanceCards(cards);
         }
         return cards;
+    }
+
+    private void addResonanceCards(List<GuideCard> cards) {
+        String capStr = StavesConfig.getMaxStavesInInventory() <= 0
+                ? "∞"
+                : String.valueOf(StavesConfig.getMaxStavesInInventory());
+        String statusStr = tr(StavesConfig.isElementalResonanceEnabled()
+                ? "codex.velorise_staves.status.on"
+                : "codex.velorise_staves.status.off");
+        cards.add(new GuideCard(
+                tr("codex.velorise_staves.res.rules.title"), 0xFFFF5555,
+                null, null, getModItemStack("omni_staff"), new ItemStack(Items.TRIDENT),
+                tr("codex.velorise_staves.res.rules.badge", statusStr, capStr),
+                StavesConfig.isElementalResonanceEnabled() ? 0xFF32D74B : 0xFFFF5555,
+                List.of(
+                        tr("codex.velorise_staves.res.rules.p1"),
+                        tr("codex.velorise_staves.res.rules.p2", capStr, capStr),
+                        tr("codex.velorise_staves.res.rules.p3")
+                )
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.pyro"), 0xFFFF4500,
+                Element.PYRO, Element.PYRO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFFFF6B4A,
+                List.of(tr("codex.velorise_staves.res.pyro.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.hydro"), 0xFF00C8FF,
+                Element.HYDRO, Element.HYDRO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFF0A84FF,
+                List.of(tr("codex.velorise_staves.res.hydro.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.anemo"), 0xFF40E0D0,
+                Element.ANEMO, Element.ANEMO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFF40E0D0,
+                List.of(tr("codex.velorise_staves.res.anemo.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.electro"), 0xFFBF40FF,
+                Element.ELECTRO, Element.ELECTRO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFFBF40FF,
+                List.of(tr("codex.velorise_staves.res.electro.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.dendro"), 0xFF32CD32,
+                Element.DENDRO, Element.DENDRO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFF32CD32,
+                List.of(tr("codex.velorise_staves.res.dendro.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.cryo"), 0xFF4DF0FF,
+                Element.CRYO, Element.CRYO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFF4DF0FF,
+                List.of(tr("codex.velorise_staves.res.cryo.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.geo"), 0xFFFFD700,
+                Element.GEO, Element.GEO, ItemStack.EMPTY, ItemStack.EMPTY,
+                tr("codex.velorise_staves.res.badge.pair"), 0xFFFFD700,
+                List.of(tr("codex.velorise_staves.res.geo.p1"))
+        ));
+        cards.add(new GuideCard(
+                tr("resonance.velorise_staves.canopy"), 0xFFFFD60A,
+                null, null,
+                List.of(Element.PYRO, Element.HYDRO, Element.ANEMO, Element.DENDRO),
+                ItemStack.EMPTY, ItemStack.EMPTY, null, null,
+                tr("codex.velorise_staves.res.badge.four"), 0xFFFFD60A,
+                List.of(tr("codex.velorise_staves.res.canopy.p1"))
+        ));
     }
 
     @Override
@@ -994,6 +1098,24 @@ public class ElementalCodexScreen extends Screen {
                 renderHoveredItem(guiGraphics, new ItemStack(Items.ENCHANTED_BOOK), cx - 79, midY, mouseX, mouseY);
                 drawLeftFitString(guiGraphics, tr("codex.velorise_staves.diagram.mastery.summary"), cx - 59, midY + 4, Math.max(60, (x + w - 4) - (cx - 59)), 0xFFE0B0FF, true);
             }
+            case RESONANCE -> {
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 116, midY, mouseX, mouseY);
+                guiGraphics.drawString(this.font, "+", cx - 98, midY + 4, 0xFFFFFFFF, true);
+                renderHoveredElement(guiGraphics, Element.PYRO, cx - 89, midY, mouseX, mouseY);
+                guiGraphics.drawString(this.font, "➔", cx - 70, midY + 4, 0xFFFF6B4A, true);
+                drawLeftFitString(guiGraphics, tr("codex.velorise_staves.diagram.resonance.pair"), cx - 58, midY + 4, 48, 0xFFFF9F68, true);
+
+                guiGraphics.drawString(this.font, "|", cx - 6, midY + 4, 0xFF556688, false);
+
+                renderHoveredOmniElement(guiGraphics, cx + 4, midY, mouseX, mouseY);
+                guiGraphics.drawString(this.font, "|", cx + 24, midY + 4, 0xFF556688, false);
+                renderHoveredItem(guiGraphics, new ItemStack(Items.TRIDENT), cx + 32, midY, mouseX, mouseY);
+                String capStr = StavesConfig.getMaxStavesInInventory() <= 0
+                        ? "∞"
+                        : String.valueOf(StavesConfig.getMaxStavesInInventory());
+                drawLeftFitString(guiGraphics, tr("codex.velorise_staves.diagram.resonance.summary", capStr),
+                        cx + 52, midY + 4, Math.max(48, (x + w - 4) - (cx + 52)), 0xFF40E0D0, true);
+            }
         }
 
         return h;
@@ -1073,6 +1195,8 @@ public class ElementalCodexScreen extends Screen {
             double cdMult,
             boolean egtEnabled,
             double mutateChance,
+            boolean resonanceEnabled,
+            int maxStavesCap,
             boolean serverSynced
     ) {}
 
@@ -1132,6 +1256,8 @@ public class ElementalCodexScreen extends Screen {
                 StavesConfig.getCooldownMultiplier(),
                 StavesConfig.isElementalGaugeEnabled(),
                 StavesConfig.INNATE_MUTATION_CHANCE.get(),
+                StavesConfig.isElementalResonanceEnabled(),
+                StavesConfig.getMaxStavesInInventory(),
                 StavesConfig.isServerSynced()
         );
         CachedTabContent cached = this.tabCache.get(tab);
@@ -1164,7 +1290,7 @@ public class ElementalCodexScreen extends Screen {
         int textW = w - pad * 2 - 4;
 
         int iconOffset = 6;
-        if (card.elem1 != null) iconOffset += 17;
+        if (card.elem1 != null || card.omniElem1) iconOffset += 17;
         if (card.elem2 != null) iconOffset += 6 + 17;
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
             iconOffset += 6 + 5 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 5 + 7;
@@ -1237,7 +1363,10 @@ public class ElementalCodexScreen extends Screen {
         int iconX = x + 6;
         int iconY = y + 3;
 
-        if (card.elem1 != null) {
+        if (card.omniElem1) {
+            renderHoveredOmniElement(guiGraphics, iconX, iconY, mouseX, mouseY);
+            iconX += 17;
+        } else if (card.elem1 != null) {
             renderHoveredElement(guiGraphics, card.elem1, iconX, iconY, mouseX, mouseY);
             iconX += 17;
         }
@@ -1580,17 +1709,38 @@ public class ElementalCodexScreen extends Screen {
 
     private void renderHoveredElement(GuiGraphics guiGraphics, Element element, int x, int y, int mouseX, int mouseY) {
         if (element == null) return;
+        Component tooltip = Component.empty()
+                .append(Component.literal(element.iconString()).withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" "))
+                .append(Component.translatable(element.translationKey()).withStyle(element.color()));
+        renderHoveredIconTexture(guiGraphics, ELEMENT_ICONS.get(element), tooltip, x, y, mouseX, mouseY);
+    }
+
+    private void renderHoveredOmniElement(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
+        Component tooltip = Component.empty()
+                .append(Component.literal("\uE00A").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" "))
+                .append(Component.translatable("element.velorise_staves.omni").withStyle(ChatFormatting.GOLD));
+        renderHoveredIconTexture(guiGraphics, OMNI_ICON, tooltip, x, y, mouseX, mouseY);
+    }
+
+    private void renderHoveredIconTexture(
+            GuiGraphics guiGraphics,
+            ResourceLocation tex,
+            Component tooltip,
+            int x,
+            int y,
+            int mouseX,
+            int mouseY
+    ) {
+        if (tex == null) return;
         if (isMouseOverBox(x, y, 16, 16, mouseX, mouseY)) {
             guiGraphics.fill(x - 1, y - 1, x + 17, y + 17, 0x33FFFFFF);
             this.pendingTooltipItem = ItemStack.EMPTY;
-            this.pendingTooltipLines = List.of(
-                    Component.empty()
-                            .append(Component.literal(element.iconString()).withStyle(ChatFormatting.WHITE))
-                            .append(Component.literal(" "))
-                            .append(Component.translatable(element.translationKey()).withStyle(element.color()))
-            );
+            this.pendingTooltipLines = List.of(tooltip);
         }
-        drawElementIcon(guiGraphics, element, x, y);
+        RenderSystem.enableBlend();
+        guiGraphics.blit(tex, x, y, 0.0F, 0.0F, 16, 16, 16, 16);
     }
 
     private void renderHoveredMob(GuiGraphics guiGraphics, EntityType<? extends LivingEntity> type, int x, int y, float size, int mouseX, int mouseY) {
