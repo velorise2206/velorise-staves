@@ -83,8 +83,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         });
 
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
-                com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT,
-                GeoConstructRenderer::new
+                com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
+                GeoFangPillarRenderer::new
         );
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 com.velorise.staves.VeloriseStavesMod.DENDRO_CORE_ENTITY,

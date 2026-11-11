@@ -48,7 +48,7 @@ import java.util.UUID;
  * and emits expanding concentric Geo waves every 2s (4 blocks radius, 1U Geo, 1 Geo DMG)
  * that trigger additional waves on nearby Geo Constructs on wave contact.
  */
-public class GeoConstructEntity extends Entity {
+public class GeoFangPillarEntity extends Entity {
     public static final float MAX_HEALTH = 40.0F; // Default fallback (2x standard 20 HP)
     public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
     public static final int MAX_CONSTRUCTS_PER_OWNER = 3;
@@ -64,13 +64,13 @@ public class GeoConstructEntity extends Entity {
     public static final ThreadLocal<Boolean> IS_GEO_PULSE = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private static final EntityDataAccessor<Float> DATA_MAX_HEALTH =
-            SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.FLOAT);
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> DATA_HEALTH =
-            SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.FLOAT);
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Integer> DATA_PULSE_SEQ =
-            SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.INT);
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_HURT_TICK =
-            SynchedEntityData.defineId(GeoConstructEntity.class, EntityDataSerializers.INT);
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.INT);
 
     private static final class ActiveGeoWave {
         int age;
@@ -96,14 +96,14 @@ public class GeoConstructEntity extends Entity {
     private int lastClientWaveStartTick = -100;
     private final List<Float> clientWaveAges = new ArrayList<>();
 
-    public GeoConstructEntity(EntityType<? extends GeoConstructEntity> type, Level level) {
+    public GeoFangPillarEntity(EntityType<? extends GeoFangPillarEntity> type, Level level) {
         super(type, level);
         this.setNoGravity(true);
         this.blocksBuilding = true;
     }
 
-    public GeoConstructEntity(
-            EntityType<? extends GeoConstructEntity> type,
+    public GeoFangPillarEntity(
+            EntityType<? extends GeoFangPillarEntity> type,
             Level level,
             double x,
             double y,
@@ -229,10 +229,10 @@ public class GeoConstructEntity extends Entity {
     /** Enforces the max 3 alive Geo Constructs limit per player by shattering oldest excess constructs. */
     public static void enforceMaxConstructsForOwner(
             ServerLevel level,
-            EntityType<? extends GeoConstructEntity> type,
+            EntityType<? extends GeoFangPillarEntity> type,
             UUID ownerUuid
     ) {
-        List<GeoConstructEntity> owned = new ArrayList<>();
+        List<GeoFangPillarEntity> owned = new ArrayList<>();
         MinecraftServer server = level.getServer();
         if (server != null) {
             for (ServerLevel world : server.getAllLevels()) {
@@ -243,7 +243,7 @@ public class GeoConstructEntity extends Entity {
         }
         if (owned.size() < MAX_CONSTRUCTS_PER_OWNER) return;
 
-        owned.sort(Comparator.comparingLong(GeoConstructEntity::getCreatedGameTime).thenComparingInt(Entity::getId));
+        owned.sort(Comparator.comparingLong(GeoFangPillarEntity::getCreatedGameTime).thenComparingInt(Entity::getId));
         int toRemove = owned.size() - (MAX_CONSTRUCTS_PER_OWNER - 1);
         for (int i = 0; i < toRemove; i++) {
             owned.get(i).shatter();
@@ -380,12 +380,12 @@ public class GeoConstructEntity extends Entity {
 
         // Expanding ring physically triggers other Geo Constructs on contact to launch their own concentric ring
         long now = level.getGameTime();
-        List<GeoConstructEntity> nearbyConstructs = level.getEntitiesOfClass(
-                GeoConstructEntity.class,
+        List<GeoFangPillarEntity> nearbyConstructs = level.getEntitiesOfClass(
+                GeoFangPillarEntity.class,
                 scan.inflate(0.5D, 1.0D, 0.5D),
                 other -> other != this && other.isAlive() && !other.isRemoved()
         );
-        for (GeoConstructEntity other : nearbyConstructs) {
+        for (GeoFangPillarEntity other : nearbyConstructs) {
             if (wave.triggeredConstructs.contains(other.getUUID())) continue;
             double edgeDist = horizontalEdgeDistance(other);
             if (edgeDist <= currR && (now - other.lastWaveStartGameTime) >= 4L) {
@@ -500,12 +500,12 @@ public class GeoConstructEntity extends Entity {
 
         Vec3 victimCenter = victim.getBoundingBox().getCenter();
         Vec3 victimEyes = victim.getEyePosition();
-        List<GeoConstructEntity> nearby = level.getEntitiesOfClass(
-                GeoConstructEntity.class,
+        List<GeoFangPillarEntity> nearby = level.getEntitiesOfClass(
+                GeoFangPillarEntity.class,
                 victim.getBoundingBox().inflate(8.0D),
                 c -> c.isAlive() && !c.isRemoved()
         );
-        for (GeoConstructEntity construct : nearby) {
+        for (GeoFangPillarEntity construct : nearby) {
             AABB shieldBox = construct.getBoundingBox().inflate(0.2D, 0.15D, 0.2D);
             if (shieldBox.contains(origin)) continue;
             if (shieldBox.clip(origin, victimCenter).isPresent() || shieldBox.clip(origin, victimEyes).isPresent()) {

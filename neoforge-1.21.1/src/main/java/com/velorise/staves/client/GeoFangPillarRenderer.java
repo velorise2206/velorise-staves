@@ -6,7 +6,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 import com.velorise.staves.VeloriseStavesMod;
-import com.velorise.staves.entity.GeoConstructEntity;
+import com.velorise.staves.entity.GeoFangPillarEntity;
 import net.minecraft.client.model.EvokerFangsModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -16,26 +16,26 @@ import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import org.joml.Matrix4f;
 
 /**
  * Renders the 1x2x1 Geo Construct pillar using the vanilla Evoker Fangs 3D model tinted golden Geo,
  * along with smooth expanding concentric Geo shockwave rings.
  */
-@Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
+@EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
     private static final ResourceLocation TEXTURE =
-            new ResourceLocation("textures/entity/illager/evoker_fangs.png");
+            ResourceLocation.withDefaultNamespace("textures/entity/illager/evoker_fangs.png");
     private static final RenderType RING_RENDER_TYPE = GeoRingRenderType.create();
     private static final int RING_SEGMENTS = 64;
 
-    private final EvokerFangsModel<GeoConstructEntity> model;
+    private final EvokerFangsModel<GeoFangPillarEntity> model;
 
-    public GeoConstructRenderer(EntityRendererProvider.Context context) {
+    public GeoFangPillarRenderer(EntityRendererProvider.Context context) {
         super(context);
         this.model = new EvokerFangsModel<>(context.bakeLayer(ModelLayers.EVOKER_FANGS));
         this.shadowRadius = 0.5F;
@@ -43,12 +43,12 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
 
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(VeloriseStavesMod.GEO_CONSTRUCT.get(), GeoConstructRenderer::new);
+        event.registerEntityRenderer(VeloriseStavesMod.GEO_FANG_PILLAR.get(), GeoFangPillarRenderer::new);
     }
 
     @Override
     public void render(
-            GeoConstructEntity entity,
+            GeoFangPillarEntity entity,
             float entityYaw,
             float partialTicks,
             PoseStack poseStack,
@@ -64,8 +64,8 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
 
         float biteProgress = 0.48F - pulseWave * 0.14F;
         float rise = Mth.clamp((entity.tickCount + partialTicks) / 6.0F, 0.0F, 1.0F);
-        float sink = entity.tickCount > (GeoConstructEntity.MAX_LIFETIME_TICKS - 12)
-                ? Mth.clamp((entity.tickCount + partialTicks - (GeoConstructEntity.MAX_LIFETIME_TICKS - 12)) / 12.0F, 0.0F, 1.0F)
+        float sink = entity.tickCount > (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)
+                ? Mth.clamp((entity.tickCount + partialTicks - (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)) / 12.0F, 0.0F, 1.0F)
                 : 0.0F;
 
         poseStack.pushPose();
@@ -78,11 +78,9 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
         poseStack.scale(-scaleXZ, -scaleY, scaleXZ);
         poseStack.translate(0.0F, -(36.0F - f2) / 16.0F + ((1.0F - rise) + sink) * 1.35F, 0.0F);
 
-        float r = 1.0F;
-        float g = hurtFlash ? 0.56F : (pulseWave > 0.15F ? 0.94F : 0.85F);
-        float b = hurtFlash ? 0.50F : (pulseWave > 0.15F ? 0.65F : 0.46F);
+        int tint = hurtFlash ? 0xFFFF9080 : (pulseWave > 0.15F ? 0xFFFFF0A6 : 0xFFFFDA75);
         VertexConsumer consumer = bufferSource.getBuffer(this.model.renderType(TEXTURE));
-        this.model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY, r, g, b, 1.0F);
+        this.model.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY, tint);
         poseStack.popPose();
 
         if (!entity.getClientWaveAges().isEmpty()) {
@@ -93,7 +91,7 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
     }
 
     private static void renderExpandingRings(
-            GeoConstructEntity entity,
+            GeoFangPillarEntity entity,
             float partialTicks,
             PoseStack poseStack,
             MultiBufferSource bufferSource
@@ -102,13 +100,13 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
         Matrix4f pose = poseStack.last().pose();
 
         for (float waveAge : entity.getClientWaveAges()) {
-            float t = Mth.clamp((waveAge + partialTicks) / (float) GeoConstructEntity.WAVE_DURATION_TICKS, 0.0F, 1.0F);
+            float t = Mth.clamp((waveAge + partialTicks) / (float) GeoFangPillarEntity.WAVE_DURATION_TICKS, 0.0F, 1.0F);
             float alpha = t < 0.10F
                     ? (t / 0.10F)
                     : (t > 0.72F ? Math.max(0.0F, (1.0F - t) / 0.28F) : 1.0F);
             if (alpha <= 0.01F) continue;
 
-            float outerR = (float) Mth.lerp(t, GeoConstructEntity.WAVE_START_RADIUS, GeoConstructEntity.WAVE_END_RADIUS);
+            float outerR = (float) Mth.lerp(t, GeoFangPillarEntity.WAVE_START_RADIUS, GeoFangPillarEntity.WAVE_END_RADIUS);
             drawConcentricBand(ringConsumer, pose, outerR, 0.16F, 0.09F, 0.34F, 1.00F, 0.83F, 0.22F, alpha * 0.88F);
 
             float innerR = (float) Mth.lerp(t, 0.40D, 3.05D);
@@ -140,25 +138,28 @@ public class GeoConstructRenderer extends EntityRenderer<GeoConstructEntity> {
             float c1 = (float) Math.cos(a1);
             float s1 = (float) Math.sin(a1);
 
-            consumer.vertex(pose, c0 * rIn, yBase, s0 * rIn).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c1 * rIn, yBase, s1 * rIn).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
+            // Inner feather of ground band
+            consumer.addVertex(pose, c0 * rIn, yBase, s0 * rIn).setColor(r, g, b, 0.0F);
+            consumer.addVertex(pose, c1 * rIn, yBase, s1 * rIn).setColor(r, g, b, 0.0F);
+            consumer.addVertex(pose, c1 * radius, yBase, s1 * radius).setColor(r, g, b, a);
+            consumer.addVertex(pose, c0 * radius, yBase, s0 * radius).setColor(r, g, b, a);
 
-            consumer.vertex(pose, c0 * radius, yBase, s0 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase, s1 * radius).color(r, g, b, a).endVertex();
-            consumer.vertex(pose, c1 * rOut, yBase, s1 * rOut).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c0 * rOut, yBase, s0 * rOut).color(r, g, b, 0.0F).endVertex();
+            // Outer feather of ground band
+            consumer.addVertex(pose, c0 * radius, yBase, s0 * radius).setColor(r, g, b, a);
+            consumer.addVertex(pose, c1 * radius, yBase, s1 * radius).setColor(r, g, b, a);
+            consumer.addVertex(pose, c1 * rOut, yBase, s1 * rOut).setColor(r, g, b, 0.0F);
+            consumer.addVertex(pose, c0 * rOut, yBase, s0 * rOut).setColor(r, g, b, 0.0F);
 
-            consumer.vertex(pose, c0 * radius, yBase - 0.04F, s0 * radius).color(r, g, b, wallAlpha).endVertex();
-            consumer.vertex(pose, c1 * radius, yBase - 0.04F, s1 * radius).color(r, g, b, wallAlpha).endVertex();
-            consumer.vertex(pose, c1 * radius, yWallTop, s1 * radius).color(r, g, b, 0.0F).endVertex();
-            consumer.vertex(pose, c0 * radius, yWallTop, s0 * radius).color(r, g, b, 0.0F).endVertex();
+            // Vertical luminous wave crest (visible from ground eye-level and over foliage)
+            consumer.addVertex(pose, c0 * radius, yBase - 0.04F, s0 * radius).setColor(r, g, b, wallAlpha);
+            consumer.addVertex(pose, c1 * radius, yBase - 0.04F, s1 * radius).setColor(r, g, b, wallAlpha);
+            consumer.addVertex(pose, c1 * radius, yWallTop, s1 * radius).setColor(r, g, b, 0.0F);
+            consumer.addVertex(pose, c0 * radius, yWallTop, s0 * radius).setColor(r, g, b, 0.0F);
         }
     }
 
     @Override
-    public ResourceLocation getTextureLocation(GeoConstructEntity entity) {
+    public ResourceLocation getTextureLocation(GeoFangPillarEntity entity) {
         return TEXTURE;
     }
 

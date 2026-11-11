@@ -129,7 +129,7 @@ public final class ArcaneStaffEvents {
 
         String kind = projectile.getPersistentData().getString(TAG_KIND);
         if (event.getRayTraceResult() instanceof EntityHitResult ehr
-                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoConstructEntity construct) {
+                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoFangPillarEntity construct) {
             event.setCanceled(true);
             TRACKED_PROJECTILES.remove(projectile);
             if (construct.handleProjectileBlocked(level, projectile, kind)) {
@@ -216,7 +216,7 @@ public final class ArcaneStaffEvents {
         DamageSource src = event.getSource();
         if (!entity.level().isClientSide()
                 && !(src.getDirectEntity() instanceof EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
-                && com.velorise.staves.entity.GeoConstructEntity.interceptIncomingDamage(entity, src, event.getAmount())) {
+                && com.velorise.staves.entity.GeoFangPillarEntity.interceptIncomingDamage(entity, src, event.getAmount())) {
             event.setCanceled(true);
             return;
         }

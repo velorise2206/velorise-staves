@@ -574,11 +574,11 @@ public final class ArcaneStaffItem extends Item {
             double constructX = Math.floor(firstX) + 0.5D;
             double constructZ = Math.floor(firstZ) + 0.5D;
             double constructY = findGroundY(level, constructX, player.getY(), constructZ);
-            com.velorise.staves.entity.GeoConstructEntity.enforceMaxConstructsForOwner(
-                    level, com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT, player.getUUID());
-            com.velorise.staves.entity.GeoConstructEntity construct =
-                    new com.velorise.staves.entity.GeoConstructEntity(
-                            com.velorise.staves.VeloriseStavesMod.GEO_CONSTRUCT,
+            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
+                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
+            com.velorise.staves.entity.GeoFangPillarEntity construct =
+                    new com.velorise.staves.entity.GeoFangPillarEntity(
+                            com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
                             level,
                             constructX, constructY, constructZ,
                             (float) Math.toDegrees(yaw),

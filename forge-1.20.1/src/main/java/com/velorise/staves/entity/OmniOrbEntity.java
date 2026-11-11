@@ -159,7 +159,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
     protected boolean canHitEntity(Entity entity) {
         return super.canHitEntity(entity)
                 && entity != this.getOwner()
-                && !(entity instanceof GeoConstructEntity)
+                && !(entity instanceof GeoFangPillarEntity)
                 && !(entity instanceof DendroCoreEntity);
     }
 

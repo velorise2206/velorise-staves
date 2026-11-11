@@ -29,13 +29,13 @@ public final class VeloriseStavesMod {
     public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB, MODID);
 
-    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoConstructEntity>> GEO_CONSTRUCT =
-            ENTITY_TYPES.register("geo_construct", () -> net.minecraft.world.entity.EntityType.Builder
-                    .<com.velorise.staves.entity.GeoConstructEntity>of(com.velorise.staves.entity.GeoConstructEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity>> GEO_FANG_PILLAR =
+            ENTITY_TYPES.register("geo_fang_pillar", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.GeoFangPillarEntity>of(com.velorise.staves.entity.GeoFangPillarEntity::new, net.minecraft.world.entity.MobCategory.MISC)
                     .sized(1.0F, 2.0F)
                     .clientTrackingRange(10)
                     .updateInterval(2)
-                    .build("geo_construct"));
+                    .build("geo_fang_pillar"));
 
     public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity>> DENDRO_CORE_ENTITY =
             ENTITY_TYPES.register("dendro_core", () -> net.minecraft.world.entity.EntityType.Builder

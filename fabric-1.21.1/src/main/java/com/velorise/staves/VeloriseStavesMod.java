@@ -209,19 +209,19 @@ public final class VeloriseStavesMod implements ModInitializer {
         })
         .build();
 
-    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoConstructEntity> GEO_CONSTRUCT =
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity> GEO_FANG_PILLAR =
             Registry.register(
                     BuiltInRegistries.ENTITY_TYPE,
-                    ResourceLocation.fromNamespaceAndPath(MODID, "geo_construct"),
+                    ResourceLocation.fromNamespaceAndPath(MODID, "geo_fang_pillar"),
                     net.minecraft.world.entity.EntityType.Builder
-                            .<com.velorise.staves.entity.GeoConstructEntity>of(
-                                    com.velorise.staves.entity.GeoConstructEntity::new,
+                            .<com.velorise.staves.entity.GeoFangPillarEntity>of(
+                                    com.velorise.staves.entity.GeoFangPillarEntity::new,
                                     net.minecraft.world.entity.MobCategory.MISC
                             )
                             .sized(1.0F, 2.0F)
                             .clientTrackingRange(10)
                             .updateInterval(2)
-                            .build("geo_construct")
+                            .build("geo_fang_pillar")
             );
 
     public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity> DENDRO_CORE_ENTITY =
@@ -318,7 +318,7 @@ public final class VeloriseStavesMod implements ModInitializer {
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             if (!entity.level().isClientSide()
                     && !(source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
-                    && com.velorise.staves.entity.GeoConstructEntity.interceptIncomingDamage(entity, source, amount)) {
+                    && com.velorise.staves.entity.GeoFangPillarEntity.interceptIncomingDamage(entity, source, amount)) {
                 return false;
             }
             if (!entity.level().isClientSide()

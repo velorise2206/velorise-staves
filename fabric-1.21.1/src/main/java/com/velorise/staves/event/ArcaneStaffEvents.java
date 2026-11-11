@@ -130,7 +130,7 @@ public final class ArcaneStaffEvents {
 
         String kind = getKind(projectile);
         if (hitResult instanceof net.minecraft.world.phys.EntityHitResult ehr
-                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoConstructEntity construct) {
+                && ehr.getEntity() instanceof com.velorise.staves.entity.GeoFangPillarEntity construct) {
             if (construct.handleProjectileBlocked(level, projectile, kind != null ? kind : "")) {
                 projectile.discard();
             }
