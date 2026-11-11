@@ -214,7 +214,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bSensor Sculk:§r Activo, descarga §d1.0U Electro§r cada §e0.5s§r dentro de §e8m§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dSensor Calibrado:§r Alcance sobrecargado a §e16m§r aplicando §d2.0U Electro Fuerte§r!",
   "codex.velorise_staves.env.redstone.title": "Bobina Tesla, Pararrayos y Redstone",
-  "codex.velorise_staves.env.redstone.p1": "• §6Bobina Tesla:§r §6Pararrayos§r sobre §cBloque Redstone§r lanza §d3–5 arcos§r (5m, 2s, §d0.5U Electro§r, 0.5§f§r), activando §dSobreflorecimiento§r. ¡Lluvia o Rayo (30s): §e×2 todo§r!",
+  "codex.velorise_staves.env.redstone.p1": "• §6Bobina Tesla:§r §6Pararrayos§r sobre §cBloque Redstone§r lanza §d3–5 arcos§r (2m, 2s, §d0.5U Electro§r, 0.5§f§r), activando §dSobreflorecimiento§r. ¡Lluvia o Rayo (30s): §e×2 todo§r!",
   "codex.velorise_staves.env.redstone.p2": "• §cObservador y Redstone:§r Pulso, §cBloque Redstone§r, §cPolvo§r y §cMena§r iluminada aplican §d1.0U Electro§r.",
   "codex.velorise_staves.env.amethyst.title": "Geoda de Amatista y Minería",
   "codex.velorise_staves.env.amethyst.p1": "• §dRadiación Electro:§r Tocar §dBloques/Racimos§r aplica §d1.0U Electro§r (0.5§f§r/s).",

@@ -214,7 +214,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bSculk Sensor:§r When active, zaps nearest creature within §e8m§r for §d1.0U Electro§r every §e0.5s§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dCalibrated Sculk Sensor:§r Overcharged §e16m range§r applying §d2.0U Strong Electro§r!",
   "codex.velorise_staves.env.redstone.title": "Tesla Coil, Lightning Rod & Redstone",
-  "codex.velorise_staves.env.redstone.p1": "• §6Tesla Coil:§r §6Lightning Rod§r atop §cRedstone Block§r arcs §d3–5 bolts§r (5m, 2s, §d0.5U Electro§r, 0.5§f§r), triggering §dHyperbloom§r. Rain or Lightning (30s): §e2x all stats§r!",
+  "codex.velorise_staves.env.redstone.p1": "• §6Tesla Coil:§r §6Lightning Rod§r atop §cRedstone Block§r arcs §d3–5 bolts§r (2m, 2s, §d0.5U Electro§r, 0.5§f§r), triggering §dHyperbloom§r. Rain or Lightning (30s): §e2x all stats§r!",
   "codex.velorise_staves.env.redstone.p2": "• §cObserver & Redstone:§r Observer back-pulse, §cRedstone Block§r, powered §cWire§r & lit §cOre§r apply §d1.0U Electro§r.",
   "codex.velorise_staves.env.amethyst.title": "Amethyst Geode & Crystal Mining",
   "codex.velorise_staves.env.amethyst.p1": "• §dElectro Radiation:§r Touching §dAmethyst Blocks/Clusters§r applies §d1.0U Electro§r (0.5§f§r/s).",

@@ -13,6 +13,9 @@ logoBlur=false
 authors="${mod_authors}"
 description="${mod_description}"
 
+[[mixins]]
+config="velorise_staves.mixins.json"
+
 [[dependencies.velorise_staves]]
 modId="neoforge"
 type="required"

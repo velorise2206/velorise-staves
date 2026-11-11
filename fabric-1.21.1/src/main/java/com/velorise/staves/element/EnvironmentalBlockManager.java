@@ -692,9 +692,9 @@ public final class EnvironmentalBlockManager {
 
     /**
      * Ticks an active Tesla Coil (Copper Lightning Rod placed on top of a Redstone Block).
-     * Normal mode: every 2s (40 ticks), 3-5 bolts in 5 blocks applying 0.5U Electro + 0.5 heart (1.0F dmg).
+     * Normal mode: every 2s (40 ticks), 3-5 bolts in 2 blocks radius (5x5 area) applying 0.5U Electro + 0.5 heart (1.0F dmg).
      * Overcharged mode (during rain or 30s after lightning): all stats x2
-     * (every 1s, 6-10 bolts in 10 blocks applying 1.0U Electro + 1.0 heart (2.0F dmg)).
+     * (every 1s, 6-10 bolts in 4 blocks radius applying 1.0U Electro + 1.0 heart (2.0F dmg)).
      */
     private static void tickTeslaCoil(ServerLevel level, BlockPos rodPos, BlockState rodState, long now) {
         BlockPos immutableRod = rodPos.immutable();
@@ -727,21 +727,21 @@ public final class EnvironmentalBlockManager {
             com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_TESLA_COIL);
         }
 
-        int rangeBlocks = overcharged ? 10 : 5;
+        int rangeBlocks = overcharged ? 4 : 2;
         int maxRangeSq = rangeBlocks * rangeBlocks;
-        double maxRayDistSq = overcharged ? 105.0D : 27.5D;
+        double maxRayDistSq = overcharged ? 18.5D : 5.5D;
         int boltCount = overcharged
                 ? (6 + level.random.nextInt(5))
                 : (3 + level.random.nextInt(3));
         float electroU = overcharged ? 1.0F : 0.5F;
         float boltDamage = overcharged ? 2.0F : 1.0F;
-        double waterRadius = overcharged ? 4.0D : 2.0D;
+        double waterRadius = overcharged ? 3.0D : 1.5D;
         int waterDuration = overcharged ? 70 : 35;
         double dendroCoreRadius = overcharged ? 2.5D : 1.25D;
 
         int span = rangeBlocks * 2 + 1;
-        int tyMin = overcharged ? -2 : -1;
-        int tyCount = overcharged ? 8 : 5;
+        int tyMin = -1;
+        int tyCount = overcharged ? 5 : 3;
         Set<UUID> hitEntitiesThisPulse = new HashSet<>();
 
         for (int b = 0; b < boltCount; b++) {
@@ -754,7 +754,7 @@ public final class EnvironmentalBlockManager {
                 int ty = level.random.nextInt(tyCount) + tyMin;
                 int tz = level.random.nextInt(span) - rangeBlocks;
                 int d2 = tx * tx + ty * ty + tz * tz;
-                if (d2 >= 4 && d2 <= maxRangeSq && !(tx == 0 && ty == -1 && tz == 0)) {
+                if (d2 >= 1 && d2 <= maxRangeSq && !(tx == 0 && tz == 0 && (ty == 0 || ty == -1))) {
                     dx = tx;
                     dy = ty;
                     dz = tz;
@@ -764,12 +764,12 @@ public final class EnvironmentalBlockManager {
             }
             if (!picked) {
                 double angle = level.random.nextDouble() * Math.PI * 2.0D;
-                double minFallback = overcharged ? 4.0D : 2.5D;
+                double minFallback = overcharged ? 1.5D : 1.0D;
                 double distChoice = minFallback + level.random.nextDouble() * (rangeBlocks - minFallback);
                 dx = (int) Math.round(Math.cos(angle) * distChoice);
-                dy = level.random.nextInt(4) - 1;
+                dy = level.random.nextInt(3) - 1;
                 dz = (int) Math.round(Math.sin(angle) * distChoice);
-                if (dx == 0 && dz == 0) dx = 2;
+                if (dx == 0 && dz == 0) dx = 1;
             }
 
             BlockPos chosenPos = immutableRod.offset(dx, dy, dz);

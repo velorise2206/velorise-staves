@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.RedStoneWireBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
@@ -258,6 +259,40 @@ public final class MobHazardAvoidanceManager {
             if (core != null) return core;
         }
         return null;
+    }
+
+    /**
+     * Upgrades walkable path nodes on elemental hazard blocks/zones to {@link PathType#DANGER_OTHER}
+     * (malus 8.0F) so A* proactively routes around them while still allowing passage if forced.
+     */
+    public static PathType adjustPathTypeForMob(@Nullable Mob mob, int x, int y, int z, PathType current) {
+        if (current == null || mob == null || !(mob.level() instanceof ServerLevel level)) {
+            return current;
+        }
+        if (current == PathType.OPEN || current == PathType.BLOCKED || current == PathType.FENCE
+                || current == PathType.UNPASSABLE_RAIL || current == PathType.DOOR_WOOD_CLOSED
+                || current == PathType.DOOR_IRON_CLOSED || current == PathType.LEAVES) {
+            return current;
+        }
+        if (isExcludedBoss(mob) || ElementalGaugeManager.isOmniInnate(mob)) {
+            return current;
+        }
+        float curMalus = mob.getPathfindingMalus(current);
+        if (curMalus < 0.0F || curMalus >= 8.0F) {
+            return current;
+        }
+        if (mob.getPathfindingMalus(PathType.DANGER_OTHER) < 0.0F) {
+            return current;
+        }
+        BlockPos pos = new BlockPos(x, y, z);
+        if (!level.hasChunkAt(pos)) {
+            return current;
+        }
+        if (checkPosHazard(level, pos, mob) != null
+                || findZoneHazard(level, new Vec3(x + 0.5D, y, z + 0.5D), 0.35D, mob) != null) {
+            return PathType.DANGER_OTHER;
+        }
+        return current;
     }
 
     private static @Nullable Vec3 findImmediateHazardForMob(PathfinderMob mob, ServerLevel level) {

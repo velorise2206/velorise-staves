@@ -214,7 +214,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bスカルクセンサー：§r 作動中、§e0.5s§r ごとに §e8m§r 以内の最近生物へ §d1.0U 雷§r を放つ。",
   "codex.velorise_staves.env.sculk.p2": "• §d調律スカルクセンサー：§r 過充電で §e16m 射程§r・§d2.0U 強雷§r を付与！",
   "codex.velorise_staves.env.redstone.title": "テスラコイル・避雷針・レッドストーン",
-  "codex.velorise_staves.env.redstone.p1": "• §6テスラコイル：§r §cレッドストーンブロック§r 上の §6避雷針§r が2秒毎に §d3–5 条の電弧§r（5m、§d0.5U 雷§r・0.5§f§r）を放ち §d超開花§r を起動；雨天・落雷(30秒)で §e全性能×2§r！",
+  "codex.velorise_staves.env.redstone.p1": "• §6テスラコイル：§r §cレッドストーンブロック§r 上の §6避雷針§r が2秒毎に §d3–5 条の電弧§r（2m、§d0.5U 雷§r・0.5§f§r）を放ち §d超開花§r を起動；雨天・落雷(30秒)で §e全性能×2§r！",
   "codex.velorise_staves.env.redstone.p2": "• §cオブザーバー・赤石：§r パルス・§cレッドストーンブロック§r・通電 §cワイヤー§r・点灯 §c鉱石§r が §d1.0U 雷§r を付与。",
   "codex.velorise_staves.env.amethyst.title": "アメジスト晶洞と爆破採掘",
   "codex.velorise_staves.env.amethyst.p1": "• §d雷放射線：§r §dアメジストブロック/塊§r に触れると §d1.0U 雷§r を付与（0.5§f§r/s）。",

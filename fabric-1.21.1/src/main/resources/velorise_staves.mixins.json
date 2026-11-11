@@ -9,7 +9,8 @@
     "AnvilMenuMixin",
     "MobAccessor",
     "CombatTrackerMixin",
-    "ExplosionMixin"
+    "ExplosionMixin",
+    "WalkNodeEvaluatorMixin"
   ],
   "client": [
     "LivingEntityRendererMixin",

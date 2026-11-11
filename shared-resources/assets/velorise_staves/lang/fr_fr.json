@@ -214,7 +214,7 @@
   "codex.velorise_staves.env.sculk.p1": "• §bCapteur Sculk :§r Actif, électrocute la créature la plus proche à §e8m§r (§d1.0U Électro§r / §e0.5s§r).",
   "codex.velorise_staves.env.sculk.p2": "• §dCapteur Calibré :§r Portée surchargée à §e16m§r avec §d2.0U Électro Fort§r !",
   "codex.velorise_staves.env.redstone.title": "Bobine Tesla, Paratonnerre & Redstone",
-  "codex.velorise_staves.env.redstone.p1": "• §6Bobine Tesla :§r §6Paratonnerre§r sur §cBloc Redstone§r lance §d3–5 arcs§r (5m, 2s, §d0.5U Électro§r, 0.5§f§r), activant §dExubérance§r. Pluie ou Foudre (30s) : §etout ×2§r !",
+  "codex.velorise_staves.env.redstone.p1": "• §6Bobine Tesla :§r §6Paratonnerre§r sur §cBloc Redstone§r lance §d3–5 arcs§r (2m, 2s, §d0.5U Électro§r, 0.5§f§r), activant §dExubérance§r. Pluie ou Foudre (30s) : §etout ×2§r !",
   "codex.velorise_staves.env.redstone.p2": "• §cObservateur & Redstone :§r Impulsion, §cBloc Redstone§r, §cFil§r & §cMinerai§r posent §d1.0U Électro§r.",
   "codex.velorise_staves.env.amethyst.title": "Géode d'Améthyste & Minage",
   "codex.velorise_staves.env.amethyst.p1": "• §dRadiation Électro :§r Toucher §dBlocs/Amas§r pose §d1.0U Électro§r (0.5§f§r/s).",
