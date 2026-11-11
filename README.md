@@ -10,6 +10,43 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ---
 
+## Showcase
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/vaporize.gif" alt="Vaporize Reaction" width="100%"/><br/>
+      <b>Vaporize</b> (Pyro + Hydro) — Ghastfire Staff in water
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/electro_charged.gif" alt="Electro-Charged Chain" width="100%"/><br/>
+      <b>Electro-Charged</b> (Hydro + Electro) — Chain shocks in water
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/bloom.gif" alt="Bloom Reaction" width="100%"/><br/>
+      <b>Bloom</b> (Hydro + Dendro) — Dendro Core spawn &amp; burst
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/hyperbloom.gif" alt="Hyperbloom Reaction" width="100%"/><br/>
+      <b>Hyperbloom</b> (Bloom + Electro) — Homing seed missiles
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/showcase/cryo_imbued_sword_freeze.gif" alt="Cryo Imbued Sword Freeze & Melt" width="100%"/><br/>
+      <b>Cryo-Imbued Sword</b> — Anvil infuse &amp; Freeze/Melt combo
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/showcase/sculk_sensor_electro.gif" alt="Sculk Sensor Electro" width="100%"/><br/>
+      <b>Sculk Sensor Hazard</b> — Sound trigger zaps nearby mobs
+    </td>
+  </tr>
+</table>
+
+---
+
 ## Features
 
 ### Combat Staves (13 Types + Netherite Upgrades)
