@@ -26,7 +26,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
 - **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Dendro/Nether): Discharges a 3-skull spread inflicting Wither decay and applying Dendro.
-- **Omni Staff** (![Omni][omni] Omni): Shapelessly crafted from any 1 staff of each of the 7 elements. Fires iridescent prism orbs (`5♥` / `2U` at `36m`, Netherite `7.5♥` / `3U` at `48m`) that automatically choose the highest-value reaction element in **Omni Mode**, or hold **`[Tab]`** to open the **8-slot Element Wheel** to lock onto any of the 7 elements.
+- **Omni Staff** (![Omni][omni] Omni): Fires prism crystal orbs that automatically trigger the strongest reaction element, or hold `[Tab]` to open the Element Wheel and lock onto any element.
 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns, and scale with the custom **Elemental Mastery I–III** enchantment.*
 
