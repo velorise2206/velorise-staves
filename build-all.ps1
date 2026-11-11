@@ -100,8 +100,14 @@ function Invoke-Build(
             Write-Host "Copied: $($jar.Name) -> $OutputDirectory" -ForegroundColor Green
         }
 
-        $tlauncherNeoForgeMods = "C:\Users\hunga\AppData\Roaming\.minecraft\versions\neoforge 1.21.1\mods"
-        if ($DisplayName -eq "NeoForge 1.21.1" -and (Test-Path $tlauncherNeoForgeMods)) {
+        $tlauncherNeoForgeMods = if (-not [string]::IsNullOrWhiteSpace($env:VELORISE_COPY_TO_MODS)) {
+            $env:VELORISE_COPY_TO_MODS
+        } elseif (-not [string]::IsNullOrWhiteSpace($env:APPDATA)) {
+            Join-Path $env:APPDATA ".minecraft\versions\neoforge 1.21.1\mods"
+        } else {
+            $null
+        }
+        if ($DisplayName -eq "NeoForge 1.21.1" -and $tlauncherNeoForgeMods -and (Test-Path $tlauncherNeoForgeMods)) {
             Get-ChildItem -Path $tlauncherNeoForgeMods -Filter "*velorise_staves*.jar" -File -ErrorAction SilentlyContinue | Remove-Item -Force
             foreach ($jar in $producedJars) {
                 Copy-Item -Path $jar.FullName -Destination $tlauncherNeoForgeMods -Force
