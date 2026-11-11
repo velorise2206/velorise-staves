@@ -168,7 +168,7 @@ public final class ArcaneStaffEvents {
         String baseKind = isNetherite ? kind.substring("netherite_".length()) : kind;
 
         if ("ghastfire".equals(baseKind)) {
-            resolveGhastfire(level, hit, owner, isNetherite);
+            resolveGhastfire(level, hit, owner, hitResult, isNetherite);
             projectile.discard();
             return true; // Cancel vanilla LargeFireball explosion to let EGT control damage
         }
@@ -226,6 +226,8 @@ public final class ArcaneStaffEvents {
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
+        } else if (hitResult instanceof BlockHitResult bhr) {
+            com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, isNetherite ? 2 : 1);
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
@@ -234,7 +236,7 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
 
-    private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
+    private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {
         double radius = isNetherite ? 4.5D : 3.5D;
         float baseDmg = isNetherite ? 9.0F : 6.0F;
         float attackU = isNetherite ? 4.0F : 2.0F;
@@ -245,6 +247,9 @@ public final class ArcaneStaffEvents {
                 target.igniteForSeconds(isNetherite ? 5 : 4);
             }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
+        }
+        if (affected.isEmpty() && hitResult instanceof BlockHitResult bhr) {
+            com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);

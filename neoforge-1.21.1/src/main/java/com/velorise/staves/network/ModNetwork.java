@@ -67,8 +67,20 @@ public final class ModNetwork {
             int durationTicks
     ) {
         if (target.level().isClientSide()) return;
-        AuraSyncPayload payload = new AuraSyncPayload(target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks, com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target));
-        PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
+        boolean hasPos = (reaction != null && reaction != ElementalReaction.NONE) || damage > 0.0F;
+        double px = target.getX();
+        double py = target.getY() + Math.max(0.65D, target.getBbHeight() * 0.65D);
+        double pz = target.getZ();
+        AuraSyncPayload payload = new AuraSyncPayload(
+                target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks,
+                com.velorise.staves.element.ElementalGaugeManager.isEntityFrozen(target),
+                hasPos, px, py, pz
+        );
+        if (hasPos && target.isRemoved() && target.level() instanceof net.minecraft.server.level.ServerLevel sl) {
+            PacketDistributor.sendToPlayersNear(sl, null, px, py, pz, 64.0D, payload);
+        } else {
+            PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
+        }
     }
 
     public static void sendAuraSyncToPlayer(ServerPlayer player, Entity target, Collection<Element> elements) {

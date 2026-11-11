@@ -21,7 +21,11 @@ public record AuraSyncPayload(
         byte triggerElementOrdinal,
         byte reactionOrdinal,
         float damage,
-        int durationTicks
+        int durationTicks,
+        boolean hasPos,
+        double posX,
+        double posY,
+        double posZ
 ) implements CustomPacketPayload {
     public static final Type<AuraSyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "aura_sync"));
 
@@ -34,17 +38,72 @@ public record AuraSyncPayload(
                 ByteBufCodecs.BYTE.encode(buf, payload.reactionOrdinal());
                 ByteBufCodecs.FLOAT.encode(buf, payload.damage());
                 ByteBufCodecs.VAR_INT.encode(buf, payload.durationTicks());
+                buf.writeBoolean(payload.hasPos());
+                if (payload.hasPos()) {
+                    buf.writeDouble(payload.posX());
+                    buf.writeDouble(payload.posY());
+                    buf.writeDouble(payload.posZ());
+                }
             },
-            buf -> new AuraSyncPayload(
-                    ByteBufCodecs.VAR_INT.decode(buf),
-                    ByteBufCodecs.BYTE.decode(buf),
-                    ByteBufCodecs.BYTE.decode(buf),
-                    ByteBufCodecs.BYTE.decode(buf),
-                    ByteBufCodecs.BYTE.decode(buf),
-                    ByteBufCodecs.FLOAT.decode(buf),
-                    ByteBufCodecs.VAR_INT.decode(buf)
-            )
+            buf -> {
+                int entityId = ByteBufCodecs.VAR_INT.decode(buf);
+                byte activeMask = ByteBufCodecs.BYTE.decode(buf);
+                byte reactedAuraOrdinal = ByteBufCodecs.BYTE.decode(buf);
+                byte triggerElementOrdinal = ByteBufCodecs.BYTE.decode(buf);
+                byte reactionOrdinal = ByteBufCodecs.BYTE.decode(buf);
+                float damage = ByteBufCodecs.FLOAT.decode(buf);
+                int durationTicks = ByteBufCodecs.VAR_INT.decode(buf);
+                boolean hasPos = buf.readBoolean();
+                double px = hasPos ? buf.readDouble() : 0.0D;
+                double py = hasPos ? buf.readDouble() : 0.0D;
+                double pz = hasPos ? buf.readDouble() : 0.0D;
+                return new AuraSyncPayload(
+                        entityId, activeMask, reactedAuraOrdinal, triggerElementOrdinal, reactionOrdinal,
+                        damage, durationTicks, hasPos, px, py, pz
+                );
+            }
     );
+
+    public AuraSyncPayload(
+            int entityId,
+            byte activeMask,
+            byte reactedAuraOrdinal,
+            byte triggerElementOrdinal,
+            byte reactionOrdinal,
+            float damage,
+            int durationTicks
+    ) {
+        this(entityId, activeMask, reactedAuraOrdinal, triggerElementOrdinal, reactionOrdinal, damage, durationTicks, false, 0.0D, 0.0D, 0.0D);
+    }
+
+    public AuraSyncPayload(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks,
+            boolean isFrozen,
+            boolean hasPos,
+            double posX,
+            double posY,
+            double posZ
+    ) {
+        this(
+                entityId,
+                (byte) (toMask(elements) | (isFrozen ? 0x80 : 0)),
+                reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
+                trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
+                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
+                damage,
+                durationTicks,
+                hasPos,
+                posX,
+                posY,
+                posZ
+        );
+    }
 
     public AuraSyncPayload(
             int entityId,
@@ -56,15 +115,7 @@ public record AuraSyncPayload(
             int durationTicks,
             boolean isFrozen
     ) {
-        this(
-                entityId,
-                (byte) (toMask(elements) | (isFrozen ? 0x80 : 0)),
-                reactedAura != null ? (byte) (reactedAura.ordinal() + 1) : 0,
-                trigger != null ? (byte) (trigger.ordinal() + 1) : 0,
-                reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0,
-                damage,
-                durationTicks
-        );
+        this(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, isFrozen, false, 0.0D, 0.0D, 0.0D);
     }
 
     public AuraSyncPayload(

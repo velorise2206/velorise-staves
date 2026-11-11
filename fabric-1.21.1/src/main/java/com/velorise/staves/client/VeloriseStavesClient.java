@@ -32,7 +32,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         ? ElementalReaction.values()[payload.reactionOrdinal() - 1] : null;
 
                 boolean isFrozen = (payload.activeMask() & 0x80) != 0;
-                ClientAuraTracker.update(payload.entityId(), elements, reactedAura, trigger, reaction, payload.damage(), payload.durationTicks(), isFrozen);
+                ClientAuraTracker.update(
+                        payload.entityId(), elements, reactedAura, trigger, reaction, payload.damage(), payload.durationTicks(), isFrozen,
+                        payload.hasPos(), payload.posX(), payload.posY(), payload.posZ()
+                );
             });
         });
 
@@ -49,10 +52,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             });
         });
 
-        // Register World Render for 3D Electric Arcs & Crystallize Shards
+        // Register World Render for 3D Electric Arcs, Crystallize Shards & Floating Combat Text
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> {
             ClientAuraRenderer.renderActiveElectricArcs(context.matrixStack(), context.consumers(), context.camera());
             ClientAuraRenderer.renderCrystallizeShards(context.matrixStack(), context.consumers(), context.camera());
+            ClientAuraRenderer.renderFloatingCombatTexts(context.matrixStack(), context.consumers(), context.camera());
         });
 
         // Register In-Game HUD overlay

@@ -54,7 +54,7 @@ public final class StavesConfig {
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue WIND_COOLDOWN = defineDouble("cooldowns", "wind_cooldown", 1.5D, 0.2D, 60.0D);
-    public static final DoubleValue OMNI_COOLDOWN = defineDouble("cooldowns", "omni_cooldown", 2.0D, 0.2D, 60.0D);
+    public static final DoubleValue OMNI_COOLDOWN = defineDouble("cooldowns", "omni_cooldown", 6.0D, 0.2D, 60.0D);
 
     // Durabilities
     public static final IntValue DRAGONFIRE_DURABILITY_BASIC = defineInt("durability", "dragonfire_basic", 130, 10, 5000);

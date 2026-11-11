@@ -416,6 +416,7 @@ public final class VeloriseStavesMod implements ModInitializer {
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_LOAD.register((entity, world) -> {
             if (entity instanceof net.minecraft.world.entity.LivingEntity living && !world.isClientSide()) {
                 ElementalGaugeManager.checkInnateMutation(living);
+                com.velorise.staves.element.MobHazardAvoidanceManager.attachGoalIfEligible(living);
             }
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
@@ -452,6 +453,9 @@ public final class VeloriseStavesMod implements ModInitializer {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(ELEMENTAL_CODEX));
             }
+        });
+        net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            ElementalGaugeManager.clearEntityState(handler.getPlayer());
         });
     }
 

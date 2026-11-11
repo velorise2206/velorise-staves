@@ -27,9 +27,12 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ContainerScreenEvent;
 import net.minecraftforge.client.event.MovementInputUpdateEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.event.RenderLivingEvent;
@@ -93,8 +96,30 @@ public final class ClientAuraRenderer {
     }
 
     private static boolean renderingScreen = false;
+    private static List<net.minecraft.network.chat.Component> pendingInventoryTooltip = null;
 
     private ClientAuraRenderer() {}
+
+    private static boolean isLocalOverloadedForHud() {
+        Minecraft mc = Minecraft.getInstance();
+        return ClientAuraTracker.localOverloaded
+                && !ElementalResonanceManager.isOverloadExempt(mc.player);
+    }
+
+    public static void clearPendingInventoryTooltip() {
+        pendingInventoryTooltip = null;
+    }
+
+    public static void renderPendingInventoryTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        List<net.minecraft.network.chat.Component> tip = pendingInventoryTooltip;
+        pendingInventoryTooltip = null;
+        if (tip != null && !tip.isEmpty()) {
+            Minecraft mc = Minecraft.getInstance();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.renderTooltip(mc.font, tip, Optional.empty(), mouseX, mouseY);
+        }
+    }
 
     @SubscribeEvent
     public static void onClientLogout(net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
@@ -102,6 +127,7 @@ public final class ClientAuraRenderer {
         FROZEN_RENDER_STATES.clear();
         hasFrozenCam = false;
         wasFrozenFirstPerson = false;
+        pendingInventoryTooltip = null;
         StavesConfig.clearServerSync();
         ElementalResonanceManager.clearClientState();
     }
@@ -109,6 +135,13 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         syncAndLockFrozenPlayer(false);
+        if (event.phase == TickEvent.Phase.END) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null && mc.player != null && mc.player.tickCount % 100 == 0) {
+                ClientAuraTracker.pruneStale(mc.level);
+                FROZEN_RENDER_STATES.entrySet().removeIf(e -> mc.level.getEntity(e.getKey()) == null || !ClientAuraTracker.isFrozen(e.getKey()));
+            }
+        }
     }
 
     @SubscribeEvent
@@ -204,15 +237,32 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onScreenRenderPre(ScreenEvent.Render.Pre event) {
         renderingScreen = true;
+        pendingInventoryTooltip = null;
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
+    @SubscribeEvent
+    public static void onContainerScreenRenderForeground(ContainerScreenEvent.Render.Foreground event) {
+        if (event.getContainerScreen() instanceof EffectRenderingInventoryScreen<?> screen && screen.canSeeEffects()) {
+            GuiGraphics guiGraphics = event.getGuiGraphics();
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(-screen.getGuiLeft(), -screen.getGuiTop(), 0.0F);
+            renderInventoryAura(guiGraphics, screen, screen.getGuiLeft(), screen.getGuiTop(), screen.getXSize(), event.getMouseX(), event.getMouseY());
+            guiGraphics.pose().popPose();
+            RenderSystem.enableDepthTest();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        }
     }
 
     @SubscribeEvent
     public static void onScreenRenderPost(ScreenEvent.Render.Post event) {
         renderingScreen = false;
         if (event.getScreen() instanceof EffectRenderingInventoryScreen<?> screen && screen.canSeeEffects()) {
-            renderInventoryAura(event.getGuiGraphics(), screen, screen.getGuiLeft(), screen.getGuiTop(), screen.getXSize(), event.getMouseX(), event.getMouseY());
+            renderPendingInventoryTooltip(event.getGuiGraphics(), event.getMouseX(), event.getMouseY());
+        } else {
+            pendingInventoryTooltip = null;
         }
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         event.getGuiGraphics().setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -359,14 +409,10 @@ public final class ClientAuraRenderer {
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen) return;
         boolean showIcons = true;
-        boolean showReactionText = true;
-        boolean showDamageNumbers = true;
         try {
             showIcons = StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get();
-            showReactionText = StavesConfig.SHOW_REACTION_TEXT.get();
-            showDamageNumbers = StavesConfig.SHOW_DAMAGE_NUMBERS.get();
         } catch (Exception ignored) {}
-        if (!showIcons && !showReactionText && !showDamageNumbers) return;
+        if (!showIcons) return;
 
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
 
@@ -434,10 +480,7 @@ public final class ClientAuraRenderer {
             display.add(0, innateElement);
         }
 
-        boolean hasReaction = showReactionText && data != null && data.reaction != null && now < data.reactionUntil;
-        boolean hasDamage = showDamageNumbers && data != null && data.damageUntil > now && data.lastDamage > 0.0F;
-
-        if ((!showIcons || (display.isEmpty() && !omniInnate)) && !hasReaction && !hasDamage) return;
+        if (display.isEmpty() && !omniInnate) return;
 
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
                 ? entity.getBbHeight() + 0.18D
@@ -445,179 +488,81 @@ public final class ClientAuraRenderer {
         float iconSize = 16.0F;
         float gap = 3.0F;
 
-        // Branch 1: Draw Overhead Element Icon(s) with Pop & Fade-out Animation
-        if (showIcons && (!display.isEmpty() || omniInnate)) {
-            poseStack.pushPose();
-            poseStack.translate(0.0D, height, 0.0D);
-            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+        // Draw Overhead Element Icon(s) with Pop & Fade-out Animation
+        poseStack.pushPose();
+        poseStack.translate(0.0D, height, 0.0D);
+        poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
 
-            float popScale = 1.0F;
-            int iconAlpha = 255;
+        float popScale = 1.0F;
+        int iconAlpha = 255;
 
-            if (inDualReaction && data != null) {
-                long dualAge = Math.max(0L, now - data.dualStartTime);
-                long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
-                float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
+        if (inDualReaction && data != null) {
+            long dualAge = Math.max(0L, now - data.dualStartTime);
+            long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
+            float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
 
-                // Scale pop in the first 4 ticks (~200ms)
-                if (dualAge < 200L) {
-                    float popPhase = (float) dualAge / 200.0F;
-                    popScale = 1.0F + 0.28F * (float) Math.sin(popPhase * Math.PI);
-                }
-                // Fade out smoothly if the underlying aura was consumed
-                if (data.elements.isEmpty() && innateElement == null && dualProgress > 0.55F) {
-                    float fade = (1.0F - dualProgress) / 0.45F;
-                    iconAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
-                }
+            // Scale pop in the first 4 ticks (~200ms)
+            if (dualAge < 200L) {
+                float popPhase = (float) dualAge / 200.0F;
+                popScale = 1.0F + 0.28F * (float) Math.sin(popPhase * Math.PI);
             }
-
-            // Genshin-style expiration flickering (pulsing when remaining time <= 3.0s):
-            if (data != null && data.expireTime > 0 && innateElement == null) {
-                long remainingMs = data.expireTime - now;
-                if (remainingMs <= 3000L && remainingMs > 0) {
-                    float pulse = (float) Math.sin((remainingMs / 140.0D) * Math.PI);
-                    if (pulse < 0.0F) {
-                        iconAlpha = Math.max(35, Math.round(iconAlpha * 0.25F));
-                    }
-                }
+            // Fade out smoothly if the underlying aura was consumed
+            if (data.elements.isEmpty() && innateElement == null && dualProgress > 0.55F) {
+                float fade = (1.0F - dualProgress) / 0.45F;
+                iconAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
             }
-
-            poseStack.scale(-0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
-
-            if (omniInnate) {
-                drawOmniIcon(poseStack, buffer, entity, -iconSize / 2.0F, -iconSize, iconSize, iconSize, 255);
-                if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                    bs.endBatch(RenderType.text(OMNI_TEXTURE));
-                }
-            } else {
-                int count = display.size();
-                float totalWidth = count * iconSize + (count - 1) * gap;
-                float startX = -totalWidth / 2.0F;
-
-                for (int i = 0; i < count; i++) {
-                    Element elem = display.get(i);
-                    int elemAlpha = iconAlpha;
-                    if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
-                        long dualAge = Math.max(0L, now - data.dualStartTime);
-                        long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
-                        float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
-                        if (dualProgress > 0.55F) {
-                            float fade = (1.0F - dualProgress) / 0.45F;
-                            elemAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
-                        }
-                    }
-                    drawIcon(poseStack, buffer, elem, startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, elemAlpha);
-                }
-
-                // Flush icon render types BEFORE popping icon PoseStack
-                if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                    for (Element e : display) {
-                        ResourceLocation tex = TEXTURES.get(e);
-                        if (tex != null) {
-                            bs.endBatch(RenderType.text(tex));
-                        }
-                    }
-                }
-            }
-
-            poseStack.popPose();
         }
 
-        // Branch 2: Floating Combat Feedback (Reaction Text & Damage Numbers - Genshin Style)
-        if (hasReaction || hasDamage) {
-            poseStack.pushPose();
-            // Centered at torso / combat height so combat text is always visible and never covered by overhead icons
-            double combatHeight = Math.max(0.65D, entity.getBbHeight() * 0.65D);
-            poseStack.translate(0.0D, combatHeight, 0.0D);
-            poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
-
-            float textPop = 1.0F;
-            long primaryAge = hasReaction ? (now - data.reactionStartTime) : (now - data.damageStartTime);
-            if (primaryAge < 250L && primaryAge >= 0L) {
-                textPop = 1.0F + 0.38F * (float) Math.sin((primaryAge / 250.0F) * Math.PI);
-            }
-            poseStack.scale(-0.030F * textPop, -0.030F * textPop, 0.030F * textPop);
-
-            Font font = mc.font;
-            Matrix4f matrix = poseStack.last().pose();
-
-            float reactY = 0.0F;
-            if (hasReaction) {
-                long reactionAge = Math.max(0L, now - data.reactionStartTime);
-                long reactionDuration = Math.max(1L, data.reactionUntil - data.reactionStartTime);
-                float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
-
-                reactY = -6.0F - (progress * 18.0F);
-                String reactionKey = data.reaction.translationKey();
-                String reactionLabel = reactionKey.isEmpty()
-                        ? data.reaction.reactionName()
-                        : net.minecraft.network.chat.Component.translatable(reactionKey).getString().toUpperCase(Locale.ROOT);
-                String text = "§l" + reactionLabel;
-                float textWidth = font.width(text);
-                float textX = -textWidth / 2.0F;
-
-                int baseColor = getReactionColor(data.reaction) & 0x00FFFFFF;
-                int alpha = 255;
-                if (progress > 0.7F) {
-                    alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
+        // Genshin-style expiration flickering (pulsing when remaining time <= 3.0s):
+        if (data != null && data.expireTime > 0 && innateElement == null) {
+            long remainingMs = data.expireTime - now;
+            if (remainingMs <= 3000L && remainingMs > 0) {
+                float pulse = (float) Math.sin((remainingMs / 140.0D) * Math.PI);
+                if (pulse < 0.0F) {
+                    iconAlpha = Math.max(35, Math.round(iconAlpha * 0.25F));
                 }
-                int fgColor = baseColor | (alpha << 24);
-                int seeThroughAlpha = Math.max(15, Math.round(alpha * 0.35F));
-                int seeThroughColor = baseColor | (seeThroughAlpha << 24);
-
-                // See-through pass
-                font.drawInBatch(
-                        text,
-                        textX,
-                        reactY,
-                        seeThroughColor,
-                        false,
-                        matrix,
-                        buffer,
-                        Font.DisplayMode.SEE_THROUGH,
-                        0,
-                        FULL_BRIGHT
-                );
-
-                // Foreground pass with dropShadow = true for crisp visibility against any terrain
-                font.drawInBatch(
-                        text,
-                        textX,
-                        reactY,
-                        fgColor,
-                        true,
-                        matrix,
-                        buffer,
-                        Font.DisplayMode.NORMAL,
-                        0,
-                        FULL_BRIGHT
-                );
             }
-
-            if (hasDamage) {
-                long dmgAge = Math.max(0L, now - data.damageStartTime);
-                long dmgDuration = Math.max(1L, data.damageUntil - data.damageStartTime);
-                float dmgProgress = Math.max(0.0F, Math.min(1.0F, (float) dmgAge / (float) dmgDuration));
-
-                float dmgY = hasReaction ? (reactY + 11.0F) : (-6.0F - (dmgProgress * 18.0F));
-                String dmgText = "§l" + (data.lastDamage % 1.0F == 0.0F ? String.valueOf((int) data.lastDamage) : String.format(Locale.ROOT, "%.1f", data.lastDamage));
-                float dmgWidth = font.width(dmgText);
-                float dmgX = -dmgWidth / 2.0F;
-
-                int dmgBaseColor = data.damageElement != null ? getElementTextColor(data.damageElement) : 0xFFFFFF;
-                int dmgAlpha = 255;
-                if (dmgProgress > 0.7F) {
-                    dmgAlpha = Math.max(15, Math.min(255, Math.round(((1.0F - dmgProgress) / 0.3F) * 255.0F)));
-                }
-                int dmgFg = (dmgBaseColor & 0x00FFFFFF) | (dmgAlpha << 24);
-                int dmgSeeThrough = (dmgBaseColor & 0x00FFFFFF) | (Math.max(15, Math.round(dmgAlpha * 0.35F)) << 24);
-
-                font.drawInBatch(dmgText, dmgX, dmgY, dmgSeeThrough, false, matrix, buffer, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
-                font.drawInBatch(dmgText, dmgX, dmgY, dmgFg, true, matrix, buffer, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
-            }
-
-            poseStack.popPose();
         }
+
+        poseStack.scale(-0.020F * popScale, -0.020F * popScale, 0.020F * popScale);
+
+        if (omniInnate) {
+            drawOmniIcon(poseStack, buffer, entity, -iconSize / 2.0F, -iconSize, iconSize, iconSize, 255);
+            if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                bs.endBatch(RenderType.text(OMNI_TEXTURE));
+            }
+        } else {
+            int count = display.size();
+            float totalWidth = count * iconSize + (count - 1) * gap;
+            float startX = -totalWidth / 2.0F;
+
+            for (int i = 0; i < count; i++) {
+                Element elem = display.get(i);
+                int elemAlpha = iconAlpha;
+                if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
+                    long dualAge = Math.max(0L, now - data.dualStartTime);
+                    long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
+                    float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
+                    if (dualProgress > 0.55F) {
+                        float fade = (1.0F - dualProgress) / 0.45F;
+                        elemAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
+                    }
+                }
+                drawIcon(poseStack, buffer, elem, startX + i * (iconSize + gap), -iconSize, iconSize, iconSize, elemAlpha);
+            }
+
+            // Flush icon render types BEFORE popping icon PoseStack
+            if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                for (Element e : display) {
+                    ResourceLocation tex = TEXTURES.get(e);
+                    if (tex != null) {
+                        bs.endBatch(RenderType.text(tex));
+                    }
+                }
+            }
+        }
+
+        poseStack.popPose();
     }
 
     private static void drawOmniIcon(PoseStack poseStack, MultiBufferSource buffer, LivingEntity entity, float x, float y, float width, float height, int alpha) {
@@ -792,6 +737,8 @@ public final class ClientAuraRenderer {
             }
 
             RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.disableDepthTest();
 
             // Vanilla 24x24 effect background (from inventory.png at u=141, v=166, solid background, never blinks)
             guiGraphics.blit(INVENTORY_LOCATION, x, y, 141, 166, 24, 24);
@@ -826,9 +773,18 @@ public final class ClientAuraRenderer {
     ) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
+        pendingInventoryTooltip = null;
 
-        renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
-        renderResonanceInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
+        List<net.minecraft.network.chat.Component> shieldTooltip =
+                renderCrystallizeShieldInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
+        if (shieldTooltip != null) {
+            pendingInventoryTooltip = shieldTooltip;
+        }
+        List<net.minecraft.network.chat.Component> resTooltip =
+                renderResonanceInventory(guiGraphics, mc, leftPos, topPos, imageWidth, screen, mouseX, mouseY);
+        if (pendingInventoryTooltip == null && resTooltip != null) {
+            pendingInventoryTooltip = resTooltip;
+        }
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -853,10 +809,11 @@ public final class ClientAuraRenderer {
         int availableWidth = screen.width - startX;
         if (availableWidth < 32) return;
 
-        // Flush any pending screen elements (such as hovered slot tooltip) to prevent shader color bleed
+        // Flush any pending screen elements to prevent shader color bleed
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.disableDepthTest();
 
         int vanillaCount = 0;
         boolean shieldFoundInVanilla = false;
@@ -877,6 +834,7 @@ public final class ClientAuraRenderer {
             yStep = Math.max(1, 132 / (totalEffects - 1));
         }
 
+        List<net.minecraft.network.chat.Component> pendingTooltip = null;
         int index = 0;
         for (Element elem : data.elements) {
             int y = topPos + (vanillaCount + customShieldSlot + index) * yStep;
@@ -887,6 +845,7 @@ public final class ClientAuraRenderer {
             }
 
             RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
 
             String durationStr;
             if (data.expireTime < 0) {
@@ -900,13 +859,17 @@ public final class ClientAuraRenderer {
 
             ResourceLocation tex = HUD_TEXTURES.get(elem);
 
-            // Compact Mode (32x32 square) to avoid overlapping with JEI
-            guiGraphics.blit(INVENTORY_LOCATION, startX, y, 141, 166, 32, 32);
+            // Compact Mode (32x32 square) at (u=0, v=198) in 1.20.1 inventory.png to avoid overlapping with JEI
+            guiGraphics.blit(INVENTORY_LOCATION, startX, y, 0, 198, 32, 32);
+            guiGraphics.flush();
             if (tex != null) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
                 if (alpha < 1.0F) {
                     guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
                 }
                 guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+                guiGraphics.flush();
                 if (alpha < 1.0F) {
                     guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
                     RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -921,7 +884,7 @@ public final class ClientAuraRenderer {
                 if (!durationStr.isEmpty()) {
                     tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
                 }
-                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                pendingTooltip = tooltip;
             }
 
             index++;
@@ -929,6 +892,10 @@ public final class ClientAuraRenderer {
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableDepthTest();
+        if (pendingInventoryTooltip == null && pendingTooltip != null) {
+            pendingInventoryTooltip = pendingTooltip;
+        }
     }
 
     public static List<Rect2i> getInventoryExtraAreas(EffectRenderingInventoryScreen<?> screen) {
@@ -1030,16 +997,17 @@ public final class ClientAuraRenderer {
 
     public static void renderCrystallizeShieldHudFrame(GuiGraphics guiGraphics, int x, int y, int color) {
         // Inner gray border of 24x24 HUD box (leaves 1px outer black border intact!)
-        guiGraphics.fill(x + 2, y + 1, x + 22, y + 2, color);
-        guiGraphics.fill(x + 1, y + 2, x + 3, y + 3, color);
-        guiGraphics.fill(x + 21, y + 2, x + 23, y + 3, color);
+        RenderType overlay = RenderType.guiOverlay();
+        guiGraphics.fill(overlay, x + 2, y + 1, x + 22, y + 2, color);
+        guiGraphics.fill(overlay, x + 1, y + 2, x + 3, y + 3, color);
+        guiGraphics.fill(overlay, x + 21, y + 2, x + 23, y + 3, color);
 
-        guiGraphics.fill(x + 1, y + 3, x + 2, y + 21, color);
-        guiGraphics.fill(x + 22, y + 3, x + 23, y + 21, color);
+        guiGraphics.fill(overlay, x + 1, y + 3, x + 2, y + 21, color);
+        guiGraphics.fill(overlay, x + 22, y + 3, x + 23, y + 21, color);
 
-        guiGraphics.fill(x + 1, y + 21, x + 3, y + 22, color);
-        guiGraphics.fill(x + 21, y + 21, x + 23, y + 22, color);
-        guiGraphics.fill(x + 2, y + 22, x + 22, y + 23, color);
+        guiGraphics.fill(overlay, x + 1, y + 21, x + 3, y + 22, color);
+        guiGraphics.fill(overlay, x + 21, y + 21, x + 23, y + 22, color);
+        guiGraphics.fill(overlay, x + 2, y + 22, x + 22, y + 23, color);
     }
 
     public static void renderCrystallizeShieldInventoryFrame(GuiGraphics guiGraphics, int x, int y, int color) {
@@ -1155,6 +1123,8 @@ public final class ClientAuraRenderer {
         }
 
         RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
 
         if (!found) {
             guiGraphics.blit(INVENTORY_LOCATION, x, y, 141, 166, 24, 24);
@@ -1170,9 +1140,10 @@ public final class ClientAuraRenderer {
                 }
             }
         }
+        RenderSystem.enableDepthTest();
     }
 
-    private static void renderCrystallizeShieldInventory(
+    private static List<net.minecraft.network.chat.Component> renderCrystallizeShieldInventory(
             GuiGraphics guiGraphics,
             Minecraft mc,
             int leftPos,
@@ -1182,16 +1153,16 @@ public final class ClientAuraRenderer {
             int mouseX,
             int mouseY
     ) {
-        if (mc.player == null) return;
+        if (mc.player == null) return null;
         Element shield = ClientAuraTracker.getActiveCrystallizeShield();
         if (shield == null) {
             shield = ModMobEffects.getActiveShield(mc.player);
         }
-        if (shield == null) return;
+        if (shield == null) return null;
 
         int startX = leftPos + imageWidth + 2;
         int availableWidth = screen.width - startX;
-        if (availableWidth < 32) return;
+        if (availableWidth < 32) return null;
 
         int vanillaCount = 0;
         int effectIndex = 0;
@@ -1219,11 +1190,19 @@ public final class ClientAuraRenderer {
 
         int y = topPos + effectIndex * yStep;
         if (!found) {
-            guiGraphics.blit(INVENTORY_LOCATION, startX, y, 141, 166, 32, 32);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.disableDepthTest();
+            guiGraphics.blit(INVENTORY_LOCATION, startX, y, 0, 198, 32, 32);
+            guiGraphics.flush();
             ResourceLocation shieldTex = SHIELD_TEXTURES.get(shield);
             if (shieldTex != null) {
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
                 guiGraphics.blit(shieldTex, startX + 7, y + 7, 0.0F, 0.0F, 18, 18, 18, 18);
+                guiGraphics.flush();
             }
+            RenderSystem.enableDepthTest();
 
             if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
                 long remSec = Math.max(0, (ClientAuraTracker.crystallizeShieldUntil - now) / 1000L);
@@ -1232,13 +1211,14 @@ public final class ClientAuraRenderer {
                 List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
                 tooltip.add(net.minecraft.network.chat.Component.translatable(key).withStyle(shield.color()));
                 tooltip.add(net.minecraft.network.chat.Component.literal(durationStr).withStyle(net.minecraft.ChatFormatting.GRAY));
-                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                return tooltip;
             }
         }
+        return null;
     }
 
     private static List<ElementalResonanceManager.ResonanceType> getActiveResonancesForHud() {
-        if (!StavesConfig.isElementalResonanceEnabled() || ClientAuraTracker.localOverloaded) {
+        if (!StavesConfig.isElementalResonanceEnabled() || isLocalOverloadedForHud()) {
             return Collections.emptyList();
         }
         List<ElementalResonanceManager.ResonanceType> list = new ArrayList<>(2);
@@ -1252,7 +1232,7 @@ public final class ClientAuraRenderer {
 
     private static int getResonanceHudSlotCount() {
         if (!StavesConfig.isElementalResonanceEnabled()) return 0;
-        if (ClientAuraTracker.localOverloaded) return 1;
+        if (isLocalOverloadedForHud()) return 1;
         return getActiveResonancesForHud().size();
     }
 
@@ -1265,16 +1245,20 @@ public final class ClientAuraRenderer {
     }
 
     private static void drawHudEffectBox(GuiGraphics guiGraphics, int x, int y) {
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         guiGraphics.blit(INVENTORY_LOCATION, x, y, 141, 166, 24, 24);
     }
 
     private static void drawInventoryEffectBox(GuiGraphics guiGraphics, int startX, int y) {
-        guiGraphics.blit(INVENTORY_LOCATION, startX, y, 141, 166, 32, 32);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        guiGraphics.blit(INVENTORY_LOCATION, startX, y, 0, 198, 32, 32);
     }
 
     private static void renderResonanceHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null || !StavesConfig.isElementalResonanceEnabled()) return;
-        boolean overloaded = ClientAuraTracker.localOverloaded;
+        boolean overloaded = isLocalOverloadedForHud();
         List<ElementalResonanceManager.ResonanceType> resonances = overloaded ? Collections.emptyList() : getActiveResonancesForHud();
         if (!overloaded && resonances.isEmpty()) return;
 
@@ -1302,6 +1286,8 @@ public final class ClientAuraRenderer {
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
 
         if (overloaded) {
             int col = beneficialStart % 10;
@@ -1310,6 +1296,8 @@ public final class ClientAuraRenderer {
             int y = top + 26 * row;
             drawHudEffectBox(guiGraphics, x, y);
             renderCrystallizeShieldHudFrame(guiGraphics, x, y, 0xFFFF3333);
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
             guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
             guiGraphics.blit(OMNI_TEXTURE, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
@@ -1327,6 +1315,8 @@ public final class ClientAuraRenderer {
                 renderCrystallizeShieldHudFrame(guiGraphics, x, y, getResonanceBorderColor(type));
                 ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
                 if (tex != null) {
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
                     guiGraphics.blit(tex, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
             }
@@ -1336,7 +1326,7 @@ public final class ClientAuraRenderer {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    private static void renderResonanceInventory(
+    private static List<net.minecraft.network.chat.Component> renderResonanceInventory(
             GuiGraphics guiGraphics,
             Minecraft mc,
             int leftPos,
@@ -1346,14 +1336,14 @@ public final class ClientAuraRenderer {
             int mouseX,
             int mouseY
     ) {
-        if (mc.player == null || !StavesConfig.isElementalResonanceEnabled()) return;
-        boolean overloaded = ClientAuraTracker.localOverloaded;
+        if (mc.player == null || !StavesConfig.isElementalResonanceEnabled()) return null;
+        boolean overloaded = isLocalOverloadedForHud();
         List<ElementalResonanceManager.ResonanceType> resonances = overloaded ? Collections.emptyList() : getActiveResonancesForHud();
-        if (!overloaded && resonances.isEmpty()) return;
+        if (!overloaded && resonances.isEmpty()) return null;
 
         int startX = leftPos + imageWidth + 2;
         int availableWidth = screen.width - startX;
-        if (availableWidth < 32) return;
+        if (availableWidth < 32) return null;
 
         int vanillaCount = 0;
         boolean shieldFoundInVanilla = false;
@@ -1386,16 +1376,22 @@ public final class ClientAuraRenderer {
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
 
+        List<net.minecraft.network.chat.Component> pendingTooltip = null;
         if (overloaded) {
             int y = topPos + baseIndex * yStep;
             drawInventoryEffectBox(guiGraphics, startX, y);
             renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, 0xFFFF3333);
+            guiGraphics.flush();
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
             guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
             guiGraphics.blit(OMNI_TEXTURE, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-            guiGraphics.drawString(mc.font, "!", startX + 23, y + 20, 0xFFFF4444, true);
+            guiGraphics.drawString(mc.font, "!", startX + 24, y + 20, 0xFFFF4444, true);
 
             if (mouseX >= startX && mouseX <= startX + 32 && mouseY >= y && mouseY <= y + 32) {
                 List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
@@ -1406,7 +1402,7 @@ public final class ClientAuraRenderer {
                 tooltip.add(net.minecraft.network.chat.Component.translatable(
                         "hud.velorise_staves.overload_hint",
                         StavesConfig.getMaxStavesInInventory()).withStyle(net.minecraft.ChatFormatting.GRAY));
-                guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                pendingTooltip = tooltip;
             }
         } else {
             for (int i = 0; i < resonances.size(); i++) {
@@ -1414,8 +1410,11 @@ public final class ClientAuraRenderer {
                 int y = topPos + (baseIndex + i) * yStep;
                 drawInventoryEffectBox(guiGraphics, startX, y);
                 renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getResonanceBorderColor(type));
+                guiGraphics.flush();
                 ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
                 if (tex != null) {
+                    RenderSystem.enableBlend();
+                    RenderSystem.defaultBlendFunc();
                     guiGraphics.blit(tex, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
@@ -1425,20 +1424,134 @@ public final class ClientAuraRenderer {
                     tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey()).withStyle(color));
                     tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey() + ".desc")
                             .withStyle(net.minecraft.ChatFormatting.GRAY));
-                    guiGraphics.renderTooltip(mc.font, tooltip, Optional.empty(), mouseX, mouseY);
+                    pendingTooltip = tooltip;
                 }
             }
         }
         guiGraphics.flush();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.enableDepthTest();
+        return pendingTooltip;
     }
 
     @SubscribeEvent
     public static void onRenderLevelStage(net.minecraftforge.client.event.RenderLevelStageEvent event) {
         if (event.getStage() == net.minecraftforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
-            renderActiveElectricArcs(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera());
-            renderCrystallizeShards(event.getPoseStack(), Minecraft.getInstance().renderBuffers().bufferSource(), event.getCamera());
+            MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+            renderActiveElectricArcs(event.getPoseStack(), bufferSource, event.getCamera());
+            renderCrystallizeShards(event.getPoseStack(), bufferSource, event.getCamera());
+            renderFloatingCombatTexts(event.getPoseStack(), bufferSource, event.getCamera());
+        }
+    }
+
+    public static void renderFloatingCombatTexts(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
+        if (poseStack == null || bufferSource == null || camera == null) return;
+        if (ClientAuraTracker.FLOATING_TEXTS.isEmpty()) return;
+        boolean showReactionText = true;
+        boolean showDamageNumbers = true;
+        try {
+            showReactionText = StavesConfig.SHOW_REACTION_TEXT.get();
+            showDamageNumbers = StavesConfig.SHOW_DAMAGE_NUMBERS.get();
+        } catch (Exception ignored) {}
+        if (!showReactionText && !showDamageNumbers) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+
+        long now = System.currentTimeMillis();
+        ClientAuraTracker.FLOATING_TEXTS.removeIf(t -> now >= t.until);
+        if (ClientAuraTracker.FLOATING_TEXTS.isEmpty()) return;
+
+        Vec3 camPos = camera.getPosition();
+        Vec3 eyePos = mc.player.getEyePosition(1.0F);
+        Font font = mc.font;
+        var camRot = mc.getEntityRenderDispatcher().cameraOrientation();
+
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        for (int pass = 0; pass < 2; pass++) {
+            boolean seeThroughPass = (pass == 0);
+            for (ClientAuraTracker.FloatingCombatText entry : ClientAuraTracker.FLOATING_TEXTS) {
+                double distSqr = camPos.distanceToSqr(entry.worldX, entry.worldY, entry.worldZ);
+                if (distSqr > 64.0D * 64.0D) continue;
+
+                boolean hasReaction = showReactionText && entry.reaction != null && now < entry.reactionUntil;
+                boolean hasDamage = showDamageNumbers && entry.damage > 0.0F && now < entry.damageUntil;
+                if (!hasReaction && !hasDamage) continue;
+
+                if (seeThroughPass) {
+                    Vec3 textPos = new Vec3(entry.worldX, entry.worldY, entry.worldZ);
+                    if (distSqr > 9.0D && mc.level.clip(new ClipContext(eyePos, textPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player)).getType() != HitResult.Type.MISS) {
+                        continue;
+                    }
+                }
+
+                poseStack.pushPose();
+                poseStack.translate(entry.worldX - camPos.x, entry.worldY - camPos.y, entry.worldZ - camPos.z);
+                poseStack.mulPose(camRot);
+
+                float textPop = 1.0F;
+                long primaryAge = Math.max(0L, now - entry.startTime);
+                if (primaryAge < 250L) {
+                    textPop = 1.0F + 0.38F * (float) Math.sin((primaryAge / 250.0F) * Math.PI);
+                }
+                poseStack.scale(-0.030F * textPop, -0.030F * textPop, 0.030F * textPop);
+                Matrix4f matrix = poseStack.last().pose();
+
+                float reactY = 0.0F;
+                if (hasReaction) {
+                    long reactionAge = Math.max(0L, now - entry.startTime);
+                    long reactionDuration = Math.max(1L, entry.reactionUntil - entry.startTime);
+                    float progress = Math.max(0.0F, Math.min(1.0F, (float) reactionAge / (float) reactionDuration));
+
+                    reactY = -6.0F - (progress * 18.0F);
+                    String reactionKey = entry.reaction.translationKey();
+                    String reactionLabel = reactionKey.isEmpty()
+                            ? entry.reaction.reactionName()
+                            : net.minecraft.network.chat.Component.translatable(reactionKey).getString().toUpperCase(Locale.ROOT);
+                    String text = "§l" + reactionLabel;
+                    float textX = -font.width(text) / 2.0F;
+
+                    int baseColor = getReactionColor(entry.reaction) & 0x00FFFFFF;
+                    int alpha = 255;
+                    if (progress > 0.7F) {
+                        alpha = Math.max(15, Math.min(255, Math.round(((1.0F - progress) / 0.3F) * 255.0F)));
+                    }
+                    if (seeThroughPass) {
+                        int seeThroughAlpha = Math.max(15, Math.round(alpha * 0.35F));
+                        font.drawInBatch(text, textX, reactY, baseColor | (seeThroughAlpha << 24), false, matrix, bufferSource, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
+                    } else {
+                        font.drawInBatch(text, textX, reactY, baseColor | (alpha << 24), true, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
+                    }
+                }
+
+                if (hasDamage) {
+                    long dmgAge = Math.max(0L, now - entry.startTime);
+                    long dmgDuration = Math.max(1L, entry.damageUntil - entry.startTime);
+                    float dmgProgress = Math.max(0.0F, Math.min(1.0F, (float) dmgAge / (float) dmgDuration));
+
+                    float dmgY = hasReaction ? (reactY + 11.0F) : (-6.0F - (dmgProgress * 18.0F));
+                    String dmgText = "§l" + (entry.damage % 1.0F == 0.0F ? String.valueOf((int) entry.damage) : String.format(Locale.ROOT, "%.1f", entry.damage));
+                    float dmgX = -font.width(dmgText) / 2.0F;
+
+                    int dmgBaseColor = entry.damageElement != null ? getElementTextColor(entry.damageElement) : 0xFFFFFF;
+                    int dmgAlpha = 255;
+                    if (dmgProgress > 0.7F) {
+                        dmgAlpha = Math.max(15, Math.min(255, Math.round(((1.0F - dmgProgress) / 0.3F) * 255.0F)));
+                    }
+                    if (seeThroughPass) {
+                        int seeThroughAlpha = Math.max(15, Math.round(dmgAlpha * 0.35F));
+                        font.drawInBatch(dmgText, dmgX, dmgY, (dmgBaseColor & 0x00FFFFFF) | (seeThroughAlpha << 24), false, matrix, bufferSource, Font.DisplayMode.SEE_THROUGH, 0, FULL_BRIGHT);
+                    } else {
+                        font.drawInBatch(dmgText, dmgX, dmgY, (dmgBaseColor & 0x00FFFFFF) | (dmgAlpha << 24), true, matrix, bufferSource, Font.DisplayMode.NORMAL, 0, FULL_BRIGHT);
+                    }
+                }
+
+                poseStack.popPose();
+            }
+            if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
+                bs.endBatch();
+            }
         }
     }
 
@@ -1620,17 +1733,24 @@ public final class ClientAuraRenderer {
             double cy = item.getY() + 0.38D + bob;
             double cz = item.getZ();
 
+            double dx = camPos.x - cx;
+            double dy = camPos.y - cy;
+            double dz = camPos.z - cz;
+            double dLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            float vx = dLen > 1.0E-4D ? (float) (dx / dLen) : 0.0F;
+            float vy = dLen > 1.0E-4D ? (float) (dy / dLen) : 0.0F;
+            float vz = dLen > 1.0E-4D ? (float) (dz / dLen) : 1.0F;
+
             poseStack.pushPose();
             poseStack.translate(cx - camPos.x, cy - camPos.y, cz - camPos.z);
 
-            // 1. Perfect Translucent 3D Spherical Shell (Genshin Impact style)
-            renderUvSphere(consumer, poseStack.last().pose(), 0.32F, 18, 28, r, g, b, 45);
-            renderUvSphere(consumer, poseStack.last().pose(), 0.25F, 14, 22, hr, hg, hb, 28);
+            // 1. Soft Fresnel Translucent 3D Spherical Aura (smooth limb falloff, clear center)
+            renderSmoothAuraSphere(consumer, poseStack.last().pose(), vx, vy, vz, 0.34F, 24, 36, r, g, b, hr, hg, hb);
 
-            // 2. Central Spinning Faceted Crystal Core
+            // 2. Central Smooth Spinning Crystal Gem Core (contoured like Dendro Core)
             poseStack.pushPose();
             poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 2.2F)));
-            renderOctahedronCrystal(consumer, poseStack.last().pose(), 0.15F, 0.08F, r, g, b, hr, hg, hb);
+            renderSmoothCrystalCore(consumer, poseStack.last().pose(), 0.16F, 0.095F, r, g, b, hr, hg, hb);
             poseStack.popPose();
 
             poseStack.popPose();
@@ -1641,162 +1761,217 @@ public final class ClientAuraRenderer {
         }
     }
 
-    private static void renderUvSphere(
+    private static void renderSmoothAuraSphere(
             VertexConsumer consumer, Matrix4f matrix,
+            float vx, float vy, float vz,
             float radius, int latBands, int lonSegs,
-            int r, int g, int b, int alpha
+            int r, int g, int b,
+            int hr, int hg, int hb
     ) {
+        // Outer Fresnel halo sphere
+        renderFresnelSpherePass(consumer, matrix, vx, vy, vz, radius, latBands, lonSegs, r, g, b, hr, hg, hb, false);
+        // Inner soft core mist sphere
+        renderFresnelSpherePass(consumer, matrix, vx, vy, vz, radius * 0.72F, 16, 24, hr, hg, hb, 255, 255, 255, true);
+    }
+
+    private static void renderFresnelSpherePass(
+            VertexConsumer consumer, Matrix4f matrix,
+            float vx, float vy, float vz,
+            float radius, int latBands, int lonSegs,
+            int r, int g, int b,
+            int hr, int hg, int hb,
+            boolean innerMist
+    ) {
+        int rows = latBands + 1;
+        int cols = lonSegs + 1;
+        float[] px = new float[rows * cols];
+        float[] py = new float[rows * cols];
+        float[] pz = new float[rows * cols];
+        int[] cr = new int[rows * cols];
+        int[] cg = new int[rows * cols];
+        int[] cb = new int[rows * cols];
+        int[] ca = new int[rows * cols];
+
+        for (int i = 0; i <= latBands; i++) {
+            double phi = -Math.PI * 0.5D + Math.PI * (double) i / (double) latBands;
+            float sinPhi = (float) Math.sin(phi);
+            float cosPhi = (float) Math.cos(phi);
+            for (int j = 0; j <= lonSegs; j++) {
+                double theta = 2.0D * Math.PI * (double) j / (double) lonSegs;
+                float nx = cosPhi * (float) Math.cos(theta);
+                float ny = sinPhi;
+                float nz = cosPhi * (float) Math.sin(theta);
+
+                int idx = i * cols + j;
+                px[idx] = radius * nx;
+                py[idx] = radius * ny;
+                pz[idx] = radius * nz;
+
+                float ndotv = Math.abs(nx * vx + ny * vy + nz * vz);
+                float edgeFeather = Math.min(1.0F, ndotv * 3.4F);
+                if (innerMist) {
+                    float haze = 0.70F * (float) Math.pow(ndotv, 1.1D) + 0.30F * edgeFeather;
+                    cr[idx] = r;
+                    cg[idx] = g;
+                    cb[idx] = b;
+                    ca[idx] = clampColor((int) (22.0F * haze));
+                } else {
+                    float fresnel = (float) Math.pow(1.0F - ndotv * 0.72F, 1.35D) * edgeFeather;
+                    float rimT = 1.0F - ndotv;
+                    cr[idx] = clampColor((int) (r + (hr - r) * rimT * 0.45F));
+                    cg[idx] = clampColor((int) (g + (hg - g) * rimT * 0.45F));
+                    cb[idx] = clampColor((int) (b + (hb - b) * rimT * 0.45F));
+                    ca[idx] = clampColor((int) (54.0F * fresnel));
+                }
+            }
+        }
+
         for (int i = 0; i < latBands; i++) {
-            double phi1 = -Math.PI / 2.0D + Math.PI * (double) i / (double) latBands;
-            double phi2 = -Math.PI / 2.0D + Math.PI * (double) (i + 1) / (double) latBands;
-
-            float y1 = (float) (radius * Math.sin(phi1));
-            float r1 = (float) (radius * Math.cos(phi1));
-            float y2 = (float) (radius * Math.sin(phi2));
-            float r2 = (float) (radius * Math.cos(phi2));
-
             for (int j = 0; j < lonSegs; j++) {
-                double theta1 = 2.0D * Math.PI * (double) j / (double) lonSegs;
-                double theta2 = 2.0D * Math.PI * (double) (j + 1) / (double) lonSegs;
-
-                float x11 = (float) (r1 * Math.cos(theta1));
-                float z11 = (float) (r1 * Math.sin(theta1));
-
-                float x21 = (float) (r2 * Math.cos(theta1));
-                float z21 = (float) (r2 * Math.sin(theta1));
-
-                float x22 = (float) (r2 * Math.cos(theta2));
-                float z22 = (float) (r2 * Math.sin(theta2));
-
-                float x12 = (float) (r1 * Math.cos(theta2));
-                float z12 = (float) (r1 * Math.sin(theta2));
-
-                drawQuadBothSides(consumer, matrix,
-                        x11, y1, z11,
-                        x21, y2, z21,
-                        x22, y2, z22,
-                        x12, y1, z12,
-                        r, g, b, alpha);
+                int i00 = i * cols + j;
+                int i10 = (i + 1) * cols + j;
+                int i11 = (i + 1) * cols + (j + 1);
+                int i01 = i * cols + (j + 1);
+                emitCrystalQuad(consumer, matrix,
+                        px[i00], py[i00], pz[i00], cr[i00], cg[i00], cb[i00], ca[i00],
+                        px[i10], py[i10], pz[i10], cr[i10], cg[i10], cb[i10], ca[i10],
+                        px[i11], py[i11], pz[i11], cr[i11], cg[i11], cb[i11], ca[i11],
+                        px[i01], py[i01], pz[i01], cr[i01], cg[i01], cb[i01], ca[i01]);
             }
         }
     }
 
-    private static void renderOctahedronCrystal(
+    private static void renderSmoothCrystalCore(
             VertexConsumer consumer, Matrix4f matrix,
             float halfH, float eqRadius,
             int r, int g, int b,
             int hr, int hg, int hb
     ) {
-        int sides = 8;
-        float[] ex = new float[sides];
-        float[] ez = new float[sides];
-        for (int i = 0; i < sides; i++) {
-            double a = 2.0D * Math.PI * (double) i / (double) sides;
-            ex[i] = (float) (eqRadius * Math.cos(a));
-            ez[i] = (float) (eqRadius * Math.sin(a));
+        renderCrystalSpindle(consumer, matrix, halfH, eqRadius, 18, 28, r, g, b, hr, hg, hb, 232);
+        renderCrystalSpindle(consumer, matrix, halfH * 0.56F, eqRadius * 0.52F, 10, 16, hr, hg, hb, 255, 255, 255, 195);
+    }
+
+    private static void renderCrystalSpindle(
+            VertexConsumer consumer, Matrix4f matrix,
+            float halfH, float eqRadius, int latBands, int lonSegs,
+            int r, int g, int b,
+            int hr, int hg, int hb,
+            int baseAlpha
+    ) {
+        int rows = latBands + 1;
+        int cols = lonSegs + 1;
+        float[] px = new float[rows * cols];
+        float[] py = new float[rows * cols];
+        float[] pz = new float[rows * cols];
+        int[] cr = new int[rows * cols];
+        int[] cg = new int[rows * cols];
+        int[] cb = new int[rows * cols];
+        int[] ca = new int[rows * cols];
+
+        for (int i = 0; i <= latBands; i++) {
+            double alphaV = -Math.PI * 0.5D + Math.PI * (double) i / (double) latBands;
+            double u = Math.sin(alphaV);
+            double cosAlpha = Math.cos(alphaV);
+            double ringBase = Math.pow(Math.max(0.0D, cosAlpha), 0.85D);
+            float y = (float) (halfH * u);
+
+            for (int j = 0; j <= lonSegs; j++) {
+                double theta = 2.0D * Math.PI * (double) j / (double) lonSegs;
+                double flute = 1.0D + 0.08D * Math.cos(4.0D * theta) * (1.0D - u * u);
+                double rad = eqRadius * ringBase * flute;
+                int idx = i * cols + j;
+                px[idx] = (float) (rad * Math.cos(theta));
+                py[idx] = y;
+                pz[idx] = (float) (rad * Math.sin(theta));
+            }
         }
 
-        float lx = 0.408F, ly = 0.816F, lz = 0.408F;
+        final float lx = 0.36F, ly = 0.82F, lz = 0.44F;
+        for (int i = 0; i <= latBands; i++) {
+            int iPrev = Math.max(0, i - 1);
+            int iNext = Math.min(latBands, i + 1);
+            for (int j = 0; j <= lonSegs; j++) {
+                int jPrev = (j - 1 + lonSegs) % lonSegs;
+                int jNext = (j + 1) % lonSegs;
 
-        for (int i = 0; i < sides; i++) {
-            int next = (i + 1) % sides;
+                float nx, ny, nz;
+                if (i == 0) {
+                    nx = 0.0F; ny = -1.0F; nz = 0.0F;
+                } else if (i == latBands) {
+                    nx = 0.0F; ny = 1.0F; nz = 0.0F;
+                } else {
+                    int idxPhiA = iPrev * cols + j;
+                    int idxPhiB = iNext * cols + j;
+                    int idxThA = i * cols + jPrev;
+                    int idxThB = i * cols + jNext;
 
-            // Upper Pyramid Facet
-            float ux = ex[i], uy = -halfH, uz = ez[i];
-            float vx = ex[next], vy = -halfH, vz = ez[next];
-            float nx = uy * vz - uz * vy;
-            float ny = uz * vx - ux * vz;
-            float nz = ux * vy - uy * vx;
-            float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
-            if (len > 1e-4F) { nx /= len; ny /= len; nz /= len; }
+                    float tpx = px[idxPhiB] - px[idxPhiA];
+                    float tpy = py[idxPhiB] - py[idxPhiA];
+                    float tpz = pz[idxPhiB] - pz[idxPhiA];
 
-            float dot = Math.max(0.0F, nx * lx + ny * ly + nz * lz);
-            float shade = 0.60F + 0.40F * dot;
+                    float ttx = px[idxThB] - px[idxThA];
+                    float tty = py[idxThB] - py[idxThA];
+                    float ttz = pz[idxThB] - pz[idxThA];
 
-            int fr = Math.min(255, (int) (r * shade));
-            int fg = Math.min(255, (int) (g * shade));
-            int fb = Math.min(255, (int) (b * shade));
+                    nx = tpy * ttz - tpz * tty;
+                    ny = tpz * ttx - tpx * ttz;
+                    nz = tpx * tty - tpy * ttx;
+                    float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+                    if (len > 1.0E-5F) {
+                        nx /= len;
+                        ny /= len;
+                        nz /= len;
+                    } else {
+                        nx = 0.0F; ny = (i < latBands / 2) ? -1.0F : 1.0F; nz = 0.0F;
+                    }
+                }
 
-            drawTriangleBothSides(consumer, matrix,
-                    0.0F, halfH, 0.0F,
-                    ex[i], 0.0F, ez[i],
-                    ex[next], 0.0F, ez[next],
-                    fr, fg, fb, 240);
+                float dot = Math.max(0.0F, nx * lx + ny * ly + nz * lz);
+                float fillDot = Math.max(0.0F, -(nx * 0.30F + ny * 0.40F + nz * 0.70F));
+                float shade = 0.56F + 0.44F * dot + 0.08F * fillDot;
+                float spec = (float) Math.pow(dot, 2.4D) * 0.65F;
 
-            // Lower Pyramid Facet
-            float lux = ex[next], luy = halfH, luz = ez[next];
-            float lvx = ex[i], lvy = halfH, lvz = ez[i];
-            float lnx = luy * lvz - luz * lvy;
-            float lny = luz * lvx - lux * lvz;
-            float lnz = lux * lvy - luy * lvx;
-            float llen = (float) Math.sqrt(lnx * lnx + lny * lny + lnz * lnz);
-            if (llen > 1e-4F) { lnx /= llen; lny /= llen; lnz /= llen; }
+                float br = r * shade;
+                float bg = g * shade;
+                float bb = b * shade;
 
-            float ldot = Math.max(0.0F, lnx * lx + lny * ly + lnz * lz);
-            float lshade = 0.50F + 0.35F * ldot;
-
-            int lfr = Math.min(255, (int) (r * lshade));
-            int lfg = Math.min(255, (int) (g * lshade));
-            int lfb = Math.min(255, (int) (b * lshade));
-
-            drawTriangleBothSides(consumer, matrix,
-                    0.0F, -halfH, 0.0F,
-                    ex[next], 0.0F, ez[next],
-                    ex[i], 0.0F, ez[i],
-                    lfr, lfg, lfb, 240);
+                int idx = i * cols + j;
+                cr[idx] = clampColor((int) (br + (hr - br) * spec));
+                cg[idx] = clampColor((int) (bg + (hg - bg) * spec));
+                cb[idx] = clampColor((int) (bb + (hb - bb) * spec));
+                ca[idx] = baseAlpha;
+            }
         }
 
-        // Inner bright specular core needle (spark of light inside the gem)
-        float innerH = halfH * 0.70F;
-        float innerR = eqRadius * 0.45F;
-        for (int i = 0; i < sides; i++) {
-            int next = (i + 1) % sides;
-            double a1 = 2.0D * Math.PI * (double) i / (double) sides;
-            double a2 = 2.0D * Math.PI * (double) next / (double) sides;
-            float ix1 = (float) (innerR * Math.cos(a1));
-            float iz1 = (float) (innerR * Math.sin(a1));
-            float ix2 = (float) (innerR * Math.cos(a2));
-            float iz2 = (float) (innerR * Math.sin(a2));
-
-            drawTriangleBothSides(consumer, matrix, 0.0F, innerH, 0.0F, ix1, 0.0F, iz1, ix2, 0.0F, iz2, hr, hg, hb, 210);
-            drawTriangleBothSides(consumer, matrix, 0.0F, -innerH, 0.0F, ix2, 0.0F, iz2, ix1, 0.0F, iz1, hr, hg, hb, 210);
+        for (int i = 0; i < latBands; i++) {
+            for (int j = 0; j < lonSegs; j++) {
+                int i00 = i * cols + j;
+                int i10 = (i + 1) * cols + j;
+                int i11 = (i + 1) * cols + (j + 1);
+                int i01 = i * cols + (j + 1);
+                emitCrystalQuad(consumer, matrix,
+                        px[i00], py[i00], pz[i00], cr[i00], cg[i00], cb[i00], ca[i00],
+                        px[i10], py[i10], pz[i10], cr[i10], cg[i10], cb[i10], ca[i10],
+                        px[i11], py[i11], pz[i11], cr[i11], cg[i11], cb[i11], ca[i11],
+                        px[i01], py[i01], pz[i01], cr[i01], cg[i01], cb[i01], ca[i01]);
+            }
         }
     }
 
-    private static void drawQuadBothSides(
-            VertexConsumer consumer, Matrix4f matrix,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float x3, float y3, float z3,
-            float x4, float y4, float z4,
-            int r, int g, int b, int a
-    ) {
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a).endVertex();
-
-        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
+    private static int clampColor(int c) {
+        return Math.max(0, Math.min(255, c));
     }
 
-    private static void drawTriangleBothSides(
+    private static void emitCrystalQuad(
             VertexConsumer consumer, Matrix4f matrix,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float x3, float y3, float z3,
-            int r, int g, int b, int a
+            float x1, float y1, float z1, int r1, int g1, int b1, int a1,
+            float x2, float y2, float z2, int r2, int g2, int b2, int a2,
+            float x3, float y3, float z3, int r3, int g3, int b3, int a3,
+            float x4, float y4, float z4, int r4, int g4, int b4, int a4
     ) {
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).endVertex();
+        consumer.vertex(matrix, x1, y1, z1).color(r1, g1, b1, a1).endVertex();
+        consumer.vertex(matrix, x2, y2, z2).color(r2, g2, b2, a2).endVertex();
+        consumer.vertex(matrix, x3, y3, z3).color(r3, g3, b3, a3).endVertex();
+        consumer.vertex(matrix, x4, y4, z4).color(r4, g4, b4, a4).endVertex();
     }
 }

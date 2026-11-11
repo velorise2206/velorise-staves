@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.ThrownItemRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -39,7 +38,6 @@ public class OmniOrbRenderer extends EntityRenderer<OmniOrbEntity> {
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(VeloriseStavesMod.OMNI_ORB.get(), OmniOrbRenderer::new);
-        event.registerEntityRenderer(VeloriseStavesMod.WIND_CHARGE_ENTITY.get(), ctx -> new ThrownItemRenderer<>(ctx, 1.35F, true));
     }
 
     @Override

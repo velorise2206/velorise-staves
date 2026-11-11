@@ -497,7 +497,7 @@ public class GeoFangPillarEntity extends Entity {
         for (GeoFangPillarEntity other : nearbyConstructs) {
             if (wave.triggeredConstructs.contains(other.getUUID())) continue;
             double edgeDist = horizontalSquareEdgeDistance(other);
-            if (edgeDist <= currR && (now - other.lastWaveStartGameTime) >= 4L) {
+            if (edgeDist <= currR && (now < other.lastWaveStartGameTime || (now - other.lastWaveStartGameTime) >= 4L)) {
                 wave.triggeredConstructs.add(other.getUUID());
                 other.startWave(level, wave.triggeredConstructs);
                 if (ownerPlayer != null) {
@@ -638,7 +638,7 @@ public class GeoFangPillarEntity extends Entity {
                     this.lastTauntAttackTime.put(mobId, now - (atkCooldown - 10L));
                     continue;
                 }
-                if ((now - lastAtk) >= atkCooldown) {
+                if (now < lastAtk || (now - lastAtk) >= atkCooldown) {
                     this.lastTauntAttackTime.put(mobId, now);
                     if (heavyMob) {
                         level.broadcastEntityEvent(mob, (byte) 4);
@@ -683,7 +683,7 @@ public class GeoFangPillarEntity extends Entity {
             default -> 40L;
         };
         Long lastAtk = this.lastTauntAttackTime.get(mobId);
-        if (lastAtk == null) {
+        if (lastAtk == null || now < lastAtk) {
             lastAtk = now - Math.max(0L, interval - 22L);
             this.lastTauntAttackTime.put(mobId, lastAtk);
         }

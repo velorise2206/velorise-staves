@@ -34,10 +34,20 @@ public class ElementalCodexItem extends Item {
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
     }
 
+    private static volatile java.lang.reflect.Method cachedOpenMethod;
+    private static volatile boolean openMethodResolved;
+
     private static void openClientCodexScreen() {
         try {
-            Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
-            cls.getMethod("open").invoke(null);
+            if (!openMethodResolved) {
+                openMethodResolved = true;
+                Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
+                cachedOpenMethod = cls.getMethod("open");
+            }
+            java.lang.reflect.Method m = cachedOpenMethod;
+            if (m != null) {
+                m.invoke(null);
+            }
         } catch (Exception ignored) {
         }
     }

@@ -1,8 +1,6 @@
 {
   "parent": "velorise_staves:item/crystallize_shard_base",
   "textures": {
-    "core": "velorise_staves:item/hydro_crystallize_core",
-    "shell": "velorise_staves:item/crystallize_shell_hydro",
-    "particle": "velorise_staves:item/hydro_crystallize_core"
+    "layer0": "velorise_staves:item/hydro_crystallize_shard"
   }
 }

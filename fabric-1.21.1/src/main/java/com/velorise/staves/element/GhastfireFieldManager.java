@@ -103,6 +103,7 @@ public final class GhastfireFieldManager {
                         target.igniteForSeconds(3);
                     }
                     ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, 1.0F, owner, damage);
+                    MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.PYRO, null);
                     level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
                 }
 
@@ -112,6 +113,27 @@ public final class GhastfireFieldManager {
                 level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.FIRE_AMBIENT, SoundSource.PLAYERS, 0.7F, 1.05F);
             }
         }
+    }
+
+    public static @Nullable Vec3 findNearestHazard(ServerLevel level, Vec3 pos, double margin) {
+        if (FIELDS.isEmpty()) return null;
+        Vec3 nearest = null;
+        double bestDistSq = Double.MAX_VALUE;
+        for (FieldEntry entry : FIELDS) {
+            if (entry.level != level || !entry.cloud.isAlive() || entry.cloud.isRemoved()) continue;
+            Vec3 c = entry.cloud.position();
+            double maxExt = entry.radius + margin;
+            if (Math.abs(pos.y - c.y) <= 2.6D
+                    && Math.abs(pos.x - c.x) <= maxExt
+                    && Math.abs(pos.z - c.z) <= maxExt) {
+                double d2 = pos.distanceToSqr(c);
+                if (d2 < bestDistSq) {
+                    bestDistSq = d2;
+                    nearest = c;
+                }
+            }
+        }
+        return nearest;
     }
 
     public static void clearAll() {

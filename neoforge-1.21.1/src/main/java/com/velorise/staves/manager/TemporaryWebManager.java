@@ -59,18 +59,24 @@ public final class TemporaryWebManager {
                 BlockPos pos = web.getKey();
                 Entry entry = web.getValue();
                 if (!level.hasChunkAt(pos)) {
+                    if ((now - entry.expiresAt) > 6000L || (entry.expiresAt - now) > 12000L) {
+                        webs.remove();
+                    }
                     continue;
                 }
 
-                if (now >= entry.expiresAt) {
-                    if (level.getBlockState(pos).is(Blocks.COBWEB)) {
-                        level.setBlock(pos, entry.previous, 3);
-                    }
+                if (!level.getBlockState(pos).is(Blocks.COBWEB)) {
                     webs.remove();
                     continue;
                 }
 
-                if (venomPulse && level.getBlockState(pos).is(Blocks.COBWEB)) {
+                if (now >= entry.expiresAt || (entry.expiresAt - now) > 12000L) {
+                    level.setBlock(pos, entry.previous, 3);
+                    webs.remove();
+                    continue;
+                }
+
+                if (venomPulse) {
                     AABB webBox = new AABB(pos).inflate(0.05D);
                     for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, webBox, LivingEntity::isAlive)) {
                         if (entry.ownerId != null && entry.ownerId.equals(target.getUUID())) continue;
@@ -81,6 +87,11 @@ public final class TemporaryWebManager {
 
             if (levelEntry.getValue().isEmpty()) levels.remove();
         }
+    }
+
+    public static boolean isTemporaryWeb(ServerLevel level, BlockPos pos) {
+        Map<BlockPos, Entry> entries = WEBS.get(level);
+        return entries != null && entries.containsKey(pos);
     }
 
     public static void clearAll(MinecraftServer server) {

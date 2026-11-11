@@ -82,10 +82,17 @@ public final class ArcaneStaffItem extends Item {
     public static final String TAG_OMNI_MODE = "OmniMode";
 
     private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static volatile java.lang.reflect.Method cachedMaxHpMethod;
+    private static volatile boolean maxHpMethodResolved;
 
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
         OmniOrbEntity.clearCycleCache();
+    }
+
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId == null) return;
+        ACTIVE_CHANNELING.remove(playerId);
     }
 
     public static boolean isOmniStaff(ItemStack stack) {
@@ -255,7 +262,7 @@ public final class ArcaneStaffItem extends Item {
                 || (player.getMainHandItem() != stack && player.getOffhandItem() != stack);
 
         long elapsed = level.getGameTime() - player.getPersistentData().getLong(tagLast);
-        if (slotChanged || elapsed >= BURST_RESET_TICKS) {
+        if (slotChanged || elapsed < 0L || elapsed >= BURST_RESET_TICKS) {
             int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * shots / (double) maxBurstShots()));
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
@@ -337,7 +344,7 @@ public final class ArcaneStaffItem extends Item {
         long elapsed = player.level().getGameTime() - player.getPersistentData().getLong(tagLast);
         int activeSlot = player.getPersistentData().getInt(tagSlot);
         boolean slotChanged = player.getInventory().selected != activeSlot;
-        if (elapsed >= resetTicks || slotChanged) {
+        if (elapsed < 0L || elapsed >= resetTicks || slotChanged) {
             int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * shots / (double) maxBurstShots()));
             player.getPersistentData().remove(tagShots);
             player.getPersistentData().remove(tagLast);
@@ -894,10 +901,17 @@ public final class ArcaneStaffItem extends Item {
 
     private static float getDisplayMaxHp() {
         try {
-            Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
-            Object res = cls.getMethod("getClientPlayerMaxHp").invoke(null);
-            if (res instanceof Float f && f > 0.0F) {
-                return f;
+            if (!maxHpMethodResolved) {
+                maxHpMethodResolved = true;
+                Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
+                cachedMaxHpMethod = cls.getMethod("getClientPlayerMaxHp");
+            }
+            java.lang.reflect.Method m = cachedMaxHpMethod;
+            if (m != null) {
+                Object res = m.invoke(null);
+                if (res instanceof Float f && f > 0.0F) {
+                    return f;
+                }
             }
         } catch (Throwable ignored) {
         }

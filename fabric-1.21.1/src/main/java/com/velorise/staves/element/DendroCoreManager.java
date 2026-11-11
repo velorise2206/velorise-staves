@@ -99,7 +99,7 @@ public final class DendroCoreManager {
     private static boolean canTakeBloomDamage(LivingEntity victim, long now) {
         UUID id = victim.getUUID();
         Long lastTick = LAST_DMG_TICK.get(id);
-        if (lastTick == null || now - lastTick >= 10L) { // 0.5s window
+        if (lastTick == null || now < lastTick || (now - lastTick) >= 10L) { // 0.5s window
             LAST_DMG_TICK.put(id, now);
             DMG_INSTANCE_COUNT.put(id, 1);
             return true;
@@ -186,7 +186,7 @@ public final class DendroCoreManager {
         core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.3F);
 
         ServerPlayer owner = core.ownerId != null ? core.level.getServer().getPlayerList().getPlayer(core.ownerId) : null;
-        float dmg = 4.0F * core.damageMultiplier;
+        float rawDmg = 4.0F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (canTakeBloomDamage(victim, core.level.getGameTime())) {
@@ -200,9 +200,11 @@ public final class DendroCoreManager {
                     ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.DENDRO, ElementalReaction.IMMUNE, 0.0F);
                     continue;
                 }
-                victim.hurt(ElementalGaugeManager.getElementalDamageSource(core.level, owner), dmg);
+                float dmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, rawDmg);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(core.level, owner), dmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
-                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+                ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+                MobHazardAvoidanceManager.reportReactionOrHazard(victim, owner, pos, Element.DENDRO, Element.HYDRO);
             }
         }
     }
@@ -289,13 +291,15 @@ public final class DendroCoreManager {
                     ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.PYRO, ElementalReaction.IMMUNE, 0.0F);
                     continue;
                 }
-                float effectiveDmg = burgeonDmg;
+                float effectiveDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.PYRO, burgeonDmg);
                 if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, core.level.getGameTime()) == Element.PYRO) {
                     effectiveDmg *= 0.4F;
                 }
-                victim.hurt(ElementalGaugeManager.getElementalDamageSource(core.level, attacker), effectiveDmg);
+                ElementalGaugeManager.ensurePreDeathPyroIgnite(victim, 3);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(core.level, attacker), effectiveDmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
-                ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
+                ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
+                MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, pos, Element.DENDRO, Element.PYRO);
             }
         }
     }
@@ -304,12 +308,13 @@ public final class DendroCoreManager {
         long now = level.getGameTime();
         if (now % 100 == 0) {
             LAST_DMG_TICK.entrySet().removeIf(e -> {
-                if (now - e.getValue() >= 20L) {
+                if (Math.abs(now - e.getValue()) >= 20L) {
                     DMG_INSTANCE_COUNT.remove(e.getKey());
                     return true;
                 }
                 return false;
             });
+            DMG_INSTANCE_COUNT.keySet().removeIf(id -> !LAST_DMG_TICK.containsKey(id));
         }
 
         // 1. Tick Hyperbloom homing missiles (GenshinCraft flight physics & speed 0.8 blocks/tick)
@@ -370,9 +375,11 @@ public final class DendroCoreManager {
                             hitAny = true;
                             continue;
                         }
-                        nearby.hurt(ElementalGaugeManager.getElementalDamageSource(level, m.attacker), m.damage);
+                        float hDmg = ElementalGaugeManager.applyMobElementalResistance(nearby, Element.DENDRO, m.damage);
+                        ElementalGaugeManager.hurtWithPreAppliedElementalRes(nearby, ElementalGaugeManager.getElementalDamageSource(level, m.attacker), hDmg);
                         ElementalGaugeManager.enforceFrozenPoseIfFrozen(nearby);
-                        ElementalGaugeManager.syncAuras(nearby, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
+                        ElementalGaugeManager.syncAuras(nearby, ElementalGaugeManager.getEntityElements(nearby.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
+                        MobHazardAvoidanceManager.reportReactionOrHazard(nearby, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
                         hitAny = true;
                     }
                 }
@@ -385,10 +392,12 @@ public final class DendroCoreManager {
                         ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
                     } else {
                         if (canTakeBloomDamage(victim, level.getGameTime())) {
-                            victim.hurt(ElementalGaugeManager.getElementalDamageSource(level, m.attacker), m.damage);
+                            float hDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, m.damage);
+                            ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, ElementalGaugeManager.getElementalDamageSource(level, m.attacker), hDmg);
                             ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
+                            ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
+                            MobHazardAvoidanceManager.reportReactionOrHazard(victim, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
                         }
-                        ElementalGaugeManager.syncAuras(victim, Collections.emptyList(), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, m.damage);
                     }
                 }
                 continue;
@@ -472,14 +481,18 @@ public final class DendroCoreManager {
             }
 
             // Explode after 6 seconds (120 ticks)
-            if (now - core.spawnTime >= CORE_LIFETIME_TICKS) {
+            if (now < core.spawnTime || (now - core.spawnTime) >= CORE_LIFETIME_TICKS) {
                 CORES.remove(core);
                 detonateBloom(core);
             }
         }
 
         // 3. Auto-Purge Orphaned Seeds & Legacy Visual Entities
-        if (now % 20 == 0) {
+        if (now % 20 == 0 && !level.players().isEmpty()) {
+            Set<UUID> trackedCoreIds = new HashSet<>(CORES.size() * 2);
+            for (CoreEntry c : CORES) {
+                trackedCoreIds.add(c.entity.getUUID());
+            }
             net.minecraft.world.item.Item dendroCoreItem = VeloriseStavesMod.DENDRO_CORE;
             for (ServerPlayer player : level.players()) {
                 AABB scanBox = player.getBoundingBox().inflate(64.0D);
@@ -504,23 +517,35 @@ public final class DendroCoreManager {
                         }
                         continue;
                     }
-                    boolean tracked = false;
-                    for (CoreEntry c : CORES) {
-                        if (c.entity == coreEntity || c.entity.getUUID().equals(coreEntity.getUUID())) {
-                            tracked = true;
-                            break;
-                        }
-                    }
-                    if (!tracked) {
+                    if (!trackedCoreIds.contains(coreEntity.getUUID())) {
                         if (coreEntity.getServerAgeTicks() >= CORE_LIFETIME_TICKS) {
                             coreEntity.discard();
                         } else {
+                            trackedCoreIds.add(coreEntity.getUUID());
                             CORES.add(new CoreEntry(coreEntity, level, now - Math.max(0, coreEntity.getServerAgeTicks()), null, 1.0F));
                         }
                     }
                 }
             }
         }
+    }
+
+    public static @Nullable Vec3 findNearestHazard(ServerLevel level, Vec3 pos, double margin) {
+        if (CORES.isEmpty()) return null;
+        double maxR = 3.2D + margin;
+        double maxR2 = maxR * maxR;
+        Vec3 nearest = null;
+        double bestDistSq = Double.MAX_VALUE;
+        for (CoreEntry core : CORES) {
+            if (core.level != level || !core.entity.isAlive() || core.entity.isRemoved()) continue;
+            Vec3 c = core.entity.position();
+            double d2 = pos.distanceToSqr(c);
+            if (d2 <= maxR2 && d2 < bestDistSq) {
+                bestDistSq = d2;
+                nearest = c;
+            }
+        }
+        return nearest;
     }
 
     public static void clearAll() {

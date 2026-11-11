@@ -15,6 +15,7 @@ public abstract class ScreenMixin {
     @Inject(method = "renderWithTooltip", at = @At("HEAD"))
     private void velorise$beforeRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ClientAuraRenderer.setRenderingScreen(true);
+        ClientAuraRenderer.clearPendingInventoryTooltip();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
@@ -23,8 +24,9 @@ public abstract class ScreenMixin {
     private void velorise$afterRender(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
         ClientAuraRenderer.setRenderingScreen(false);
         if ((Object) this instanceof EffectRenderingInventoryScreen<?> screen && screen.canSeeEffects()) {
-            AbstractContainerScreenAccessor accessor = (AbstractContainerScreenAccessor) screen;
-            ClientAuraRenderer.renderInventoryAura(guiGraphics, screen, accessor.velorise$getLeftPos(), accessor.velorise$getTopPos(), accessor.velorise$getImageWidth(), mouseX, mouseY);
+            ClientAuraRenderer.renderPendingInventoryTooltip(guiGraphics, mouseX, mouseY);
+        } else {
+            ClientAuraRenderer.clearPendingInventoryTooltip();
         }
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);

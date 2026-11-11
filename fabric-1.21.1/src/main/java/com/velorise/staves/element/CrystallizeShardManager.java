@@ -24,9 +24,11 @@ import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -130,7 +132,7 @@ public final class CrystallizeShardManager {
             long now = level.getGameTime();
             Long lastSpawn = LAST_MOB_SHARD_TICK.get(sourceMobId);
             // Limit: each mob can only generate 1 shard at a time, with a 3s (60 ticks) ICD
-            if (lastSpawn != null && now - lastSpawn < 60L) {
+            if (lastSpawn != null && now >= lastSpawn && (now - lastSpawn) < 60L) {
                 return;
             }
             for (ShardEntry s : SHARDS) {
@@ -176,8 +178,8 @@ public final class CrystallizeShardManager {
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
         if (now % 100 == 0) {
-            LAST_MOB_SHARD_TICK.entrySet().removeIf(e -> (now - e.getValue()) >= 100L);
-            ACTIVE_SHIELDS.entrySet().removeIf(e -> now >= e.getValue().expireTick);
+            LAST_MOB_SHARD_TICK.entrySet().removeIf(e -> Math.abs(now - e.getValue()) >= 100L);
+            ACTIVE_SHIELDS.entrySet().removeIf(e -> now >= e.getValue().expireTick || (e.getValue().expireTick - now) > SHIELD_DURATION_TICKS * 2L);
         }
 
         // Break Crystallize shield if expired or depleted (creative players keep shield for duration)
@@ -225,7 +227,7 @@ public final class CrystallizeShardManager {
             }
 
             // Despawn after 17.5s (350 ticks)
-            if (now - shard.spawnTime >= SHARD_LIFETIME_TICKS) {
+            if (now < shard.spawnTime || (now - shard.spawnTime) >= SHARD_LIFETIME_TICKS) {
                 cleanUpShardTeam(shard);
                 shard.entity.discard();
                 SHARDS.remove(shard);
@@ -245,19 +247,16 @@ public final class CrystallizeShardManager {
         }
 
         // Auto-Purge Orphaned Crystallize Shards
-        if (now % 20 == 0) {
+        if (now % 20 == 0 && !level.players().isEmpty()) {
+            Set<UUID> trackedShardIds = new HashSet<>(SHARDS.size() * 2);
+            for (ShardEntry s : SHARDS) {
+                trackedShardIds.add(s.entity.getUUID());
+            }
             for (ServerPlayer player : level.players()) {
                 AABB scanBox = player.getBoundingBox().inflate(64.0D);
                 for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, scanBox, e -> e.isAlive() && !e.isRemoved())) {
                     if (item.getTags().contains(TAG_CRYSTALLIZE_SHARD)) {
-                        boolean tracked = false;
-                        for (ShardEntry s : SHARDS) {
-                            if (s.entity == item || s.entity.getUUID().equals(item.getUUID())) {
-                                tracked = true;
-                                break;
-                            }
-                        }
-                        if (!tracked && item.getAge() >= SHARD_LIFETIME_TICKS) {
+                        if (!trackedShardIds.contains(item.getUUID()) && item.getAge() >= SHARD_LIFETIME_TICKS) {
                             try {
                                 Scoreboard sb = level.getScoreboard();
                                 PlayerTeam team = sb.getPlayersTeam(item.getScoreboardName());

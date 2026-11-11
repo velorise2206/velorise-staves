@@ -19,6 +19,10 @@ public class AuraSyncPacket {
     private final byte reactionOrdinal;
     private final float damage;
     private final int durationTicks;
+    private final boolean hasPos;
+    private final double posX;
+    private final double posY;
+    private final double posZ;
 
     public AuraSyncPacket(
             int entityId,
@@ -27,7 +31,11 @@ public class AuraSyncPacket {
             byte triggerElementOrdinal,
             byte reactionOrdinal,
             float damage,
-            int durationTicks
+            int durationTicks,
+            boolean hasPos,
+            double posX,
+            double posY,
+            double posZ
     ) {
         this.entityId = entityId;
         this.activeMask = activeMask;
@@ -36,6 +44,10 @@ public class AuraSyncPacket {
         this.reactionOrdinal = reactionOrdinal;
         this.damage = damage;
         this.durationTicks = durationTicks;
+        this.hasPos = hasPos;
+        this.posX = posX;
+        this.posY = posY;
+        this.posZ = posZ;
     }
 
     public AuraSyncPacket(
@@ -46,7 +58,11 @@ public class AuraSyncPacket {
             @Nullable ElementalReaction reaction,
             float damage,
             int durationTicks,
-            boolean isFrozen
+            boolean isFrozen,
+            boolean hasPos,
+            double posX,
+            double posY,
+            double posZ
     ) {
         this.entityId = entityId;
         byte mask = 0;
@@ -62,6 +78,23 @@ public class AuraSyncPacket {
         this.reactionOrdinal = reaction != null && reaction != ElementalReaction.NONE ? (byte) (reaction.ordinal() + 1) : 0;
         this.damage = damage;
         this.durationTicks = durationTicks;
+        this.hasPos = hasPos;
+        this.posX = posX;
+        this.posY = posY;
+        this.posZ = posZ;
+    }
+
+    public AuraSyncPacket(
+            int entityId,
+            Collection<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks,
+            boolean isFrozen
+    ) {
+        this(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, isFrozen, false, 0.0D, 0.0D, 0.0D);
     }
 
     public AuraSyncPacket(
@@ -105,6 +138,16 @@ public class AuraSyncPacket {
         this.reactionOrdinal = buf.readByte();
         this.damage = buf.readFloat();
         this.durationTicks = buf.readVarInt();
+        this.hasPos = buf.readBoolean();
+        if (this.hasPos) {
+            this.posX = buf.readDouble();
+            this.posY = buf.readDouble();
+            this.posZ = buf.readDouble();
+        } else {
+            this.posX = 0.0D;
+            this.posY = 0.0D;
+            this.posZ = 0.0D;
+        }
     }
 
     public void toBytes(FriendlyByteBuf buf) {
@@ -115,6 +158,12 @@ public class AuraSyncPacket {
         buf.writeByte(this.reactionOrdinal);
         buf.writeFloat(this.damage);
         buf.writeVarInt(this.durationTicks);
+        buf.writeBoolean(this.hasPos);
+        if (this.hasPos) {
+            buf.writeDouble(this.posX);
+            buf.writeDouble(this.posY);
+            buf.writeDouble(this.posZ);
+        }
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -142,7 +191,10 @@ public class AuraSyncPacket {
                     ? ElementalReaction.values()[pkt.reactionOrdinal - 1] : null;
 
             boolean isFrozen = (pkt.activeMask & 0x80) != 0;
-            com.velorise.staves.client.ClientAuraTracker.update(pkt.entityId, elements, reactedAura, trigger, reaction, pkt.damage, pkt.durationTicks, isFrozen);
+            com.velorise.staves.client.ClientAuraTracker.update(
+                    pkt.entityId, elements, reactedAura, trigger, reaction, pkt.damage, pkt.durationTicks, isFrozen,
+                    pkt.hasPos, pkt.posX, pkt.posY, pkt.posZ
+            );
         }
     }
 }

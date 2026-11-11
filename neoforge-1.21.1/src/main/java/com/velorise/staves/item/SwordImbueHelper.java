@@ -128,19 +128,22 @@ public final class SwordImbueHelper {
         String key = getImbuedKey(stack);
         if (key == null) return;
 
+        boolean suppressed = isNonPyroImbued(stack) && hasFireAspect(stack);
         Component badge;
         if (OMNI_KEY.equals(key)) {
             Component icon = Component.literal("\uE00A").withStyle(ChatFormatting.WHITE);
             Component elemName = Component.translatable("tooltip.velorise_staves.imbued.omni");
-            badge = Component.empty().append(icon).append(Component.literal(" "))
-                    .append(Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(ChatFormatting.GOLD));
+            var namePart = Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(suppressed ? ChatFormatting.DARK_GRAY : ChatFormatting.GOLD);
+            if (suppressed) namePart = namePart.withStyle(ChatFormatting.STRIKETHROUGH);
+            badge = Component.empty().append(icon).append(Component.literal(" ")).append(namePart);
         } else {
             Element elem = getImbuedElement(stack);
             if (elem == null) return;
             Component icon = Component.literal(elem.iconString()).withStyle(ChatFormatting.WHITE);
             Component elemName = Component.translatable(elem.translationKey());
-            badge = Component.empty().append(icon).append(Component.literal(" "))
-                    .append(Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(elem.color()));
+            var namePart = Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(suppressed ? ChatFormatting.DARK_GRAY : elem.color());
+            if (suppressed) namePart = namePart.withStyle(ChatFormatting.STRIKETHROUGH);
+            badge = Component.empty().append(icon).append(Component.literal(" ")).append(namePart);
         }
 
         List<Component> wrappedHint = new ArrayList<>();

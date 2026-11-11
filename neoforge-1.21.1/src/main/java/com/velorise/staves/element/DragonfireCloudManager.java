@@ -105,6 +105,7 @@ public final class DragonfireCloudManager {
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
                     ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, owner, damage);
+                    MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.ELECTRO, null);
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
                 }
 
@@ -113,6 +114,27 @@ public final class DragonfireCloudManager {
                 level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.45F, 1.75F);
             }
         }
+    }
+
+    public static @Nullable Vec3 findNearestHazard(ServerLevel level, Vec3 pos, double margin) {
+        if (CLOUDS.isEmpty()) return null;
+        Vec3 nearest = null;
+        double bestDistSq = Double.MAX_VALUE;
+        for (CloudEntry entry : CLOUDS) {
+            if (entry.level != level || !entry.cloud.isAlive() || entry.cloud.isRemoved()) continue;
+            Vec3 c = entry.cloud.position();
+            double maxExt = entry.radius + margin;
+            if (Math.abs(pos.y - c.y) <= 2.6D
+                    && Math.abs(pos.x - c.x) <= maxExt
+                    && Math.abs(pos.z - c.z) <= maxExt) {
+                double d2 = pos.distanceToSqr(c);
+                if (d2 < bestDistSq) {
+                    bestDistSq = d2;
+                    nearest = c;
+                }
+            }
+        }
+        return nearest;
     }
 
     public static void clearAll() {

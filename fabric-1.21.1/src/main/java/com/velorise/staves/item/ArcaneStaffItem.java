@@ -81,11 +81,19 @@ public final class ArcaneStaffItem extends Item {
     }
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
     private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static volatile java.lang.reflect.Method cachedMaxHpMethod;
+    private static volatile boolean maxHpMethodResolved;
 
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
         PLAYER_BURSTS.clear();
         OmniOrbEntity.clearCycleCache();
+    }
+
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId == null) return;
+        ACTIVE_CHANNELING.remove(playerId);
+        PLAYER_BURSTS.remove(playerId);
     }
 
     public enum Kind {
@@ -261,7 +269,7 @@ public final class ArcaneStaffItem extends Item {
                 || (player.getMainHandItem() != stack && player.getOffhandItem() != stack);
 
         long elapsed = level.getGameTime() - state.lastTime;
-        if (slotChanged || elapsed >= BURST_RESET_TICKS) {
+        if (slotChanged || elapsed < 0L || elapsed >= BURST_RESET_TICKS) {
             int cdForShots = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / (double) maxBurstShots()));
             map.remove(key);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
@@ -317,7 +325,7 @@ public final class ArcaneStaffItem extends Item {
         if (state == null || state.shots <= 0) return false;
         long elapsed = player.level().getGameTime() - state.lastTime;
         boolean slotChanged = player.getInventory().selected != state.slot;
-        if (elapsed >= resetTicks || slotChanged) {
+        if (elapsed < 0L || elapsed >= resetTicks || slotChanged) {
             int cd = Math.max(1, (int) Math.round((double) getCooldownTicks() * state.shots / (double) maxBurstShots()));
             map.remove(tagShots);
             if (map.isEmpty()) PLAYER_BURSTS.remove(player.getUUID());
@@ -557,13 +565,6 @@ public final class ArcaneStaffItem extends Item {
         projectile.shoot(shot.x, shot.y, shot.z, velocity, 0.0F);
         ArcaneStaffEvents.markKind(projectile, kind);
         ArcaneStaffEvents.markRange(projectile, player.position(), range);
-    }
-
-    private static Vec3 fanDirection(Vec3 look, int index, int count, float totalSpreadDegrees) {
-        if (count <= 1) return look.normalize();
-        float step = totalSpreadDegrees / (count - 1);
-        float angle = -totalSpreadDegrees * 0.5F + step * index;
-        return look.yRot((float)Math.toRadians(angle)).normalize();
     }
 
     private boolean castFangs(ServerPlayer player) {
@@ -877,10 +878,17 @@ public final class ArcaneStaffItem extends Item {
 
     private static float getDisplayMaxHp() {
         try {
-            Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
-            Object res = cls.getMethod("getClientPlayerMaxHp").invoke(null);
-            if (res instanceof Float f && f > 0.0F) {
-                return f;
+            if (!maxHpMethodResolved) {
+                maxHpMethodResolved = true;
+                Class<?> cls = Class.forName("com.velorise.staves.client.ElementalCodexScreen");
+                cachedMaxHpMethod = cls.getMethod("getClientPlayerMaxHp");
+            }
+            java.lang.reflect.Method m = cachedMaxHpMethod;
+            if (m != null) {
+                Object res = m.invoke(null);
+                if (res instanceof Float f && f > 0.0F) {
+                    return f;
+                }
             }
         } catch (Throwable ignored) {
         }

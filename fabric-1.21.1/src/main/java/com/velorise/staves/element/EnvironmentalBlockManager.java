@@ -131,29 +131,38 @@ public final class EnvironmentalBlockManager {
                 level.playSound(null, p, SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0F, 1.0F);
                 continue;
             }
+        }
+    }
 
-            // C. Burn cobwebs & dry vegetation, or ignite flammable materials (wood, planks, leaves, wool, hay, etc.)
-            if (isBurnableVegetationOrCobweb(st)) {
-                BlockPos below = p.below();
-                if (level.getBlockState(below).isSolidRender(level, below)) {
-                    level.setBlockAndUpdate(p, Blocks.FIRE.defaultBlockState());
-                } else {
-                    level.removeBlock(p, false);
-                }
-                level.sendParticles(ParticleTypes.FLAME, blockCenter.x, blockCenter.y, blockCenter.z, 6, 0.2D, 0.2D, 0.2D, 0.02D);
-                continue;
+    /**
+     * Ignites at most the single block (or struck face) targeted directly by a Pyro projectile,
+     * without spreading fire to surrounding blocks.
+     */
+    public static void igniteSingleHitBlock(ServerLevel level, BlockPos targetPos, Direction hitFace) {
+        if (targetPos == null || !level.hasChunkAt(targetPos)) return;
+        BlockState st = level.getBlockState(targetPos);
+        if (isBurnableVegetationOrCobweb(st)) {
+            BlockPos below = targetPos.below();
+            if (level.getBlockState(below).isSolidRender(level, below)) {
+                level.setBlockAndUpdate(targetPos, Blocks.FIRE.defaultBlockState());
+            } else {
+                level.removeBlock(targetPos, false);
             }
-
-            if (isFlammableMaterial(st)) {
-                BlockPos above = p.above();
-                if (level.getBlockState(above).isAir()
-                        && net.minecraft.world.level.block.BaseFireBlock.canBePlacedAt(level, above, Direction.UP)) {
-                    // Place fire on top of flammable block near center of impact
-                    if (blockCenter.distanceToSqr(hitPos) <= Math.max(2.25D, r2 * 0.55D)) {
-                        level.setBlockAndUpdate(above, Blocks.FIRE.defaultBlockState());
-                    }
-                }
+            Vec3 bc = Vec3.atCenterOf(targetPos);
+            level.sendParticles(ParticleTypes.FLAME, bc.x, bc.y, bc.z, 6, 0.2D, 0.2D, 0.2D, 0.02D);
+            return;
+        }
+        if (st.isAir() || st.canBeReplaced()) {
+            if (net.minecraft.world.level.block.BaseFireBlock.canBePlacedAt(level, targetPos, hitFace)) {
+                level.setBlockAndUpdate(targetPos, Blocks.FIRE.defaultBlockState());
             }
+            return;
+        }
+        BlockPos firePos = targetPos.relative(hitFace);
+        if (level.hasChunkAt(firePos)
+                && level.getBlockState(firePos).isAir()
+                && net.minecraft.world.level.block.BaseFireBlock.canBePlacedAt(level, firePos, hitFace)) {
+            level.setBlockAndUpdate(firePos, Blocks.FIRE.defaultBlockState());
         }
     }
 
@@ -168,37 +177,6 @@ public final class EnvironmentalBlockManager {
                 || st.is(Blocks.GLOW_LICHEN)
                 || st.is(net.minecraft.tags.BlockTags.FLOWERS)
                 || st.is(net.minecraft.tags.BlockTags.SAPLINGS);
-    }
-
-    private static boolean isFlammableMaterial(BlockState st) {
-        if (st.is(net.minecraft.tags.BlockTags.LOGS_THAT_BURN)
-                || st.is(net.minecraft.tags.BlockTags.PLANKS)
-                || st.is(net.minecraft.tags.BlockTags.LEAVES)
-                || st.is(net.minecraft.tags.BlockTags.WOOL)
-                || st.is(net.minecraft.tags.BlockTags.WOOL_CARPETS)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_FENCES)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_SLABS)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_STAIRS)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_DOORS)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS)
-                || st.is(Blocks.HAY_BLOCK)
-                || st.is(Blocks.BOOKSHELF)
-                || st.is(Blocks.DRIED_KELP_BLOCK)
-                || st.is(Blocks.SCAFFOLDING)
-                || st.is(Blocks.BAMBOO)
-                || st.is(Blocks.COAL_BLOCK)) {
-            return true;
-        }
-        // getBurnOdds is private in Fabric — use flammable block tag check instead
-        if (st.is(net.minecraft.tags.BlockTags.LOGS) || st.is(net.minecraft.tags.BlockTags.PLANKS)
-                || st.is(net.minecraft.tags.BlockTags.LEAVES) || st.is(net.minecraft.tags.BlockTags.WOOL)
-                || st.is(net.minecraft.tags.BlockTags.WOOL_CARPETS) || st.is(net.minecraft.tags.BlockTags.FENCE_GATES)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_FENCES) || st.is(net.minecraft.tags.BlockTags.WOODEN_DOORS)
-                || st.is(net.minecraft.tags.BlockTags.WOODEN_SLABS) || st.is(net.minecraft.tags.BlockTags.WOODEN_STAIRS)
-                || st.is(Blocks.BOOKSHELF) || st.is(Blocks.HAY_BLOCK)) {
-            return true;
-        }
-        return false;
     }
 
     public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius) {
@@ -245,7 +223,7 @@ public final class EnvironmentalBlockManager {
     public static void dischargeLightningRod(ServerLevel level, BlockPos rodPos, long now) {
         BlockPos immutableRod = rodPos.immutable();
         Long lastZap = LAST_LIGHTNING_ROD_ZAP.get(immutableRod);
-        if (lastZap != null && (now - lastZap) < 10L) {
+        if (lastZap != null && now >= lastZap && (now - lastZap) < 10L) {
             return;
         }
         LAST_LIGHTNING_ROD_ZAP.put(immutableRod, now);
@@ -283,11 +261,11 @@ public final class EnvironmentalBlockManager {
     public static void tick(MinecraftServer server) {
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
-            LAST_AMETHYST_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
-            LAST_OBSERVER_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
-            LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 40L);
-            LAST_TESLA_COIL_ZAP.entrySet().removeIf(e -> (serverNow - e.getValue()) > 100L);
-            TESLA_COIL_OVERCHARGE_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue());
+            LAST_AMETHYST_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 100L);
+            LAST_OBSERVER_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 40L);
+            LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 40L);
+            LAST_TESLA_COIL_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 100L);
+            TESLA_COIL_OVERCHARGE_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue() || (e.getValue() - serverNow) > 1200L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -336,7 +314,7 @@ public final class EnvironmentalBlockManager {
             // Also supports zapping underwater fish (WaterAnimal), excluding only bats (AmbientCreature).
             for (BlockPos sensorPos : activeSensors8) {
                 Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
-                if (lastZap == null || serverNow - lastZap >= 10L) {
+                if (lastZap == null || serverNow < lastZap || serverNow - lastZap >= 10L) {
                     AABB search = new AABB(sensorPos).inflate(8.0D);
                     LivingEntity closest = level.getNearestEntity(
                             LivingEntity.class,
@@ -360,7 +338,7 @@ public final class EnvironmentalBlockManager {
 
             for (BlockPos sensorPos : activeCalibrated16) {
                 Long lastZap = LAST_SENSOR_ZAP.get(sensorPos);
-                if (lastZap == null || serverNow - lastZap >= 10L) {
+                if (lastZap == null || serverNow < lastZap || serverNow - lastZap >= 10L) {
                     AABB search = new AABB(sensorPos).inflate(16.0D);
                     LivingEntity closest = level.getNearestEntity(
                             LivingEntity.class,
@@ -481,7 +459,7 @@ public final class EnvironmentalBlockManager {
                 if (entityBox.intersects(outputBox)) {
                     long key = (((long) living.getId()) << 32) | (p.asLong() & 0xFFFFFFFFL);
                     Long lastObsZap = LAST_OBSERVER_ZAP.get(key);
-                    if (lastObsZap == null || (now - lastObsZap) >= 6L) {
+                    if (lastObsZap == null || now < lastObsZap || (now - lastObsZap) >= 6L) {
                         LAST_OBSERVER_ZAP.put(key, now);
                         ElementalGaugeManager.applyElementBypassIcd(level, living, Element.ELECTRO, 1.0F, null, 0.0F);
                         Vec3 portPos = Vec3.atCenterOf(p).add(
@@ -575,9 +553,10 @@ public final class EnvironmentalBlockManager {
         if (amethystZapPos != null && ElementalGaugeManager.getInnateElement(living) != Element.ELECTRO) {
             long now = level.getGameTime();
             Long lastZap = LAST_AMETHYST_ZAP.get(living.getUUID());
-            if (lastZap == null || (now - lastZap) >= 20L) {
+            if (lastZap == null || now < lastZap || (now - lastZap) >= 20L) {
                 LAST_AMETHYST_ZAP.put(living.getUUID(), now);
                 ElementalGaugeManager.applyElement(level, living, Element.ELECTRO, 1.0F, null, 1.0F);
+                MobHazardAvoidanceManager.reportReactionOrHazard(living, null, Vec3.atCenterOf(amethystZapPos), Element.ELECTRO, null);
 
                 Vec3 end = living.position().add(0, living.getBbHeight() * 0.5D, 0);
                 ElectrifiedWaterManager.drawElectricArc(level, Vec3.atCenterOf(amethystZapPos), end, 0.15D, false);
@@ -740,7 +719,7 @@ public final class EnvironmentalBlockManager {
 
         long intervalTicks = overcharged ? 20L : 40L;
         Long last = LAST_TESLA_COIL_ZAP.get(immutableRod);
-        if (last != null && (now - last) < intervalTicks) {
+        if (last != null && now >= last && (now - last) < intervalTicks) {
             return;
         }
         LAST_TESLA_COIL_ZAP.put(immutableRod, now);
@@ -848,6 +827,7 @@ public final class EnvironmentalBlockManager {
                         hitEntitiesThisPulse.add(struck.getUUID());
                         arcEnd = struck.getBoundingBox().getCenter();
                         ElementalGaugeManager.applyElementBypassIcd(level, struck, Element.ELECTRO, electroU, null, boltDamage);
+                        MobHazardAvoidanceManager.reportReactionOrHazard(struck, null, origin, Element.ELECTRO, null);
                         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
                                 5, 0.2D, 0.2D, 0.2D, 0.04D);
                         break;

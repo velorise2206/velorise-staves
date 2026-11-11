@@ -153,7 +153,7 @@ public final class ElectrifiedWaterManager {
             WaterZone zone = it.next();
             if (zone.level != level) continue;
 
-            if (now >= zone.expireTick) {
+            if (now >= zone.expireTick || (zone.expireTick - now) > 1200L) {
                 ZONES.remove(zone);
                 continue;
             }
@@ -234,8 +234,43 @@ public final class ElectrifiedWaterManager {
             if (ElementalGaugeManager.isEntityInWater(victim)) {
                 // Apply 0.8U Electro aura with 1.0F (0.5 heart) shock damage, reacting with environmental Hydro wetness
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, 1.0F);
+                MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, Vec3.atCenterOf(center), Element.ELECTRO, Element.HYDRO);
             }
         }
+    }
+
+    public static boolean isBlockElectrified(ServerLevel level, BlockPos blockPos) {
+        if (ZONES.isEmpty()) return false;
+        for (WaterZone zone : ZONES) {
+            if (zone.level != level) continue;
+            if (Math.abs(blockPos.getY() - zone.center.getY()) > 2) continue;
+            double dx = blockPos.getX() - zone.center.getX();
+            double dz = blockPos.getZ() - zone.center.getZ();
+            double r = zone.radius + 0.5D;
+            if (dx * dx + dz * dz <= r * r) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static @Nullable Vec3 findNearestHazard(ServerLevel level, Vec3 pos, double margin) {
+        if (ZONES.isEmpty()) return null;
+        Vec3 nearest = null;
+        double bestDistSq = Double.MAX_VALUE;
+        for (WaterZone zone : ZONES) {
+            if (zone.level != level) continue;
+            if (Math.abs(pos.y - zone.center.getY()) > 2.8D) continue;
+            double maxDist = zone.radius + margin;
+            double dx = pos.x - (zone.center.getX() + 0.5D);
+            double dz = pos.z - (zone.center.getZ() + 0.5D);
+            double d2 = dx * dx + dz * dz;
+            if (d2 <= maxDist * maxDist && d2 < bestDistSq) {
+                bestDistSq = d2;
+                nearest = new Vec3(zone.center.getX() + 0.5D, zone.center.getY() + 0.5D, zone.center.getZ() + 0.5D);
+            }
+        }
+        return nearest;
     }
 
     public static void clearAll() {

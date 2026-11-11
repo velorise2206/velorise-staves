@@ -81,6 +81,10 @@ public final class VeloriseStavesMod {
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "magic_mirror_use")));
+    public static final Supplier<SoundEvent> WIND_CHARGE_THROW_SOUND = SOUND_EVENTS.register("wind_charge_throw",
+        () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "wind_charge_throw")));
+    public static final Supplier<SoundEvent> WIND_CHARGE_BURST_SOUND = SOUND_EVENTS.register("wind_charge_burst",
+        () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "wind_charge_burst")));
 
     // Basic Combat Staves
     public static final Supplier<Item> DRAGONFIRE_SCEPTER = ITEMS.register("dragonfire_scepter",
@@ -210,7 +214,7 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_SHULKER_SEEKER = ITEMS.register("netherite_shulker_seeker",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 500, true));
 
-    public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("guardian_lens_netherite".equals("netherite_guardian_lens") ? "netherite_guardian_lens" : "netherite_guardian_lens",
+    public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("netherite_guardian_lens",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 500, true));
 
     public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
@@ -315,11 +319,62 @@ public final class VeloriseStavesMod {
         });
         com.velorise.staves.network.ModNetwork.register();
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
+        modEventBus.addListener(VeloriseStavesMod::onBuildCreativeTabContents);
         ITEMS.register(modEventBus);
         ENTITY_TYPES.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         ENCHANTMENTS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
+    }
+
+    private static void onBuildCreativeTabContents(net.minecraftforge.event.BuildCreativeModeTabContentsEvent event) {
+        var tabKey = event.getTabKey();
+        if (tabKey == net.minecraft.world.item.CreativeModeTabs.COMBAT) {
+            event.accept(DRAGONFIRE_SCEPTER.get());
+            event.accept(RESONANT_ECHO.get());
+            event.accept(INFERNO_ROD.get());
+            event.accept(GHASTFIRE_STAFF.get());
+            event.accept(WITHER_SCEPTER.get());
+            event.accept(SHULKER_SEEKER.get());
+            event.accept(GUARDIAN_LENS.get());
+            event.accept(EVOKER_FANG_STAFF.get());
+            event.accept(ARC_CASTER.get());
+            event.accept(FROSTBOLT_WAND.get());
+            event.accept(WEBCASTER.get());
+            event.accept(WIND_STAFF.get());
+            event.accept(OMNI_STAFF.get());
+            event.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
+            event.accept(NETHERITE_RESONANT_ECHO.get());
+            event.accept(NETHERITE_INFERNO_ROD.get());
+            event.accept(NETHERITE_GHASTFIRE_STAFF.get());
+            event.accept(NETHERITE_WITHER_SCEPTER.get());
+            event.accept(NETHERITE_SHULKER_SEEKER.get());
+            event.accept(NETHERITE_GUARDIAN_LENS.get());
+            event.accept(NETHERITE_EVOKER_FANG_STAFF.get());
+            event.accept(NETHERITE_ARC_CASTER.get());
+            event.accept(NETHERITE_FROSTBOLT_WAND.get());
+            event.accept(NETHERITE_WEBCASTER.get());
+            event.accept(NETHERITE_WIND_STAFF.get());
+            event.accept(NETHERITE_OMNI_STAFF.get());
+            event.accept(WIND_CHARGE.get());
+        } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ELEMENTAL_CODEX.get());
+            event.accept(VOID_TRANSLOCATOR.get());
+            event.accept(MAGIC_MIRROR.get());
+            event.accept(NETHERITE_VOID_TRANSLOCATOR.get());
+            event.accept(NETHERITE_MAGIC_MIRROR.get());
+        } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.INGREDIENTS) {
+            event.accept(BREEZE_ROD.get());
+            event.accept(WIND_CHARGE.get());
+            event.accept(PYRO_ELEMENT.get());
+            event.accept(HYDRO_ELEMENT.get());
+            event.accept(ANEMO_ELEMENT.get());
+            event.accept(ELECTRO_ELEMENT.get());
+            event.accept(DENDRO_ELEMENT.get());
+            event.accept(CRYO_ELEMENT.get());
+            event.accept(GEO_ELEMENT.get());
+            event.accept(OMNI_ELEMENT.get());
+        }
     }
 }

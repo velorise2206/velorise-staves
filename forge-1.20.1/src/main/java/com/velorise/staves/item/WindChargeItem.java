@@ -1,7 +1,7 @@
 package com.velorise.staves.item;
 
+import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.entity.WindChargeEntity;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.InteractionHand;
@@ -25,9 +25,7 @@ public final class WindChargeItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.SNOWBALL_THROW, SoundSource.NEUTRAL, 0.5F, 1.35F);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.45F, 1.4F);
+                VeloriseStavesMod.WIND_CHARGE_THROW_SOUND.get(), SoundSource.NEUTRAL, 0.5F, 0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F));
 
         if (!level.isClientSide()) {
             WindChargeEntity projectile = new WindChargeEntity(level, player);

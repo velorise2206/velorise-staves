@@ -59,13 +59,7 @@ public abstract class LivingEntityDamageMixin {
 
         amount = ElementalGaugeManager.applyImbuedSwordHit(entity, source, amount);
 
-        if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(source)) {
-            amount *= 1.4F;
-            if (entity.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(),
-                        8, 0.25D, 0.25D, 0.25D, 0.05D);
-            }
-        }
+        amount = ElementalGaugeManager.applyMobDamageResistances(entity, source, amount);
 
         amount = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, source, amount);
         amount = com.velorise.staves.element.ElementalResonanceManager.modifyIncomingDefenseDamage(entity, source, amount);

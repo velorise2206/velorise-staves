@@ -83,6 +83,7 @@ public final class ArcaneStaffEvents {
     public static void onEntityJoinLevel(EntityJoinLevelEvent event) {
         if (!event.getLevel().isClientSide() && event.getEntity() instanceof LivingEntity living) {
             ElementalGaugeManager.checkInnateMutation(living);
+            com.velorise.staves.element.MobHazardAvoidanceManager.attachGoalIfEligible(living);
         }
         if (event.getEntity() instanceof Snowball snowball && !event.getLevel().isClientSide()) {
             TRACKED_PROJECTILES.add(snowball);
@@ -193,7 +194,7 @@ public final class ArcaneStaffEvents {
 
         if ("ghastfire".equals(baseKind)) {
             event.setCanceled(true);
-            resolveGhastfire(level, hit, owner, isNetherite);
+            resolveGhastfire(level, hit, owner, event.getRayTraceResult(), isNetherite);
             projectile.discard();
             return;
         }
@@ -263,6 +264,20 @@ public final class ArcaneStaffEvents {
             return;
         }
         if (!entity.level().isClientSide()
+                && src.getDirectEntity() instanceof EvokerFangs fangs
+                && fangs.getTags().contains("velorise_staves:geo_fangs")) {
+            entity.invulnerableTime = 0;
+            if (entity.level() instanceof ServerLevel sl) {
+                boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
+                float baseDmg = isNetherite ? 4.5F : 3.0F;
+                float attackU = isNetherite ? 1.5F : 1.0F;
+                ServerPlayer attacker = src.getEntity() instanceof ServerPlayer sp ? sp : null;
+                ElementalGaugeManager.applyElement(sl, entity, Element.GEO, attackU, attacker, baseDmg);
+            }
+            event.setCanceled(true);
+            return;
+        }
+        if (!entity.level().isClientSide()
                 && event.getSource().is(DamageTypeTags.IS_FIRE)
                 && ElementalGaugeManager.isPyroInnate(entity)) {
             ElementalGaugeManager.extinguishPyroInnate(entity);
@@ -288,20 +303,6 @@ public final class ArcaneStaffEvents {
         long now = entity.level().getGameTime();
         DamageSource src = event.getSource();
 
-        // 0. Tremor Staff Evoker Fangs: cancel vanilla 6.0 magic damage, reset i-frames from vanilla bite, apply custom Geo element & damage
-        if (src.getDirectEntity() instanceof EvokerFangs fangs && fangs.getTags().contains("velorise_staves:geo_fangs")) {
-            event.setNewDamage(0.0F);
-            entity.invulnerableTime = 0;
-            if (entity.level() instanceof ServerLevel sl) {
-                boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
-                float baseDmg = isNetherite ? 4.5F : 3.0F;
-                float attackU = isNetherite ? 1.5F : 1.0F;
-                ServerPlayer attacker = src.getEntity() instanceof ServerPlayer sp ? sp : null;
-                ElementalGaugeManager.applyElement(sl, entity, Element.GEO, attackU, attacker, baseDmg);
-            }
-            return;
-        }
-
         // 0B. Environmental Fire Reaction Amplification (Forward Melt on Stray in sunlight, Reverse Vaporize)
         event.setNewDamage(ElementalGaugeManager.modifyIncomingEnvironmentalDamage(entity, src, event.getNewDamage()));
 
@@ -318,13 +319,8 @@ public final class ArcaneStaffEvents {
         // 1B. Imbued Sword elemental hit (full-strength swing >= 0.9F applies 1U + scales physical damage on reactions)
         event.setNewDamage(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getNewDamage()));
 
-        // 2. Superconduct Physical RES Shred (-40% Physical Resistance -> +40% Physical Damage Taken)
-        if (ElementalGaugeManager.hasSuperconductDebuff(entity, now) && ElementalGaugeManager.isPhysicalDamage(event.getSource())) {
-            event.setNewDamage(event.getNewDamage() * 1.4F);
-            if (entity.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.05D);
-            }
-        }
+        // 2. Base Mob Resistances (10% Elemental/Physical, Iron Golem 70% Physical, Warden 70% Anemo) & Superconduct Physical RES Shred (-40%)
+        event.setNewDamage(ElementalGaugeManager.applyMobDamageResistances(entity, src, event.getNewDamage()));
 
         // 3. Elemental Resonance: Geo Shield DMG, Cryo CRIT on physical hits, Protective Canopy DMG reduction
         float resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, src, event.getNewDamage());
@@ -453,6 +449,8 @@ public final class ArcaneStaffEvents {
             float baseDmg = isNetherite ? 4.5F : 3.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
+        } else if (event.getRayTraceResult() instanceof BlockHitResult bhr) {
+            com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, isNetherite ? 2 : 1);
         DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
@@ -461,7 +459,7 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.8F, 1.0F);
     }
 
-    private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
+    private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, net.minecraft.world.phys.HitResult hitResult, boolean isNetherite) {
         double radius = isNetherite ? 4.5D : 3.5D;
         float baseDmg = isNetherite ? 9.0F : 6.0F;
         float attackU = isNetherite ? 4.0F : 2.0F;
@@ -472,6 +470,9 @@ public final class ArcaneStaffEvents {
                 target.igniteForSeconds(isNetherite ? 5 : 4);
             }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
+        }
+        if (affected.isEmpty() && hitResult instanceof BlockHitResult bhr) {
+            com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, (int) Math.round(radius * 0.6D));
         DendroCoreManager.checkReactionsNear(level, hit, radius, Element.PYRO, player);
@@ -813,6 +814,13 @@ public final class ArcaneStaffEvents {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get()));
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player) {
+            ElementalGaugeManager.clearEntityState(player);
         }
     }
 }

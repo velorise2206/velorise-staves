@@ -75,10 +75,86 @@ public final class ClientAuraTracker {
         public long lastJitterTime = 0L;
     }
 
+    public static class FloatingCombatText {
+        public final double worldX;
+        public final double worldY;
+        public final double worldZ;
+        public final @Nullable ElementalReaction reaction;
+        public final float damage;
+        public final @Nullable Element damageElement;
+        public final long startTime;
+        public final long reactionUntil;
+        public final long damageUntil;
+        public final long until;
+
+        public FloatingCombatText(
+                double worldX,
+                double worldY,
+                double worldZ,
+                @Nullable ElementalReaction reaction,
+                float damage,
+                @Nullable Element damageElement,
+                long startTime,
+                long reactionUntil,
+                long damageUntil
+        ) {
+            this.worldX = worldX;
+            this.worldY = worldY;
+            this.worldZ = worldZ;
+            this.reaction = reaction;
+            this.damage = damage;
+            this.damageElement = damageElement;
+            this.startTime = startTime;
+            this.reactionUntil = reactionUntil;
+            this.damageUntil = damageUntil;
+            this.until = Math.max(reaction != null ? reactionUntil : 0L, damage > 0.0F ? damageUntil : 0L);
+        }
+    }
+
     public static final List<ActiveArc> ACTIVE_ARCS = new java.util.concurrent.CopyOnWriteArrayList<>();
+    public static final List<FloatingCombatText> FLOATING_TEXTS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public static void addFloatingText(
+            double x,
+            double y,
+            double z,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            @Nullable Element damageElement
+    ) {
+        if ((reaction == null || reaction == ElementalReaction.NONE) && damage <= 0.0F) return;
+        long now = System.currentTimeMillis();
+        if (FLOATING_TEXTS.size() > 256) {
+            FLOATING_TEXTS.removeIf(t -> now >= t.until);
+            while (FLOATING_TEXTS.size() > 256) {
+                FLOATING_TEXTS.remove(0);
+            }
+        }
+        java.util.concurrent.ThreadLocalRandom rng = java.util.concurrent.ThreadLocalRandom.current();
+        double ox = (rng.nextDouble() - 0.5D) * 0.56D;
+        double oy = (rng.nextDouble() - 0.5D) * 0.28D;
+        double oz = (rng.nextDouble() - 0.5D) * 0.56D;
+        FLOATING_TEXTS.add(new FloatingCombatText(
+                x + ox,
+                y + oy,
+                z + oz,
+                reaction,
+                damage,
+                damageElement,
+                now,
+                now + 1600L,
+                now + 1500L
+        ));
+    }
 
     public static void addArc(int fromId, net.minecraft.world.phys.Vec3 start, int toId, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
         long now = System.currentTimeMillis();
+        if (ACTIVE_ARCS.size() > 256) {
+            ACTIVE_ARCS.removeIf(a -> now >= a.expireTime);
+            if (ACTIVE_ARCS.size() > 256) {
+                return;
+            }
+        }
         ActiveArc arc = new ActiveArc();
         arc.fromEntityId = fromId;
         arc.start = start;
@@ -88,6 +164,14 @@ public final class ClientAuraTracker {
         arc.expireTime = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
         arc.color = color;
         ACTIVE_ARCS.add(arc);
+    }
+
+    public static void pruneStale(net.minecraft.client.multiplayer.ClientLevel level) {
+        if (level == null) return;
+        long now = System.currentTimeMillis();
+        DATA.entrySet().removeIf(e -> level.getEntity(e.getKey()) == null);
+        ACTIVE_ARCS.removeIf(a -> now >= a.expireTime);
+        FLOATING_TEXTS.removeIf(t -> now >= t.until);
     }
 
     private ClientAuraTracker() {}
@@ -135,6 +219,23 @@ public final class ClientAuraTracker {
             int durationTicks,
             boolean isFrozenState
     ) {
+        update(entityId, elements, reactedAura, trigger, reaction, damage, durationTicks, isFrozenState, false, Double.NaN, Double.NaN, Double.NaN);
+    }
+
+    public static void update(
+            int entityId,
+            List<Element> elements,
+            @Nullable Element reactedAura,
+            @Nullable Element trigger,
+            @Nullable ElementalReaction reaction,
+            float damage,
+            int durationTicks,
+            boolean isFrozenState,
+            boolean hasPos,
+            double posX,
+            double posY,
+            double posZ
+    ) {
         long now = System.currentTimeMillis();
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (reaction == ElementalReaction.CRYSTALLIZE && mc.player != null && mc.player.getId() == entityId && elements.isEmpty() && trigger == null) {
@@ -172,11 +273,13 @@ public final class ClientAuraTracker {
             entry.elements.add(0, entry.permanentInnateElement);
         }
 
+        boolean spawnReaction = false;
         if (reaction != null && reaction != ElementalReaction.NONE) {
             boolean keepOngoingBurningBanner = (reaction == ElementalReaction.BURNING
                     && entry.reaction == ElementalReaction.BURNING
                     && now < entry.reactionUntil);
             if (!keepOngoingBurningBanner) {
+                spawnReaction = true;
                 entry.reaction = reaction;
                 entry.reactionStartTime = now;
                 entry.reactionUntil = now + 1600; // 32 ticks (1.6 seconds) floating reaction text
@@ -190,11 +293,32 @@ public final class ClientAuraTracker {
             }
         }
 
-        if (damage > 0.0F) {
+        boolean spawnDamage = damage > 0.0F;
+        if (spawnDamage) {
             entry.lastDamage = damage;
             entry.damageElement = trigger != null ? trigger : (reactedAura != null ? reactedAura : null);
             entry.damageStartTime = now;
             entry.damageUntil = now + 1500; // 30 ticks (1.5 seconds) floating damage number
+        }
+
+        if (spawnReaction || spawnDamage) {
+            double bx = posX;
+            double by = posY;
+            double bz = posZ;
+            if (!hasPos || Double.isNaN(bx) || Double.isNaN(by) || Double.isNaN(bz)) {
+                net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
+                if (e != null) {
+                    bx = e.getX();
+                    by = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
+                    bz = e.getZ();
+                } else {
+                    bx = Double.NaN;
+                }
+            }
+            if (!Double.isNaN(bx)) {
+                Element dmgElem = trigger != null ? trigger : reactedAura;
+                addFloatingText(bx, by, bz, spawnReaction ? reaction : null, spawnDamage ? damage : 0.0F, dmgElem);
+            }
         }
 
         if (isFrozenState || reaction == ElementalReaction.FROZEN) {
@@ -248,6 +372,7 @@ public final class ClientAuraTracker {
     public static void clear() {
         DATA.clear();
         ACTIVE_ARCS.clear();
+        FLOATING_TEXTS.clear();
         activeCrystallizeShield = null;
         crystallizeShieldUntil = 0L;
         localResonanceMask = 0;

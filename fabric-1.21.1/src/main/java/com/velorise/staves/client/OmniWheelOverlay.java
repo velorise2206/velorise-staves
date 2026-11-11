@@ -300,6 +300,8 @@ public final class OmniWheelOverlay {
         guiGraphics.fill(badgeX, badgeY, badgeX + badgeW, badgeY + 18, 0xB80E111A);
         ClientAuraRenderer.renderColoredBorder(guiGraphics, badgeX, badgeY, badgeW, 18, accent);
 
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
         guiGraphics.blit(SLOT_TEXTURES[mode], badgeX + 3, badgeY + 2, 0.0F, 0.0F, 14, 14, 14, 14);
         guiGraphics.drawString(font, label, badgeX + 20, badgeY + 5, accent, true);

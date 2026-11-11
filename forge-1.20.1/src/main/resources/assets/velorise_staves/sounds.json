@@ -1,0 +1,22 @@
+{
+  "magic_mirror_use": {
+    "subtitle": "subtitles.velorise_staves.magic_mirror_use",
+    "sounds": [
+      "velorise_staves:magic_mirror_use"
+    ]
+  },
+  "wind_charge_throw": {
+    "subtitle": "subtitles.velorise_staves.wind_charge_throw",
+    "sounds": [
+      "velorise_staves:wind_charge/throw"
+    ]
+  },
+  "wind_charge_burst": {
+    "subtitle": "subtitles.velorise_staves.wind_charge_burst",
+    "sounds": [
+      "velorise_staves:wind_charge/wind_burst1",
+      "velorise_staves:wind_charge/wind_burst2",
+      "velorise_staves:wind_charge/wind_burst3"
+    ]
+  }
+}

@@ -6,11 +6,13 @@
     "ProjectileMixin",
     "LivingEntityDamageMixin",
     "ItemStackMixin",
-    "AnvilMenuMixin"
+    "AnvilMenuMixin",
+    "MobAccessor"
   ],
   "client": [
     "LivingEntityRendererMixin",
     "ScreenMixin",
+    "EffectRenderingInventoryScreenMixin",
     "AbstractContainerScreenAccessor",
     "EntityTurnMixin",
     "CameraMixin",

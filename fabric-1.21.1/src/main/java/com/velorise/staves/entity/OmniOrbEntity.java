@@ -65,16 +65,6 @@ public class OmniOrbEntity extends ThrowableProjectile {
             Element.GEO      // 7
     };
 
-    private static final Element[] AURA_CYCLE_ORDER = {
-            Element.PYRO,
-            Element.HYDRO,
-            Element.CRYO,
-            Element.ELECTRO,
-            Element.DENDRO
-    };
-
-    private static final Map<UUID, Integer> OMNI_CYCLE_MAP = new ConcurrentHashMap<>();
-
     private static final EntityDataAccessor<Byte> DATA_MODE =
             SynchedEntityData.defineId(OmniOrbEntity.class, EntityDataSerializers.BYTE);
     private static final EntityDataAccessor<Boolean> DATA_NETHERITE =
@@ -105,7 +95,9 @@ public class OmniOrbEntity extends ThrowableProjectile {
     }
 
     public static void clearCycleCache() {
-        OMNI_CYCLE_MAP.clear();
+    }
+
+    public static void removeCycleEntry(UUID id) {
     }
 
     public static int clampMode(int mode) {
@@ -355,6 +347,9 @@ public class OmniOrbEntity extends ThrowableProjectile {
         }
 
         applyEnvironmentImpact(serverLevel, hitPos, chosen, attacker);
+        if (directTarget == null && chosen == Element.PYRO && hitResult instanceof BlockHitResult bhr) {
+            EnvironmentalBlockManager.igniteSingleHitBlock(serverLevel, bhr.getBlockPos(), bhr.getDirection());
+        }
         spawnImpactEffects(serverLevel, hitPos, chosen, mode == 0);
         if (isTimeout) {
             serverLevel.sendParticles(ParticleTypes.EXPLOSION, hitPos.x, hitPos.y + 0.1D, hitPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
@@ -468,7 +463,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
             return chooseBestElementForTarget(nearestMob, attacker);
         }
 
-        return nextCyclicElement(attacker != null ? attacker.getUUID() : this.getUUID(), false);
+        return Element.PYRO;
     }
 
     public static Element chooseBestElementForTarget(LivingEntity target, @Nullable ServerPlayer attacker) {
@@ -476,56 +471,51 @@ public class OmniOrbEntity extends ThrowableProjectile {
         Collection<Element> active = ElementalGaugeManager.getEntityElements(target.getUUID());
         boolean frozen = ElementalGaugeManager.isEntityFrozen(target);
         boolean quickened = ElementalGaugeManager.isEntityQuickened(target);
-        boolean avoidPyroDamage = target.fireImmune() && innate != Element.CRYO;
+        boolean fireResistant = ElementalGaugeManager.isPyroResistant(target);
+        boolean avoidPyroDamage = fireResistant && innate != Element.CRYO;
 
+        // Cryo / Frozen -> Pyro
         if (frozen || active.contains(Element.CRYO) || innate == Element.CRYO) {
-            if (innate != Element.PYRO && !target.fireImmune()) return Element.PYRO;
+            if (!fireResistant && innate != Element.PYRO) return Element.PYRO;
             if (innate != Element.ELECTRO) return Element.ELECTRO;
         }
 
+        // Pyro -> Hydro
         if (active.contains(Element.PYRO) || innate == Element.PYRO) {
             if (innate != Element.HYDRO) return Element.HYDRO;
             if (innate != Element.CRYO) return Element.CRYO;
             if (innate != Element.ELECTRO) return Element.ELECTRO;
         }
 
+        // Hydro -> Pyro
         if (active.contains(Element.HYDRO) || innate == Element.HYDRO) {
             if (!avoidPyroDamage && innate != Element.PYRO) return Element.PYRO;
-            if (innate != Element.DENDRO) return Element.DENDRO;
             if (innate != Element.ELECTRO) return Element.ELECTRO;
+            if (innate != Element.DENDRO) return Element.DENDRO;
         }
 
-        if (quickened) {
+        // Dendro / Quickened -> Electro
+        if (quickened || active.contains(Element.DENDRO) || innate == Element.DENDRO) {
             if (innate != Element.ELECTRO) return Element.ELECTRO;
-            if (innate != Element.DENDRO) return Element.DENDRO;
-        }
-        if (active.contains(Element.DENDRO) || innate == Element.DENDRO) {
             if (!avoidPyroDamage && innate != Element.PYRO) return Element.PYRO;
-            if (innate != Element.ELECTRO) return Element.ELECTRO;
+            if (innate != Element.HYDRO) return Element.HYDRO;
         }
 
+        // Electro -> Cryo
         if (active.contains(Element.ELECTRO) || innate == Element.ELECTRO) {
+            if (innate != Element.CRYO) return Element.CRYO;
             if (!avoidPyroDamage && innate != Element.PYRO) return Element.PYRO;
             if (innate != Element.DENDRO) return Element.DENDRO;
-            if (innate != Element.CRYO) return Element.CRYO;
         }
 
-        if (innate == Element.ANEMO || innate == Element.GEO) {
-            return avoidPyroDamage ? Element.HYDRO : Element.PYRO;
+        // Geo -> Pyro
+        if (innate == Element.GEO) {
+            if (!avoidPyroDamage && innate != Element.PYRO) return Element.PYRO;
+            if (innate != Element.HYDRO) return Element.HYDRO;
         }
 
-        return nextCyclicElement(attacker != null ? attacker.getUUID() : target.getUUID(), avoidPyroDamage);
-    }
-
-    private static Element nextCyclicElement(UUID key, boolean avoidPyro) {
-        int idx = OMNI_CYCLE_MAP.getOrDefault(key, 0);
-        Element picked = AURA_CYCLE_ORDER[Math.floorMod(idx, AURA_CYCLE_ORDER.length)];
-        if (avoidPyro && picked == Element.PYRO) {
-            idx++;
-            picked = AURA_CYCLE_ORDER[Math.floorMod(idx, AURA_CYCLE_ORDER.length)];
-        }
-        OMNI_CYCLE_MAP.put(key, (idx + 1) % AURA_CYCLE_ORDER.length);
-        return picked;
+        // Anemo / Clean target -> deterministic base element (Pyro, or Hydro vs Pyro-resistant)
+        return avoidPyroDamage ? Element.HYDRO : Element.PYRO;
     }
 
     private static boolean isTeslaCoilNearby(ServerLevel level, BlockPos center) {

@@ -29,6 +29,7 @@ import net.minecraft.world.item.Items;
 import org.joml.Quaternionf;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Interactive in-game guidebook ("Elemental Codex") with categorized sidebar navigation,
@@ -106,7 +108,8 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "bloom", new String[]{"bloom"}, new String[]{"bloom"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "catalyze", new String[]{"quicken", "aggravate", "spread"}, new String[]{"catalyze", "quicken", "quickened", "aggravate", "spread"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "burning", new String[]{"burning"}, new String[]{"burning"}),
-            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "crystallize", new String[]{"crystallize"}, new String[]{"crystallize", "crystallized"})
+            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "crystallize", new String[]{"crystallize"}, new String[]{"crystallize", "crystallized"}),
+            new ReactionLinkSpec(Tab.RESONANCE, "tab_resonance", new String[]{}, new String[]{"elemental resonance", "resonance"})
     );
 
     private static boolean containsCjkOrHangul(String s) {
@@ -162,6 +165,7 @@ public class ElementalCodexScreen extends Screen {
             Element elem1,
             Element elem2,
             List<Element> elemGroup,
+            boolean dynamicElemGroup,
             boolean plusBeforeItem1,
             boolean omniElem1,
             ResourceLocation customIcon,
@@ -185,7 +189,7 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, null, null, item1, item2, null, null, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, false, null, null, item1, item2, null, null, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard(
@@ -202,7 +206,7 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, elemGroup, false, false, null, null, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, elemGroup, false, false, false, null, null, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard(
@@ -216,23 +220,27 @@ public class ElementalCodexScreen extends Screen {
                 int badgeColor,
                 List<String> paragraphs
         ) {
-            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, null, null, ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
+            this(null, title, borderColor, elem1, elem2, Collections.emptyList(), false, false, false, null, null, ItemStack.EMPTY, ItemStack.EMPTY, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withKey(String key) {
-            return new GuideCard(key, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, omniElem1, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(key, title, borderColor, elem1, elem2, elemGroup, dynamicElemGroup, plusBeforeItem1, omniElem1, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+        }
+
+        GuideCard withDynamicElemGroup() {
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, true, plusBeforeItem1, omniElem1, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withPlusItem1() {
-            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, true, omniElem1, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, dynamicElemGroup, true, omniElem1, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withOmniIcon() {
-            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, true, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, dynamicElemGroup, plusBeforeItem1, true, customIcon, customIconTitleKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
 
         GuideCard withCustomIcon(ResourceLocation icon, String tooltipKey) {
-            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, plusBeforeItem1, omniElem1, icon, tooltipKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
+            return new GuideCard(cardKey, title, borderColor, elem1, elem2, elemGroup, dynamicElemGroup, plusBeforeItem1, omniElem1, icon, tooltipKey, item1, item2, mob1, mob2, badgeText, badgeColor, paragraphs);
         }
     }
 
@@ -250,6 +258,8 @@ public class ElementalCodexScreen extends Screen {
     private String cachedLinkLang = null;
     private List<ReactionLink> cachedReactionLinks = Collections.emptyList();
     private final Map<Tab, CachedTabContent> tabCache = new EnumMap<>(Tab.class);
+    private long lastDynamicGroupCycle = -1L;
+    private List<Element> dynamicGroupElements = List.of(Element.PYRO, Element.HYDRO, Element.ANEMO, Element.DENDRO);
 
     public ElementalCodexScreen(Screen parent) {
         super(Component.translatable("codex.velorise_staves.title"));
@@ -435,43 +445,43 @@ public class ElementalCodexScreen extends Screen {
             case ELEMENTS -> {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.pyro.title"), 0xFFFF453A,
-                        Element.PYRO, null, getModItemStack("inferno_rod"), getModItemStack("ghastfire_staff"),
+                        Element.PYRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.PYRO).toUpperCase(Locale.ROOT), 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.elem.pyro.p1"), tr("codex.velorise_staves.elem.pyro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.hydro.title"), 0xFF0A84FF,
-                        Element.HYDRO, null, getModItemStack("guardian_lens"), ItemStack.EMPTY,
+                        Element.HYDRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.HYDRO).toUpperCase(Locale.ROOT), 0xFF0A84FF,
                         List.of(tr("codex.velorise_staves.elem.hydro.p1"), tr("codex.velorise_staves.elem.hydro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
-                        Element.ANEMO, null, getModItemStack("wind_staff"), getModItemStack("resonant_echo"),
+                        Element.ANEMO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.ANEMO).toUpperCase(Locale.ROOT), 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.electro.title"), 0xFFBF5AF2,
-                        Element.ELECTRO, null, getModItemStack("arc_caster"), getModItemStack("shulker_seeker"),
+                        Element.ELECTRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.ELECTRO).toUpperCase(Locale.ROOT), 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.elem.electro.p1"), tr("codex.velorise_staves.elem.electro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.dendro.title"), 0xFF32D74B,
-                        Element.DENDRO, null, getModItemStack("wither_scepter"), getModItemStack("webcaster"),
+                        Element.DENDRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.DENDRO).toUpperCase(Locale.ROOT), 0xFF32D74B,
                         List.of(tr("codex.velorise_staves.elem.dendro.p1"), tr("codex.velorise_staves.elem.dendro.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.cryo.title"), 0xFF64D2FF,
-                        Element.CRYO, null, getModItemStack("frostbolt_wand"), ItemStack.EMPTY,
+                        Element.CRYO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.CRYO).toUpperCase(Locale.ROOT), 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.elem.cryo.p1"), tr("codex.velorise_staves.elem.cryo.p2"))
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.geo.title"), 0xFFFFD60A,
-                        Element.GEO, null, getModItemStack("evoker_fang_staff"), ItemStack.EMPTY,
+                        Element.GEO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.GEO).toUpperCase(Locale.ROOT), 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.elem.geo.p1"), tr("codex.velorise_staves.elem.geo.p2"))
                 ));
@@ -566,7 +576,7 @@ public class ElementalCodexScreen extends Screen {
                         tr("codex.velorise_staves.react.crystallize.title"), 0xFFFFD60A,
                         Element.GEO, null,
                         List.of(Element.PYRO, Element.HYDRO, Element.CRYO, Element.ELECTRO),
-                        ItemStack.EMPTY, ItemStack.EMPTY,
+                        getModItemStack("pyro_crystallize_shard"), ItemStack.EMPTY,
                         null, null,
                         "§f\uE009§r +" + fmtHearts(2.0), 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.react.crystallize.p1"), tr("codex.velorise_staves.react.crystallize.p2"))
@@ -858,7 +868,7 @@ public class ElementalCodexScreen extends Screen {
                 ItemStack.EMPTY, ItemStack.EMPTY, null, null,
                 tr("codex.velorise_staves.res.badge.four"), 0xFFFFD60A,
                 List.of(tr("codex.velorise_staves.res.canopy.p1"))
-        ));
+        ).withDynamicElemGroup());
     }
 
     @Override
@@ -1294,7 +1304,7 @@ public class ElementalCodexScreen extends Screen {
         Map<String, Integer> offsets = new HashMap<>();
         int totalH = 48 + 6;
         for (GuideCard card : cards) {
-            PreparedCard pc = prepareGuideCard(card, innerW, activeLinks, linkCounter);
+            PreparedCard pc = prepareGuideCard(card, tab, innerW, activeLinks, linkCounter);
             if (card.cardKey != null) {
                 offsets.put(card.cardKey, totalH);
             }
@@ -1307,7 +1317,29 @@ public class ElementalCodexScreen extends Screen {
         return built;
     }
 
-    private PreparedCard prepareGuideCard(GuideCard card, int w, List<ReactionLink> links, int[] linkCounter) {
+    private List<Element> getDynamicRandomGroup(int count) {
+        long cycle = System.currentTimeMillis() / 1200L;
+        if (cycle != this.lastDynamicGroupCycle || this.dynamicGroupElements.size() != count) {
+            this.lastDynamicGroupCycle = cycle;
+            List<Element> pool = new ArrayList<>(Arrays.asList(GENSHIN_ELEMENTS_ORDER));
+            ThreadLocalRandom rng = ThreadLocalRandom.current();
+            List<Element> picked = this.dynamicGroupElements;
+            int drawCount = Math.min(count, pool.size());
+            for (int attempt = 0; attempt < 4; attempt++) {
+                Collections.shuffle(pool, rng);
+                List<Element> candidate = List.copyOf(pool.subList(0, drawCount));
+                if (!candidate.equals(picked)) {
+                    picked = candidate;
+                    break;
+                }
+                picked = candidate;
+            }
+            this.dynamicGroupElements = picked;
+        }
+        return this.dynamicGroupElements;
+    }
+
+    private PreparedCard prepareGuideCard(GuideCard card, Tab ownTab, int w, List<ReactionLink> links, int[] linkCounter) {
         int pad = 6;
         int textW = w - pad * 2 - 4;
 
@@ -1316,7 +1348,13 @@ public class ElementalCodexScreen extends Screen {
         if (card.elem1 != null || card.omniElem1) iconOffset += 17;
         if (card.elem2 != null) iconOffset += 6 + 17;
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
-            iconOffset += 6 + 5 + card.elemGroup.size() * 16 + (card.elemGroup.size() - 1) * 5 + 7;
+            boolean hasLeftOperand = card.elem1 != null || card.omniElem1;
+            int groupSize = card.elemGroup.size();
+            if (hasLeftOperand) {
+                iconOffset += 6 + 5 + groupSize * 16 + (groupSize - 1) * 5 + 7;
+            } else {
+                iconOffset += groupSize * 16 + (groupSize - 1) * 5 + 2;
+            }
         }
         if (card.plusBeforeItem1 && !card.item1.isEmpty()) iconOffset += 6;
         if (!card.item1.isEmpty()) iconOffset += 17;
@@ -1357,7 +1395,7 @@ public class ElementalCodexScreen extends Screen {
 
         List<PreparedLine> wrappedLines = new ArrayList<>();
         for (String p : card.paragraphs) {
-            MutableComponent paraComp = buildParagraphComponent(p, card.cardKey, links, linkCounter);
+            MutableComponent paraComp = buildParagraphComponent(p, ownTab, card.cardKey, links, linkCounter);
             for (FormattedCharSequence seq : this.font.split(paraComp, textW)) {
                 wrappedLines.add(prepareLine(seq));
             }
@@ -1409,20 +1447,30 @@ public class ElementalCodexScreen extends Screen {
             iconX += 17;
         }
         if (card.elemGroup != null && !card.elemGroup.isEmpty()) {
-            guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
-            iconX += 6;
-            guiGraphics.drawString(this.font, "(", iconX, iconY + 4, 0xFFA0B0C8, true);
-            iconX += 5;
-            for (int i = 0; i < card.elemGroup.size(); i++) {
-                renderHoveredElement(guiGraphics, card.elemGroup.get(i), iconX, iconY, mouseX, mouseY);
+            List<Element> displayGroup = card.dynamicElemGroup
+                    ? getDynamicRandomGroup(card.elemGroup.size())
+                    : card.elemGroup;
+            boolean hasLeftOperand = card.elem1 != null || card.omniElem1;
+            if (hasLeftOperand) {
+                guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
+                iconX += 6;
+                guiGraphics.drawString(this.font, "(", iconX, iconY + 4, 0xFFA0B0C8, true);
+                iconX += 5;
+            }
+            for (int i = 0; i < displayGroup.size(); i++) {
+                renderHoveredElement(guiGraphics, displayGroup.get(i), iconX, iconY, mouseX, mouseY);
                 iconX += 16;
-                if (i < card.elemGroup.size() - 1) {
+                if (i < displayGroup.size() - 1) {
                     guiGraphics.drawString(this.font, "|", iconX + 2, iconY + 4, 0xFF708098, false);
                     iconX += 5;
                 }
             }
-            guiGraphics.drawString(this.font, ")", iconX + 1, iconY + 4, 0xFFA0B0C8, true);
-            iconX += 7;
+            if (hasLeftOperand) {
+                guiGraphics.drawString(this.font, ")", iconX + 1, iconY + 4, 0xFFA0B0C8, true);
+                iconX += 7;
+            } else {
+                iconX += 2;
+            }
         }
         if (card.plusBeforeItem1 && !card.item1.isEmpty()) {
             guiGraphics.drawString(this.font, "+", iconX, iconY + 4, 0xFFFFD60A, true);
@@ -1513,6 +1561,7 @@ public class ElementalCodexScreen extends Screen {
 
     private static MutableComponent buildParagraphComponent(
             String raw,
+            Tab ownTab,
             String ownCardKey,
             List<ReactionLink> links,
             int[] linkCounter
@@ -1562,6 +1611,7 @@ public class ElementalCodexScreen extends Screen {
         boolean[] used = new boolean[n];
         for (ReactionLink link : links) {
             if (ownCardKey != null && ownCardKey.equals(link.cardKey())) continue;
+            if (ownTab == Tab.RESONANCE && link.tab() == Tab.RESONANCE) continue;
             String kw = link.keyword();
             int len = kw.length();
             if (len == 0 || len > lower.length()) continue;
@@ -1811,6 +1861,7 @@ public class ElementalCodexScreen extends Screen {
     private void drawGuiTextureIcon(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y) {
         if (tex != null) {
             RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
             guiGraphics.blit(tex, x, y, 0.0F, 0.0F, 16, 16, 16, 16);
         }

@@ -154,6 +154,10 @@ public final class ElementalResonanceManager {
         return StavesConfig.getMaxStavesInInventory();
     }
 
+    public static boolean isOverloadExempt(@Nullable Player player) {
+        return player != null && (player.isCreative() || player.isSpectator());
+    }
+
     public static void clearPlayerState(UUID playerId) {
         PLAYER_STATES.remove(playerId);
         LAST_SYNCED.remove(playerId);
@@ -248,7 +252,7 @@ public final class ElementalResonanceManager {
         }
 
         int cap = getMaxStavesCap();
-        if (cap > 0 && uniqueStaffCount > cap) {
+        if (!isOverloadExempt(player) && cap > 0 && uniqueStaffCount > cap) {
             return new PlayerResonanceState(Collections.emptySet(), true, uniqueStaffCount);
         }
 
@@ -352,8 +356,9 @@ public final class ElementalResonanceManager {
         }
 
         if (now % 100L == 0L) {
-            GEO_RES_SHRED_UNTIL.entrySet().removeIf(e -> now >= e.getValue());
-            DENDRO_BONUS_EM_UNTIL.entrySet().removeIf(e -> now >= e.getValue());
+            GEO_RES_SHRED_UNTIL.entrySet().removeIf(e -> now >= e.getValue() || (e.getValue() - now) > 600L);
+            DENDRO_BONUS_EM_UNTIL.entrySet().removeIf(e -> now >= e.getValue() || (e.getValue() - now) > 300L);
+            ELECTRO_PARTICLE_ICD.entrySet().removeIf(e -> Math.abs(now - e.getValue()) > 100L);
         }
     }
 
@@ -412,7 +417,7 @@ public final class ElementalResonanceManager {
     }
 
     public static boolean isOverloaded(@Nullable Player player) {
-        if (player == null || !StavesConfig.isElementalResonanceEnabled()) return false;
+        if (player == null || isOverloadExempt(player) || !StavesConfig.isElementalResonanceEnabled()) return false;
         PlayerResonanceState state = evaluatePlayerInventory(player);
         if (!player.level().isClientSide()) {
             PLAYER_STATES.put(player.getUUID(), state);
@@ -448,7 +453,7 @@ public final class ElementalResonanceManager {
     public static void onElectroReactionTriggered(@Nullable ServerPlayer attacker, long now) {
         if (attacker == null || !hasResonance(attacker, ResonanceType.ELECTRO)) return;
         Long last = ELECTRO_PARTICLE_ICD.get(attacker.getUUID());
-        if (last != null && (now - last) < 100L) return;
+        if (last != null && now >= last && (now - last) < 100L) return;
         ELECTRO_PARTICLE_ICD.put(attacker.getUUID(), now);
 
         ItemStack held = attacker.getMainHandItem();

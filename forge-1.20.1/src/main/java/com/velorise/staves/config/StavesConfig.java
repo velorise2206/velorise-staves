@@ -162,7 +162,7 @@ public final class StavesConfig {
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);
         WIND_COOLDOWN = builder.defineInRange("wind_cooldown", 1.5D, 0.2D, 60.0D);
-        OMNI_COOLDOWN = builder.defineInRange("omni_cooldown", 2.0D, 0.2D, 60.0D);
+        OMNI_COOLDOWN = builder.defineInRange("omni_cooldown", 6.0D, 0.2D, 60.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
