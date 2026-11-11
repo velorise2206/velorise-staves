@@ -4,7 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "ProjectileMixin",
-    "LivingEntityDamageMixin"
+    "LivingEntityDamageMixin",
+    "ItemStackMixin"
   ],
   "client": [
     "LivingEntityRendererMixin",
@@ -13,7 +14,8 @@
     "EntityTurnMixin",
     "CameraMixin",
     "KeyboardInputMixin",
-    "PlayerTabOverlayMixin"
+    "PlayerTabOverlayMixin",
+    "MouseHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -244,9 +244,10 @@ public final class ArcaneStaffEvents {
         if (entity.level().isClientSide()) return;
         DamageSource src = event.getSource();
 
-        // 0. Tremor Staff Evoker Fangs: cancel vanilla 6.0 magic damage, apply custom Geo element & damage at bite time
+        // 0. Tremor Staff Evoker Fangs: cancel vanilla 6.0 magic damage, reset i-frames from vanilla bite, apply custom Geo element & damage
         if (src.getDirectEntity() instanceof EvokerFangs fangs && fangs.getTags().contains("velorise_staves:geo_fangs")) {
             event.setCanceled(true);
+            entity.invulnerableTime = 0;
             if (entity.level() instanceof ServerLevel sl) {
                 boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
                 float baseDmg = isNetherite ? 4.5F : 3.0F;

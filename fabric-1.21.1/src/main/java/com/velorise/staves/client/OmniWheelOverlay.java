@@ -64,6 +64,19 @@ public final class OmniWheelOverlay {
         OmniOrbEntity.clearCycleCache();
     }
 
+    public static boolean handleMouseButtonPress(int button, int action) {
+        if (!wheelActive || action != GLFW.GLFW_PRESS) return false;
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
+        Minecraft mc = Minecraft.getInstance();
+        int chosen = hoveredSlot >= 0 ? hoveredSlot : ArcaneStaffItem.getOmniModeIndex(getHeldOmniStack(mc.player));
+        commitSelection(mc, chosen);
+        wheelActive = false;
+        suppressedUntilRelease = true;
+        hoveredSlot = -1;
+        mc.mouseHandler.grabMouse();
+        return true;
+    }
+
     public static boolean shouldSuppressTabList() {
         if (wheelActive || suppressedUntilRelease) return true;
         Minecraft mc = Minecraft.getInstance();

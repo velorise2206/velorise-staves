@@ -412,7 +412,7 @@ public class ElementalCodexScreen extends Screen {
                 ));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
-                        Element.ANEMO, null, getModItemStack("wind_staff"), getModItemStack("resonant_echo"),
+                        Element.ANEMO, null, getModItemStack("resonant_echo"), ItemStack.EMPTY,
                         elemTitle(Element.ANEMO).toUpperCase(Locale.ROOT), 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
                 ));
@@ -505,13 +505,13 @@ public class ElementalCodexScreen extends Screen {
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.burgeon.title"), 0xFFFF9F0A,
                         Element.PYRO, null, getModItemStack("dendro_core"), ItemStack.EMPTY,
-                        tr("codex.velorise_staves.badge.burgeon", fmtHearts(8.0 * dmgMult) + "§f\uE008§r"), 0xFFFF9F0A,
+                        tr("codex.velorise_staves.badge.burgeon", fmtHearts(17.5 * dmgMult) + "§f\uE008§r"), 0xFFFF9F0A,
                         List.of(tr("codex.velorise_staves.react.burgeon.p1"))
                 ).withKey("burgeon").withPlusItem1());
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.react.hyperbloom.title"), 0xFFDA70D6,
                         Element.ELECTRO, null, getModItemStack("dendro_core"), ItemStack.EMPTY,
-                        tr("codex.velorise_staves.badge.hyperbloom", fmtHearts(8.0 * dmgMult) + "§f\uE008§r"), 0xFFDA70D6,
+                        tr("codex.velorise_staves.badge.hyperbloom", fmtHearts(16.0 * dmgMult) + "§f\uE008§r"), 0xFFDA70D6,
                         List.of(tr("codex.velorise_staves.react.hyperbloom.p1"))
                 ).withKey("hyperbloom").withPlusItem1());
                 cards.add(new GuideCard(

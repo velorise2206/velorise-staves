@@ -190,10 +190,14 @@ public final class StavesConfig {
     private StavesConfig() {}
 
     public static void save() {
+        save(true);
+    }
+
+    public static void save(boolean refreshSyncedSnapshot) {
         try {
             SPEC.save();
         } catch (Exception ignored) {}
-        if (syncedServerData != null) {
+        if (refreshSyncedSnapshot && syncedServerData != null) {
             syncedServerData = createSnapshotFromLocal();
         }
     }

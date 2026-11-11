@@ -275,6 +275,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
             entries.accept(WIND_STAFF);
+            entries.accept(OMNI_STAFF);
             entries.accept(NETHERITE_DRAGONFIRE_SCEPTER);
             entries.accept(NETHERITE_RESONANT_ECHO);
             entries.accept(NETHERITE_INFERNO_ROD);
@@ -287,6 +288,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);
             entries.accept(NETHERITE_WIND_STAFF);
+            entries.accept(NETHERITE_OMNI_STAFF);
         });
 
         // Also add artifacts to vanilla Tools & Utilities tab

@@ -20,6 +20,11 @@ public class VeloriseConfigScreen extends Screen {
         this.parent = parent;
     }
 
+    private void saveLocalConfig() {
+        boolean isSingleplayerOrMenu = this.minecraft == null || this.minecraft.level == null || this.minecraft.hasSingleplayerServer();
+        StavesConfig.save(isSingleplayerOrMenu);
+    }
+
     @Override
     protected void init() {
         int centerX = this.width / 2;
@@ -86,7 +91,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.damage_mult.desc")))
                 .create(leftColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.damage_mult"), (btn, val) -> {
                     StavesConfig.DAMAGE_MULTIPLIER.set(val);
-                    StavesConfig.save();
+                    this.saveLocalConfig();
                 }));
 
         List<Double> cdMults = List.of(0.25D, 0.5D, 0.75D, 1.0D, 1.25D, 1.5D, 2.0D);
@@ -99,7 +104,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.cooldown_mult.desc")))
                 .create(rightColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.cooldown_mult"), (btn, val) -> {
                     StavesConfig.COOLDOWN_MULTIPLIER.set(val);
-                    StavesConfig.save();
+                    this.saveLocalConfig();
                 }));
 
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
@@ -107,7 +112,7 @@ public class VeloriseConfigScreen extends Screen {
         int bottomY = startY + rowHeight * 4 + 14;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
-            StavesConfig.save();
+            this.saveLocalConfig();
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new ElementalCodexScreen(this));
             }
@@ -122,13 +127,13 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.INNATE_MUTATION_CHANCE.set(0.06D);
             StavesConfig.DAMAGE_MULTIPLIER.set(1.0D);
             StavesConfig.COOLDOWN_MULTIPLIER.set(1.0D);
-            StavesConfig.save();
+            this.saveLocalConfig();
             this.clearWidgets();
             this.init();
         }).bounds(centerX - 49, bottomY, btnW, 20).build());
 
         this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, btn -> {
-            StavesConfig.save();
+            this.saveLocalConfig();
             if (this.minecraft != null) {
                 this.minecraft.setScreen(this.parent);
             }
@@ -144,7 +149,7 @@ public class VeloriseConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        StavesConfig.save();
+        this.saveLocalConfig();
         if (this.minecraft != null) {
             this.minecraft.setScreen(this.parent);
         }

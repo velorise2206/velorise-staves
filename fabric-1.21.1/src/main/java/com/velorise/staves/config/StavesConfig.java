@@ -132,6 +132,10 @@ public final class StavesConfig {
     }
 
     public static void save() {
+        save(true);
+    }
+
+    public static void save(boolean refreshSyncedSnapshot) {
         Path path = getConfigPath();
         try {
             Files.createDirectories(path.getParent());
@@ -187,7 +191,7 @@ public final class StavesConfig {
         } catch (Exception e) {
             LOGGER.error("Failed to write velorise_staves.toml", e);
         }
-        if (syncedServerData != null) {
+        if (refreshSyncedSnapshot && syncedServerData != null) {
             syncedServerData = createSnapshotFromLocal();
         }
     }
