@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6特性：§r 毒攻撃が §a1.0U 草§r を付与。§c炎§r と合わせて §6燃焼§r！",
   "codex.velorise_staves.innate.anemo_geo.title": "風・岩・ボス",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §b風：§r §bブリーズ§r、§bファントム§r、§bヴェックス§r（風Mobは§b落下ダメージ無効§r、§3ウォーデン§rは§b風耐性70%§r）。",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6岩とゴーレム：§r §6アルマジロ§r（岩Mobは§e爆発・飛翔体耐性+50%§r）。§7アイアンゴーレム§rは§c物理耐性70%§r、§cボス§rは§b凍結§rに抵抗。",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6岩とゴーレム：§r §6アルマジロ§r（岩Mobは§e爆発・飛翔体耐性+50%§r）。§7アイアンゴーレム§rは§c物理耐性50%§r、§cボス§rは§b凍結§rに抵抗。",
   "codex.velorise_staves.env.sculk.title": "スカルク・調律センサー",
   "codex.velorise_staves.env.sculk.p1": "• §bスカルクセンサー：§r 作動中、§e0.5s§r ごとに §e8m§r 以内の最近生物へ §d1.0U 雷§r を放つ。",
   "codex.velorise_staves.env.sculk.p2": "• §d調律スカルクセンサー：§r 過充電で §e16m 射程§r・§d2.0U 強雷§r を付与！",

@@ -470,6 +470,7 @@ public class GeoFangPillarEntity extends Entity {
 
         ServerPlayer ownerPlayer = resolveOwnerPlayer(level);
         Entity owner = getOwnerEntity();
+        LivingEntity ownerLiving = owner instanceof LivingEntity le ? le : null;
         float waveDamage = getWaveGeoDamage();
         float waveUnits = getWaveGeoUnits();
         List<LivingEntity> candidates = level.getEntitiesOfClass(
@@ -482,12 +483,15 @@ public class GeoFangPillarEntity extends Entity {
         try {
             for (LivingEntity target : candidates) {
                 if (wave.hitEntities.contains(target.getUUID())) continue;
-                if (this.ownerUUID != null && target.getUUID().equals(this.ownerUUID)) continue;
-                if (owner != null && target.isAlliedTo(owner)) continue;
+                if (isOwnerOrAlly(target, owner)) continue;
                 double edgeDist = horizontalSquareEdgeDistance(target);
                 if (edgeDist <= currR && edgeDist >= innerBand) {
                     wave.hitEntities.add(target.getUUID());
-                    ElementalGaugeManager.applyElement(level, target, Element.GEO, waveUnits, ownerPlayer, waveDamage);
+                    if (ownerPlayer != null) {
+                        ElementalGaugeManager.applyElement(level, target, Element.GEO, waveUnits, ownerPlayer, waveDamage);
+                    } else {
+                        ElementalGaugeManager.applyElementWithCredit(level, target, Element.GEO, waveUnits, ownerLiving, waveDamage);
+                    }
                     tauntMob(target, owner);
                 }
             }
@@ -515,6 +519,19 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    private boolean isOwnerOrAlly(LivingEntity target, @Nullable Entity owner) {
+        if (this.ownerUUID != null && target.getUUID().equals(this.ownerUUID)) {
+            return true;
+        }
+        if (owner == null) {
+            return false;
+        }
+        if (target == owner || target.isAlliedTo(owner)) {
+            return true;
+        }
+        return target instanceof net.minecraft.world.entity.monster.Vex vex && vex.getOwner() == owner;
+    }
+
     /**
      * Redirects a hit mob's hostility away from the pillar's owner and lures it toward this construct.
      */
@@ -522,7 +539,7 @@ public class GeoFangPillarEntity extends Entity {
         if (!(target instanceof Mob mob) || !mob.isAlive() || mob.isRemoved() || ElementalGaugeManager.isEntityFrozen(mob)) {
             return;
         }
-        if (owner != null && mob.isAlliedTo(owner)) {
+        if (isOwnerOrAlly(mob, owner)) {
             return;
         }
         this.tauntedMobs.add(mob.getUUID());

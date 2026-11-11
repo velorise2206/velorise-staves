@@ -87,6 +87,9 @@ public final class ArcaneStaffEvents {
             ElementalGaugeManager.checkInnateMutation(living);
             com.velorise.staves.element.MobHazardAvoidanceManager.attachGoalIfEligible(living);
         }
+        if (!event.getLevel().isClientSide() && event.getEntity() instanceof EvokerFangs fangs && event.getLevel() instanceof ServerLevel sl) {
+            ElementalGaugeManager.onEvokerFangJoin(sl, fangs);
+        }
         if (event.getEntity() instanceof Snowball snowball && !event.getLevel().isClientSide()) {
             TRACKED_PROJECTILES.add(snowball);
         }
@@ -827,6 +830,14 @@ public final class ArcaneStaffEvents {
     public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             ElementalGaugeManager.clearEntityState(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosionDetonate(net.minecraftforge.event.level.ExplosionEvent.Detonate event) {
+        if (event.getLevel() instanceof ServerLevel sl
+                && event.getExplosion().getDirectSourceEntity() instanceof net.minecraft.world.entity.monster.Creeper creeper) {
+            ElementalGaugeManager.handleCreeperExplosionBurst(sl, creeper, creeper.position(), creeper.isPowered() ? 6.0F : 3.0F);
         }
     }
 }

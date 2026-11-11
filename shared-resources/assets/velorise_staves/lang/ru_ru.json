@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6Черты:§r Яд накладывает §a1.0U Дендро§r. С §cПиро§r вызывает §6Горение§r!",
   "codex.velorise_staves.innate.anemo_geo.title": "Анемо, Гео и Боссы",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §bАнемо:§r §bВихрь§r, §bФантом§r, §bВреднина§r (Анемо-мобы §bнеуязвимы к падению§r; у §3Вардена§r §b70% сопр. Анемо§r).",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Гео и Голем:§r §6Броненосец§r (Гео-мобы получают §e+50% сопр. взрывам и снарядам§r). У §7Железного голема§r §c70% физ. сопр.§r; §cБоссы§r стойки к §bЗаморозке§r.",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Гео и Голем:§r §6Броненосец§r (Гео-мобы получают §e+50% сопр. взрывам и снарядам§r). У §7Железного голема§r §c50% физ. сопр.§r; §cБоссы§r стойки к §bЗаморозке§r.",
   "codex.velorise_staves.env.sculk.title": "Скалк и Калиброванные сенсоры",
   "codex.velorise_staves.env.sculk.p1": "• §bСкалк-сенсор:§r Активный бьёт ближайшее существо в §e8м§r зарядом §d1.0U Электро§r раз в §e0.5с§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dКалиброванный сенсор:§r Усиленная дальность §e16м§r с §d2.0U Сильным Электро§r!",

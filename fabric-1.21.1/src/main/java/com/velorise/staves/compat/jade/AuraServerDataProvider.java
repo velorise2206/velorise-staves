@@ -37,9 +37,15 @@ public enum AuraServerDataProvider implements IServerDataProvider<EntityAccessor
         if (ElementalGaugeManager.isOmniInnate(living)) {
             tag.putBoolean("vs_omni", true);
         }
-        Element innate = ElementalGaugeManager.getInnateElement(living);
-        if (innate != null) {
-            tag.putString("vs_innate", innate.name());
+        java.util.EnumSet<Element> innates = ElementalGaugeManager.getInnateElements(living);
+        if (!innates.isEmpty()) {
+            Element first = innates.iterator().next();
+            tag.putString("vs_innate", first.name());
+            byte innateMask = 0;
+            for (Element e : innates) {
+                innateMask |= (byte) (1 << e.ordinal());
+            }
+            tag.putByte("vs_innate_mask", innateMask);
         }
         CompoundTag gaugesTag = new CompoundTag();
         Map<Element, GaugeState> gauges = ElementalGaugeManager.getEntityGauges(id);

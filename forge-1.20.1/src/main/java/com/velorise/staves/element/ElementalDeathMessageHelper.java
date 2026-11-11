@@ -110,7 +110,7 @@ public final class ElementalDeathMessageHelper {
 
     public static boolean isInnateOrMutatedMob(@Nullable Entity entity) {
         if (!(entity instanceof LivingEntity living) || living instanceof Player) return false;
-        return ElementalGaugeManager.isOmniInnate(living) || ElementalGaugeManager.getInnateElement(living) != null;
+        return ElementalGaugeManager.isOmniInnate(living) || !ElementalGaugeManager.getInnateElements(living).isEmpty();
     }
 
     public static Component formatKillerDisplayName(Entity killer) {
@@ -118,13 +118,18 @@ public final class ElementalDeathMessageHelper {
         if (!(killer instanceof LivingEntity living) || living instanceof Player) {
             return base;
         }
-        Component elemComp = null;
+        net.minecraft.network.chat.MutableComponent elemComp = null;
         if (ElementalGaugeManager.isOmniInnate(living)) {
             elemComp = Component.translatable("element.velorise_staves.omni").withStyle(ChatFormatting.GOLD);
         } else {
-            Element innate = ElementalGaugeManager.getInnateElement(living);
-            if (innate != null) {
-                elemComp = Component.translatable(innate.translationKey()).withStyle(innate.color());
+            java.util.EnumSet<Element> innates = ElementalGaugeManager.getInnateElements(living);
+            for (Element innate : innates) {
+                net.minecraft.network.chat.MutableComponent part = Component.translatable(innate.translationKey()).withStyle(innate.color());
+                if (elemComp == null) {
+                    elemComp = part;
+                } else {
+                    elemComp = elemComp.append(Component.literal("-").withStyle(ChatFormatting.WHITE)).append(part);
+                }
             }
         }
         if (elemComp == null) return base;

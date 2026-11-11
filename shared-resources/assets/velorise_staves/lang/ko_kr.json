@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6특성:§r 독 공격이 §a1.0U 풀§r 부여. §c불§r 과 결합해 §6연소§r 발동!",
   "codex.velorise_staves.innate.anemo_geo.title": "바람, 바위 & 보스",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §b바람:§r §b브리즈§r, §b팬텀§r, §b벡스§r (바람 몹은 §b낙하 피해 면역§r, §3워든§r은 §b바람 내성 70%§r).",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6바위 & 골렘:§r §6아르마딜로§r (바위 몹은 §e폭발·투사체 내성 +50%§r). §7철 골렘§r은 §c물리 내성 70%§r, §c보스§r는 §b빙결§r 저항.",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6바위 & 골렘:§r §6아르마딜로§r (바위 몹은 §e폭발·투사체 내성 +50%§r). §7철 골렘§r은 §c물리 내성 50%§r, §c보스§r는 §b빙결§r 저항.",
   "codex.velorise_staves.env.sculk.title": "스컬크 및 조율 감지체",
   "codex.velorise_staves.env.sculk.p1": "• §b스컬크 감지체:§r 작동 중 §e0.5s§r 마다 §e8m§r 내 가장 가까운 생물에게 §d1.0U 번개§r 방전.",
   "codex.velorise_staves.env.sculk.p2": "• §d조율된 스컬크 감지체:§r §e16m 범위§r 로 강화되어 §d2.0U 강번개§r 를 부여!",

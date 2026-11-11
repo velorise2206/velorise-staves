@@ -85,6 +85,9 @@ public final class ArcaneStaffEvents {
             ElementalGaugeManager.checkInnateMutation(living);
             com.velorise.staves.element.MobHazardAvoidanceManager.attachGoalIfEligible(living);
         }
+        if (!event.getLevel().isClientSide() && event.getEntity() instanceof net.minecraft.world.entity.projectile.EvokerFangs fangs && event.getLevel() instanceof ServerLevel sl) {
+            ElementalGaugeManager.onEvokerFangJoin(sl, fangs);
+        }
         if (event.getEntity() instanceof Snowball snowball && !event.getLevel().isClientSide()) {
             TRACKED_PROJECTILES.add(snowball);
         }
@@ -328,7 +331,7 @@ public final class ArcaneStaffEvents {
         // 1B. Imbued Sword elemental hit (full-strength swing >= 0.9F applies 1U + scales physical damage on reactions)
         event.setNewDamage(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getNewDamage()));
 
-        // 2. Base Mob Resistances (10% Elemental/Physical, Iron Golem 70% Physical, Warden 70% Anemo) & Superconduct Physical RES Shred (-40%)
+        // 2. Base Mob Resistances (10% Elemental/Physical, Iron Golem 50% Physical, Warden 70% Anemo) & Superconduct Physical RES Shred (-40%)
         event.setNewDamage(ElementalGaugeManager.applyMobDamageResistances(entity, src, event.getNewDamage()));
 
         // 3. Elemental Resonance: Geo Shield DMG, Cryo CRIT on physical hits, Protective Canopy DMG reduction
@@ -831,6 +834,14 @@ public final class ArcaneStaffEvents {
     public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             ElementalGaugeManager.clearEntityState(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onExplosionDetonate(net.neoforged.neoforge.event.level.ExplosionEvent.Detonate event) {
+        if (event.getLevel() instanceof ServerLevel sl
+                && event.getExplosion().getDirectSourceEntity() instanceof net.minecraft.world.entity.monster.Creeper creeper) {
+            ElementalGaugeManager.handleCreeperExplosionBurst(sl, creeper, event.getExplosion().center(), event.getExplosion().radius());
         }
     }
 }

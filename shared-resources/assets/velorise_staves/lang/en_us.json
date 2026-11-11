@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6Traits:§r Poison/venom attacks apply §a1.0U Dendro§r. Combine with §cPyro§r for §6Burning§r!",
   "codex.velorise_staves.innate.anemo_geo.title": "Anemo, Geo & Bosses",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §bAnemo:§r §bBreeze§r, §bPhantom§r, §bVex§r (Anemo mobs are §bimmune to Fall DMG§r; §3Warden§r has §b70% Anemo RES§r).",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Geo & Golem:§r §6Armadillo§r (§6Geo mobs§r gain §e+50% Explosion & Projectile RES§r). §7Iron Golem§r has §c70% Physical RES§r; §cBosses§r resist §bFrozen§r.",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Geo & Golem:§r §6Armadillo§r (§6Geo mobs§r gain §e+50% Explosion & Projectile RES§r). §7Iron Golem§r has §c50% Physical RES§r; §cBosses§r resist §bFrozen§r.",
   "codex.velorise_staves.env.sculk.title": "Sculk & Calibrated Sensors",
   "codex.velorise_staves.env.sculk.p1": "• §bSculk Sensor:§r When active, zaps nearest creature within §e8m§r for §d1.0U Electro§r every §e0.5s§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dCalibrated Sculk Sensor:§r Overcharged §e16m range§r applying §d2.0U Strong Electro§r!",

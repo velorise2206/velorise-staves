@@ -425,6 +425,9 @@ public final class VeloriseStavesMod implements ModInitializer {
                 ElementalGaugeManager.checkInnateMutation(living);
                 com.velorise.staves.element.MobHazardAvoidanceManager.attachGoalIfEligible(living);
             }
+            if (entity instanceof net.minecraft.world.entity.projectile.EvokerFangs fangs && world instanceof net.minecraft.server.level.ServerLevel sl) {
+                ElementalGaugeManager.onEvokerFangJoin(sl, fangs);
+            }
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && !entity.level().isClientSide()) {

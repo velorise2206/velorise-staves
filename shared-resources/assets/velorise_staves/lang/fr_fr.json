@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6Traits :§r Poison pose §a1.0U Dendro§r. Combinez avec §cPyro§r pour §6Brûlure§r !",
   "codex.velorise_staves.innate.anemo_geo.title": "Anémo, Géo & Boss",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §bAnémo :§r §bBreeze§r, §bPhantom§r, §bVex§r (mobs Anémo §bimmunes aux chutes§r ; §3Warden§r a §b70% RÉS Anémo§r).",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Géo & Golem :§r §6Tatou§r (mobs Géo ont §e+50% RÉS Explosions & Projectiles§r). §7Golem de Fer§r a §c70% RÉS Physique§r ; §cBoss§r résistent au §bGel§r.",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Géo & Golem :§r §6Tatou§r (mobs Géo ont §e+50% RÉS Explosions & Projectiles§r). §7Golem de Fer§r a §c50% RÉS Physique§r ; §cBoss§r résistent au §bGel§r.",
   "codex.velorise_staves.env.sculk.title": "Capteurs Sculk & Calibrés",
   "codex.velorise_staves.env.sculk.p1": "• §bCapteur Sculk :§r Actif, électrocute la créature la plus proche à §e8m§r (§d1.0U Électro§r / §e0.5s§r).",
   "codex.velorise_staves.env.sculk.p2": "• §dCapteur Calibré :§r Portée surchargée à §e16m§r avec §d2.0U Électro Fort§r !",

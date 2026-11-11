@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6Eigenschaften:§r Giftangriffe setzen §a1.0U Dendro§r. Mit §cPyro§r wird §6In Brand§r ausgelöst!",
   "codex.velorise_staves.innate.anemo_geo.title": "Anemo, Geo & Bosse",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §bAnemo:§r §bBrise§r, §bPhantom§r, §bPlagegeist§r (Anemo-Mobs sind §bimmun gegen Fallschaden§r; §3Warden§r hat §b70% Anemo-RES§r).",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Geo & Golem:§r §6Gürteltier§r (Geo-Mobs erhalten §e+50% Explosions- & Projektil-RES§r). §7Eisengolem§r hat §c70% Phys. RES§r; §cBosse§r widerstehen §bGefroren§r.",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6Geo & Golem:§r §6Gürteltier§r (Geo-Mobs erhalten §e+50% Explosions- & Projektil-RES§r). §7Eisengolem§r hat §c50% Phys. RES§r; §cBosse§r widerstehen §bGefroren§r.",
   "codex.velorise_staves.env.sculk.title": "Sculk- & Kalibrierte Sensoren",
   "codex.velorise_staves.env.sculk.p1": "• §bSculk-Sensor:§r Schockt bei Aktivität alle §e0.5s§r die nächste Kreatur in §e8m§r mit §d1.0U Elektro§r.",
   "codex.velorise_staves.env.sculk.p2": "• §dKalibrierter Sensor:§r Überladene §e16m Reichweite§r mit §d2.0U Stark-Elektro§r!",

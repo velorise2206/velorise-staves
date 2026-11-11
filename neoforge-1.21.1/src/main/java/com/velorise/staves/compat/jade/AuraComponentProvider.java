@@ -103,10 +103,26 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             return;
         }
 
-        Element innateElement = ElementalGaugeManager.getInnateElement(living);
+        java.util.EnumSet<Element> innateSet = ElementalGaugeManager.getInnateElements(living);
+        CompoundTag serverData = accessor.getServerData();
+        if (serverData != null && serverData.contains("vs_innate_mask")) {
+            byte mask = serverData.getByte("vs_innate_mask");
+            for (Element e : Element.values()) {
+                if ((mask & (1 << e.ordinal())) != 0) {
+                    innateSet.add(e);
+                }
+            }
+        } else if (serverData != null && serverData.contains("vs_innate")) {
+            try {
+                innateSet.add(Element.valueOf(serverData.getString("vs_innate")));
+            } catch (IllegalArgumentException ignored) {}
+        }
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(living.getId());
-        if (innateElement == null && data != null && data.permanentInnateElement != null) {
-            innateElement = data.permanentInnateElement;
+        if (data != null) {
+            if (data.permanentInnateElement != null) {
+                innateSet.add(data.permanentInnateElement);
+            }
+            innateSet.addAll(data.permanentInnateElements);
         }
 
         long now = System.currentTimeMillis();
@@ -128,18 +144,18 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
         } else if (data != null && !data.elements.isEmpty()) {
             display.addAll(data.elements);
         }
-        if (innateElement != null && !display.contains(innateElement)) {
-            display.add(0, innateElement);
+        for (Element innateElem : innateSet) {
+            if (!display.contains(innateElem)) {
+                display.add(innateElem);
+            }
         }
 
         if (display.isEmpty()) return;
 
-        CompoundTag serverData = accessor.getServerData();
         CompoundTag gaugesTag = (serverData != null && serverData.contains("vs_gauges")) ? serverData.getCompound("vs_gauges") : null;
-        String innateStr = (serverData != null && serverData.contains("vs_innate")) ? serverData.getString("vs_innate") : (innateElement != null ? innateElement.name() : null);
 
         IElementHelper helper = IElementHelper.get();
-        for (int i = 0; i < Math.min(2, display.size()); i++) {
+        for (int i = 0; i < Math.min(3, display.size()); i++) {
             Element elem = display.get(i);
             ResourceLocation tex = TEXTURES.get(elem);
             if (tex == null) continue;
@@ -152,9 +168,11 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             }
             tooltip.append(helper.spacer(2, 0));
 
-            // Format gauge unit text (e.g. 2.5U)
+            // Format gauge unit text (e.g. 2.5U or ∞)
             String uText;
-            if (gaugesTag != null && gaugesTag.contains(elem.name())) {
+            if (innateSet.contains(elem)) {
+                uText = "∞";
+            } else if (gaugesTag != null && gaugesTag.contains(elem.name())) {
                 float u = gaugesTag.getFloat(elem.name());
                 uText = String.format(Locale.ROOT, "%.1fU", u);
             } else if (gaugesTag != null && elem == Element.DENDRO && gaugesTag.contains("QUICKEN")) {
@@ -163,8 +181,6 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             } else if (gaugesTag != null && elem == Element.CRYO && gaugesTag.contains("FROZEN")) {
                 float u = gaugesTag.getFloat("FROZEN");
                 uText = String.format(Locale.ROOT, "%.1fU", u);
-            } else if (innateStr != null && innateStr.equalsIgnoreCase(elem.name())) {
-                uText = "∞";
             } else if (data != null && data.expireTime > 0) {
                 long remMs = Math.max(0, data.expireTime - now);
                 float remSec = remMs / 1000.0F;

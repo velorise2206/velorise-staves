@@ -421,15 +421,19 @@ public final class ClientAuraRenderer {
         if (entity.distanceToSqr(mc.player) > 64.0D * 64.0D) return;
         if (entity != mc.player && !mc.player.hasLineOfSight(entity)) return;
 
-        // Check innate element on entity (including server-synced mutated innate elements and Omni Mutated)
-        Element innateElement = ElementalGaugeManager.getInnateElement(entity);
+        // Check innate element(s) on entity (including server-synced mutated innate elements, dual Charged Creeper, and Omni)
+        EnumSet<Element> innateElements = ElementalGaugeManager.getInnateElements(entity);
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
-        if (innateElement == null && data != null && data.permanentInnateElement != null) {
-            innateElement = data.permanentInnateElement;
+        if (data != null) {
+            if (data.permanentInnateElement != null) {
+                innateElements.add(data.permanentInnateElement);
+            }
+            innateElements.addAll(data.permanentInnateElements);
         }
+        boolean hasInnate = !innateElements.isEmpty();
         boolean omniInnate = ElementalGaugeManager.isOmniInnate(entity) || (data != null && data.permanentOmniInnate);
 
-        if (data == null && innateElement == null && !omniInnate) return;
+        if (data == null && !hasInnate && !omniInnate) return;
 
         long now = System.currentTimeMillis();
         // Underwater fish / passive aquatic creatures only display overhead icons when an elemental reaction occurs
@@ -438,7 +442,7 @@ public final class ClientAuraRenderer {
             if (!fishReactionActive) return;
         }
         if (data != null) {
-            if (data.expireTime > 0 && now >= data.expireTime && innateElement == null) {
+            if (data.expireTime > 0 && now >= data.expireTime && !hasInnate) {
                 data.elements.clear();
             }
             if (data.reactionUntil <= now) {
@@ -451,7 +455,7 @@ public final class ClientAuraRenderer {
             if (data.damageUntil <= now) {
                 data.lastDamage = 0.0F;
             }
-            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && innateElement == null && !omniInnate) {
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -475,9 +479,11 @@ public final class ClientAuraRenderer {
         } else if (data != null && !data.elements.isEmpty()) {
             display.addAll(data.elements);
         }
-        if (innateElement != null && !display.contains(innateElement)) {
-            // Always show innate element icon (and allow coexisting auras like Dendro on Geo)
-            display.add(0, innateElement);
+        for (Element innateElem : innateElements) {
+            if (!display.contains(innateElem)) {
+                // Always show all innate element icons (e.g. Charged Mutated Creeper dual aura + coexisting auras)
+                display.add(innateElem);
+            }
         }
 
         if (display.isEmpty() && !omniInnate) return;
@@ -507,14 +513,14 @@ public final class ClientAuraRenderer {
                 popScale = 1.0F + 0.28F * (float) Math.sin(popPhase * Math.PI);
             }
             // Fade out smoothly if the underlying aura was consumed
-            if (data.elements.isEmpty() && innateElement == null && dualProgress > 0.55F) {
+            if (data.elements.isEmpty() && !hasInnate && dualProgress > 0.55F) {
                 float fade = (1.0F - dualProgress) / 0.45F;
                 iconAlpha = Math.max(15, Math.min(255, Math.round(fade * 255.0F)));
             }
         }
 
         // Genshin-style expiration flickering (pulsing when remaining time <= 3.0s):
-        if (data != null && data.expireTime > 0 && innateElement == null) {
+        if (data != null && data.expireTime > 0 && !hasInnate) {
             long remainingMs = data.expireTime - now;
             if (remainingMs <= 3000L && remainingMs > 0) {
                 float pulse = (float) Math.sin((remainingMs / 140.0D) * Math.PI);
@@ -539,7 +545,7 @@ public final class ClientAuraRenderer {
             for (int i = 0; i < count; i++) {
                 Element elem = display.get(i);
                 int elemAlpha = iconAlpha;
-                if (inDualReaction && data != null && !data.elements.contains(elem) && elem != innateElement) {
+                if (inDualReaction && data != null && !data.elements.contains(elem) && !innateElements.contains(elem)) {
                     long dualAge = Math.max(0L, now - data.dualStartTime);
                     long dualDuration = Math.max(1L, data.dualUntil - data.dualStartTime);
                     float dualProgress = Math.min(1.0F, (float) dualAge / (float) dualDuration);
@@ -1744,10 +1750,10 @@ public final class ClientAuraRenderer {
             poseStack.pushPose();
             poseStack.translate(cx - camPos.x, cy - camPos.y, cz - camPos.z);
 
-            // 1. Soft Fresnel Translucent 3D Spherical Aura (smooth limb falloff, clear center)
-            renderSmoothAuraSphere(consumer, poseStack.last().pose(), vx, vy, vz, 0.34F, 24, 36, r, g, b, hr, hg, hb);
+            // 1. Pixel-faceted Translucent 3D Octagonal Halo Shell
+            renderSmoothAuraSphere(consumer, poseStack.last().pose(), vx, vy, vz, 0.34F, 6, 8, r, g, b, hr, hg, hb);
 
-            // 2. Central Smooth Spinning Crystal Gem Core (contoured like Dendro Core)
+            // 2. Central Faceted Pixel-Style Spinning Crystal Prism Core
             poseStack.pushPose();
             poseStack.mulPose(new org.joml.Quaternionf().rotationY((float) Math.toRadians(age * 2.2F)));
             renderSmoothCrystalCore(consumer, poseStack.last().pose(), 0.16F, 0.095F, r, g, b, hr, hg, hb);
@@ -1768,10 +1774,15 @@ public final class ClientAuraRenderer {
             int r, int g, int b,
             int hr, int hg, int hb
     ) {
-        // Outer Fresnel halo sphere
+        // Outer low-poly faceted halo shell
         renderFresnelSpherePass(consumer, matrix, vx, vy, vz, radius, latBands, lonSegs, r, g, b, hr, hg, hb, false);
-        // Inner soft core mist sphere
-        renderFresnelSpherePass(consumer, matrix, vx, vy, vz, radius * 0.72F, 16, 24, hr, hg, hb, 255, 255, 255, true);
+        // Inner stepped core mist shell
+        renderFresnelSpherePass(consumer, matrix, vx, vy, vz, radius * 0.72F, 4, 6, hr, hg, hb, 255, 255, 255, true);
+    }
+
+    private static float quantizeBand(float v, int steps) {
+        if (steps <= 1) return v;
+        return Math.round(Math.max(0.0F, Math.min(1.0F, v)) * (steps - 1)) / (float) (steps - 1);
     }
 
     private static void renderFresnelSpherePass(
@@ -1787,10 +1798,9 @@ public final class ClientAuraRenderer {
         float[] px = new float[rows * cols];
         float[] py = new float[rows * cols];
         float[] pz = new float[rows * cols];
-        int[] cr = new int[rows * cols];
-        int[] cg = new int[rows * cols];
-        int[] cb = new int[rows * cols];
-        int[] ca = new int[rows * cols];
+        float[] vnx = new float[rows * cols];
+        float[] vny = new float[rows * cols];
+        float[] vnz = new float[rows * cols];
 
         for (int i = 0; i <= latBands; i++) {
             double phi = -Math.PI * 0.5D + Math.PI * (double) i / (double) latBands;
@@ -1806,23 +1816,9 @@ public final class ClientAuraRenderer {
                 px[idx] = radius * nx;
                 py[idx] = radius * ny;
                 pz[idx] = radius * nz;
-
-                float ndotv = Math.abs(nx * vx + ny * vy + nz * vz);
-                float edgeFeather = Math.min(1.0F, ndotv * 3.4F);
-                if (innerMist) {
-                    float haze = 0.70F * (float) Math.pow(ndotv, 1.1D) + 0.30F * edgeFeather;
-                    cr[idx] = r;
-                    cg[idx] = g;
-                    cb[idx] = b;
-                    ca[idx] = clampColor((int) (22.0F * haze));
-                } else {
-                    float fresnel = (float) Math.pow(1.0F - ndotv * 0.72F, 1.35D) * edgeFeather;
-                    float rimT = 1.0F - ndotv;
-                    cr[idx] = clampColor((int) (r + (hr - r) * rimT * 0.45F));
-                    cg[idx] = clampColor((int) (g + (hg - g) * rimT * 0.45F));
-                    cb[idx] = clampColor((int) (b + (hb - b) * rimT * 0.45F));
-                    ca[idx] = clampColor((int) (54.0F * fresnel));
-                }
+                vnx[idx] = nx;
+                vny[idx] = ny;
+                vnz[idx] = nz;
             }
         }
 
@@ -1832,11 +1828,40 @@ public final class ClientAuraRenderer {
                 int i10 = (i + 1) * cols + j;
                 int i11 = (i + 1) * cols + (j + 1);
                 int i01 = i * cols + (j + 1);
+
+                float fnx = (vnx[i00] + vnx[i10] + vnx[i11] + vnx[i01]) * 0.25F;
+                float fny = (vny[i00] + vny[i10] + vny[i11] + vny[i01]) * 0.25F;
+                float fnz = (vnz[i00] + vnz[i10] + vnz[i11] + vnz[i01]) * 0.25F;
+                float nLen = (float) Math.sqrt(fnx * fnx + fny * fny + fnz * fnz);
+                if (nLen > 1.0E-5F) {
+                    fnx /= nLen;
+                    fny /= nLen;
+                    fnz /= nLen;
+                }
+
+                float ndotv = Math.abs(fnx * vx + fny * vy + fnz * vz);
+                float edgeFeather = Math.min(1.0F, ndotv * 3.4F);
+                int fr, fg, fb, fa;
+                if (innerMist) {
+                    float haze = quantizeBand(0.70F * ndotv + 0.30F * edgeFeather, 4);
+                    fr = r;
+                    fg = g;
+                    fb = b;
+                    fa = clampColor((int) (24.0F * haze));
+                } else {
+                    float fresnel = quantizeBand((float) Math.pow(1.0F - ndotv * 0.72F, 1.35D) * edgeFeather, 4);
+                    float rimT = quantizeBand(1.0F - ndotv, 4);
+                    fr = clampColor((int) (r + (hr - r) * rimT * 0.45F));
+                    fg = clampColor((int) (g + (hg - g) * rimT * 0.45F));
+                    fb = clampColor((int) (b + (hb - b) * rimT * 0.45F));
+                    fa = clampColor((int) (58.0F * fresnel));
+                }
+
                 emitCrystalQuad(consumer, matrix,
-                        px[i00], py[i00], pz[i00], cr[i00], cg[i00], cb[i00], ca[i00],
-                        px[i10], py[i10], pz[i10], cr[i10], cg[i10], cb[i10], ca[i10],
-                        px[i11], py[i11], pz[i11], cr[i11], cg[i11], cb[i11], ca[i11],
-                        px[i01], py[i01], pz[i01], cr[i01], cg[i01], cb[i01], ca[i01]);
+                        px[i00], py[i00], pz[i00], fr, fg, fb, fa,
+                        px[i10], py[i10], pz[i10], fr, fg, fb, fa,
+                        px[i11], py[i11], pz[i11], fr, fg, fb, fa,
+                        px[i01], py[i01], pz[i01], fr, fg, fb, fa);
             }
         }
     }
@@ -1847,8 +1872,8 @@ public final class ClientAuraRenderer {
             int r, int g, int b,
             int hr, int hg, int hb
     ) {
-        renderCrystalSpindle(consumer, matrix, halfH, eqRadius, 18, 28, r, g, b, hr, hg, hb, 232);
-        renderCrystalSpindle(consumer, matrix, halfH * 0.56F, eqRadius * 0.52F, 10, 16, hr, hg, hb, 255, 255, 255, 195);
+        renderCrystalSpindle(consumer, matrix, halfH, eqRadius, 4, 6, r, g, b, hr, hg, hb, 238);
+        renderCrystalSpindle(consumer, matrix, halfH * 0.56F, eqRadius * 0.52F, 2, 4, hr, hg, hb, 255, 255, 255, 205);
     }
 
     private static void renderCrystalSpindle(
@@ -1863,97 +1888,74 @@ public final class ClientAuraRenderer {
         float[] px = new float[rows * cols];
         float[] py = new float[rows * cols];
         float[] pz = new float[rows * cols];
-        int[] cr = new int[rows * cols];
-        int[] cg = new int[rows * cols];
-        int[] cb = new int[rows * cols];
-        int[] ca = new int[rows * cols];
 
         for (int i = 0; i <= latBands; i++) {
             double alphaV = -Math.PI * 0.5D + Math.PI * (double) i / (double) latBands;
             double u = Math.sin(alphaV);
             double cosAlpha = Math.cos(alphaV);
-            double ringBase = Math.pow(Math.max(0.0D, cosAlpha), 0.85D);
+            double ringBase = Math.pow(Math.max(0.0D, cosAlpha), 0.78D);
             float y = (float) (halfH * u);
 
             for (int j = 0; j <= lonSegs; j++) {
                 double theta = 2.0D * Math.PI * (double) j / (double) lonSegs;
-                double flute = 1.0D + 0.08D * Math.cos(4.0D * theta) * (1.0D - u * u);
-                double rad = eqRadius * ringBase * flute;
                 int idx = i * cols + j;
-                px[idx] = (float) (rad * Math.cos(theta));
+                px[idx] = (float) (eqRadius * ringBase * Math.cos(theta));
                 py[idx] = y;
-                pz[idx] = (float) (rad * Math.sin(theta));
+                pz[idx] = (float) (eqRadius * ringBase * Math.sin(theta));
             }
         }
 
         final float lx = 0.36F, ly = 0.82F, lz = 0.44F;
-        for (int i = 0; i <= latBands; i++) {
-            int iPrev = Math.max(0, i - 1);
-            int iNext = Math.min(latBands, i + 1);
-            for (int j = 0; j <= lonSegs; j++) {
-                int jPrev = (j - 1 + lonSegs) % lonSegs;
-                int jNext = (j + 1) % lonSegs;
-
-                float nx, ny, nz;
-                if (i == 0) {
-                    nx = 0.0F; ny = -1.0F; nz = 0.0F;
-                } else if (i == latBands) {
-                    nx = 0.0F; ny = 1.0F; nz = 0.0F;
-                } else {
-                    int idxPhiA = iPrev * cols + j;
-                    int idxPhiB = iNext * cols + j;
-                    int idxThA = i * cols + jPrev;
-                    int idxThB = i * cols + jNext;
-
-                    float tpx = px[idxPhiB] - px[idxPhiA];
-                    float tpy = py[idxPhiB] - py[idxPhiA];
-                    float tpz = pz[idxPhiB] - pz[idxPhiA];
-
-                    float ttx = px[idxThB] - px[idxThA];
-                    float tty = py[idxThB] - py[idxThA];
-                    float ttz = pz[idxThB] - pz[idxThA];
-
-                    nx = tpy * ttz - tpz * tty;
-                    ny = tpz * ttx - tpx * ttz;
-                    nz = tpx * tty - tpy * ttx;
-                    float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
-                    if (len > 1.0E-5F) {
-                        nx /= len;
-                        ny /= len;
-                        nz /= len;
-                    } else {
-                        nx = 0.0F; ny = (i < latBands / 2) ? -1.0F : 1.0F; nz = 0.0F;
-                    }
-                }
-
-                float dot = Math.max(0.0F, nx * lx + ny * ly + nz * lz);
-                float fillDot = Math.max(0.0F, -(nx * 0.30F + ny * 0.40F + nz * 0.70F));
-                float shade = 0.56F + 0.44F * dot + 0.08F * fillDot;
-                float spec = (float) Math.pow(dot, 2.4D) * 0.65F;
-
-                float br = r * shade;
-                float bg = g * shade;
-                float bb = b * shade;
-
-                int idx = i * cols + j;
-                cr[idx] = clampColor((int) (br + (hr - br) * spec));
-                cg[idx] = clampColor((int) (bg + (hg - bg) * spec));
-                cb[idx] = clampColor((int) (bb + (hb - bb) * spec));
-                ca[idx] = baseAlpha;
-            }
-        }
-
         for (int i = 0; i < latBands; i++) {
             for (int j = 0; j < lonSegs; j++) {
                 int i00 = i * cols + j;
                 int i10 = (i + 1) * cols + j;
                 int i11 = (i + 1) * cols + (j + 1);
                 int i01 = i * cols + (j + 1);
+
+                // Flat-shaded crystal facet normal for crisp Minecraft pixel/gem aesthetic
+                float e1x = px[i11] - px[i00];
+                float e1y = py[i11] - py[i00];
+                float e1z = pz[i11] - pz[i00];
+                float e2x = px[i10] - px[i01];
+                float e2y = py[i10] - py[i01];
+                float e2z = pz[i10] - pz[i01];
+                float nx = e1y * e2z - e1z * e2y;
+                float ny = e1z * e2x - e1x * e2z;
+                float nz = e1x * e2y - e1y * e2x;
+                float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+                if (len > 1.0E-5F) {
+                    nx /= len;
+                    ny /= len;
+                    nz /= len;
+                } else {
+                    nx = 0.0F;
+                    ny = (i < latBands / 2) ? -1.0F : 1.0F;
+                    nz = 0.0F;
+                }
+                if (px[i00] * nx + py[i00] * ny + pz[i00] * nz < 0.0F) {
+                    nx = -nx;
+                    ny = -ny;
+                    nz = -nz;
+                }
+
+                float dot = Math.max(0.0F, nx * lx + ny * ly + nz * lz);
+                float fillDot = Math.max(0.0F, -(nx * 0.30F + ny * 0.40F + nz * 0.70F));
+                float shade = 0.56F + 0.44F * quantizeBand(dot, 4) + 0.08F * quantizeBand(fillDot, 3);
+                float spec = quantizeBand((float) Math.pow(dot, 2.2D) * 0.65F, 4);
+
+                float br = r * shade;
+                float bg = g * shade;
+                float bb = b * shade;
+                int fr = clampColor((int) (br + (hr - br) * spec));
+                int fg = clampColor((int) (bg + (hg - bg) * spec));
+                int fb = clampColor((int) (bb + (hb - bb) * spec));
+
                 emitCrystalQuad(consumer, matrix,
-                        px[i00], py[i00], pz[i00], cr[i00], cg[i00], cb[i00], ca[i00],
-                        px[i10], py[i10], pz[i10], cr[i10], cg[i10], cb[i10], ca[i10],
-                        px[i11], py[i11], pz[i11], cr[i11], cg[i11], cb[i11], ca[i11],
-                        px[i01], py[i01], pz[i01], cr[i01], cg[i01], cb[i01], ca[i01]);
+                        px[i00], py[i00], pz[i00], fr, fg, fb, baseAlpha,
+                        px[i10], py[i10], pz[i10], fr, fg, fb, baseAlpha,
+                        px[i11], py[i11], pz[i11], fr, fg, fb, baseAlpha,
+                        px[i01], py[i01], pz[i01], fr, fg, fb, baseAlpha);
             }
         }
     }

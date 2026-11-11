@@ -209,7 +209,7 @@
   "codex.velorise_staves.innate.dendro.p2": "• §6特性：§r 毒素攻击施加 §a1.0U 草§r。配合 §c火§r 可触发 §6燃烧§r！",
   "codex.velorise_staves.innate.anemo_geo.title": "风、岩与首领",
   "codex.velorise_staves.innate.anemo_geo.p1": "• §b风：§r §b旋风人§r、§b幻翼§r、§b恼鬼§r（风系生物§b免疫摔落伤害§r；§3监守者§r 拥有 §b70% 风抗性§r）。",
-  "codex.velorise_staves.innate.anemo_geo.p2": "• §6岩与傀儡：§r §6犰狳§r（岩系生物 §e+50% 爆炸与弹射物抗性§r）。§7铁傀儡§r 拥有 §c70% 物理抗性§r；§c首领§r 抗 §b冻结§r。",
+  "codex.velorise_staves.innate.anemo_geo.p2": "• §6岩与傀儡：§r §6犰狳§r（岩系生物 §e+50% 爆炸与弹射物抗性§r）。§7铁傀儡§r 拥有 §c50% 物理抗性§r；§c首领§r 抗 §b冻结§r。",
   "codex.velorise_staves.env.sculk.title": "幽匿与校频幽匿感测体",
   "codex.velorise_staves.env.sculk.p1": "• §b幽匿感测体：§r 激活时每 §e0.5s§r 对 §e8m§r 内最近生物释放 §d1.0U 雷§r。",
   "codex.velorise_staves.env.sculk.p2": "• §d校频幽匿感测体：§r 过载至 §e16m 范围§r 并施加 §d2.0U 强雷§r！",

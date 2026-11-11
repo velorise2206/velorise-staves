@@ -17,6 +17,7 @@ public final class ClientAuraTracker {
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
+        public final java.util.EnumSet<Element> permanentInnateElements = java.util.EnumSet.noneOf(Element.class);
         public boolean permanentOmniInnate = false;
         public @Nullable Element reactedAuraElement = null;
         public @Nullable Element dualTriggerElement = null;
@@ -287,11 +288,19 @@ public final class ClientAuraTracker {
             entry.expireTime = now + (long) durationTicks * 50L;
         } else if (durationTicks < 0) {
             entry.expireTime = -1L; // Permanent innate aura
-            if (entry.permanentInnateElement == null && !elements.isEmpty()) {
-                entry.permanentInnateElement = elements.get(0);
+            if (!elements.isEmpty()) {
+                entry.permanentInnateElements.addAll(elements);
+                if (entry.permanentInnateElement == null) {
+                    entry.permanentInnateElement = elements.get(0);
+                }
             }
         } else {
-            entry.expireTime = (entry.permanentInnateElement != null || entry.permanentOmniInnate) ? -1L : 0L;
+            entry.expireTime = (!entry.permanentInnateElements.isEmpty() || entry.permanentInnateElement != null || entry.permanentOmniInnate) ? -1L : 0L;
+        }
+        for (Element perm : entry.permanentInnateElements) {
+            if (!entry.elements.contains(perm)) {
+                entry.elements.add(perm);
+            }
         }
         if (entry.permanentInnateElement != null && !entry.elements.contains(entry.permanentInnateElement)) {
             entry.elements.add(0, entry.permanentInnateElement);
@@ -359,14 +368,14 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
 
     public static boolean hasPyroInnate(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && data.permanentInnateElement == Element.PYRO;
+        return data != null && (data.permanentInnateElement == Element.PYRO || data.permanentInnateElements.contains(Element.PYRO));
     }
 
     public static boolean hasOmniInnate(int entityId) {

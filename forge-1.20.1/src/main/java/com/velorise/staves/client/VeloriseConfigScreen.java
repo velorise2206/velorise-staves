@@ -147,6 +147,10 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(true);
             StavesConfig.MAX_STAVES_IN_INVENTORY.set(4);
             StavesConfig.INNATE_MUTATION_CHANCE.set(0.07D);
+            StavesConfig.OMNI_MUTATION_SHARE.set(0.143D);
+            StavesConfig.ALLOW_HOSTILE_MOB_MUTATION.set(true);
+            StavesConfig.ALLOW_GOLEM_MUTATION.set(true);
+            StavesConfig.ALLOW_NEUTRAL_AND_PASSIVE_MUTATION.set(false);
             StavesConfig.DAMAGE_MULTIPLIER.set(1.0D);
             StavesConfig.COOLDOWN_MULTIPLIER.set(1.0D);
             this.saveLocalConfig();

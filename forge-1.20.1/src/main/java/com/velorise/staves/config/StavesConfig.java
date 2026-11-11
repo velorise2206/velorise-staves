@@ -1,7 +1,32 @@
 package com.velorise.staves.config;
 
 import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.ambient.AmbientCreature;
+import net.minecraft.world.entity.animal.AbstractGolem;
+import net.minecraft.world.entity.animal.WaterAnimal;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.monster.ElderGuardian;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.monster.warden.Warden;
+import net.minecraft.world.entity.npc.Npc;
+import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.common.ForgeConfigSpec;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public final class StavesConfig {
     public static final ForgeConfigSpec SPEC;
@@ -27,6 +52,15 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.BooleanValue SHOW_REACTION_TEXT;
     public static final ForgeConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
     public static final ForgeConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
+
+    // Innate Mutation Rules & Whitelist/Blacklist
+    public static final ForgeConfigSpec.BooleanValue ALLOW_HOSTILE_MOB_MUTATION;
+    public static final ForgeConfigSpec.BooleanValue ALLOW_GOLEM_MUTATION;
+    public static final ForgeConfigSpec.BooleanValue ALLOW_NEUTRAL_AND_PASSIVE_MUTATION;
+    public static final ForgeConfigSpec.DoubleValue OMNI_MUTATION_SHARE;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> MUTABLE_MOB_WHITELIST;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> MUTABLE_MOB_BLACKLIST;
+    public static final ForgeConfigSpec.ConfigValue<List<? extends String>> CUSTOM_MOB_MUTATION_RATES;
 
     // Cooldowns
     public static final ForgeConfigSpec.DoubleValue DRAGONFIRE_COOLDOWN;
@@ -145,8 +179,32 @@ public final class StavesConfig {
             .comment("Render floating elemental & physical damage numbers in combat. Default: true")
             .define("show_damage_numbers", true);
         INNATE_MUTATION_CHANCE = builder
-            .comment("Chance (0.0 to 1.0) for normal mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
+            .comment("Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
             .defineInRange("innate_mutation_chance", 0.07D, 0.0D, 1.0D);
+        builder.pop();
+
+        builder.comment("Innate Elemental Mutation Categories, Whitelist/Blacklist & Per-Mob Rates").push("innate_mutation");
+        ALLOW_HOSTILE_MOB_MUTATION = builder
+            .comment("Allow standard hostile mobs (Enemy / MONSTER category, excluding Bosses) to mutate naturally. Default: true")
+            .define("allow_hostile_mob_mutation", true);
+        ALLOW_GOLEM_MUTATION = builder
+            .comment("Allow Golems (AbstractGolem such as minecraft:iron_golem) without natural innate elements to mutate. Default: true")
+            .define("allow_golem_mutation", true);
+        ALLOW_NEUTRAL_AND_PASSIVE_MUTATION = builder
+            .comment("Allow non-hostile neutral/passive mobs (excluding Bosses, Villagers/NPCs, and passive Aquatic/Ambient) to mutate unless whitelisted. Default: false")
+            .define("allow_neutral_and_passive_mutation", false);
+        OMNI_MUTATION_SHARE = builder
+            .comment("Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (remaining become 1 of the 7 elements). Default: 0.143 (~1/7 -> 1% Omni at 7% rate)")
+            .defineInRange("omni_mutation_share", 0.143D, 0.0D, 1.0D);
+        MUTABLE_MOB_WHITELIST = builder
+            .comment("Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:zombie\") or entity tags (\"#minecraft:raiders\") always allowed to mutate.")
+            .defineListAllowEmpty("mutable_mob_whitelist", List.of("minecraft:iron_golem"), o -> o instanceof String s && !s.trim().isEmpty());
+        MUTABLE_MOB_BLACKLIST = builder
+            .comment("Entity IDs or tags (\"#...\") excluded from innate mutation even if their category is enabled. Example: [\"minecraft:creeper\", \"minecraft:phantom\"]")
+            .defineListAllowEmpty("mutable_mob_blacklist", List.of(), o -> o instanceof String s && !s.trim().isEmpty());
+        CUSTOM_MOB_MUTATION_RATES = builder
+            .comment("Per-mob mutation chance overrides in \"entity_id=rate\" format (0.0 to 1.0). Example: [\"minecraft:iron_golem=0.15\", \"minecraft:creeper=0.20\"]")
+            .defineListAllowEmpty("custom_mob_mutation_rates", List.of(), o -> o instanceof String s && s.contains("="));
         builder.pop();
 
         builder.comment("Individual staff cooldowns in seconds").push("cooldowns");
@@ -211,6 +269,7 @@ public final class StavesConfig {
         try {
             SPEC.save();
         } catch (Exception ignored) {}
+        invalidateMutationRulesCache();
         if (refreshSyncedSnapshot && syncedServerData != null) {
             syncedServerData = createSnapshotFromLocal();
         }
@@ -510,6 +569,167 @@ public final class StavesConfig {
     public static int getMaxStavesInInventory() {
         SyncedData s = syncedServerData;
         return s != null ? s.maxStavesInInventory : MAX_STAVES_IN_INVENTORY.get();
+    }
+
+    public static final class MutationRules {
+        public final boolean allowHostile;
+        public final boolean allowGolems;
+        public final boolean allowNeutralAndPassive;
+        public final double defaultChance;
+        public final double omniShare;
+        private final List<? extends String> whitelistRef;
+        private final List<? extends String> blacklistRef;
+        private final List<? extends String> customRatesRef;
+        private final Set<ResourceLocation> whitelistIds;
+        private final List<TagKey<EntityType<?>>> whitelistTags;
+        private final Set<ResourceLocation> blacklistIds;
+        private final List<TagKey<EntityType<?>>> blacklistTags;
+        private final Map<ResourceLocation, Double> customRates;
+
+        private MutationRules(
+                boolean allowHostile,
+                boolean allowGolems,
+                boolean allowNeutralAndPassive,
+                double defaultChance,
+                double omniShare,
+                List<? extends String> whitelistRef,
+                List<? extends String> blacklistRef,
+                List<? extends String> customRatesRef
+        ) {
+            this.allowHostile = allowHostile;
+            this.allowGolems = allowGolems;
+            this.allowNeutralAndPassive = allowNeutralAndPassive;
+            this.defaultChance = Math.max(0.0D, Math.min(1.0D, defaultChance));
+            this.omniShare = Math.max(0.0D, Math.min(1.0D, omniShare));
+            this.whitelistRef = whitelistRef;
+            this.blacklistRef = blacklistRef;
+            this.customRatesRef = customRatesRef;
+            this.whitelistIds = new HashSet<>();
+            this.whitelistTags = new ArrayList<>();
+            this.blacklistIds = new HashSet<>();
+            this.blacklistTags = new ArrayList<>();
+            this.customRates = new HashMap<>();
+            parseEntityList(whitelistRef, this.whitelistIds, this.whitelistTags);
+            parseEntityList(blacklistRef, this.blacklistIds, this.blacklistTags);
+            if (customRatesRef != null) {
+                for (String raw : customRatesRef) {
+                    if (raw == null) continue;
+                    int eq = raw.indexOf('=');
+                    if (eq <= 0 || eq >= raw.length() - 1) continue;
+                    String idStr = raw.substring(0, eq).trim().toLowerCase(Locale.ROOT);
+                    String rateStr = raw.substring(eq + 1).trim();
+                    ResourceLocation rl = ResourceLocation.tryParse(idStr);
+                    if (rl == null) continue;
+                    try {
+                        double r = Double.parseDouble(rateStr);
+                        this.customRates.put(rl, Math.max(0.0D, Math.min(1.0D, r)));
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        }
+
+        private static void parseEntityList(
+                List<? extends String> rawList,
+                Set<ResourceLocation> ids,
+                List<TagKey<EntityType<?>>> tags
+        ) {
+            if (rawList == null) return;
+            for (String raw : rawList) {
+                if (raw == null) continue;
+                String s = raw.trim().toLowerCase(Locale.ROOT);
+                if (s.isEmpty()) continue;
+                if (s.startsWith("#")) {
+                    ResourceLocation rl = ResourceLocation.tryParse(s.substring(1).trim());
+                    if (rl != null) {
+                        tags.add(TagKey.create(Registries.ENTITY_TYPE, rl));
+                    }
+                } else {
+                    ResourceLocation rl = ResourceLocation.tryParse(s);
+                    if (rl != null) {
+                        ids.add(rl);
+                    }
+                }
+            }
+        }
+
+        private boolean matches(
+                boolean ah, boolean ag, boolean anp, double dc, double os,
+                List<? extends String> wl, List<? extends String> bl, List<? extends String> cr
+        ) {
+            return this.allowHostile == ah
+                    && this.allowGolems == ag
+                    && this.allowNeutralAndPassive == anp
+                    && Double.compare(this.defaultChance, Math.max(0.0D, Math.min(1.0D, dc))) == 0
+                    && Double.compare(this.omniShare, Math.max(0.0D, Math.min(1.0D, os))) == 0
+                    && this.whitelistRef == wl
+                    && this.blacklistRef == bl
+                    && this.customRatesRef == cr;
+        }
+
+        public double resolveMutationChance(LivingEntity entity) {
+            if (entity == null || entity instanceof Player || entity instanceof Npc) {
+                return -1.0D;
+            }
+            EntityType<?> type = entity.getType();
+            ResourceLocation key = BuiltInRegistries.ENTITY_TYPE.getKey(type);
+            if (blacklistIds.contains(key)) {
+                return -1.0D;
+            }
+            for (TagKey<EntityType<?>> tag : blacklistTags) {
+                if (type.is(tag)) {
+                    return -1.0D;
+                }
+            }
+            Double custom = customRates.get(key);
+            if (custom != null) {
+                return custom > 0.0D ? custom : -1.0D;
+            }
+            if (whitelistIds.contains(key)) {
+                return defaultChance;
+            }
+            for (TagKey<EntityType<?>> tag : whitelistTags) {
+                if (type.is(tag)) {
+                    return defaultChance;
+                }
+            }
+            boolean isBoss = entity instanceof Warden || entity instanceof EnderDragon
+                    || entity instanceof WitherBoss || entity instanceof ElderGuardian;
+            boolean isAquaticOrAmbient = entity instanceof WaterAnimal || entity instanceof AmbientCreature;
+            if (isBoss || isAquaticOrAmbient) {
+                return -1.0D;
+            }
+            if (entity instanceof AbstractGolem) {
+                return allowGolems ? defaultChance : -1.0D;
+            }
+            if (entity instanceof Enemy || type.getCategory() == MobCategory.MONSTER) {
+                return allowHostile ? defaultChance : -1.0D;
+            }
+            return allowNeutralAndPassive ? defaultChance : -1.0D;
+        }
+    }
+
+    private static volatile MutationRules cachedMutationRules = null;
+
+    public static void invalidateMutationRulesCache() {
+        cachedMutationRules = null;
+    }
+
+    public static MutationRules getMutationRules() {
+        boolean ah = ALLOW_HOSTILE_MOB_MUTATION.get();
+        boolean ag = ALLOW_GOLEM_MUTATION.get();
+        boolean anp = ALLOW_NEUTRAL_AND_PASSIVE_MUTATION.get();
+        double dc = INNATE_MUTATION_CHANCE.get();
+        double os = OMNI_MUTATION_SHARE.get();
+        List<? extends String> wl = MUTABLE_MOB_WHITELIST.get();
+        List<? extends String> bl = MUTABLE_MOB_BLACKLIST.get();
+        List<? extends String> cr = CUSTOM_MOB_MUTATION_RATES.get();
+        MutationRules snap = cachedMutationRules;
+        if (snap != null && snap.matches(ah, ag, anp, dc, os, wl, bl, cr)) {
+            return snap;
+        }
+        MutationRules rebuilt = new MutationRules(ah, ag, anp, dc, os, wl, bl, cr);
+        cachedMutationRules = rebuilt;
+        return rebuilt;
     }
 
 }

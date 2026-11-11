@@ -8,7 +8,8 @@
     "ItemStackMixin",
     "AnvilMenuMixin",
     "MobAccessor",
-    "CombatTrackerMixin"
+    "CombatTrackerMixin",
+    "ExplosionMixin"
   ],
   "client": [
     "LivingEntityRendererMixin",
