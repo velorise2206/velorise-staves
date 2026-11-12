@@ -74,10 +74,11 @@ Multiplicative reactions scale directly with the trigger attack's base damage, m
       <td align="center"><b>Electro-Charged</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/electro_charged.gif" width="360" /></td>
       <td align="center"><b>Overloaded Explosion</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/overloaded.gif" width="360" /></td>
     </tr>
+    <tr>
+      <td align="center"><b>Swirl Vortex (AoE Aura Spread)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/swirl.gif" width="360" /></td>
+      <td align="center"><b>Geo Crystallize (Elemental Shield Shards)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crystallize.gif" width="360" /></td>
+    </tr>
   </table>
-  <br/>
-  <b>Swirl Vortex Reaction (Spreading Auras in AoE)</b><br/>
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/swirl.gif" width="460" />
 </div>
 
 ---

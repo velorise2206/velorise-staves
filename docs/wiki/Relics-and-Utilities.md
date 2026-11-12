@@ -102,6 +102,8 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/hydro_crystallize_shard.png" width="24" height="24" />
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/electro_crystallize_shard.png" width="24" height="24" />
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/cryo_crystallize_shard.png" width="24" height="24" />
+  <br/><br/>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crystallize.gif" width="460" alt="Geo Crystallize Reaction in Action" />
 </div>
 
 * Produced whenever a Geo attack strikes an entity afflicted with Pyro, Hydro, Electro, or Cryo.
