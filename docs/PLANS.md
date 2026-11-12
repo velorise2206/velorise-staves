@@ -93,6 +93,19 @@
   * **Frame:** `challenge` (Spiked golden frame with fanfare audio trigger).
   * **Trigger:** Listens to `TameAnimalTrigger` checking `ElementalGaugeManager.isOmniInnate(animal)`.
 
+---
+
+### 12. [Staff/Feature] New Geo Staff: Dominance of Earth / Jade Shield & Geo Construct (Zhongli Reference)
+* **Concept:** A high-tier defensive and tactical Geo staff inspired by Zhongli (*Genshin Impact*), providing both unyielding survivability and area-of-effect elemental application.
+* **Ability 1 (Tap / Quick Cast - Geo Stele):**
+  * Summons a monolithic **Geo Stele (Stone Pillar)** at the target location.
+  * Periodically pulses resonant Geo shockwaves in a 6-block radius, dealing Geo damage and applying 1.0U Geo to mobs within range.
+  * Resonates with nearby Geo constructs or Crystallize shields, extending pulse range and triggering frequent Crystallize reactions.
+* **Ability 2 (Hold / Charge Cast - Jade Shield):**
+  * Forms a fortified **Jade Shield** around the caster that scales with the player's Max Health.
+  * Possesses **150% absorption effectiveness** against all Elemental and Physical damage.
+  * While active, creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by 20%.
+
 
 
 

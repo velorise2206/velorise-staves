@@ -172,6 +172,15 @@ Compiled jar artifacts will be placed in the `mods/velorise_staves/` directory.
 
 ---
 
+## Recommended Companion Mods & Other Works
+
+Enhance your adventure with companion mods by **hungbbdzz**:
+
+- **[Camera Lock-On](https://github.com/hungbbdzz/camera-lock-on)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/camera-lock-on) / [Modrinth](https://modrinth.com/mod/velorise-camera-lock-on)): Adds a third-person Zelda/Souls-style target locking system. **Highly recommended** for *Velorise's Staves* to aim projectile spells, circle-strafe swift elemental foes, and pull off clean combat combos!
+- **[Velorise Simple Map](https://github.com/hungbbdzz/Simple-Map)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/velorise-simple-map) / [Modrinth](https://modrinth.com/mod/velorise-simple-map)): A sleek, lightweight, clutter-free minimap and world map mod optimized for smooth exploration and waypoint navigation.
+
+---
+
 ## License & Disclaimer
 
 Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved (Code & Documentation Only)** ([LICENSE](LICENSE)).
