@@ -23,6 +23,15 @@ Frequently asked questions regarding compatibility, performance, and server depl
 
 ---
 
+### Why does a mob standing in water not show a Hydro aura on Jade?
+* **Intentional Optimization & Performance Safeguard:**
+  * If the mod attached explicit, persistent elemental aura objects and continuous network sync packets to every entity touching water, vast oceans and rivers loaded with hundreds of fish, squids, and drowned would cause massive server-side packet spam and performance degradation.
+  * To keep multiplayer and singleplayer worlds running at maximum TPS, environmental wetness (**Submerged in Water**, **Standing in Rain**, or **Bubble Columns**) is calculated dynamically on-demand during combat calculations.
+  * **All elemental reactions trigger 100% reliably:** Even without a visible overhead aura tag, striking any mob in water with Cryo will freeze them solid into ice, Electro triggers Electro-Charged arcing bolts, Pyro triggers Vaporize, Dendro creates Dendro Cores (Bloom), and Geo extracts Crystallize shield shards.
+  * *(Note: An ambient, client-only `[Wet]` indicator for Jade HUD is planned for an upcoming patch to provide visual feedback without network overhead).*
+
+---
+
 ### Is this mod compatible with Better Combat?
 * **Fully compatible.** Elemental swords infused at an anvil retain all Better Combat weapon categories, attack animations, and sweep ranges while simultaneously applying their elemental aura upon impact.
 
