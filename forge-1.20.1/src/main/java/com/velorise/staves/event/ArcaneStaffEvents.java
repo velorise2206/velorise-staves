@@ -111,6 +111,13 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onAttackEntity(net.minecraftforge.event.entity.player.AttackEntityEvent event) {
+        if (!event.getEntity().level().isClientSide()) {
+            ElementalGaugeManager.recordPreAttackStrength(event.getEntity(), event.getEntity().getAttackStrengthScale(0.5F));
+        }
+    }
+
+    @SubscribeEvent
     public static void onAnvilUpdate(net.minecraftforge.event.AnvilUpdateEvent event) {
         if (SwordImbueHelper.isFireAspectElementConflict(event.getLeft(), event.getRight())) {
             event.setCanceled(true);

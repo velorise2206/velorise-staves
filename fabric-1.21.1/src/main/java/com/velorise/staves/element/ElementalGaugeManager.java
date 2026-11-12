@@ -132,6 +132,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> LAST_OMNI_ENV_IMMUNE = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_MUSHROOM_CONTACT = new ConcurrentHashMap<>();
     private static final Map<UUID, Float> PLAYER_LAST_HP = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> PRE_ATTACK_STRENGTH = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> PLAYER_HP_CHANGE_BUFF_UNTIL = new ConcurrentHashMap<>();
     private static final long HP_CHANGE_BUFF_TICKS = 200L;
 
@@ -669,6 +670,7 @@ public final class ElementalGaugeManager {
         EXPLODED_CREEPERS.remove(id);
         PENDING_EVOKER_CONSTRUCTS.remove(id);
         PLAYER_LAST_HP.remove(id);
+        PRE_ATTACK_STRENGTH.remove(id);
         PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
         com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
@@ -734,6 +736,7 @@ public final class ElementalGaugeManager {
         LAST_OMNI_ENV_IMMUNE.clear();
         LAST_MUSHROOM_CONTACT.clear();
         PLAYER_LAST_HP.clear();
+        PRE_ATTACK_STRENGTH.clear();
         PLAYER_HP_CHANGE_BUFF_UNTIL.clear();
         ICD_TRACKER.clear();
         REACTION_ICD_TRACKER.clear();
@@ -2304,6 +2307,47 @@ public final class ElementalGaugeManager {
      * returns the final incoming sword damage (amplified/boosted by reactions, or unchanged
      * physical damage when immune / below full charge).
      */
+    public static void recordPreAttackStrength(@Nullable Player player, float scale) {
+        if (player != null) {
+            PRE_ATTACK_STRENGTH.put(player.getUUID(), scale);
+        }
+    }
+
+    public static void clearPreAttackStrength(@Nullable Player player) {
+        if (player != null) {
+            PRE_ATTACK_STRENGTH.remove(player.getUUID());
+        }
+    }
+
+    public static float getEffectiveAttackStrengthScale(Player attacker) {
+        Float recorded = PRE_ATTACK_STRENGTH.get(attacker.getUUID());
+        float current = attacker.getAttackStrengthScale(0.5F);
+        return recorded != null ? Math.max(recorded, current) : current;
+    }
+
+    public static float modifyFabricIncomingDamage(LivingEntity entity, DamageSource source, float amount) {
+        if (entity == null || entity.level().isClientSide() || amount <= 0.0F) return amount;
+        beginDamageFloatTracking(entity);
+        long now = entity.level().getGameTime();
+
+        amount = modifyIncomingEnvironmentalDamage(entity, source, amount);
+
+        if (entity instanceof ServerPlayer sp) {
+            Element activeShield = CrystallizeShardManager.getActiveShield(sp, now);
+            if (activeShield != null && CrystallizeShardManager.matchesElementalShield(activeShield, source)) {
+                amount *= 0.4F;
+                sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                        SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.8F);
+            }
+        }
+
+        amount = applyImbuedSwordHit(entity, source, amount);
+        amount = applyMobDamageResistances(entity, source, amount);
+        amount = ElementalResonanceManager.modifyPhysicalAttackDamage(entity, source, amount);
+        amount = ElementalResonanceManager.modifyIncomingDefenseDamage(entity, source, amount);
+        return amount;
+    }
+
     public static float applyImbuedSwordHit(LivingEntity target, DamageSource source, float incomingDamage) {
         if (target == null || !target.isAlive() || incomingDamage <= 0.0F) return incomingDamage;
         if (!(target.level() instanceof ServerLevel level)) return incomingDamage;
@@ -2326,7 +2370,7 @@ public final class ElementalGaugeManager {
             return incomingDamage;
         }
 
-        if (attacker.getAttackStrengthScale(0.5F) < 0.9F) {
+        if (getEffectiveAttackStrengthScale(attacker) < 0.9F) {
             if (hasFireAspect) {
                 ensurePreDeathPyroIgnite(target, 4);
             }

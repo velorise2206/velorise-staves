@@ -2,6 +2,23 @@
 
 ---
 
+## 🔧 Fixed & Resolved
+
+### 8. [Fixed] Anvil Sword Imbuing & Melee Combat on Fabric 1.21.1
+- **Status:** ✅ FIXED — released in Fabric `1.0.0.1`
+- **Root Cause & Fix:**
+  1. **Anvil Imbuing (`AnvilMenuMixin.java` & `SwordImbueHelper.java`):**
+     * `AnvilMenuMixin.java` injects at `createResult()` (`@At("HEAD")`), setting `resultSlots.setItem(0, res.output())`, `cost.set(res.cost())`, and `repairItemCountCost = res.materialCost()`, and explicitly validates output pickup via `mayPickup()`.
+     * Why it appeared unresponsive in the earlier Anvil test: the Diamond Sword in the left slot was **already imbued with Cryo**, and `SwordImbueHelper.tryBuildAnvilResult` rejects re-imbuing a sword with the *exact same element* (`if (targetKey.equals(getImbuedKey(left))) return null;`) — by design, to prevent wasting essences.
+  2. **Combat Elemental Application (`PlayerAttackMixin.java` & `ElementalGaugeManager.java`):**
+     * **Root Cause 1 — Vanilla `Player.attack()` Cooldown Reset Timing:** In vanilla/Fabric 1.21.1, `Player.attack(Entity)` calls `this.resetAttackStrengthTicker()` **before** invoking `target.hurt(...)`. Forge 1.20.1 and NeoForge 1.21.1 patch this to move the reset **after** `target.hurt()`. On Fabric, `attacker.getAttackStrengthScale(0.5F)` always returned `0.0F` inside `actuallyHurt`, causing imbued swords to silently skip elemental application on every swing.
+     * **Root Cause 2 — `Player.actuallyHurt()` PvP Override:** `Player` overrides `LivingEntity.actuallyHurt(DamageSource, float)` without calling `super`, so `LivingEntityDamageMixin` never fired for PvP damage on Fabric.
+     * **Fix:** Added `PlayerAttackMixin` (Fabric 1.21.1) to snapshot `getAttackStrengthScale(0.5F)` at `@At("HEAD")` of `Player.attack()` via `ElementalGaugeManager.recordPreAttackStrength(...)` before the ticker resets, and hooked `Player.actuallyHurt` via `modifyFabricIncomingDamage(...)` for full PvE + PvP parity.
+
+---
+
+## 📋 Planned
+
 ### 1. [QoL] Jade HUD Environmental Wet / Hydro Indicator
 * **Goal:** Display an ambient indicator (e.g. `💧 Wet (Ambient)` or `Hydro (Env)`) on Jade when a mob is submerged in water or standing in rain.
 * **Implementation:** Append a lightweight tag `tag.putBoolean("vs_env_wet", true)` in `AuraServerDataProvider` on-demand without creating persistent aura timer objects on ocean entities.
@@ -51,15 +68,6 @@
 * **Goal:** Append an explanatory subtitle / tooltip line:
   `✦ Scales with Caster's Max HP (10%/hit | 15% Netherite)`
   making the HP-stacking build synergy obvious (especially when paired with Hydro Resonance +20% HP or Health Boost armor/buffs).
-
----
-
-### 8. [Bugfix/Fabric] Investigate Anvil Sword Imbuing on Fabric 1.21.1
-* **Observation:** Sword imbuing with Elemental Essences via Anvil works flawlessly on NeoForge 1.21.1 (driven by `AnvilUpdateEvent`), but appears unresponsive or fails to produce output on Fabric 1.21.1.
-* **Root Cause Investigation:** On Fabric, anvil manipulation relies on `AnvilMenuMixin.java` injecting into `createResult(CallbackInfo ci)`. Check:
-  1. Whether `velorise$handleSwordImbue` correctly syncs result slot and XP cost across client and server (`ItemCombinerMenu.resultSlots.setItem` vs `AnvilMenu.onTake`).
-  2. Verify if Fabric mixin applies properly or if `createResult` gets called/reset by other menu methods or vanilla item combiner logic.
-  3. Ensure custom data / components (`TAG_IMBUED_ELEMENT`) are properly read and written in Fabric environment.
 
 ---
 
