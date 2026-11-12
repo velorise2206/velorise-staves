@@ -237,6 +237,19 @@ Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (vi
 * ⚔️ **Physical Attacks Only:** Omni mobs cannot be damaged by elemental magic. You must use physical attacks (swords, axes, bows, crossbows) to damage and defeat them!
 * 💎 **Guaranteed Rare Drop:** Defeating an Omni mob has a **25% chance** to drop the coveted **Omni Element**!
 
+### 4. Mob Base Resistances & Special Elemental Traits
+
+All living creatures feature intrinsic damage resistance profiles faithfully modeled after combat RPG mechanics:
+
+| Creature / Trait | Resistance Profile | Strategic Notes |
+|:---|:---:|:---|
+| **All Standard Mobs** | **10% Base Elemental RES**<br/>**10% Base Physical RES** | All hostile and neutral mobs reduce incoming elemental and physical damage by 10% by default. |
+| **Iron Golem** | **50% Physical Resistance** | Built from solid iron, Iron Golems absorb half of all raw physical damage (swords, bows, axes). Use elemental magic or **Superconduct** to shred their heavy armor! |
+| **Warden** | **70% Anemo Resistance**<br/>*(+ Fire & Pyro Immunity)* | The master of deep dark vibrations naturally resists sonic waves and wind attacks (**70% Anemo damage reduction**). Furthermore, Wardens are fire-immune and resist Pyro attacks. |
+| **Geo-Innate Mobs** | **+50% Projectile & Explosion RES** | Creatures carrying innate Geo auras deflect ranged arrows and absorb explosive blast waves (including **Overloaded**, **Burgeon**, and **Shatter** reaction explosions). |
+| **Anemo-Innate Mobs** *(e.g. Breezes)* | **100% Fall Damage Immunity** | Wind-aligned creatures manipulate updrafts and are completely immune to impact damage from falling. |
+| **Superconduct Resistance Shred** | **-40% Physical RES (12s)** | Triggering a **Superconduct** reaction (Electro + Cryo) shreds the victim's Physical Resistance by **40%**, directly counteracting base mob defenses and amplifying melee sword/bow damage! |
+
 ---
 
 ## Vanilla Mechanics Synergy (Potions, Arrows & Tridents)

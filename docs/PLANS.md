@@ -61,6 +61,20 @@
   2. Verify if Fabric mixin applies properly or if `createResult` gets called/reset by other menu methods or vanilla item combiner logic.
   3. Ensure custom data / components (`TAG_IMBUED_ELEMENT`) are properly read and written in Fabric environment.
 
+---
+
+### 9. [Bugfix] Frozen Mob Desync: Movement & Attacks While Frozen Statue Pose Persists
+* **Issue:** Occasionally, a mob inflicted with Frozen reaction (Cryo + Hydro) resumes moving across the ground and attacking the player while its model remains locked in a statue pose with the ice crystal outline still active.
+* **Root Cause Analysis:**
+  1. **Server AI & Navigation:** Server-side `enforceFrozenPose` applies `mob.setNoAi(true)` and `mob.getNavigation().stop()`, but vanilla AI or goal selectors may reset navigation upon taking damage if `setNoAi(true)` is interrupted or if server freeze timers (`FROZEN_UNTIL` / `FROZEN_GAUGES`) expire before client-side packet sync.
+  2. **Client/Server Timer Desync:** Client `ClientAuraTracker` tracks `frozenUntil = now + remMs`. If the server unfreezes the mob without sending an immediate unfreeze packet (`isFrozen = false`), the client continues rendering the mob in frozen pose (`FrozenRenderState`) while the server entity is freely walking and attacking.
+  3. **Packet Enforcement:** Ensure server actively sends an explicit packet when freeze ends, and cancels target attack goals / melee interactions throughout the entire freeze duration.
+
+
+
+
+
+
 
 
 
