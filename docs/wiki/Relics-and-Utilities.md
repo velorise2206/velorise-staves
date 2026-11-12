@@ -49,15 +49,30 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * **Cooldown:** 5.0 seconds.
 * **Mechanics:**
   * Resets fall distance to 0, ensuring **zero fall damage** upon landing.
-  * Self-inflicts a mild Electro charge on the caster (1.0U Basic / 1.5U Netherite) upon blink discharge.
+  * Self-inflicts a lingering Electro charge on the caster (1.0U Basic / 1.5U Netherite) upon blink discharge.
 * **Crafting Recipe:**
   * Shaped: 1 Ender Pearl + 2 Sticks placed diagonally.
+
+> [!WARNING]
+> ### ⚡ Critical Hazard: Self-Applied Electro Aura
+> Blinking with the Void Translocator instantly discharges volatile dimensional static onto the caster, applying a **1.0U Electro Aura (Basic)** or **1.5U Electro Aura (Netherite)** lasting ~20 seconds!
+> 
+> **Exercise extreme caution during combat and environmental exploration:**
+> * 🌊 **In Water or Rain:** Blinking while wet or standing in rain immediately triggers self-inflicted **Electro-Charged**, dealing continuous electrical damage ticks to yourself and causing heavy screen shake!
+> * 🔥 **Burning or Fighting Pyro Mobs (Blazes, Ghasts):** Blinking while ignited or struck by Pyro projectiles instantly detonates an **Overloaded** blast directly centered on your player, dealing explosive recoil damage and knocking you backward!
+> * ❄️ **Fighting Cryo Enemies (Strays):** Carrying the self-inflicted Electro charge while struck by Cryo triggers **Superconduct**, shredding your own physical defense by **-40%**!
+> * 🌿 **Afflicted by Dendro:** Blinking while carrying a Dendro aura places you into the **Quicken** state, amplifying incoming Dendro and Electro damage significantly!
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_void_translocator.png" width="400" alt="Void Translocator Crafting Recipe" />
   <br/><br/>
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/void_translocator.gif" width="450" alt="Void Translocator Demo" />
-  <br/><sub><i>Blinking across terrain instantaneously with safe-landing fall damage nullification.</i></sub>
+  <table>
+    <tr>
+      <td align="center"><b>Safe Blink & Zero Fall Damage</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/void_translocator.gif" width="360" /></td>
+      <td align="center"><b>Self-Applied Electro Aura (HUD / Inventory)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/teleport_self_electro.gif" width="360" /></td>
+    </tr>
+  </table>
+  <br/><sub><i>Blinking across terrain instantaneously resets fall distance, but charges the player with 1.0U Electro.</i></sub>
 </div>
 
 ---
