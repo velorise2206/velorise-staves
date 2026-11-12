@@ -7,7 +7,7 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 ## 1. Electrified Water
 
 <div align="center">
-  <img src="https://minecraft.wiki/images/Water_Bucket_JE2_BE2.png" width="28" height="28" />
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="28" height="28" />
   &nbsp;&nbsp;&nbsp;&nbsp;<b>+</b>&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="28" height="28" />
 </div>
@@ -43,7 +43,7 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 ## 4. Sculk Sensor & Deep Dark Resonance
 
 <div align="center">
-  <img src="https://minecraft.wiki/images/Sculk_Sensor_JE1_BE1.png" width="28" height="28" />
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="28" height="28" />
   &nbsp;&nbsp;&nbsp;&nbsp;<b>+</b>&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/resonant_echo.png" width="28" height="28" />
 </div>

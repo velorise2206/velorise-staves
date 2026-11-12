@@ -8,21 +8,14 @@ For players who prefer close-quarters melee combat over ranged spellcasting, the
 
 Imbuing requires an anvil, an elemental essence, and exactly **3 levels of experience**:
 
-1. Place an <img src="https://minecraft.wiki/images/Anvil_JE2_BE2.png" width="18" height="18" /> **Anvil** and open its interface.
+1. Place an **Anvil** and open its interface.
 2. Place any sword (Wooden, Stone, Iron, Golden, Diamond, Netherite, or modded SwordItem) in the left slot.
 3. Place an **Elemental Essence** (any of the 7 elements, or <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="16" height="16" /> Omni Element) in the right slot.
 4. Retrieve the imbued sword from the output slot for a base cost of **3 XP levels** (4 XP levels if customized with a new name).
 
 <div align="center">
-  <table>
-    <tr>
-      <td align="center"><b>Slot 1 (Sword)</b><br/><img src="https://minecraft.wiki/images/Diamond_Sword_JE3_BE3.png" width="32" height="32" /><br/>Diamond Sword</td>
-      <td align="center"><b>+</b></td>
-      <td align="center"><b>Slot 2 (Essence)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/cryo_element.png" width="32" height="32" /><br/>Cryo Element</td>
-      <td align="center"><b>➔</b></td>
-      <td align="center"><b>Output (3 XP Levels)</b><br/><img src="https://minecraft.wiki/images/Diamond_Sword_JE3_BE3.png" width="32" height="32" /><br/><b>Cryo-Imbued Diamond Sword</b></td>
-    </tr>
-  </table>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_anvil_imbuing.png" width="460" alt="In-Game Anvil Imbuing UI" />
+  <br/><sub><i>In-Game Anvil UI: Imbuing a Netherite Sword with an elemental essence for 3 XP levels.</i></sub>
 </div>
 
 ---

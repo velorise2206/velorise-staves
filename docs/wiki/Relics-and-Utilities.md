@@ -15,14 +15,17 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 </div>
 
 * **Primary Function:** Provides an instantaneous recall mechanic back to your bed or world spawn point.
-  * Hold **Right-Click** for 2.5 seconds to channel recall energy.
+  * Hold **Right-Click** for 2.5 seconds (or 1.0s for Netherite) to channel recall energy.
   * Transports the player directly to their established spawn point, accompanied by custom audio cues and portal particle spirals.
 * **Durability & Repair:**
-  * **Basic Tier:** 40 uses. Repaired at an anvil using <img src="https://minecraft.wiki/images/Diamond_JE3_BE3.png" width="16" height="16" /> Diamonds. Recalls within the current dimension.
-  * **Netherite Tier:** 150 uses. Repaired using <img src="https://minecraft.wiki/images/Netherite_Ingot_JE1_BE1.png" width="16" height="16" /> Netherite Ingots. Enables cross-dimensional teleportation (teleporting from the Nether or The End directly back to your Overworld spawn bed).
+  * **Basic Tier:** 40 uses. Repaired at an anvil using Diamonds. Recalls within the current dimension.
+  * **Netherite Tier:** 150 uses. Repaired using Netherite Ingots. Enables cross-dimensional teleportation (teleporting from the Nether or The End directly back to your Overworld spawn bed).
 * **Crafting Recipe:**
   * Shaped: 1 Ender Pearl (center), 4 Diamonds (cross), 2 Glass (corners).
-  * Upgraded at a Smithing Table with a Netherite Upgrade Template and a Netherite Ingot.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_magic_mirror.png" width="400" alt="Magic Mirror Crafting Recipe" />
+</div>
 
 ---
 
@@ -46,7 +49,10 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * Self-inflicts a mild Electro charge on the caster (1.0U Basic / 1.5U Netherite) upon blink discharge.
 * **Crafting Recipe:**
   * Shaped: 1 Ender Pearl + 2 Sticks placed diagonally.
-  * Upgraded at a Smithing Table with a Netherite Upgrade Template and a Netherite Ingot.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_void_translocator.png" width="400" alt="Void Translocator Crafting Recipe" />
+</div>
 
 ---
 
@@ -58,6 +64,25 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 
 * **Crafting Recipe:** **1 Book + 1 Amethyst Shard** placed anywhere in a Crafting Table (shapeless recipe).
 * **In-Game Feature:** Right-clicking opens an illuminated in-game reference codex displaying the full elemental wheel, active reaction multipliers, and craftable recipes without requiring players to consult external web browsers.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_elemental_codex.png" width="400" alt="Elemental Codex Crafting Recipe" />
+</div>
+
+---
+
+## Omni Element
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="48" height="48" alt="Omni Element" />
+</div>
+
+* **Primary Function:** The ultimate catalyst used in Smithing Table transformations to synthesize the Omni Staff or repair any elemental weapon.
+* **Crafting Recipe:** Combine all **7 Elemental Essences** (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo) in any Crafting Table (shapeless recipe).
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_omni_element.png" width="400" alt="Omni Element Crafting Recipe" />
+</div>
 
 ---
 
@@ -76,14 +101,3 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * **Hydro Shard:** Dampens projectile and aquatic damage.
   * **Electro Shard:** Absorbs lightning and electrical damage.
   * **Cryo Shard:** Nullifies freezing and chilling slowdowns.
-
----
-
-## Omni Element Synthesis
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="32" height="32" alt="Omni Element" />
-</div>
-
-* **Crafting Recipe:** Combine 1 of each of the 7 basic elemental essences (<img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/pyro_element.png" width="16" height="16" /> Pyro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/hydro_element.png" width="16" height="16" /> Hydro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/anemo_element.png" width="16" height="16" /> Anemo, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/electro_element.png" width="16" height="16" /> Electro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/dendro_element.png" width="16" height="16" /> Dendro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/cryo_element.png" width="16" height="16" /> Cryo, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/geo_element.png" width="16" height="16" /> Geo) in a Crafting Table.
-* **Usage:** Used to forge the Omni Staff in a Smithing Table or to imbue weapons with adaptive Omni reaction intelligence.
