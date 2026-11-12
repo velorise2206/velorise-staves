@@ -16,12 +16,22 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 * **Effect:** All entities submerged or wading in that water body—including zombies, drowned, aquatic life, and the player—receive continuous electrical damage ticks and movement stutter.
 * **Tactical Application:** Lure swarms of enemies into swamps, rivers, or rainstorms, then discharge lightning from the shoreline to electrocute the entire pack safely.
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/electrified_water.gif" width="450" alt="Electrified Water Demo" />
+  <br/><sub><i>Electrifying water pools to continuously stun and damage wading hostile mobs.</i></sub>
+</div>
+
 ---
 
 ## 2. Temporary Frost Walking
 
 * **Mechanism:** Firing a Cryo spell (such as the <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/frostbolt_wand.png" width="16" height="16" /> **Frostbolt Wand**) directly at a water surface converts top-layer water blocks into temporary frosted ice sheets (radius 1 for Basic, radius 2 for Netherite).
 * **Terrain Safety:** The frost lasts long enough for players to sprint or leap across rivers and ocean straits. After a short duration, the frosted ice naturally melts back into regular water, leaving the landscape completely unaltered.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/freeze_water.gif" width="450" alt="Freeze Water Demo" />
+  <br/><sub><i>Freezing surface water into temporary walkable frost bridges.</i></sub>
+</div>
 
 ---
 
@@ -54,4 +64,33 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 <div align="center">
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/sculk_sensor_electro.gif" width="450" alt="Sculk Sensor Interaction" />
   <br/><sub><i>Remotely triggering Sculk sensors through sonic frequencies to cascade electrical pulses.</i></sub>
+</div>
+
+---
+
+## 5. Tesla Coils & Storm Overcharge
+
+Placing a copper **Lightning Rod directly on top of a Block of Redstone** transforms the structure into an automated **Tesla Defense Coil**.
+
+* **Standard Mode (Clear Weather):**
+  * Discharges electric arcs every **2.0 seconds** (40 ticks).
+  * Auto-targets hostile mobs within a **2-block radius** with 3–5 lightning arcs per pulse.
+  * Deals 1.0 damage per arc, applies **0.5U Electro**, and electrifies surrounding water pools.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/tesla_coil_normal.gif" width="450" alt="Tesla Coil Normal Mode" />
+  <br/><sub><i>Standard Tesla Coil defending a perimeter against approaching hostile mobs.</i></sub>
+</div>
+
+* **Overcharged Mode (Rain & Storms):**
+  * Activates automatically during **rain or thunderstorms**, or for **30 seconds** following a natural lightning strike.
+  * Emits dense electrical spark particles and doubles all combat statistics:
+    * **Discharge Rate:** Fires every **1.0 second** (20 ticks, 2x faster).
+    * **Detection Range:** Extends to a **4-block radius** (2x range).
+    * **Volts & Damage:** Discharges **6–10 arcs** per pulse dealing **2.0 damage** + **1.0U Electro** (2x damage).
+    * **Aquatic Spread:** Electrifies adjacent water bodies across a 3.0m radius for 70 ticks.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/tesla_coil_rain.gif" width="450" alt="Tesla Coil Overcharged Mode" />
+  <br/><sub><i>Overcharged Tesla Coil during rain unleashing high-frequency electrical arcs.</i></sub>
 </div>
