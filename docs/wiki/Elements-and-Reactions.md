@@ -44,7 +44,12 @@ Multiplicative reactions scale directly with the trigger attack's base damage, m
 | **Reverse Melt** | Cryo applied to an active Pyro aura | **1.5x (150%)** | 0.5x Gauge | Extinguishes the flame gradually under chilling frost. |
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/vaporize.gif" width="450" />
+  <table>
+    <tr>
+      <td align="center"><b>Vaporize Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/vaporize.gif" width="380" /></td>
+      <td align="center"><b>Forward Melt Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/melt.gif" width="380" /></td>
+    </tr>
+  </table>
 </div>
 
 ---
@@ -64,8 +69,15 @@ Multiplicative reactions scale directly with the trigger attack's base damage, m
 | **Overvape** | Pyro on (Hydro & Electro co-existing aura) | Simultaneously triggers both Vaporize and Overloaded in a single devastating explosion. |
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/electro_charged.gif" width="450" />
-  <br/><sub><i>Electro-Charged reaction chaining through multiple wet entities in a rainy environment.</i></sub>
+  <table>
+    <tr>
+      <td align="center"><b>Electro-Charged</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/electro_charged.gif" width="360" /></td>
+      <td align="center"><b>Overloaded Explosion</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/overloaded.gif" width="360" /></td>
+    </tr>
+  </table>
+  <br/>
+  <b>Swirl Vortex Reaction (Spreading Auras in AoE)</b><br/>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/swirl.gif" width="460" />
 </div>
 
 ---
@@ -93,23 +105,9 @@ Dendro reactions center around the production and manipulation of **Dendro Cores
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Bloom Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/bloom.gif" width="360" /></td>
-      <td align="center"><b>Hyperbloom Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/hyperbloom.gif" width="360" /></td>
+      <td align="center"><b>Bloom (Creation)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/bloom.gif" width="240" /></td>
+      <td align="center"><b>Hyperbloom (Electro)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/hyperbloom.gif" width="240" /></td>
+      <td align="center"><b>Burgeon (Pyro)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/burgeon.gif" width="240" /></td>
     </tr>
   </table>
 </div>
-
----
-
-## Elemental Resonance (Team Buffs)
-
-When carrying 2 or more staves of the same element in your inventory (or 4 unique elements), the **Elemental Resonance** engine activates passive bonuses:
-
-* **Pyro Resonance (Fervor):** Increases overall attack damage by 15%.
-* **Hydro Resonance (Soothing Water):** Increases maximum health and incoming healing by 25%.
-* **Cryo Resonance (Shattering Ice):** Increases critical strike damage and freeze duration on chilled targets.
-* **Electro Resonance (High Voltage):** Generates bonus energy particles and reduces staff cooldowns.
-* **Anemo Resonance (Impetuous Winds):** Decreases staff cooldowns by 5% and increases movement speed by 10%.
-* **Geo Resonance (Enduring Rock):** Increases shield strength by 15% and increases damage dealt while protected by a shield.
-* **Dendro Resonance (Sprawling Greenery):** Grants bonus Elemental Mastery to amplify reaction damage.
-* **Protective Canopy (4 Unique Elements):** All Elemental Resistances +15% and Physical Resistance +15%.

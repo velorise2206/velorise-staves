@@ -25,6 +25,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_magic_mirror.png" width="400" alt="Magic Mirror Crafting Recipe" />
+  <br/><br/>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/magic_mirror.gif" width="450" alt="Magic Mirror Recall Demo" />
+  <br/><sub><i>Channeling the Magic Mirror to recall instantly back to your spawn bed.</i></sub>
 </div>
 
 ---
@@ -52,6 +55,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_void_translocator.png" width="400" alt="Void Translocator Crafting Recipe" />
+  <br/><br/>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/void_translocator.gif" width="450" alt="Void Translocator Demo" />
+  <br/><sub><i>Blinking across terrain instantaneously with safe-landing fall damage nullification.</i></sub>
 </div>
 
 ---
@@ -67,6 +73,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_elemental_codex.png" width="400" alt="Elemental Codex Crafting Recipe" />
+  <br/><br/>
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/codex_ui.gif" width="450" alt="Elemental Codex GUI Showcase" />
+  <br/><sub><i>Browsing the in-game illuminated Codex with reaction formulas and staff details.</i></sub>
 </div>
 
 ---
