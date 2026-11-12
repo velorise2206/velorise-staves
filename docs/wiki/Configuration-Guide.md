@@ -1,0 +1,87 @@
+# Configuration Guide
+
+**Velorise's Staves & Elements** provides extensive configuration options tailored for server administrators and modpack creators looking to tune combat balance, cooldown pacing, mob mutation rates, and environmental rules.
+
+* **Configuration File Locations:**
+  * **NeoForge & Forge:** `.minecraft/config/velorise_staves-server.toml` (or `saves/<world>/serverconfig/velorise_staves-server.toml`).
+  * **Fabric:** `.minecraft/config/velorise_staves.json5`.
+
+---
+
+## Combat & General Balancing
+
+```toml
+[general]
+# Global damage multiplier applied to all elemental staves (Default: 1.0)
+# Scale up to 1.5 - 2.0 for hardcore modpacks with high-health custom mobs.
+damage_multiplier = 1.0
+
+# Global cooldown multiplier for all staves (Default: 1.0)
+# Set to 0.5 to halve cooldown durations for fast-paced combat.
+cooldown_multiplier = 1.0
+
+# Maximum number of Arcane Staves allowed in a single player inventory (Default: 4)
+# Carrying more than this limit triggers the Arcane Overload penalty.
+# Set to 0 to remove all inventory capacity limits.
+max_staves_in_inventory = 4
+```
+
+---
+
+## Utility Artifacts
+
+```toml
+[utilities]
+# Allows the standard Magic Mirror to teleport across dimensions (Default: false)
+# When set to false, cross-dimensional teleportation requires the Netherite variant.
+basic_mirror_cross_dimension = false
+
+# Channel duration in seconds required to trigger the Magic Mirror (Default: 2.5)
+magic_mirror_channel_seconds = 2.5
+
+# Blink teleport distance in blocks for the standard Void Translocator (Default: 24.0)
+void_translocator_range_basic = 24.0
+
+# Blink teleport distance in blocks for the Netherite Void Translocator (Default: 36.0)
+void_translocator_range_netherite = 36.0
+```
+
+---
+
+## Mob Mutation Rates
+
+```toml
+[mutations]
+# Chance (from 0.0 to 1.0) for newly spawned mobs to carry innate elemental mutations (Default: 0.07 -> 7%)
+# Mutated mobs drop their corresponding Elemental Essence upon defeat.
+innate_mutation_chance = 0.07
+
+# Allows hostile mobs (Zombies, Skeletons, Creepers) to mutate with elemental auras (Default: true)
+allow_hostile_mob_mutation = true
+
+# Allows Iron Golems to spawn with elemental mutations (Default: true)
+allow_golem_mutation = true
+
+# Allows passive animals to spawn with elemental mutations (Default: false)
+allow_neutral_and_passive_mutation = false
+```
+
+---
+
+## Environmental Interactions
+
+```toml
+[interactions]
+# Striking a Creeper with Arc Caster lightning transforms it into a Charged Creeper (Default: true)
+arc_caster_charge_creeper = true
+
+# Duration in ticks that temporary Webcaster webs persist before dissolving (Default: 100 ticks = 5 seconds)
+temporary_web_duration_ticks = 100
+```
+
+---
+
+## Server Performance Notes
+
+* **Spatial Grid Caching:** The mod utilizes a spatial partition grid for elemental particle broadcasts and environmental block checks.
+* **Network Culling:** Aura sync packets are dispatched only to players within render range of the affected entity, preserving 20.0 server TPS on populated multiplayer servers.

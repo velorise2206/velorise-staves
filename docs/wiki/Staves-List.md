@@ -1,0 +1,90 @@
+# Arcane Staves & Netherite Upgrades
+
+**Velorise's Staves & Elements** features 13 distinct elemental staves, each channeling the power of iconic Minecraft entities and materials. Every basic staff can be upgraded at a **Smithing Table** using a <img src="https://minecraft.wiki/images/Netherite_Upgrade_Smithing_Template_JE1_BE1.png" width="16" height="16" /> **Netherite Upgrade Template** and a <img src="https://minecraft.wiki/images/Netherite_Ingot_JE1_BE1.png" width="16" height="16" /> **Netherite Ingot** to grant dramatically increased durability, enhanced reach, faster cooldowns, and immunity to fire and lava destruction.
+
+---
+
+## The Apex Weapon: Omni Staff
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_staff.png" width="48" height="48" alt="Omni Staff" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/netherite_omni_staff.png" width="48" height="48" alt="Netherite Omni Staff" />
+  <br/>
+  <b>Omni Staff (Basic Tier) &nbsp;|&nbsp; Netherite Omni Staff (Ascended Tier)</b>
+</div>
+
+* **Elemental Alignment:** <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="16" height="16" /> Dynamic Omni (Cycles across all 7 elements).
+* **Core Mechanics:**
+  * Press **`R`** (or `Shift + Right-Click`) to open the **Radial Element Wheel** to switch your active elemental alignment instantly.
+  * Fires homing prism crystals that automatically select the optimal reaction element against the target's current aura.
+* **Combat Stats:**
+  * **Range:** 36m (1.75m AoE) [Basic] / 48m (2.5m AoE) [Netherite]
+  * **Damage:** 10.0 Hearts (20 HP) + 2U Active Element [Basic] / 15.0 Hearts (30 HP) + 3U Active Element [Netherite]
+  * **Cooldown:** 6.0 seconds
+  * **Durability:** 250 [Basic] / 900 [Netherite]
+* **Crafting Recipes:**
+  * **Shapeless Crafting:** 1 Staff from each of the 7 elemental categories (`pyro_staves`, `hydro_staves`, `cryo_staves`, `electro_staves`, `dendro_staves`, `anemo_staves`, `geo_staves`).
+  * **Smithing Transform:** Netherite Upgrade Template + Any Basic Elemental Staff + <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="16" height="16" /> Omni Element.
+  * **Netherite Upgrade:** Netherite Upgrade Template + Omni Staff + Netherite Ingot.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_staff.gif" width="450" />
+</div>
+
+---
+
+## Electro Staves
+
+| Staff | Element | Base & Netherite Stats | Crafting Recipe & Mechanics |
+| :--- | :---: | :--- | :--- |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/dragonfire_scepter.png" width="32" height="32" /><br/>**Dragonfire Scepter** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /><br/>Electro | **Reach:** 32m (3.5m AoE) / 32m (4.5m AoE)<br/>**Damage:** 7.0♥ (14 HP) cloud + 2U Electro / 10.0♥ (20 HP) cloud + 2U Electro<br/>**Cooldown:** 8.0s<br/>**Durability:** 130 / 500 | **Recipe:** Shaped (1 Dragon Head + 2 Blaze Rods diagonal).<br/>**Ability:** Hurls dragon breath leaving an electrified cloud that electrifies water and shocks enemies. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/shulker_seeker.png" width="32" height="32" /><br/>**Shulker Seeker** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /><br/>Electro | **Reach:** 30m<br/>**Damage:** 4.0♥ x 2 burst shots + 1U Electro / 6.0♥ x 2 burst shots + 1.5U Electro<br/>**Cooldown:** 5.0s<br/>**Durability:** 130 / 500 | **Recipe:** Shaped (1 Shulker Shell + 2 End Rods diagonal).<br/>**Ability:** Shoots 2 homing Shulker bullets that track moving targets and inflict Levitation (3s / 4s). |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/arc_caster.png" width="32" height="32" /><br/>**Arc Caster** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /><br/>Electro | **Reach:** 30m Arc (Single Target) / 36m Arc (6.0m Chain)<br/>**Damage:** 0.5♥ per hit + 1U Electro / 1.0♥ per hit + 1.5U Electro (Channeled, 12 hits)<br/>**Cooldown:** 5.0s<br/>**Durability:** 130 / 500 | **Recipe:** Shaped (1 Electro Element + 2 Amethyst Shards diagonal).<br/>**Ability:** Channeled voltaic arc stream (3.0s). Chains to nearby mobs on Netherite tier. |
+
+---
+
+## Anemo Staves
+
+| Staff | Element | Base & Netherite Stats | Crafting Recipe & Mechanics |
+| :--- | :---: | :--- | :--- |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/resonant_echo.png" width="32" height="32" /><br/>**Resonant Echo** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /><br/>Anemo | **Reach:** 28m / 32m<br/>**Damage:** 11.0♥ (22 HP) + 2U Anemo (Swirl) / 16.0♥ (32 HP) + 4U Anemo (Swirl)<br/>**Cooldown:** 8.0s<br/>**Durability:** 130 / 500 | **Recipe:** Shaped (1 Calibrated Sculk Sensor + 2 Echo Shards diagonal).<br/>**Ability:** Charged attack (1.5s charge). Channels a piercing Warden sonic boom that penetrates walls and triggers Swirl. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/wind_staff.png" width="32" height="32" /><br/>**Wind Staff** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /><br/>Anemo | **Reach:** 28m (3.5m AoE) / 28m (4.5m AoE)<br/>**Damage:** 1.5♥ + 1U Anemo (Swirl) / 2.5♥ + 1.5U Anemo (Swirl)<br/>**Cooldown:** 1.5s<br/>**Durability:** 140 / 500 | **Recipe:** Shaped (1 Wind Charge + 2 Breeze Rods diagonal).<br/>**Ability:** Rapid gust charge. Firing at the ground executes a **Wind-Jump** launch on the caster. |
+
+---
+
+## Pyro Staves
+
+| Staff | Element | Base & Netherite Stats | Crafting Recipe & Mechanics |
+| :--- | :---: | :--- | :--- |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/inferno_rod.png" width="32" height="32" /><br/>**Inferno Rod** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /><br/>Pyro | **Reach:** 30m<br/>**Damage:** 3.0♥ x 3 burst shots + 1U Pyro / 4.5♥ x 3 burst shots + 1.5U Pyro<br/>**Cooldown:** 4.0s<br/>**Durability:** 150 / 550 | **Recipe:** Shaped (1 Fire Charge + 2 Blaze Rods diagonal).<br/>**Ability:** Fires 3 rapid-fire Blaze fireballs sequentially, setting struck entities on fire. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/ghastfire_staff.png" width="32" height="32" /><br/>**Ghastfire Staff** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /><br/>Pyro | **Reach:** 36m (3.5m AoE / 5s Field) / 36m (4.5m AoE / 5s Field)<br/>**Damage:** 6.0♥ + 2U Pyro / 9.0♥ + 4U Pyro<br/>**Cooldown:** 5.0s<br/>**Durability:** 120 / 450 | **Recipe:** Shaped (1 Ghast Tear + 2 Blaze Rods diagonal).<br/>**Ability:** Charged attack (2.0s charge). Launches an explosive Ghast fireball leaving a 5-second lingering Ghastfire field. |
+
+---
+
+## Hydro, Cryo & Geo Staves
+
+| Staff | Element | Base & Netherite Stats | Crafting Recipe & Mechanics |
+| :--- | :---: | :--- | :--- |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/guardian_lens.png" width="32" height="32" /><br/>**Guardian Lens** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /><br/>Hydro | **Reach:** 24m / 28m<br/>**Damage:** (10% to 20% user Max HP) x 10 hits + 1U Hydro / (15% to 30% Max HP) x 10 hits + 1.5U Hydro<br/>**Cooldown:** 6.0s<br/>**Durability:** 130 / 500 | **Recipe:** Shaped (1 Heart of the Sea + 1 Prismarine Shard + 1 Prismarine Crystals diagonal).<br/>**Ability:** Channeled heat ray (2.5s). Base damage scales directly with caster's Max HP. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/frostbolt_wand.png" width="32" height="32" /><br/>**Frostbolt Wand** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /><br/>Cryo | **Reach:** 28m / 28m (2.0m AoE)<br/>**Damage:** 3.0♥ x 3 burst shots + 1U Cryo / 4.5♥ x 3 burst shots + 1.5U Cryo<br/>**Cooldown:** 4.0s<br/>**Durability:** 150 / 500 | **Recipe:** Shaped (1 Blue Ice + 2 Blaze Rods diagonal).<br/>**Ability:** Fires 3 freezing orbs chilling and slowing enemies. Freezes surface water into temporary walkable frost. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/evoker_fang_staff.png" width="32" height="32" /><br/>**Evoker Fang Staff** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /><br/>Geo | **Reach:** 13.5m (9 Fangs) / 19.5m (13 Fangs)<br/>**Damage:** 3.0♥ per fang + 1U Geo / 4.5♥ per fang + 1.5U Geo<br/>**Cooldown:** 5.0s<br/>**Durability:** 120 / 450 | **Recipe:** Shaped (1 Totem of Undying + 2 Blaze Rods diagonal).<br/>**Ability:** Summons a line of biting fangs and a 1x1 Geo Fang Pillar (HP = 1x creator's Max HP) that taunts mobs and pulses Geo waves. |
+
+---
+
+## Dendro Staves
+
+| Staff | Element | Base & Netherite Stats | Crafting Recipe & Mechanics |
+| :--- | :---: | :--- | :--- |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/webcaster.png" width="32" height="32" /><br/>**Webcaster** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /><br/>Dendro | **Reach:** 28m<br/>**Damage:** Trapping Web + Poison I / Trapping Web + Poison II + 1.5U Dendro<br/>**Cooldown:** 5.0s<br/>**Durability:** 140 / 500 | **Recipe:** Shaped (1 Cobweb + 2 Blaze Rods diagonal).<br/>**Ability:** Launches dense temporary webs (5s basic / 7s Netherite) that immobilize targets and inflict Poison. |
+| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/wither_scepter.png" width="32" height="32" /><br/>**Wither Scepter** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /><br/>Dendro | **Reach:** 32m (3.0m AoE) / 32m (4.0m AoE)<br/>**Damage:** 4.0♥ x 3 burst shots + 1U Dendro + Wither I / 6.0♥ x 3 burst shots + 1.5U Dendro + Wither II<br/>**Cooldown:** 6.0s<br/>**Durability:** 140 / 500 | **Recipe:** Shaped (1 Wither Skeleton Skull + 2 Blaze Rods diagonal).<br/>**Ability:** Fires 3 Wither skulls sequentially, detonating in an area and inflicting Wither decay. |
+
+---
+
+## Netherite Smithing Upgrade Process
+
+To upgrade any basic staff to its Netherite tier:
+1. Place a <img src="https://minecraft.wiki/images/Smithing_Table_JE2_BE2.png" width="18" height="18" /> **Smithing Table**.
+2. Slot 1: <img src="https://minecraft.wiki/images/Netherite_Upgrade_Smithing_Template_JE1_BE1.png" width="18" height="18" /> **Netherite Upgrade Smithing Template**.
+3. Slot 2: Any Basic Staff.
+4. Slot 3: <img src="https://minecraft.wiki/images/Netherite_Ingot_JE1_BE1.png" width="18" height="18" /> **Netherite Ingot**.
