@@ -43,4 +43,11 @@
 * **Goal:** Render a miniature Hydro emblem or append an elemental tooltip line (e.g. `✦ Element: Hydro (Resonance Partner)`) on the Vanilla Trident.
 * **Reason:** In Velorise's Staves, the Vanilla Trident inherently acts as a Hydro partner for activating Hydro Elemental Resonance (when carrying at least 1 Arcane Staff) and applies Hydro in combat. Adding a clear tooltip and visual indicator eliminates confusion and highlights this vanilla synergy.
 
+---
+
+### 7. [Bugfix/Tooltip] Fix Guardian's Lens Tooltip (Remove Legacy "x 10" Suffix)
+* **Issue:** Following recent damage refactoring, Guardian's Lens fires a single focused beam dealing **1/10 (10%) of the caster's Max HP** (15% for Netherite), doubled to 20% (30% for Netherite) during HP fluctuation buffs (`hasRecentHpChangeBuff`). However, `ArcaneStaffItem.java` still appends a legacy `" x 10 "` string to the tooltip, incorrectly suggesting a 10-hit multi-strike (`1.5-3 ♥ x 10`).
+* **Goal:** Clean up `ArcaneStaffItem.java` line 946 to remove `" x 10 "`, displaying the accurate single-beam damage formula: `1.0–2.0 ♥ (10–20% Max HP)` for Basic and `1.5–3.0 ♥ (15–30% Max HP)` for Netherite.
+
+
 
