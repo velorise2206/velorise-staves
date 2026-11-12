@@ -55,7 +55,7 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 
 > [!WARNING]
 > ### ⚡ Critical Hazard: Self-Applied Electro Aura
-> Blinking with the Void Translocator instantly discharges volatile dimensional static onto the caster, applying a **1.0U Electro Aura (Basic)** or **1.5U Electro Aura (Netherite)** lasting ~20 seconds!
+> Blinking with the Void Translocator instantly discharges volatile dimensional static onto the caster, applying a **1.0U Electro Aura (Basic)** or **1.5U Electro Aura (Netherite)**!
 > 
 > **Exercise extreme caution during combat and environmental exploration:**
 > * 🌊 **In Water or Rain:** Blinking while wet or standing in rain immediately triggers self-inflicted **Electro-Charged**, dealing continuous electrical damage ticks to yourself and causing heavy screen shake!
