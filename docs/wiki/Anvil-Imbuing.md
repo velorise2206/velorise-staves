@@ -23,6 +23,7 @@ Imbuing requires an anvil, an elemental essence, and exactly **3 levels of exper
 ## Critical Imbuing Rules & Restrictions
 
 * **Full-Strength Strike Requirement:** An imbued sword only applies its elemental aura and reaction effects on **full-strength swings** (when the vanilla attack recharge indicator reaches at least **90% / 0.9F**). Rapid spam-clicking does not discharge the elemental aura.
+* **Guaranteed Physical Damage Against Magic-Immune Mobs:** When an imbued sword strikes an entity that is completely immune to magic/elements (such as an **Omni-Mutated Mob** or an entity immune to a specific element), **the sword's full base physical melee damage is always dealt!** Imbuing infuses your strikes with bonus elemental properties without converting or diminishing the weapon's underlying physical blade damage.
 * **Fire Aspect Enchantment Conflict:** A sword that already carries the vanilla `Fire Aspect` enchantment **cannot** be imbued with non-Pyro elements (Hydro, Cryo, Electro, Dendro, Anemo, Geo, or Omni). The anvil interface will strictly reject the combination. Fire Aspect swords can only be imbued with Pyro.
 * **Omni-Imbued Weapon Intelligence:** When a sword is imbued with an **Omni Element**, it dynamically scans the target on every full-strength hit and automatically selects the optimal counter-element to trigger the highest-value reaction (e.g. choosing Pyro if the target is wet to trigger Vaporize, or choosing Cryo if the target is wet to trigger Frozen).
 

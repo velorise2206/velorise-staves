@@ -234,7 +234,7 @@ Every newly spawned hostile mob has an innate **7% chance** (`innate_mutation_ch
 ### 3. The Omni Mutation (Primal Magic Immunity)
 Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (visible via a hovering Triquetra icon above their head):
 * 🛡️ **Total Magic Immunity:** 100% immune to all 7 elemental forms of damage (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo). Magic projectiles and elemental spells deal zero damage.
-* ⚔️ **Physical Attacks Only:** Omni mobs cannot be damaged by elemental magic. You must use physical attacks (swords, axes, bows, crossbows) to damage and defeat them!
+* ⚔️ **Physical Attacks Only:** Omni mobs cannot be damaged by elemental magic. You must use physical attacks (swords, axes, bows, crossbows) to damage and defeat them! Note that **Element-Imbued Swords still deal their full base physical melee damage** against Omni mobs, as elemental imbuing does not replace physical cutting damage.
 * 💎 **Guaranteed Rare Drop:** Defeating an Omni mob has a **25% chance** to drop the coveted **Omni Element**!
 
 ### 4. Mob Base Resistances & Special Elemental Traits
@@ -249,6 +249,19 @@ All living creatures feature intrinsic damage resistance profiles faithfully mod
 | **Geo-Innate Mobs** | **+50% Projectile & Explosion RES** | Creatures carrying innate Geo auras deflect ranged arrows and absorb explosive blast waves (including **Overloaded**, **Burgeon**, and **Shatter** reaction explosions). |
 | **Anemo-Innate Mobs** *(e.g. Breezes)* | **100% Fall Damage Immunity** | Wind-aligned creatures manipulate updrafts and are completely immune to impact damage from falling. |
 | **Superconduct Resistance Shred** | **-40% Physical RES (12s)** | Triggering a **Superconduct** reaction (Electro + Cryo) shreds the victim's Physical Resistance by **40%**, directly counteracting base mob defenses and amplifying melee sword/bow damage! |
+
+### 5. Elemental Pets & Tamed Companions (A Good Pet!)
+
+Certain animals in Minecraft—specifically **Wolves** (`minecraft:wolf`) and **Foxes** (`minecraft:fox`)—are eligible to spawn with elemental mutations, including the ultra-rare **Omni Mutation**:
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_pet_wolf.jpg" width="480" alt="Tamed Omni Wolf Pet" />
+  <br/><sub><i>A Good Pet! A tamed Wolf displaying the permanent Omni Triquetra halo and Jade HUD status.</i></sub>
+</div>
+
+* **Permanent Mutation Persistence:** When a player tames a mutated wolf using bones, the pet **permanently retains its elemental aura, visual particles, and Jade HUD badge**.
+* **Bypass-ICD Combat Biting:** Every time your tamed pet bites an enemy in combat, it applies **1.0U of its element with 0 ICD**, allowing you to set up seamless team-up reactions (e.g. Cryo Wolf constantly freezing wet mobs, Pyro Wolf burning enemies, or Electro Wolf setting up Electro-Charged).
+* **The Legendary Omni Pet:** A tamed Omni Wolf is **100% immune to all 7 magical damage types** and utilizes **Adaptive Elemental Strike**—dynamically selecting whichever element triggers the most lethal reaction against the target's current aura on every bite!
 
 ---
 
