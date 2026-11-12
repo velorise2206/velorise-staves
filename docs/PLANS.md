@@ -72,10 +72,15 @@
 
 ---
 
-### 10. [QoL/Immersion] Custom Death Messages for Tamed Pets & Elemental Combos
-* **Goal:** Extend custom elemental death messages (`death.attack.velorise_staves.*`) to support tamed pets (`TamableAnimal` such as Wolves, Cats, and Foxes):
-  * **Pet Killed by Reaction:** If a player's pet perishes from an elemental reaction (e.g. Overloaded explosion, Burgeon core blast, Electro-Charged zap, or Shatter), display the styled elemental death message in chat (e.g. `<PetName> was blown apart by Overloaded`) rather than falling back to vanilla generic strings.
-  * **Elemental Pet Combat Feats:** Attribute elemental reaction kills triggered by the pet's bypass-ICD bites to the pet and its owner in combat logs.
+### 10. [QoL/Immersion] Elemental Death Messages for Mutated Pets & Dynamic Omni Rainbow Cycling
+* **Current Issue:**
+  1. When a player's mutated pet (e.g. Omni Wolf or Pyro Wolf) dies, vanilla displays generic unstyled death messages (e.g. `Wolf was shot by Pillager`), completely omitting its element and elemental colors.
+  2. In `ElementalDeathMessageHelper.java`, the `Omni` element name is currently hardcoded to static gold (`ChatFormatting.GOLD`) instead of dynamically cycling through elemental rainbow colors.
+* **Goal & Implementation:**
+  * **Elemental Pet Death Formatting:** Format the deceased pet's name with its elemental prefix and color code in chat (e.g. `Dev's [Cryo] Wolf was slain by Pillager` or `Dev's [Omni] Wolf was blown apart by Overloaded`).
+  * **Dynamic Omni Rainbow / Chromatic Animation:**
+    * In death messages (e.g. `Player was slain by Omni Skeleton` or `Omni Wolf was slain by Pillager`), tooltips, and chat, render the `Omni` tag with an animated/time-based chromatic color cycle (cycling smoothly through Pyro Red &rarr; Hydro Blue &rarr; Cryo Cyan &rarr; Electro Purple &rarr; Dendro Green &rarr; Anemo Teal &rarr; Geo Gold) or multi-color gradient characters (`§cO§9m§bn§di`).
+  * **Symmetrical Killer & Victim Formatting:** Update `formatVictimDisplayName` alongside `formatKillerDisplayName` so both attacker and victim display full elemental prefixes and styling across all death log events.
 
 ---
 
