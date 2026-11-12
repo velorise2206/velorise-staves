@@ -106,6 +106,24 @@
   * Possesses **150% absorption effectiveness** against all Elemental and Physical damage.
   * While active, creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by 20%.
 
+---
+
+### 13. [Combat/Balance] Align Resistance Formulas with Authentic Genshin Impact Mechanics (Halved Below 0%)
+* **Goal:** Adopt the official *Genshin Impact* resistance scaling curves for both Physical and Elemental resistances across all combat calculations.
+* **Authentic Resistance Formula:**
+  * **Negative Resistance ($RES < 0$):**
+    $$\text{Multiplier} = 1.0 - \frac{RES}{2.0}$$
+    *Effect:* Any resistance shred pushing RES below 0% is halved in effectiveness. For example, a mob with 10% base RES suffering from Superconduct (-40% RES) reaches $-30\%$ RES, dealing $1.0 - (-0.30 / 2.0) = 1.15$ (**+15% physical damage amplification**, aligning with Genshin instead of the current flat +30%).
+  * **Standard Resistance ($0 \le RES \le 0.75$):**
+    $$\text{Multiplier} = 1.0 - RES$$
+  * **Extreme High Resistance ($RES > 0.75$):**
+    $$\text{Multiplier} = \frac{1.0}{4.0 \times RES + 1.0}$$
+    *Effect:* Diminishing returns on extreme resistances (such as Warden with 70% Anemo RES combined with innate Geo projectile buffs), preventing total invulnerability.
+* **Implementation Scope:**
+  * Update `getEffectivePhysicalMultiplier()` in `ElementalGaugeManager.java` across NeoForge 1.21.1, Forge 1.20.1, and Fabric 1.21.1.
+  * Update `applyMobElementalResistance()` and `applyMobDamageResistances()` to universally support negative elemental RES (preparing for Jade Shield -20% all RES and future Swirl resistance shredding).
+  * Update Wiki ([Elements-and-Reactions.md](file:///c:/Documents/Coder/Minecraft/myMod/velorise_staves/docs/wiki/Elements-and-Reactions.md)) table and notes to reflect the 3-tier Genshin piecewise resistance formula.
+
 
 
 
