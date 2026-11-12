@@ -70,6 +70,25 @@
   2. **Client/Server Timer Desync:** Client `ClientAuraTracker` tracks `frozenUntil = now + remMs`. If the server unfreezes the mob without sending an immediate unfreeze packet (`isFrozen = false`), the client continues rendering the mob in frozen pose (`FrozenRenderState`) while the server entity is freely walking and attacking.
   3. **Packet Enforcement:** Ensure server actively sends an explicit packet when freeze ends, and cancels target attack goals / melee interactions throughout the entire freeze duration.
 
+---
+
+### 10. [QoL/Immersion] Custom Death Messages for Tamed Pets & Elemental Combos
+* **Goal:** Extend custom elemental death messages (`death.attack.velorise_staves.*`) to support tamed pets (`TamableAnimal` such as Wolves, Cats, and Foxes):
+  * **Pet Killed by Reaction:** If a player's pet perishes from an elemental reaction (e.g. Overloaded explosion, Burgeon core blast, Electro-Charged zap, or Shatter), display the styled elemental death message in chat (e.g. `<PetName> was blown apart by Overloaded`) rather than falling back to vanilla generic strings.
+  * **Elemental Pet Combat Feats:** Attribute elemental reaction kills triggered by the pet's bypass-ICD bites to the pet and its owner in combat logs.
+
+---
+
+### 11. [Advancement] "A Good Pet!" — Tame an Omni-Mutated Companion
+* **Goal:** Award a dedicated challenge advancement when a player successfully tames a Wolf or Fox possessing the ultra-rare Omni Mutation.
+* **Advancement Details:**
+  * **ID:** `velorise_staves:tame_omni_pet`
+  * **Title:** `A Good Pet!`
+  * **Description:** `Tame a loyal Wolf or Fox imbued with the legendary Omni Mutation.`
+  * **Frame:** `challenge` (Spiked golden frame with fanfare audio trigger).
+  * **Trigger:** Listens to `TameAnimalTrigger` checking `ElementalGaugeManager.isOmniInnate(animal)`.
+
+
 
 
 

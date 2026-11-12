@@ -229,7 +229,8 @@ Certain mobs permanently carry innate elemental auras without requiring prior pl
 * **Dendro:** Bogged.
 
 ### 2. Hostile Mob Mutations
-Every newly spawned hostile mob has an innate **7% chance** (`innate_mutation_chance = 0.07`) to mutate into an elemental variant. Mutated mobs glow with elemental particles and drop their corresponding **Elemental Essence** upon defeat.
+Every newly spawned hostile mob has an innate **7% chance** (`innate_mutation_chance = 0.07`) to mutate into an elemental variant. Mutated mobs glow with elemental particles and drop their corresponding **Elemental Essence** upon defeat:
+* **Guaranteed Physical Damage:** Mutated mobs apply 1.0U of their element upon attacking. When striking a target immune or resistant to their element, their attacks still inflict 100% of their base physical arrow, sword, or melee fist damage!
 
 ### 3. The Omni Mutation (Primal Magic Immunity)
 Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (visible via a hovering Triquetra icon above their head):
