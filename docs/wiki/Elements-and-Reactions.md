@@ -237,4 +237,34 @@ Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (vi
 * ⚔️ **Physical Vulnerability:** Omni mobs possess no defense against raw physical force. Standard swords, bows, crossbows, tridents, and axes deal normal (or amplified) physical damage, making weapon choice crucial!
 * 💎 **Guaranteed Rare Drop:** Defeating an Omni mob has a **25% chance** to drop the coveted **Omni Element**!
 
+---
+
+## Vanilla Mechanics Synergy (Potions, Arrows & Tridents)
+
+Velorise's Staves seamlessly integrates vanilla Minecraft combat items into the Elemental Gauge Theory engine, allowing archers and alchemists to participate fully in elemental combos:
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/trident_hydro.gif" width="480" alt="Trident counts as Hydro demonstration" />
+  <br/><sub><i>Vanilla Tridents inherently channel Hydro properties, applying a 1.0U Hydro aura upon striking targets and triggering elemental reactions.</i></sub>
+</div>
+
+### 1. Tipped Arrows & Potion Elemental Mapping
+Any **Tipped Arrow** fired from a Bow or Crossbow, as well as **Splash/Lingering Potions**, instantly apply a **1.0U elemental aura** to the target entity based on its potion effect:
+
+| Vanilla Potion Effect | Mapped Element | Elemental Reaction Potential |
+|:---|:---:|:---|
+| **Poison / Oozing** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> **Dendro** | Strike wet enemies to sprout **Bloom Cores** or shock with Electro for **Quicken**! |
+| **Slowness** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> **Cryo** | Freeze wet targets in water or strike with Pyro for **2.0x Melt**! |
+| **Instant Damage (HARM)** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> **Electro** | Shoot burning enemies for **Overloaded** explosions or wet mobs for **Electro-Charged**! |
+| **Water Bottle** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> **Hydro** | Extinguishes fire and wets targets for Vaporize, Freeze, Bloom, or Electro-Charged. |
+| **Speed / Wind Charged** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> **Anemo** | Triggers **Swirl** to spread nearby auras across groups of enemies. |
+| **Resistance / Infested** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> **Geo** | Breaks off elemental shield shards via **Crystallize**. |
+
+* **Lingering Potion Hazard:** Lingering clouds (`AreaEffectCloud`) continuously apply their mapped element every 20 ticks (1.0 second) to all entities standing within the cloud, creating hazardous elemental zones.
+
+### 2. Vanilla Trident Integration
+* **Hydro Weapon Status:** In combat, striking mobs with a **Trident** (melee or thrown) applies **1.0U Hydro**, reacting with active auras just like a magic staff.
+* **Resonance Partner:** When carrying at least one Arcane Staff, holding or carrying a Trident in your inventory satisfies the requirement for **Hydro Elemental Resonance** (+20% Max Health & -40% Pyro duration).
+
+
 

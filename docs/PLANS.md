@@ -37,3 +37,10 @@
   * Line 2: `• Electro Reactions: -1s Staff CD & +1 Durability (5s ICD)`
 * **Implementation:** Split at the ` | ` delimiter or use `mc.font.split(description, maxWidth)` in `ClientAuraRenderer.java` (`renderResonanceInventory`), keeping tooltips neat, readable, and compact.
 
+---
+
+### 6. [UI/Visual] Add Hydro Element Indicator & Tooltip to Vanilla Trident
+* **Goal:** Render a miniature Hydro emblem or append an elemental tooltip line (e.g. `✦ Element: Hydro (Resonance Partner)`) on the Vanilla Trident.
+* **Reason:** In Velorise's Staves, the Vanilla Trident inherently acts as a Hydro partner for activating Hydro Elemental Resonance (when carrying at least 1 Arcane Staff) and applies Hydro in combat. Adding a clear tooltip and visual indicator eliminates confusion and highlights this vanilla synergy.
+
+

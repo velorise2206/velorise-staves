@@ -10,6 +10,7 @@
 * **[Staff Enchantments (EM)](Staves-List#staff-enchantments-elemental-mastery)**
 * **[Anvil Weapon Imbuing](Anvil-Imbuing)**
 * **[Environmental Interactions](Environmental-Interactions)**
+* **[Potion & Trident Synergies](Elements-and-Reactions#vanilla-mechanics-synergy-potions-arrows--tridents)**
 * **[Relics & Utilities](Relics-and-Utilities)**
 
 ---

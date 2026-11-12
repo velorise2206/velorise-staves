@@ -67,6 +67,22 @@ Place **1 Book + 1 Amethyst Shard** anywhere in a Crafting Table (shapeless reci
 
 ---
 
+## Advancements & Custom Death Messages
+
+Track your arcane journey through a dedicated **Advancements Tree** and experience fully customized combat feedback:
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><b>Advancements Tree</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/advancements_tree.jpg" width="400" /><br/><sub><i>Dedicated advancement tab guiding players through essence harvesting, staff forging, and mastering reactions.</i></sub></td>
+      <td align="center"><b>Custom Reaction Death Messages</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/death_message_overloaded.jpg" width="360" /><br/><sub><i>Unique death messages for all elemental reactions (e.g. "blown apart by Overloaded", "shattered into frost", etc.).</i></sub></td>
+    </tr>
+  </table>
+</div>
+
+
+---
+
 ## Wiki Directory
 
 * **[Elements & Reactions](Elements-and-Reactions)**: Complete breakdown of all 15+ reactions, damage scaling equations, and aura duration mechanics.
