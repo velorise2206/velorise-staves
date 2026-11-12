@@ -1,8 +1,11 @@
 # Velorise's Staves
 
+[![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/hungbbdzz/velorise-staves/wiki)
 [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
+
+📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/hungbbdzz/velorise-staves/wiki)!**
 
 A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **11 custom advancements**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
