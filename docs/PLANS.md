@@ -45,9 +45,23 @@
 
 ---
 
-### 7. [Bugfix/Tooltip] Fix Guardian's Lens Tooltip (Remove Legacy "x 10" Suffix)
-* **Issue:** Following recent damage refactoring, Guardian's Lens fires a single focused beam dealing **1/10 (10%) of the caster's Max HP** (15% for Netherite), doubled to 20% (30% for Netherite) during HP fluctuation buffs (`hasRecentHpChangeBuff`). However, `ArcaneStaffItem.java` still appends a legacy `" x 10 "` string to the tooltip, incorrectly suggesting a 10-hit multi-strike (`1.5-3 ♥ x 10`).
-* **Goal:** Clean up `ArcaneStaffItem.java` line 946 to remove `" x 10 "`, displaying the accurate single-beam damage formula: `1.0–2.0 ♥ (10–20% Max HP)` for Basic and `1.5–3.0 ♥ (15–30% Max HP)` for Netherite.
+### 7. [UI/Tooltip] Guardian's Lens Max HP Scaling Tooltip Clarification
+* **Insight:** The in-game tooltip `1-2 ♥ x 10` (Basic) and `1.5-3 ♥ x 10` (Netherite) is completely dynamic and accurately reflects the 2.5s channeling beam (50 ticks / 5-tick interval = 10 hits, each hitting for 10% / 15% of caster Max HP).
+* **Issue:** Players cannot deduce from the raw numbers that their damage is actively scaling with their own Max HP.
+* **Goal:** Append an explanatory subtitle / tooltip line:
+  `✦ Scales with Caster's Max HP (10%/hit | 15% Netherite)`
+  making the HP-stacking build synergy obvious (especially when paired with Hydro Resonance +20% HP or Health Boost armor/buffs).
+
+---
+
+### 8. [Bugfix/Fabric] Investigate Anvil Sword Imbuing on Fabric 1.21.1
+* **Observation:** Sword imbuing with Elemental Essences via Anvil works flawlessly on NeoForge 1.21.1 (driven by `AnvilUpdateEvent`), but appears unresponsive or fails to produce output on Fabric 1.21.1.
+* **Root Cause Investigation:** On Fabric, anvil manipulation relies on `AnvilMenuMixin.java` injecting into `createResult(CallbackInfo ci)`. Check:
+  1. Whether `velorise$handleSwordImbue` correctly syncs result slot and XP cost across client and server (`ItemCombinerMenu.resultSlots.setItem` vs `AnvilMenu.onTake`).
+  2. Verify if Fabric mixin applies properly or if `createResult` gets called/reset by other menu methods or vanilla item combiner logic.
+  3. Ensure custom data / components (`TAG_IMBUED_ELEMENT`) are properly read and written in Fabric environment.
+
+
 
 
 

@@ -167,8 +167,8 @@ Carrying matching elemental weapons unlocks passive team-wide buffs known as **E
 
 ### Understanding the Top-Right HUD
 When playing with Velorise's Staves, the top-right corner of your screen dynamically tracks your active elemental state:
-* 🔲 **Colored Element Border (Viền màu nguyên tố):** Indicates an **Active Elemental Resonance** granting continuous passive combat buffs (e.g. Purple = Electro Resonance, Orange/Red = Pyro Resonance, Cyan = Cryo Resonance).
-* ⬛ **Dark / No Border (Viền tối không viền):** Indicates an **Afflicted Elemental Aura currently on your player's body** (e.g. Cyan Anemo, Blue Hydro, Violet Electro). Be mindful of incoming elemental attacks to avoid triggering hazardous self-reactions!
+* 🔲 **Colored Element Border:** Indicates an **Active Elemental Resonance** granting continuous passive combat buffs (e.g. Purple = Electro Resonance, Orange/Red = Pyro Resonance, Cyan = Cryo Resonance).
+* ⬛ **Dark / No Border:** Indicates an **Afflicted Elemental Aura currently on your player's body** (e.g. Cyan Anemo, Blue Hydro, Violet Electro). Be mindful of incoming elemental attacks to avoid triggering hazardous self-reactions!
 
 ### Slot Priority & Omni Staff Wildcard Pairing
 The resonance engine evaluates your inventory in strict sequential order:  
@@ -213,8 +213,8 @@ The world of Minecraft is populated by creatures that naturally channel volatile
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Natural Innate Aura (Blaze)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/innate_blaze.gif" width="340" /><br/><sub><i>Blazes inherently carry a permanent Pyro aura. Striking them with Hydro triggers immediate Vaporize.</i></sub></td>
-      <td align="center"><b>Rare Omni Mutation (Magic Immune)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_mob_immunity.gif" width="340" /><br/><sub><i>Omni-mutated mobs are 100% immune to all 7 magical elements, but highly vulnerable to physical strikes!</i></sub></td>
+      <td align="center"><b>Natural Innate Aura (Blaze)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/innate_blaze.gif" width="340" /><br/><sub><i>Blazes inherently carry a permanent Pyro aura. Trigger elemental reactions immediately without needing to apply Pyro first!</i></sub></td>
+      <td align="center"><b>Rare Omni Mutation (Magic Immune)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_mob_immunity.gif" width="340" /><br/><sub><i>Omni-mutated mobs are 100% immune to all 7 magical elements — only physical damage (swords, bows, axes) can harm them!</i></sub></td>
     </tr>
   </table>
 </div>
@@ -234,7 +234,7 @@ Every newly spawned hostile mob has an innate **7% chance** (`innate_mutation_ch
 ### 3. The Omni Mutation (Primal Magic Immunity)
 Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (visible via a hovering Triquetra icon above their head):
 * 🛡️ **Total Magic Immunity:** 100% immune to all 7 elemental forms of damage (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo). Magic projectiles and elemental spells deal zero damage.
-* ⚔️ **Physical Vulnerability:** Omni mobs possess no defense against raw physical force. Standard swords, bows, crossbows, tridents, and axes deal normal (or amplified) physical damage, making weapon choice crucial!
+* ⚔️ **Physical Attacks Only:** Omni mobs cannot be damaged by elemental magic. You must use physical attacks (swords, axes, bows, crossbows) to damage and defeat them!
 * 💎 **Guaranteed Rare Drop:** Defeating an Omni mob has a **25% chance** to drop the coveted **Omni Element**!
 
 ---
