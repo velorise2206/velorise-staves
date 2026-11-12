@@ -5,7 +5,9 @@
 
 ### Core Mechanics
 * **[Elements & Reactions](Elements-and-Reactions)**
+* **[Resonances & Overload](Elements-and-Reactions#elemental-resonance-system)**
 * **[Staves & Weapons (13 Archetypes)](Staves-List)**
+* **[Staff Enchantments (EM)](Staves-List#staff-enchantments-elemental-mastery)**
 * **[Anvil Weapon Imbuing](Anvil-Imbuing)**
 * **[Environmental Interactions](Environmental-Interactions)**
 * **[Relics & Utilities](Relics-and-Utilities)**

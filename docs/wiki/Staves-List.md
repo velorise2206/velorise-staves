@@ -118,3 +118,40 @@ To upgrade any basic staff to its Netherite tier:
   <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_netherite_upgrade.png" width="440" alt="Netherite Smithing Upgrade Recipe" />
   <br/><sub><i>In-game Smithing Table UI demonstrating staff ascension to Netherite tier.</i></sub>
 </div>
+
+---
+
+## Staff Enchantments (Elemental Mastery)
+
+Enhance your arcane combat potential by enchanting any staff with **Elemental Mastery (EM)**. Inspired by the core stat from *Genshin Impact*, this enchantment dramatically increases reaction output, amplifying both burst multipliers and transformative damage procs.
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><b>Elemental Mastery I</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/enchant_elemental_mastery_1.png" width="220" /></td>
+      <td align="center"><b>Elemental Mastery II</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/enchant_elemental_mastery_2.png" width="220" /></td>
+      <td align="center"><b>Elemental Mastery III</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/enchant_elemental_mastery_3.png" width="220" /></td>
+    </tr>
+  </table>
+  <sub><i>Enchanted Books for Elemental Mastery can be obtained from Enchanting Tables, dungeon loot, or villager trading.</i></sub>
+</div>
+
+### Mechanics & Stat Scaling
+* **Compatible Items:** Can be applied to **all 13 Arcane Staves**, their **Netherite Ascensions**, and the **Omni Staff**.
+* **Application Methods:**
+  * Direct enchantment via an **Enchanting Table** (Levels 10–30+).
+  * Combining an **Enchanted Book** with your staff at an **Anvil** (Cost: 4+ XP levels).
+* **Live Tooltip Display:** Holding an enchanted staff highlights the active combat bonuses in gold:
+  ```text
+  ✦ EM Reaction Bonus: +X% Amp / +Y% Trans / +Z% Cat
+  ```
+* **Advancement:** Equipping any staff imbued with this enchantment unlocks the **"Elemental Scholar"** advancement!
+
+### Scaling Table per Enchantment Level
+
+| Level | Amplifying Reactions (Melt, Vaporize) | Transformative Reactions (Overload, Superconduct, Swirl, Bloom, Hyperbloom, Burgeon, Shatter, Electro-Charged, Burning) | Catalyze Reactions (Aggravate, Spread) | Crystallize Shield HP Bonus |
+|:---:|:---:|:---:|:---:|:---:|
+| **Level I** | **+15%** Damage | **+30%** Damage | **+25%** Added Damage | **+1.0 ♥** Shield HP |
+| **Level II** | **+30%** Damage | **+60%** Damage | **+50%** Added Damage | **+2.0 ♥** Shield HP |
+| **Level III** | **+45%** Damage | **+90%** Damage | **+75%** Added Damage | **+3.0 ♥** Shield HP |
+

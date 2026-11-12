@@ -154,3 +154,87 @@ In vanilla Minecraft, attacking an entity grants it **10 ticks (0.5s) of damage 
 
 Velorise's Staves engine intelligently synchronizes and zeroes out `invulnerableTime = 0` during valid reaction triggers, ensuring rapid combo play (e.g., applying Hydro then immediately striking with Cryo or Pyro) connects seamlessly as intended.
 
+---
+
+## Elemental Resonance System
+
+Carrying matching elemental weapons unlocks passive team-wide buffs known as **Elemental Resonances**, faithfully adapted from *Genshin Impact*. Up to **2 distinct resonances** can be active simultaneously.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/resonance_priority_electro.png" width="700" alt="Resonance Priority Case 1: Electro Active" />
+  <br/><sub><i>Case 1: Omni Staff auto-matches with the 1st solo element found (Slot 4: Arc Caster ➔ Electro Resonance). Slots 5 & 6 pair for Pyro Resonance. Slot 8 (Cryo) is inactive.</i></sub>
+</div>
+
+### Understanding the Top-Right HUD
+When playing with Velorise's Staves, the top-right corner of your screen dynamically tracks your active elemental state:
+* 🔲 **Colored Element Border (Viền màu nguyên tố):** Indicates an **Active Elemental Resonance** granting continuous passive combat buffs (e.g. Purple = Electro Resonance, Orange/Red = Pyro Resonance, Cyan = Cryo Resonance).
+* ⬛ **Dark / No Border (Viền tối không viền):** Indicates an **Afflicted Elemental Aura currently on your player's body** (e.g. Cyan Anemo, Blue Hydro, Violet Electro). Be mindful of incoming elemental attacks to avoid triggering hazardous self-reactions!
+
+### Slot Priority & Omni Staff Wildcard Pairing
+The resonance engine evaluates your inventory in strict sequential order:  
+`Mainhand ➔ Offhand ➔ Hotbar (Slots 1–9) ➔ Main Inventory (Slots 10–36)`
+
+1. **Natural 2-Weapon Pairs:** Having 2 distinct weapons of the same element (e.g., Inferno Rod + Ghastfire Staff) automatically activates that element's resonance.
+2. **Omni Staff Wildcard:** In Auto mode, the Omni Staff scans your inventory from left to right and dynamically pairs with the **first solo element** that does not already have an active resonance.
+3. **Resonance Reordering:** By simply rearranging weapons in your hotbar, you can switch which resonance is active on the fly!
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/resonance_priority_cryo.png" width="700" alt="Resonance Priority Case 2: Cryo Active" />
+  <br/><sub><i>Case 2: Reordering hotbar slots. Moving Frostbolt Wand (Cryo) to Slot 3 causes Omni Staff to pair with Cryo first, instantly switching your active resonance from Electro to Cryo!</i></sub>
+</div>
+
+---
+
+## Arcane Overload (Staff Inventory Limit)
+
+To maintain survival balance and prevent players from becoming god-like one-man armories carrying an entire elemental pantheon at once, carrying more than **4 distinct Arcane Staves** in Survival mode triggers **Arcane Overload**:
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/arcane_overload.gif" width="480" alt="Arcane Overload Demonstration" />
+  <br/><sub><i>Exceeding the 4-staff inventory limit triggers Arcane Overload, displaying a red Triquetra warning icon and completely disabling all staff casting.</i></sub>
+</div>
+
+* **Overload Penalties:**
+  * ❌ **All staff casting is disabled** (right-clicking discharges zero magic).
+  * ❌ **All active Elemental Resonances are suppressed.**
+  * ⚠️ A prominent red warning badge appears on your HUD and Inventory screen.
+* **Overload Rules:**
+  * Carrying duplicate backup copies of the same staff type only counts as 1 distinct staff toward the cap.
+  * Items stored inside backpacks, Shulker Boxes, or Ender Chests do **not** count toward the cap.
+  * Creative and Spectator mode players are completely exempt (`isOverloadExempt`).
+  * Server administrators can adjust or disable this cap in `velorise_staves-common.toml` (`max_staves_in_inventory = 0` to remove the limit).
+
+---
+
+## Innate Elemental Mobs & Rare Omni Mutations
+
+The world of Minecraft is populated by creatures that naturally channel volatile primal energies:
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><b>Natural Innate Aura (Blaze)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/innate_blaze.gif" width="340" /><br/><sub><i>Blazes inherently carry a permanent Pyro aura. Striking them with Hydro triggers immediate Vaporize.</i></sub></td>
+      <td align="center"><b>Rare Omni Mutation (Magic Immune)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_mob_immunity.gif" width="340" /><br/><sub><i>Omni-mutated mobs are 100% immune to all 7 magical elements, but highly vulnerable to physical strikes!</i></sub></td>
+    </tr>
+  </table>
+</div>
+
+### 1. Natural Innate Mobs
+Certain mobs permanently carry innate elemental auras without requiring prior player attacks:
+* **Pyro:** Blazes, Magma Cubes, Ghasts.
+* **Hydro:** Drowned, Guardians, Elder Guardians.
+* **Cryo:** Strays, Snow Golems.
+* **Electro:** Shulkers, Powered Creepers, Endermites.
+* **Anemo:** Breezes.
+* **Dendro:** Bogged.
+
+### 2. Hostile Mob Mutations
+Every newly spawned hostile mob has an innate **7% chance** (`innate_mutation_chance = 0.07`) to mutate into an elemental variant. Mutated mobs glow with elemental particles and drop their corresponding **Elemental Essence** upon defeat.
+
+### 3. The Omni Mutation (Primal Magic Immunity)
+Approximately 1 in 7 mutated mobs spawn with the legendary **Omni Mutation** (visible via a hovering Triquetra icon above their head):
+* 🛡️ **Total Magic Immunity:** 100% immune to all 7 elemental forms of damage (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo). Magic projectiles and elemental spells deal zero damage.
+* ⚔️ **Physical Vulnerability:** Omni mobs possess no defense against raw physical force. Standard swords, bows, crossbows, tridents, and axes deal normal (or amplified) physical damage, making weapon choice crucial!
+* 💎 **Guaranteed Rare Drop:** Defeating an Omni mob has a **25% chance** to drop the coveted **Omni Element**!
+
+
