@@ -112,3 +112,45 @@ Dendro reactions center around the production and manipulation of **Dendro Cores
     </tr>
   </table>
 </div>
+
+---
+
+## Internal Cooldown (ICD) System
+
+Velorise's Staves & Elements features a high-fidelity **Internal Cooldown (ICD)** engine faithfully adapted from *Genshin Impact*, ensuring combat remains strategic, balanced, and rewarding without degenerate damage spamming or one-tick instakills.
+
+The system is separated into two distinct, independently tracked layers:
+
+### 1. Standard Aura ICD (The 3-Hit / 2.5s Rule)
+When repeatedly attacking a target with the same element (e.g. rapid basic attacks or continuous multi-strikes):
+* **Hit 1**: Successfully applies elemental aura (or triggers reaction).
+* **Hits 2 & 3**: Deal full base weapon/spell damage, but **do not** apply aura or trigger reactions.
+* **Hit 4**: Resets the counter and applies aura again.
+* **Timer Reset**: If **2.5 seconds (50 ticks)** elapse since the first hit, the counter resets back to 1.
+
+> [!NOTE]
+> Aura ICD is tracked per unique combination of **`Attacker + Target Entity + Element Type`**. Switching to a different element (e.g., Pyro then Hydro) or alternating players always applies immediately without waiting for the previous element's cooldown! Certain environmental effects (e.g. lingering cloud hazards) explicitly bypass this rule (`applyElementBypassIcd`).
+
+### 2. Reaction Damage & Trigger ICD
+To prevent multiple projectiles or simultaneous procs from detonating dozens of reactions on the same tick, every elemental reaction enforces its own target-specific trigger cooldown:
+
+| Elemental Reaction | Cooldown (Ticks) | Cooldown (Seconds) | Behavior & Notes |
+|:---|:---:|:---:|:---|
+| **Aggravate / Spread** | `5 ticks` | **0.25s** | High-cadence additive flat damage amplification on Quicken aura |
+| **Forward / Reverse Melt** | `8 ticks` | **0.40s** | Multiplicative damage scaling window |
+| **Forward / Reverse Vaporize** | `8 ticks` | **0.40s** | Multiplicative damage scaling window |
+| **Overloaded** | `10 ticks` | **0.50s** | AoE explosive blast & knockback |
+| **Superconduct** | `10 ticks` | **0.50s** | AoE Cryo burst & physical resistance shred (-40%) |
+| **Swirl** | `10 ticks` | **0.50s** | Elemental absorption vortex & AoE cross-application |
+| **Shatter** | `10 ticks` | **0.50s** | Heavy physical burst upon breaking Frozen status |
+| **Electro-Charged** | `10 ticks` | **0.50s** | Periodic continuous shock tick rate |
+| **Bloom / Hyperbloom / Burgeon**| `10 ticks` | **0.50s** | Dendro Core generation & detonation throttle |
+| **Frozen** | `10 ticks` | **0.50s** | Re-freeze lockout prevention |
+| **Crystallize** | `20 ticks` | **1.00s** | Matches Genshin's elemental shield shard drop cadence |
+| **Burning** | `40 ticks` | **2.00s** | Tick interval for sustained Pyro DoT re-application |
+
+### 3. Minecraft i-Frame (`invulnerableTime`) Bypass
+In vanilla Minecraft, attacking an entity grants it **10 ticks (0.5s) of damage immunity** (`invulnerableTime = 10`), which routinely swallows fast combos and multi-element spells from traditional magic mods. 
+
+Velorise's Staves engine intelligently synchronizes and zeroes out `invulnerableTime = 0` during valid reaction triggers, ensuring rapid combo play (e.g., applying Hydro then immediately striking with Cryo or Pyro) connects seamlessly as intended.
+

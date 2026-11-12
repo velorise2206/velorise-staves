@@ -42,6 +42,15 @@ Frequently asked questions regarding compatibility, performance, and server depl
 
 ---
 
+### Does this mod feature an Internal Cooldown (ICD) system?
+* **Yes, accurately adapted from Genshin Impact:**
+  * **Standard Aura ICD (3-Hit / 2.5s Rule):** Continuous hits of the same element on the same target require either 3 hits or a 2.5-second reset before applying aura again. Tracked independently per *(Attacker + Target + Element)*.
+  * **Reaction Trigger ICD:** Reactions have per-target cooldowns (e.g. Overloaded / Swirl / Superconduct at 0.5s, Crystallize at 1.0s, Melt / Vape at 0.4s) to eliminate spam exploit loops.
+  * **Vanilla i-Frame Handling:** Automatically synchronizes and bypasses Minecraft's default 10-tick damage immunity (`invulnerableTime = 0`) during valid elemental combos so your rapid spell combinations never get swallowed.
+  * See the full breakdown on the **[Elements & Reactions](Elements-and-Reactions#internal-cooldown-icd-system)** page.
+
+---
+
 ### What are the differences between Forge, NeoForge, and Fabric versions?
 * **100% Feature Parity.** All 3 builds share the exact same gameplay logic, damage formulas, sound effects, and configurations:
   * **NeoForge 1.21.1** (Recommended for modern gameplay and active modding ecosystems)
