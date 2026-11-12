@@ -26,3 +26,14 @@
 ### 4. [Visual] Corner Indicator for Element-Imbued Swords
 * **Goal:** Add a miniature elemental emblem/badge in the corner of the sword icon across Inventory, Hotbar, and JEI/REI/EMI slots.
 * **Reason:** Imbued swords currently share the default vanilla sword texture and are only distinguishable via tooltips. A corner overlay provides instant visual recognition of the infused element.
+
+---
+
+### 5. [UI/QoL] Multi-Line Word Wrap for Resonance Inventory Tooltips
+* **Issue:** Hovering over active Elemental Resonance icons in the Inventory currently renders the entire description string on a single unbroken line (e.g. `-40% Hydro Aura | Electro reactions: -1s Staff CD & +1 Durability (5s ICD)`), stretching horizontally across almost the whole screen.
+* **Goal:** Wrap/split resonance tooltips into compact multi-line bullet points:
+  * Title: `Electro: High Voltage` (Element color)
+  * Line 1: `• -40% Hydro Aura Duration`
+  * Line 2: `• Electro Reactions: -1s Staff CD & +1 Durability (5s ICD)`
+* **Implementation:** Split at the ` | ` delimiter or use `mc.font.split(description, maxWidth)` in `ClientAuraRenderer.java` (`renderResonanceInventory`), keeping tooltips neat, readable, and compact.
+
