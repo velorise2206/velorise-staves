@@ -1,58 +1,66 @@
 # FAQ & Compatibility
 
-Frequently asked questions regarding compatibility, performance, and server deployment for **Velorise's Staves & Elements**.
+Frequently asked questions regarding gameplay mechanics, compatibility, performance, and server deployment for **Velorise's Staves & Elements**.
 
 ---
 
 ### Does this mod work on dedicated multiplayer servers?
-* **Yes, fully supported.** All aura timers, environmental block interactions, custom particle displays, and audio cues are synchronized between server and client via custom network payloads.
+* **Yes, fully supported.** All aura timers, environmental block interactions, custom particle displays, audio cues, and server config multipliers (`ConfigSyncPayload`) are synchronized between server and client via custom network payloads.
 * Install the mod jar into both the server's `mods` folder and each player's client `mods` folder.
 
 ---
 
+### Why does the Anvil show no output when I try to imbue my Sword?
+* Check two intentional design rules in `SwordImbueHelper.java`:
+  1. **Already Imbued with the Same Element:** If your sword is *already imbued* with that exact same element (e.g. placing a `Cryo`-imbued Diamond Sword + `Cryo Element`), the Anvil intentionally produces no output so you don't waste essences and XP levels. Placing a **different** element (e.g. `Pyro` or `Omni`) will overwrite the element normally for 3 XP levels.
+  2. **Fire Aspect Conflict:** Swords enchanted with `Fire Aspect` strictly reject non-Pyro elements (`Hydro`, `Cryo`, `Electro`, `Dendro`, `Anemo`, `Geo`, `Omni`) and can only be imbued with **Pyro Element**.
+
+---
+
+### How do I break free when Frozen by Cryo + Hydro?
+* When your player is Frozen, your movement and camera rotation are locked and a **`[SPACE] Break Free`** prompt appears on screen.
+* Rapidly mash **`[Spacebar]`** (Jump) to struggle out of the ice: each press shaves **0.3 seconds (6 ticks)** off your remaining freeze duration (`0.15s / 3-tick` cooldown per press) with ice-cracking audio and snowflake bursts!
+
+---
+
+### How is the Wind Staff crafted on Forge 1.20.1 (which doesn't have Trial Chambers)?
+* **Full 13-Staff Backport:** On Forge 1.20.1, Velorise's Staves registers custom `velorise_staves:breeze_rod` and throwable `velorise_staves:wind_charge` items!
+* Simply harvest **Anemo Element** (`anemo_element`) from Phantoms, Vexes, or Anemo-mutated mobs, then craft:
+  * `1x Anemo Element` (shapeless) $\rightarrow$ **`4x Wind Charges`**
+  * `1x Anemo Element + 1x Blaze Rod` (shapeless) $\rightarrow$ **`1x Breeze Rod`**
+
+---
+
 ### Is there support for recipe viewers like JEI, REI, and EMI?
-* **Yes.** Built-in recipe integration displays:
-  * Standard Crafting Table staff recipes.
-  * Smithing Table Netherite upgrade templates.
-  * Anvil weapon imbuing recipes with live elemental essence preview slots.
+* **Yes (`VeloriseJeiPlugin.java`).** Built-in recipe integration displays:
+  * Standard Crafting Table staff & essence conversion recipes.
+  * Smithing Table Netherite upgrade & **Omni Staff transformation** recipes (preserving enchantments).
+  * Anvil **Sword Imbuing** recipes (for all 7 elements + Omni across all sword tiers) and **Staff Essence Repair** examples, plus JEI information pages for Elemental Essences.
 
 ---
 
-### How do I see what aura is active on a mob?
-* **Jade Integration:** When pointing your crosshair at any mob with an active elemental aura, Jade displays an aura status bar indicating the exact element type, remaining duration, and active reaction multiplier.
+### How do I see what aura is active on a mob or how much HP a Geo Pillar has?
+* **Jade / Waila Integration (`VeloriseStavesJadePlugin.java`):**
+  * Pointing your crosshair at any mob displays active elemental auras, remaining gauge duration, and `Omni ∞` immunity badges.
+  * Pointing at a **Geo Fang Pillar** displays its live **Geo Construct Health** bar (`HP / Max HP`).
 
 ---
 
-### Why does a mob standing in water not show a Hydro aura on Jade?
+### Why does a mob standing in water not show a persistent Hydro aura on Jade?
 * **Intentional Optimization & Performance Safeguard:**
-  * If the mod attached explicit, persistent elemental aura objects and continuous network sync packets to every entity touching water, vast oceans and rivers loaded with hundreds of fish, squids, and drowned would cause massive server-side packet spam and performance degradation.
-  * To keep multiplayer and singleplayer worlds running at maximum TPS, environmental wetness (**Submerged in Water**, **Standing in Rain**, or **Bubble Columns**) is calculated dynamically on-demand during combat calculations.
-  * **All elemental reactions trigger 100% reliably:** Even without a visible overhead aura tag, striking any mob in water with Cryo will freeze them solid into ice, Electro triggers Electro-Charged arcing bolts, Pyro triggers Vaporize, Dendro creates Dendro Cores (Bloom), and Geo extracts Crystallize shield shards.
-  * *(Note: An ambient, client-only `[Wet]` indicator for Jade HUD is planned for an upcoming patch to provide visual feedback without network overhead).*
+  * Attaching persistent aura objects and continuous network sync packets to every fish, squid, and drowned in oceans and rivers would cause unnecessary server-side packet traffic.
+  * Environmental wetness (**Submerged in Water**, **Standing in Rain**, or **Bubble Columns**) is evaluated dynamically on-demand during combat calculations, so striking any mob in water with Cryo, Electro, Pyro, Dendro, or Geo triggers **Frozen**, **Electro-Charged**, **Vaporize**, **Bloom**, or **Crystallize** 100% reliably.
 
 ---
 
-### Is this mod compatible with Better Combat?
-* **Fully compatible.** Elemental swords infused at an anvil retain all Better Combat weapon categories, attack animations, and sweep ranges while simultaneously applying their elemental aura upon impact.
+### Is this mod compatible with Better Combat and Shaders?
+* **Better Combat:** Fully compatible. Element-imbued swords retain all weapon categories and animations while applying `1.0U` on full-charge swings (`>= 90%`).
+* **Shaders (Iris, Oculus, OptiFine):** All 3D electric arcs, concentric Geo waves, Dendro Core buds, Omni Prism Orbs, and frozen ice overlays render cleanly under modern shader pipelines (*Complementary*, *BSL*, *MakeUp Ultra Fast*).
 
 ---
 
-### Can I run this with Shaders (Iris, Oculus, OptiFine)?
-* **Yes.** All magic projectile trails, beams, and impact particles utilize standard Minecraft render layers. They render properly under modern shader pipelines such as *Complementary Shaders*, *BSL*, and *MakeUp Ultra Fast* without graphical artifacting.
-
----
-
-### Does this mod feature an Internal Cooldown (ICD) system?
-* **Yes, accurately adapted from Genshin Impact:**
-  * **Standard Aura ICD (3-Hit / 2.5s Rule):** Continuous hits of the same element on the same target require either 3 hits or a 2.5-second reset before applying aura again. Tracked independently per *(Attacker + Target + Element)*.
-  * **Reaction Trigger ICD:** Reactions have per-target cooldowns (e.g. Overloaded / Swirl / Superconduct at 0.5s, Crystallize at 1.0s, Melt / Vape at 0.4s) to eliminate spam exploit loops.
-  * **Vanilla i-Frame Handling:** Automatically synchronizes and bypasses Minecraft's default 10-tick damage immunity (`invulnerableTime = 0`) during valid elemental combos so your rapid spell combinations never get swallowed.
-  * See the full breakdown on the **[Elements & Reactions](Elements-and-Reactions#internal-cooldown-icd-system)** page.
-
----
-
-### What are the differences between Forge, NeoForge, and Fabric versions?
-* **100% Feature Parity.** All 3 builds share the exact same gameplay logic, damage formulas, sound effects, and configurations:
-  * **NeoForge 1.21.1** (Recommended for modern gameplay and active modding ecosystems)
-  * **Forge 1.20.1** (Designed for large legacy modpacks)
-  * **Fabric 1.21.1** (Optimized for lightweight, high-framerate client setups)
+### What are the differences between NeoForge, Forge, and Fabric versions?
+* **100% Feature Parity Across All 3 Loaders:**
+  * **NeoForge 1.21.1** (Java 21)
+  * **Fabric 1.21.1** (Java 21)
+  * **Forge 1.20.1** (Java 17 — includes backported Wind Staff, Breeze Rod, and Wind Charge)
