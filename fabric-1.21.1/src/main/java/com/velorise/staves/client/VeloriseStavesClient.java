@@ -109,6 +109,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.VeloriseStavesMod.OMNI_ORB,
                 OmniOrbRenderer::new
         );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.HYDRO_SALON_SUMMON,
+                HydroSalonSummonRenderer::new
+        );
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();

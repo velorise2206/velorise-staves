@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "H": {
+      "item": "minecraft:heart_of_the_sea"
+    },
+    "E": {
+      "item": "velorise_staves:hydro_element"
+    },
+    "R": {
+      "item": "minecraft:end_rod"
+    }
+  },
+  "pattern": [
+    "  H",
+    " E ",
+    "R  "
+  ],
+  "result": {
+    "item": "velorise_staves:splendor_of_tranquil_waters"
+  }
+}

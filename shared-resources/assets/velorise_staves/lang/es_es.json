@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "Mojado (Amb)",
   "death.velorise_staves.pet_owned_name": "%2$s de %1$s",
   "advancement.velorise_staves.tame_omni_pet.title": "¡Una buena mascota!",
-  "advancement.velorise_staves.tame_omni_pet.desc": "Domestica a un lobo o zorro imbuido con la legendaria mutación Omni"
+  "advancement.velorise_staves.tame_omni_pet.desc": "Domestica a un lobo o zorro imbuido con la legendaria mutación Omni",
+  "item.velorise_staves.splendor_of_tranquil_waters": "Esplendor de las Aguas Silenciosas",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "El cetro real de Furina. Clic derecho para invocar a los Miembros del Salón (Ousía: 3 acompañantes Hydro que consumen 2% de Vida sobre el 50% para hasta 1.4x de daño) o al Juglar de las Aguas (Pneuma: curación en área) por 30 s. Agacharse + Clic derecho cambia de Arjé. Otorga caminar sobre el agua y acumula Algarabía (hasta +25% de daño y curación).",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "Esplendor de las Aguas Silenciosas de netherita",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "Cetro Hydro real forjado en netherita. Invoca a los Miembros del Salón mejorados (1.5U Hydro) o al Juglar de las Aguas (curación 8 m), caminar sobre el agua y Algarabía hasta +30%.",
+  "entity.velorise_staves.hydro_salon_summon": "Invocación del Salón Solitario",
+  "tooltip.velorise_staves.splendor.mode_ousia": "Ousía (Salón Solitario - Ataque)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "Pneuma (Juglar de las Aguas - Curación)",
+  "tooltip.velorise_staves.splendor_arkhe": "  Alineación Arjé: %s (Agacharse + Clic derecho)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  Escala con Vida Máx., Algarabía y drenaje Ousía (máx. 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "Alineación Arjé cambiada a: %s",
+  "codex.velorise_staves.staff.splendor": "Invoca el Salón Solitario (Ousía, hasta 1.4x daño) o el Juglar de las Aguas (Pneuma, curación). Caminar sobre el agua y Algarabía (+25%→+30%)."
 }

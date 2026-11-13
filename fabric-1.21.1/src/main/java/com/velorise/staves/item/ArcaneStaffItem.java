@@ -99,10 +99,31 @@ public final class ArcaneStaffItem extends Item {
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, EVOKER, LIGHTNING, FROST, WEB, WIND, OMNI
+        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, LIGHTNING, FROST, WEB, WIND, OMNI
     }
 
     public static final String TAG_OMNI_MODE = "OmniMode";
+    public static final String TAG_SPLENDOR_PNEUMA = "SplendorPneuma";
+
+    public static boolean isSplendorPneuma(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null && data.copyTag().getBoolean(TAG_SPLENDOR_PNEUMA);
+    }
+
+    public static void setSplendorPneuma(ItemStack stack, boolean pneuma) {
+        if (stack.isEmpty()) return;
+        if (!pneuma) {
+            CustomData existing = stack.get(DataComponents.CUSTOM_DATA);
+            if (existing == null) return;
+            CompoundTag copy = existing.copyTag();
+            copy.remove(TAG_SPLENDOR_PNEUMA);
+            if (copy.isEmpty()) stack.remove(DataComponents.CUSTOM_DATA);
+            else stack.set(DataComponents.CUSTOM_DATA, CustomData.of(copy));
+        } else {
+            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(TAG_SPLENDOR_PNEUMA, true));
+        }
+    }
 
     public static boolean isOmniStaff(ItemStack stack) {
         return !stack.isEmpty() && stack.getItem() instanceof ArcaneStaffItem staff && staff.kind == Kind.OMNI;
@@ -172,6 +193,24 @@ public final class ArcaneStaffItem extends Item {
             }
             return InteractionResultHolder.fail(stack);
         }
+        if (kind == Kind.SPLENDOR && player.isShiftKeyDown()) {
+            if (!level.isClientSide() && player instanceof ServerPlayer sp && level instanceof ServerLevel sl) {
+                boolean nextPneuma = !isSplendorPneuma(stack);
+                setSplendorPneuma(stack, nextPneuma);
+                String modeKey = nextPneuma
+                        ? "tooltip.velorise_staves.splendor.mode_pneuma"
+                        : "tooltip.velorise_staves.splendor.mode_ousia";
+                sp.displayClientMessage(
+                        Component.translatable("message.velorise_staves.splendor_arkhe_switched",
+                                Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA),
+                        true);
+                level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, nextPneuma ? 1.35F : 0.95F);
+                if (com.velorise.staves.entity.HydroSalonSummonEntity.hasAnySummonForOwner(sl, sp.getUUID())) {
+                    com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(sl, sp, isNetherite, nextPneuma);
+                }
+            }
+            return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        }
         if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (isCharged()) {
@@ -222,6 +261,7 @@ public final class ArcaneStaffItem extends Item {
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
             case WIND -> shootWind(serverPlayer);
+            case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
             case OMNI -> shootOmni(serverPlayer, stack);
             case ECHO, GUARDIAN, LIGHTNING -> false;
         };
@@ -245,6 +285,10 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (kind == Kind.SPLENDOR && entity instanceof Player p && !p.isShiftKeyDown()
+                && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
+            com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
+        }
         if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
         if (level.getGameTime() % 20L == 0L && ElementalGaugeManager.getElementalMasteryLevel(stack) > 0) {
             com.velorise.staves.advancement.ModAdvancements.trigger(
@@ -840,7 +884,7 @@ public final class ArcaneStaffItem extends Item {
         boolean validBase = switch (kind) {
             case DRAGONFIRE, INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
             case ECHO -> repair.is(Items.ECHO_SHARD) || repair.is(Items.BLAZE_ROD);
-            case GUARDIAN -> repair.is(Items.PRISMARINE_SHARD) || repair.is(Items.PRISMARINE_CRYSTALS) || repair.is(Items.BLAZE_ROD);
+            case GUARDIAN, SPLENDOR -> repair.is(Items.PRISMARINE_SHARD) || repair.is(Items.PRISMARINE_CRYSTALS) || repair.is(Items.HEART_OF_THE_SEA) || repair.is(Items.END_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
             case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
@@ -855,7 +899,7 @@ public final class ArcaneStaffItem extends Item {
             case DRAGONFIRE, SHULKER, LIGHTNING -> Element.ELECTRO;
             case ECHO, WIND -> Element.ANEMO;
             case INFERNO, GHASTFIRE -> Element.PYRO;
-            case GUARDIAN -> Element.HYDRO;
+            case GUARDIAN, SPLENDOR -> Element.HYDRO;
             case EVOKER -> Element.GEO;
             case FROST -> Element.CRYO;
             case WEB, WITHER -> Element.DENDRO;
@@ -872,6 +916,7 @@ public final class ArcaneStaffItem extends Item {
             case WITHER -> isNetherite ? "32m (4.0m AoE)" : "32m (3.0m AoE)";
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
+            case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (30s)" : "16m Ousia / 6m Pneuma (30s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
@@ -892,6 +937,13 @@ public final class ArcaneStaffItem extends Item {
             return String.format(java.util.Locale.ROOT, "%.1f", tenths);
         }
         return String.format(java.util.Locale.ROOT, "%.2f", rounded);
+    }
+
+    private boolean castSplendorSummon(ServerPlayer player, ItemStack stack) {
+        if (!(player.level() instanceof ServerLevel serverLevel)) return false;
+        boolean pneuma = isSplendorPneuma(stack);
+        com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(serverLevel, player, isNetherite, pneuma);
+        return true;
     }
 
     public static float computeGuardianBaseDamage(float maxHp, boolean netherite) {
@@ -944,6 +996,12 @@ public final class ArcaneStaffItem extends Item {
             case GUARDIAN -> {
                 float basicDmg = computeGuardianBaseDamage(getDisplayMaxHp(), isNetherite);
                 yield (fmtHearts(basicDmg) + "-" + fmtHearts(basicDmg * 2.0F)) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+            }
+            case SPLENDOR -> {
+                float maxHp = getDisplayMaxHp();
+                float minHit = maxHp * (isNetherite ? 0.075F : 0.05F);
+                float maxHit = maxHp * (isNetherite ? 0.19F : 0.14F) * 1.4F;
+                yield (fmtHearts(minHit) + "-" + fmtHearts(maxHit)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
             case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
@@ -1008,6 +1066,12 @@ public final class ArcaneStaffItem extends Item {
         tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.GUARDIAN) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
+        } else if (kind == Kind.SPLENDOR) {
+            String modeKey = isSplendorPneuma(stack)
+                    ? "tooltip.velorise_staves.splendor.mode_pneuma"
+                    : "tooltip.velorise_staves.splendor.mode_ousia";
+            tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_hp_scale").withStyle(ChatFormatting.AQUA));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));

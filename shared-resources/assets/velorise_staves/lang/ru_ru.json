@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "Мокрый (Среда)",
   "death.velorise_staves.pet_owned_name": "%2$s игрока %1$s",
   "advancement.velorise_staves.tame_omni_pet.title": "Хороший питомец!",
-  "advancement.velorise_staves.tame_omni_pet.desc": "Приручите верного волка или лису с легендарной Омни-мутацией"
+  "advancement.velorise_staves.tame_omni_pet.desc": "Приручите верного волка или лису с легендарной Омни-мутацией",
+  "item.velorise_staves.splendor_of_tranquil_waters": "Блеск тихих вод",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "Королевский скипетр Фурины. ПКМ призывает «Одинокий салон» (Усия: 3 Гидро спутника, расходующих 2% HP союзников выше 50% HP для увеличения урона до 1.4x) или «Певца многих вод» (Пневма: периодическое исцеление) на 30 с. Красться + ПКМ меняет Архэ. Даёт хождение по воде и накапливает Фанфары (до +25% урона и лечения).",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "Незеритовый Блеск тихих вод",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "Усиленный незеритом скипетр Фурины. Призывает усиленный Одинокий салон (1.5U Гидро) или Певца многих вод (исцеление 8 м), даёт хождение по воде и до +30% бонуса Фанфар.",
+  "entity.velorise_staves.hydro_salon_summon": "Призыв Одинокого салона",
+  "tooltip.velorise_staves.splendor.mode_ousia": "Усия (Одинокий салон - Атака)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "Пневма (Певец многих вод - Исцеление)",
+  "tooltip.velorise_staves.splendor_arkhe": "  Архэ: %s (Красться + ПКМ)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  Зависит от макс. HP, Фанфар и расхода HP Усии (до 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "Архэ переключено на: %s",
+  "codex.velorise_staves.staff.splendor": "Призывает «Одинокий салон» (Усия, до 1.4x урона) или «Певца многих вод» (Пневма, исцеление). Хождение по воде и Фанфары (+25%→+30%)."
 }

@@ -62,6 +62,14 @@ public final class VeloriseStavesMod {
                     .updateInterval(1)
                     .build("omni_orb"));
 
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.HydroSalonSummonEntity>> HYDRO_SALON_SUMMON =
+            ENTITY_TYPES.register("hydro_salon_summon", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.HydroSalonSummonEntity>of(com.velorise.staves.entity.HydroSalonSummonEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.75F, 0.95F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .build("hydro_salon_summon"));
+
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));
@@ -87,6 +95,9 @@ public final class VeloriseStavesMod {
 
     public static final Supplier<Item> GUARDIAN_LENS = ITEMS.register("guardian_lens",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 130, false));
+
+    public static final Supplier<Item> SPLENDOR_OF_TRANQUIL_WATERS = ITEMS.register("splendor_of_tranquil_waters",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, 140, false));
 
     public static final Supplier<Item> EVOKER_FANG_STAFF = ITEMS.register("evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 120, false));
@@ -191,6 +202,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("netherite_guardian_lens",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 500, true));
 
+    public static final Supplier<Item> NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS = ITEMS.register("netherite_splendor_of_tranquil_waters",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, 500, true));
+
     public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 450, true));
 
@@ -233,6 +247,7 @@ public final class VeloriseStavesMod {
                 output.accept(WITHER_SCEPTER.get());
                 output.accept(SHULKER_SEEKER.get());
                 output.accept(GUARDIAN_LENS.get());
+                output.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
                 output.accept(EVOKER_FANG_STAFF.get());
                 output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
@@ -250,6 +265,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_WITHER_SCEPTER.get());
                 output.accept(NETHERITE_SHULKER_SEEKER.get());
                 output.accept(NETHERITE_GUARDIAN_LENS.get());
+                output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
                 output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
                 output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
@@ -328,6 +344,7 @@ public final class VeloriseStavesMod {
             event.accept(WITHER_SCEPTER.get());
             event.accept(SHULKER_SEEKER.get());
             event.accept(GUARDIAN_LENS.get());
+            event.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
             event.accept(EVOKER_FANG_STAFF.get());
             event.accept(ARC_CASTER.get());
             event.accept(FROSTBOLT_WAND.get());
@@ -341,6 +358,7 @@ public final class VeloriseStavesMod {
             event.accept(NETHERITE_WITHER_SCEPTER.get());
             event.accept(NETHERITE_SHULKER_SEEKER.get());
             event.accept(NETHERITE_GUARDIAN_LENS.get());
+            event.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
             event.accept(NETHERITE_EVOKER_FANG_STAFF.get());
             event.accept(NETHERITE_ARC_CASTER.get());
             event.accept(NETHERITE_FROSTBOLT_WAND.get());

@@ -79,6 +79,7 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.DoubleValue WITHER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue SHULKER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue GUARDIAN_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue SPLENDOR_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue EVOKER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue ARC_CASTER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue FROSTBOLT_COOLDOWN;
@@ -101,6 +102,8 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.IntValue SHULKER_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue GUARDIAN_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue GUARDIAN_DURABILITY_NETHERITE;
+    public static final ForgeConfigSpec.IntValue SPLENDOR_DURABILITY_BASIC;
+    public static final ForgeConfigSpec.IntValue SPLENDOR_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue EVOKER_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue EVOKER_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue ARC_CASTER_DURABILITY_BASIC;
@@ -230,6 +233,7 @@ public final class StavesConfig {
         WITHER_COOLDOWN = builder.defineInRange("wither_cooldown", 6.0D, 0.5D, 60.0D);
         SHULKER_COOLDOWN = builder.defineInRange("shulker_cooldown", 6.0D, 0.5D, 60.0D);
         GUARDIAN_COOLDOWN = builder.defineInRange("guardian_cooldown", 5.0D, 0.5D, 60.0D);
+        SPLENDOR_COOLDOWN = builder.defineInRange("splendor_cooldown", 8.0D, 0.5D, 60.0D);
         EVOKER_COOLDOWN = builder.defineInRange("evoker_cooldown", 5.0D, 0.5D, 60.0D);
         ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
@@ -253,6 +257,8 @@ public final class StavesConfig {
         SHULKER_DURABILITY_NETHERITE = builder.defineInRange("shulker_netherite", 500, 10, 5000);
         GUARDIAN_DURABILITY_BASIC = builder.defineInRange("guardian_basic", 130, 10, 5000);
         GUARDIAN_DURABILITY_NETHERITE = builder.defineInRange("guardian_netherite", 500, 10, 5000);
+        SPLENDOR_DURABILITY_BASIC = builder.defineInRange("splendor_basic", 140, 10, 5000);
+        SPLENDOR_DURABILITY_NETHERITE = builder.defineInRange("splendor_netherite", 500, 10, 5000);
         EVOKER_DURABILITY_BASIC = builder.defineInRange("evoker_basic", 120, 10, 5000);
         EVOKER_DURABILITY_NETHERITE = builder.defineInRange("evoker_netherite", 450, 10, 5000);
         ARC_CASTER_DURABILITY_BASIC = builder.defineInRange("arc_caster_basic", 130, 10, 5000);
@@ -521,6 +527,7 @@ public final class StavesConfig {
             case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
+            case SPLENDOR -> isNetherite ? SPLENDOR_DURABILITY_NETHERITE.get() : SPLENDOR_DURABILITY_BASIC.get();
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
@@ -555,6 +562,7 @@ public final class StavesConfig {
             case WITHER -> WITHER_COOLDOWN.get();
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
+            case SPLENDOR -> SPLENDOR_COOLDOWN.get();
             case EVOKER -> EVOKER_COOLDOWN.get();
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();

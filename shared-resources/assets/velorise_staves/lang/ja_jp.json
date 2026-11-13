@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "湿潤 (環境)",
   "death.velorise_staves.pet_owned_name": "%1$sの%2$s",
   "advancement.velorise_staves.tame_omni_pet.title": "いい子だね！",
-  "advancement.velorise_staves.tame_omni_pet.desc": "伝説のオムニ変異を宿したオオカミまたはキツネを手懐ける"
+  "advancement.velorise_staves.tame_omni_pet.desc": "伝説のオムニ変異を宿したオオカミまたはキツネを手懐ける",
+  "item.velorise_staves.splendor_of_tranquil_waters": "静水流転の輝き",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "フリーナの王笏。右クリックで「サロン・ソリティア」（ウーシア：水元素召喚物3体が攻撃し、HP50%超の味方のHPを消費して最大1.4倍ダメージ）または「衆水の歌い手」（プネウマ：範囲回復）を30秒間召喚。スニーク+右クリックでアルケー切替。召喚中は水上歩行が可能になり、HP増減でテンションを蓄積（最大+25%全ダメージ・受ける治療効果）。",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "ネザライトの静水流転の輝き",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "ネザライト製の静水流転の輝き。強化されたサロン・ソリティア（1.5U水）または衆水の歌い手（8m回復）を召喚し、水上歩行と最大+30%のテンションバフを付与する。",
+  "entity.velorise_staves.hydro_salon_summon": "サロン・ソリティア召喚物",
+  "tooltip.velorise_staves.splendor.mode_ousia": "ウーシア (サロン・ソリティア - 攻撃)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "プネウマ (衆水の歌い手 - 回復)",
+  "tooltip.velorise_staves.splendor_arkhe": "  アルケー属性: %s (スニーク + 右クリック)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  最大HP・テンション・ウーシアHP消費で強化 (最大 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "アルケー属性を切り替えました: %s",
+  "codex.velorise_staves.staff.splendor": "ウーシア「サロン・ソリティア」（水召喚3体、最大1.4x DMG）またはプネウマ「衆水の歌い手」（範囲回復）を召喚。水上歩行＆テンションバフ（+25%→+30%）。"
 }

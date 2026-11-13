@@ -89,6 +89,7 @@ public final class StavesConfig {
     public static final DoubleValue WITHER_COOLDOWN = defineDouble("cooldowns", "wither_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 5.0D, 0.5D, 60.0D);
+    public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 8.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue ARC_CASTER_COOLDOWN = defineDouble("cooldowns", "arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
@@ -111,6 +112,8 @@ public final class StavesConfig {
     public static final IntValue SHULKER_DURABILITY_NETHERITE = defineInt("durability", "shulker_netherite", 500, 10, 5000);
     public static final IntValue GUARDIAN_DURABILITY_BASIC = defineInt("durability", "guardian_basic", 130, 10, 5000);
     public static final IntValue GUARDIAN_DURABILITY_NETHERITE = defineInt("durability", "guardian_netherite", 500, 10, 5000);
+    public static final IntValue SPLENDOR_DURABILITY_BASIC = defineInt("durability", "splendor_basic", 140, 10, 5000);
+    public static final IntValue SPLENDOR_DURABILITY_NETHERITE = defineInt("durability", "splendor_netherite", 500, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_BASIC = defineInt("durability", "evoker_basic", 120, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_NETHERITE = defineInt("durability", "evoker_netherite", 450, 10, 5000);
     public static final IntValue ARC_CASTER_DURABILITY_BASIC = defineInt("durability", "arc_caster_basic", 130, 10, 5000);
@@ -520,6 +523,7 @@ public final class StavesConfig {
             case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
+            case SPLENDOR -> isNetherite ? SPLENDOR_DURABILITY_NETHERITE.get() : SPLENDOR_DURABILITY_BASIC.get();
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
@@ -554,6 +558,7 @@ public final class StavesConfig {
             case WITHER -> WITHER_COOLDOWN.get();
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
+            case SPLENDOR -> SPLENDOR_COOLDOWN.get();
             case EVOKER -> EVOKER_COOLDOWN.get();
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();

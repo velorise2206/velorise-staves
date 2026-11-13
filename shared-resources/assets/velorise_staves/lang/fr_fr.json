@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "Trempé (Env)",
   "death.velorise_staves.pet_owned_name": "%2$s de %1$s",
   "advancement.velorise_staves.tame_omni_pet.title": "Un bon compagnon !",
-  "advancement.velorise_staves.tame_omni_pet.desc": "Apprivoisez un loup ou un renard doté de la légendaire mutation Omni"
+  "advancement.velorise_staves.tame_omni_pet.desc": "Apprivoisez un loup ou un renard doté de la légendaire mutation Omni",
+  "item.velorise_staves.splendor_of_tranquil_waters": "Splendeur des eaux calmes",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "Le sceptre royal de Furina. Clic droit pour invoquer le Salon solitaire (Ousia : 3 compagnons Hydro drainant 2 % des PV au-dessus de 50 % pour jusqu'à 1,4x de DGT) ou le Chanteur des mille eaux (Pneuma : soin de zone) pendant 30 s. S'accroupir + Clic droit change d'Arkhe. Permet de marcher sur l'eau et cumule la Fanfare (jusqu'à +25 % DGT et soins).",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "Splendeur des eaux calmes en Netherite",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "Sceptre Hydro royal forgé en Netherite. Invoque le Salon solitaire amélioré (1,5U Hydro) ou le Chanteur des mille eaux (soin 8 m), permet de marcher sur l'eau et cumule la Fanfare jusqu'à +30 %.",
+  "entity.velorise_staves.hydro_salon_summon": "Invocation du Salon solitaire",
+  "tooltip.velorise_staves.splendor.mode_ousia": "Ousia (Salon solitaire - Attaque)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "Pneuma (Chanteur des mille eaux - Soin)",
+  "tooltip.velorise_staves.splendor_arkhe": "  Alignement Arkhe : %s (S'accroupir + Clic droit)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  Augmente avec les PV max, la Fanfare et le drain Ousia (max 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "Alignement Arkhe changé en : %s",
+  "codex.velorise_staves.staff.splendor": "Invoque le Salon solitaire (Ousia, jusqu'à 1,4x DGT) ou le Chanteur des mille eaux (Pneuma, soin). Marche sur l'eau et Fanfare (+25%→+30%)."
 }

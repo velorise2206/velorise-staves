@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": {
+    "item": "minecraft:netherite_ingot"
+  },
+  "base": {
+    "item": "velorise_staves:splendor_of_tranquil_waters"
+  },
+  "result": {
+    "item": "velorise_staves:netherite_splendor_of_tranquil_waters"
+  },
+  "template": {
+    "item": "minecraft:netherite_upgrade_smithing_template"
+  }
+}

@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "潮湿 (环境)",
   "death.velorise_staves.pet_owned_name": "%1$s的%2$s",
   "advancement.velorise_staves.tame_omni_pet.title": "好乖的宠物！",
-  "advancement.velorise_staves.tame_omni_pet.desc": "驯服一只拥有传奇全能（Omni）突变的忠诚狼或狐狸"
+  "advancement.velorise_staves.tame_omni_pet.desc": "驯服一只拥有传奇全能（Omni）突变的忠诚狼或狐狸",
+  "item.velorise_staves.splendor_of_tranquil_waters": "静水流涌之辉",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "芙宁娜的皇室权杖。右键召唤「孤心沙龙」（荒性：3名水元素成员协同攻击，消耗高于50%生命值的队友生命使伤害提升至多1.4倍）或「众水的歌者」（芒性：周期性范围治疗）持续30秒。潜行+右键切换始基力。召唤物在场时可在水面行走，生命值变动时积累气氛值（至多+25%全伤害与受治疗加成）。",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "下界合金静水流涌之辉",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "下界合金锻造的静水流涌之辉。召唤强化的孤心沙龙（1.5U水附着）或众水的歌者（8米范围治疗），赋予水面行走，气氛值至多提供+30%全伤害与受治疗加成。",
+  "entity.velorise_staves.hydro_salon_summon": "孤心沙龙召唤物",
+  "tooltip.velorise_staves.splendor.mode_ousia": "荒性 (孤心沙龙 - 攻击)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "芒性 (众水的歌者 - 治疗)",
+  "tooltip.velorise_staves.splendor_arkhe": "  始基力形态: %s (潜行 + 右键)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  基于最大生命值、气氛值与荒性燃血增伤 (至多 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "始基力形态已切换为: %s",
+  "codex.velorise_staves.staff.splendor": "召唤荒性「孤心沙龙」（3名水宠，消耗>50%生命增伤至1.4x）或芒性「众水的歌者」（范围治疗）。提供水面行走与气氛值增幅（+25%→+30%）。"
 }

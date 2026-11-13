@@ -1,0 +1,479 @@
+package com.velorise.staves.entity;
+
+import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.element.Element;
+import com.velorise.staves.element.ElementalGaugeManager;
+import com.velorise.staves.element.ElementalResonanceManager;
+import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Furina's Hydro Summons for Splendor of Tranquil Waters:
+ * - Role 0 (Ousia): Gentilhomme Usher (Mid-range AoE bubble cannon every 35 ticks)
+ * - Role 1 (Ousia): Surintendante Chevalmarin (Rapid single-target bubble jet every 20 ticks)
+ * - Role 2 (Ousia): Mademoiselle Crabaletta (Heavy leaping pincer slam every 50 ticks)
+ * - Role 3 (Pneuma): Singer of Many Waters (Stationary healing wave totem pulsing every 40 ticks)
+ */
+public class HydroSalonSummonEntity extends Entity {
+    public static final int ROLE_USHER = 0;
+    public static final int ROLE_CHEVALMARIN = 1;
+    public static final int ROLE_CRABALETTA = 2;
+    public static final int ROLE_SINGER = 3;
+
+    public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
+
+    private static final EntityDataAccessor<Byte> DATA_ROLE =
+            SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.BYTE);
+    private static final EntityDataAccessor<Boolean> DATA_NETHERITE =
+            SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> DATA_LAST_ACTION_TICK =
+            SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.INT);
+
+    private static final Map<UUID, Long> ACTIVE_OWNER_SUMMON_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> ACTIVE_OWNER_NETHERITE = new ConcurrentHashMap<>();
+
+    private @Nullable UUID ownerUuid;
+    private int ageTicks;
+    private Vec3 anchorPos = Vec3.ZERO;
+
+    public HydroSalonSummonEntity(EntityType<? extends HydroSalonSummonEntity> type, Level level) {
+        super(type, level);
+        this.noPhysics = true;
+    }
+
+    public HydroSalonSummonEntity(
+            EntityType<? extends HydroSalonSummonEntity> type,
+            Level level,
+            ServerPlayer owner,
+            int role,
+            boolean isNetherite,
+            Vec3 spawnPos
+    ) {
+        this(type, level);
+        this.ownerUuid = owner.getUUID();
+        this.setRole(role);
+        this.setNetherite(isNetherite);
+        this.anchorPos = spawnPos;
+        this.setPos(spawnPos.x, spawnPos.y, spawnPos.z);
+        this.setYRot(owner.getYRot());
+        ACTIVE_OWNER_SUMMON_UNTIL.put(owner.getUUID(), level.getGameTime() + 15L);
+        ACTIVE_OWNER_NETHERITE.put(owner.getUUID(), isNetherite);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(DATA_ROLE, (byte) 0);
+        builder.define(DATA_NETHERITE, false);
+        builder.define(DATA_LAST_ACTION_TICK, -100);
+    }
+
+    public int getRole() {
+        return Mth.clamp(this.entityData.get(DATA_ROLE), 0, 3);
+    }
+
+    public void setRole(int role) {
+        this.entityData.set(DATA_ROLE, (byte) Mth.clamp(role, 0, 3));
+    }
+
+    public boolean isNetherite() {
+        return this.entityData.get(DATA_NETHERITE);
+    }
+
+    public void setNetherite(boolean netherite) {
+        this.entityData.set(DATA_NETHERITE, netherite);
+    }
+
+    public int getLastActionTick() {
+        return this.entityData.get(DATA_LAST_ACTION_TICK);
+    }
+
+    public void setLastActionTick(int tick) {
+        this.entityData.set(DATA_LAST_ACTION_TICK, tick);
+    }
+
+    public @Nullable UUID getOwnerUUID() {
+        return ownerUuid;
+    }
+
+    public static boolean hasActiveSummon(@Nullable Player player) {
+        if (player == null) return false;
+        if (!carriesSplendorStaff(player)) return false;
+        Long until = ACTIVE_OWNER_SUMMON_UNTIL.get(player.getUUID());
+        if (until != null && player.level().getGameTime() <= until) {
+            return true;
+        }
+        AABB box = player.getBoundingBox().inflate(24.0D);
+        List<HydroSalonSummonEntity> list = player.level().getEntitiesOfClass(
+                HydroSalonSummonEntity.class, box, Entity::isAlive);
+        return !list.isEmpty();
+    }
+
+    public static boolean hasNetheriteSummon(@Nullable Player player) {
+        if (player == null) return false;
+        return Boolean.TRUE.equals(ACTIVE_OWNER_NETHERITE.get(player.getUUID()));
+    }
+
+    public static boolean carriesSplendorStaff(@Nullable Player player) {
+        if (player == null) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff
+                    && staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff
+                    && staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void clearOwnerSummons(ServerLevel level, UUID ownerId) {
+        for (ServerLevel lvl : level.getServer().getAllLevels()) {
+            for (Entity e : lvl.getAllEntities()) {
+                if (e instanceof HydroSalonSummonEntity summon
+                        && ownerId.equals(summon.ownerUuid)) {
+                    summon.discard();
+                }
+            }
+        }
+        ACTIVE_OWNER_SUMMON_UNTIL.remove(ownerId);
+        ACTIVE_OWNER_NETHERITE.remove(ownerId);
+    }
+
+    public static boolean hasAnySummonForOwner(ServerLevel level, UUID ownerId) {
+        for (ServerLevel lvl : level.getServer().getAllLevels()) {
+            for (Entity e : lvl.getAllEntities()) {
+                if (e instanceof HydroSalonSummonEntity summon
+                        && summon.isAlive()
+                        && ownerId.equals(summon.ownerUuid)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static void summonOrSwitchArkhe(
+            ServerLevel level,
+            ServerPlayer owner,
+            boolean isNetherite,
+            boolean pneumaMode
+    ) {
+        clearOwnerSummons(level, owner.getUUID());
+        EntityType<HydroSalonSummonEntity> type = VeloriseStavesMod.HYDRO_SALON_SUMMON.get();
+        if (pneumaMode) {
+            Vec3 look = owner.getLookAngle();
+            Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+            if (horiz.lengthSqr() < 1.0E-4D) horiz = new Vec3(0.0D, 0.0D, 1.0D);
+            else horiz = horiz.normalize();
+            Vec3 spawnPos = owner.position().add(horiz.scale(2.2D)).add(0.0D, 0.5D, 0.0D);
+            HydroSalonSummonEntity singer = new HydroSalonSummonEntity(
+                    type, level, owner, ROLE_SINGER, isNetherite, spawnPos);
+            level.addFreshEntity(singer);
+            level.sendParticles(ParticleTypes.END_ROD, spawnPos.x, spawnPos.y + 0.6D, spawnPos.z, 18, 0.35D, 0.45D, 0.35D, 0.04D);
+            level.sendParticles(ParticleTypes.SPLASH, spawnPos.x, spawnPos.y + 0.3D, spawnPos.z, 24, 0.45D, 0.25D, 0.45D, 0.06D);
+            level.playSound(null, owner.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.25F);
+        } else {
+            for (int role = 0; role < 3; role++) {
+                double angleRad = Math.toRadians(owner.getYRot() + role * 120.0D);
+                Vec3 offset = new Vec3(Math.cos(angleRad) * 2.1D, 1.05D + role * 0.15D, Math.sin(angleRad) * 2.1D);
+                Vec3 spawnPos = owner.position().add(offset);
+                HydroSalonSummonEntity member = new HydroSalonSummonEntity(
+                        type, level, owner, role, isNetherite, spawnPos);
+                level.addFreshEntity(member);
+                level.sendParticles(ParticleTypes.BUBBLE_POP, spawnPos.x, spawnPos.y + 0.3D, spawnPos.z, 14, 0.25D, 0.25D, 0.25D, 0.04D);
+            }
+            level.playSound(null, owner.blockPosition(), SoundEvents.DOLPHIN_PLAY, SoundSource.PLAYERS, 0.9F, 1.15F);
+        }
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        this.ageTicks++;
+
+        if (this.level().isClientSide()) {
+            if (this.tickCount % 4 == 0) {
+                if (getRole() == ROLE_SINGER) {
+                    this.level().addParticle(ParticleTypes.END_ROD,
+                            this.getX() + (this.random.nextDouble() - 0.5D) * 0.6D,
+                            this.getY() + 0.4D + this.random.nextDouble() * 0.6D,
+                            this.getZ() + (this.random.nextDouble() - 0.5D) * 0.6D,
+                            0.0D, 0.02D, 0.0D);
+                } else {
+                    this.level().addParticle(ParticleTypes.BUBBLE_POP,
+                            this.getX() + (this.random.nextDouble() - 0.5D) * 0.45D,
+                            this.getY() + 0.25D + this.random.nextDouble() * 0.4D,
+                            this.getZ() + (this.random.nextDouble() - 0.5D) * 0.45D,
+                            0.0D, 0.01D, 0.0D);
+                }
+            }
+            return;
+        }
+
+        if (!(this.level() instanceof ServerLevel serverLevel)) return;
+        if (this.ageTicks > MAX_LIFETIME_TICKS || this.ownerUuid == null) {
+            this.discard();
+            return;
+        }
+
+        ServerPlayer owner = serverLevel.getServer().getPlayerList().getPlayer(this.ownerUuid);
+        if (owner == null || !owner.isAlive() || owner.level() != serverLevel || !carriesSplendorStaff(owner)) {
+            this.discard();
+            return;
+        }
+
+        ACTIVE_OWNER_SUMMON_UNTIL.put(owner.getUUID(), serverLevel.getGameTime() + 15L);
+        ACTIVE_OWNER_NETHERITE.put(owner.getUUID(), this.isNetherite());
+
+        int role = getRole();
+        if (role == ROLE_SINGER) {
+            tickSingerOfManyWaters(serverLevel, owner);
+        } else {
+            tickSalonMember(serverLevel, owner, role);
+        }
+    }
+
+    private void tickSingerOfManyWaters(ServerLevel level, ServerPlayer owner) {
+        if (this.anchorPos.equals(Vec3.ZERO)) {
+            this.anchorPos = this.position();
+        }
+        double bob = Math.sin((this.tickCount + this.getId() * 7) * 0.08D) * 0.14D;
+        this.setPos(this.anchorPos.x, this.anchorPos.y + bob, this.anchorPos.z);
+        this.setYRot((this.getYRot() + 2.5F) % 360.0F);
+
+        if (this.tickCount % 40 == 0) {
+            this.setLastActionTick(this.tickCount);
+            double radius = isNetherite() ? 8.0D : 6.0D;
+            float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
+            float baseHeal = isNetherite() ? (ownerMaxHp * 0.12F + 2.0F) : (ownerMaxHp * 0.08F + 1.0F);
+
+            AABB healBox = this.getBoundingBox().inflate(radius, 4.0D, radius);
+            List<LivingEntity> allies = level.getEntitiesOfClass(LivingEntity.class, healBox, e ->
+                    e.isAlive() && !e.isSpectator() && isAlliedWithOwner(owner, e));
+
+            for (LivingEntity ally : allies) {
+                float before = ally.getHealth();
+                float finalHeal = ElementalResonanceManager.modifyIncomingHeal(ally, baseHeal);
+                ally.heal(finalHeal);
+                if (ally.getRemainingFireTicks() > 0 && !ally.isInLava()) {
+                    ally.clearFire();
+                }
+                float gained = Math.max(0.0F, ally.getHealth() - before);
+                if (gained > 0.01F) {
+                    ElementalGaugeManager.recordFurinaHpFluctuation(level, owner, gained / Math.max(1.0F, ally.getMaxHealth()));
+                }
+                level.sendParticles(ParticleTypes.HEART, ally.getX(), ally.getY() + ally.getBbHeight() + 0.25D, ally.getZ(),
+                        2, 0.25D, 0.15D, 0.25D, 0.02D);
+            }
+            level.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.2D, this.getZ(),
+                    28, radius * 0.35D, 0.15D, radius * 0.35D, 0.08D);
+            level.playSound(null, this.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.85F, 1.35F);
+        }
+    }
+
+    private void tickSalonMember(ServerLevel level, ServerPlayer owner, int role) {
+        LivingEntity target = findBestTarget(level, owner, 16.0D);
+
+        int interval = switch (role) {
+            case ROLE_CHEVALMARIN -> 20; // 1.0s rapid bubble stream
+            case ROLE_CRABALETTA -> 50;  // 2.5s heavy crab slam
+            default -> 35;               // 1.75s AoE bubble cannon
+        };
+
+        boolean attackingNow = target != null && ((this.tickCount + role * 11) % interval == 0);
+
+        double orbitAngle = Math.toRadians(owner.getYRot() + role * 120.0D + this.tickCount * 2.4D);
+        double orbitRadius = 2.15D;
+        double bob = Math.sin((this.tickCount + role * 19) * 0.12D) * 0.18D;
+        Vec3 desiredPos = new Vec3(
+                owner.getX() + Math.cos(orbitAngle) * orbitRadius,
+                owner.getY() + 1.05D + role * 0.12D + bob,
+                owner.getZ() + Math.sin(orbitAngle) * orbitRadius
+        );
+
+        if (target != null && role == ROLE_CRABALETTA && ((this.tickCount + role * 11) % interval >= interval - 8)) {
+            // Mademoiselle Crabaletta lunges toward the target right as she slams!
+            Vec3 toOwner = owner.position().subtract(target.position());
+            Vec3 standOff = toOwner.lengthSqr() > 1.0E-4D ? toOwner.normalize().scale(1.1D) : new Vec3(0.8D, 0.0D, 0.0D);
+            desiredPos = target.position().add(standOff).add(0.0D, target.getBbHeight() * 0.45D, 0.0D);
+        }
+
+        Vec3 delta = desiredPos.subtract(this.position());
+        this.setPos(
+                this.getX() + delta.x * 0.28D,
+                this.getY() + delta.y * 0.28D,
+                this.getZ() + delta.z * 0.28D
+        );
+
+        if (target != null) {
+            double dx = target.getX() - this.getX();
+            double dz = target.getZ() - this.getZ();
+            float yaw = (float) (Mth.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+            this.setYRot(yaw);
+        } else {
+            this.setYRot(owner.getYRot());
+        }
+
+        if (attackingNow) {
+            this.setLastActionTick(this.tickCount);
+            performOusiaAttack(level, owner, target, role);
+        }
+    }
+
+    private void performOusiaAttack(ServerLevel level, ServerPlayer owner, LivingEntity primaryTarget, int role) {
+        // 1. Drain 2% Max HP from up to 4 allied entities (including owner) currently above 50% Max HP
+        AABB allyBox = owner.getBoundingBox().inflate(16.0D);
+        List<LivingEntity> allies = level.getEntitiesOfClass(LivingEntity.class, allyBox, e ->
+                e.isAlive() && !e.isSpectator() && isAlliedWithOwner(owner, e) && e.getHealth() > e.getMaxHealth() * 0.50F);
+
+        int drainedAllies = 0;
+        for (LivingEntity ally : allies) {
+            float maxHp = Math.max(1.0F, ally.getMaxHealth());
+            float floorHp = maxHp * 0.50F;
+            float curHp = ally.getHealth();
+            if (curHp > floorHp + 0.01F) {
+                float drain = Math.min(curHp - floorHp, maxHp * 0.02F);
+                ally.setHealth(Math.max(floorHp, curHp - drain));
+                ElementalGaugeManager.recordFurinaHpFluctuation(level, owner, drain / maxHp);
+                drainedAllies++;
+                if (drainedAllies >= 4) break;
+            }
+        }
+
+        // Up to +40% (1.40x) Salon Solitaire damage multiplier when 4 allies/owner offer HP > 50%
+        float drainDamageMult = 1.0F + 0.10F * Math.min(4, drainedAllies);
+        float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
+        float hpRatio = switch (role) {
+            case ROLE_CHEVALMARIN -> isNetherite() ? 0.075F : 0.05F;
+            case ROLE_CRABALETTA -> isNetherite() ? 0.19F : 0.14F;
+            default -> isNetherite() ? 0.11F : 0.08F;
+        };
+        float baseDamage = ownerMaxHp * hpRatio * drainDamageMult;
+        float gaugeU = isNetherite() ? 1.5F : 1.0F;
+
+        Vec3 start = this.position().add(0.0D, 0.35D, 0.0D);
+        Vec3 end = primaryTarget.position().add(0.0D, primaryTarget.getBbHeight() * 0.5D, 0.0D);
+        int steps = Math.max(4, (int) (start.distanceTo(end) * 3.0D));
+        for (int i = 0; i <= steps; i++) {
+            double t = i / (double) steps;
+            Vec3 p = start.lerp(end, t);
+            level.sendParticles(ParticleTypes.BUBBLE, p.x, p.y, p.z, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+            level.sendParticles(ParticleTypes.SPLASH, p.x, p.y, p.z, 1, 0.04D, 0.04D, 0.04D, 0.01D);
+        }
+
+        if (role == ROLE_CHEVALMARIN) {
+            ElementalGaugeManager.applyElement(level, primaryTarget, Element.HYDRO, gaugeU, owner, baseDamage);
+            level.playSound(null, this.blockPosition(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, SoundSource.PLAYERS, 0.85F, 1.4F);
+        } else {
+            double aoeRadius = (role == ROLE_CRABALETTA) ? 2.0D : 2.5D;
+            AABB hitBox = primaryTarget.getBoundingBox().inflate(aoeRadius);
+            List<LivingEntity> hits = level.getEntitiesOfClass(LivingEntity.class, hitBox, e ->
+                    e.isAlive() && !e.isSpectator() && !isAlliedWithOwner(owner, e));
+            if (!hits.contains(primaryTarget)) {
+                ElementalGaugeManager.applyElement(level, primaryTarget, Element.HYDRO, gaugeU, owner, baseDamage);
+            }
+            for (LivingEntity hit : hits) {
+                ElementalGaugeManager.applyElement(level, hit, Element.HYDRO, gaugeU, owner, baseDamage);
+            }
+            level.sendParticles(ParticleTypes.BUBBLE_POP, end.x, end.y, end.z, 18, 0.45D, 0.35D, 0.45D, 0.06D);
+            level.sendParticles(ParticleTypes.SPLASH, end.x, end.y, end.z, 22, 0.5D, 0.3D, 0.5D, 0.08D);
+            level.playSound(null, primaryTarget.blockPosition(),
+                    role == ROLE_CRABALETTA ? SoundEvents.PLAYER_SPLASH_HIGH_SPEED : SoundEvents.GENERIC_SPLASH,
+                    SoundSource.PLAYERS, 0.85F, role == ROLE_CRABALETTA ? 0.95F : 1.25F);
+        }
+    }
+
+    private static boolean isAlliedWithOwner(ServerPlayer owner, LivingEntity candidate) {
+        if (candidate == owner) return true;
+        if (candidate instanceof Player otherPlayer) {
+            return owner.isAlliedTo(otherPlayer) || !owner.canHarmPlayer(otherPlayer);
+        }
+        if (candidate instanceof OwnableEntity ownable && owner.getUUID().equals(ownable.getOwnerUUID())) {
+            return true;
+        }
+        return owner.isAlliedTo(candidate);
+    }
+
+    private @Nullable LivingEntity findBestTarget(ServerLevel level, ServerPlayer owner, double radius) {
+        LivingEntity lastHurt = owner.getLastHurtMob();
+        if (lastHurt != null && lastHurt.isAlive() && !lastHurt.isSpectator()
+                && !isAlliedWithOwner(owner, lastHurt)
+                && lastHurt.distanceToSqr(owner) <= radius * radius) {
+            return lastHurt;
+        }
+        LivingEntity lastBy = owner.getLastHurtByMob();
+        if (lastBy != null && lastBy.isAlive() && !lastBy.isSpectator()
+                && !isAlliedWithOwner(owner, lastBy)
+                && lastBy.distanceToSqr(owner) <= radius * radius) {
+            return lastBy;
+        }
+        AABB searchBox = owner.getBoundingBox().inflate(radius);
+        List<LivingEntity> hostiles = level.getEntitiesOfClass(LivingEntity.class, searchBox, e ->
+                e.isAlive() && !e.isSpectator() && e instanceof Enemy && !isAlliedWithOwner(owner, e));
+        return hostiles.stream()
+                .min(Comparator.comparingDouble(e -> e.distanceToSqr(owner)))
+                .orElse(null);
+    }
+
+    @Override
+    protected void readAdditionalSaveData(CompoundTag tag) {
+        if (tag.hasUUID("Owner")) {
+            this.ownerUuid = tag.getUUID("Owner");
+        }
+        this.ageTicks = tag.getInt("AgeTicks");
+        this.setRole(tag.getByte("Role"));
+        this.setNetherite(tag.getBoolean("Netherite"));
+        if (tag.contains("AnchorX")) {
+            this.anchorPos = new Vec3(tag.getDouble("AnchorX"), tag.getDouble("AnchorY"), tag.getDouble("AnchorZ"));
+        }
+    }
+
+    @Override
+    protected void addAdditionalSaveData(CompoundTag tag) {
+        if (this.ownerUuid != null) {
+            tag.putUUID("Owner", this.ownerUuid);
+        }
+        tag.putInt("AgeTicks", this.ageTicks);
+        tag.putByte("Role", (byte) getRole());
+        tag.putBoolean("Netherite", isNetherite());
+        tag.putDouble("AnchorX", this.anchorPos.x);
+        tag.putDouble("AnchorY", this.anchorPos.y);
+        tag.putDouble("AnchorZ", this.anchorPos.z);
+    }
+
+    @Override
+    public boolean isPickable() {
+        return false;
+    }
+}

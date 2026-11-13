@@ -121,6 +121,9 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> BURNING_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> BURNING_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, UUID> BURNING_ATTACKER_UUID = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> FURINA_FANFARE_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> FURINA_FANFARE_POINTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> FURINA_FANFARE_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
@@ -1060,6 +1063,78 @@ public final class ElementalGaugeManager {
         Float prevHp = PLAYER_LAST_HP.put(id, curHp);
         if (prevHp != null && Math.abs(curHp - prevHp) > 0.01F) {
             PLAYER_HP_CHANGE_BUFF_UNTIL.put(id, now + HP_CHANGE_BUFF_TICKS);
+            if (player.level() instanceof ServerLevel sl) {
+                float deltaFraction = Math.abs(curHp - prevHp) / Math.max(1.0F, player.getMaxHealth());
+                recordFurinaHpFluctuation(sl, player, deltaFraction);
+            }
+        }
+    }
+
+    public static void recordFurinaHpFluctuation(ServerLevel level, LivingEntity changedEntity, float hpFractionDelta) {
+        if (level == null || changedEntity == null || hpFractionDelta <= 0.001F) return;
+        long now = level.getGameTime();
+        int gainPoints = Math.max(1, Math.round(hpFractionDelta * 100.0F * 4.0F));
+        for (ServerPlayer sp : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(changedEntity) <= 256.0D)) {
+            if (com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(sp)) {
+                boolean neth = com.velorise.staves.entity.HydroSalonSummonEntity.hasNetheriteSummon(sp);
+                UUID spId = sp.getUUID();
+                Long until = FURINA_FANFARE_UNTIL.get(spId);
+                int current = (until != null && now < until) ? FURINA_FANFARE_POINTS.getOrDefault(spId, 0) : 0;
+                int updated = Math.min(300, current + gainPoints);
+                FURINA_FANFARE_POINTS.put(spId, updated);
+                FURINA_FANFARE_UNTIL.put(spId, now + 360L); // 18s Fanfare duration
+                FURINA_FANFARE_NETHERITE.put(spId, neth);
+            }
+        }
+    }
+
+    public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) {
+        if (entity == null || entity.level().isClientSide()) return 1.0F;
+        long now = entity.level().getGameTime();
+        // Check if entity is a player with Fanfare or allied near a player with Fanfare
+        UUID bestOwner = null;
+        int bestPoints = 0;
+        if (entity instanceof Player p) {
+            Long until = FURINA_FANFARE_UNTIL.get(p.getUUID());
+            if (until != null && now < until) {
+                bestPoints = FURINA_FANFARE_POINTS.getOrDefault(p.getUUID(), 0);
+                bestOwner = p.getUUID();
+            }
+        }
+        if (bestPoints < 300 && entity.level() instanceof ServerLevel sl) {
+            for (ServerPlayer sp : sl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= 256.0D)) {
+                Long until = FURINA_FANFARE_UNTIL.get(sp.getUUID());
+                if (until != null && now < until) {
+                    int pts = FURINA_FANFARE_POINTS.getOrDefault(sp.getUUID(), 0);
+                    if (pts > bestPoints) {
+                        bestPoints = pts;
+                        bestOwner = sp.getUUID();
+                    }
+                }
+            }
+        }
+        if (bestPoints <= 0 || bestOwner == null) return 1.0F;
+        boolean neth = Boolean.TRUE.equals(FURINA_FANFARE_NETHERITE.get(bestOwner));
+        float maxBonus = neth ? 0.30F : 0.25F;
+        return 1.0F + (bestPoints / 300.0F) * maxBonus;
+    }
+
+    public static void applyFurinaWaterWalking(Player player) {
+        if (player == null || player.isShiftKeyDown() || player.isSpectator()) return;
+        BlockPos feetPos = player.blockPosition();
+        BlockPos belowPos = feetPos.below();
+        boolean waterAtFeet = player.level().getFluidState(feetPos).is( net.minecraft.tags.FluidTags.WATER );
+        boolean waterBelow = player.level().getFluidState(belowPos).is( net.minecraft.tags.FluidTags.WATER );
+        boolean headSubmerged = player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER);
+        if (!headSubmerged && (waterAtFeet || waterBelow)) {
+            Vec3 dv = player.getDeltaMovement();
+            if (waterAtFeet && dv.y < 0.08D) {
+                player.setDeltaMovement(dv.x, 0.08D, dv.z);
+            } else if (dv.y < 0.0D) {
+                player.setDeltaMovement(dv.x, 0.0D, dv.z);
+            }
+            player.setOnGround(true);
+            player.fallDistance = 0.0F;
         }
     }
 
@@ -4204,6 +4279,9 @@ public final class ElementalGaugeManager {
                 continue;
             }
             updatePlayerHpTracking(player, player.level().getGameTime());
+            if (!player.isShiftKeyDown() && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player)) {
+                applyFurinaWaterWalking(player);
+            }
             ElementalResonanceManager.tickPlayer(player);
             if (!player.isSpectator()) {
                 if (isEntityInWater(player)) {

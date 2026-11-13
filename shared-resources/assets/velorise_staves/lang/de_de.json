@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "Nass (Umg.)",
   "death.velorise_staves.pet_owned_name": "%2$s von %1$s",
   "advancement.velorise_staves.tame_omni_pet.title": "Ein braves Haustier!",
-  "advancement.velorise_staves.tame_omni_pet.desc": "Zähme einen treuen Wolf oder Fuchs mit der legendären Omni-Mutation"
+  "advancement.velorise_staves.tame_omni_pet.desc": "Zähme einen treuen Wolf oder Fuchs mit der legendären Omni-Mutation",
+  "item.velorise_staves.splendor_of_tranquil_waters": "Pracht des stillen Wassers",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "Furinas königliches Zepter. Rechtsklick beschwört Salon Solitaire (Ousia: 3 Hydro-Begleiter, die 2% LP über 50% Max. LP für bis zu 1,4x Schaden verbrauchen) oder Sänger der Ströme (Pneuma: Flächenheilung) für 30s. Schleichen + Rechtsklick wechselt Arkhe. Gewährt Wasserwandeln und stapelt Fanfare (bis zu +25% Schaden & Heilung).",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "Netherit-Pracht des stillen Wassers",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "Netherit-geschmiedetes Hydro-Zepter. Beschwört verstärkten Salon Solitaire (1,5U Hydro) oder Sänger der Ströme (8m Heilung), gewährt Wasserwandeln und bis zu +30% Fanfare-Bonus.",
+  "entity.velorise_staves.hydro_salon_summon": "Salon-Solitaire-Beschwörung",
+  "tooltip.velorise_staves.splendor.mode_ousia": "Ousia (Salon Solitaire - Angriff)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "Pneuma (Sänger der Ströme - Heilung)",
+  "tooltip.velorise_staves.splendor_arkhe": "  Arkhe-Ausrichtung: %s (Schleichen + Rechtsklick)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  Skaliert mit Max. LP, Fanfare & Ousia-LP-Verbrauch (bis 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "Arkhe-Ausrichtung gewechselt zu: %s",
+  "codex.velorise_staves.staff.splendor": "Beschwört Salon Solitaire (Ousia, bis 1,4x DMG) oder Sänger der Ströme (Pneuma, Heilung). Wasserwandeln & Fanfare (+25%→+30%)."
 }

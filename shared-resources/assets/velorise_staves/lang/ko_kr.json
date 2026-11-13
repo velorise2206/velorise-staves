@@ -485,5 +485,16 @@
   "jade.velorise_staves.env_wet": "습기 (환경)",
   "death.velorise_staves.pet_owned_name": "%1$s의 %2$s",
   "advancement.velorise_staves.tame_omni_pet.title": "착한 펫!",
-  "advancement.velorise_staves.tame_omni_pet.desc": "전설적인 옴니(Omni) 돌연변이를 지닌 늑대나 여우를 길들이세요"
+  "advancement.velorise_staves.tame_omni_pet.desc": "전설적인 옴니(Omni) 돌연변이를 지닌 늑대나 여우를 길들이세요",
+  "item.velorise_staves.splendor_of_tranquil_waters": "고요히 샘솟는 빛",
+  "item.velorise_staves.splendor_of_tranquil_waters.desc": "푸리나의 왕홀. 우클릭으로 「고독한 살롱」(우시아: 물 소환수 3마리가 공격하며 HP 50% 초과 아군의 체력을 소모해 최대 1.4배 피해) 또는 「물들의 가수」(프네우마: 광역 치유)를 30초간 소환합니다. 웅크리기+우클릭으로 아르케 전환. 소환 중 수상 보행 및 체력 변동 시 열기도 축적(최대 +25% 피해/치유).",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters": "네더라이트 고요히 샘솟는 빛",
+  "item.velorise_staves.netherite_splendor_of_tranquil_waters.desc": "네더라이트로 단조된 고요히 샘솟는 빛. 강화된 고독한 살롱(1.5U 물) 또는 물들의 가수(8m 치유)를 소환하며 수상 보행과 최대 +30% 열기도 버프를 부여합니다.",
+  "entity.velorise_staves.hydro_salon_summon": "고독한 살롱 소환수",
+  "tooltip.velorise_staves.splendor.mode_ousia": "우시아 (고독한 살롱 - 공격)",
+  "tooltip.velorise_staves.splendor.mode_pneuma": "프네우마 (물들의 가수 - 치유)",
+  "tooltip.velorise_staves.splendor_arkhe": "  아르케 속성: %s (웅크리기 + 우클릭)",
+  "tooltip.velorise_staves.splendor_hp_scale": "  최대 HP, 열기도 및 우시아 체력 소모 비례 (최대 1.4x)",
+  "message.velorise_staves.splendor_arkhe_switched": "아르케 속성이 전환되었습니다: %s",
+  "codex.velorise_staves.staff.splendor": "우시아 「고독한 살롱」(물 소환수 3마리, 최대 1.4x 피해) 또는 프네우마 「물들의 가수」(광역 치유) 소환. 수상 보행 및 열기도 버프(+25%→+30%)."
 }

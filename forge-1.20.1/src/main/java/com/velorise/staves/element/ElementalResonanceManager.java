@@ -541,7 +541,11 @@ public final class ElementalResonanceManager {
             @Nullable ServerPlayer attacker,
             float damage
     ) {
-        if (damage <= 0.0F || !StavesConfig.isElementalResonanceEnabled()) return damage;
+        if (damage <= 0.0F) return damage;
+        if (attacker != null) {
+            damage *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
+        }
+        if (!StavesConfig.isElementalResonanceEnabled()) return damage;
         long now = level.getGameTime();
         if (attacker != null) {
             if (hasResonance(attacker, ResonanceType.PYRO)) {
@@ -559,10 +563,12 @@ public final class ElementalResonanceManager {
     }
 
     public static float modifyPhysicalAttackDamage(LivingEntity target, DamageSource src, float amount) {
-        if (amount <= 0.0F || !StavesConfig.isElementalResonanceEnabled()) return amount;
+        if (amount <= 0.0F) return amount;
         if (!(target.level() instanceof ServerLevel level)) return amount;
         if (!(src.getEntity() instanceof ServerPlayer attacker) || attacker == target) return amount;
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
+        amount *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
+        if (!StavesConfig.isElementalResonanceEnabled()) return amount;
 
         long now = level.getGameTime();
         if (hasResonance(attacker, ResonanceType.PYRO)) {
@@ -577,7 +583,9 @@ public final class ElementalResonanceManager {
 
     /** Hydro Resonance (Soothing Water): +25% Incoming Healing Effectiveness. */
     public static float modifyIncomingHeal(@Nullable LivingEntity entity, float amount) {
-        if (amount <= 0.0F || entity == null || !StavesConfig.isElementalResonanceEnabled()) return amount;
+        if (amount <= 0.0F || entity == null) return amount;
+        amount *= ElementalGaugeManager.getFanfareBonusMultiplier(entity);
+        if (!StavesConfig.isElementalResonanceEnabled()) return amount;
         if (hasResonance(entity, ResonanceType.HYDRO)) {
             return amount * 1.25F;
         }

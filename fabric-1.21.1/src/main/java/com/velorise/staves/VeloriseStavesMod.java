@@ -67,6 +67,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item GUARDIAN_LENS = registerItem("guardian_lens",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GUARDIAN, false), false));
 
+    public static final Item SPLENDOR_OF_TRANQUIL_WATERS = registerItem("splendor_of_tranquil_waters",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.SPLENDOR, false), false));
+
     public static final Item EVOKER_FANG_STAFF = registerItem("evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, false), false));
 
@@ -162,6 +165,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_GUARDIAN_LENS = registerItem("netherite_guardian_lens",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.GUARDIAN, true), true));
 
+    public static final Item NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS = registerItem("netherite_splendor_of_tranquil_waters",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.SPLENDOR, true), true));
+
     public static final Item NETHERITE_EVOKER_FANG_STAFF = registerItem("netherite_evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, true), true));
 
@@ -208,6 +214,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(WITHER_SCEPTER);
             output.accept(SHULKER_SEEKER);
             output.accept(GUARDIAN_LENS);
+            output.accept(SPLENDOR_OF_TRANQUIL_WATERS);
             output.accept(EVOKER_FANG_STAFF);
             output.accept(ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
@@ -225,6 +232,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_WITHER_SCEPTER);
             output.accept(NETHERITE_SHULKER_SEEKER);
             output.accept(NETHERITE_GUARDIAN_LENS);
+            output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
             output.accept(NETHERITE_EVOKER_FANG_STAFF);
             output.accept(NETHERITE_ARC_CASTER);
             output.accept(NETHERITE_FROSTBOLT_WAND);
@@ -320,6 +328,21 @@ public final class VeloriseStavesMod implements ModInitializer {
                             .build("omni_orb")
             );
 
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.HydroSalonSummonEntity> HYDRO_SALON_SUMMON =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "hydro_salon_summon"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.HydroSalonSummonEntity>of(
+                                    com.velorise.staves.entity.HydroSalonSummonEntity::new,
+                                    net.minecraft.world.entity.MobCategory.MISC
+                            )
+                            .sized(0.75F, 0.95F)
+                            .clientTrackingRange(10)
+                            .updateInterval(1)
+                            .build("hydro_salon_summon")
+            );
+
     @Override
     public void onInitialize() {
         StavesConfig.load();
@@ -336,6 +359,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(WITHER_SCEPTER);
             entries.accept(SHULKER_SEEKER);
             entries.accept(GUARDIAN_LENS);
+            entries.accept(SPLENDOR_OF_TRANQUIL_WATERS);
             entries.accept(EVOKER_FANG_STAFF);
             entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
@@ -349,6 +373,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_WITHER_SCEPTER);
             entries.accept(NETHERITE_SHULKER_SEEKER);
             entries.accept(NETHERITE_GUARDIAN_LENS);
+            entries.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
             entries.accept(NETHERITE_EVOKER_FANG_STAFF);
             entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
