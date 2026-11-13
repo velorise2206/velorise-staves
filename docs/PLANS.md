@@ -46,7 +46,10 @@
 * **Equitable Judgment Channeling Mechanic:**
   * **With Sourcewater Droplets Nearby:** Holding Right-Click automatically absorbs nearby Sourcewater Droplets (up to 3), **instantly completing the charge** to unleash the continuous Hydro beam immediately while **healing the caster**.
   * **Without Sourcewater Droplets:** Holding Right-Click requires a brief **few-second charge-up / channel** (mirroring Neuvillette's Charged Attack wind-up) before firing the continuous *Equitable Judgment* beam (retaining its current Max HP scaling).
-  * **Self HP Drain While Firing:** While channeling the *Equitable Judgment* beam, the caster continuously drains a small percentage of their own HP per beam tick **until reaching the 50% Max HP cap** (mirroring Neuvillette's Fontaine HP-fluctuation mechanic, naturally synergizing with `Guardian's Lens`'s own HP-change damage bonus and Sourcewater Droplet healing).
+* **Self HP Drain While Firing:** While channeling the *Equitable Judgment* beam, the caster continuously drains a small percentage of their own HP per beam tick **until reaching the 50% Max HP cap** (mirroring Neuvillette's Fontaine HP-fluctuation mechanic).
+* **Damage Scaling Rebalance (*Past Draconic Glories* Passive):**
+  * Replace the current flat `2x` HP-fluctuation multiplier (which would be overly strong with 100% uptime from self-drain and Furina) with a **3-stack Hydro Reaction bonus**.
+  * Triggering distinct Hydro-related reactions (Vaporize, Frozen, Electro-Charged, Bloom, Hydro Swirl, Hydro Crystallize) grants independent stacks (up to **3 stacks**, scaling beam damage up to **~1.5x–1.6x** max), encouraging multi-element team setups over solo spamming.
 
 ---
 
