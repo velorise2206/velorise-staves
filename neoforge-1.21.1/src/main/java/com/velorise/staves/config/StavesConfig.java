@@ -179,7 +179,7 @@ public final class StavesConfig {
             .comment("Direct damage bonus multiplier granted by Pyro Resonance (Fervent Flames). Default: 0.10 (+10%)")
             .defineInRange("pyro_resonance_damage_bonus", 0.10D, 0.0D, 1.0D);
         ELEMENTAL_ARMOR_DURABILITY_WEAR = builder
-            .comment("Whether elemental & reaction damage wears down armor durability: "auto" (Hard difficulty only), "always", or "never". Default: "auto"")
+            .comment("Whether elemental & reaction damage wears down armor durability: \"auto\" (Hard difficulty only), \"always\", or \"never\". Default: \"auto\"")
             .define("elemental_armor_durability_wear", "auto");
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")

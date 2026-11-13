@@ -1,6 +1,7 @@
 package com.velorise.staves.item;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.element.Element;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

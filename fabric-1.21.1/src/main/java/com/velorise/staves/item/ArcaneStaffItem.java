@@ -81,6 +81,7 @@ public final class ArcaneStaffItem extends Item {
     }
     private static final Map<UUID, Map<String, BurstState>> PLAYER_BURSTS = new ConcurrentHashMap<>();
     private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> GUARDIAN_INSTANT_PLAYERS = new ConcurrentHashMap<>();
     private static volatile java.lang.reflect.Method cachedMaxHpMethod;
     private static volatile boolean maxHpMethodResolved;
 
@@ -180,7 +181,7 @@ public final class ArcaneStaffItem extends Item {
                     ACTIVE_CHANNELING.put(player.getUUID(), stack);
                     if (kind == Kind.GUARDIAN && level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
                         int absorbed = ElementalGaugeManager.consumeSourcewaterDropletsForChannel(sl, sp, 12.0D, 3);
-                        sp.getPersistentData().putBoolean("VeloriseGuardianInstant", absorbed > 0);
+                        GUARDIAN_INSTANT_PLAYERS.put(sp.getUUID(), absorbed > 0);
                     }
                 }
                 SoundEvent cueSound = switch (kind) {
@@ -388,7 +389,7 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.GUARDIAN) {
             int elapsed = 50 - count;
             if (elapsed < 0) return;
-            boolean instant = player.getPersistentData().getBoolean("VeloriseGuardianInstant");
+            boolean instant = Boolean.TRUE.equals(GUARDIAN_INSTANT_PLAYERS.get(player.getUUID()));
             if (!instant && elapsed < 10) {
                 // Brief 0.5s wind-up when no Sourcewater Droplets were absorbed
                 if (elapsed % 2 == 0) {
@@ -463,7 +464,7 @@ public final class ArcaneStaffItem extends Item {
 
     private void finishGuardianBeam(ServerPlayer player) {
         ACTIVE_CHANNELING.remove(player.getUUID());
-        player.getPersistentData().remove("VeloriseGuardianInstant");
+        GUARDIAN_INSTANT_PLAYERS.remove(player.getUUID());
         ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
