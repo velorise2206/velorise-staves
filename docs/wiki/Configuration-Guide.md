@@ -10,6 +10,8 @@
 
 ## Combat & General Balancing
 
+Tune global damage and cooldown multipliers for all [**Arcane Staves**](Staves-List#arcane-staves--netherite-upgrades) and configure the [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap) inventory limit:
+
 ```toml
 [general]
 # Global damage multiplier applied to all elemental staves (Default: 1.0)
@@ -29,6 +31,8 @@ max_staves_in_inventory = 4
 ---
 
 ## Utility Artifacts
+
+Customize recall channeling and blink reach for the [**Magic Mirror**](Relics-and-Utilities#magic-mirror) and [**Void Translocator**](Relics-and-Utilities#void-translocator):
 
 ```toml
 [utilities]
@@ -50,6 +54,8 @@ void_translocator_range_netherite = 36.0
 
 ## Mob Mutation Rates
 
+Control spawn probabilities for [**Innate Elemental Mobs**](Elements-and-Reactions#innate-elemental-mobs-drops--rare-omni-mutations) and rare [**Omni-Mutated Mob**](Elements-and-Reactions#2-mob-mutation-rules-7-default-6-elemental--1-omni) encounters:
+
 ```toml
 [mutations]
 # Chance (from 0.0 to 1.0) for newly spawned mobs to carry innate elemental mutations (Default: 0.07 -> 7%)
@@ -69,6 +75,8 @@ allow_neutral_and_passive_mutation = false
 ---
 
 ## Environmental Interactions
+
+Configure [**Arc Caster**](Staves-List#arc-caster) Creeper charging and [**Webcaster**](Staves-List#webcaster) temporary cobweb duration:
 
 ```toml
 [interactions]

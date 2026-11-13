@@ -17,14 +17,14 @@
 
 **Velorise's Staves & Elements** transforms combat in Minecraft from basic sword spamming into an intricate, responsive elemental magic system inspired by *Genshin Impact* and modern Action-RPGs.
 
-Instead of generic magic projectiles that simply apply flat damage or vanilla potion effects, Velorise's Staves implements a full **Elemental Gauge Theory (EGT)** engine:
+Instead of generic magic projectiles that simply apply flat damage or vanilla potion effects, Velorise's Staves implements a full [**Elemental Gauge Theory (EGT)**](Elements-and-Reactions#elemental-gauge-theory-egt-math--decay-formulas) engine:
 
 * **7 Arcane Elements + Omni Essence:** <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /> Pyro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> Hydro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> Cryo, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> Electro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> Dendro, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> Anemo, <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> Geo, and <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="16" height="16" /> Omni.
-* **16 Elemental Reactions:** Multiplicative amplification (Forward/Reverse Vaporize, Forward/Reverse Melt), crowd control (Frozen, Shatter), cascading area shocks (Electro-Charged, Overloaded, Overvape, Superconduct), organic seed chains (Bloom, Hyperbloom, Burgeon, Quicken, Aggravate, Spread, Burning), and trigger effects (Swirl, Crystallize).
-* **13 Distinct Arcane Staves (+ Netherite Upgrades):** Each with dedicated projectile types, sequential burst combos, charging phases, or continuous channeled beams—with full 13-staff parity across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1** (including backported Wind Staff, Breeze Rod, and throwable Wind Charge on 1.20.1).
-* **8-Type Elemental Resonance & 4-Staff Cap:** Unlock passive elemental team buffs when carrying matching staves, balanced by the **Arcane Overload** inventory cap.
+* **16 Elemental Reactions:** Multiplicative amplification (Forward/[Reverse Vaporize](Elements-and-Reactions#reverse-vaporize), Forward/[Reverse Melt](Elements-and-Reactions#reverse-melt)), crowd control ([Frozen](Elements-and-Reactions#frozen), [Shatter](Elements-and-Reactions#shatter)), cascading area shocks ([Electro-Charged](Elements-and-Reactions#electro-charged), [Overloaded](Elements-and-Reactions#overloaded), [Overvape](Elements-and-Reactions#overvape), [Superconduct](Elements-and-Reactions#superconduct)), organic seed chains ([Bloom](Elements-and-Reactions#bloom), [Hyperbloom](Elements-and-Reactions#hyperbloom), [Burgeon](Elements-and-Reactions#burgeon), [Quicken](Elements-and-Reactions#quicken), [Aggravate](Elements-and-Reactions#aggravate), [Spread](Elements-and-Reactions#spread), [Burning](Elements-and-Reactions#burning)), and trigger effects ([Swirl](Elements-and-Reactions#swirl), [Crystallize](Elements-and-Reactions#crystallize)).
+* **13 Distinct [Arcane Staves](Staves-List#arcane-staves--netherite-upgrades) (+ Netherite Upgrades):** Each with dedicated projectile types, sequential burst combos, charging phases, or continuous channeled beams—with full 13-staff parity across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1** (including backported [Wind Staff](Staves-List#wind-staff), Breeze Rod, and throwable Wind Charge on 1.20.1).
+* **8-Type [Elemental Resonance](Elements-and-Reactions#elemental-resonance-system-all-8-resonances) & 4-Staff Cap:** Unlock passive elemental team buffs when carrying matching staves, balanced by the [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap) inventory cap.
 * **Anvil Weapon Imbuing & Staff Repair:** Infuse standard swords (Wood through Netherite, plus modded `SwordItem`s) with elemental essences on an anvil for **3 XP levels** to trigger `1.0U` aura applications on full-strength melee strikes (`>= 90%` charge), or repair staves directly with matching Elemental Essences.
-* **Physical World & Gear Interactions:** Electrify water pools, build automated Redstone Tesla Coils, mine Amethyst Clusters via Overloaded blasts, freeze water into frosted ice bridges, summon Geo Fang Pillars, reflect elements with `Thorns` armor, and trigger Swirl with `Wind Burst` Maces.
+* **Physical World & Gear Interactions:** Electrify water pools, build automated Redstone [Tesla Coils](Environmental-Interactions#5-tesla-coils--storm-overcharge), mine Amethyst Clusters via [Overloaded](Elements-and-Reactions#overloaded) blasts, freeze water into frosted ice bridges, summon [Geo Fang Pillars](Environmental-Interactions#3-geo-constructs--fang-pillars), reflect elements with `Thorns` armor, and trigger [Swirl](Elements-and-Reactions#swirl) with `Wind Burst` Maces.
 
 ---
 
@@ -54,7 +54,7 @@ Combine crafting ingredients in a Crafting Table:
 * **Arc Caster (Electro):** 1 Electro Element + 2 Amethyst Shards placed diagonally.
 
 ### Step 3: Using the Elemental Codex
-The <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/elemental_codex.png" width="16" height="16" /> **Elemental Codex** is **automatically granted on first world join**, or can be crafted shapelessly with **1 Book + 1 Amethyst Shard**. Right-clicking opens a 9-tab interactive GUI (localized in **9 languages**: `en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`) with clickable reaction links and live server config synchronization.
+The <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/elemental_codex.png" width="16" height="16" /> [**Elemental Codex**](Relics-and-Utilities#elemental-codex) is **automatically granted on first world join**, or can be crafted shapelessly with **1 Book + 1 Amethyst Shard**. Right-clicking opens a 9-tab interactive GUI (localized in **9 languages**: `en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`) with clickable reaction links and live server config synchronization.
 
 ---
 
@@ -63,10 +63,10 @@ The <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/s
 | Action | Default Input | Description |
 | :--- | :--- | :--- |
 | **Cast Primary Spell** | `Right-Click` | Discharges the elemental projectile, sequential burst shot, or channeled beam. |
-| **Charge / Channel Spell** | `Hold Right-Click` | Charged staves: **Resonant Echo** (1.5s), **Ghastfire Staff** (2.0s). Channeled beams: **Guardian Lens** (2.5s), **Arc Caster** (3.0s). |
-| **Open Omni Element Wheel** | `Hold [Tab]` *(Rebindable)* | Opens the 8-sector radial Element Wheel while holding the **Omni Staff** (move mouse or click a sector, then release `[Tab]` to lock an element or select Auto Mode). |
-| **Break Out of Frozen** | `Mash [Spacebar]` | Rapidly tapping Jump while encased in Frozen ice shaves **0.3s (6 ticks)** off your remaining freeze duration per press (0.15s cooldown). |
-| **Recall to Bed / Spawn** | `Hold Right-Click` (Magic Mirror) | Channels for **2.5s** (default config; 15.0s cooldown) to recall back to your bed or world spawn point. |
+| **Charge / Channel Spell** | `Hold Right-Click` | Charged staves: [**Resonant Echo**](Staves-List#resonant-echo) (1.5s), [**Ghastfire Staff**](Staves-List#ghastfire-staff) (2.0s). Channeled beams: [**Guardian Lens**](Staves-List#guardian-lens) (2.5s), [**Arc Caster**](Staves-List#arc-caster) (3.0s). |
+| **Open [Omni Element](Relics-and-Utilities#omni-element) Wheel** | `Hold [Tab]` *(Rebindable)* | Opens the 8-sector radial Element Wheel while holding the [**Omni Staff**](Staves-List#the-apex-weapon-omni-staff) (move mouse or click a sector, then release `[Tab]` to lock an element or select Auto Mode). |
+| **Break Out of Frozen** | `Mash [Spacebar]` | Rapidly tapping Jump while encased in [Frozen](Elements-and-Reactions#frozen) ice shaves **0.3s (6 ticks)** off your remaining freeze duration per press (0.15s cooldown). |
+| **Recall to Bed / Spawn** | `Hold Right-Click` ([Magic Mirror](Relics-and-Utilities#magic-mirror)) | Channels for **2.5s** (default config; 15.0s cooldown) to recall back to your bed or world spawn point. |
 
 ---
 
@@ -76,17 +76,17 @@ Track your arcane progression through **11 custom Advancements** and experience 
 
 | Advancement Title | ID | Unlock Condition |
 | :--- | :--- | :--- |
-| **Velorise's Staves** | `velorise_staves:root` | Obtain the **Elemental Codex** (auto-granted on join or crafted). |
+| **Velorise's Staves** | `velorise_staves:root` | Obtain the [**Elemental Codex**](Relics-and-Utilities#elemental-codex) (auto-granted on join or crafted). |
 | **Apprentice Arcanist** | `velorise_staves:first_staff` | Craft or obtain your first elemental combat staff. |
 | **Forged in Netherite** | `velorise_staves:netherite_upgrade` | Upgrade any staff or utility artifact to Netherite tier at a Smithing Table. |
-| **Elemental Scholar** | `velorise_staves:elemental_mastery` | Hold any staff enchanted with **Elemental Mastery I–III**. |
-| **Master of All Elements** | `velorise_staves:omni_staff` | Obtain the legendary **Omni Staff** or **Netherite Omni Staff**. |
+| **Elemental Scholar** | `velorise_staves:elemental_mastery` | Hold any staff enchanted with [**Elemental Mastery I–III**](Staves-List#staff-enchantments-elemental-mastery). |
+| **Master of All Elements** | `velorise_staves:omni_staff` | Obtain the legendary [**Omni Staff**](Staves-List#the-apex-weapon-omni-staff) or [**Netherite Omni Staff**](Staves-List#the-apex-weapon-omni-staff). |
 | **Elemental Alchemy** | `velorise_staves:first_reaction` | Trigger your first Elemental Reaction in combat. |
-| **Catalytic Bloom** | `velorise_staves:dendro_core` | Detonate a Dendro Core with Electro (**Hyperbloom**) or Pyro (**Burgeon**). |
-| **Crystalline Aegis** | `velorise_staves:crystallize` | Pick up a **Crystallize Elemental Shard** to gain a 15s elemental Absorption shield. |
-| **Tectonic Resonance** | `velorise_staves:geo_construct` | Summon a **Geo Fang Pillar** using the Evoker Fang Staff. |
-| **High-Voltage Architect** | `velorise_staves:tesla_coil` | Activate or overcharge a Redstone **Tesla Coil** (Lightning Rod atop a Redstone Block). |
-| **Spatial Riftwalker** | `velorise_staves:spatial_traveler` | Blink using the **Void Translocator** or recall home with the **Magic Mirror**. |
+| **Catalytic Bloom** | `velorise_staves:dendro_core` | Detonate a [Dendro Core](Elements-and-Reactions#dendro-reaction-system-bloom--catalyze) with Electro ([**Hyperbloom**](Elements-and-Reactions#hyperbloom)) or Pyro ([**Burgeon**](Elements-and-Reactions#burgeon)). |
+| **Crystalline Aegis** | `velorise_staves:crystallize` | Pick up a [**Crystallize Elemental Shard**](Relics-and-Utilities#crystallize-shield-shards) to gain a 15s elemental Absorption shield. |
+| **Tectonic Resonance** | `velorise_staves:geo_construct` | Summon a [**Geo Fang Pillar**](Environmental-Interactions#3-geo-constructs--fang-pillars) using the [Evoker Fang Staff](Staves-List#evoker-fang-staff). |
+| **High-Voltage Architect** | `velorise_staves:tesla_coil` | Activate or overcharge a Redstone [**Tesla Coil**](Environmental-Interactions#5-tesla-coils--storm-overcharge) (Lightning Rod atop a Redstone Block). |
+| **Spatial Riftwalker** | `velorise_staves:spatial_traveler` | Blink using the [**Void Translocator**](Relics-and-Utilities#void-translocator) or recall home with the [**Magic Mirror**](Relics-and-Utilities#magic-mirror). |
 
 <div align="center">
   <table>
@@ -101,10 +101,10 @@ Track your arcane progression through **11 custom Advancements** and experience 
 
 ## Wiki Directory
 
-* **[Elements & Reactions](Elements-and-Reactions)**: Complete breakdown of all 16 reactions, EGT gauge math (0.8x Aura Tax, decay inheritance, simultaneous priority), 8 Elemental Resonances, Innate/Mutated mobs, and Potion/Trident/Mace/Thorns synergies.
+* **[Elements & Reactions](Elements-and-Reactions)**: Complete breakdown of all 16 reactions, EGT gauge math (0.8x Aura Tax, decay inheritance, simultaneous priority), 8 [Elemental Resonances](Elements-and-Reactions#elemental-resonance-system-all-8-resonances), Innate/Mutated mobs, and Potion/Trident/Mace/Thorns synergies.
 * **[Staves & Weapons](Staves-List)**: In-depth stats, burst/channeling mechanics, repair materials, and crafting recipes for all 13 staves and their Netherite upgrades.
 * **[Anvil Weapon Imbuing](Anvil-Imbuing)**: Guide to infusing swords with elemental properties at an anvil, full-charge strike rules, and Fire Aspect interactions.
-* **[Environmental Interactions](Environmental-Interactions)**: Details on electrified water, frost walking, Geo Fang Pillars, Sculk & Calibrated Sculk sensors, Redstone/Observer hazards, Amethyst Overloaded mining, and Mob Hazard Avoidance AI.
-* **[Relics & Utilities](Relics-and-Utilities)**: Documentation for the Magic Mirror, Void Translocator, Elemental Codex, 8 Elemental Essences, and Crystallize Shields.
+* **[Environmental Interactions](Environmental-Interactions)**: Details on electrified water, frost walking, [Geo Fang Pillars](Environmental-Interactions#3-geo-constructs--fang-pillars), Sculk & Calibrated Sculk sensors, Redstone/Observer hazards, Amethyst [Overloaded](Elements-and-Reactions#overloaded) mining, and Mob Hazard Avoidance AI.
+* **[Relics & Utilities](Relics-and-Utilities)**: Documentation for the [Magic Mirror](Relics-and-Utilities#magic-mirror), [Void Translocator](Relics-and-Utilities#void-translocator), [Elemental Codex](Relics-and-Utilities#elemental-codex), 8 Elemental Essences, and [Crystallize Shields](Relics-and-Utilities#crystallize-shield-shards).
 * **[Configuration Guide](Configuration-Guide)**: Complete reference for `velorise_staves.toml`, in-game Config GUI, live server sync, and mob mutation whitelists/blacklists.
 * **[FAQ & Compatibility](FAQ-and-Compatibility)**: Multiplayer support, mod compatibility (JEI, Jade, Better Combat), and loader parity.
