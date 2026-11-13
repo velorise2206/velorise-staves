@@ -7,6 +7,8 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.entity.GeoFangPillarEntity;
+import net.minecraft.client.model.EvokerFangsModel;
+import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -30,6 +32,8 @@ import org.joml.Matrix4f;
 public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
     private static final ResourceLocation STELE_TEXTURE =
             new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/stone_stele.png");
+    private static final ResourceLocation FANGS_TEXTURE =
+            new ResourceLocation("textures/entity/illager/evoker_fangs.png");
     private static final RenderType RING_RENDER_TYPE = GeoRingRenderType.create();
     private static final float[][] SQUARE_CORNERS = {
             {-1.0F, -1.0F},
@@ -38,8 +42,11 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
             {-1.0F,  1.0F}
     };
 
+    private final EvokerFangsModel<GeoFangPillarEntity> fangsModel;
+
     public GeoFangPillarRenderer(EntityRendererProvider.Context context) {
         super(context);
+        this.fangsModel = new EvokerFangsModel<>(context.bakeLayer(ModelLayers.EVOKER_FANGS));
         this.shadowRadius = 0.46F;
     }
 
@@ -66,6 +73,43 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
                 : 0.0F;
         int hurtElapsed = entity.tickCount - entity.getLastHurtTick();
         boolean hurtFlash = hurtElapsed >= -1 && hurtElapsed < 4;
+
+        if (!entity.isStoneStele()) {
+            boolean netherite = entity.isNetherite();
+            this.shadowRadius = netherite ? 0.5F : 0.38F;
+            float fangPulse = (pulseElapsed >= -1 && pulseElapsed < 9)
+                    ? Mth.sin((Mth.clamp(pulseElapsed + partialTicks, 0.0F, 9.0F) / 9.0F) * (float) Math.PI)
+                    : 0.0F;
+            float biteProgress = 0.48F - fangPulse * 0.14F;
+            float rise = Mth.clamp((entity.tickCount + partialTicks) / 6.0F, 0.0F, 1.0F);
+            float sink = entity.tickCount > (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)
+                    ? Mth.clamp((entity.tickCount + partialTicks - (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)) / 12.0F, 0.0F, 1.0F)
+                    : 0.0F;
+
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(90.0F - entity.getYRot()));
+
+            this.fangsModel.setupAnim(entity, biteProgress, 0.0F, 0.0F, entity.getYRot(), entity.getXRot());
+            float f2 = (biteProgress + Mth.sin(biteProgress * 2.7F)) * 0.6F * 12.0F;
+            float scaleXZ = (netherite ? 1.52F : 1.05F) + fangPulse * (netherite ? 0.12F : 0.08F);
+            float scaleY = (netherite ? 1.23F : 0.62F) + fangPulse * (netherite ? 0.06F : 0.04F);
+            poseStack.scale(-scaleXZ, -scaleY, scaleXZ);
+            poseStack.translate(0.0F, -(36.0F - f2) / 16.0F + ((1.0F - rise) + sink) * 1.35F, 0.0F);
+
+            float r = 1.0F;
+            float g = hurtFlash ? 0.56F : (fangPulse > 0.15F ? 0.94F : 0.85F);
+            float b = hurtFlash ? 0.50F : (fangPulse > 0.15F ? 0.65F : 0.46F);
+            VertexConsumer consumer = bufferSource.getBuffer(this.fangsModel.renderType(FANGS_TEXTURE));
+            this.fangsModel.renderToBuffer(poseStack, consumer, packedLight, OverlayTexture.NO_OVERLAY, r, g, b, 1.0F);
+            poseStack.popPose();
+
+            if (!entity.getClientWaveAges().isEmpty()) {
+                renderExpandingRings(entity, partialTicks, poseStack, bufferSource);
+            }
+
+            super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
+            return;
+        }
 
         float rise = Mth.clamp((entity.tickCount + partialTicks) / 5.5F, 0.0F, 1.0F);
         float sink = entity.tickCount > (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)
@@ -375,7 +419,7 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
 
     @Override
     public ResourceLocation getTextureLocation(GeoFangPillarEntity entity) {
-        return STELE_TEXTURE;
+        return entity.isStoneStele() ? STELE_TEXTURE : FANGS_TEXTURE;
     }
 
     protected static class GeoRingRenderType extends RenderType {

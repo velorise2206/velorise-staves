@@ -951,7 +951,7 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.45F, 1.75F);
         }
 
-        float damagePerTick = isNetherite ? 1.0F : 0.5F;
+        float damagePerTick = isNetherite ? 1.5F : 1.0F;
         float attackU = isNetherite ? 1.5F : 1.0F;
         boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
 
@@ -965,6 +965,7 @@ public final class ArcaneStaffItem extends Item {
                 creeper.clearFire();
             }
             target.clearFire();
+            target.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, damagePerTick);
             target.clearFire();
         }
@@ -991,6 +992,7 @@ public final class ArcaneStaffItem extends Item {
                     creeper.clearFire();
                 }
                 victim.clearFire();
+                victim.invulnerableTime = 0;
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, attackU * 0.75F, player, damagePerTick);
                 victim.clearFire();
             }
