@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s explodierte durch %2$s",
   "death.velorise_staves.reaction.burgeon.player": "%1$s explodierte durch %2$s von %3$s",
   "enchantment.velorise_staves.elemental_protection": "Elementarschutz",
-  "enchantment.velorise_staves.elemental_protection.desc": "Verringert erlittenen Elementar- und Reaktionsschaden (-5% pro Stufe, bis zu 80%) und verkürzt Aura- sowie Gefrierdauer."
+  "enchantment.velorise_staves.elemental_protection.desc": "Verringert erlittenen Elementar- und Reaktionsschaden (-5% pro Stufe, bis zu 80%) und verkürzt Aura- sowie Gefrierdauer.",
+  "tooltip.velorise_staves.trident_hydro": "Element: %s (1.0U | Hydro-Resonanzpartner)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  Verursacht 1.0U Hydro im Nahkampf/Wurf & aktiviert Hydro-Resonanz mit einem Stab",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Skaliert mit max. LP des Nutzers (10%/Treffer | 15% Netherit)",
+  "jade.velorise_staves.env_wet": "Nass (Umg.)"
 }

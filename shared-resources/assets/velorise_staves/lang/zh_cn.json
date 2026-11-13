@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s 被 %2$s 炸得粉碎",
   "death.velorise_staves.reaction.burgeon.player": "%1$s 被 %3$s 的 %2$s 炸得粉碎",
   "enchantment.velorise_staves.elemental_protection": "元素保护",
-  "enchantment.velorise_staves.elemental_protection.desc": "降低受到的元素法杖与元素反应伤害（每级 -5%，最高 80%），并缩短元素附着与冻结时间。"
+  "enchantment.velorise_staves.elemental_protection.desc": "降低受到的元素法杖与元素反应伤害（每级 -5%，最高 80%），并缩短元素附着与冻结时间。",
+  "tooltip.velorise_staves.trident_hydro": "元素：%s（1.0U | 水元素共鸣搭档）",
+  "tooltip.velorise_staves.trident_hydro.hint": "  近战或投掷附着 1.0U 水元素，并可搭配法杖激活水元素共鸣",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ 基于施法者生命值上限（10%/击 | 下界合金 15%）",
+  "jade.velorise_staves.env_wet": "潮湿 (环境)"
 }

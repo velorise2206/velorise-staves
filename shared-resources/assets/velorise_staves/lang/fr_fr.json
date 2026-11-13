@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s a détoné sous %2$s",
   "death.velorise_staves.reaction.burgeon.player": "%1$s a détoné sous %2$s de %3$s",
   "enchantment.velorise_staves.elemental_protection": "Protection élémentaire",
-  "enchantment.velorise_staves.elemental_protection.desc": "Réduit les dégâts élémentaires et de réactions subis (-5% par niveau, jusqu'à 80%) et réduit la durée des auras et du gel."
+  "enchantment.velorise_staves.elemental_protection.desc": "Réduit les dégâts élémentaires et de réactions subis (-5% par niveau, jusqu'à 80%) et réduit la durée des auras et du gel.",
+  "tooltip.velorise_staves.trident_hydro": "Élément : %s (1.0U | Partenaire de résonance Hydro)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  Applique 1.0U Hydro en mêlée/lancer et active la résonance Hydro avec un bâton",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Évolue selon les PV max du lanceur (10%/coup | 15% Netherite)",
+  "jade.velorise_staves.env_wet": "Trempé (Env)"
 }

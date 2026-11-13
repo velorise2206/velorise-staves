@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s was detonated by %2$s",
   "death.velorise_staves.reaction.burgeon.player": "%1$s was detonated by %3$s's %2$s",
   "enchantment.velorise_staves.elemental_protection": "Elemental Protection",
-  "enchantment.velorise_staves.elemental_protection.desc": "Reduces incoming Elemental Staff & Reaction damage (-5% per level, up to 80%) and shortens elemental aura & freeze duration."
+  "enchantment.velorise_staves.elemental_protection.desc": "Reduces incoming Elemental Staff & Reaction damage (-5% per level, up to 80%) and shortens elemental aura & freeze duration.",
+  "tooltip.velorise_staves.trident_hydro": "Element: %s (1.0U | Resonance Partner)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  Applies 1.0U Hydro on melee/throw & pairs with Staves for Hydro Resonance",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Scales with Caster's Max HP (10%/hit | 15% Netherite)",
+  "jade.velorise_staves.env_wet": "Wet (Env)"
 }

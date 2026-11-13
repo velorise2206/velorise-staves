@@ -150,6 +150,12 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             }
         }
 
+        boolean envWet = (serverData != null && serverData.getBoolean("vs_env_wet"))
+                || (!ElementalGaugeManager.isPassiveAquaticOrAmbient(living) && ElementalGaugeManager.isEntityInWater(living));
+        if (envWet && !display.contains(Element.HYDRO)) {
+            display.add(Element.HYDRO);
+        }
+
         if (display.isEmpty()) return;
 
         CompoundTag gaugesTag = (serverData != null && serverData.contains("vs_gauges")) ? serverData.getCompound("vs_gauges") : null;
@@ -168,10 +174,12 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             }
             tooltip.append(helper.spacer(2, 0));
 
-            // Format gauge unit text (e.g. 2.5U or ∞)
+            // Format gauge unit text (e.g. 2.5U, Wet (Env), or ∞)
             String uText;
             if (innateSet.contains(elem)) {
                 uText = "∞";
+            } else if (elem == Element.HYDRO && envWet && (gaugesTag == null || !gaugesTag.contains(Element.HYDRO.name()))) {
+                uText = Component.translatable("jade.velorise_staves.env_wet").getString();
             } else if (gaugesTag != null && gaugesTag.contains(elem.name())) {
                 float u = gaugesTag.getFloat(elem.name());
                 uText = String.format(Locale.ROOT, "%.1fU", u);

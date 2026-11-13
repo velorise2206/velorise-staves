@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s bị nổ tan xác vì phản ứng %2$s",
   "death.velorise_staves.reaction.burgeon.player": "%1$s bị nổ tan xác bởi %2$s của %3$s",
   "enchantment.velorise_staves.elemental_protection": "Bảo Vệ Nguyên Tố",
-  "enchantment.velorise_staves.elemental_protection.desc": "Giảm sát thương Trượng & Phản ứng Nguyên tố nhận vào (-5%/cấp, tối đa 80%) và giảm thời gian dính ấn & đóng băng."
+  "enchantment.velorise_staves.elemental_protection.desc": "Giảm sát thương Trượng & Phản ứng Nguyên tố nhận vào (-5%/cấp, tối đa 80%) và giảm thời gian dính ấn & đóng băng.",
+  "tooltip.velorise_staves.trident_hydro": "Nguyên tố: %s (1.0U | Cộng hưởng Thủy)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  Gắn 1.0U Thủy khi đâm/phóng & ghép cặp với Trượng kích hoạt Cộng hưởng Thủy",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Tăng theo Máu tối đa người dùng (10%/nhát | 15% Netherite)",
+  "jade.velorise_staves.env_wet": "Ẩm Ướt (MT)"
 }

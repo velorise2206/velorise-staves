@@ -67,5 +67,10 @@ public enum AuraServerDataProvider implements IServerDataProvider<EntityAccessor
         if (!gaugesTag.isEmpty()) {
             tag.put("vs_gauges", gaugesTag);
         }
+        if (!ElementalGaugeManager.isOmniInnate(living)
+                && !ElementalGaugeManager.isPassiveAquaticOrAmbient(living)
+                && ElementalGaugeManager.isEntityInWater(living)) {
+            tag.putBoolean("vs_env_wet", true);
+        }
     }
 }

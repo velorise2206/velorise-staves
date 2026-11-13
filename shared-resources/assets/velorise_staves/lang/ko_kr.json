@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s이(가) %2$s 폭발로 폭사했습니다",
   "death.velorise_staves.reaction.burgeon.player": "%1$s이(가) %3$s의 %2$s에 폭사했습니다",
   "enchantment.velorise_staves.elemental_protection": "원소 보호",
-  "enchantment.velorise_staves.elemental_protection.desc": "받는 원소 지팡이 및 원소 반응 피해를 감소시키고(레벨당 -5%, 최대 80%) 원소 부착 및 빙결 시간을 단축합니다."
+  "enchantment.velorise_staves.elemental_protection.desc": "받는 원소 지팡이 및 원소 반응 피해를 감소시키고(레벨당 -5%, 최대 80%) 원소 부착 및 빙결 시간을 단축합니다.",
+  "tooltip.velorise_staves.trident_hydro": "원소: %s (1.0U | 물 원소 공명 파트너)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  근접/투척 시 1.0U 물 원소를 부착하며 지팡이와 함께 물 원소 공명 발동",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ 시전자의 최대 체력 비례 (타격당 10% | 네더라이트 15%)",
+  "jade.velorise_staves.env_wet": "습기 (환경)"
 }

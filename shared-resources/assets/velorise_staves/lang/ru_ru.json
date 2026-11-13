@@ -478,5 +478,9 @@
   "death.velorise_staves.reaction.burgeon": "%1$s подорван реакцией %2$s",
   "death.velorise_staves.reaction.burgeon.player": "%1$s подорван %2$s (%3$s)",
   "enchantment.velorise_staves.elemental_protection": "Элементальная защита",
-  "enchantment.velorise_staves.elemental_protection.desc": "Снижает получаемый элементальный урон и урон от реакций (-5% за уровень, до 80%) и сокращает длительность статусов."
+  "enchantment.velorise_staves.elemental_protection.desc": "Снижает получаемый элементальный урон и урон от реакций (-5% за уровень, до 80%) и сокращает длительность статусов.",
+  "tooltip.velorise_staves.trident_hydro": "Элемент: %s (1.0U | Партнёр Гидро резонанса)",
+  "tooltip.velorise_staves.trident_hydro.hint": "  Накладывает 1.0U Гидро при ударе/броске и активирует Гидро резонанс с посохом",
+  "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Масштабируется от макс. ОЗ (10%/удар | 15% Незерит)",
+  "jade.velorise_staves.env_wet": "Мокрый (Среда)"
 }

@@ -118,6 +118,22 @@ public final class SwordImbueHelper {
     }
 
     public static void appendImbueTooltip(ItemStack stack, List<Component> tooltip) {
+        if (stack != null && !stack.isEmpty() && stack.is(net.minecraft.world.item.Items.TRIDENT)) {
+            Component icon = Component.literal(Element.HYDRO.iconString()).withStyle(ChatFormatting.WHITE);
+            Component elemName = Component.translatable(Element.HYDRO.translationKey());
+            Component line = Component.empty()
+                    .append(icon)
+                    .append(Component.literal(" "))
+                    .append(Component.translatable("tooltip.velorise_staves.trident_hydro", elemName).withStyle(ChatFormatting.AQUA));
+            List<Component> wrappedHint = new ArrayList<>();
+            ArcaneStaffItem.appendWrappedTooltip(wrappedHint,
+                    Component.translatable("tooltip.velorise_staves.trident_hydro.hint"),
+                    ChatFormatting.DARK_GRAY, 44, "  ");
+            int insertAt = tooltip.isEmpty() ? 0 : 1;
+            tooltip.add(insertAt, line);
+            tooltip.addAll(insertAt + 1, wrappedHint);
+            return;
+        }
         String key = getImbuedKey(stack);
         if (key == null) return;
 

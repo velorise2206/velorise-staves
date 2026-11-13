@@ -1002,6 +1002,9 @@ public final class ArcaneStaffItem extends Item {
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         Element dispElem = kind == Kind.OMNI ? getOmniActiveElement(stack) : getElement();
         tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
+        if (kind == Kind.GUARDIAN) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
+        }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);

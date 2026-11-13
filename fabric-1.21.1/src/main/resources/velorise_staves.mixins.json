@@ -22,7 +22,8 @@
     "CameraMixin",
     "KeyboardInputMixin",
     "PlayerTabOverlayMixin",
-    "MouseHandlerMixin"
+    "MouseHandlerMixin",
+    "GuiGraphicsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

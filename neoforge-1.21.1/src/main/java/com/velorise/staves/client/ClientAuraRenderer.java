@@ -123,6 +123,33 @@ public final class ClientAuraRenderer {
         }
     }
 
+    public static void renderItemElementCornerBadge(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
+        if (stack == null || stack.isEmpty()) return;
+        ResourceLocation tex = null;
+        if (com.velorise.staves.item.SwordImbueHelper.isOmniImbued(stack)) {
+            tex = OMNI_TEXTURE;
+        } else {
+            Element imbued = com.velorise.staves.item.SwordImbueHelper.getImbuedElement(stack);
+            if (imbued != null) {
+                tex = TEXTURES.get(imbued);
+            } else if (stack.is(net.minecraft.world.item.Items.TRIDENT)) {
+                tex = TEXTURES.get(Element.HYDRO);
+            }
+        }
+        if (tex == null) return;
+
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0.0F, 0.0F, 200.0F);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.disableDepthTest();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        guiGraphics.blit(tex, x, y, 0.0F, 0.0F, 6, 6, 6, 6);
+        RenderSystem.enableDepthTest();
+        guiGraphics.pose().popPose();
+    }
+
     @SubscribeEvent
     public static void onClientLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) {
         ClientAuraTracker.clear();
@@ -1399,9 +1426,12 @@ public final class ClientAuraRenderer {
                         "hud.velorise_staves.overload_title",
                         ClientAuraTracker.localStaffCount,
                         StavesConfig.getMaxStavesInInventory()).withStyle(net.minecraft.ChatFormatting.RED));
-                tooltip.add(net.minecraft.network.chat.Component.translatable(
-                        "hud.velorise_staves.overload_hint",
-                        StavesConfig.getMaxStavesInInventory()).withStyle(net.minecraft.ChatFormatting.GRAY));
+                com.velorise.staves.item.ArcaneStaffItem.appendWrappedTooltip(
+                        tooltip,
+                        net.minecraft.network.chat.Component.translatable(
+                                "hud.velorise_staves.overload_hint",
+                                StavesConfig.getMaxStavesInInventory()),
+                        net.minecraft.ChatFormatting.GRAY, 38, "  ");
                 pendingTooltip = tooltip;
             }
         } else {
@@ -1422,8 +1452,16 @@ public final class ClientAuraRenderer {
                     net.minecraft.ChatFormatting color = type.element() != null ? type.element().color() : net.minecraft.ChatFormatting.GOLD;
                     List<net.minecraft.network.chat.Component> tooltip = new ArrayList<>();
                     tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey()).withStyle(color));
-                    tooltip.add(net.minecraft.network.chat.Component.translatable(type.translationKey() + ".desc")
-                            .withStyle(net.minecraft.ChatFormatting.GRAY));
+                    String rawDesc = net.minecraft.network.chat.Component.translatable(type.translationKey() + ".desc").getString();
+                    for (String part : rawDesc.split("\\s*\\|\\s*")) {
+                        String trimmed = part.trim();
+                        if (!trimmed.isEmpty()) {
+                            com.velorise.staves.item.ArcaneStaffItem.appendWrappedTooltip(
+                                    tooltip,
+                                    net.minecraft.network.chat.Component.literal("• " + trimmed),
+                                    net.minecraft.ChatFormatting.GRAY, 38, "  ");
+                        }
+                    }
                     pendingTooltip = tooltip;
                 }
             }
