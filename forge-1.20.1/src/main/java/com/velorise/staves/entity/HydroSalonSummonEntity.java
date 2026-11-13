@@ -288,7 +288,7 @@ public class HydroSalonSummonEntity extends Entity {
             this.setLastActionTick(this.tickCount);
             double radius = isNetherite() ? 8.0D : 6.0D;
             float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
-            float baseHeal = isNetherite() ? (ownerMaxHp * 0.08F + 1.5F) : (ownerMaxHp * 0.05F + 1.0F);
+            float baseHeal = isNetherite() ? Math.max(3.0F, ownerMaxHp * 0.08F + 1.4F) : 2.0F;
 
             AABB healBox = this.getBoundingBox().inflate(radius, 4.0D, radius);
             List<LivingEntity> allies = level.getEntitiesOfClass(LivingEntity.class, healBox, e ->
@@ -296,8 +296,12 @@ public class HydroSalonSummonEntity extends Entity {
 
             for (LivingEntity ally : allies) {
                 float before = ally.getHealth();
-                float finalHeal = ElementalResonanceManager.modifyIncomingHeal(ally, baseHeal);
-                ally.heal(finalHeal);
+                if (isNetherite()) {
+                    ally.heal(baseHeal);
+                } else {
+                    // Basic tier: strictly heals 1 heart (2.0 HP) per 2s pulse
+                    ally.setHealth(Math.min(ally.getMaxHealth(), before + 2.0F));
+                }
                 if (ally.getRemainingFireTicks() > 0 && !ally.isInLava()) {
                     ally.clearFire();
                 }

@@ -1,5 +1,7 @@
 package com.velorise.staves.compat.jade;
 
+import com.velorise.staves.client.ClientAuraRenderer;
+
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.element.Element;
@@ -28,7 +30,6 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
 
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "elemental_aura");
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
-    private static final ResourceLocation OMNI_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni.png");
 
     static {
         for (Element e : Element.values()) {
@@ -94,7 +95,7 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
                 || (serverDataCheck != null && serverDataCheck.getBoolean("vs_omni"));
         if (isOmni) {
             IElementHelper helper = IElementHelper.get();
-            tooltip.add(new ElementIcon(OMNI_TEXTURE, 12, 12));
+            tooltip.add(new ElementIcon(ClientAuraRenderer.getOmniIconTexture(), 12, 12));
             tooltip.append(helper.spacer(2, 0));
             Component comp = com.velorise.staves.element.ElementalDeathMessageHelper.createChromaticOmniComponent()
                     .append(Component.literal(" ∞").withStyle(ChatFormatting.GOLD));

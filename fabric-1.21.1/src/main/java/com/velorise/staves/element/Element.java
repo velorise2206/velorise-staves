@@ -1,5 +1,6 @@
 package com.velorise.staves.element;
 
+import com.velorise.staves.config.StavesConfig;
 import net.minecraft.ChatFormatting;
 
 import java.util.Locale;
@@ -53,11 +54,23 @@ public enum Element {
     }
 
     public char iconChar() {
-        return iconChar;
+        return StavesConfig.isUse32pxElementIcons() ? (char) (iconChar + 0x10) : iconChar;
     }
 
     public String iconString() {
-        return String.valueOf(iconChar);
+        return String.valueOf(iconChar());
+    }
+
+    public static String omniIconString() {
+        return StavesConfig.isUse32pxElementIcons() ? "\uE01A" : "\uE00A";
+    }
+
+    public static String resonanceIconString() {
+        return StavesConfig.isUse32pxElementIcons() ? "\uE01B" : "\uE00B";
+    }
+
+    public static String moonsignIconString() {
+        return StavesConfig.isUse32pxElementIcons() ? "\uE01C" : "\uE00C";
     }
 
     public String formatted() {

@@ -124,6 +124,14 @@ public final class ModNetwork {
         }
     }
 
+    public static void sendSilentHealthSync(Entity target, float newHealth) {
+        if (target == null || target.level().isClientSide()) return;
+        AuraSyncPacket packet = new AuraSyncPacket(
+                target.getId(), java.util.Collections.emptyList(), null, null, null, newHealth, -4, false
+        );
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
+    }
+
     public static void sendPhysicalDamage(Entity target, float damage) {
         if (target == null || target.level().isClientSide() || damage <= 0.0F) return;
         double px = target.getX();

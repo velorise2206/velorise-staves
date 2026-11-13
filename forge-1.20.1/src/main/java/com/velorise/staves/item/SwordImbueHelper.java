@@ -140,7 +140,7 @@ public final class SwordImbueHelper {
         boolean suppressed = isNonPyroImbued(stack) && hasFireAspect(stack);
         Component badge;
         if (OMNI_KEY.equals(key)) {
-            Component icon = Component.literal("\uE00A").withStyle(ChatFormatting.WHITE);
+            Component icon = Component.literal(Element.omniIconString()).withStyle(ChatFormatting.WHITE);
             Component elemName = Component.translatable("tooltip.velorise_staves.imbued.omni");
             var namePart = Component.translatable("tooltip.velorise_staves.imbued", elemName).withStyle(suppressed ? ChatFormatting.DARK_GRAY : ChatFormatting.GOLD);
             if (suppressed) namePart = namePart.withStyle(ChatFormatting.STRIKETHROUGH);

@@ -1125,7 +1125,11 @@ public final class ElementalGaugeManager {
         if (entity == null || !entity.isAlive()) return;
         Vec3 prevVel = entity.getDeltaMovement();
         float clamped = Math.max(0.5F, Math.min(entity.getMaxHealth(), newHealth));
+        if (!entity.level().isClientSide()) {
+            com.velorise.staves.network.ModNetwork.sendSilentHealthSync(entity, clamped);
+        }
         entity.setHealth(clamped);
+        entity.invulnerableTime = 0;
         entity.hurtTime = 0;
         entity.hurtDuration = 0;
         entity.hurtMarked = false;

@@ -67,6 +67,12 @@ public final class OmniWheelOverlay {
 
     private OmniWheelOverlay() {}
 
+    private static ResourceLocation getSlotTexture(int slot) {
+        int clamped = OmniOrbEntity.clampMode(slot);
+        if (clamped == 0) return ClientAuraRenderer.getOmniIconTexture();
+        return ClientAuraRenderer.getElementIconTexture(OmniOrbEntity.WHEEL_ELEMENTS[clamped]);
+    }
+
     @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class ModBusEvents {
         @SubscribeEvent
@@ -291,12 +297,12 @@ public final class OmniWheelOverlay {
             int iconSize = (s == hoveredSlot) ? 22 : 18;
             int ix = (int) Math.round(cx + Math.cos(midA) * iconDist - iconSize * 0.5D);
             int iy = (int) Math.round(cy + Math.sin(midA) * iconDist - iconSize * 0.5D);
-            guiGraphics.blit(SLOT_TEXTURES[s], ix, iy, 0.0F, 0.0F, iconSize, iconSize, iconSize, iconSize);
+            guiGraphics.blit(getSlotTexture(s), ix, iy, 0.0F, 0.0F, iconSize, iconSize, iconSize, iconSize);
         }
 
         // Center hub active icon
         int centerIconSize = 18;
-        guiGraphics.blit(SLOT_TEXTURES[previewSlot],
+        guiGraphics.blit(getSlotTexture(previewSlot),
                 (int) Math.round(cx - centerIconSize * 0.5D),
                 (int) Math.round(cy - centerIconSize * 0.5D),
                 0.0F, 0.0F, centerIconSize, centerIconSize, centerIconSize, centerIconSize);
@@ -349,7 +355,7 @@ public final class OmniWheelOverlay {
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
-        guiGraphics.blit(SLOT_TEXTURES[mode], badgeX + 3, badgeY + 2, 0.0F, 0.0F, 14, 14, 14, 14);
+        guiGraphics.blit(getSlotTexture(mode), badgeX + 3, badgeY + 2, 0.0F, 0.0F, 14, 14, 14, 14);
         guiGraphics.drawString(font, label, badgeX + 20, badgeY + 5, accent, true);
     }
 

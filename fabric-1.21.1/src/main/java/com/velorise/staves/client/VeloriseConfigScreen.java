@@ -32,8 +32,8 @@ public class VeloriseConfigScreen extends Screen {
         int colGap = 12;
         int leftColX = centerX - colWidth - (colGap / 2);
         int rightColX = centerX + (colGap / 2);
-        int startY = 44;
-        int rowHeight = 25;
+        int startY = 40;
+        int rowHeight = 23;
 
         // Row 1: Overhead Icons (Left) & Reaction Text (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get())
@@ -127,9 +127,19 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }));
 
+        // Row 6: Client Element Icon Resolution (16x16px Default vs 32x32px HD)
+        this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px" : "16x16px"))
+                .withValues(List.of(false, true))
+                .withInitialValue(StavesConfig.isUse32pxElementIcons())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.icon_32px.desc")))
+                .create(leftColX, startY + rowHeight * 5, colWidth * 2 + colGap, 20, Component.translatable("config.velorise_staves.icon_32px"), (btn, val) -> {
+                    StavesConfig.USE_32PX_ELEMENT_ICONS.set(val);
+                    this.saveLocalConfig();
+                }));
+
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
         int btnW = 98;
-        int bottomY = startY + rowHeight * 5 + 9;
+        int bottomY = startY + rowHeight * 6 + 6;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
             this.saveLocalConfig();
@@ -140,6 +150,7 @@ public class VeloriseConfigScreen extends Screen {
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.reset"), btn -> {
             StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.set(true);
+            StavesConfig.USE_32PX_ELEMENT_ICONS.set(false);
             StavesConfig.SHOW_REACTION_TEXT.set(true);
             StavesConfig.SHOW_DAMAGE_NUMBERS.set(true);
             StavesConfig.SHOW_ELEMENTAL_PARTICLES.set(true);
@@ -169,8 +180,8 @@ public class VeloriseConfigScreen extends Screen {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
-        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 16, 0xFFFFFF);
-        guiGraphics.drawCenteredString(this.font, Component.translatable("config.velorise_staves.subtitle"), this.width / 2, 28, 0x88CCFF);
+        guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 14, 0xFFFFFF);
+        guiGraphics.drawCenteredString(this.font, Component.translatable("config.velorise_staves.subtitle"), this.width / 2, 26, 0x88CCFF);
     }
 
     @Override

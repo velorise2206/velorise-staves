@@ -68,6 +68,7 @@ public final class StavesConfig {
     public static final DoubleValue COOP_SCAN_RADIUS = defineDouble("scaling", "coop_scan_radius", 40.0D, 8.0D, 128.0D);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
+    public static final BooleanValue USE_32PX_ELEMENT_ICONS = defineBool("elemental_gauge", "use_32px_element_icons", false);
     public static final BooleanValue SHOW_REACTION_TEXT = defineBool("elemental_gauge", "show_reaction_text", true);
     public static final BooleanValue SHOW_DAMAGE_NUMBERS = defineBool("elemental_gauge", "show_damage_numbers", true);
     public static final DoubleValue INNATE_MUTATION_CHANCE = defineDouble("elemental_gauge", "innate_mutation_chance", 0.07D, 0.0D, 1.0D);
@@ -248,6 +249,8 @@ public final class StavesConfig {
                 writer.write("show_elemental_particles = " + SHOW_ELEMENTAL_PARTICLES.get() + "\n");
                 writer.write("# Render Genshin-style overhead elemental aura icons above afflicted mobs\n");
                 writer.write("show_overhead_element_icons = " + SHOW_OVERHEAD_ELEMENT_ICONS.get() + "\n");
+                writer.write("# Client-side preference: use 32x32px textures for element icons instead of default 16x16px\n");
+                writer.write("use_32px_element_icons = " + USE_32PX_ELEMENT_ICONS.get() + "\n");
                 writer.write("# Render floating elemental reaction titles\n");
                 writer.write("show_reaction_text = " + SHOW_REACTION_TEXT.get() + "\n");
                 writer.write("# Render floating elemental damage numbers\n");
@@ -591,6 +594,10 @@ public final class StavesConfig {
 
     public static double getRangeMultiplier() {
         return 1.0;
+    }
+
+    public static boolean isUse32pxElementIcons() {
+        return USE_32PX_ELEMENT_ICONS.get();
     }
 
     public static boolean isElementalGaugeEnabled() {

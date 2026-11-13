@@ -49,7 +49,13 @@ import java.util.*;
 @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.GAME, value = Dist.CLIENT)
 public final class ClientAuraRenderer {
     private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final Map<Element, ResourceLocation> TEXTURES_32 = new EnumMap<>(Element.class);
     private static final ResourceLocation OMNI_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni.png");
+    private static final ResourceLocation OMNI_TEXTURE_32 = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni_32.png");
+    private static final ResourceLocation RESONANCE_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/resonance.png");
+    private static final ResourceLocation RESONANCE_TEXTURE_32 = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/resonance_32.png");
+    private static final ResourceLocation MOONSIGN_TEXTURE = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/moonsign.png");
+    private static final ResourceLocation MOONSIGN_TEXTURE_32 = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/moonsign_32.png");
     private static final Map<Element, ResourceLocation> HUD_TEXTURES = new EnumMap<>(Element.class);
     private static final Map<Element, ResourceLocation> SHIELD_TEXTURES = new EnumMap<>(Element.class);
     private static final ResourceLocation EFFECT_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/effect_background");
@@ -89,7 +95,9 @@ public final class ClientAuraRenderer {
         for (Element e : Element.values()) {
             String lower = e.name().toLowerCase(Locale.ROOT);
             ResourceLocation res = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + lower + ".png");
+            ResourceLocation res32 = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + lower + "_32.png");
             TEXTURES.put(e, res);
+            TEXTURES_32.put(e, res32);
             HUD_TEXTURES.put(e, res);
             if (e == Element.PYRO || e == Element.HYDRO || e == Element.ELECTRO || e == Element.CRYO || e == Element.GEO) {
                 SHIELD_TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/mob_effect/" + lower + "_shield.png"));
@@ -101,6 +109,23 @@ public final class ClientAuraRenderer {
     private static List<net.minecraft.network.chat.Component> pendingInventoryTooltip = null;
 
     private ClientAuraRenderer() {}
+
+    public static ResourceLocation getElementIconTexture(Element e) {
+        if (e == null) return getOmniIconTexture();
+        return StavesConfig.isUse32pxElementIcons() ? TEXTURES_32.get(e) : TEXTURES.get(e);
+    }
+
+    public static ResourceLocation getOmniIconTexture() {
+        return StavesConfig.isUse32pxElementIcons() ? OMNI_TEXTURE_32 : OMNI_TEXTURE;
+    }
+
+    public static ResourceLocation getResonanceIconTexture() {
+        return StavesConfig.isUse32pxElementIcons() ? RESONANCE_TEXTURE_32 : RESONANCE_TEXTURE;
+    }
+
+    public static ResourceLocation getMoonsignIconTexture() {
+        return StavesConfig.isUse32pxElementIcons() ? MOONSIGN_TEXTURE_32 : MOONSIGN_TEXTURE;
+    }
 
     private static boolean isLocalOverloadedForHud() {
         Minecraft mc = Minecraft.getInstance();
@@ -127,13 +152,13 @@ public final class ClientAuraRenderer {
         if (stack == null || stack.isEmpty()) return;
         ResourceLocation tex = null;
         if (com.velorise.staves.item.SwordImbueHelper.isOmniImbued(stack)) {
-            tex = OMNI_TEXTURE;
+            tex = getOmniIconTexture();
         } else {
             Element imbued = com.velorise.staves.item.SwordImbueHelper.getImbuedElement(stack);
             if (imbued != null) {
-                tex = TEXTURES.get(imbued);
+                tex = getElementIconTexture(imbued);
             } else if (stack.is(net.minecraft.world.item.Items.TRIDENT)) {
-                tex = TEXTURES.get(Element.HYDRO);
+                tex = getElementIconTexture(Element.HYDRO);
             }
         }
         if (tex == null) return;
@@ -218,6 +243,11 @@ public final class ClientAuraRenderer {
 
     private static void syncAndLockFrozenPlayer(boolean captureMouseDelta) {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && System.currentTimeMillis() < ClientAuraTracker.silentDrainUntil) {
+            mc.player.invulnerableTime = 0;
+            mc.player.hurtTime = 0;
+            mc.player.hurtDuration = 0;
+        }
         if (mc.player == null || !ClientAuraTracker.isFrozen(mc.player.getId())) {
             if (mc.player != null) {
                 FROZEN_RENDER_STATES.remove(mc.player.getId());
@@ -744,7 +774,7 @@ public final class ClientAuraRenderer {
         if (omniInnate) {
             drawOmniIcon(poseStack, buffer, entity, -iconSize / 2.0F, -iconSize, iconSize, iconSize, 255);
             if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                bs.endBatch(RenderType.text(OMNI_TEXTURE));
+                bs.endBatch(RenderType.text(getOmniIconTexture()));
             }
         } else {
             int count = display.size();
@@ -769,7 +799,7 @@ public final class ClientAuraRenderer {
             // Flush icon render types BEFORE popping icon PoseStack
             if (buffer instanceof MultiBufferSource.BufferSource bs) {
                 for (Element e : display) {
-                    ResourceLocation tex = TEXTURES.get(e);
+                    ResourceLocation tex = getElementIconTexture(e);
                     if (tex != null) {
                         bs.endBatch(RenderType.text(tex));
                     }
@@ -786,12 +816,12 @@ public final class ClientAuraRenderer {
         int r = Math.min(255, 165 + (((rgb >> 16) & 0xFF) * 90) / 255);
         int g = Math.min(255, 165 + (((rgb >> 8) & 0xFF) * 90) / 255);
         int b = Math.min(255, 165 + ((rgb & 0xFF) * 90) / 255);
-        VertexConsumer main = buffer.getBuffer(RenderType.text(OMNI_TEXTURE));
+        VertexConsumer main = buffer.getBuffer(RenderType.text(getOmniIconTexture()));
         drawDoubleSidedQuad(main, matrix, x, y, width, height, r, g, b, alpha);
     }
 
     private static void drawIcon(PoseStack poseStack, MultiBufferSource buffer, Element element, float x, float y, float width, float height, int alpha) {
-        ResourceLocation texture = TEXTURES.get(element);
+        ResourceLocation texture = getElementIconTexture(element);
         if (texture == null) return;
 
         Matrix4f matrix = poseStack.last().pose();
@@ -954,7 +984,7 @@ public final class ClientAuraRenderer {
             guiGraphics.blitSprite(EFFECT_BACKGROUND_SPRITE, x, y, 24, 24);
 
             // 16x16 Element icon centered inside the 24x24 box (blinks during last 3 seconds)
-            ResourceLocation tex = HUD_TEXTURES.get(elem);
+            ResourceLocation tex = getElementIconTexture(elem);
             if (tex != null) {
                 if (alpha < 1.0F) {
                     guiGraphics.setColor(1.0F, 1.0F, 1.0F, alpha);
@@ -1067,7 +1097,7 @@ public final class ClientAuraRenderer {
                 durationStr = "";
             }
 
-            ResourceLocation tex = HUD_TEXTURES.get(elem);
+            ResourceLocation tex = getElementIconTexture(elem);
 
             // Compact Mode (32x32 square) to avoid overlapping with JEI
             guiGraphics.blitSprite(EFFECT_BACKGROUND_SMALL_SPRITE, startX, y, 32, 32);
@@ -1507,7 +1537,7 @@ public final class ClientAuraRenderer {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
-            guiGraphics.blit(OMNI_TEXTURE, x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
+            guiGraphics.blit(getOmniIconTexture(), x + 4, y + 4, 0.0F, 0.0F, 16, 16, 16, 16);
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             guiGraphics.drawString(mc.font, "!", x + 17, y + 14, 0xFFFF4444, true);
@@ -1521,7 +1551,7 @@ public final class ClientAuraRenderer {
                 int y = top + 26 * row;
                 drawHudEffectBox(guiGraphics, x, y);
                 renderCrystallizeShieldHudFrame(guiGraphics, x, y, getResonanceBorderColor(type));
-                ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
+                ResourceLocation tex = type.element() != null ? getElementIconTexture(type.element()) : getOmniIconTexture();
                 if (tex != null) {
                     RenderSystem.enableBlend();
                     RenderSystem.defaultBlendFunc();
@@ -1596,7 +1626,7 @@ public final class ClientAuraRenderer {
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             guiGraphics.setColor(1.0F, 0.45F, 0.45F, 1.0F);
-            guiGraphics.blit(OMNI_TEXTURE, startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
+            guiGraphics.blit(getOmniIconTexture(), startX + 8, y + 8, 0.0F, 0.0F, 16, 16, 16, 16);
             guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
             RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
             guiGraphics.drawString(mc.font, "!", startX + 24, y + 20, 0xFFFF4444, true);
@@ -1622,7 +1652,7 @@ public final class ClientAuraRenderer {
                 drawInventoryEffectBox(guiGraphics, startX, y);
                 renderCrystallizeShieldInventoryFrame(guiGraphics, startX, y, getResonanceBorderColor(type));
                 guiGraphics.flush();
-                ResourceLocation tex = type.element() != null ? HUD_TEXTURES.get(type.element()) : OMNI_TEXTURE;
+                ResourceLocation tex = type.element() != null ? getElementIconTexture(type.element()) : getOmniIconTexture();
                 if (tex != null) {
                     RenderSystem.enableBlend();
                     RenderSystem.defaultBlendFunc();

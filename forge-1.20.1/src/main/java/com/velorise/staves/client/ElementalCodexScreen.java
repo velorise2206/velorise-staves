@@ -687,8 +687,8 @@ public class ElementalCodexScreen extends Screen {
                         {"ghastfire_staff", ArcaneStaffItem.Kind.GHASTFIRE, Element.PYRO,
                                 fmtHearts(6.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(9.0 * dmgMult) + "§f\uE008§6", "36m (AoE)", "codex.velorise_staves.staff.ghastfire"},
                         {"guardian_lens", ArcaneStaffItem.Kind.GUARDIAN, Element.HYDRO,
-                                fmtHearts(gBasic * dmgMult) + "–" + fmtHearts(gBasic * 2.0F * dmgMult) + "§f\uE008§rx10",
-                                "§6" + fmtHearts(gNeth * dmgMult) + "–" + fmtHearts(gNeth * 2.0F * dmgMult) + "§f\uE008§6x10", "24m➔28m", "codex.velorise_staves.staff.guardian"},
+                                fmtHearts(gBasic * dmgMult) + "–" + fmtHearts(gBasic * 2.0F * dmgMult) + "§f\uE008§rx8 (3s)",
+                                "§6" + fmtHearts(gNeth * dmgMult) + "–" + fmtHearts(gNeth * 2.0F * dmgMult) + "§f\uE008§6x8 (3s)", "24m➔28m", "codex.velorise_staves.staff.guardian"},
                         {"splendor_of_tranquil_waters", ArcaneStaffItem.Kind.SPLENDOR, Element.HYDRO,
                                 fmtHearts(maxHp * 0.05F * dmgMult) + "–" + fmtHearts(maxHp * 0.14F * 1.4F * dmgMult) + "§f\uE008§r",
                                 "§6" + fmtHearts(maxHp * 0.075F * dmgMult) + "–" + fmtHearts(maxHp * 0.19F * 1.4F * dmgMult) + "§f\uE008§6", "16m / 30s", "codex.velorise_staves.staff.splendor"},
@@ -732,7 +732,7 @@ public class ElementalCodexScreen extends Screen {
                     ItemStack basicStack = getModItemStack(baseId);
                     String name = tr("item.velorise_staves." + baseId);
                     int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
-                    String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f\uE00A§6 " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
+                    String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f" + Element.omniIconString() + "§r " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
                     String statsCombat = tr("codex.velorise_staves.staff.stats_combat",
                             bDmg, nDmg, String.format(Locale.ROOT, "%.1f", cdSec), rngStr);
                     String statsDur = tr("codex.velorise_staves.staff.stats_durability",
@@ -946,7 +946,7 @@ public class ElementalCodexScreen extends Screen {
             } else if (tab == Tab.INNATE) {
                 renderGuiMob(guiGraphics, EntityType.BLAZE, tx + 5, iconOffsetY, 12.5F);
             } else if (tab == Tab.RESONANCE) {
-                drawGuiTextureIcon(guiGraphics, RESONANCE_ICON, tx + 5, iconOffsetY);
+                drawGuiTextureIcon(guiGraphics, ClientAuraRenderer.getResonanceIconTexture(), tx + 5, iconOffsetY);
             } else {
                 ItemStack iconStack = getTabIconStack(tab);
                 if (!iconStack.isEmpty()) {
@@ -1421,9 +1421,14 @@ public class ElementalCodexScreen extends Screen {
         int headerH = pCard.headerH();
         int cardH = pCard.cardH();
 
+        int effectiveBorderColor = card.omniElem1
+                ? (0xFF000000 | com.velorise.staves.entity.OmniOrbEntity.getIridescentRgb((System.currentTimeMillis() % 100000L) / 55.0F))
+                : card.borderColor;
+        int effectiveBadgeColor = card.omniElem1 ? effectiveBorderColor : card.badgeColor;
+
         // Card Background & Uniform 1px Border
         guiGraphics.fill(x, y, x + w, y + cardH, 0xE6141B2D);
-        ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, cardH, card.borderColor);
+        ClientAuraRenderer.renderColoredBorder(guiGraphics, x, y, w, cardH, effectiveBorderColor);
         // Header divider
         guiGraphics.fill(x + 1, y + headerH, x + w - 1, y + headerH + 1, 0x44FFFFFF);
 
@@ -1435,7 +1440,7 @@ public class ElementalCodexScreen extends Screen {
                 renderHoveredResonanceIcon(guiGraphics, iconX, iconY, mouseX, mouseY);
             } else {
                 String titleKey = card.customIconTitleKey != null ? card.customIconTitleKey : "config.velorise_staves.resonance";
-                renderHoveredTextureBadge(guiGraphics, card.customIcon, "\uE00C", titleKey, ChatFormatting.AQUA, iconX, iconY, mouseX, mouseY);
+                renderHoveredTextureBadge(guiGraphics, MOONSIGN_ICON.equals(card.customIcon) ? ClientAuraRenderer.getMoonsignIconTexture() : card.customIcon, Element.moonsignIconString(), titleKey, ChatFormatting.AQUA, iconX, iconY, mouseX, mouseY);
             }
             iconX += 17;
         }
@@ -1511,8 +1516,8 @@ public class ElementalCodexScreen extends Screen {
             int bx = x + w - badgeW - 5;
             int by = badgeBelowTitle ? (titleY + 1) : (y + 4);
             guiGraphics.fill(bx, by, bx + badgeW, by + 14, 0xAA080B12);
-            ClientAuraRenderer.renderColoredBorder(guiGraphics, bx, by, badgeW, 14, card.badgeColor);
-            drawLeftFitString(guiGraphics, card.badgeText, bx + 4, by + 3, Math.max(8, badgeW - 8), card.badgeColor, true);
+            ClientAuraRenderer.renderColoredBorder(guiGraphics, bx, by, badgeW, 14, effectiveBadgeColor);
+            drawLeftFitString(guiGraphics, card.badgeText, bx + 4, by + 3, Math.max(8, badgeW - 8), effectiveBadgeColor, true);
         }
 
         // Wrapped Paragraphs (pre-cached hoverable reaction links, underlines even across line wraps)
@@ -1801,15 +1806,15 @@ public class ElementalCodexScreen extends Screen {
                 .append(Component.literal(element.iconString()).withStyle(ChatFormatting.WHITE))
                 .append(Component.literal(" "))
                 .append(Component.translatable(element.translationKey()).withStyle(element.color()));
-        renderHoveredIconTexture(guiGraphics, ELEMENT_ICONS.get(element), tooltip, x, y, mouseX, mouseY);
+        renderHoveredIconTexture(guiGraphics, ClientAuraRenderer.getElementIconTexture(element), tooltip, x, y, mouseX, mouseY);
     }
 
     private void renderHoveredOmniElement(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
-        renderHoveredTextureBadge(guiGraphics, OMNI_ICON, "\uE00A", "element.velorise_staves.omni", ChatFormatting.GOLD, x, y, mouseX, mouseY);
+        renderHoveredTextureBadge(guiGraphics, ClientAuraRenderer.getOmniIconTexture(), Element.omniIconString(), "element.velorise_staves.omni", ChatFormatting.GOLD, x, y, mouseX, mouseY);
     }
 
     private void renderHoveredResonanceIcon(GuiGraphics guiGraphics, int x, int y, int mouseX, int mouseY) {
-        renderHoveredTextureBadge(guiGraphics, RESONANCE_ICON, "\uE00B", "config.velorise_staves.resonance", ChatFormatting.AQUA, x, y, mouseX, mouseY);
+        renderHoveredTextureBadge(guiGraphics, ClientAuraRenderer.getResonanceIconTexture(), Element.resonanceIconString(), "config.velorise_staves.resonance", ChatFormatting.AQUA, x, y, mouseX, mouseY);
     }
 
     private void renderHoveredTextureBadge(
@@ -1861,7 +1866,7 @@ public class ElementalCodexScreen extends Screen {
     }
 
     private void drawElementIcon(GuiGraphics guiGraphics, Element element, int x, int y) {
-        drawGuiTextureIcon(guiGraphics, ELEMENT_ICONS.get(element), x, y);
+        drawGuiTextureIcon(guiGraphics, ClientAuraRenderer.getElementIconTexture(element), x, y);
     }
 
     private void drawGuiTextureIcon(GuiGraphics guiGraphics, ResourceLocation tex, int x, int y) {

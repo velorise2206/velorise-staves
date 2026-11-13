@@ -51,6 +51,7 @@ public final class ClientAuraTracker {
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
     public static @Nullable Element activeCrystallizeShield = null;
     public static long crystallizeShieldUntil = 0L;
+    public static volatile long silentDrainUntil = 0L;
     public static int localResonanceMask = 0;
     public static boolean localOverloaded = false;
     public static int localStaffCount = 0;
@@ -342,6 +343,25 @@ public final class ClientAuraTracker {
                     activeCrystallizeShield = null;
                     crystallizeShieldUntil = 0L;
                     ModMobEffects.removeAllShields(mc.player);
+                }
+            }
+            return;
+        }
+        if (durationTicks == -4) {
+            silentDrainUntil = now + 400L;
+            if (mc.player != null && mc.player.getId() == entityId) {
+                mc.player.setHealth(damage);
+                mc.player.invulnerableTime = 0;
+                mc.player.hurtTime = 0;
+                mc.player.hurtDuration = 0;
+            }
+            if (mc.level != null) {
+                net.minecraft.world.entity.Entity ent = mc.level.getEntity(entityId);
+                if (ent instanceof net.minecraft.world.entity.LivingEntity le) {
+                    le.setHealth(damage);
+                    le.invulnerableTime = 0;
+                    le.hurtTime = 0;
+                    le.hurtDuration = 0;
                 }
             }
             return;

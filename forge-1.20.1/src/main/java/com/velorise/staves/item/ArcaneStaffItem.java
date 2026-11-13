@@ -420,7 +420,7 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public int getUseDuration(ItemStack stack) {
         if (kind == Kind.LIGHTNING) return 60;
-        if (kind == Kind.GUARDIAN) return 50;
+        if (kind == Kind.GUARDIAN) return 70;
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
         if (kind == Kind.VORTEX) return 10; // 0.5s hold to form Jade Shield; release earlier to tap-place Stone Stele
         return isCharged() ? 30 : 0;
@@ -449,7 +449,7 @@ public final class ArcaneStaffItem extends Item {
             return;
         }
         if (kind == Kind.GUARDIAN) {
-            int elapsed = 50 - count;
+            int elapsed = 70 - count;
             if (elapsed < 0) return;
             boolean instant = player.getPersistentData().getBoolean("VeloriseGuardianInstant");
             if (!instant && elapsed < 10) {
@@ -460,10 +460,15 @@ public final class ArcaneStaffItem extends Item {
                 }
                 return;
             }
-            if (elapsed % 5 != 0) return;
+            int beamElapsed = instant ? elapsed : (elapsed - 10);
+            if (beamElapsed >= 60) {
+                player.stopUsingItem();
+                return;
+            }
+            if (beamElapsed % 8 != 0) return; // 8 hits over 3.0s (60 ticks): every 8 ticks (0.4s)
             LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
             fireGuardian(player, target);
-            if (elapsed % 20 == 0) {
+            if (beamElapsed == 0 || beamElapsed == 24 || beamElapsed == 48) {
                 InteractionHand usedHand = player.getUsedItemHand();
                 stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
             }
@@ -960,6 +965,7 @@ public final class ArcaneStaffItem extends Item {
             float totalMult = Math.max(draconicMult, hpBuff ? 1.25F : 1.0F);
             float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * totalMult;
             float attackU = isNetherite ? 1.5F : 1.0F;
+            target.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
             if (totalMult > 1.05F) {
                 level.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.05D);
@@ -1141,7 +1147,7 @@ public final class ArcaneStaffItem extends Item {
         Element e = overrideElement;
         String icon = e != null
                 ? ChatFormatting.WHITE.toString() + e.iconChar() + ChatFormatting.BLUE + " "
-                : (kind == Kind.OMNI ? ChatFormatting.WHITE + "\uE00A" + ChatFormatting.BLUE + " " : "");
+                : (kind == Kind.OMNI ? ChatFormatting.WHITE + Element.omniIconString() + ChatFormatting.BLUE + " " : "");
         String heart = ChatFormatting.WHITE.toString() + "\uE008" + ChatFormatting.BLUE;
         String cloudSuffix = Component.translatable("tooltip.velorise_staves.dmg_cloud").getString();
         String swirlTag = " (" + Component.translatable("reaction.velorise_staves.swirl").getString() + ")";
@@ -1158,7 +1164,7 @@ public final class ArcaneStaffItem extends Item {
             case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> {
                 float basicDmg = computeGuardianBaseDamage(getDisplayMaxHp(), isNetherite);
-                yield (fmtHearts(basicDmg) + "-" + fmtHearts(basicDmg * 2.0F)) + heart + " x 10 " + icon + (isNetherite ? "1.5U" : "1U");
+                yield (fmtHearts(basicDmg) + "-" + fmtHearts(basicDmg * 2.0F)) + heart + " x 8 (3s) " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case SPLENDOR -> {
                 float maxHp = getDisplayMaxHp();
@@ -1211,7 +1217,7 @@ public final class ArcaneStaffItem extends Item {
                 Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey, Component.translatable(active.translationKey()))).withStyle(active.color());
                 tooltip.add(Component.empty().append(iconComp).append(textComp));
             } else {
-                Component iconComp = Component.literal("\uE00A").withStyle(ChatFormatting.WHITE);
+                Component iconComp = Component.literal(Element.omniIconString()).withStyle(ChatFormatting.WHITE);
                 String subtitleKey = isNetherite ? "tooltip.velorise_staves.staff_omni.netherite" : "tooltip.velorise_staves.staff_omni";
                 Component textComp = Component.literal(" ").append(Component.translatable(subtitleKey)).withStyle(ChatFormatting.GOLD);
                 tooltip.add(Component.empty().append(iconComp).append(textComp));

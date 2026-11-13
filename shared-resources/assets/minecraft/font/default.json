@@ -5,108 +5,154 @@
       "file": "velorise_staves:element/pyro.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE001"
-      ]
+      "chars": ["\uE001"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/hydro.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE002"
-      ]
+      "chars": ["\uE002"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/cryo.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE003"
-      ]
+      "chars": ["\uE003"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/electro.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE004"
-      ]
+      "chars": ["\uE004"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/anemo.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE005"
-      ]
+      "chars": ["\uE005"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/geo.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE006"
-      ]
+      "chars": ["\uE006"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/dendro.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE007"
-      ]
+      "chars": ["\uE007"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:font/heart.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE008"
-      ]
+      "chars": ["\uE008"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:font/shield.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE009"
-      ]
+      "chars": ["\uE009"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:element/omni.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE00A"
-      ]
+      "chars": ["\uE00A"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:gui/resonance.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE00B"
-      ]
+      "chars": ["\uE00B"]
     },
     {
       "type": "bitmap",
       "file": "velorise_staves:gui/moonsign.png",
       "ascent": 7,
       "height": 8,
-      "chars": [
-        "\uE00C"
-      ]
+      "chars": ["\uE00C"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/pyro_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE011"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/hydro_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE012"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/cryo_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE013"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/electro_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE014"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/anemo_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE015"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/geo_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE016"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/dendro_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE017"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:element/omni_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE01A"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:gui/resonance_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE01B"]
+    },
+    {
+      "type": "bitmap",
+      "file": "velorise_staves:gui/moonsign_32.png",
+      "ascent": 7,
+      "height": 8,
+      "chars": ["\uE01C"]
     }
   ]
 }
