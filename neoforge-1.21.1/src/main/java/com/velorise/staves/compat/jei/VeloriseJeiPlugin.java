@@ -57,18 +57,28 @@ public final class VeloriseJeiPlugin implements IModPlugin {
         );
         List<String> keys = List.of("PYRO", "HYDRO", "ANEMO", "ELECTRO", "DENDRO", "CRYO", "GEO", SwordImbueHelper.OMNI_KEY);
 
-        // 1. Anvil Sword Imbue previews
+        // 1. Anvil Sword Imbue previews (all Vanilla & Modded SwordItems)
         List<IJeiAnvilRecipe> anvilRecipes = new ArrayList<>();
-        Item[] sampleSwords = { Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD };
-        for (Item sword : sampleSwords) {
+        List<Item> allSwords = new ArrayList<>(List.of(
+                Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD,
+                Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD
+        ));
+        for (Item item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+            if (item instanceof net.minecraft.world.item.SwordItem && !allSwords.contains(item)) {
+                allSwords.add(item);
+            }
+        }
+        for (Item sword : allSwords) {
             ItemStack left = new ItemStack(sword);
             List<ItemStack> outputs = new ArrayList<>(keys.size());
             for (String key : keys) {
                 outputs.add(SwordImbueHelper.createImbuedCopy(left, key));
             }
+            ResourceLocation itemKey = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(sword);
+            String safeId = itemKey.getNamespace() + "_" + itemKey.getPath();
             anvilRecipes.add(factory.createAnvilRecipe(
                     left, allElements, outputs,
-                    ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "jei_imbue_" + sword.builtInRegistryHolder().key().location().getPath())
+                    ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "jei_imbue_" + safeId)
             ));
         }
 

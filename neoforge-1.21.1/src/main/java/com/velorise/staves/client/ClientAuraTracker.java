@@ -51,6 +51,8 @@ public final class ClientAuraTracker {
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
     public static @Nullable Element activeCrystallizeShield = null;
     public static long crystallizeShieldUntil = 0L;
+    public static long crystallizeShieldAppliedTime = 0L;
+    public static long jadeShieldAppliedTime = 0L;
     public static volatile long silentDrainUntil = 0L;
     public static int localResonanceMask = 0;
     public static boolean localOverloaded = false;
@@ -329,12 +331,14 @@ public final class ClientAuraTracker {
             AuraDisplayData shieldEntry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             if (reactedAura == Element.GEO && durationTicks > 0) {
                 shieldEntry.jadeShieldUntil = now + (long) durationTicks * 50L;
+                jadeShieldAppliedTime = now;
             } else {
                 shieldEntry.jadeShieldUntil = 0L;
             }
             if (mc.player != null && mc.player.getId() == entityId) {
                 if (reactedAura != null) {
                     activeCrystallizeShield = reactedAura;
+                    crystallizeShieldAppliedTime = now;
                     crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
                     if (reactedAura != Element.GEO) {
                         ModMobEffects.removeAllShieldsExcept(mc.player, reactedAura);
@@ -480,7 +484,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -497,10 +501,11 @@ public final class ClientAuraTracker {
 
     public static boolean hasJadeShield(net.minecraft.world.entity.LivingEntity entity) {
         if (entity == null || !entity.isAlive()) return false;
-        if (!entity.isSpectator() && !(entity instanceof net.minecraft.world.entity.player.Player p && p.isCreative()) && entity.getAbsorptionAmount() <= 0.01F) {
+        long now = System.currentTimeMillis();
+        boolean graceActive = (now - jadeShieldAppliedTime) < 1500L || (now - crystallizeShieldAppliedTime) < 1500L;
+        if (!graceActive && !entity.isSpectator() && !(entity instanceof net.minecraft.world.entity.player.Player p && p.isCreative()) && entity.getAbsorptionAmount() <= 0.01F) {
             return false;
         }
-        long now = System.currentTimeMillis();
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (mc.player != null && entity.getId() == mc.player.getId() && activeCrystallizeShield == Element.GEO && now < crystallizeShieldUntil) {
             return true;
@@ -544,7 +549,8 @@ public final class ClientAuraTracker {
         if (mc.player == null) return null;
         if (activeCrystallizeShield != null) {
             long now = System.currentTimeMillis();
-            boolean depleted = !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
+            boolean graceActive = (now - crystallizeShieldAppliedTime) < 1500L;
+            boolean depleted = !graceActive && !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
             if (now >= crystallizeShieldUntil || depleted) {
                 activeCrystallizeShield = null;
                 return null;

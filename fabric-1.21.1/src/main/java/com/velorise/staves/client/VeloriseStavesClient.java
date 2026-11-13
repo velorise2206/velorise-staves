@@ -17,7 +17,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ClientPlayNetworking.registerGlobalReceiver(AuraSyncPayload.TYPE, (payload, context) -> {
-            context.client().execute(() -> {
+            if (payload.durationTicks() == -4) {
+                ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
+            }
+            Runnable task = () -> {
                 List<Element> elements = new ArrayList<>();
                 for (Element e : Element.values()) {
                     if ((payload.activeMask() & (1 << e.ordinal())) != 0) {
@@ -36,7 +39,12 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         payload.entityId(), elements, reactedAura, trigger, reaction, payload.damage(), payload.durationTicks(), isFrozen,
                         payload.hasPos(), payload.posX(), payload.posY(), payload.posZ()
                 );
-            });
+            };
+            if (context.client().isSameThread()) {
+                task.run();
+            } else {
+                context.client().execute(task);
+            }
         });
 
         ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ElectricArcPayload.TYPE, (payload, context) -> {

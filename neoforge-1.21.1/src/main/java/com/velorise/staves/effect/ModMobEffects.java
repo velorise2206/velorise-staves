@@ -25,6 +25,8 @@ public final class ModMobEffects {
             () -> new CrystallizeShieldEffect(Element.ELECTRO, 0xBF40FF));
     public static final DeferredHolder<MobEffect, MobEffect> CRYO_SHIELD = MOB_EFFECTS.register("cryo_shield",
             () -> new CrystallizeShieldEffect(Element.CRYO, 0x4DF0FF));
+    public static final DeferredHolder<MobEffect, MobEffect> GEO_SHIELD = MOB_EFFECTS.register("geo_shield",
+            () -> new CrystallizeShieldEffect(Element.GEO, 0xFFD700));
 
     private ModMobEffects() {}
 
@@ -34,6 +36,7 @@ public final class ModMobEffects {
             case HYDRO -> HYDRO_SHIELD;
             case ELECTRO -> ELECTRO_SHIELD;
             case CRYO -> CRYO_SHIELD;
+            case GEO -> GEO_SHIELD;
             default -> null;
         };
     }

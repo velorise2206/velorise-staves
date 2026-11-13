@@ -18,6 +18,7 @@ public final class ModMobEffects {
     public static final Holder<MobEffect> HYDRO_SHIELD = register("hydro_shield", new CrystallizeShieldEffect(Element.HYDRO, 0x00C8FF));
     public static final Holder<MobEffect> ELECTRO_SHIELD = register("electro_shield", new CrystallizeShieldEffect(Element.ELECTRO, 0xBF40FF));
     public static final Holder<MobEffect> CRYO_SHIELD = register("cryo_shield", new CrystallizeShieldEffect(Element.CRYO, 0x4DF0FF));
+    public static final Holder<MobEffect> GEO_SHIELD = register("geo_shield", new CrystallizeShieldEffect(Element.GEO, 0xFFD700));
 
     private static Holder<MobEffect> register(String name, MobEffect effect) {
         return Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, name), effect);
@@ -33,6 +34,7 @@ public final class ModMobEffects {
             case HYDRO -> HYDRO_SHIELD;
             case ELECTRO -> ELECTRO_SHIELD;
             case CRYO -> CRYO_SHIELD;
+            case GEO -> GEO_SHIELD;
             default -> null;
         };
     }

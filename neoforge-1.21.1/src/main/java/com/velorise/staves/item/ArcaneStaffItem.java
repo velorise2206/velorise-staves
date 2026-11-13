@@ -185,24 +185,12 @@ public final class ArcaneStaffItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
         if (kind == Kind.SPLENDOR && player.isShiftKeyDown()) {
-            if (!level.isClientSide() && player instanceof ServerPlayer sp && level instanceof ServerLevel sl) {
-                boolean nextPneuma = !isSplendorPneuma(stack);
-                setSplendorPneuma(stack, nextPneuma);
-                String modeKey = nextPneuma
-                        ? "tooltip.velorise_staves.splendor.mode_pneuma"
-                        : "tooltip.velorise_staves.splendor.mode_ousia";
-                sp.displayClientMessage(
-                        Component.translatable("message.velorise_staves.splendor_arkhe_switched",
-                                Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA),
-                        true);
-                level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, nextPneuma ? 1.35F : 0.95F);
-                if (com.velorise.staves.entity.HydroSalonSummonEntity.hasAnySummonForOwner(sl, sp.getUUID())) {
-                    com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(sl, sp, isNetherite, nextPneuma);
-                }
+            if (!level.isClientSide() && player instanceof ServerPlayer sp) {
+                switchSplendorArkhe(sp, stack);
             }
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         }
-        if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+        if (kind != Kind.SPLENDOR && player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (isCharged()) {
             player.startUsingItem(hand);
@@ -219,6 +207,7 @@ public final class ArcaneStaffItem extends Item {
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
                     case GHASTFIRE -> SoundEvents.GHAST_WARN;
                     case VORTEX -> SoundEvents.DEEPSLATE_STEP;
+                    case SPLENDOR -> SoundEvents.AMETHYST_BLOCK_RESONATE;
                     default -> SoundEvents.GUARDIAN_AMBIENT;
                 };
                 float cuePitch = switch (kind) {
@@ -226,6 +215,7 @@ public final class ArcaneStaffItem extends Item {
                     case LIGHTNING -> 1.5F;
                     case GHASTFIRE -> 0.9F;
                     case VORTEX -> 0.75F;
+                    case SPLENDOR -> 1.15F;
                     default -> 1.25F;
                 };
                 level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, cuePitch);
@@ -371,7 +361,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX;
+        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR;
     }
 
     private boolean isChannelingKind() {
@@ -380,6 +370,13 @@ public final class ArcaneStaffItem extends Item {
 
     public int getCooldownTicks() {
         double seconds = StavesConfig.getStaffCooldownSeconds(kind);
+        double mult = StavesConfig.getCooldownMultiplier();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
+    public int getVortexCooldownTicks(boolean holdJadeShield) {
+        double tapSeconds = StavesConfig.getStaffCooldownSeconds(Kind.VORTEX); // 4.0s default
+        double seconds = holdJadeShield ? (tapSeconds * 3.0D) : tapSeconds; // Tap = 4.0s, Hold = 12.0s
         double mult = StavesConfig.getCooldownMultiplier();
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
@@ -428,7 +425,7 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 70;
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
-        if (kind == Kind.VORTEX) return 10; // 0.5s hold to form Jade Shield; release earlier to tap-place Stone Stele
+        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR) return 10; // 0.5s hold (Jade Shield / Furina Charged Attack Arkhe Switch)
         return isCharged() ? 30 : 0;
     }
 
@@ -486,6 +483,14 @@ public final class ArcaneStaffItem extends Item {
             }
             return;
         }
+        if (kind == Kind.SPLENDOR) {
+            if (count % 2 == 0) {
+                serverLevel.sendParticles(ParticleTypes.SPLASH,
+                        player.getX(), player.getY() + 1.0D, player.getZ(),
+                        5, 0.45D, 0.45D, 0.45D, 0.03D);
+            }
+            return;
+        }
         if (kind == Kind.GHASTFIRE) {
             if (count % 3 == 0) {
                 Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.8D));
@@ -511,10 +516,15 @@ public final class ArcaneStaffItem extends Item {
             return stack;
         }
         if (ElementalResonanceManager.isOverloaded(player)) return stack;
+        if (kind == Kind.SPLENDOR) {
+            switchSplendorArkhe(player, stack);
+            player.swing(player.getUsedItemHand(), true);
+            return stack;
+        }
         if (kind == Kind.VORTEX) {
-            if (castVortexVanquisher(player, true)) {
+            if (!player.getCooldowns().isOnCooldown(this) && castVortexVanquisher(player, true)) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-                ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(true));
                 player.awardStat(Stats.ITEM_USED.get(this));
                 player.swing(player.getUsedItemHand(), true);
             }
@@ -541,13 +551,26 @@ public final class ArcaneStaffItem extends Item {
                 finishLightningStorm(player);
             } else if (kind == Kind.GUARDIAN) {
                 finishGuardianBeam(player);
+            } else if (kind == Kind.SPLENDOR) {
+                int elapsed = this.getUseDuration(stack, entity) - timeLeft;
+                if (elapsed >= 8 || player.isShiftKeyDown()) {
+                    switchSplendorArkhe(player, stack);
+                    player.swing(player.getUsedItemHand(), true);
+                } else if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
+                    if (castSplendorSummon(player, stack)) {
+                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                        player.awardStat(Stats.ITEM_USED.get(this));
+                        player.swing(player.getUsedItemHand(), true);
+                    }
+                }
             } else if (kind == Kind.VORTEX) {
                 if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     int elapsed = this.getUseDuration(stack, entity) - timeLeft;
                     boolean holdShield = elapsed >= 8 || player.isShiftKeyDown();
                     if (castVortexVanquisher(player, holdShield)) {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
-                        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                        ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(holdShield));
                         player.awardStat(Stats.ITEM_USED.get(this));
                         player.swing(player.getUsedItemHand(), true);
                     }
@@ -1112,6 +1135,26 @@ public final class ArcaneStaffItem extends Item {
         return String.format(java.util.Locale.ROOT, "%.2f", rounded);
     }
 
+    private void switchSplendorArkhe(ServerPlayer sp, ItemStack stack) {
+        if (!(sp.level() instanceof ServerLevel sl)) return;
+        boolean nextPneuma = !isSplendorPneuma(stack);
+        setSplendorPneuma(stack, nextPneuma);
+        String modeKey = nextPneuma
+                ? "tooltip.velorise_staves.splendor.mode_pneuma"
+                : "tooltip.velorise_staves.splendor.mode_ousia";
+        sp.displayClientMessage(
+                Component.translatable("message.velorise_staves.splendor_arkhe_switched",
+                        Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA),
+                true);
+        sl.playSound(null, sp.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.95F, nextPneuma ? 1.35F : 0.95F);
+        sl.playSound(null, sp.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.55F, 1.35F);
+        sl.sendParticles(ParticleTypes.SPLASH, sp.getX(), sp.getY() + 1.0D, sp.getZ(), 18, 0.55D, 0.35D, 0.55D, 0.06D);
+        sl.sendParticles(ParticleTypes.END_ROD, sp.getX(), sp.getY() + 1.0D, sp.getZ(), 10, 0.45D, 0.35D, 0.45D, 0.03D);
+        if (com.velorise.staves.entity.HydroSalonSummonEntity.hasAnySummonForOwner(sl, sp.getUUID())) {
+            com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(sl, sp, isNetherite, nextPneuma);
+        }
+    }
+
     private boolean castSplendorSummon(ServerPlayer player, ItemStack stack) {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         boolean pneuma = isSplendorPneuma(stack);
@@ -1256,7 +1299,14 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_res_shred").withStyle(ChatFormatting.YELLOW));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
+        if (kind == Kind.VORTEX) {
+            float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(false)) / 20.0F;
+            float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(true)) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Hold)", tapSec, holdSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
+        } else {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
+        }
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(stack);
         if (emLvl > 0) {
             appendWrappedTooltip(tooltip,

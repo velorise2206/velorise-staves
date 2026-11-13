@@ -32,6 +32,11 @@ public abstract class CameraMixin {
     private void velorise$overrideFrozenCamera(
             BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci
     ) {
+        if (entity instanceof net.minecraft.world.entity.LivingEntity le && System.currentTimeMillis() < com.velorise.staves.client.ClientAuraTracker.silentDrainUntil) {
+            le.invulnerableTime = 0;
+            le.hurtTime = 0;
+            le.hurtDuration = 0;
+        }
         float yaw = ClientAuraRenderer.getFrozenCameraYaw(entity, this.yRot);
         float pitch = ClientAuraRenderer.getFrozenCameraPitch(entity, this.xRot);
         if (yaw != this.yRot || pitch != this.xRot) {

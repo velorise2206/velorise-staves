@@ -209,6 +209,11 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onComputeCameraAngles(ViewportEvent.ComputeCameraAngles event) {
         Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && System.currentTimeMillis() < ClientAuraTracker.silentDrainUntil) {
+            mc.player.invulnerableTime = 0;
+            mc.player.hurtTime = 0;
+            mc.player.hurtDuration = 0;
+        }
         if (mc.player != null
                 && event.getCamera().getEntity() == mc.player
                 && ClientAuraTracker.isFrozen(mc.player.getId())) {

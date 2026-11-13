@@ -166,7 +166,14 @@ public record AuraSyncPayload(
     }
 
     public static void handle(AuraSyncPayload payload, IPayloadContext context) {
-        context.enqueueWork(() -> ClientPayloadHandler.handle(payload));
+        if (payload.durationTicks == -4) {
+            com.velorise.staves.client.ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
+        }
+        if (net.minecraft.client.Minecraft.getInstance().isSameThread()) {
+            ClientPayloadHandler.handle(payload);
+        } else {
+            context.enqueueWork(() -> ClientPayloadHandler.handle(payload));
+        }
     }
 
     private static final class ClientPayloadHandler {

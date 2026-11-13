@@ -91,8 +91,8 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
             poseStack.translate(0.0F, -1.15F, 0.0F);
             float tentacleAngle = Mth.sin(ageInTicks * 0.18F) * 0.35F + actionPulse * 0.45F;
             this.squidModel.setupAnim(null, 0.0F, 0.0F, ageInTicks, 0.0F, tentacleAngle);
-            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucentEmissive(SQUID_TEXTURE));
-            this.squidModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.16F, 0.47F, 0.94F, 0.85F);
+            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(SQUID_TEXTURE));
+            this.squidModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.16F, 0.47F, 0.94F, 1.0F);
             poseStack.popPose();
 
             // 3D Top Hat on Usher's head
@@ -115,8 +115,8 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
             float s = 0.88F + actionPulse * 0.08F;
             poseStack.scale(-s, -s, s);
             poseStack.translate(0.0F, -1.35F, 0.0F);
-            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucentEmissive(ALLAY_TEXTURE));
-            this.allayModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.22F, 0.60F, 1.00F, 0.86F);
+            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(ALLAY_TEXTURE));
+            this.allayModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.22F, 0.60F, 1.00F, 1.0F);
             poseStack.popPose();
 
             // 3D Maid Ribbon Bow on Chevalmarin's head
@@ -138,8 +138,8 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
             poseStack.scale(-s * 1.05F, -s * 0.78F, s * 0.85F);
             poseStack.translate(0.0F, -1.32F, 0.0F);
             this.spiderModel.setupAnim(null, ageInTicks * 0.35F, 0.35F, ageInTicks, 0.0F, 0.0F);
-            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucentEmissive(SPIDER_TEXTURE));
-            this.spiderModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.26F, 0.65F, 1.00F, 0.86F);
+            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(SPIDER_TEXTURE));
+            this.spiderModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.26F, 0.65F, 1.00F, 1.0F);
             poseStack.popPose();
 
             // 3D Frilled Noble Bonnet on Crabaletta's carapace
@@ -159,8 +159,8 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
             float s = 1.18F + actionPulse * 0.10F;
             poseStack.scale(-s, -s, s);
             poseStack.translate(0.0F, -1.35F, 0.0F);
-            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucentEmissive(ALLAY_TEXTURE));
-            this.allayModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.53F, 0.94F, 1.00F, 0.90F);
+            VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(ALLAY_TEXTURE));
+            this.allayModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0.53F, 0.94F, 1.00F, 1.0F);
             poseStack.popPose();
 
             // 3D Three-Peak Pneuma Tiara Crown
@@ -279,7 +279,7 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
                     .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                     .setCullState(NO_CULL)
                     .setLightmapState(NO_LIGHTMAP)
-                    .setWriteMaskState(COLOR_WRITE)
+                    .setWriteMaskState(COLOR_DEPTH_WRITE)
                     .createCompositeState(false);
             return create("velorise_hydro_accessory", DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS, 256, false, true, state);
         }

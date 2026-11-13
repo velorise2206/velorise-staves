@@ -242,7 +242,7 @@ public final class StavesConfig {
         GUARDIAN_COOLDOWN = builder.defineInRange("guardian_cooldown", 5.0D, 0.5D, 60.0D);
         SPLENDOR_COOLDOWN = builder.defineInRange("splendor_cooldown", 8.0D, 0.5D, 60.0D);
         EVOKER_COOLDOWN = builder.defineInRange("evoker_cooldown", 5.0D, 0.5D, 60.0D);
-        VORTEX_COOLDOWN = builder.defineInRange("vortex_cooldown", 6.0D, 0.5D, 60.0D);
+        VORTEX_COOLDOWN = builder.defineInRange("vortex_cooldown", 4.0D, 0.5D, 60.0D);
         ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);

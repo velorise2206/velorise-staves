@@ -168,10 +168,19 @@ public class AuraSyncPacket {
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
-        ctx.enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+        net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
                 net.minecraftforge.api.distmarker.Dist.CLIENT,
-                () -> () -> ClientPacketHandler.handleAuraSync(this)
-        ));
+                () -> () -> {
+                    if (this.durationTicks == -4) {
+                        com.velorise.staves.client.ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
+                    }
+                    if (net.minecraft.client.Minecraft.getInstance().isSameThread()) {
+                        ClientPacketHandler.handleAuraSync(this);
+                    } else {
+                        ctx.enqueueWork(() -> ClientPacketHandler.handleAuraSync(this));
+                    }
+                }
+        );
         ctx.setPacketHandled(true);
     }
 

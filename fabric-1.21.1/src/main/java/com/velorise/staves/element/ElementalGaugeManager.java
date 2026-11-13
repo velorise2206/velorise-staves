@@ -1146,6 +1146,15 @@ public final class ElementalGaugeManager {
         entity.setDeltaMovement(prevVel);
     }
 
+    public static void setPlayerShieldAbsorption(ServerPlayer player, float targetAbsorption) {
+        if (player == null) return;
+        var maxAbsAttr = player.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_ABSORPTION);
+        if (maxAbsAttr != null && maxAbsAttr.getValue() < targetAbsorption) {
+            maxAbsAttr.setBaseValue(Math.max(maxAbsAttr.getBaseValue(), targetAbsorption));
+        }
+        player.setAbsorptionAmount(targetAbsorption);
+    }
+
     public static void activateJadeShield(ServerPlayer player, boolean isNetherite) {
         if (player == null || player.level().isClientSide()) return;
         long now = player.level().getGameTime();
@@ -1157,8 +1166,13 @@ public final class ElementalGaugeManager {
         if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
             shieldHp *= 1.15F;
         }
-        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
-        com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(player, Element.GEO, 400);
+        com.velorise.staves.effect.ModMobEffects.removeAllShields(player);
+        var geoShieldObj = com.velorise.staves.effect.ModMobEffects.getShieldForElement(Element.GEO);
+        if (geoShieldObj != null) {
+            player.addEffect(new MobEffectInstance(geoShieldObj, 400, isNetherite ? 1 : 0, false, false, true));
+        }
+        setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
+        CrystallizeShardManager.onShieldApplied(player, Element.GEO, 400);
     }
 
     public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {

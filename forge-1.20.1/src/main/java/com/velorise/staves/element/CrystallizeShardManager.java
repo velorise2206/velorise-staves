@@ -200,7 +200,7 @@ public final class CrystallizeShardManager {
                 } else if (expired || cleared || depleted) {
                     ACTIVE_SHIELDS.remove(pid);
                     ModMobEffects.removeAllShields(player);
-                    if ((expired || cleared) && !player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 5.0F) {
+                    if ((expired || cleared) && !player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 24.0F) {
                         player.setAbsorptionAmount(0.0F);
                     }
                     ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
@@ -340,7 +340,7 @@ public final class CrystallizeShardManager {
             player.addEffect(new MobEffectInstance(shieldObj.get(), SHIELD_DURATION_TICKS, shieldAmp, false, false, true));
         }
 
-        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
+        ElementalGaugeManager.setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
 
         onShieldApplied(player, element, SHIELD_DURATION_TICKS);
         com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_CRYSTALLIZE_SHIELD);

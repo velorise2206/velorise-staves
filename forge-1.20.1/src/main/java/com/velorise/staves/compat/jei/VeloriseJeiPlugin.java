@@ -58,10 +58,18 @@ public final class VeloriseJeiPlugin implements IModPlugin {
         );
         List<String> keys = List.of("PYRO", "HYDRO", "ANEMO", "ELECTRO", "DENDRO", "CRYO", "GEO", SwordImbueHelper.OMNI_KEY);
 
-        // 1. Anvil Sword Imbue previews
+        // 1. Anvil Sword Imbue previews (all Vanilla & Modded SwordItems)
         List<IJeiAnvilRecipe> anvilRecipes = new ArrayList<>();
-        Item[] sampleSwords = { Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD };
-        for (Item sword : sampleSwords) {
+        List<Item> allSwords = new ArrayList<>(List.of(
+                Items.NETHERITE_SWORD, Items.DIAMOND_SWORD, Items.IRON_SWORD,
+                Items.GOLDEN_SWORD, Items.STONE_SWORD, Items.WOODEN_SWORD
+        ));
+        for (Item item : net.minecraftforge.registries.ForgeRegistries.ITEMS) {
+            if (item instanceof net.minecraft.world.item.SwordItem && !allSwords.contains(item)) {
+                allSwords.add(item);
+            }
+        }
+        for (Item sword : allSwords) {
             ItemStack left = new ItemStack(sword);
             List<ItemStack> outputs = new ArrayList<>(keys.size());
             for (String key : keys) {

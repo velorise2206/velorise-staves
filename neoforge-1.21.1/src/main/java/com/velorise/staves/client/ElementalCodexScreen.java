@@ -733,8 +733,11 @@ public class ElementalCodexScreen extends Screen {
                     String name = tr("item.velorise_staves." + baseId);
                     int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
                     String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f" + Element.omniIconString() + "§r " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
+                    String cdDisplay = (kind == ArcaneStaffItem.Kind.VORTEX)
+                            ? String.format(Locale.ROOT, "%.1f/%.1f", cdSec, cdSec * 3.0D)
+                            : String.format(Locale.ROOT, "%.1f", cdSec);
                     String statsCombat = tr("codex.velorise_staves.staff.stats_combat",
-                            bDmg, nDmg, String.format(Locale.ROOT, "%.1f", cdSec), rngStr);
+                            bDmg, nDmg, cdDisplay, rngStr);
                     String statsDur = tr("codex.velorise_staves.staff.stats_durability",
                             String.valueOf(bDur), String.valueOf(nDur));
                     GuideCard staffCard = new GuideCard(
