@@ -103,16 +103,16 @@
 
 ---
 
-### 12. [Staff/Feature] New Geo Staff: Dominance of Earth / Jade Shield & Geo Construct (Zhongli Reference)
-* **Concept:** A high-tier defensive and tactical Geo staff inspired by Zhongli (*Genshin Impact*), providing both unyielding survivability and area-of-effect elemental application.
-* **Ability 1 (Tap / Quick Cast - Geo Stele):**
-  * Summons a monolithic **Geo Stele (Stone Pillar)** at the target location.
-  * Periodically pulses resonant Geo shockwaves in a 6-block radius, dealing Geo damage and applying 1.0U Geo to mobs within range.
+### 12. [Staff/Feature] New Geo Staff: Vortex Vanquisher / Dominus Lapidis (Zhongli Reference)
+* **Visual & Naming:** Reimagined as a combat staff based on Zhongli's signature weapon (**Vortex Vanquisher**), using authentic *Genshin Impact* naming for abilities and mechanics.
+* **Ability 1 (Tap / Quick Cast — Stone Stele / Dominus Lapidis):**
+  * Summons a tall, monolithic **Stone Stele (Geo Construct)** at the target location.
+  * Periodically pulses resonant Geo shockwaves in a 6-block radius, dealing Geo damage and applying `1.0U` Geo to mobs within range.
   * Resonates with nearby Geo constructs or Crystallize shields, extending pulse range and triggering frequent Crystallize reactions.
-* **Ability 2 (Hold / Charge Cast - Jade Shield):**
+* **Ability 2 (Hold / Charge Cast — Jade Shield):**
   * Forms a fortified **Jade Shield** around the caster that scales with the player's Max Health.
   * Possesses **150% absorption effectiveness** against all Elemental and Physical damage.
-  * While active, creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by 20%.
+  * While active, creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by **20%**.
 
 ---
 
@@ -131,6 +131,29 @@
   * Update `getEffectivePhysicalMultiplier()` in `ElementalGaugeManager.java` across NeoForge 1.21.1, Forge 1.20.1, and Fabric 1.21.1.
   * Update `applyMobElementalResistance()` and `applyMobDamageResistances()` to universally support negative elemental RES (preparing for Jade Shield -20% all RES and future Swirl resistance shredding).
   * Update Wiki ([Elements-and-Reactions.md](file:///c:/Documents/Coder/Minecraft/myMod/velorise_staves/docs/wiki/Elements-and-Reactions.md)) table and notes to reflect the 3-tier Genshin piecewise resistance formula.
+
+---
+
+### 14. [Staff/Feature] New Hydro Staff: Splendor of Tranquil Waters / Salon Solitaire (Furina Reference)
+* **Visual & Naming:** Reimagined as a combat staff modeled after Furina's signature weapon (**Splendor of Tranquil Waters**), using authentic *Genshin Impact* naming and dual-alignment (Ousia / Pneuma) mechanics.
+* **Dual-Mode Switching (Arkhe: Ousia ↔ Pneuma):** Players can toggle between two stances (e.g., via Crouch + Right-Click or Charged Attack):
+  * **Mode 1 — Ousia (*Salon Solitaire*):**
+    * Summons 3 autonomous Hydro Salon Members (*Gentilhomme Usher*, *Surintendante Chevalmarin*, and *Mademoiselle Crabaletta*) that actively attack nearby hostile mobs and apply Hydro.
+    * Their attack damage scales mildly with the caster's **Max HP**.
+    * On each hit, the Salon Members drain a small percentage of HP from the caster and nearby allied players, **stopping HP drain once an entity reaches the 50% Max HP cap** (mirroring Furina's signature HP drain mechanic).
+  * **Mode 2 — Pneuma (*Singer of Many Waters*):**
+    * Summons the *Singer of Many Waters* construct/companion, which periodically pulses **AoE Hydro healing** to the caster and nearby allies within range.
+
+---
+
+### 15. [Combat/Rework] Guardian's Lens Rework: Authentic Neuvillette (*Sourcewater Droplets* & *Equitable Judgment*)
+* **Goal:** Upgrade the existing **Guardian's Lens** continuous Hydro beam into an authentic *Neuvillette* combat loop (*Genshin Impact*).
+* **Sourcewater Droplet Passive:**
+  * Whenever the holder or a nearby ally triggers a **Hydro-related Elemental Reaction** (Vaporize, Frozen, Electro-Charged, Bloom, Hydro Swirl, Hydro Crystallize) while Guardian's Lens is carried/equipped, **Sourcewater Droplets** spawn on the ground (up to **6 active droplets** maximum).
+  * **Ally Pickup:** Regular players walking near a Sourcewater Droplet can pick it up for a small flat HP heal.
+* **Equitable Judgment Channeling Mechanic:**
+  * **With Sourcewater Droplets Nearby:** Holding Right-Click automatically absorbs nearby Sourcewater Droplets (up to 3), **instantly completing the charge** to unleash the continuous Hydro beam immediately while **healing the caster**.
+  * **Without Sourcewater Droplets:** Holding Right-Click requires a brief **few-second charge-up / channel** (mirroring Neuvillette's Charged Attack wind-up) before firing the continuous *Equitable Judgment* beam (retaining its current Max HP scaling).
 
 
 
