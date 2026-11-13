@@ -1,6 +1,6 @@
 # Velorise's Staves
 
-[![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/hungbbdzz/velorise-staves/wiki)
+[![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/velorise2206/velorise-staves/wiki)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Available_Now-f16436?style=for-the-badge&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/velorises-staves-elements)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Pending_Review-orange?style=for-the-badge&logo=modrinth&logoColor=white)](https://modrinth.com/mod/velorises-staves-elements)
 <!-- Modrinth Dynamic Downloads Badge (Uncomment once published):
@@ -8,9 +8,9 @@
 -->
 [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
-[![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
+[![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/velorise2206/velorise-staves)
 
-📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/hungbbdzz/velorise-staves/wiki)!**
+📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/velorise2206/velorise-staves/wiki)!**
 
 A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **11 custom advancements**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
@@ -166,7 +166,7 @@ Supports **NeoForge 1.21.1**, **Forge 1.20.1**, and **Fabric 1.21.1**:
 
 ```powershell
 # Clone repository
-git clone https://github.com/hungbbdzz/velorise-staves.git
+git clone https://github.com/velorise2206/velorise-staves.git
 cd velorise-staves
 
 # Build all 3 loaders simultaneously
@@ -179,18 +179,18 @@ Compiled jar artifacts will be placed in the `mods/velorise_staves/` directory.
 
 ## Recommended Companion Mods & Other Works
 
-Enhance your adventure with companion mods by **hungbbdzz**:
+Enhance your adventure with companion mods by **velorise2206**:
 
-- **[Camera Lock-On](https://github.com/hungbbdzz/camera-lock-on)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/camera-lock-on) / [Modrinth](https://modrinth.com/mod/velorise-camera-lock-on)): Adds a third-person Zelda/Souls-style target locking system. **Highly recommended** for *Velorise's Staves* to aim projectile spells, circle-strafe swift elemental foes, and pull off clean combat combos!
-- **[Velorise Simple Map](https://github.com/hungbbdzz/Simple-Map)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/velorise-simple-map) / [Modrinth](https://modrinth.com/mod/velorise-simple-map)): A sleek, lightweight, clutter-free minimap and world map mod optimized for smooth exploration and waypoint navigation.
+- **[Camera Lock-On](https://github.com/velorise2206/camera-lock-on)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/camera-lock-on) / [Modrinth](https://modrinth.com/mod/velorise-camera-lock-on)): Adds a third-person Zelda/Souls-style target locking system. **Highly recommended** for *Velorise's Staves* to aim projectile spells, circle-strafe swift elemental foes, and pull off clean combat combos!
+- **[Velorise Simple Map](https://github.com/velorise2206/Simple-Map)** ([CurseForge](https://www.curseforge.com/minecraft/mc-mods/velorise-simple-map) / [Modrinth](https://modrinth.com/mod/velorise-simple-map)): A sleek, lightweight, clutter-free minimap and world map mod optimized for smooth exploration and waypoint navigation.
 
 ---
 
 ## License & Disclaimer
 
-Copyright (c) 2026 **hungbbdzz** — **All Rights Reserved (Code & Documentation Only)** ([LICENSE](LICENSE)).
+Copyright (c) 2026 **velorise2206** — **All Rights Reserved (Code & Documentation Only)** ([LICENSE](LICENSE)).
 
-- **Scope of License (Excluding Assets):** The **All Rights Reserved** license applies solely to this mod's original source code, compiled binaries, data/localization files, and documentation authored by **hungbbdzz**. You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code or binaries without prior written permission from the copyright holder. It does **not** cover or claim exclusive ownership over visual assets, element icons, textures, or 3D models.
+- **Scope of License (Excluding Assets):** The **All Rights Reserved** license applies solely to this mod's original source code, compiled binaries, data/localization files, and documentation authored by **velorise2206**. You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code or binaries without prior written permission from the copyright holder. It does **not** cover or claim exclusive ownership over visual assets, element icons, textures, or 3D models.
 - **Third-Party IP Disclaimer:** *Velorise's Staves* is an **unofficial, non-commercial fan-made mod** inspired by *Genshin Impact* and is **not affiliated with, endorsed by, or associated with HoYoverse / Cognosphere Pte. Ltd.** (or Mojang / Microsoft). All *Genshin Impact* trademarks, names, element icons/symbols, and related IP belong to **HoYoverse / Cognosphere Pte. Ltd.**; any third-party fan textures or 3D models belong to their respective creators.
 
 [pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png

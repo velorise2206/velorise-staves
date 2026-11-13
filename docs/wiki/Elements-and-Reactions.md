@@ -9,14 +9,14 @@ The combat mechanics of **Velorise's Staves & Elements** are governed by a speci
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="32" height="32" /><br/><b>Pyro</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="32" height="32" /><br/><b>Hydro</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="32" height="32" /><br/><b>Cryo</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="32" height="32" /><br/><b>Electro</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="32" height="32" /><br/><b>Dendro</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="32" height="32" /><br/><b>Anemo</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="32" height="32" /><br/><b>Geo</b></td>
-      <td align="center"><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="32" height="32" /><br/><b>Omni</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="32" height="32" /><br/><b>Pyro</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="32" height="32" /><br/><b>Hydro</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="32" height="32" /><br/><b>Cryo</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="32" height="32" /><br/><b>Electro</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="32" height="32" /><br/><b>Dendro</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="32" height="32" /><br/><b>Anemo</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="32" height="32" /><br/><b>Geo</b></td>
+      <td align="center"><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="32" height="32" /><br/><b>Omni</b></td>
     </tr>
   </table>
 </div>
@@ -64,8 +64,8 @@ Multiplicative reactions scale the triggering attack's damage directly, further 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Vaporize Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/vaporize.gif" width="380" /></td>
-      <td align="center"><b>Forward Melt Reaction</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/melt.gif" width="380" /></td>
+      <td align="center"><b>Vaporize Reaction</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/vaporize.gif" width="380" /></td>
+      <td align="center"><b>Forward Melt Reaction</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/melt.gif" width="380" /></td>
     </tr>
   </table>
 </div>
@@ -90,12 +90,12 @@ Transformative reactions deal independent elemental burst damage (scaling `+30%`
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Electro-Charged</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/electro_charged.gif" width="360" /></td>
-      <td align="center"><b>Overloaded Explosion</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/overloaded.gif" width="360" /></td>
+      <td align="center"><b>Electro-Charged</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/electro_charged.gif" width="360" /></td>
+      <td align="center"><b>Overloaded Explosion</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/overloaded.gif" width="360" /></td>
     </tr>
     <tr>
-      <td align="center"><b>Swirl Vortex (AoE Aura Spread)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/swirl.gif" width="360" /></td>
-      <td align="center"><b>Geo Crystallize (Elemental Shield Shards)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crystallize.gif" width="360" /></td>
+      <td align="center"><b>Swirl Vortex (AoE Aura Spread)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/swirl.gif" width="360" /></td>
+      <td align="center"><b>Geo Crystallize (Elemental Shield Shards)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crystallize.gif" width="360" /></td>
     </tr>
   </table>
 </div>
@@ -125,9 +125,9 @@ Dendro reactions branch into two distinct combat pathways: **Dendro Core generat
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Bloom (Creation)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/bloom.gif" width="240" /></td>
-      <td align="center"><b>Hyperbloom (Electro)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/hyperbloom.gif" width="240" /></td>
-      <td align="center"><b>Burgeon (Pyro)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/burgeon.gif" width="240" /></td>
+      <td align="center"><b>Bloom (Creation)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/bloom.gif" width="240" /></td>
+      <td align="center"><b>Hyperbloom (Electro)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/hyperbloom.gif" width="240" /></td>
+      <td align="center"><b>Burgeon (Pyro)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/burgeon.gif" width="240" /></td>
     </tr>
   </table>
 </div>
@@ -172,17 +172,17 @@ Carrying matching elemental weapons in your inventory unlocks passive **Elementa
 
 | Resonance Name | Activation Requirement | Passive Buffs & Combat Effects |
 | :--- | :--- | :--- |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /> **Pyro: Fervent Flames** | 2 distinct Pyro Staves *(or 1 Pyro + Auto Omni)* | **-40% Cryo Aura duration** on you; grants **+1.0 Attack Damage** (`Attributes.ATTACK_DAMAGE`) and **+15% Elemental Staff Damage**. |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> **Hydro: Soothing Water** | 2 distinct Hydro weapons *([Guardian Lens](Staves-List#guardian-lens) + Vanilla Trident or Auto Omni)* | **-40% Pyro Aura & Fire burn duration** on you; grants **+20% Max Health** (`+0.20 ADD_MULTIPLIED_TOTAL`), directly boosting Guardian Lens & [Geo Pillar](Environmental-Interactions#3-geo-constructs--fang-pillars) HP! |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> **Anemo: Impetuous Winds** | 2 distinct Anemo Staves *(or 1 Anemo + Auto Omni)* | **+10% Movement Speed**, **-15% sprint/jump hunger exhaustion**, and **-10% Cooldown Duration** on all Staves & Utility Relics. |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> **Electro: High Voltage** | 2 distinct Electro Staves *(or 1 Electro + Auto Omni)* | **-40% Hydro Aura duration** on you; triggering any Electro reaction **restores +1 Durability** to your held staff and **reduces all active Staff Cooldowns by 1.0s (20 ticks)** *(5.0s / 100-tick ICD)*. |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> **Dendro: Sprawling Greenery** | 2 distinct Dendro Staves *(or 1 Dendro + Auto Omni)* | Grants **+1 permanent [Elemental Mastery](Staves-List#staff-enchantments-elemental-mastery) tier** (`+15%` Amp / `+30%` Trans / `+25%` Cat); triggering any Dendro reaction grants **+1 additional EM tier for 6.0s (120 ticks)**. |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> **Cryo: Shattering Ice** | 1 Cryo Staff + Auto/Locked [Omni Staff](Staves-List#the-apex-weapon-omni-staff) | **-40% Electro Aura duration** on you; grants **+15% CRIT Rate (1.5x damage multiplier)** on both Elemental Staff hits and Physical Melee attacks against Cryo-afflicted or Frozen targets. |
-| <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> **Geo: Enduring Rock** | 1 Geo Staff + Auto/Locked [Omni Staff](Staves-List#the-apex-weapon-omni-staff) | **+15% [Crystallize Shield](Relics-and-Utilities#crystallize-shield-shards) HP**; while protected by any Crystallize Shield or Absorption hearts, you deal **+15% Elemental & Physical Damage** and inflict **-20% Geo Resistance Shred for 15.0s (300 ticks)** on struck enemies. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /> **Pyro: Fervent Flames** | 2 distinct Pyro Staves *(or 1 Pyro + Auto Omni)* | **-40% Cryo Aura duration** on you; grants **+1.0 Attack Damage** (`Attributes.ATTACK_DAMAGE`) and **+15% Elemental Staff Damage**. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> **Hydro: Soothing Water** | 2 distinct Hydro weapons *([Guardian Lens](Staves-List#guardian-lens) + Vanilla Trident or Auto Omni)* | **-40% Pyro Aura & Fire burn duration** on you; grants **+20% Max Health** (`+0.20 ADD_MULTIPLIED_TOTAL`), directly boosting Guardian Lens & [Geo Pillar](Environmental-Interactions#3-geo-constructs--fang-pillars) HP! |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> **Anemo: Impetuous Winds** | 2 distinct Anemo Staves *(or 1 Anemo + Auto Omni)* | **+10% Movement Speed**, **-15% sprint/jump hunger exhaustion**, and **-10% Cooldown Duration** on all Staves & Utility Relics. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> **Electro: High Voltage** | 2 distinct Electro Staves *(or 1 Electro + Auto Omni)* | **-40% Hydro Aura duration** on you; triggering any Electro reaction **restores +1 Durability** to your held staff and **reduces all active Staff Cooldowns by 1.0s (20 ticks)** *(5.0s / 100-tick ICD)*. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> **Dendro: Sprawling Greenery** | 2 distinct Dendro Staves *(or 1 Dendro + Auto Omni)* | Grants **+1 permanent [Elemental Mastery](Staves-List#staff-enchantments-elemental-mastery) tier** (`+15%` Amp / `+30%` Trans / `+25%` Cat); triggering any Dendro reaction grants **+1 additional EM tier for 6.0s (120 ticks)**. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> **Cryo: Shattering Ice** | 1 Cryo Staff + Auto/Locked [Omni Staff](Staves-List#the-apex-weapon-omni-staff) | **-40% Electro Aura duration** on you; grants **+15% CRIT Rate (1.5x damage multiplier)** on both Elemental Staff hits and Physical Melee attacks against Cryo-afflicted or Frozen targets. |
+| <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> **Geo: Enduring Rock** | 1 Geo Staff + Auto/Locked [Omni Staff](Staves-List#the-apex-weapon-omni-staff) | **+15% [Crystallize Shield](Relics-and-Utilities#crystallize-shield-shards) HP**; while protected by any Crystallize Shield or Absorption hearts, you deal **+15% Elemental & Physical Damage** and inflict **-20% Geo Resistance Shred for 15.0s (300 ticks)** on struck enemies. |
 | 🛡️ **Protective Canopy** | **4 Distinct Elements** *(when no 2-piece resonance is active)* | Reduces all incoming **Physical and Elemental Damage taken by 15%** (`0.85x` damage multiplier). |
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/resonance_priority_electro.png" width="700" alt="Resonance Priority Case 1: Electro Active" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/resonance_priority_electro.png" width="700" alt="Resonance Priority Case 1: Electro Active" />
   <br/><sub><i>Case 1: Omni Staff auto-matches with the 1st solo element found (Slot 4: Arc Caster ➔ Electro Resonance). Slots 5 & 6 pair for Pyro Resonance. Slot 8 (Cryo) is inactive.</i></sub>
 </div>
 
@@ -197,7 +197,7 @@ The resonance engine scans your inventory in strict priority order:
 3. **Imbued Swords Excluded:** [Element-Imbued Swords](Anvil-Imbuing#how-to-imbue-swords) never count toward Elemental Resonance or the 4-Staff inventory cap.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/resonance_priority_cryo.png" width="700" alt="Resonance Priority Case 2: Cryo Active" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/resonance_priority_cryo.png" width="700" alt="Resonance Priority Case 2: Cryo Active" />
   <br/><sub><i>Case 2: Reordering hotbar slots. Moving Frostbolt Wand (Cryo) to Slot 3 causes Omni Staff to pair with Cryo first, instantly switching your active resonance from Electro to Cryo!</i></sub>
 </div>
 
@@ -208,7 +208,7 @@ The resonance engine scans your inventory in strict priority order:
 Carrying more than **4 distinct Arcane Staff types** (`max_staves_in_inventory = 4`) in your main inventory + offhand in Survival/Adventure mode triggers **Arcane Overload**:
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/arcane_overload.gif" width="480" alt="Arcane Overload Demonstration" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/arcane_overload.gif" width="480" alt="Arcane Overload Demonstration" />
   <br/><sub><i>Exceeding the 4-staff inventory limit triggers Arcane Overload, displaying a red Triquetra warning icon and disabling staff casting.</i></sub>
 </div>
 
@@ -222,8 +222,8 @@ Carrying more than **4 distinct Arcane Staff types** (`max_staves_in_inventory =
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Natural Innate Aura (Blaze)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/innate_blaze.gif" width="340" /><br/><sub><i>Innate mobs permanently carry their element and are 100% immune to same-element damage.</i></sub></td>
-      <td align="center"><b>Rare Omni Mutation (Magic Immune)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/omni_mob_immunity.gif" width="340" /><br/><sub><i>Omni-mutated mobs are 100% immune to all 7 magical elements — only physical damage can harm them!</i></sub></td>
+      <td align="center"><b>Natural Innate Aura (Blaze)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/innate_blaze.gif" width="340" /><br/><sub><i>Innate mobs permanently carry their element and are 100% immune to same-element damage.</i></sub></td>
+      <td align="center"><b>Rare Omni Mutation (Magic Immune)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/omni_mob_immunity.gif" width="340" /><br/><sub><i>Omni-mutated mobs are 100% immune to all 7 magical elements — only physical damage can harm them!</i></sub></td>
     </tr>
   </table>
 </div>
@@ -273,7 +273,7 @@ Eligible hostile mobs (`allow_hostile_mob_mutation = true`) and Golems (`allow_g
 ## Vanilla Mechanics Synergy (Potions, Arrows, Tridents, Mace & Thorns)
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/trident_hydro.gif" width="480" alt="Trident counts as Hydro demonstration" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/trident_hydro.gif" width="480" alt="Trident counts as Hydro demonstration" />
   <br/><sub><i>Vanilla Tridents inherently channel Hydro properties, applying a 1.0U Hydro aura upon striking targets and partnering for Hydro Resonance.</i></sub>
 </div>
 
@@ -282,12 +282,12 @@ Drinking a potion (`LivingEntityUseItemEvent.Finish` / `completeUsingItem`), thr
 
 | Vanilla Potion / Effect | Mapped Element | Reaction & Application Notes |
 |:---|:---:|:---|
-| **Water Bottle** (`Potions.WATER`) | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> **Hydro (1.0U)** | Drinking, splashing, or shooting Water Tipped Arrows applies `1.0U Hydro`. |
-| **Poison / Oozing** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> **Dendro (1.0U)** | Triggers Bloom on wet targets or Quicken with Electro. |
-| **Slowness** (`MOVEMENT_SLOWDOWN`) | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> **Cryo (1.0U)** | Splash/Lingering Slowness potions also **freeze surface water (radius 2)** on impact! |
-| **Instant Damage** (`HARM`) | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> **Electro (1.0U)** | Triggers Overloaded, Electro-Charged, Superconduct, or Hyperbloom. |
-| **Speed / Wind Charged** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> **Anemo (1.0U)** | Triggers **Swirl** to spread active auras across `5.0m`. |
-| **Resistance / Infested** | <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> **Geo (1.0U)** | Triggers **Crystallize** shield shards or **Shatter** on Frozen targets. |
+| **Water Bottle** (`Potions.WATER`) | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> **Hydro (1.0U)** | Drinking, splashing, or shooting Water Tipped Arrows applies `1.0U Hydro`. |
+| **Poison / Oozing** | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> **Dendro (1.0U)** | Triggers Bloom on wet targets or Quicken with Electro. |
+| **Slowness** (`MOVEMENT_SLOWDOWN`) | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> **Cryo (1.0U)** | Splash/Lingering Slowness potions also **freeze surface water (radius 2)** on impact! |
+| **Instant Damage** (`HARM`) | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> **Electro (1.0U)** | Triggers Overloaded, Electro-Charged, Superconduct, or Hyperbloom. |
+| **Speed / Wind Charged** | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> **Anemo (1.0U)** | Triggers **Swirl** to spread active auras across `5.0m`. |
+| **Resistance / Infested** | <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> **Geo (1.0U)** | Triggers **Crystallize** shield shards or **Shatter** on Frozen targets. |
 
 * **Lingering Potion Clouds (`AreaEffectCloud`):** Pulse every **20 ticks (1.0s)**, applying `1.0U` of their mapped element(s) to all entities inside the cloud.
 * **Plain Snowballs & Firework Rockets:** Throwing a vanilla **Snowball** applies `0.5U Cryo` on direct hit and freezes surface water (`1m` radius). **Firework Rocket** explosions apply `1.5U Pyro`.

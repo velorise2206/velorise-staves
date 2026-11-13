@@ -7,9 +7,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 ## Magic Mirror
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/magic_mirror.png" width="48" height="48" alt="Magic Mirror" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/magic_mirror.png" width="48" height="48" alt="Magic Mirror" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/netherite_magic_mirror.png" width="48" height="48" alt="Netherite Magic Mirror" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/netherite_magic_mirror.png" width="48" height="48" alt="Netherite Magic Mirror" />
   <br/>
   <b>Magic Mirror (Basic) &nbsp;|&nbsp; Netherite Magic Mirror (Ascended)</b>
 </div>
@@ -24,9 +24,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * Shaped: 1 Ender Pearl (center), 4 Diamonds (cross), 2 Glass (corners).
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_magic_mirror.png" width="400" alt="Magic Mirror Crafting Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_magic_mirror.png" width="400" alt="Magic Mirror Crafting Recipe" />
   <br/><br/>
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/magic_mirror.gif" width="450" alt="Magic Mirror Recall Demo" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/magic_mirror.gif" width="450" alt="Magic Mirror Recall Demo" />
   <br/><sub><i>Channeling the Magic Mirror to recall instantly back to your spawn bed.</i></sub>
 </div>
 
@@ -35,9 +35,9 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 ## Void Translocator
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/void_translocator.png" width="48" height="48" alt="Void Translocator" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/void_translocator.png" width="48" height="48" alt="Void Translocator" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/netherite_void_translocator.png" width="48" height="48" alt="Netherite Void Translocator" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/netherite_void_translocator.png" width="48" height="48" alt="Netherite Void Translocator" />
   <br/>
   <b>Void Translocator (Basic) &nbsp;|&nbsp; Netherite Void Translocator (Ascended)</b>
 </div>
@@ -64,12 +64,12 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 > * 🌿 **Afflicted by Dendro:** Blinking while carrying a Dendro aura places you into the [**Quicken**](Elements-and-Reactions#quicken) state, amplifying incoming Dendro and Electro damage significantly!
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_void_translocator.png" width="400" alt="Void Translocator Crafting Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_void_translocator.png" width="400" alt="Void Translocator Crafting Recipe" />
   <br/><br/>
   <table>
     <tr>
-      <td align="center"><b>Safe Blink & Zero Fall Damage</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/void_translocator.gif" width="360" /></td>
-      <td align="center"><b>Self-Applied Electro Aura (HUD / Inventory)</b><br/><img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/teleport_self_electro.gif" width="360" /></td>
+      <td align="center"><b>Safe Blink & Zero Fall Damage</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/void_translocator.gif" width="360" /></td>
+      <td align="center"><b>Self-Applied Electro Aura (HUD / Inventory)</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/teleport_self_electro.gif" width="360" /></td>
     </tr>
   </table>
   <br/><sub><i>Blinking across terrain instantaneously resets fall distance, but charges the player with 1.0U Electro.</i></sub>
@@ -80,16 +80,16 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 ## Elemental Codex
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/elemental_codex.png" width="48" height="48" alt="Elemental Codex" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/elemental_codex.png" width="48" height="48" alt="Elemental Codex" />
 </div>
 
 * **Crafting Recipe:** **1 Book + 1 Amethyst Shard** placed anywhere in a Crafting Table (shapeless recipe).
 * **In-Game Feature:** Right-clicking opens an illuminated in-game reference codex displaying the full elemental wheel, active reaction multipliers, and craftable recipes without requiring players to consult external web browsers.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_elemental_codex.png" width="400" alt="Elemental Codex Crafting Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_elemental_codex.png" width="400" alt="Elemental Codex Crafting Recipe" />
   <br/><br/>
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/codex_ui.gif" width="450" alt="Elemental Codex GUI Showcase" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/codex_ui.gif" width="450" alt="Elemental Codex GUI Showcase" />
   <br/><sub><i>Browsing the in-game illuminated Codex with reaction formulas and staff details.</i></sub>
 </div>
 
@@ -98,14 +98,14 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 ## Omni Element
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="48" height="48" alt="Omni Element" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="48" height="48" alt="Omni Element" />
 </div>
 
 * **Primary Function:** The ultimate catalyst used in Smithing Table transformations to synthesize the [Omni Staff](Staves-List#the-apex-weapon-omni-staff) or repair any elemental weapon.
 * **Crafting Recipe:** Combine all **7 Elemental Essences** (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo) in any Crafting Table (shapeless recipe).
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crafting/craft_omni_element.png" width="400" alt="Omni Element Crafting Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_omni_element.png" width="400" alt="Omni Element Crafting Recipe" />
 </div>
 
 ---
@@ -113,12 +113,12 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
 ## Crystallize Shield Shards
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/pyro_crystallize_shard.png" width="24" height="24" />
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/hydro_crystallize_shard.png" width="24" height="24" />
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/electro_crystallize_shard.png" width="24" height="24" />
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/cryo_crystallize_shard.png" width="24" height="24" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/pyro_crystallize_shard.png" width="24" height="24" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/hydro_crystallize_shard.png" width="24" height="24" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/electro_crystallize_shard.png" width="24" height="24" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/cryo_crystallize_shard.png" width="24" height="24" />
   <br/><br/>
-  <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/crystallize.gif" width="460" alt="Geo Crystallize Reaction in Action" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crystallize.gif" width="460" alt="Geo Crystallize Reaction in Action" />
 </div>
 
 * **Shard Generation & Lifetime:** Produced whenever a **[Geo](Elements-and-Reactions#the-7-elements--omni)** attack strikes an entity afflicted with **[Pyro](Elements-and-Reactions#the-7-elements--omni)**, **[Hydro](Elements-and-Reactions#the-7-elements--omni)**, **[Electro](Elements-and-Reactions#the-7-elements--omni)**, or **[Cryo](Elements-and-Reactions#the-7-elements--omni)** (including **Shatter-Crystallize** when a Geo hit triggers [**Shatter**](Elements-and-Reactions#shatter) on a [**Frozen**](Elements-and-Reactions#frozen) target that preserves an underlying Hydro or Cryo aura). Shards pop upward and linger for **17.5 seconds (`350 ticks`)**, governed by a **1.0s (`20 ticks`)** reaction ICD and a **3.0s (`60 ticks`)** per-mob shard spawn cooldown.

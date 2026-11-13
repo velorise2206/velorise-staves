@@ -1,4 +1,4 @@
-### <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_staff.png" width="18" height="18" style="vertical-align: middle;" /> [Velorise's Staves](Home)
+### <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_staff.png" width="18" height="18" style="vertical-align: middle;" /> [Velorise's Staves](Home)
 * **[Home & Overview](Home)**
 
 ---
