@@ -3,8 +3,7 @@
 **Velorise's Staves & Elements** provides extensive configuration options tailored for server administrators and modpack creators looking to tune combat balance, cooldown pacing, mob mutation rates, and environmental rules.
 
 * **Configuration File Locations:**
-  * **NeoForge & Forge:** `.minecraft/config/velorise_staves.toml` (Common Config across client & dedicated server).
-  * **Fabric:** `.minecraft/config/velorise_staves.json5`.
+  * **All Loaders (NeoForge, Fabric & Forge):** `.minecraft/config/velorise_staves.toml` (Common TOML Config across client & dedicated server, section `[mechanics]` & `[elemental_gauge]`).
 
 ---
 

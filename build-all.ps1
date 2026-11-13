@@ -65,7 +65,30 @@ function Invoke-Build(
     Use-JavaHome -VariableName $JavaEnvVar -Label $DisplayName
 
     Push-Location $projectDir
-    try {
+    
+function Test-SharedClassParity {
+    $sharedClasses = @(
+        "element\Element.java",
+        "element\ElementalReaction.java",
+        "element\GaugeState.java",
+        "client\ClientAuraTracker.java",
+        "client\ElementalCodexScreen.java"
+    )
+    foreach ($rel in $sharedClasses) {
+        $nfFile = Join-Path $Root "neoforge-1.21.1\src\main\java\com\velorise\staves\$rel"
+        $fbFile = Join-Path $Root "fabric-1.21.1\src\main\java\com\velorise\staves\$rel"
+        if ((Test-Path $nfFile) -and (Test-Path $fbFile)) {
+            $h1 = (Get-FileHash $nfFile -Algorithm SHA256).Hash
+            $h2 = (Get-FileHash $fbFile -Algorithm SHA256).Hash
+            if ($h1 -ne $h2) {
+                Write-Warning "Parity notice: $rel differs between neoforge-1.21.1 and fabric-1.21.1"
+            }
+        }
+    }
+}
+
+try {
+    Test-SharedClassParity
         if ($Clean) {
             cmd.exe /c "gradlew.bat clean build --no-daemon"
         } else {

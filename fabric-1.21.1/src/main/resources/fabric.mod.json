@@ -8,11 +8,11 @@
     "hungbbdzz"
   ],
   "contact": {
-    "homepage": "https://github.com/hungbbdzz/velorise-staves",
-    "sources": "https://github.com/hungbbdzz/velorise-staves"
+    "homepage": "https://github.com/velorise2206/velorise-staves",
+    "sources": "https://github.com/velorise2206/velorise-staves"
   },
   "license": "All Rights Reserved",
-  "icon": "assets/velorise_staves/textures/item/elemental_codex.png",
+  "icon": "logo.png",
   "environment": "*",
   "entrypoints": {
     "main": [

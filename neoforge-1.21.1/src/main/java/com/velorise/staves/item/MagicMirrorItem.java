@@ -147,7 +147,7 @@ public class MagicMirrorItem extends Item {
     @Override
     public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
-        return repair.is(Items.DIAMOND) || super.isValidRepairItem(toRepair, repair);
+        return repair.is(Items.ECHO_SHARD) || repair.is(Items.DIAMOND) || super.isValidRepairItem(toRepair, repair);
     }
 
     @Override

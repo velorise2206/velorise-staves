@@ -18,7 +18,7 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * Hold **Right-Click** for 2.5 seconds (or 1.0s for Netherite) to channel recall energy.
   * Transports the player directly to their established spawn point, accompanied by custom audio cues and portal particle spirals.
 * **Durability & Repair:**
-  * **Basic Tier:** 40 uses. Repaired at an anvil using Diamonds. Recalls within the current dimension.
+  * **Basic Tier:** 40 uses. Repaired at an anvil using Echo Shards (or Diamonds). Recalls within the current dimension.
   * **Netherite Tier:** 150 uses. Repaired using Netherite Ingots. Enables cross-dimensional teleportation (teleporting from the Nether or The End directly back to your Overworld spawn bed).
 * **Crafting Recipe:**
   * Shaped: 1 Ender Pearl (center), 4 Diamonds (cross), 2 Glass (corners).

@@ -2024,24 +2024,22 @@ public final class ElementalGaugeManager {
         return false;
     }
 
-    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) {
-        EnumSet<Element> result = EnumSet.noneOf(Element.class);
-        if (target == null) return result;
+    public static @Nullable Element getInnateElement(LivingEntity target) {
         if (!target.level().isClientSide() && !target.getPersistentData().contains("VeloriseInnateChecked") && !target.getTags().contains("VeloriseInnateChecked")) {
             checkInnateMutation(target);
         }
         if (target.getTags().contains(TAG_INNATE_OMNI) || target.getTags().contains("VeloriseInnate:OMNI")) {
             OMNI_INNATE_ENTITIES.add(target.getUUID());
-            return result;
+            return null;
         }
         if (target.getPersistentData().contains("VeloriseInnate")) {
             String elemName = target.getPersistentData().getString("VeloriseInnate");
             if ("OMNI".equalsIgnoreCase(elemName)) {
                 OMNI_INNATE_ENTITIES.add(target.getUUID());
-                return result;
+                return null;
             }
             try {
-                result.add(Element.valueOf(elemName));
+                return Element.valueOf(elemName);
             } catch (IllegalArgumentException ignored) {}
         }
         for (String tag : target.getTags()) {
@@ -2049,29 +2047,36 @@ public final class ElementalGaugeManager {
                 String val = tag.substring("VeloriseInnate:".length());
                 if ("OMNI".equalsIgnoreCase(val)) {
                     OMNI_INNATE_ENTITIES.add(target.getUUID());
-                    result.clear();
-                    return result;
+                    return null;
                 }
                 try {
-                    result.add(Element.valueOf(val));
+                    return Element.valueOf(val);
                 } catch (IllegalArgumentException ignored) {}
             }
         }
-        Element natural = getNaturalInnateElement(target);
-        if (natural != null) {
-            result.add(natural);
+        return getNaturalInnateElement(target);
+    }
+
+    /**
+     * Returns all permanent innate elements held by the entity (empty for Omni or non-innate).
+     * A Mutated Creeper struck by lightning retains both its mutated element and Charged Electro.
+     */
+    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) {
+        EnumSet<Element> set = EnumSet.noneOf(Element.class);
+        if (target == null) return set;
+        if (isOmniInnate(target)) return set;
+        Element primary = getInnateElement(target);
+        if (primary != null) {
+            set.add(primary);
         }
-        return result;
+        if (target instanceof Creeper creeper && creeper.isPowered()) {
+            set.add(Element.ELECTRO);
+        }
+        return set;
     }
 
     public static boolean hasInnateElement(@Nullable LivingEntity target, @Nullable Element element) {
         return target != null && element != null && getInnateElements(target).contains(element);
-    }
-
-    public static @Nullable Element getInnateElement(LivingEntity target) {
-        EnumSet<Element> set = getInnateElements(target);
-        if (set.isEmpty()) return null;
-        return set.iterator().next();
     }
 
     public static boolean isPyroInnate(@Nullable Entity entity) {

@@ -1,8 +1,8 @@
 modLoader="javafml"
 loaderVersion="${loader_version_range}"
 license="${mod_license}"
-issueTrackerURL="https://github.com/hungbbdzz/velorise-staves/issues"
-displayURL="https://github.com/hungbbdzz/velorise-staves"
+issueTrackerURL="https://github.com/velorise2206/velorise-staves/issues"
+displayURL="https://github.com/velorise2206/velorise-staves"
 
 [[mods]]
 modId="${mod_id}"

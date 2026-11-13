@@ -290,8 +290,13 @@ public final class ElementalGaugeManager {
             EnumSet<Element> innateSet = getInnateElements(target);
             if (isOmniInnate(target)) {
                 durationTicks = -2; // -2 represents permanent Omni Mutated innate state
-            } else if (!innateSet.isEmpty() && effective.containsAll(innateSet)) {
-                durationTicks = -1; // -1 represents permanent innate aura(s)
+            } else if (!innateSet.isEmpty()) {
+                for (Element inn : innateSet) {
+                    if (effective.contains(inn)) {
+                        durationTicks = -1; // -1 represents permanent innate aura
+                        break;
+                    }
+                }
             }
         }
         if (damage > 0.0F && (Boolean.TRUE.equals(IS_PROCESSING_SWORD_IMBUE.get()) || Boolean.TRUE.equals(IS_MODIFYING_ENV_DAMAGE.get()))) {
@@ -682,7 +687,14 @@ public final class ElementalGaugeManager {
         EnumSet<Element> innateSet = getInnateElements(living);
         Collection<Element> elements = getEffectiveElements(living, getEntityElements(living.getUUID()));
         if (!elements.isEmpty()) {
-            int duration = (!innateSet.isEmpty() && elements.containsAll(innateSet)) ? -1 : getEntityMaxDurationTicks(living.getUUID());
+            boolean hasPermInnate = false;
+            for (Element inn : innateSet) {
+                if (elements.contains(inn)) {
+                    hasPermInnate = true;
+                    break;
+                }
+            }
+            int duration = hasPermInnate ? -1 : getEntityMaxDurationTicks(living.getUUID());
             com.velorise.staves.network.ModNetwork.sendAuraSyncToPlayer(player, living, elements, duration);
         }
     }
@@ -950,7 +962,7 @@ public final class ElementalGaugeManager {
 
     public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) {
         if (target == null || !target.isAlive() || target.isSpectator()) return;
-        if (isOmniInnate(target) || getInnateElement(target) == Element.DENDRO) return;
+        if (isOmniInnate(target) || hasInnateElement(target, Element.DENDRO)) return;
         UUID id = target.getUUID();
         Long last = LAST_MUSHROOM_CONTACT.get(id);
         if (last != null && now >= last && (now - last) < 20L) return;
@@ -1350,25 +1362,27 @@ public final class ElementalGaugeManager {
                         }
                         ServerPlayer attackerPlayer = mutatedAttacker instanceof ServerPlayer sp ? sp : null;
                         for (Element mutatedElem : mutatedSet) {
+                            if (!target.isAlive()) break;
                             applyElementBypassIcd(level, target, mutatedElem, 1.0F, attackerPlayer, 0.0F);
-                        }
-                        if (mutatedSet.contains(Element.PYRO)
-                                && target.isAlive()
-                                && !isPyroInnate(target)
-                                && !target.fireImmune()
-                                && !(target instanceof Warden)) {
-                            if (!isEntityInWater(target) && target.getRemainingFireTicks() < 40) {
-                                target.setRemainingFireTicks(40);
+                            if (mutatedElem == Element.PYRO
+                                    && target.isAlive()
+                                    && !isPyroInnate(target)
+                                    && !isOmniInnate(target)
+                                    && !target.fireImmune()
+                                    && !(target instanceof Warden)) {
+                                if (!isEntityInWater(target) && target.getRemainingFireTicks() < 40) {
+                                    target.setRemainingFireTicks(40);
+                                }
+                                float fireDmg = (float) (2.0F * StavesConfig.DAMAGE_MULTIPLIER.get());
+                                if (fireDmg > 0.0F) {
+                                    int prevInvuln = target.invulnerableTime;
+                                    target.invulnerableTime = 0;
+                                    target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), mutatedAttacker, null, Element.PYRO), fireDmg);
+                                    target.invulnerableTime = prevInvuln;
+                                }
+                                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                                        6, 0.25D, 0.25D, 0.25D, 0.03D);
                             }
-                            float fireDmg = (float) (2.0F * StavesConfig.DAMAGE_MULTIPLIER.get());
-                            if (fireDmg > 0.0F) {
-                                int prevInvuln = target.invulnerableTime;
-                                target.invulnerableTime = 0;
-                                target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), mutatedAttacker, null, Element.PYRO), fireDmg);
-                                target.invulnerableTime = prevInvuln;
-                            }
-                            level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                                    6, 0.25D, 0.25D, 0.25D, 0.03D);
                         }
                         return;
                     }
@@ -2063,7 +2077,7 @@ public final class ElementalGaugeManager {
     }
 
     public static boolean isPyroInnate(@Nullable Entity entity) {
-        return entity instanceof LivingEntity living && getInnateElement(living) == Element.PYRO;
+        return entity instanceof LivingEntity living && hasInnateElement(living, Element.PYRO);
     }
 
     public static boolean isPyroResistant(@Nullable LivingEntity target) {
