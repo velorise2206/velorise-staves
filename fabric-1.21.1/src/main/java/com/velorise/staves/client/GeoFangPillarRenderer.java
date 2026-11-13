@@ -49,7 +49,7 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
             MultiBufferSource bufferSource,
             int packedLight
     ) {
-        boolean netherite = entity.isNetherite();
+        boolean netherite = entity.isNetherite() || entity.isStoneStele();
         this.shadowRadius = netherite ? 0.5F : 0.38F;
 
         int pulseElapsed = entity.tickCount - entity.getLastClientWaveStartTick();

@@ -73,6 +73,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item EVOKER_FANG_STAFF = registerItem("evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, false), false));
 
+    public static final Item VORTEX_VANQUISHER = registerItem("vortex_vanquisher",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.VORTEX, false), false));
+
     public static final Item ARC_CASTER = registerItem("arc_caster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, false), false));
 
@@ -171,6 +174,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_EVOKER_FANG_STAFF = registerItem("netherite_evoker_fang_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.EVOKER, true), true));
 
+    public static final Item NETHERITE_VORTEX_VANQUISHER = registerItem("netherite_vortex_vanquisher",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.VORTEX, true), true));
+
     public static final Item NETHERITE_ARC_CASTER = registerItem("netherite_arc_caster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.LIGHTNING, true), true));
 
@@ -216,6 +222,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(GUARDIAN_LENS);
             output.accept(SPLENDOR_OF_TRANQUIL_WATERS);
             output.accept(EVOKER_FANG_STAFF);
+            output.accept(VORTEX_VANQUISHER);
             output.accept(ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
             output.accept(WEBCASTER);
@@ -234,6 +241,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_GUARDIAN_LENS);
             output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
             output.accept(NETHERITE_EVOKER_FANG_STAFF);
+            output.accept(NETHERITE_VORTEX_VANQUISHER);
             output.accept(NETHERITE_ARC_CASTER);
             output.accept(NETHERITE_FROSTBOLT_WAND);
             output.accept(NETHERITE_WEBCASTER);
@@ -361,6 +369,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(GUARDIAN_LENS);
             entries.accept(SPLENDOR_OF_TRANQUIL_WATERS);
             entries.accept(EVOKER_FANG_STAFF);
+            entries.accept(VORTEX_VANQUISHER);
             entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
             entries.accept(WEBCASTER);
@@ -375,6 +384,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_GUARDIAN_LENS);
             entries.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
             entries.accept(NETHERITE_EVOKER_FANG_STAFF);
+            entries.accept(NETHERITE_VORTEX_VANQUISHER);
             entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
             entries.accept(NETHERITE_WEBCASTER);

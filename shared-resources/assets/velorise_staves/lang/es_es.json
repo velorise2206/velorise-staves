@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  Alineación Arjé: %s (Agacharse + Clic derecho)",
   "tooltip.velorise_staves.splendor_hp_scale": "  Escala con Vida Máx., Algarabía y drenaje Ousía (máx. 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "Alineación Arjé cambiada a: %s",
-  "codex.velorise_staves.staff.splendor": "Invoca el Salón Solitario (Ousía, hasta 1.4x daño) o el Juglar de las Aguas (Pneuma, curación). Caminar sobre el agua y Algarabía (+25%→+30%)."
+  "codex.velorise_staves.staff.splendor": "Invoca el Salón Solitario (Ousía, hasta 1.4x daño) o el Juglar de las Aguas (Pneuma, curación). Caminar sobre el agua y Algarabía (+25%→+30%).",
+  "item.velorise_staves.vortex_vanquisher": "Lanza Perforanubes",
+  "item.velorise_staves.vortex_vanquisher.desc": "La lanza Geo ancestral de Zhongli. Clic derecho invoca una Cresta de Piedra (ondas Geo de 6 m cada 2 s; bajo tus pies te eleva). Agacharse + Clic derecho crea el Escudo de Jade (escala con Vida Máx., 150% de absorción, -20% a todas las RES enemigas cercanas). +20% de daño bajo escudo.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "Lanza Perforanubes de netherita",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Lanza Perforanubes forjada en netherita. Hasta 2 Crestas de Piedra simultáneas (1.5U Geo), Escudo de Jade mejorado, aura de -20% RES y +30% de daño bajo escudo.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  Agacharse + Clic derecho: Escudo de Jade (150% absorción y +20%–30% daño)",
+  "tooltip.velorise_staves.vortex_res_shred": "  Aura de Jade: -20% a todas las RES elementales y físicas (4.5 m)",
+  "codex.velorise_staves.staff.vortex": "Invoca Cresta de Piedra (resonancia de 6 m, 1➔2 estelas). Agacharse+Clic derecho forma Escudo de Jade (150% absorción, -20% RES)."
 }

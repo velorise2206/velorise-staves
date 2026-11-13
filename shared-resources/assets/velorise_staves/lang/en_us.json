@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  Arkhe Alignment: %s (Sneak + Right-Click)",
   "tooltip.velorise_staves.splendor_hp_scale": "  Scales with Max HP, Fanfare & Ousia HP Drain (up to 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "Arkhe Alignment switched to: %s",
-  "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (AoE heal). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal)."
+  "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (AoE heal). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",
+  "item.velorise_staves.vortex_vanquisher": "Vortex Vanquisher",
+  "item.velorise_staves.vortex_vanquisher.desc": "Zhongli's archaic Geo polearm-staff. Right-Click summons a monolithic Stone Stele (pulses 6m resonant Geo shockwaves every 2s; cast at your feet to lift yourself skyward). Sneak + Right-Click forms a fortified Jade Shield (scales with Max HP, 150% absorption efficiency against all Elemental & Physical DMG, and shreds nearby enemy Elemental & Physical RES by -20%). Golden Majesty grants +20% DMG while shielded.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "Netherite Vortex Vanquisher",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Netherite-forged Vortex Vanquisher. Allows up to 2 simultaneous Stone Steles (1.5U Geo pulses), stronger Jade Shield Max HP scaling, -20% universal RES shred aura, and +30% Golden Majesty DMG while shielded.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  Sneak + Right-Click: Jade Shield (150% Absorb & +20%–30% Shielded DMG)",
+  "tooltip.velorise_staves.vortex_res_shred": "  Jade Shield Aura: -20% All Elemental & Physical RES (4.5m)",
+  "codex.velorise_staves.staff.vortex": "Summons Stone Stele (6m Geo resonance, 1➔2 Steles). Sneak+Use forms Jade Shield (150% absorption, -20% All RES aura & Golden Majesty +20%➔+30% DMG)."
 }

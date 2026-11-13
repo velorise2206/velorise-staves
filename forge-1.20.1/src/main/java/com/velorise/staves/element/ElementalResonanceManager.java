@@ -544,6 +544,7 @@ public final class ElementalResonanceManager {
         if (damage <= 0.0F) return damage;
         if (attacker != null) {
             damage *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
+            damage *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
         }
         if (!StavesConfig.isElementalResonanceEnabled()) return damage;
         long now = level.getGameTime();
@@ -568,6 +569,7 @@ public final class ElementalResonanceManager {
         if (!(src.getEntity() instanceof ServerPlayer attacker) || attacker == target) return amount;
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
         amount *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
+        amount *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
         if (!StavesConfig.isElementalResonanceEnabled()) return amount;
 
         long now = level.getGameTime();
@@ -594,8 +596,14 @@ public final class ElementalResonanceManager {
 
     public static float modifyIncomingDefenseDamage(LivingEntity victim, DamageSource src, float amount) {
         if (amount <= 0.0F || src.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return amount;
-        if (victim instanceof ServerPlayer sp && hasResonance(sp, ResonanceType.PROTECTIVE_CANOPY)) {
-            return amount * 0.85F;
+        if (victim instanceof ServerPlayer sp) {
+            if (ElementalGaugeManager.hasActiveJadeShield(sp)) {
+                // Jade Shield: 150% damage absorption efficiency against all Elemental & Physical damage
+                amount *= 0.67F;
+            }
+            if (hasResonance(sp, ResonanceType.PROTECTIVE_CANOPY)) {
+                amount *= 0.85F;
+            }
         }
         return amount;
     }

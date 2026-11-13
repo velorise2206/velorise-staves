@@ -35,13 +35,15 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 
 ---
 
-## 3. Geo Constructs & Fang Pillars
+## 3. Geo Constructs, Fang Pillars & Stone Steles
 
-* **Mechanism:** Casting the <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/evoker_fang_staff.png" width="16" height="16" /> [**Evoker Fang Staff**](Staves-List#evoker-fang-staff) summons 9 (Basic) or 13 (Netherite) biting fangs along with a solid **Geo Fang Pillar** (HP equal to 1x creator's Max HP).
+* **Mechanism:**
+  * Casting the <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/evoker_fang_staff.png" width="16" height="16" /> [**Evoker Fang Staff**](Staves-List#evoker-fang-staff) summons 9 (Basic) or 13 (Netherite) biting fangs along with a solid **Geo Fang Pillar** (`1x1x1` with `1x Max HP` on Basic; `1x2x1` with `2x Max HP` on Netherite; up to 3 active).
+  * Casting <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/vortex_vanquisher.png" width="16" height="16" /> [**Vortex Vanquisher**](Staves-List#vortex-vanquisher) summons a monolithic `1x2x1` **Stone Stele** (max 1 on Basic, 2 on Netherite) that resonates across a **6-block radius** (`1.0U` / `1.5U Geo` + `1.9% Max HP` bonus damage).
 * **Properties:**
-  * Pulses 3m square Geo shockwaves (0.5♥, 0.5U Geo) every 2 seconds.
-  * Draws enemy hostility, intercepts hostile projectiles, and blocks melee pathways.
-  * If cast beneath your feet, the pillar lifts you into the air, safely elevating you out of reach from melee mobs and Creepers.
+  * **Resonant Geo Shockwaves:** Pulses square Geo shockwaves every **2 seconds (40 ticks)** (`3m` radius, `0.5♥ / 0.5U Geo` on Basic Fang Pillar; `5m` radius, `1.0♥ / 1.0U Geo` on Netherite Fang Pillar; `6m` radius on Stone Stele) that chain-resonate with nearby Geo Constructs!
+  * **Taunt & Projectile Interception:** Draws enemy hostility without aggroing mobs onto the creator, intercepts hostile projectiles, and blocks melee pathways.
+  * **Self-Elevation (Cast Beneath Your Feet):** Looking downward (`>= 50°` pitch) when casting spawns the Geo Pillar or Stone Stele **directly beneath your feet** and immediately lifts you onto the top of the pillar (`liftEntityOntoPillar`), safely elevating you out of reach from melee mobs and Creepers.
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/geo_construct.gif" width="450" alt="Geo Construct Demo" />

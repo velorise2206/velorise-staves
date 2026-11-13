@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  Thuộc tính Arkhe: %s (Shift + Chuột phải)",
   "tooltip.velorise_staves.splendor_hp_scale": "  Tăng theo Max HP, Náo Nhiệt & Rút máu Ousia (tối đa 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "Đã chuyển thuộc tính Arkhe sang: %s",
-  "codex.velorise_staves.staff.splendor": "Triệu hồi Salon Cô Độc (Ousia: 3 thú cưng Thủy, rút máu >50% HP nhân tới 1.4x DMG) hoặc Ca Sĩ Nước Nguồn (Pneuma: hồi máu AoE). Đi trên mặt nước & tích Náo Nhiệt (+25%→+30% DMG/Heal)."
+  "codex.velorise_staves.staff.splendor": "Triệu hồi Salon Cô Độc (Ousia: 3 thú cưng Thủy, rút máu >50% HP nhân tới 1.4x DMG) hoặc Ca Sĩ Nước Nguồn (Pneuma: hồi máu AoE). Đi trên mặt nước & tích Náo Nhiệt (+25%→+30% DMG/Heal).",
+  "item.velorise_staves.vortex_vanquisher": "Giáo Nịnh Thần",
+  "item.velorise_staves.vortex_vanquisher.desc": "Thần thương Nham cổ đại của Zhongli. Chuột phải triệu hồi Vách Đá Stone Stele (phát xung cộng hưởng Nham 6m mỗi 2s; nhìn xuống chân cast sẽ đẩy bạn lên đỉnh trụ). Giữ Shift + Chuột phải tạo Khiên Ngọc Jade Shield (tăng theo Max HP, hấp thụ 150% mọi sát thương Nguyên tố & Vật lý, đồng thời giảm 20% Toàn bộ Kháng của kẻ địch quanh 4.5m). Nội tại tăng +20% sát thương khi có khiên.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "Giáo Nịnh Thần Netherite",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Giáo Nịnh Thần rèn từ Netherite. Cho phép duy trì tối đa 2 Vách Đá cùng lúc (xung 1.5U Nham), Khiên Ngọc dày hơn, hào quang giảm 20% toàn bộ kháng và tăng +30% sát thương khi được khiên bảo vệ.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  Shift + Chuột phải: Khiên Ngọc (Hấp thụ 150% & +20%–30% DMG khi có khiên)",
+  "tooltip.velorise_staves.vortex_res_shred": "  Hào quang Khiên Ngọc: -20% Toàn bộ Kháng Nguyên Tố & Vật Lý (4.5m)",
+  "codex.velorise_staves.staff.vortex": "Triệu hồi Vách Đá (xung cộng hưởng Nham 6m, 1➔2 trụ). Shift+Chuột phải tạo Khiên Ngọc (hấp thụ 150%, giảm 20% mọi kháng & +20%➔+30% DMG)."
 }

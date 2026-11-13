@@ -30,6 +30,20 @@ Configure [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-i
 # Carrying more than this limit triggers the Arcane Overload penalty.
 # Set to 0 to remove all inventory capacity limits.
 max_staves_in_inventory = 4
+
+# Direct damage bonus granted by Pyro Elemental Resonance (Default: 0.10 -> +10%)
+pyro_resonance_damage_bonus = 0.10
+
+# Armor durability wear mode on elemental hits: "NORMAL", "REDUCED", or "NONE"
+elemental_armor_durability_wear = "REDUCED"
+
+[scaling]
+# Genshin-style Co-Op Multi-Player Dynamic Mob HP & ATK Scaling
+enable_coop_mob_scaling = true
+hp_scale_per_extra_player = 0.50
+enable_coop_atk_scaling = true
+max_coop_players_cap = 4
+coop_scan_radius = 48.0
 ```
 
 ---

@@ -111,6 +111,8 @@ public class GeoFangPillarEntity extends Entity {
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_NETHERITE =
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> DATA_STELE =
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BOOLEAN);
 
     private static final class ActiveGeoWave {
         int age;
@@ -188,19 +190,29 @@ public class GeoFangPillarEntity extends Entity {
         builder.define(DATA_PULSE_SEQ, 0);
         builder.define(DATA_HURT_TICK, -100);
         builder.define(DATA_NETHERITE, false);
+        builder.define(DATA_STELE, false);
     }
 
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
-        if (DATA_NETHERITE.equals(key)) {
+        if (DATA_NETHERITE.equals(key) || DATA_STELE.equals(key)) {
             this.refreshDimensions();
         }
     }
 
     @Override
     public EntityDimensions getDimensions(Pose pose) {
-        return EntityDimensions.scalable(1.0F, isNetherite() ? 2.0F : 1.0F);
+        return EntityDimensions.scalable(1.0F, (isNetherite() || isStoneStele()) ? 2.0F : 1.0F);
+    }
+
+    public boolean isStoneStele() {
+        return this.entityData.get(DATA_STELE);
+    }
+
+    public void setStoneStele(boolean stele) {
+        this.entityData.set(DATA_STELE, stele);
+        this.refreshDimensions();
     }
 
     public boolean isNetherite() {
@@ -213,14 +225,25 @@ public class GeoFangPillarEntity extends Entity {
     }
 
     public double getWaveEndRadius() {
+        if (isStoneStele()) {
+            return 6.5D; // 6-block resonant radius around 0.5m half-width Stone Stele
+        }
         return isNetherite() ? NETHERITE_WAVE_END_RADIUS : BASIC_WAVE_END_RADIUS;
     }
 
     public float getWaveGeoDamage() {
+        if (isStoneStele()) {
+            Entity owner = getOwnerEntity();
+            float maxHp = owner instanceof LivingEntity le ? le.getMaxHealth() : 20.0F;
+            return (isNetherite() ? 3.0F : 2.0F) + maxHp * 0.019F; // Dominance of Earth: +1.9% Max HP
+        }
         return isNetherite() ? NETHERITE_WAVE_GEO_DAMAGE : BASIC_WAVE_GEO_DAMAGE;
     }
 
     public float getWaveGeoUnits() {
+        if (isStoneStele()) {
+            return isNetherite() ? 1.5F : 1.0F;
+        }
         return isNetherite() ? NETHERITE_WAVE_GEO_UNITS : BASIC_WAVE_GEO_UNITS;
     }
 
@@ -348,11 +371,36 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    public static void enforceMaxSteleForOwner(
+            ServerLevel level,
+            EntityType<GeoFangPillarEntity> type,
+            UUID ownerId,
+            int maxAllowed
+    ) {
+        List<GeoFangPillarEntity> owned = new ArrayList<>();
+        for (Entity entity : level.getEntities().getAll()) {
+            if (entity instanceof GeoFangPillarEntity construct
+                    && construct.getType() == type
+                    && construct.isAlive()
+                    && !construct.isRemoved()
+                    && construct.isStoneStele()
+                    && ownerId.equals(construct.getOwnerUUID())) {
+                owned.add(construct);
+            }
+        }
+        if (owned.size() < maxAllowed) return;
+        owned.sort(Comparator.comparingLong(GeoFangPillarEntity::getCreatedGameTime).thenComparingInt(Entity::getId));
+        int toRemove = owned.size() - (maxAllowed - 1);
+        for (int i = 0; i < toRemove; i++) {
+            owned.get(i).shatter();
+        }
+    }
+
     @Override
     public void tick() {
         super.tick();
         this.setDeltaMovement(Vec3.ZERO);
-        float expectedHeight = isNetherite() ? 2.0F : 1.0F;
+        float expectedHeight = (isNetherite() || isStoneStele()) ? 2.0F : 1.0F;
         if (Math.abs(this.getBbHeight() - expectedHeight) > 0.01F) {
             this.refreshDimensions();
         }
@@ -362,13 +410,15 @@ public class GeoFangPillarEntity extends Entity {
             return;
         }
 
-        if (this.ageTicks == 0) {
+        if (this.ageTicks <= 2) {
             this.refreshDimensions();
             liftOverlappingEntities(sl);
-            sl.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
-                    SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 0.75F);
-            sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.35F),
-                    this.getX(), this.getY() + 0.4D, this.getZ(), 14, 0.45D, 0.35D, 0.45D, 0.04D);
+            if (this.ageTicks == 0) {
+                sl.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
+                        SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 0.75F);
+                sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.35F),
+                        this.getX(), this.getY() + 0.4D, this.getZ(), 14, 0.45D, 0.35D, 0.45D, 0.04D);
+            }
         }
 
         this.ageTicks++;
@@ -417,16 +467,44 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    public void liftEntityOntoPillar(LivingEntity living) {
+        if (living == null || !living.isAlive() || living.isSpectator()) return;
+        this.refreshDimensions();
+        double topY = this.getBoundingBox().maxY + 0.06D;
+        double dy = topY - living.getY();
+        if (dy > -0.25D && dy <= 2.65D) {
+            AABB targetBox = living.getBoundingBox().move(
+                    this.getX() - living.getX(),
+                    Math.max(0.0D, dy),
+                    this.getZ() - living.getZ()
+            );
+            if (this.level().noBlockCollision(living, targetBox)) {
+                living.teleportTo(this.getX(), topY, this.getZ());
+                Vec3 dv = living.getDeltaMovement();
+                living.setDeltaMovement(dv.x, Math.max(0.12D, dv.y), dv.z);
+                living.setOnGround(true);
+                living.fallDistance = 0.0F;
+                living.hurtMarked = true;
+            }
+        }
+    }
+
     private void liftOverlappingEntities(ServerLevel level) {
         List<LivingEntity> overlapping = level.getEntitiesOfClass(
                 LivingEntity.class,
-                this.getBoundingBox().inflate(0.05D),
+                this.getBoundingBox().inflate(0.25D, 0.25D, 0.25D),
                 e -> e.isAlive() && !e.isSpectator()
         );
         for (LivingEntity living : overlapping) {
-            double dy = (this.getBoundingBox().maxY + 0.05D) - living.getY();
-            if (dy > 0.0D && dy <= 2.2D && level.noCollision(living, living.getBoundingBox().move(0.0D, dy, 0.0D))) {
-                living.teleportTo(living.getX(), living.getY() + dy, living.getZ());
+            double topY = this.getBoundingBox().maxY + 0.06D;
+            double dy = topY - living.getY();
+            if (dy > 0.0D && dy <= 2.65D && level.noBlockCollision(living, living.getBoundingBox().move(0.0D, dy, 0.0D))) {
+                living.teleportTo(living.getX(), topY, living.getZ());
+                Vec3 dv = living.getDeltaMovement();
+                living.setDeltaMovement(dv.x, Math.max(0.12D, dv.y), dv.z);
+                living.setOnGround(true);
+                living.fallDistance = 0.0F;
+                living.hurtMarked = true;
             }
         }
     }

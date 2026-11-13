@@ -24,7 +24,7 @@ Frequently asked questions regarding gameplay mechanics, compatibility, performa
 ---
 
 ### How is the Wind Staff crafted on Forge 1.20.1 (which doesn't have Trial Chambers)?
-* **Full 13-Staff Backport:** On Forge 1.20.1, Velorise's Staves registers custom `velorise_staves:breeze_rod` and throwable `velorise_staves:wind_charge` items!
+* **Full 15-Staff Backport:** On Forge 1.20.1, Velorise's Staves registers custom `velorise_staves:breeze_rod` and throwable `velorise_staves:wind_charge` items!
 * Simply harvest **Anemo Element** (`anemo_element`) from Phantoms, Vexes, or Anemo-mutated mobs, then craft:
   * `1x Anemo Element` (shapeless) $\rightarrow$ **`4x Wind Charges`**
   * `1x Anemo Element + 1x Blaze Rod` (shapeless) $\rightarrow$ **`1x Breeze Rod`**
@@ -46,10 +46,10 @@ Frequently asked questions regarding gameplay mechanics, compatibility, performa
 
 ---
 
-### Why does a mob standing in water not show a persistent Hydro aura on Jade?
+### How does Jade display mobs standing in water or rain (`Wet (Env)`)?
 * **Intentional Optimization & Performance Safeguard:**
   * Attaching persistent aura objects and continuous network sync packets to every fish, squid, and drowned in oceans and rivers would cause unnecessary server-side packet traffic.
-  * Environmental wetness (**Submerged in Water**, **Standing in Rain**, or **Bubble Columns**) is evaluated dynamically on-demand during combat calculations, so striking any mob in water with Cryo, Electro, Pyro, Dendro, or Geo triggers [**Frozen**](Elements-and-Reactions#frozen), [**Electro-Charged**](Elements-and-Reactions#electro-charged), [**Vaporize**](Elements-and-Reactions#vaporize), [**Bloom**](Elements-and-Reactions#bloom), or [**Crystallize**](Elements-and-Reactions#crystallize) 100% reliably.
+  * Jade HUD automatically detects environmental wetness (**Submerged in Water**, **Standing in Rain**, or **Bubble Columns**) and displays a light-blue **`Wet (Env)`** badge without spamming persistent server aura packets! Striking any `Wet (Env)` mob with Cryo, Electro, Pyro, Dendro, or Geo triggers [**Frozen**](Elements-and-Reactions#frozen), [**Electro-Charged**](Elements-and-Reactions#electro-charged), [**Vaporize**](Elements-and-Reactions#vaporize), [**Bloom**](Elements-and-Reactions#bloom), or [**Crystallize**](Elements-and-Reactions#crystallize) 100% reliably.
 
 ---
 

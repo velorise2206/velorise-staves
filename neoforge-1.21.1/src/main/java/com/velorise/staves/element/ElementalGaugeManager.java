@@ -124,6 +124,8 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> FURINA_FANFARE_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> FURINA_FANFARE_POINTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> FURINA_FANFARE_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> JADE_SHIELD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> JADE_SHIELD_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
@@ -576,6 +578,9 @@ public final class ElementalGaugeManager {
         if (hasSuperconductDebuff(target, now)) {
             res -= 0.40F;
         }
+        if (isNearJadeShieldAura(target)) {
+            res -= 0.20F; // Zhongli Jade Shield: -20% Physical RES within 4.5m
+        }
         return computeResistanceMultiplier(res);
     }
 
@@ -583,6 +588,9 @@ public final class ElementalGaugeManager {
         float res = getMobElementalResistance(target, element);
         if (target != null && element == Element.GEO && ElementalResonanceManager.hasGeoResShred(target, now)) {
             res -= 0.20F;
+        }
+        if (isNearJadeShieldAura(target)) {
+            res -= 0.20F; // Zhongli Jade Shield: -20% All Elemental RES within 4.5m
         }
         return res;
     }
@@ -1107,6 +1115,64 @@ public final class ElementalGaugeManager {
         boolean neth = Boolean.TRUE.equals(FURINA_FANFARE_NETHERITE.get(bestOwner));
         float maxBonus = neth ? 0.30F : 0.25F;
         return 1.0F + (bestPoints / 300.0F) * maxBonus;
+    }
+
+    public static void activateJadeShield(ServerPlayer player, boolean isNetherite) {
+        if (player == null || player.level().isClientSide()) return;
+        long now = player.level().getGameTime();
+        JADE_SHIELD_UNTIL.put(player.getUUID(), now + 400L); // 20s Jade Shield
+        JADE_SHIELD_NETHERITE.put(player.getUUID(), isNetherite);
+        float maxHp = Math.max(20.0F, player.getMaxHealth());
+        // Base Jade Shield capacity + 20% Golden Majesty Shield Strength bonus
+        float shieldHp = ((isNetherite ? (maxHp * 0.30F + 6.0F) : (maxHp * 0.20F + 4.0F)) * 1.20F);
+        if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
+            shieldHp *= 1.15F;
+        }
+        player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
+    }
+
+    public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        Long until = JADE_SHIELD_UNTIL.get(player.getUUID());
+        if (until == null || player.level().getGameTime() >= until) {
+            return false;
+        }
+        if (player.getAbsorptionAmount() <= 0.01F) {
+            JADE_SHIELD_UNTIL.remove(player.getUUID());
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean isNearJadeShieldAura(@Nullable LivingEntity target) {
+        if (target == null || !(target.level() instanceof ServerLevel sl)) return false;
+        for (ServerPlayer sp : sl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(target) <= 20.25D)) {
+            if (hasActiveJadeShield(sp) && sp != target && !sp.isAlliedTo(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) {
+        if (attacker == null) return 1.0F;
+        ItemStack main = attacker.getMainHandItem();
+        ItemStack off = attacker.getOffhandItem();
+        com.velorise.staves.item.ArcaneStaffItem vortex = null;
+        if (!main.isEmpty() && main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s1
+                && s1.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+            vortex = s1;
+        } else if (!off.isEmpty() && off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s2
+                && s2.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+            vortex = s2;
+        }
+        if (vortex == null) return 1.0F;
+        boolean shielded = hasActiveJadeShield(attacker)
+                || attacker.getAbsorptionAmount() > 0.0F
+                || CrystallizeShardManager.getActiveShield(attacker, attacker.level().getGameTime()) != null;
+        float baseBonus = vortex.isNetherite() ? 0.15F : 0.10F;
+        // Golden Majesty: +100% bonus while protected by a shield (+20% Basic / +30% Netherite)
+        return 1.0F + (shielded ? baseBonus * 2.0F : baseBonus);
     }
 
     public static void applyFurinaWaterWalking(Player player) {
@@ -3809,7 +3875,7 @@ public final class ElementalGaugeManager {
         level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.0D);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 20, 0.6D, 0.6D, 0.6D, 0.06D);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.1F);
-        EnvironmentalBlockManager.checkPyroAmethystMining(level, pos, 3.5D);
+        EnvironmentalBlockManager.applyOverloadEnvironmentEffects(level, pos, 3.5D);
 
         AABB box = target.getBoundingBox().inflate(3.5D);
         float transEmMult = getTransformativeMultiplier(getElementalMasteryLevel(attacker));
@@ -4251,6 +4317,9 @@ public final class ElementalGaugeManager {
             updatePlayerHpTracking(player, player.level().getGameTime());
             if (!player.isShiftKeyDown() && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player)) {
                 applyFurinaWaterWalking(player);
+            }
+            if (hasActiveJadeShield(player) && player.level() instanceof ServerLevel jsl && serverNow % 10 == 0) {
+                jsl.sendParticles(ParticleTypes.WAX_ON, player.getX(), player.getY() + 1.0D, player.getZ(), 3, 0.35D, 0.45D, 0.35D, 0.01D);
             }
             ElementalResonanceManager.tickPlayer(player);
             if (!player.isSpectator()) {

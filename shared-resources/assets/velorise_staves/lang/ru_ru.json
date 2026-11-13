@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  Архэ: %s (Красться + ПКМ)",
   "tooltip.velorise_staves.splendor_hp_scale": "  Зависит от макс. HP, Фанфар и расхода HP Усии (до 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "Архэ переключено на: %s",
-  "codex.velorise_staves.staff.splendor": "Призывает «Одинокий салон» (Усия, до 1.4x урона) или «Певца многих вод» (Пневма, исцеление). Хождение по воде и Фанфары (+25%→+30%)."
+  "codex.velorise_staves.staff.splendor": "Призывает «Одинокий салон» (Усия, до 1.4x урона) или «Певца многих вод» (Пневма, исцеление). Хождение по воде и Фанфары (+25%→+30%).",
+  "item.velorise_staves.vortex_vanquisher": "Покоритель вихря",
+  "item.velorise_staves.vortex_vanquisher.desc": "Древнее Гео копьё Чжун Ли. ПКМ призывает Каменную стелу (волны 6 м каждые 2 с; под ногами поднимает вас вверх). Красться + ПКМ создаёт Яшмовый щит (зависит от макс. HP, 150% поглощения урона, снижает все сопротивления врагов на 20%). Под щитом урон +20%.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "Незеритовый Покоритель вихря",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Усиленный незеритом Покоритель вихря. До 2 Каменных стел одновременно (1.5U Гео), усиленный Яшмовый щит, аура -20% сопротивлений и +30% урона под щитом.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  Красться + ПКМ: Яшмовый щит (150% поглощения и +20%–30% урона)",
+  "tooltip.velorise_staves.vortex_res_shred": "  Аура Яшмового щита: -20% всех сопротивлений врагов (4.5 м)",
+  "codex.velorise_staves.staff.vortex": "Призывает Каменную стелу (6 м резонанс, 1➔2 стелы). Красться+ПКМ создаёт Яшмовый щит (150% поглощения, -20% всех сопр.)."
 }

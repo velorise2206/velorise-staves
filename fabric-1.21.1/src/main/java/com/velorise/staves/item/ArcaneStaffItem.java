@@ -99,7 +99,7 @@ public final class ArcaneStaffItem extends Item {
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, LIGHTNING, FROST, WEB, WIND, OMNI
+        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, WEB, WIND, OMNI
     }
 
     public static final String TAG_OMNI_MODE = "OmniMode";
@@ -258,6 +258,7 @@ public final class ArcaneStaffItem extends Item {
             case WITHER -> shootWither(serverPlayer);
             case SHULKER -> shootShulker(serverPlayer);
             case EVOKER -> castFangs(serverPlayer);
+            case VORTEX -> castVortexVanquisher(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
             case WIND -> shootWind(serverPlayer);
@@ -648,10 +649,18 @@ public final class ArcaneStaffItem extends Item {
             }
             level.addFreshEntity(fangs);
         }
-        double firstX = player.getX() + flat.x * 1.5D;
-        double firstZ = player.getZ() + flat.z * 1.5D;
-        double constructX = Math.floor(firstX) + 0.5D;
-        double constructZ = Math.floor(firstZ) + 0.5D;
+        boolean castUnderFeet = player.getXRot() >= 50.0F;
+        double constructX;
+        double constructZ;
+        if (castUnderFeet) {
+            constructX = player.getX();
+            constructZ = player.getZ();
+        } else {
+            double firstX = player.getX() + flat.x * 1.5D;
+            double firstZ = player.getZ() + flat.z * 1.5D;
+            constructX = Math.floor(firstX) + 0.5D;
+            constructZ = Math.floor(firstZ) + 0.5D;
+        }
         double constructY = findGroundY(level, constructX, player.getY(), constructZ);
         com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
                 level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
@@ -665,9 +674,87 @@ public final class ArcaneStaffItem extends Item {
                         isNetherite
                 );
         level.addFreshEntity(construct);
+        if (castUnderFeet) {
+            construct.liftEntityOntoPillar(player);
+        }
         com.velorise.staves.advancement.ModAdvancements.trigger(
                 player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
+        return true;
+    }
+
+    private boolean castVortexVanquisher(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        Vec3 direction = player.getLookAngle();
+        Vec3 flat = new Vec3(direction.x, 0.0D, direction.z);
+        if (flat.lengthSqr() < 0.001D) flat = new Vec3(0.0D, 0.0D, 1.0D);
+        flat = flat.normalize();
+        float yaw = (float) Math.atan2(flat.z, flat.x);
+
+        boolean holdJadeShield = player.isShiftKeyDown();
+        boolean castUnderFeet = player.getXRot() >= 50.0F;
+
+        double steleX;
+        double steleZ;
+        if (castUnderFeet) {
+            steleX = player.getX();
+            steleZ = player.getZ();
+        } else {
+            HitResult hit = player.pick(12.0D, 0.0F, false);
+            if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult bhr) {
+                BlockPos bp = bhr.getBlockPos();
+                steleX = bp.getX() + 0.5D;
+                steleZ = bp.getZ() + 0.5D;
+            } else {
+                double tx = player.getX() + flat.x * 2.5D;
+                double tz = player.getZ() + flat.z * 2.5D;
+                steleX = Math.floor(tx) + 0.5D;
+                steleZ = Math.floor(tz) + 0.5D;
+            }
+        }
+        double steleY = findGroundY(level, steleX, player.getY(), steleZ);
+
+        int maxSteles = isNetherite ? 2 : 1;
+        com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxSteleForOwner(
+                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID(), maxSteles);
+
+        com.velorise.staves.entity.GeoFangPillarEntity stele =
+                new com.velorise.staves.entity.GeoFangPillarEntity(
+                        com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
+                        level,
+                        steleX, steleY, steleZ,
+                        (float) Math.toDegrees(yaw),
+                        player,
+                        isNetherite
+                );
+        stele.setStoneStele(true);
+        level.addFreshEntity(stele);
+        if (castUnderFeet) {
+            stele.liftEntityOntoPillar(player);
+        }
+
+        // Initial Dominus Lapidis Geo shockwave (scales with 1.9% Max HP)
+        float maxHp = Math.max(20.0F, player.getMaxHealth());
+        float baseDmg = (isNetherite ? 12.0F : 8.0F) + maxHp * 0.019F;
+        float gaugeU = isNetherite ? 1.5F : 1.0F;
+        Vec3 shockCenter = holdJadeShield ? player.position() : new Vec3(steleX, steleY, steleZ);
+        AABB box = new AABB(
+                shockCenter.x - 4.0D, shockCenter.y - 1.5D, shockCenter.z - 4.0D,
+                shockCenter.x + 4.0D, shockCenter.y + 3.0D, shockCenter.z + 4.0D
+        );
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+            ElementalGaugeManager.applyElement(level, target, Element.GEO, gaugeU, player, baseDmg);
+        }
+
+        if (holdJadeShield) {
+            ElementalGaugeManager.activateJadeShield(player, isNetherite);
+            level.playSound(null, player.blockPosition(), SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 0.75F, 0.85F);
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 0.95F);
+        } else {
+            level.playSound(null, BlockPos.containing(steleX, steleY, steleZ), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.65F, 0.9F);
+        }
+        com.velorise.staves.advancement.ModAdvancements.trigger(
+                player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
         return true;
     }
 
@@ -889,6 +976,7 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
             case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
             case EVOKER, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+            case VORTEX -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(Items.BLAZE_ROD);
             case OMNI -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.DIAMOND) || repair.is(Items.NETHER_STAR);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
@@ -900,7 +988,7 @@ public final class ArcaneStaffItem extends Item {
             case ECHO, WIND -> Element.ANEMO;
             case INFERNO, GHASTFIRE -> Element.PYRO;
             case GUARDIAN, SPLENDOR -> Element.HYDRO;
-            case EVOKER -> Element.GEO;
+            case EVOKER, VORTEX -> Element.GEO;
             case FROST -> Element.CRYO;
             case WEB, WITHER -> Element.DENDRO;
             case OMNI -> null;
@@ -918,6 +1006,7 @@ public final class ArcaneStaffItem extends Item {
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (30s)" : "16m Ousia / 6m Pneuma (30s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
+            case VORTEX -> isNetherite ? "12m (2 Steles, 6m Pulse / Jade Shield)" : "12m (1 Stele, 6m Pulse / Jade Shield)";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
             case WEB -> "28m";
@@ -1004,6 +1093,12 @@ public final class ArcaneStaffItem extends Item {
                 yield (fmtHearts(minHit) + "-" + fmtHearts(maxHit)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
+            case VORTEX -> {
+                float maxHp = getDisplayMaxHp();
+                float slam = (isNetherite ? 12.0F : 8.0F) + maxHp * 0.019F;
+                float pulse = (isNetherite ? 3.0F : 2.0F) + maxHp * 0.019F;
+                yield fmtHearts(slam) + heart + " (+" + fmtHearts(pulse) + heart + "/2s) " + icon + (isNetherite ? "1.5U" : "1U");
+            }
             case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
             case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
@@ -1072,6 +1167,9 @@ public final class ArcaneStaffItem extends Item {
                     : "tooltip.velorise_staves.splendor.mode_ousia";
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_hp_scale").withStyle(ChatFormatting.AQUA));
+        } else if (kind == Kind.VORTEX) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_jade_shield").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_res_shred").withStyle(ChatFormatting.YELLOW));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));

@@ -73,6 +73,48 @@ public final class EnvironmentalBlockManager {
      * 2. Ignites unlit Campfires, unlit Candles, and TNT blocks.
      * 3. Burns replaceable flammable vegetation/cobwebs and ignites flammable materials (wood, leaves, wool, hay, etc.).
      */
+    /**
+     * Safe Overloaded reaction block interaction:
+     * Mines Amethyst Clusters into 2-4 Amethyst Shards, melts nearby Ice/Snow,
+     * and primes TNT or lights unlit Campfires/Candles without placing fire blocks or burning terrain.
+     */
+    public static void applyOverloadEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius) {
+        checkPyroAmethystMining(level, hitPos, radius);
+        BlockPos center = BlockPos.containing(hitPos);
+        int r = Math.max(1, (int) Math.ceil(radius));
+        double r2 = (radius + 0.65D) * (radius + 0.65D);
+        boolean isUltraWarm = level.dimensionType().ultraWarm();
+
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -1, -r), center.offset(r, 2, r))) {
+            if (!level.hasChunkAt(p)) continue;
+            Vec3 blockCenter = Vec3.atCenterOf(p);
+            if (blockCenter.distanceToSqr(hitPos) > r2) continue;
+            BlockState st = level.getBlockState(p);
+            if (st.isAir()) continue;
+
+            if (st.is(Blocks.FROSTED_ICE) || st.is(Blocks.ICE)) {
+                level.setBlockAndUpdate(p, isUltraWarm ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState());
+                level.sendParticles(ParticleTypes.CLOUD, blockCenter.x, blockCenter.y, blockCenter.z, 5, 0.2D, 0.2D, 0.2D, 0.02D);
+                level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 1.4F);
+            } else if (st.is(Blocks.PACKED_ICE) && radius >= 2.0D) {
+                level.setBlockAndUpdate(p, Blocks.ICE.defaultBlockState());
+            } else if (st.is(Blocks.SNOW) || st.is(Blocks.SNOW_BLOCK) || st.is(Blocks.POWDER_SNOW)) {
+                level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
+            } else if (st.is(Blocks.POWDER_SNOW_CAULDRON)) {
+                level.setBlockAndUpdate(p, Blocks.WATER_CAULDRON.defaultBlockState());
+            } else if (st.getBlock() instanceof CampfireBlock && CampfireBlock.canLight(st)) {
+                level.setBlockAndUpdate(p, st.setValue(CampfireBlock.LIT, true));
+                level.playSound(null, p, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 0.8F, 1.1F);
+            } else if (st.is(Blocks.TNT)) {
+                level.removeBlock(p, false);
+                net.minecraft.world.entity.item.PrimedTnt tnt = new net.minecraft.world.entity.item.PrimedTnt(
+                        level, p.getX() + 0.5D, p.getY(), p.getZ() + 0.5D, null);
+                level.addFreshEntity(tnt);
+                level.playSound(null, p, SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0F, 1.0F);
+            }
+        }
+    }
+
     public static void applyPyroEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius) {
         BlockPos center = BlockPos.containing(hitPos);
         int r = Math.max(1, (int) Math.ceil(radius));

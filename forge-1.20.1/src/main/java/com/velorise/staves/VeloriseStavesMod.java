@@ -124,6 +124,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> EVOKER_FANG_STAFF = ITEMS.register("evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 120, false));
 
+    public static final Supplier<Item> VORTEX_VANQUISHER = ITEMS.register("vortex_vanquisher",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, 140, false));
+
     public static final Supplier<Item> ARC_CASTER = ITEMS.register("arc_caster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 130, false));
 
@@ -236,6 +239,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 450, true));
 
+    public static final Supplier<Item> NETHERITE_VORTEX_VANQUISHER = ITEMS.register("netherite_vortex_vanquisher",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, 500, true));
+
     public static final Supplier<Item> NETHERITE_ARC_CASTER = ITEMS.register("netherite_arc_caster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 500, true));
 
@@ -277,6 +283,7 @@ public final class VeloriseStavesMod {
                 output.accept(GUARDIAN_LENS.get());
                 output.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
                 output.accept(EVOKER_FANG_STAFF.get());
+                output.accept(VORTEX_VANQUISHER.get());
                 output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(WEBCASTER.get());
@@ -295,6 +302,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_GUARDIAN_LENS.get());
                 output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
                 output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
+                output.accept(NETHERITE_VORTEX_VANQUISHER.get());
                 output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_WEBCASTER.get());
@@ -365,6 +373,7 @@ public final class VeloriseStavesMod {
             event.accept(GUARDIAN_LENS.get());
             event.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
             event.accept(EVOKER_FANG_STAFF.get());
+            event.accept(VORTEX_VANQUISHER.get());
             event.accept(ARC_CASTER.get());
             event.accept(FROSTBOLT_WAND.get());
             event.accept(WEBCASTER.get());
@@ -379,6 +388,7 @@ public final class VeloriseStavesMod {
             event.accept(NETHERITE_GUARDIAN_LENS.get());
             event.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
             event.accept(NETHERITE_EVOKER_FANG_STAFF.get());
+            event.accept(NETHERITE_VORTEX_VANQUISHER.get());
             event.accept(NETHERITE_ARC_CASTER.get());
             event.accept(NETHERITE_FROSTBOLT_WAND.get());
             event.accept(NETHERITE_WEBCASTER.get());

@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  Alignement Arkhe : %s (S'accroupir + Clic droit)",
   "tooltip.velorise_staves.splendor_hp_scale": "  Augmente avec les PV max, la Fanfare et le drain Ousia (max 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "Alignement Arkhe changé en : %s",
-  "codex.velorise_staves.staff.splendor": "Invoque le Salon solitaire (Ousia, jusqu'à 1,4x DGT) ou le Chanteur des mille eaux (Pneuma, soin). Marche sur l'eau et Fanfare (+25%→+30%)."
+  "codex.velorise_staves.staff.splendor": "Invoque le Salon solitaire (Ousia, jusqu'à 1,4x DGT) ou le Chanteur des mille eaux (Pneuma, soin). Marche sur l'eau et Fanfare (+25%→+30%).",
+  "item.velorise_staves.vortex_vanquisher": "Perceur prismatique",
+  "item.velorise_staves.vortex_vanquisher.desc": "La lance Géo antique de Zhongli. Clic droit invoque une Dorsale rocheuse (ondes Géo de 6 m toutes les 2 s ; sous vos pieds, vous soulève). S'accroupir + Clic droit forme un Bouclier de jade (selon PV max, 150 % d'efficacité d'absorption, -20 % à toutes les RÉS ennemies proches). +20 % DGT sous bouclier.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "Perceur prismatique en Netherite",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Perceur prismatique forgé en Netherite. Jusqu'à 2 Dorsales rocheuses simultanées (1,5U Géo), Bouclier de jade renforcé, aura -20 % RÉS et +30 % DGT sous bouclier.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  S'accroupir + Clic droit : Bouclier de jade (150 % absorption & +20 %–30 % DGT)",
+  "tooltip.velorise_staves.vortex_res_shred": "  Aura de jade : -20 % à toutes les RÉS élémentaires et physiques (4,5 m)",
+  "codex.velorise_staves.staff.vortex": "Invoque une Dorsale rocheuse (6 m, 1➔2 stèles). S'accroupir+Clic droit crée un Bouclier de jade (150 % absorption, -20 % RÉS)."
 }

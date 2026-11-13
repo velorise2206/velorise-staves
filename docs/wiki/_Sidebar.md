@@ -12,7 +12,7 @@
 * **[Resonances & Overload](Elements-and-Reactions#elemental-resonance-system-all-8-resonances)**
   * [Arcane Overload (4-Staff Cap)](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap)
   * [Innate & Mutated Mobs](Elements-and-Reactions#innate-elemental-mobs-drops--rare-omni-mutations)
-* **[Staves & Weapons (13 Archetypes)](Staves-List)**
+* **[Staves & Weapons (15 Archetypes)](Staves-List)**
   * [The Apex Weapon: Omni Staff](Staves-List#the-apex-weapon-omni-staff)
   * [Netherite Smithing Upgrade](Staves-List#netherite-smithing-upgrade-process)
   * [Staff Enchantments (EM)](Staves-List#staff-enchantments-elemental-mastery)
@@ -38,5 +38,5 @@
 
 ---
 <div align="center">
-  <sub>Version: <b>1.0.0</b><br/>Minecraft <b>1.20.1 & 1.21.1</b></sub>
+  <sub>Version: <b>1.0.1</b><br/>Minecraft <b>1.20.1 & 1.21.1</b></sub>
 </div>

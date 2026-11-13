@@ -91,6 +91,7 @@ public final class StavesConfig {
     public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 8.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
+    public static final DoubleValue VORTEX_COOLDOWN = defineDouble("cooldowns", "vortex_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue ARC_CASTER_COOLDOWN = defineDouble("cooldowns", "arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
@@ -116,6 +117,8 @@ public final class StavesConfig {
     public static final IntValue SPLENDOR_DURABILITY_NETHERITE = defineInt("durability", "splendor_netherite", 500, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_BASIC = defineInt("durability", "evoker_basic", 120, 10, 5000);
     public static final IntValue EVOKER_DURABILITY_NETHERITE = defineInt("durability", "evoker_netherite", 450, 10, 5000);
+    public static final IntValue VORTEX_DURABILITY_BASIC = defineInt("durability", "vortex_basic", 140, 10, 5000);
+    public static final IntValue VORTEX_DURABILITY_NETHERITE = defineInt("durability", "vortex_netherite", 500, 10, 5000);
     public static final IntValue ARC_CASTER_DURABILITY_BASIC = defineInt("durability", "arc_caster_basic", 130, 10, 5000);
     public static final IntValue ARC_CASTER_DURABILITY_NETHERITE = defineInt("durability", "arc_caster_netherite", 500, 10, 5000);
     public static final IntValue FROSTBOLT_DURABILITY_BASIC = defineInt("durability", "frostbolt_basic", 150, 10, 5000);
@@ -525,6 +528,7 @@ public final class StavesConfig {
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
             case SPLENDOR -> isNetherite ? SPLENDOR_DURABILITY_NETHERITE.get() : SPLENDOR_DURABILITY_BASIC.get();
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
+            case VORTEX -> isNetherite ? VORTEX_DURABILITY_NETHERITE.get() : VORTEX_DURABILITY_BASIC.get();
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
@@ -560,6 +564,7 @@ public final class StavesConfig {
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
             case SPLENDOR -> SPLENDOR_COOLDOWN.get();
             case EVOKER -> EVOKER_COOLDOWN.get();
+            case VORTEX -> VORTEX_COOLDOWN.get();
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();

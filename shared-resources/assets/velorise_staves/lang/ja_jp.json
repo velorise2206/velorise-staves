@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  アルケー属性: %s (スニーク + 右クリック)",
   "tooltip.velorise_staves.splendor_hp_scale": "  最大HP・テンション・ウーシアHP消費で強化 (最大 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "アルケー属性を切り替えました: %s",
-  "codex.velorise_staves.staff.splendor": "ウーシア「サロン・ソリティア」（水召喚3体、最大1.4x DMG）またはプネウマ「衆水の歌い手」（範囲回復）を召喚。水上歩行＆テンションバフ（+25%→+30%）。"
+  "codex.velorise_staves.staff.splendor": "ウーシア「サロン・ソリティア」（水召喚3体、最大1.4x DMG）またはプネウマ「衆水の歌い手」（範囲回復）を召喚。水上歩行＆テンションバフ（+25%→+30%）。",
+  "item.velorise_staves.vortex_vanquisher": "破天の槍",
+  "item.velorise_staves.vortex_vanquisher.desc": "鍾離の古代岩長槍。右クリックで「岩柱」を召喚（2秒마다6mの原岩共鳴衝撃波；足元に放つと自身を持ち上げる）。スニーク+右クリックで「玉璋シールド」を展開（最大HP依存、全元素・物理ダメージ150%吸収、周囲の敵の全耐性-20%）。シールド時ダメージ+20%。",
+  "item.velorise_staves.netherite_vortex_vanquisher": "ネザライトの破天の槍",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "ネザライト製の破天の槍。岩柱を最大2本同時設置可能（1.5U岩）、強化された玉璋シールド、全耐性-20%オーラ、シールド時ダメージ+30%。",
+  "tooltip.velorise_staves.vortex_jade_shield": "  スニーク + 右クリック: 玉璋シールド (150%吸収 & シールド時+20%–30% DMG)",
+  "tooltip.velorise_staves.vortex_res_shred": "  玉璋オーラ: 周囲4.5mの敵の全元素・物理耐性 -20%",
+  "codex.velorise_staves.staff.vortex": "岩柱を召喚（6m共鳴、最大1➔2本）。スニーク+右クリックで玉璋シールド（150%吸収、全耐性-20%、シールド時+20%➔+30% DMG）。"
 }

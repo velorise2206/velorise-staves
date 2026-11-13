@@ -496,5 +496,12 @@
   "tooltip.velorise_staves.splendor_arkhe": "  아르케 속성: %s (웅크리기 + 우클릭)",
   "tooltip.velorise_staves.splendor_hp_scale": "  최대 HP, 열기도 및 우시아 체력 소모 비례 (최대 1.4x)",
   "message.velorise_staves.splendor_arkhe_switched": "아르케 속성이 전환되었습니다: %s",
-  "codex.velorise_staves.staff.splendor": "우시아 「고독한 살롱」(물 소환수 3마리, 최대 1.4x 피해) 또는 프네우마 「물들의 가수」(광역 치유) 소환. 수상 보행 및 열기도 버프(+25%→+30%)."
+  "codex.velorise_staves.staff.splendor": "우시아 「고독한 살롱」(물 소환수 3마리, 최대 1.4x 피해) 또는 프네우마 「물들의 가수」(광역 치유) 소환. 수상 보행 및 열기도 버프(+25%→+30%).",
+  "item.velorise_staves.vortex_vanquisher": "관홍의 창",
+  "item.velorise_staves.vortex_vanquisher.desc": "종려의 고대 바위 장창. 우클릭으로 「암주」 소환(2초마다 6m 공명 충격파, 발밑에 시전 시 자신을 들어 올림). 웅크리기+우클릭으로 「옥홀 방패」 생성(최대 체력 비례, 모든 원소 및 물리 피해 150% 흡수, 주변 적 모든 내성 20% 감소). 보호막 상태에서 피해 +20%.",
+  "item.velorise_staves.netherite_vortex_vanquisher": "네더라이트 관홍의 창",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "네더라이트로 단조된 관홍의 창. 암주 최대 2개 동시 유지(1.5U 바위), 강화된 옥홀 방패, 모든 내성 -20% 오라 및 보호막 상태 피해 +30%.",
+  "tooltip.velorise_staves.vortex_jade_shield": "  웅크리기 + 우클릭: 옥홀 방패 (150% 흡수 & 보호막 시 +20%–30% 피해)",
+  "tooltip.velorise_staves.vortex_res_shred": "  옥홀 오라: 주변 4.5m 적의 모든 원소 및 물리 내성 -20%",
+  "codex.velorise_staves.staff.vortex": "암주 소환(6m 공명, 1➔2개). 웅크리기+우클릭으로 옥홀 방패(150% 흡수, 모든 내성 -20%, 보호막 시 +20%➔+30% 피해)."
 }

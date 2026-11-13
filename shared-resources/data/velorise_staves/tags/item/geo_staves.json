@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "velorise_staves:evoker_fang_staff"
+    "velorise_staves:evoker_fang_staff",
+    "velorise_staves:vortex_vanquisher",
+    "velorise_staves:netherite_vortex_vanquisher"
   ]
 }

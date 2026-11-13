@@ -21,7 +21,7 @@ Instead of generic magic projectiles that simply apply flat damage or vanilla po
 
 * **7 Arcane Elements + Omni Essence:** <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png" width="16" height="16" /> Pyro, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png" width="16" height="16" /> Hydro, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png" width="16" height="16" /> Cryo, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png" width="16" height="16" /> Electro, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png" width="16" height="16" /> Dendro, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png" width="16" height="16" /> Anemo, <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png" width="16" height="16" /> Geo, and <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="16" height="16" /> Omni.
 * **16 Elemental Reactions:** Multiplicative amplification (Forward/[Reverse Vaporize](Elements-and-Reactions#reverse-vaporize), Forward/[Reverse Melt](Elements-and-Reactions#reverse-melt)), crowd control ([Frozen](Elements-and-Reactions#frozen), [Shatter](Elements-and-Reactions#shatter)), cascading area shocks ([Electro-Charged](Elements-and-Reactions#electro-charged), [Overloaded](Elements-and-Reactions#overloaded), [Overvape](Elements-and-Reactions#overvape), [Superconduct](Elements-and-Reactions#superconduct)), organic seed chains ([Bloom](Elements-and-Reactions#bloom), [Hyperbloom](Elements-and-Reactions#hyperbloom), [Burgeon](Elements-and-Reactions#burgeon), [Quicken](Elements-and-Reactions#quicken), [Aggravate](Elements-and-Reactions#aggravate), [Spread](Elements-and-Reactions#spread), [Burning](Elements-and-Reactions#burning)), and trigger effects ([Swirl](Elements-and-Reactions#swirl), [Crystallize](Elements-and-Reactions#crystallize)).
-* **13 Distinct [Arcane Staves](Staves-List#arcane-staves--netherite-upgrades) (+ Netherite Upgrades):** Each with dedicated projectile types, sequential burst combos, charging phases, or continuous channeled beams—with full 13-staff parity across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1** (including backported [Wind Staff](Staves-List#wind-staff), Breeze Rod, and throwable Wind Charge on 1.20.1).
+* **15 Distinct [Arcane Staves](Staves-List#arcane-staves--netherite-upgrades) (+ Netherite Upgrades):** Each with dedicated projectile types, sequential burst combos, charging phases, or continuous channeled beams—with full 15-staff parity across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1** (including backported [Wind Staff](Staves-List#wind-staff), Breeze Rod, and throwable Wind Charge on 1.20.1).
 * **8-Type [Elemental Resonance](Elements-and-Reactions#elemental-resonance-system-all-8-resonances) & 4-Staff Cap:** Unlock passive elemental team buffs when carrying matching staves, balanced by the [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap) inventory cap.
 * **Anvil Weapon Imbuing & Staff Repair:** Infuse standard swords (Wood through Netherite, plus modded `SwordItem`s) with elemental essences on an anvil for **3 XP levels** to trigger `1.0U` aura applications on full-strength melee strikes (`>= 90%` charge), or repair staves directly with matching Elemental Essences.
 * **Physical World & Gear Interactions:** Electrify water pools, build automated Redstone [Tesla Coils](Environmental-Interactions#5-tesla-coils--storm-overcharge), mine Amethyst Clusters via [Overloaded](Elements-and-Reactions#overloaded) blasts, freeze water into frosted ice bridges, summon [Geo Fang Pillars](Environmental-Interactions#3-geo-constructs--fang-pillars), reflect elements with `Thorns` armor, and trigger [Swirl](Elements-and-Reactions#swirl) with `Wind Burst` Maces.
@@ -70,9 +70,9 @@ The <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/mai
 
 ---
 
-## Advancements (11 Challenges & Goals) & Custom Death Messages
+## Advancements (12 Challenges & Goals) & Custom Death Messages
 
-Track your arcane progression through **11 custom Advancements** and experience tailored elemental combat logs:
+Track your arcane progression through **12 custom Advancements** and experience tailored elemental combat logs:
 
 | Advancement Title | ID | Unlock Condition |
 | :--- | :--- | :--- |
@@ -87,6 +87,7 @@ Track your arcane progression through **11 custom Advancements** and experience 
 | **Tectonic Resonance** | `velorise_staves:geo_construct` | Summon a [**Geo Fang Pillar**](Environmental-Interactions#3-geo-constructs--fang-pillars) using the [Evoker Fang Staff](Staves-List#evoker-fang-staff). |
 | **High-Voltage Architect** | `velorise_staves:tesla_coil` | Activate or overcharge a Redstone [**Tesla Coil**](Environmental-Interactions#5-tesla-coils--storm-overcharge) (Lightning Rod atop a Redstone Block). |
 | **Spatial Riftwalker** | `velorise_staves:spatial_traveler` | Blink using the [**Void Translocator**](Relics-and-Utilities#void-translocator) or recall home with the [**Magic Mirror**](Relics-and-Utilities#magic-mirror). |
+| **A Good Pet!** | `velorise_staves:tame_omni_pet` | Tame a rare **Omni-Mutated Wolf** to gain an magic-immune adaptive companion! |
 
 <div align="center">
   <table>
@@ -102,7 +103,7 @@ Track your arcane progression through **11 custom Advancements** and experience 
 ## Wiki Directory
 
 * **[Elements & Reactions](Elements-and-Reactions)**: Complete breakdown of all 16 reactions, EGT gauge math (0.8x Aura Tax, decay inheritance, simultaneous priority), 8 [Elemental Resonances](Elements-and-Reactions#elemental-resonance-system-all-8-resonances), Innate/Mutated mobs, and Potion/Trident/Mace/Thorns synergies.
-* **[Staves & Weapons](Staves-List)**: In-depth stats, burst/channeling mechanics, repair materials, and crafting recipes for all 13 staves and their Netherite upgrades.
+* **[Staves & Weapons](Staves-List)**: In-depth stats, burst/channeling mechanics, repair materials, and crafting recipes for all 15 staves and their Netherite upgrades.
 * **[Anvil Weapon Imbuing](Anvil-Imbuing)**: Guide to infusing swords with elemental properties at an anvil, full-charge strike rules, and Fire Aspect interactions.
 * **[Environmental Interactions](Environmental-Interactions)**: Details on electrified water, frost walking, [Geo Fang Pillars](Environmental-Interactions#3-geo-constructs--fang-pillars), Sculk & Calibrated Sculk sensors, Redstone/Observer hazards, Amethyst [Overloaded](Elements-and-Reactions#overloaded) mining, and Mob Hazard Avoidance AI.
 * **[Relics & Utilities](Relics-and-Utilities)**: Documentation for the [Magic Mirror](Relics-and-Utilities#magic-mirror), [Void Translocator](Relics-and-Utilities#void-translocator), [Elemental Codex](Relics-and-Utilities#elemental-codex), 8 Elemental Essences, and [Crystallize Shields](Relics-and-Utilities#crystallize-shield-shards).
