@@ -16,6 +16,14 @@
 
 > **Vanilla-friendly elemental combat staves, element-imbued swords, and a deep Elemental Reaction System powered purely by Durability & Cooldowns.**
 
+<p align="center">
+  <a href="https://youtube.com/shorts/917WngceILs">
+    <img src="https://raw.githubusercontent.com/hungbbdzz/velorise-staves/main/docs/showcase/overview_short.gif" alt="Velorise's Staves &amp; Elements — Quick Overview" width="560" />
+  </a>
+  <br/>
+  <sub><b>▶ Click to watch the full Short on YouTube</b></sub>
+</p>
+
 📖 **Looking for full crafting recipes, exact damage sheets & reaction formulas? Visit the [Official Velorise's Staves Wiki](https://github.com/hungbbdzz/velorise-staves/wiki)!**
 
 ---
