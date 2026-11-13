@@ -77,6 +77,8 @@ public final class VeloriseStavesMod {
     // Enchantments
     public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.item.enchantment.Enchantment> ELEMENTAL_MASTERY =
         ENCHANTMENTS.register("elemental_mastery", com.velorise.staves.enchantment.ElementalMasteryEnchantment::new);
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.item.enchantment.Enchantment> ELEMENTAL_PROTECTION =
+        ENCHANTMENTS.register("elemental_protection", com.velorise.staves.enchantment.ElementalProtectionEnchantment::new);
 
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
@@ -302,6 +304,13 @@ public final class VeloriseStavesMod {
                 for (int lvl = 1; lvl <= 3; lvl++) {
                     output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
                         new net.minecraft.world.item.enchantment.EnchantmentInstance(ELEMENTAL_MASTERY.get(), lvl)
+                    ));
+                }
+
+                // Elemental Protection I-IV Enchanted Books
+                for (int lvl = 1; lvl <= 4; lvl++) {
+                    output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                        new net.minecraft.world.item.enchantment.EnchantmentInstance(ELEMENTAL_PROTECTION.get(), lvl)
                     ));
                 }
             })

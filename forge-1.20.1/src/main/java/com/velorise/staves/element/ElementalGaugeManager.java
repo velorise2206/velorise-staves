@@ -146,6 +146,9 @@ public final class ElementalGaugeManager {
     private static final ThreadLocal<Element> THORNS_CONTEXT_ELEMENT = new ThreadLocal<>();
     private static final ThreadLocal<@Nullable LivingEntity> CURRENT_REACTION_ATTACKER = new ThreadLocal<>();
     private static final Map<Long, Long> LAST_THORNS_REFLECT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_ELEMENTAL_ARMOR_WEAR = new ConcurrentHashMap<>();
+    private static final UUID COOP_HP_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20011");
+    private static final UUID COOP_ATK_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20012");
     private static final Map<UUID, Long> EXPLODED_CREEPERS = new ConcurrentHashMap<>();
 
     private record PendingEvokerConstruct(
@@ -349,7 +352,7 @@ public final class ElementalGaugeManager {
 
     public static boolean isPhysicalDamage(DamageSource source) {
         String msgId = source.type().msgId();
-        if ("wind_charge".equals(msgId) || "sonic_boom".equals(msgId)) return false;
+        if ("wind_charge".equals(msgId) || "sonic_boom".equals(msgId) || "velorise_elemental".equals(msgId)) return false;
         if (source.is(DamageTypeTags.BYPASSES_ARMOR)) return false;
         if (source.is(DamageTypeTags.IS_FIRE)) return false;
         if (source.is(DamageTypeTags.IS_FREEZING)) return false;
@@ -636,12 +639,13 @@ public final class ElementalGaugeManager {
             if (isGeoProjOrExp) {
                 elemRes += 0.50F;
             }
-            return entity instanceof Mob ? amount * computeResistanceMultiplier(elemRes) : amount;
+            float afterMobRes = entity instanceof Mob ? amount * computeResistanceMultiplier(elemRes) : amount;
+            return applyElementalProtectionAndArmorWear(entity, source, afterMobRes);
         }
         if (isGeoProjOrExp) {
-            return amount * 0.50F;
+            amount *= 0.50F;
         }
-        return amount;
+        return applyElementalProtectionAndArmorWear(entity, source, amount);
     }
 
     public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) {
@@ -1181,6 +1185,123 @@ public final class ElementalGaugeManager {
         int mainLvl = getElementalMasteryLevel(attacker.getMainHandItem());
         int base = mainLvl > 0 ? mainLvl : getElementalMasteryLevel(attacker.getOffhandItem());
         return base + ElementalResonanceManager.getBonusElementalMasteryLevels(attacker);
+    }
+
+    public static int getElementalProtectionLevel(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return 0;
+        var enchTags = stack.getEnchantmentTags();
+        for (int i = 0; i < enchTags.size(); i++) {
+            CompoundTag tag = enchTags.getCompound(i);
+            if (tag.getString("id").contains("elemental_protection")) {
+                return Math.min(4, Math.max(0, tag.getInt("lvl")));
+            }
+        }
+        return 0;
+    }
+
+    public static int getElementalProtectionTotalLevel(@Nullable LivingEntity entity) {
+        if (entity == null) return 0;
+        int total = 0;
+        for (ItemStack armor : entity.getArmorSlots()) {
+            total += getElementalProtectionLevel(armor);
+        }
+        return Math.min(16, total);
+    }
+
+    public static float applyElementalProtectionAndArmorWear(LivingEntity entity, DamageSource source, float amount) {
+        if (amount <= 0.0F || entity == null || !entity.isAlive()) return amount;
+        boolean isElem = (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource)
+                || "velorise_elemental".equals(source.type().msgId())
+                || isElementalOrMagicDamage(source);
+        if (!isElem) return amount;
+
+        int epTotal = getElementalProtectionTotalLevel(entity);
+        if (epTotal > 0) {
+            float reduction = Math.min(0.80F, epTotal * 0.05F);
+            amount *= (1.0F - reduction);
+        }
+
+        if (!entity.level().isClientSide()) {
+            String wearMode = StavesConfig.ELEMENTAL_ARMOR_DURABILITY_WEAR.get();
+            boolean shouldWear = "always".equalsIgnoreCase(wearMode)
+                    || ("auto".equalsIgnoreCase(wearMode) && entity.level().getDifficulty() == net.minecraft.world.Difficulty.HARD);
+            if (shouldWear) {
+                long now = entity.level().getGameTime();
+                Long lastWear = LAST_ELEMENTAL_ARMOR_WEAR.get(entity.getUUID());
+                if (lastWear == null || now < lastWear || (now - lastWear) >= 20L) {
+                    LAST_ELEMENTAL_ARMOR_WEAR.put(entity.getUUID(), now);
+                    net.minecraft.world.entity.EquipmentSlot[] slots = {
+                            net.minecraft.world.entity.EquipmentSlot.HEAD,
+                            net.minecraft.world.entity.EquipmentSlot.CHEST,
+                            net.minecraft.world.entity.EquipmentSlot.LEGS,
+                            net.minecraft.world.entity.EquipmentSlot.FEET
+                    };
+                    for (net.minecraft.world.entity.EquipmentSlot slot : slots) {
+                        ItemStack piece = entity.getItemBySlot(slot);
+                        if (!piece.isEmpty() && piece.isDamageableItem()) {
+                            piece.hurtAndBreak(1, entity, e -> e.broadcastBreakEvent(slot));
+                        }
+                    }
+                }
+            }
+        }
+        return amount;
+    }
+
+    public static void updateCoopMobScaling(ServerLevel level, LivingEntity entity) {
+        if (level == null || entity == null || !entity.isAlive() || entity.level().isClientSide()) return;
+        if (!(entity instanceof Mob mob) || entity instanceof Player || entity instanceof Npc) return;
+        if (entity instanceof net.minecraft.world.entity.TamableAnimal tamable && tamable.isTame()) return;
+        boolean eligible = entity instanceof Enemy || isBossEntity(entity) || isMutatedInnate(entity) || isOmniInnate(entity) || !getInnateElements(entity).isEmpty();
+        if (!eligible) return;
+
+        double radius = StavesConfig.COOP_SCAN_RADIUS.get();
+        double r2 = radius * radius;
+        int nearbyPlayers = level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= r2).size();
+        int maxCap = Math.max(1, StavesConfig.MAX_COOP_PLAYERS_CAP.get());
+        int extraPlayers = Math.min(maxCap - 1, Math.max(0, nearbyPlayers - 1));
+
+        double hpBonus = (StavesConfig.ENABLE_COOP_MOB_SCALING.get() && extraPlayers > 0)
+                ? (extraPlayers * StavesConfig.HP_SCALE_PER_EXTRA_PLAYER.get())
+                : 0.0D;
+        double atkBonus = 0.0D;
+        if (StavesConfig.ENABLE_COOP_ATK_SCALING.get() && extraPlayers > 0) {
+            atkBonus = switch (extraPlayers) {
+                case 1 -> 0.10D;
+                case 2 -> 0.25D;
+                case 3 -> 0.40D;
+                default -> 0.40D + (extraPlayers - 3) * 0.15D;
+            };
+        }
+
+        AttributeInstance hpAttr = mob.getAttribute(Attributes.MAX_HEALTH);
+        if (hpAttr != null) {
+            AttributeModifier cur = hpAttr.getModifier(COOP_HP_MOD_ID);
+            double curVal = cur != null ? cur.getAmount() : 0.0D;
+            if (Math.abs(curVal - hpBonus) > 0.001D) {
+                float oldMax = mob.getMaxHealth();
+                float ratio = oldMax > 0.0F ? Math.min(1.0F, mob.getHealth() / oldMax) : 1.0F;
+                if (cur != null) hpAttr.removeModifier(COOP_HP_MOD_ID);
+                if (hpBonus > 0.001D) {
+                    hpAttr.addTransientModifier(new AttributeModifier(
+                            COOP_HP_MOD_ID, "Co-Op Mob HP Scale", hpBonus, AttributeModifier.Operation.MULTIPLY_BASE));
+                }
+                mob.setHealth(Math.max(1.0F, mob.getMaxHealth() * ratio));
+            }
+        }
+
+        AttributeInstance atkAttr = mob.getAttribute(Attributes.ATTACK_DAMAGE);
+        if (atkAttr != null) {
+            AttributeModifier cur = atkAttr.getModifier(COOP_ATK_MOD_ID);
+            double curVal = cur != null ? cur.getAmount() : 0.0D;
+            if (Math.abs(curVal - atkBonus) > 0.001D) {
+                if (cur != null) atkAttr.removeModifier(COOP_ATK_MOD_ID);
+                if (atkBonus > 0.001D) {
+                    atkAttr.addTransientModifier(new AttributeModifier(
+                            COOP_ATK_MOD_ID, "Co-Op Mob ATK Scale", atkBonus, AttributeModifier.Operation.MULTIPLY_BASE));
+                }
+            }
+        }
     }
 
     private static GaugeState createAuraGauge(LivingEntity target, Element elem, float appliedUnits) {
@@ -2019,6 +2140,9 @@ public final class ElementalGaugeManager {
         if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
+        }
+        if (entity.level() instanceof ServerLevel slInit) {
+            updateCoopMobScaling(slInit, entity);
         }
 
         CompoundTag data = entity.getPersistentData();
@@ -3953,6 +4077,9 @@ public final class ElementalGaugeManager {
                         if (nearby instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
                             mob.setNoAi(false);
                             mob.removeTag(TAG_FROZEN_STATUE);
+                        }
+                        if (serverNow % 20 == 0) {
+                            updateCoopMobScaling(sl, nearby);
                         }
                         EnumSet<Element> nearbyInnates = getInnateElements(nearby);
                         if (nearbyInnates.contains(Element.CRYO) || hasElement(nearby, Element.CRYO)) {

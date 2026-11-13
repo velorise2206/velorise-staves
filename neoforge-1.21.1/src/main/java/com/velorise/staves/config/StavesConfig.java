@@ -47,6 +47,15 @@ public final class StavesConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_GAUGE;
     public static final ModConfigSpec.BooleanValue ENABLE_ELEMENTAL_RESONANCE;
     public static final ModConfigSpec.IntValue MAX_STAVES_IN_INVENTORY;
+    public static final ModConfigSpec.DoubleValue PYRO_RESONANCE_DAMAGE_BONUS;
+    public static final ModConfigSpec.ConfigValue<String> ELEMENTAL_ARMOR_DURABILITY_WEAR;
+
+    // Co-Op Multi-Player Dynamic Mob Scaling
+    public static final ModConfigSpec.BooleanValue ENABLE_COOP_MOB_SCALING;
+    public static final ModConfigSpec.DoubleValue HP_SCALE_PER_EXTRA_PLAYER;
+    public static final ModConfigSpec.BooleanValue ENABLE_COOP_ATK_SCALING;
+    public static final ModConfigSpec.IntValue MAX_COOP_PLAYERS_CAP;
+    public static final ModConfigSpec.DoubleValue COOP_SCAN_RADIUS;
     public static final ModConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ModConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
     public static final ModConfigSpec.BooleanValue SHOW_REACTION_TEXT;
@@ -166,6 +175,12 @@ public final class StavesConfig {
         MAX_STAVES_IN_INVENTORY = builder
             .comment("Maximum Arcane Staves carried directly in inventory before Arcane Overload triggers (0 = unlimited). Default: 4")
             .defineInRange("max_staves_in_inventory", 4, 0, 36);
+        PYRO_RESONANCE_DAMAGE_BONUS = builder
+            .comment("Direct damage bonus multiplier granted by Pyro Resonance (Fervent Flames). Default: 0.10 (+10%)")
+            .defineInRange("pyro_resonance_damage_bonus", 0.10D, 0.0D, 1.0D);
+        ELEMENTAL_ARMOR_DURABILITY_WEAR = builder
+            .comment("Whether elemental & reaction damage wears down armor durability: "auto" (Hard difficulty only), "always", or "never". Default: "auto"")
+            .define("elemental_armor_durability_wear", "auto");
         SHOW_ELEMENTAL_PARTICLES = builder
             .comment("Show ambient elemental particles hovering around affected entities. Default: true")
             .define("show_elemental_particles", true);
@@ -254,6 +269,24 @@ public final class StavesConfig {
         VOID_TRANSLOCATOR_DURABILITY_NETHERITE = builder.defineInRange("void_translocator_netherite", 250, 10, 5000);
         MAGIC_MIRROR_DURABILITY_BASIC = builder.defineInRange("magic_mirror_basic", 40, 10, 5000);
         MAGIC_MIRROR_DURABILITY_NETHERITE = builder.defineInRange("magic_mirror_netherite", 150, 10, 5000);
+        builder.pop();
+
+        builder.comment("Genshin-Style Co-Op Multi-Player Dynamic Mob HP & ATK Scaling").push("scaling");
+        ENABLE_COOP_MOB_SCALING = builder
+            .comment("Automatically scale hostile & boss mob Max HP when multiple players are nearby (1P=1.0x, 2P=1.5x, 3P=2.0x, 4P=2.5x). Default: true")
+            .define("enable_coop_mob_scaling", true);
+        HP_SCALE_PER_EXTRA_PLAYER = builder
+            .comment("Max HP bonus multiplier added per extra player beyond the first. Default: 0.50 (+50% HP per extra player)")
+            .defineInRange("hp_scale_per_extra_player", 0.50D, 0.0D, 5.0D);
+        ENABLE_COOP_ATK_SCALING = builder
+            .comment("Scale hostile & boss mob Attack Damage in co-op (1P=100%, 2P=110%, 3P=125%, 4P=140%). Default: true")
+            .define("enable_coop_atk_scaling", true);
+        MAX_COOP_PLAYERS_CAP = builder
+            .comment("Maximum number of nearby players counted for Co-Op mob scaling. Default: 4 (up to 2.5x HP, 1.4x ATK)")
+            .defineInRange("max_coop_players_cap", 4, 1, 16);
+        COOP_SCAN_RADIUS = builder
+            .comment("Radius in blocks around a mob to scan for active non-spectator players. Default: 40.0")
+            .defineInRange("coop_scan_radius", 40.0D, 8.0D, 128.0D);
         builder.pop();
 
         SPEC = builder.build();

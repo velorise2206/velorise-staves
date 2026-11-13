@@ -283,6 +283,20 @@ public final class VeloriseStavesMod {
                             ));
                         }
                     });
+
+                // Elemental Protection I-IV Enchanted Books
+                parameters.holders().lookup(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .flatMap(reg -> reg.get(net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.ENCHANTMENT,
+                        ResourceLocation.fromNamespaceAndPath(MODID, "elemental_protection")
+                    )))
+                    .ifPresent(holder -> {
+                        for (int lvl = 1; lvl <= 4; lvl++) {
+                            output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                                new net.minecraft.world.item.enchantment.EnchantmentInstance(holder, lvl)
+                            ));
+                        }
+                    });
             })
             .build());
 

@@ -100,6 +100,13 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onLivingHeal(net.neoforged.neoforge.event.entity.living.LivingHealEvent event) {
+        if (!event.getEntity().level().isClientSide() && event.getAmount() > 0.0F) {
+            event.setAmount(com.velorise.staves.element.ElementalResonanceManager.modifyIncomingHeal(event.getEntity(), event.getAmount()));
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
             com.velorise.staves.element.ElementalDeathMessageHelper.enhanceLivingDeath(event.getEntity());

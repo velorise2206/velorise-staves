@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "Max Staves Cap",
   "config.velorise_staves.max_staves.desc": "Maximum distinct Staff types allowed in inventory/offhand before Arcane Overload (backups of the same type count as 1; 0 = Unlimited).",
   "resonance.velorise_staves.pyro": "Pyro: Fervent Flames",
-  "resonance.velorise_staves.pyro.desc": "-40% Cryo Aura | +1.0 ATK & +15% Elemental DMG",
+  "resonance.velorise_staves.pyro.desc": "-40% Cryo Aura | +10% Direct Elemental & Melee DMG",
   "resonance.velorise_staves.hydro": "Hydro: Soothing Water",
-  "resonance.velorise_staves.hydro.desc": "-40% Pyro/Fire Duration | +20% Max Health",
+  "resonance.velorise_staves.hydro.desc": "-40% Pyro/Fire Duration | +25% Max Health & +25% Healing Received",
   "resonance.velorise_staves.anemo": "Anemo: Impetuous Winds",
   "resonance.velorise_staves.anemo.desc": "+10% Move Speed | -15% Sprint Exhaustion | -10% Cooldowns",
   "resonance.velorise_staves.electro": "Electro: High Voltage",
@@ -415,8 +415,8 @@
   "codex.velorise_staves.res.rules.p1": "• §ePairing:§r Carry §b2 different Staves§r of the same Element to unlock its Resonance (max §e2 active§r). Same-kind duplicates (2x Basic or Basic+Netherite) do not pair.",
   "codex.velorise_staves.res.rules.p2": "• §cOverload Cap (%s):§r Carrying more than %s distinct Staff types locks casting! §aBackups of the same type§r (e.g. 3x Inferno Rod) count as §e1 type§r. §7Bundles, Shulkers & Backpacks§r are exempt; Vanilla §bTrident§r is a free §9Hydro§r partner.",
   "codex.velorise_staves.res.rules.p3": "• §dOmni Staff:§r In §6Auto Mode§r, prioritizes §bMainhand ➔ Offhand ➔ Hotbar (0–8) ➔ Inventory (9–35)§r and pairs with the first solo element without an active Resonance; §bLocked Mode§r counts only as its locked Element.",
-  "codex.velorise_staves.res.pyro.p1": "• §cFervent Flames:§r -40% Cryo aura duration on you; grants §6+1.0 ATK§r & §c+15% Elemental DMG§r.",
-  "codex.velorise_staves.res.hydro.p1": "• §9Soothing Water:§r -40% Pyro aura & burn duration on you; grants §a+20% Max Health§r.",
+  "codex.velorise_staves.res.pyro.p1": "• §cFervent Flames:§r -40% Cryo aura duration on you; grants §c+10% Direct Elemental & Melee DMG§r.",
+  "codex.velorise_staves.res.hydro.p1": "• §9Soothing Water:§r -40% Pyro aura & burn duration on you; grants §a+25% Max Health§r & §b+25% Incoming Healing§r.",
   "codex.velorise_staves.res.anemo.p1": "• §bImpetuous Winds:§r +10% Move Speed, -15% sprint/jump hunger exhaustion, and §b-10% Staff/Relic Cooldown§r.",
   "codex.velorise_staves.res.electro.p1": "• §dHigh Voltage:§r -40% Hydro aura duration; Electro reactions restore §e+1 Durability§r and reduce active Staff CDs by §e1.0s§r (5s ICD).",
   "codex.velorise_staves.res.dendro.p1": "• §aSprawling Greenery:§r +1 permanent EM tier; triggering a Dendro reaction grants §a+1 extra EM tier§r for §e6s§r.",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s was pierced by %2$s",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s was pierced by %3$s's %2$s",
   "death.velorise_staves.reaction.burgeon": "%1$s was detonated by %2$s",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s was detonated by %3$s's %2$s"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s was detonated by %3$s's %2$s",
+  "enchantment.velorise_staves.elemental_protection": "Elemental Protection",
+  "enchantment.velorise_staves.elemental_protection.desc": "Reduces incoming Elemental Staff & Reaction damage (-5% per level, up to 80%) and shortens elemental aura & freeze duration."
 }

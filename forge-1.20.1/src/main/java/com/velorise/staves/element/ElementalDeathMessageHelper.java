@@ -79,6 +79,20 @@ public final class ElementalDeathMessageHelper {
         RECENT_REACTIONS.put(target.getUUID(), new RecentReactionInfo(reaction, element, attackerId, target.level().getGameTime()));
     }
 
+    public static final net.minecraft.resources.ResourceKey<DamageType> ELEMENTAL_DAMAGE_TYPE =
+            net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DAMAGE_TYPE, new net.minecraft.resources.ResourceLocation("velorise_staves", "elemental"));
+
+    public static Holder<DamageType> resolveElementalDamageTypeHolder(ServerLevel level, DamageSource fallback) {
+        try {
+            var reg = level.registryAccess().registryOrThrow(net.minecraft.core.registries.Registries.DAMAGE_TYPE);
+            var opt = reg.getHolder(ELEMENTAL_DAMAGE_TYPE);
+            if (opt.isPresent()) {
+                return opt.get();
+            }
+        } catch (Throwable ignored) {}
+        return fallback.typeHolder();
+    }
+
     public static DamageSource createDamageSource(
             ServerLevel level,
             @Nullable LivingEntity attacker,
@@ -88,8 +102,9 @@ public final class ElementalDeathMessageHelper {
         DamageSource base = attacker != null
                 ? level.damageSources().indirectMagic(attacker, attacker)
                 : level.damageSources().magic();
+        Holder<DamageType> holder = resolveElementalDamageTypeHolder(level, base);
         return new ElementalReactionDamageSource(
-                base.typeHolder(), base.getDirectEntity(), base.getEntity(), base.sourcePositionRaw(),
+                holder, base.getDirectEntity(), base.getEntity(), base.sourcePositionRaw(),
                 reaction, element, null
         );
     }
@@ -196,7 +211,7 @@ public final class ElementalDeathMessageHelper {
             }
         }
 
-        if (hasFreshRecent && (src.is(DamageTypes.MAGIC) || src.is(DamageTypes.INDIRECT_MAGIC) || src.is(DamageTypes.FREEZE))) {
+        if (hasFreshRecent && (src.is(DamageTypes.MAGIC) || src.is(DamageTypes.INDIRECT_MAGIC) || src.is(DamageTypes.FREEZE) || "velorise_elemental".equals(src.type().msgId()))) {
             LivingEntity credit = resolveCredit(level, src.getEntity(), recent.attackerUuid());
             DamageSource upgraded = createTypedDamageSource(src, credit, recent.reaction(), recent.element());
             entries.set(lastIdx, new CombatEntry(upgraded, last.damage(), last.fallLocation(), last.fallDistance()));

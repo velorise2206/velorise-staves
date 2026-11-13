@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "法杖种类上限",
   "config.velorise_staves.max_staves.desc": "触发过载前允许携带的最大不同法杖种类数（同类备用只计1种；0 = 不限制）。",
   "resonance.velorise_staves.pyro": "热诚之火",
-  "resonance.velorise_staves.pyro.desc": "冰附着持续时间-40% | 攻击力+1.0，元素伤害+15%",
+  "resonance.velorise_staves.pyro.desc": "-40% 冰元素附着时间 | +10% 元素与近战伤害",
   "resonance.velorise_staves.hydro": "愈疗之水",
-  "resonance.velorise_staves.hydro.desc": "火附着与燃烧时间-40% | 最大生命值+20%",
+  "resonance.velorise_staves.hydro.desc": "-40% 火元素/燃烧时间 | +25% 生命值上限 & +25% 受治疗加成",
   "resonance.velorise_staves.anemo": "迅捷之风",
   "resonance.velorise_staves.anemo.desc": "移动速度+10% | 疾跑跳跃饥饿消耗-15% | 冷却时间-10%",
   "resonance.velorise_staves.electro": "强能之雷",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s 被 %2$s 贯穿而死",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s 被 %3$s 的 %2$s 贯穿而死",
   "death.velorise_staves.reaction.burgeon": "%1$s 被 %2$s 炸得粉碎",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s 被 %3$s 的 %2$s 炸得粉碎"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s 被 %3$s 的 %2$s 炸得粉碎",
+  "enchantment.velorise_staves.elemental_protection": "元素保护",
+  "enchantment.velorise_staves.elemental_protection.desc": "降低受到的元素法杖与元素反应伤害（每级 -5%，最高 80%），并缩短元素附着与冻结时间。"
 }

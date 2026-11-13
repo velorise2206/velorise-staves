@@ -350,25 +350,21 @@ public final class ElementalResonanceManager {
 
     private static void applyAttributeModifiers(ServerPlayer player, Set<ResonanceType> active) {
         AttributeInstance atkAttr = player.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (atkAttr != null) {
-            boolean wantPyro = active.contains(ResonanceType.PYRO);
-            boolean hasPyro = atkAttr.getModifier(PYRO_ATK_ID) != null;
-            if (wantPyro && !hasPyro) {
-                atkAttr.addTransientModifier(new AttributeModifier(
-                        PYRO_ATK_ID, "Resonance Pyro ATK", 1.0D, AttributeModifier.Operation.ADDITION));
-            } else if (!wantPyro && hasPyro) {
-                atkAttr.removeModifier(PYRO_ATK_ID);
-            }
+        if (atkAttr != null && atkAttr.getModifier(PYRO_ATK_ID) != null) {
+            atkAttr.removeModifier(PYRO_ATK_ID);
         }
 
         AttributeInstance hpAttr = player.getAttribute(Attributes.MAX_HEALTH);
         if (hpAttr != null) {
             boolean wantHydro = active.contains(ResonanceType.HYDRO);
-            boolean hasHydro = hpAttr.getModifier(HYDRO_HP_ID) != null;
-            if (wantHydro && !hasHydro) {
-                hpAttr.addTransientModifier(new AttributeModifier(
-                        HYDRO_HP_ID, "Resonance Hydro HP", 0.20D, AttributeModifier.Operation.MULTIPLY_TOTAL));
-            } else if (!wantHydro && hasHydro) {
+            AttributeModifier curHydro = hpAttr.getModifier(HYDRO_HP_ID);
+            if (wantHydro) {
+                if (curHydro == null || Math.abs(curHydro.getAmount() - 0.25D) > 0.001D) {
+                    if (curHydro != null) hpAttr.removeModifier(HYDRO_HP_ID);
+                    hpAttr.addTransientModifier(new AttributeModifier(
+                            HYDRO_HP_ID, "Resonance Hydro HP", 0.25D, AttributeModifier.Operation.MULTIPLY_TOTAL));
+                }
+            } else if (curHydro != null) {
                 hpAttr.removeModifier(HYDRO_HP_ID);
                 if (player.getHealth() > player.getMaxHealth()) {
                     player.setHealth(player.getMaxHealth());
@@ -488,12 +484,19 @@ public final class ElementalResonanceManager {
     }
 
     public static float getPlayerIncomingAuraDurationScale(@Nullable LivingEntity target, Element auraElement) {
-        if (!(target instanceof ServerPlayer sp)) return 1.0F;
-        if (auraElement == Element.CRYO && hasResonance(sp, ResonanceType.PYRO)) return 0.6F;
-        if (auraElement == Element.PYRO && hasResonance(sp, ResonanceType.HYDRO)) return 0.6F;
-        if (auraElement == Element.HYDRO && hasResonance(sp, ResonanceType.ELECTRO)) return 0.6F;
-        if (auraElement == Element.ELECTRO && hasResonance(sp, ResonanceType.CRYO)) return 0.6F;
-        return 1.0F;
+        if (target == null) return 1.0F;
+        float scale = 1.0F;
+        if (target instanceof ServerPlayer sp) {
+            if (auraElement == Element.CRYO && hasResonance(sp, ResonanceType.PYRO)) scale *= 0.6F;
+            else if (auraElement == Element.PYRO && hasResonance(sp, ResonanceType.HYDRO)) scale *= 0.6F;
+            else if (auraElement == Element.HYDRO && hasResonance(sp, ResonanceType.ELECTRO)) scale *= 0.6F;
+            else if (auraElement == Element.ELECTRO && hasResonance(sp, ResonanceType.CRYO)) scale *= 0.6F;
+        }
+        int epLevels = ElementalGaugeManager.getElementalProtectionTotalLevel(target);
+        if (epLevels > 0) {
+            scale *= Math.max(0.40F, 1.0F - epLevels * 0.03F);
+        }
+        return scale;
     }
 
     public static long getBurningDurationTicksForTarget(LivingEntity target, long baseTicks) {
@@ -542,7 +545,7 @@ public final class ElementalResonanceManager {
         long now = level.getGameTime();
         if (attacker != null) {
             if (hasResonance(attacker, ResonanceType.PYRO)) {
-                damage *= 1.15F;
+                damage *= (float) (1.0D + StavesConfig.PYRO_RESONANCE_DAMAGE_BONUS.get());
             }
             if (hasResonance(attacker, ResonanceType.GEO) && hasActiveGeoShield(attacker, now)) {
                 damage *= 1.15F;
@@ -562,11 +565,23 @@ public final class ElementalResonanceManager {
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
 
         long now = level.getGameTime();
+        if (hasResonance(attacker, ResonanceType.PYRO)) {
+            amount *= (float) (1.0D + StavesConfig.PYRO_RESONANCE_DAMAGE_BONUS.get());
+        }
         if (hasResonance(attacker, ResonanceType.GEO) && hasActiveGeoShield(attacker, now)) {
             amount *= 1.15F;
             applyGeoResShred(target, now);
         }
         return applyCryoCrit(level, attacker, target, amount);
+    }
+
+    /** Hydro Resonance (Soothing Water): +25% Incoming Healing Effectiveness. */
+    public static float modifyIncomingHeal(@Nullable LivingEntity entity, float amount) {
+        if (amount <= 0.0F || entity == null || !StavesConfig.isElementalResonanceEnabled()) return amount;
+        if (hasResonance(entity, ResonanceType.HYDRO)) {
+            return amount * 1.25F;
+        }
+        return amount;
     }
 
     public static float modifyIncomingDefenseDamage(LivingEntity victim, DamageSource src, float amount) {

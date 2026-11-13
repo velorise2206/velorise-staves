@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "Stab-Limit",
   "config.velorise_staves.max_staves.desc": "Max. verschiedene Stab-Arten im Inventar/Nebenhand vor Überladung (Kopien derselben Art zählen als 1; 0 = Unbegrenzt).",
   "resonance.velorise_staves.pyro": "Pyro: Leidenschaftliche Flammen",
-  "resonance.velorise_staves.pyro.desc": "-40% Kryo-Aura | +1.0 ANG & +15% Elementarschaden",
+  "resonance.velorise_staves.pyro.desc": "-40% Kryo-Dauer | +10% Elementar- & Nahkampfschaden",
   "resonance.velorise_staves.hydro": "Hydro: Heilendes Wasser",
-  "resonance.velorise_staves.hydro.desc": "-40% Pyro-/Brenndauer | +20% Max. LP",
+  "resonance.velorise_staves.hydro.desc": "-40% Pyro-/Brenndauer | +25% Max. LP & +25% Empfangene Heilung",
   "resonance.velorise_staves.anemo": "Anemo: Ungestüme Winde",
   "resonance.velorise_staves.anemo.desc": "+10% Tempo | -15% Erschöpfung | -10% Abklingzeit",
   "resonance.velorise_staves.electro": "Elektro: Hochspannung",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s wurde von %2$s durchbohrt",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s wurde durch %2$s von %3$s durchbohrt",
   "death.velorise_staves.reaction.burgeon": "%1$s explodierte durch %2$s",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s explodierte durch %2$s von %3$s"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s explodierte durch %2$s von %3$s",
+  "enchantment.velorise_staves.elemental_protection": "Elementarschutz",
+  "enchantment.velorise_staves.elemental_protection.desc": "Verringert erlittenen Elementar- und Reaktionsschaden (-5% pro Stufe, bis zu 80%) und verkürzt Aura- sowie Gefrierdauer."
 }

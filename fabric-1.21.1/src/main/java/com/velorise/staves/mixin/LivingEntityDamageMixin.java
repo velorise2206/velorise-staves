@@ -33,6 +33,17 @@ public abstract class LivingEntityDamageMixin {
     }
 
     @ModifyVariable(
+            method = "heal",
+            at = @At("HEAD"),
+            ordinal = 0,
+            argsOnly = true
+    )
+    private float velorise$modifyIncomingHeal(float amount) {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        return com.velorise.staves.element.ElementalResonanceManager.modifyIncomingHeal(entity, amount);
+    }
+
+    @ModifyVariable(
             method = "actuallyHurt",
             at = @At(value = "STORE", ordinal = 0),
             argsOnly = true

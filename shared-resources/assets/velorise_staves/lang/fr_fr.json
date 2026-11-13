@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "Limite de Bâtons",
   "config.velorise_staves.max_staves.desc": "Types distincts max de bâtons avant Surcharge (les doublons du même type comptent pour 1 ; 0 = Illimité).",
   "resonance.velorise_staves.pyro": "Pyro : Flammes Ferventes",
-  "resonance.velorise_staves.pyro.desc": "-40% Aura Cryo | +1.0 ATQ & +15% Dégâts Élémentaires",
+  "resonance.velorise_staves.pyro.desc": "-40% durée Cryo | +10% DGT élémentaires et de mêlée",
   "resonance.velorise_staves.hydro": "Hydro : Eau Curative",
-  "resonance.velorise_staves.hydro.desc": "-40% Feu/Pyro | +20% PV Max",
+  "resonance.velorise_staves.hydro.desc": "-40% durée Pyro/brûlure | +25% PV max & +25% bonus de soins reçus",
   "resonance.velorise_staves.anemo": "Anémo : Vents Impétueux",
   "resonance.velorise_staves.anemo.desc": "+10% Vitesse | -15% Épuisement | -10% Temps de Recharge",
   "resonance.velorise_staves.electro": "Électro : Haute Tension",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s a été transpercé par %2$s",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s a été transpercé par %2$s de %3$s",
   "death.velorise_staves.reaction.burgeon": "%1$s a détoné sous %2$s",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s a détoné sous %2$s de %3$s"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s a détoné sous %2$s de %3$s",
+  "enchantment.velorise_staves.elemental_protection": "Protection élémentaire",
+  "enchantment.velorise_staves.elemental_protection.desc": "Réduit les dégâts élémentaires et de réactions subis (-5% par niveau, jusqu'à 80%) et réduit la durée des auras et du gel."
 }

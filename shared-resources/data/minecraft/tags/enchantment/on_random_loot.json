@@ -4,6 +4,10 @@
     {
       "id": "velorise_staves:elemental_mastery",
       "required": false
+    },
+    {
+      "id": "velorise_staves:elemental_protection",
+      "required": false
     }
   ]
 }

@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "지팡이 상한",
   "config.velorise_staves.max_staves.desc": "과부하 전 보유 가능한 최대 지팡이 종류 수 (같은 종류 예비 지팡이는 1개로 계산, 0 = 무제한).",
   "resonance.velorise_staves.pyro": "열정의 불",
-  "resonance.velorise_staves.pyro.desc": "얼음 부착 시간 -40% | 공격력 +1.0, 원소 피해 +15%",
+  "resonance.velorise_staves.pyro.desc": "얼음 원소 부착 시간 -40% | 원소 및 근접 피해 +10%",
   "resonance.velorise_staves.hydro": "치유의 물",
-  "resonance.velorise_staves.hydro.desc": "불 부착/화상 시간 -40% | 최대 체력 +20%",
+  "resonance.velorise_staves.hydro.desc": "불 원소/연소 시간 -40% | 최대 체력 +25% & 받는 치유 보너스 +25%",
   "resonance.velorise_staves.anemo": "재빠른 바람",
   "resonance.velorise_staves.anemo.desc": "이동 속도 +10% | 배고픔 소모 -15% | 재사용 대기시간 -10%",
   "resonance.velorise_staves.electro": "강력한 번개",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s이(가) %2$s에 꿰뚫렸습니다",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s이(가) %3$s의 %2$s에 꿰뚫렸습니다",
   "death.velorise_staves.reaction.burgeon": "%1$s이(가) %2$s 폭발로 폭사했습니다",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s이(가) %3$s의 %2$s에 폭사했습니다"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s이(가) %3$s의 %2$s에 폭사했습니다",
+  "enchantment.velorise_staves.elemental_protection": "원소 보호",
+  "enchantment.velorise_staves.elemental_protection.desc": "받는 원소 지팡이 및 원소 반응 피해를 감소시키고(레벨당 -5%, 최대 80%) 원소 부착 및 빙결 시간을 단축합니다."
 }

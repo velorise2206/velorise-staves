@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "杖種類上限",
   "config.velorise_staves.max_staves.desc": "過負荷前に持てる異なる杖種類の最大数（同種の予備は1種として計算、0 = 無制限）。",
   "resonance.velorise_staves.pyro": "熱誠の炎",
-  "resonance.velorise_staves.pyro.desc": "氷付着時間-40% | 攻撃力+1.0・元素ダメージ+15%",
+  "resonance.velorise_staves.pyro.desc": "氷元素付着時間 -40% | 元素・近接ダメージ +10%",
   "resonance.velorise_staves.hydro": "治療の水",
-  "resonance.velorise_staves.hydro.desc": "炎付着・燃焼時間-40% | 最大HP+20%",
+  "resonance.velorise_staves.hydro.desc": "炎元素/燃焼時間 -40% | 最大HP +25% & 受ける治療効果 +25%",
   "resonance.velorise_staves.anemo": "迅速の風",
   "resonance.velorise_staves.anemo.desc": "移動速度+10% | 消耗-15% | クールダウン-10%",
   "resonance.velorise_staves.electro": "強能の雷",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$sは「%2$s」に貫かれた",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$sは%3$sの「%2$s」に貫かれた",
   "death.velorise_staves.reaction.burgeon": "%1$sは「%2$s」の爆発で散った",
-  "death.velorise_staves.reaction.burgeon.player": "%1$sは%3$sの「%2$s」で爆散した"
+  "death.velorise_staves.reaction.burgeon.player": "%1$sは%3$sの「%2$s」で爆散した",
+  "enchantment.velorise_staves.elemental_protection": "元素耐性",
+  "enchantment.velorise_staves.elemental_protection.desc": "受ける元素杖および元素反応ダメージを軽減し（レベルごとに-5%、最大80%）、元素付着と凍結時間を短縮する。"
 }

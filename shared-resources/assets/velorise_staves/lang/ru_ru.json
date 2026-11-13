@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "Лимит Посохов",
   "config.velorise_staves.max_staves.desc": "Макс. разных видов посохов до Перегрузки (запасные копии того же вида считаются за 1; 0 = без лимита).",
   "resonance.velorise_staves.pyro": "Пиро: Пылающий огонь",
-  "resonance.velorise_staves.pyro.desc": "-40% Крио-статус | +1.0 АТК и +15% Стихийного урона",
+  "resonance.velorise_staves.pyro.desc": "-40% длительности Крио | +10% элементального и ближнего урона",
   "resonance.velorise_staves.hydro": "Гидро: Плеск воды",
-  "resonance.velorise_staves.hydro.desc": "-40% Пиро/Горение | +20% Макс. ОЗ",
+  "resonance.velorise_staves.hydro.desc": "-40% длительности Пиро/горения | +25% макс. здоровья и +25% получаемого лечения",
   "resonance.velorise_staves.anemo": "Анемо: Проворный ветер",
   "resonance.velorise_staves.anemo.desc": "+10% Скорость | -15% Истощение | -10% Перезарядка",
   "resonance.velorise_staves.electro": "Электро: Высокое напряжение",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s пронзён снарядом %2$s",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s пронзён %2$s (%3$s)",
   "death.velorise_staves.reaction.burgeon": "%1$s подорван реакцией %2$s",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s подорван %2$s (%3$s)"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s подорван %2$s (%3$s)",
+  "enchantment.velorise_staves.elemental_protection": "Элементальная защита",
+  "enchantment.velorise_staves.elemental_protection.desc": "Снижает получаемый элементальный урон и урон от реакций (-5% за уровень, до 80%) и сокращает длительность статусов."
 }

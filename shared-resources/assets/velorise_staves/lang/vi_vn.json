@@ -387,9 +387,9 @@
   "config.velorise_staves.max_staves": "Giới Hạn Trượng",
   "config.velorise_staves.max_staves.desc": "Số loại Trượng khác nhau tối đa ở hotbar/túi/tay phụ trước khi Quá Tải (cùng loại mang dự phòng chỉ tính 1; 0 = Vô hạn).",
   "resonance.velorise_staves.pyro": "Nhiệt Thành Chi Hỏa (Hỏa)",
-  "resonance.velorise_staves.pyro.desc": "-40% ấn Băng | +1.0 Sát thương tay & +15% Sát thương Nguyên Tố",
+  "resonance.velorise_staves.pyro.desc": "-40% Thời gian ấn Băng | +10% Sát thương Nguyên tố & Cận chiến",
   "resonance.velorise_staves.hydro": "Dũ Hợp Chi Thủy (Thủy)",
-  "resonance.velorise_staves.hydro.desc": "-40% thời gian ấn Hỏa/Cháy | +20% Máu Tối Đa",
+  "resonance.velorise_staves.hydro.desc": "-40% Thời gian ấn Hỏa/Cháy | +25% Máu tối đa & +25% Hiệu quả nhận trị liệu",
   "resonance.velorise_staves.anemo": "Tấn Tiệp Chi Phong (Phong)",
   "resonance.velorise_staves.anemo.desc": "+10% Tốc độ chạy | -15% Hao thể lực | -10% Hồi chiêu",
   "resonance.velorise_staves.electro": "Cường Năng Chi Lôi (Lôi)",
@@ -415,8 +415,8 @@
   "codex.velorise_staves.res.rules.p1": "• §eGhép Đôi:§r Mang §b2 Trượng khác dòng§r cùng Nguyên Tố để kích hoạt Cộng Hưởng (tối đa §e2 loại§r). Trùng dòng (như 2 cây thường hoặc thường+Netherite) không kích hoạt.",
   "codex.velorise_staves.res.rules.p2": "• §cQuá Tải (%s):§r Mang quá %s loại Trượng khác nhau sẽ khóa chiêu! §aNhiều cây dự phòng cùng 1 loại§r (vd 3x Inferno Rod) vẫn chỉ tính §e1 loại§r; §7Shulker, Túi & Ba lô§r được miễn đếm; §bĐinh Ba§r là slot §9Thủy§r miễn phí.",
   "codex.velorise_staves.res.rules.p3": "• §dQuyền Trượng Vạn Năng:§r Chế độ §6Auto§r ưu tiên §bTay chính ➔ Tay phụ ➔ Hotbar (0–8) ➔ Túi chính (9–35)§r và luôn ghép cặp trượng lẻ hệ đầu tiên chưa có cộng hưởng; §bKhóa hệ§r tính đúng hệ đã chọn.",
-  "codex.velorise_staves.res.pyro.p1": "• §cNhiệt Thành Chi Hỏa:§r Giảm 40% thời gian ấn Băng; tăng §6+1.0 ST tay§r & §c+15% ST Nguyên Tố§r.",
-  "codex.velorise_staves.res.hydro.p1": "• §9Dũ Hợp Chi Thủy:§r Giảm 40% thời gian ấn Hỏa/Cháy; tăng §a+20% Máu tối đa§r.",
+  "codex.velorise_staves.res.pyro.p1": "• §cNhiệt Tình Rực Cháy:§r -40% thời gian dính ấn Băng; tăng §c+10% Sát thương Nguyên tố & Cận chiến§r.",
+  "codex.velorise_staves.res.hydro.p1": "• §9Nước Trị Liệu:§r -40% thời gian dính ấn Hỏa & cháy; tăng §a+25% Máu tối đa§r & §b+25% Hiệu quả nhận hồi máu§r.",
   "codex.velorise_staves.res.anemo.p1": "• §bTấn Tiệp Chi Phong:§r +10% Tốc chạy, -15% tiêu hao đói khi chạy/nhảy, và §b-10% Hồi chiêu Trượng/Bảo vật§r.",
   "codex.velorise_staves.res.electro.p1": "• §dCường Năng Chi Lôi:§r Giảm 40% ấn Thủy; kích phản ứng Lôi hồi §e+1 Độ bền§r và giảm §e1.0s§r hồi chiêu Trượng đang đếm (5s ICD).",
   "codex.velorise_staves.res.dendro.p1": "• §aMan Sinh Chi Thảo:§r Tăng vĩnh viễn +1 Bậc TTNT; kích phản ứng Thảo nhận thêm §a+1 Bậc TTNT§r trong §e6s§r.",
@@ -476,5 +476,7 @@
   "death.velorise_staves.reaction.hyperbloom": "%1$s bị tên %2$s xuyên thủng",
   "death.velorise_staves.reaction.hyperbloom.player": "%1$s bị %2$s của %3$s xuyên thủng",
   "death.velorise_staves.reaction.burgeon": "%1$s bị nổ tan xác vì phản ứng %2$s",
-  "death.velorise_staves.reaction.burgeon.player": "%1$s bị nổ tan xác bởi %2$s của %3$s"
+  "death.velorise_staves.reaction.burgeon.player": "%1$s bị nổ tan xác bởi %2$s của %3$s",
+  "enchantment.velorise_staves.elemental_protection": "Bảo Vệ Nguyên Tố",
+  "enchantment.velorise_staves.elemental_protection.desc": "Giảm sát thương Trượng & Phản ứng Nguyên tố nhận vào (-5%/cấp, tối đa 80%) và giảm thời gian dính ấn & đóng băng."
 }

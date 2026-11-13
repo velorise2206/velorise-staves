@@ -57,6 +57,15 @@ public final class StavesConfig {
     public static final BooleanValue ENABLE_ELEMENTAL_GAUGE = defineBool("elemental_gauge", "enable_elemental_gauge", true);
     public static final BooleanValue ENABLE_ELEMENTAL_RESONANCE = defineBool("elemental_gauge", "enable_elemental_resonance", true);
     public static final IntValue MAX_STAVES_IN_INVENTORY = defineInt("elemental_gauge", "max_staves_in_inventory", 4, 0, 36);
+    public static final DoubleValue PYRO_RESONANCE_DAMAGE_BONUS = defineDouble("elemental_gauge", "pyro_resonance_damage_bonus", 0.10D, 0.0D, 1.0D);
+    public static final StringValue ELEMENTAL_ARMOR_DURABILITY_WEAR = defineString("elemental_gauge", "elemental_armor_durability_wear", "auto");
+
+    // Co-Op Multi-Player Dynamic Mob Scaling
+    public static final BooleanValue ENABLE_COOP_MOB_SCALING = defineBool("scaling", "enable_coop_mob_scaling", true);
+    public static final DoubleValue HP_SCALE_PER_EXTRA_PLAYER = defineDouble("scaling", "hp_scale_per_extra_player", 0.50D, 0.0D, 5.0D);
+    public static final BooleanValue ENABLE_COOP_ATK_SCALING = defineBool("scaling", "enable_coop_atk_scaling", true);
+    public static final IntValue MAX_COOP_PLAYERS_CAP = defineInt("scaling", "max_coop_players_cap", 4, 1, 16);
+    public static final DoubleValue COOP_SCAN_RADIUS = defineDouble("scaling", "coop_scan_radius", 40.0D, 8.0D, 128.0D);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
     public static final BooleanValue SHOW_REACTION_TEXT = defineBool("elemental_gauge", "show_reaction_text", true);
@@ -227,6 +236,8 @@ public final class StavesConfig {
                 writer.write("enable_elemental_resonance = " + ENABLE_ELEMENTAL_RESONANCE.get() + "\n");
                 writer.write("# Maximum Arcane Staves carried directly in inventory before Arcane Overload triggers (0 = unlimited)\n");
                 writer.write("max_staves_in_inventory = " + MAX_STAVES_IN_INVENTORY.get() + "\n");
+                writer.write("pyro_resonance_damage_bonus = " + PYRO_RESONANCE_DAMAGE_BONUS.get() + "\n");
+                writer.write("elemental_armor_durability_wear = \"" + ELEMENTAL_ARMOR_DURABILITY_WEAR.get() + "\"\n");
                 writer.write("# Show ambient elemental particles hovering around affected entities\n");
                 writer.write("show_elemental_particles = " + SHOW_ELEMENTAL_PARTICLES.get() + "\n");
                 writer.write("# Render Genshin-style overhead elemental aura icons above afflicted mobs\n");
@@ -268,6 +279,13 @@ public final class StavesConfig {
                         writer.write(shortKey + " = " + entry.getValue().get() + "\n");
                     }
                 }
+
+                writer.write("\n[scaling]\n");
+                writer.write("enable_coop_mob_scaling = " + ENABLE_COOP_MOB_SCALING.get() + "\n");
+                writer.write("hp_scale_per_extra_player = " + HP_SCALE_PER_EXTRA_PLAYER.get() + "\n");
+                writer.write("enable_coop_atk_scaling = " + ENABLE_COOP_ATK_SCALING.get() + "\n");
+                writer.write("max_coop_players_cap = " + MAX_COOP_PLAYERS_CAP.get() + "\n");
+                writer.write("coop_scan_radius = " + COOP_SCAN_RADIUS.get() + "\n");
             }
         } catch (Exception e) {
             LOGGER.error("Failed to write velorise_staves.toml", e);
@@ -684,6 +702,42 @@ public final class StavesConfig {
 
     private static BooleanValue defineBool(String section, String key, boolean def) {
         BooleanValue v = new BooleanValue(def);
+        ENTRIES.put(section + "." + key, v);
+        return v;
+    }
+
+    public static final class StringValue implements ConfigEntry<String> {
+        private String value;
+
+        StringValue(String def) {
+            this.value = def;
+        }
+
+        @Override
+        public String get() {
+            return value;
+        }
+
+        public void set(String newValue) {
+            this.value = newValue != null ? newValue.trim() : "auto";
+        }
+
+        @Override
+        public void parseAndSet(String raw) {
+            if (raw == null) return;
+            String s = raw.trim();
+            if ((s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2)
+                    || (s.startsWith("'") && s.endsWith("'") && s.length() >= 2)) {
+                s = s.substring(1, s.length() - 1).trim();
+            }
+            if (!s.isEmpty()) {
+                this.value = s;
+            }
+        }
+    }
+
+    private static StringValue defineString(String section, String key, String def) {
+        StringValue v = new StringValue(def);
         ENTRIES.put(section + "." + key, v);
         return v;
     }
