@@ -10,5 +10,6 @@
 
 ## Mechanics, Balance & Quality of Life
 - **Elemental Protection (Armor Enchantment):** New armor enchantment book to mitigate incoming elemental & reaction damage, with configurable armor durability rules.
+- **Elemental Resonance Balance Tuning:** Fine-tune Pyro & Hydro resonances to prevent excessive damage double-dipping while boosting Hydro sustain.
 - **Dynamic Elemental Particle & Visual Polish:** Enhanced reaction feedback, elemental pet death formatting, and chromatic Omni styling.
 - **New Advancements & Immersion:** Additional challenge advancements and progression milestones.
