@@ -1554,9 +1554,12 @@ public final class ElementalGaugeManager {
         boolean eligible = entity instanceof Enemy || isBossEntity(entity) || isMutatedInnate(entity) || isOmniInnate(entity) || !getInnateElements(entity).isEmpty();
         if (!eligible) return;
 
-        double radius = StavesConfig.COOP_SCAN_RADIUS.get();
-        double r2 = radius * radius;
-        int nearbyPlayers = level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= r2).size();
+        int nearbyPlayers = 0;
+        if (level.players().size() > 1) {
+            double radius = StavesConfig.COOP_SCAN_RADIUS.get();
+            double r2 = radius * radius;
+            nearbyPlayers = level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= r2).size();
+        }
         int maxCap = Math.max(1, StavesConfig.MAX_COOP_PLAYERS_CAP.get());
         int extraPlayers = Math.min(maxCap - 1, Math.max(0, nearbyPlayers - 1));
 
@@ -2434,28 +2437,35 @@ public final class ElementalGaugeManager {
     }
 
     public static void checkInnateMutation(LivingEntity entity) {
-        if (entity == null || entity.level().isClientSide()) return;
+        if (entity == null || entity instanceof Player || entity.level().isClientSide()) return;
         if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
         }
+
+        CompoundTag data = entity.getPersistentData();
+        boolean alreadyChecked = data.contains("VeloriseInnateChecked") || entity.getTags().contains("VeloriseInnateChecked");
+        if (!alreadyChecked) {
+            data.putBoolean("VeloriseInnateChecked", true);
+            entity.addTag("VeloriseInnateChecked");
+            rollInnateMutationOnce(entity, data);
+        }
+
         if (entity.level() instanceof ServerLevel slInit) {
             updateCoopMobScaling(slInit, entity);
         }
-        StavesConfig.MutationRules rules = StavesConfig.getMutationRules();
-        double mutateChance = rules.resolveMutationChance(entity);
-        if (mutateChance < 0.0D) return;
+    }
 
-        CompoundTag data = entity.getPersistentData();
-        if (data.contains("VeloriseInnateChecked") || entity.getTags().contains("VeloriseInnateChecked")) return;
-        data.putBoolean("VeloriseInnateChecked", true);
-        entity.addTag("VeloriseInnateChecked");
-
+    private static void rollInnateMutationOnce(LivingEntity entity, CompoundTag data) {
         // If the entity already has a natural innate element (other than non-mutated Charged Creeper lightning), do not mutate it
         if (!(entity instanceof Creeper) && getNaturalInnateElement(entity) != null) return;
 
+        StavesConfig.MutationRules rules = StavesConfig.getMutationRules();
+        double mutateChance = rules.resolveMutationChance(entity);
+        if (mutateChance <= 0.0D) return;
+
         double roll = entity.getRandom().nextDouble();
-        if (mutateChance > 0.0D && roll < mutateChance) {
+        if (roll < mutateChance) {
             if (rules.omniShare > 0.0D && roll < (mutateChance * rules.omniShare)) {
                 data.putString("VeloriseInnate", "OMNI");
                 entity.addTag(TAG_INNATE_OMNI);
@@ -2484,7 +2494,7 @@ public final class ElementalGaugeManager {
     }
 
     public static boolean isOmniInnate(@Nullable Entity entity) {
-        if (!(entity instanceof LivingEntity living)) return false;
+        if (!(entity instanceof LivingEntity living) || living instanceof Player) return false;
         if (!living.level().isClientSide() && !living.getPersistentData().contains("VeloriseInnateChecked") && !living.getTags().contains("VeloriseInnateChecked")) {
             checkInnateMutation(living);
         }
@@ -2502,6 +2512,7 @@ public final class ElementalGaugeManager {
     }
 
     public static @Nullable Element getInnateElement(LivingEntity target) {
+        if (target == null || target instanceof Player) return null;
         if (!target.level().isClientSide() && !target.getPersistentData().contains("VeloriseInnateChecked") && !target.getTags().contains("VeloriseInnateChecked")) {
             checkInnateMutation(target);
         }

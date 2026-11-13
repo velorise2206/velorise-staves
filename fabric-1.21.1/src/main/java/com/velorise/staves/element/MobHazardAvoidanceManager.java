@@ -174,7 +174,7 @@ public final class MobHazardAvoidanceManager {
         if (st.isAir()) return null;
 
         if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.LAVA)
-                || st.is(Blocks.MAGMA_BLOCK) || level.getFluidState(pos).is(FluidTags.LAVA)) {
+                || st.is(Blocks.MAGMA_BLOCK) || st.getFluidState().is(FluidTags.LAVA)) {
             return Element.PYRO;
         }
         if ((st.getBlock() instanceof CampfireBlock)
@@ -244,19 +244,21 @@ public final class MobHazardAvoidanceManager {
     }
 
     private static @Nullable Vec3 findZoneHazard(ServerLevel level, Vec3 pos, double margin, Mob mob) {
-        if (!isHazardImmune(mob, Element.PYRO)) {
-            Vec3 fire = GhastfireFieldManager.findNearestHazard(level, pos, margin);
-            if (fire != null) return fire;
+        Vec3 fire = GhastfireFieldManager.findNearestHazard(level, pos, margin);
+        if (fire != null && !isHazardImmune(mob, Element.PYRO)) {
+            return fire;
         }
-        if (!isHazardImmune(mob, Element.ELECTRO)) {
-            Vec3 dragon = DragonfireCloudManager.findNearestHazard(level, pos, margin);
-            if (dragon != null) return dragon;
-            Vec3 water = ElectrifiedWaterManager.findNearestHazard(level, pos, margin);
-            if (water != null) return water;
+        Vec3 dragon = DragonfireCloudManager.findNearestHazard(level, pos, margin);
+        if (dragon != null && !isHazardImmune(mob, Element.ELECTRO)) {
+            return dragon;
         }
-        if (!isHazardImmune(mob, Element.DENDRO)) {
-            Vec3 core = DendroCoreManager.findNearestHazard(level, pos, margin);
-            if (core != null) return core;
+        Vec3 water = ElectrifiedWaterManager.findNearestHazard(level, pos, margin);
+        if (water != null && !isHazardImmune(mob, Element.ELECTRO)) {
+            return water;
+        }
+        Vec3 core = DendroCoreManager.findNearestHazard(level, pos, margin);
+        if (core != null && !isHazardImmune(mob, Element.DENDRO)) {
+            return core;
         }
         return null;
     }
