@@ -711,8 +711,8 @@ public class ElementalCodexScreen extends Screen {
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
                                 fmtHearts(3.0 * dmgMult) + "§f\uE008§rx9", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"},
                         {"vortex_vanquisher", ArcaneStaffItem.Kind.VORTEX, Element.GEO,
-                                fmtHearts((8.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§r",
-                                "§6" + fmtHearts((12.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§6", "12m (6m Pulse)", "codex.velorise_staves.staff.vortex"},
+                                fmtHearts((4.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§r",
+                                "§6" + fmtHearts((6.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§6", "12m (Max 3 / 6m Pulse)", "codex.velorise_staves.staff.vortex"},
                         {"omni_staff", ArcaneStaffItem.Kind.OMNI, null,
                                 fmtHearts(10.0 * dmgMult) + "§f\uE008§r 2U", "§6" + fmtHearts(15.0 * dmgMult) + "§f\uE008§6 3U", "36m➔48m", "codex.velorise_staves.staff.omni"}
                 };

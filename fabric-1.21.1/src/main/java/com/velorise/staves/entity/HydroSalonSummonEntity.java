@@ -133,10 +133,14 @@ public class HydroSalonSummonEntity extends Entity {
         if (until != null && player.level().getGameTime() <= until) {
             return true;
         }
-        AABB box = player.getBoundingBox().inflate(24.0D);
+        AABB box = player.getBoundingBox().inflate(64.0D);
         List<HydroSalonSummonEntity> list = player.level().getEntitiesOfClass(
                 HydroSalonSummonEntity.class, box, Entity::isAlive);
-        return !list.isEmpty();
+        if (!list.isEmpty()) {
+            ACTIVE_OWNER_SUMMON_UNTIL.put(player.getUUID(), player.level().getGameTime() + 10L);
+            return true;
+        }
+        return false;
     }
 
     public static boolean hasNetheriteSummon(@Nullable Player player) {

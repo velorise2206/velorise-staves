@@ -20,9 +20,24 @@ public abstract class LivingEntityDamageMixin {
         }
     }
 
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void velorise$onLivingTickPre(CallbackInfo ci) {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (entity instanceof net.minecraft.world.entity.player.Player p
+                && !p.isShiftKeyDown()
+                && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
+            ElementalGaugeManager.applyFurinaWaterWalking(p);
+        }
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void velorise$onLivingTickPost(CallbackInfo ci) {
         LivingEntity entity = (LivingEntity) (Object) this;
+        if (entity instanceof net.minecraft.world.entity.player.Player p
+                && !p.isShiftKeyDown()
+                && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
+            ElementalGaugeManager.applyFurinaWaterWalking(p);
+        }
         if (!entity.level().isClientSide()) {
             ElementalGaugeManager.tickEntityFreezeGuard(entity);
             if ((entity.getRemainingFireTicks() > 0 || entity.isOnFire())

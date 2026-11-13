@@ -141,7 +141,7 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
                     display.add(active);
                 }
             }
-        } else if (data != null && !data.elements.isEmpty()) {
+        } else if (data != null && !data.elements.isEmpty() && (data.expireTime <= 0L || now < data.expireTime)) {
             display.addAll(data.elements);
         }
         for (Element innateElem : innateSet) {

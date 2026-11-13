@@ -103,6 +103,9 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private static final Map<UUID, ItemStack> ACTIVE_CHANNELING = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> SPLENDOR_SWITCHED_THIS_HOLD = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> SPLENDOR_LAST_SWITCH_TIME = new ConcurrentHashMap<>();
+    private static final long SPLENDOR_SWITCH_COOLDOWN_TICKS = 20L;
     private static volatile java.lang.reflect.Method cachedMaxHpMethod;
     private static volatile boolean maxHpMethodResolved;
 
@@ -186,13 +189,22 @@ public final class ArcaneStaffItem extends Item {
         }
         if (kind == Kind.SPLENDOR && player.isShiftKeyDown()) {
             if (!level.isClientSide() && player instanceof ServerPlayer sp) {
-                switchSplendorArkhe(sp, stack);
+                long now = level.getGameTime();
+                long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(sp.getUUID(), -100L);
+                if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+                    SPLENDOR_LAST_SWITCH_TIME.put(sp.getUUID(), now);
+                    switchSplendorArkhe(sp, stack);
+                    player.getCooldowns().addCooldown(this, 10);
+                }
             }
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
         }
         if (kind != Kind.SPLENDOR && player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (isCharged()) {
+            if (kind == Kind.SPLENDOR && !level.isClientSide()) {
+                SPLENDOR_SWITCHED_THIS_HOLD.put(player.getUUID(), false);
+            }
             player.startUsingItem(hand);
             if (!level.isClientSide()) {
                 if (isChannelingKind()) {
@@ -425,7 +437,8 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 70;
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
-        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR) return 10; // 0.5s hold (Jade Shield / Furina Charged Attack Arkhe Switch)
+        if (kind == Kind.VORTEX) return 30; // 1.5s hold for Zhongli Jade Shield + AoE Geo shockwave
+        if (kind == Kind.SPLENDOR) return 72000; // Hold locks after 0.5s Arkhe switch until player releases and presses again
         return isCharged() ? 30 : 0;
     }
 
@@ -476,18 +489,34 @@ public final class ArcaneStaffItem extends Item {
             return;
         }
         if (kind == Kind.VORTEX) {
+            int elapsed = 30 - count;
             if (count % 2 == 0) {
                 serverLevel.sendParticles(ParticleTypes.WAX_ON,
                         player.getX(), player.getY() + 1.0D, player.getZ(),
                         4, 0.45D, 0.5D, 0.45D, 0.02D);
             }
+            if (elapsed == 10 || elapsed == 20) {
+                serverLevel.playSound(null, player.blockPosition(), SoundEvents.BASALT_STEP, SoundSource.PLAYERS, 0.65F, 0.75F + (elapsed * 0.01F));
+            }
             return;
         }
         if (kind == Kind.SPLENDOR) {
-            if (count % 2 == 0) {
-                serverLevel.sendParticles(ParticleTypes.SPLASH,
-                        player.getX(), player.getY() + 1.0D, player.getZ(),
-                        5, 0.45D, 0.45D, 0.45D, 0.03D);
+            int elapsed = 72000 - count;
+            if (!Boolean.TRUE.equals(SPLENDOR_SWITCHED_THIS_HOLD.get(player.getUUID()))) {
+                if (elapsed >= 10) {
+                    SPLENDOR_SWITCHED_THIS_HOLD.put(player.getUUID(), true);
+                    long now = serverLevel.getGameTime();
+                    long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
+                    if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+                        SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
+                        switchSplendorArkhe(player, stack);
+                        player.swing(player.getUsedItemHand(), true);
+                    }
+                } else if (count % 2 == 0) {
+                    serverLevel.sendParticles(ParticleTypes.SPLASH,
+                            player.getX(), player.getY() + 1.0D, player.getZ(),
+                            5, 0.45D, 0.45D, 0.45D, 0.03D);
+                }
             }
             return;
         }
@@ -517,8 +546,7 @@ public final class ArcaneStaffItem extends Item {
         }
         if (ElementalResonanceManager.isOverloaded(player)) return stack;
         if (kind == Kind.SPLENDOR) {
-            switchSplendorArkhe(player, stack);
-            player.swing(player.getUsedItemHand(), true);
+            SPLENDOR_SWITCHED_THIS_HOLD.remove(player.getUUID());
             return stack;
         }
         if (kind == Kind.VORTEX) {
@@ -552,10 +580,20 @@ public final class ArcaneStaffItem extends Item {
             } else if (kind == Kind.GUARDIAN) {
                 finishGuardianBeam(player);
             } else if (kind == Kind.SPLENDOR) {
+                boolean alreadySwitched = Boolean.TRUE.equals(SPLENDOR_SWITCHED_THIS_HOLD.remove(player.getUUID()));
                 int elapsed = this.getUseDuration(stack, entity) - timeLeft;
-                if (elapsed >= 8 || player.isShiftKeyDown()) {
-                    switchSplendorArkhe(player, stack);
-                    player.swing(player.getUsedItemHand(), true);
+                if (alreadySwitched) {
+                    SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), level.getGameTime());
+                    player.getCooldowns().addCooldown(this, 10);
+                } else if (elapsed >= 10 || player.isShiftKeyDown()) {
+                    long now = level.getGameTime();
+                    long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
+                    if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+                        SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
+                        switchSplendorArkhe(player, stack);
+                        player.swing(player.getUsedItemHand(), true);
+                        player.getCooldowns().addCooldown(this, 10);
+                    }
                 } else if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     if (castSplendorSummon(player, stack)) {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
@@ -567,7 +605,7 @@ public final class ArcaneStaffItem extends Item {
             } else if (kind == Kind.VORTEX) {
                 if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     int elapsed = this.getUseDuration(stack, entity) - timeLeft;
-                    boolean holdShield = elapsed >= 8 || player.isShiftKeyDown();
+                    boolean holdShield = elapsed >= 28 || player.isShiftKeyDown();
                     if (castVortexVanquisher(player, holdShield)) {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                         ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(holdShield));
@@ -776,14 +814,14 @@ public final class ArcaneStaffItem extends Item {
         flat = flat.normalize();
         float yaw = (float) Math.atan2(flat.z, flat.x);
 
-        int maxSteles = isNetherite ? 2 : 1;
-        int currentSteles = com.velorise.staves.entity.GeoFangPillarEntity.countActiveStelesForOwner(
+        int maxConstructs = com.velorise.staves.entity.GeoFangPillarEntity.MAX_CONSTRUCTS_PER_OWNER;
+        int currentConstructs = com.velorise.staves.entity.GeoFangPillarEntity.countActiveConstructsForOwner(
                 level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID());
 
-        // Genshin Dominus Lapidis rule:
-        // - Press (Tap): always summons a Stone Stele (replacing oldest if at cap).
-        // - Hold: forms Jade Shield + AoE Geo shockwave, and ONLY summons a Stone Stele if below maxStele cap!
-        boolean shouldSpawnStele = !holdJadeShield || (currentSteles < maxSteles);
+        // Genshin Dominus Lapidis + Default Geo Construct Cap (3):
+        // - Press (Tap): always summons a Stone Stele (replacing oldest construct if at 3-construct cap).
+        // - Hold (1.5s): forms Jade Shield + AoE Geo shockwave, and summons a Stone Stele if below 3-construct cap!
+        boolean shouldSpawnStele = !holdJadeShield || (currentConstructs < maxConstructs);
         boolean castUnderFeet = !holdJadeShield && player.getXRot() >= 50.0F;
 
         double steleX = player.getX() + flat.x * 2.5D;
@@ -826,8 +864,8 @@ public final class ArcaneStaffItem extends Item {
                 }
             }
 
-            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxSteleForOwner(
-                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID(), maxSteles);
+            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
+                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID());
 
             com.velorise.staves.entity.GeoFangPillarEntity stele =
                     new com.velorise.staves.entity.GeoFangPillarEntity(
@@ -846,9 +884,9 @@ public final class ArcaneStaffItem extends Item {
             }
         }
 
-        // Initial Dominus Lapidis Geo shockwave (scales with 1.9% Max HP)
+        // Initial Dominus Lapidis Geo shockwave (Basic: 2.0 hearts [4.0 HP], Netherite: 3.0 hearts [6.0 HP] + 1.9% Max HP)
         float maxHp = Math.max(20.0F, player.getMaxHealth());
-        float baseDmg = (isNetherite ? 12.0F : 8.0F) + maxHp * 0.019F;
+        float baseDmg = (isNetherite ? 6.0F : 4.0F) + maxHp * 0.019F;
         float gaugeU = isNetherite ? 1.5F : 1.0F;
         Vec3 shockCenter = holdJadeShield ? player.position() : new Vec3(steleX, steleY, steleZ);
         AABB box = new AABB(
@@ -1126,7 +1164,7 @@ public final class ArcaneStaffItem extends Item {
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (30s)" : "16m Ousia / 6m Pneuma (30s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
-            case VORTEX -> isNetherite ? "12m (2 Steles, 6m Pulse / Jade Shield)" : "12m (1 Stele, 6m Pulse / Jade Shield)";
+            case VORTEX -> "12m (Max 3 Constructs, 6m Pulse / Jade Shield)";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
             case WEB -> "28m";
@@ -1235,7 +1273,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
             case VORTEX -> {
                 float maxHp = getDisplayMaxHp();
-                float slam = (isNetherite ? 12.0F : 8.0F) + maxHp * 0.019F;
+                float slam = (isNetherite ? 6.0F : 4.0F) + maxHp * 0.019F;
                 float pulse = (isNetherite ? 3.0F : 2.0F) + maxHp * 0.019F;
                 yield fmtHearts(slam) + heart + " (+" + fmtHearts(pulse) + heart + "/2s) " + icon + (isNetherite ? "1.5U" : "1U");
             }

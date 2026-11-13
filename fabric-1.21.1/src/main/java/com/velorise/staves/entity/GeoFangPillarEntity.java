@@ -7,6 +7,7 @@ import com.velorise.staves.element.ElementalGaugeManager;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -202,6 +203,21 @@ public class GeoFangPillarEntity extends Entity {
         if (DATA_NETHERITE.equals(key) || DATA_STELE.equals(key) || DATA_ATTACH_DIR.equals(key)) {
             this.refreshDimensions();
         }
+    }
+
+    @Override
+    protected Component getTypeName() {
+        if (isStoneStele()) {
+            return Component.translatable("entity.velorise_staves.stone_stele");
+        }
+        return super.getTypeName();
+    }
+
+    public double getConstructCenterHeight() {
+        if (isStoneStele()) {
+            return isHorizontalStele() ? 0.45D : 1.75D;
+        }
+        return isNetherite() ? 1.0D : 0.5D;
     }
 
     @Override
@@ -408,6 +424,24 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    public static int countActiveConstructsForOwner(
+            ServerLevel level,
+            EntityType<GeoFangPillarEntity> type,
+            UUID ownerId
+    ) {
+        int count = 0;
+        for (Entity entity : level.getAllEntities()) {
+            if (entity instanceof GeoFangPillarEntity construct
+                    && construct.getType() == type
+                    && construct.isAlive()
+                    && !construct.isRemoved()
+                    && ownerId.equals(construct.getOwnerUUID())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public static int countActiveStelesForOwner(
             ServerLevel level,
             EntityType<GeoFangPillarEntity> type,
@@ -456,7 +490,7 @@ public class GeoFangPillarEntity extends Entity {
     public void tick() {
         super.tick();
         this.setDeltaMovement(Vec3.ZERO);
-        float expectedHeight = (isNetherite() || isStoneStele()) ? 2.0F : 1.0F;
+        float expectedHeight = isStoneStele() ? (isHorizontalStele() ? 0.90F : 3.5F) : (isNetherite() ? 2.0F : 1.0F);
         if (Math.abs(this.getBbHeight() - expectedHeight) > 0.01F) {
             this.refreshDimensions();
         }
@@ -574,7 +608,7 @@ public class GeoFangPillarEntity extends Entity {
         this.entityData.set(DATA_PULSE_SEQ, getPulseSeq() + 1);
         this.activeWaves.add(new ActiveGeoWave(sharedChain));
 
-        double centerH = isNetherite() ? 1.0D : 0.5D;
+        double centerH = getConstructCenterHeight();
         level.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.75F, 0.9F + level.random.nextFloat() * 0.2F);
         level.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
@@ -980,7 +1014,7 @@ public class GeoFangPillarEntity extends Entity {
         setHealth(nextHp);
         this.entityData.set(DATA_HURT_TICK, this.tickCount);
 
-        double centerH = isNetherite() ? 1.0D : 0.5D;
+        double centerH = getConstructCenterHeight();
         ServerLevel sl = (ServerLevel) this.level();
         sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.STONE_HIT, SoundSource.BLOCKS, 0.9F, 0.85F + sl.random.nextFloat() * 0.25F);
@@ -1024,7 +1058,7 @@ public class GeoFangPillarEntity extends Entity {
             dmg = 2.0F;
         }
 
-        double centerH = isNetherite() ? 1.0D : 0.5D;
+        double centerH = getConstructCenterHeight();
         level.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.05F);
         level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
@@ -1047,6 +1081,12 @@ public class GeoFangPillarEntity extends Entity {
         if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return false;
         }
+        // Projectiles already collide physically with the Geo Construct's 3D hitbox in flight (onProjectileHit).
+        // Skipping projectile damage here prevents a pillar standing behind a knocked-back player from
+        // falsely intercepting arrows shot into the player's front hitbox.
+        if (source.is(DamageTypeTags.IS_PROJECTILE) || source.getDirectEntity() instanceof Projectile) {
+            return false;
+        }
         Vec3 origin = getDamageOrigin(source);
         if (origin == null || source.getEntity() == victim) {
             return false;
@@ -1060,16 +1100,16 @@ public class GeoFangPillarEntity extends Entity {
                 c -> c.isAlive() && !c.isRemoved()
         );
         for (GeoFangPillarEntity construct : nearby) {
-            AABB shieldBox = construct.getBoundingBox().inflate(0.2D, 0.15D, 0.2D);
-            if (shieldBox.contains(origin)) continue;
+            AABB shieldBox = construct.getBoundingBox().inflate(0.15D, 0.10D, 0.15D);
+            if (shieldBox.contains(origin) || shieldBox.contains(victimCenter) || shieldBox.contains(victimEyes)) continue;
             if (shieldBox.clip(origin, victimCenter).isPresent() || shieldBox.clip(origin, victimEyes).isPresent()) {
                 if (construct.hurt(source, amount)) {
-                    double centerH = construct.isNetherite() ? 1.0D : 0.5D;
+                    double centerH = construct.getConstructCenterHeight();
                     level.playSound(null, construct.getX(), construct.getY() + centerH, construct.getZ(),
                             SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.0F);
                     level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
                             construct.getX(), construct.getY() + centerH, construct.getZ(),
-                            10, 0.4D, construct.isNetherite() ? 0.6D : 0.35D, 0.4D, 0.03D);
+                            10, 0.4D, construct.isStoneStele() ? 1.1D : (construct.isNetherite() ? 0.6D : 0.35D), 0.4D, 0.03D);
                     return true;
                 }
             }
@@ -1079,14 +1119,14 @@ public class GeoFangPillarEntity extends Entity {
 
     @Nullable
     private static Vec3 getDamageOrigin(DamageSource source) {
-        if (source.getSourcePosition() != null) {
-            return source.getSourcePosition();
+        if (source.getEntity() != null) {
+            return source.getEntity().getBoundingBox().getCenter();
         }
         if (source.getDirectEntity() != null) {
             return source.getDirectEntity().getBoundingBox().getCenter();
         }
-        if (source.getEntity() != null) {
-            return source.getEntity().getBoundingBox().getCenter();
+        if (source.getSourcePosition() != null) {
+            return source.getSourcePosition();
         }
         return null;
     }
@@ -1103,7 +1143,7 @@ public class GeoFangPillarEntity extends Entity {
         this.tauntedMobs.clear();
         this.lastTauntAttackTime.clear();
         if (this.level() instanceof ServerLevel sl) {
-            double centerH = isNetherite() ? 1.0D : 0.5D;
+            double centerH = getConstructCenterHeight();
             double spreadY = isNetherite() ? 0.8D : 0.45D;
             sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                     SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.1F, 0.85F);

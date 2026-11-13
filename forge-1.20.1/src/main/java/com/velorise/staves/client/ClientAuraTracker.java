@@ -407,13 +407,16 @@ public final class ClientAuraTracker {
         } else if (durationTicks < 0) {
             entry.expireTime = -1L; // Permanent innate aura
             if (!elements.isEmpty()) {
+                entry.permanentInnateElements.clear();
                 entry.permanentInnateElements.addAll(elements);
-                if (entry.permanentInnateElement == null) {
-                    entry.permanentInnateElement = elements.get(0);
-                }
+                entry.permanentInnateElement = elements.get(0);
             }
         } else {
-            entry.expireTime = (!entry.permanentInnateElements.isEmpty() || entry.permanentInnateElement != null || entry.permanentOmniInnate) ? -1L : 0L;
+            if (!elements.isEmpty()) {
+                entry.expireTime = now + 9500L; // Default 9.5s (1U) fallback so temporary auras never stay stuck at expireTime=0
+            } else {
+                entry.expireTime = (!entry.permanentInnateElements.isEmpty() || entry.permanentInnateElement != null || entry.permanentOmniInnate) ? -1L : 0L;
+            }
         }
         for (Element perm : entry.permanentInnateElements) {
             if (!entry.elements.contains(perm)) {

@@ -303,13 +303,8 @@ public final class ElementalGaugeManager {
             EnumSet<Element> innateSet = getInnateElements(target);
             if (isOmniInnate(target)) {
                 durationTicks = -2; // -2 represents permanent Omni Mutated innate state
-            } else if (!innateSet.isEmpty()) {
-                for (Element inn : innateSet) {
-                    if (effective.contains(inn)) {
-                        durationTicks = -1; // -1 represents permanent innate aura
-                        break;
-                    }
-                }
+            } else if (!innateSet.isEmpty() && !effective.isEmpty() && innateSet.containsAll(effective)) {
+                durationTicks = -1; // -1 represents pure permanent innate aura (no temporary coexisting auras)
             }
             if (isEntityFrozen(target)) {
                 int freezeRem = getFrozenRemainingTicks(id, now);
@@ -1025,6 +1020,31 @@ public final class ElementalGaugeManager {
         return false;
     }
 
+    /**
+     * Checks whether the entity is physically standing in or touching an environmental fire source
+     * (Lava, Fire/Soul Fire block, lit Campfire/Soul Campfire, or Magma Block) rather than merely
+     * having residual Vanilla afterburn ticks from a weapon or staff hit.
+     */
+    public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) {
+        if (target == null || target.level().isClientSide()) return false;
+        if (target.isInLava()) return true;
+        AABB box = target.getBoundingBox().inflate(0.06D, 0.12D, 0.06D);
+        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.12D, box.minZ);
+        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
+            if (!target.level().hasChunkAt(p)) continue;
+            BlockState st = target.level().getBlockState(p);
+            if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.MAGMA_BLOCK)) {
+                return true;
+            }
+            if ((st.is(Blocks.CAMPFIRE) || st.is(Blocks.SOUL_CAMPFIRE))
+                    && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean isTouchingMushroomBlock(LivingEntity target) {
         if (target == null || target.level().isClientSide()) return false;
         AABB box = target.getBoundingBox().inflate(0.08D, 0.08D, 0.08D);
@@ -1234,34 +1254,57 @@ public final class ElementalGaugeManager {
         double px = player.getX();
         double py = player.getY();
         double pz = player.getZ();
+        var level = player.level();
 
-        BlockPos feetBlock = BlockPos.containing(px, py, pz);
-        BlockPos belowBlock = BlockPos.containing(px, py - 0.25D, pz);
+        // Check horizontal footprint (center + 4 corners) so sprinting/jumping across block edges never dips
+        double[][] offsets = {
+            {0.0D, 0.0D},
+            {-0.28D, -0.28D},
+            {0.28D, -0.28D},
+            {-0.28D, 0.28D},
+            {0.28D, 0.28D}
+        };
 
         BlockPos waterPos = null;
-        if (player.level().getFluidState(feetBlock).is(net.minecraft.tags.FluidTags.WATER)
-                && !player.level().getFluidState(feetBlock.above()).is(net.minecraft.tags.FluidTags.WATER)) {
-            waterPos = feetBlock;
-        } else if (player.level().getFluidState(belowBlock).is(net.minecraft.tags.FluidTags.WATER)
-                && !player.level().getFluidState(belowBlock.above()).is(net.minecraft.tags.FluidTags.WATER)) {
-            waterPos = belowBlock;
+        for (double[] off : offsets) {
+            double cx = px + off[0];
+            double cz = pz + off[1];
+            BlockPos feet = BlockPos.containing(cx, py - 0.01D, cz);
+            BlockPos below = BlockPos.containing(cx, py - 0.45D, cz);
+            if (level.getFluidState(feet).is(net.minecraft.tags.FluidTags.WATER)
+                    && !level.getFluidState(feet.above()).is(net.minecraft.tags.FluidTags.WATER)
+                    && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()) {
+                if (waterPos == null || feet.getY() > waterPos.getY()) {
+                    waterPos = feet;
+                }
+            } else if (level.getFluidState(below).is(net.minecraft.tags.FluidTags.WATER)
+                    && !level.getFluidState(below.above()).is(net.minecraft.tags.FluidTags.WATER)
+                    && level.getBlockState(below.above()).getCollisionShape(level, below.above()).isEmpty()) {
+                if (waterPos == null || below.getY() > waterPos.getY()) {
+                    waterPos = below;
+                }
+            }
         }
         if (waterPos == null) return;
 
-        float fluidHeight = player.level().getFluidState(waterPos).getOwnHeight();
-        double surfaceY = waterPos.getY() + Math.max(0.88D, fluidHeight);
-
-        // Strictly engage only right at the water surface (never while airborne in a jump above the water!)
-        if (py > surfaceY + 0.08D || py < surfaceY - 0.55D) {
-            return;
-        }
+        // Place the support plane right at the top of the water block (Y + 1.0), completely above the
+        // 0.8889 fluid height so player.isInWater() never flips true to cause water drag or weak liquid jumps!
+        double surfaceY = waterPos.getY() + 1.0D;
 
         Vec3 dv = player.getDeltaMovement();
-        if (dv.y > 0.12D) {
+        // Allow normal upward jump trajectory (jumpFromGround sets dv.y = 0.42D)
+        if (dv.y > 0.08D) {
             return;
         }
 
-        if (py < surfaceY - 0.02D) {
+        // Catch player either when within the surface tolerance band OR about to cross below surfaceY on this tick
+        boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - 0.65D);
+        boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.04D && py <= surfaceY + 0.85D);
+        if (!atSurface && !crossingSurface) {
+            return;
+        }
+
+        if (py < surfaceY || crossingSurface) {
             player.setPos(px, surfaceY, pz);
         }
         if (dv.y < 0.0D) {
@@ -1269,6 +1312,7 @@ public final class ElementalGaugeManager {
         }
         player.setOnGround(true);
         player.fallDistance = 0.0F;
+        player.setSwimming(false);
     }
 
     public static boolean hasRecentHpChangeBuff(ServerPlayer player) {
@@ -1900,8 +1944,23 @@ public final class ElementalGaugeManager {
                 if (isOmniInnate(target)) {
                     return;
                 }
-                // 1. Environmental Fire
+                // 1. Environmental Fire (skip refreshing existing Pyro from residual ON_FIRE afterburn unless touching real fire/lava or reacting)
                 if (source.is(DamageTypeTags.IS_FIRE)) {
+                    if (source.is(DamageTypes.ON_FIRE)
+                            && !isTouchingEnvironmentalFireBlock(target)
+                            && !BURNING_UNTIL.containsKey(target.getUUID())) {
+                        Map<Element, GaugeState> tg = GAUGES.get(target.getUUID());
+                        GaugeState fg = FROZEN_GAUGES.get(target.getUUID());
+                        boolean hasReactive = (fg != null && !fg.isExpired())
+                                || (tg != null && (tg.containsKey(Element.CRYO)
+                                        || tg.containsKey(Element.HYDRO)
+                                        || tg.containsKey(Element.ELECTRO)
+                                        || tg.containsKey(Element.DENDRO)))
+                                || QUICKEN_GAUGES.containsKey(target.getUUID());
+                        if (!hasReactive && tg != null && tg.containsKey(Element.PYRO)) {
+                            return;
+                        }
+                    }
                     handleEnvironmentalFireDamage(target);
                     return;
                 }
@@ -2298,7 +2357,7 @@ public final class ElementalGaugeManager {
                 syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
             } else {
                 GaugeState existing = targetGauges.get(Element.PYRO);
-                if (existing != null && (soulFire || target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0)) {
+                if (existing != null && (soulFire || isTouchingEnvironmentalFireBlock(target))) {
                     refreshAuraGauge(target, existing, Element.PYRO, appliedPyro);
                     if (soulFire || now % 20 == 0) {
                         syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
@@ -2930,10 +2989,7 @@ public final class ElementalGaugeManager {
         ItemStack weapon = attacker.getMainHandItem();
         boolean hasFireAspect = com.velorise.staves.item.SwordImbueHelper.hasFireAspect(weapon);
         String imbueKey = com.velorise.staves.item.SwordImbueHelper.getImbuedKey(weapon);
-        if (imbueKey == null) {
-            if (hasFireAspect) {
-                ensurePreDeathPyroIgnite(target, 4);
-            }
+        if (imbueKey == null && !hasFireAspect) {
             return incomingDamage;
         }
         if (com.velorise.staves.item.SwordImbueHelper.isNonPyroImbued(weapon) && hasFireAspect) {
@@ -2948,13 +3004,15 @@ public final class ElementalGaugeManager {
             return incomingDamage;
         }
 
-        Element chosen = com.velorise.staves.item.SwordImbueHelper.OMNI_KEY.equals(imbueKey)
-                ? com.velorise.staves.entity.OmniOrbEntity.chooseBestElementForTarget(target, attacker)
-                : com.velorise.staves.item.SwordImbueHelper.getImbuedElement(weapon);
-        if (chosen == null) return incomingDamage;
-        if (chosen == Element.PYRO || hasFireAspect) {
-            ensurePreDeathPyroIgnite(target, 4);
+        Element chosen;
+        if (imbueKey == null) {
+            chosen = Element.PYRO; // Non-imbued Fire Aspect weapon applies 1U Pyro on full-charge swing
+        } else if (com.velorise.staves.item.SwordImbueHelper.OMNI_KEY.equals(imbueKey)) {
+            chosen = com.velorise.staves.entity.OmniOrbEntity.chooseBestElementForTarget(target, attacker);
+        } else {
+            chosen = com.velorise.staves.item.SwordImbueHelper.getImbuedElement(weapon);
         }
+        if (chosen == null) return incomingDamage;
 
         float[] outDamage = new float[] { incomingDamage };
         IS_PROCESSING_SWORD_IMBUE.set(true);
@@ -2962,6 +3020,9 @@ public final class ElementalGaugeManager {
             applyElement(level, target, chosen, 1.0F, attacker, incomingDamage, true, outDamage);
         } finally {
             IS_PROCESSING_SWORD_IMBUE.set(false);
+        }
+        if ((chosen == Element.PYRO || hasFireAspect) && !hasElement(target, Element.ELECTRO) && !hasInnateElement(target, Element.ELECTRO)) {
+            ensurePreDeathPyroIgnite(target, 4);
         }
         return outDamage[0];
     }
@@ -3287,7 +3348,7 @@ public final class ElementalGaugeManager {
             if (innateElements.isEmpty() && !targetGauges.containsKey(Element.HYDRO)) {
                 targetGauges.put(Element.HYDRO, createAuraGauge(target, Element.HYDRO, 1.25F));
             }
-        } else if (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0) {
+        } else if (isTouchingEnvironmentalFireBlock(target)) {
             if (innateElements.isEmpty() && !targetGauges.containsKey(Element.ELECTRO)) {
                 if (!targetGauges.containsKey(Element.PYRO)) {
                     targetGauges.put(Element.PYRO, createAuraGauge(target, Element.PYRO, 1.25F));
@@ -4178,7 +4239,7 @@ public final class ElementalGaugeManager {
                     GAUGES.remove(id);
                     continue;
                 }
-            } else if (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava()) {
+            } else if (isTouchingEnvironmentalFireBlock(target)) {
                 maintainBurningPyroAura(target);
             }
 
@@ -4213,7 +4274,7 @@ public final class ElementalGaugeManager {
                 if (innateSet.contains(gEntry.getKey())) {
                     continue; // Innate lock: never decay naturally
                 }
-                if (gEntry.getKey() == Element.PYRO && (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0 || BURNING_UNTIL.containsKey(id))) {
+                if (gEntry.getKey() == Element.PYRO && (isTouchingEnvironmentalFireBlock(target) || BURNING_UNTIL.containsKey(id))) {
                     continue;
                 }
                 if (gEntry.getKey() == Element.HYDRO && isEntityInWater(target)) {
@@ -4465,7 +4526,7 @@ public final class ElementalGaugeManager {
             if (!player.isSpectator()) {
                 if (isEntityInWater(player)) {
                     handleEnvironmentalWater(player);
-                } else if (player.isOnFire() || player.getRemainingFireTicks() > 0 || player.isInLava() || isTouchingSoulCampfire(player)) {
+                } else if (isTouchingEnvironmentalFireBlock(player) || isTouchingSoulCampfire(player)) {
                     maintainBurningPyroAura(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
@@ -4518,7 +4579,7 @@ public final class ElementalGaugeManager {
                         if (!nearbyInnates.isEmpty() && serverNow % 20 == 0) {
                             if (isEntityInWater(nearby)) {
                                 handleEnvironmentalWater(nearby);
-                            } else if (nearby.isOnFire() || nearby.getRemainingFireTicks() > 0 || nearby.isInLava() || isTouchingSoulCampfire(nearby)) {
+                            } else if (isTouchingEnvironmentalFireBlock(nearby) || isTouchingSoulCampfire(nearby)) {
                                 maintainBurningPyroAura(nearby);
                             }
                         }
