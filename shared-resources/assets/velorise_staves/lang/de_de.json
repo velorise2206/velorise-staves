@@ -503,5 +503,6 @@
   "item.velorise_staves.netherite_vortex_vanquisher.desc": "Netherit-geschmiedeter Regenbogenstecher. Bis zu 2 gleichzeitige Steinkämme (1,5U Geo), verstärkter Jadeschild, -20% WDS-Aura und +30% Schaden mit Schild.",
   "tooltip.velorise_staves.vortex_jade_shield": "  Schleichen + Rechtsklick: Jadeschild (150% Absorption & +20%–30% Schaden)",
   "tooltip.velorise_staves.vortex_res_shred": "  Jadeschild-Aura: -20% alle Elementar- & Physische WDS (4,5m)",
-  "codex.velorise_staves.staff.vortex": "Beschwört Steinkamm (6m Resonanz, 1➔2 Stelen). Schleichen+Rechtsklick formt Jadeschild (150% Absorption, -20% WDS)."
+  "codex.velorise_staves.staff.vortex": "Beschwört Steinkamm (6m Resonanz, 1➔2 Stelen). Schleichen+Rechtsklick formt Jadeschild (150% Absorption, -20% WDS).",
+  "effect.velorise_staves.geo_shield": "Jadeschild (Geo)"
 }

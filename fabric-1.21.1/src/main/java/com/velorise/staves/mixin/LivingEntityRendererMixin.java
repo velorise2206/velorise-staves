@@ -25,6 +25,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
     @Inject(method = "render", at = @At("RETURN"))
     private void velorise$renderAura(T livingEntity, float f, float g, PoseStack poseStack, MultiBufferSource multiBufferSource, int i, CallbackInfo ci) {
         ClientAuraRenderer.renderFrozenIceOverlay(livingEntity, this.model, poseStack, multiBufferSource);
+        ClientAuraRenderer.renderJadeShieldBarrier(livingEntity, poseStack, multiBufferSource);
         ClientAuraRenderer.render(livingEntity, poseStack, multiBufferSource, i);
     }
 }

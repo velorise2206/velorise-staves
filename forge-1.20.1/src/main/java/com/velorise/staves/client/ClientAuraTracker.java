@@ -35,6 +35,7 @@ public final class ClientAuraTracker {
         public long expireTime = 0; // ms timestamp when aura completely expires
         public boolean isFrozen = false;
         public long frozenUntil = 0L;
+        public long jadeShieldUntil = 0L;
         public long frozenTotalMs = 0L;
         public boolean poseCaptured = false;
         public float capturedWalkPos = 0.0F;
@@ -322,16 +323,26 @@ public final class ClientAuraTracker {
     ) {
         long now = System.currentTimeMillis();
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (reaction == ElementalReaction.CRYSTALLIZE && mc.player != null && mc.player.getId() == entityId && elements.isEmpty() && trigger == null) {
-            // Dedicated Crystallize Shield sync packet from server: do NOT overwrite player's active Aura or show dual icons!
-            if (reactedAura != null) {
-                activeCrystallizeShield = reactedAura;
-                crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
-                ModMobEffects.removeAllShieldsExcept(mc.player, reactedAura);
+        if (reaction == ElementalReaction.CRYSTALLIZE && elements.isEmpty() && trigger == null) {
+            // Dedicated Crystallize / Jade Shield sync packet from server: do NOT overwrite active Aura or show dual icons!
+            AuraDisplayData shieldEntry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (reactedAura == Element.GEO && durationTicks > 0) {
+                shieldEntry.jadeShieldUntil = now + (long) durationTicks * 50L;
             } else {
-                activeCrystallizeShield = null;
-                crystallizeShieldUntil = 0L;
-                ModMobEffects.removeAllShields(mc.player);
+                shieldEntry.jadeShieldUntil = 0L;
+            }
+            if (mc.player != null && mc.player.getId() == entityId) {
+                if (reactedAura != null) {
+                    activeCrystallizeShield = reactedAura;
+                    crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
+                    if (reactedAura != Element.GEO) {
+                        ModMobEffects.removeAllShieldsExcept(mc.player, reactedAura);
+                    }
+                } else {
+                    activeCrystallizeShield = null;
+                    crystallizeShieldUntil = 0L;
+                    ModMobEffects.removeAllShields(mc.player);
+                }
             }
             return;
         }
@@ -462,6 +473,20 @@ public final class ClientAuraTracker {
     public static boolean hasOmniInnate(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         return data != null && data.permanentOmniInnate;
+    }
+
+    public static boolean hasJadeShield(net.minecraft.world.entity.LivingEntity entity) {
+        if (entity == null || !entity.isAlive()) return false;
+        if (!entity.isSpectator() && !(entity instanceof net.minecraft.world.entity.player.Player p && p.isCreative()) && entity.getAbsorptionAmount() <= 0.01F) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && activeCrystallizeShield == Element.GEO && now < crystallizeShieldUntil) {
+            return true;
+        }
+        AuraDisplayData data = DATA.get(entity.getId());
+        return data != null && now < data.jadeShieldUntil;
     }
 
     public static boolean isFrozen(int entityId) {

@@ -142,6 +142,9 @@ public final class ModNetwork {
                 0.0F,
                 durationTicks
         );
+        for (ServerPlayer tracker : PlayerLookup.tracking(player)) {
+            ServerPlayNetworking.send(tracker, payload);
+        }
         ServerPlayNetworking.send(player, payload);
     }
 

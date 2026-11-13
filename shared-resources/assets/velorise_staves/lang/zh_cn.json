@@ -503,5 +503,6 @@
   "item.velorise_staves.netherite_vortex_vanquisher.desc": "下界合金锻造的贯虹之槊。可同时存在至多2根岩脊（1.5U岩共鸣），更高玉璋护盾量、-20%全抗性光环，护盾下伤害提升30%。",
   "tooltip.velorise_staves.vortex_jade_shield": "  潜行 + 右键: 玉璋护盾 (150%吸收 & 护盾下+20%–30%伤害)",
   "tooltip.velorise_staves.vortex_res_shred": "  玉璋光环: 周围4.5米敌人 -20% 全元素与物理抗性",
-  "codex.velorise_staves.staff.vortex": "召唤岩脊（6米共鸣，1➔2根）。潜行+右键展开玉璋护盾（150%吸收、-20%全抗性光环、护盾下+20%➔+30%伤害）。"
+  "codex.velorise_staves.staff.vortex": "召唤岩脊（6米共鸣，1➔2根）。潜行+右键展开玉璋护盾（150%吸收、-20%全抗性光环、护盾下+20%➔+30%伤害）。",
+  "effect.velorise_staves.geo_shield": "玉璋护盾 (岩)"
 }

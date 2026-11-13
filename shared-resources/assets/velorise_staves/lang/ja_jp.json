@@ -503,5 +503,6 @@
   "item.velorise_staves.netherite_vortex_vanquisher.desc": "ネザライト製の破天の槍。岩柱を最大2本同時設置可能（1.5U岩）、強化された玉璋シールド、全耐性-20%オーラ、シールド時ダメージ+30%。",
   "tooltip.velorise_staves.vortex_jade_shield": "  スニーク + 右クリック: 玉璋シールド (150%吸収 & シールド時+20%–30% DMG)",
   "tooltip.velorise_staves.vortex_res_shred": "  玉璋オーラ: 周囲4.5mの敵の全元素・物理耐性 -20%",
-  "codex.velorise_staves.staff.vortex": "岩柱を召喚（6m共鳴、最大1➔2本）。スニーク+右クリックで玉璋シールド（150%吸収、全耐性-20%、シールド時+20%➔+30% DMG）。"
+  "codex.velorise_staves.staff.vortex": "岩柱を召喚（6m共鳴、最大1➔2本）。スニーク+右クリックで玉璋シールド（150%吸収、全耐性-20%、シールド時+20%➔+30% DMG）。",
+  "effect.velorise_staves.geo_shield": "玉璋シールド (岩)"
 }

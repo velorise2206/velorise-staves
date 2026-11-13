@@ -99,7 +99,9 @@ public final class GhastfireFieldManager {
                 );
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                    if (!ElementalGaugeManager.isPyroInnate(target)) {
+                    boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
+                            || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
+                    if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                         target.igniteForSeconds(3);
                     }
                     ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, 1.0F, owner, damage);

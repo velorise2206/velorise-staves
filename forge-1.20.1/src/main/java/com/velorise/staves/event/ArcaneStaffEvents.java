@@ -468,7 +468,9 @@ public final class ArcaneStaffEvents {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         if (target != null && target != owner) {
-            if (!ElementalGaugeManager.isPyroInnate(target)) {
+            boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
+                    || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
+            if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                 target.setSecondsOnFire(isNetherite ? 5 : 3);
             }
             float baseDmg = isNetherite ? 4.5F : 3.0F;
@@ -491,7 +493,9 @@ public final class ArcaneStaffEvents {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
         for (LivingEntity target : affected) {
-            if (!ElementalGaugeManager.isPyroInnate(target)) {
+            boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
+                    || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
+            if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                 target.setSecondsOnFire(isNetherite ? 5 : 4);
             }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);

@@ -379,6 +379,25 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    public static int countActiveStelesForOwner(
+            ServerLevel level,
+            EntityType<GeoFangPillarEntity> type,
+            UUID ownerId
+    ) {
+        int count = 0;
+        for (Entity entity : level.getEntities().getAll()) {
+            if (entity instanceof GeoFangPillarEntity construct
+                    && construct.getType() == type
+                    && construct.isAlive()
+                    && !construct.isRemoved()
+                    && construct.isStoneStele()
+                    && ownerId.equals(construct.getOwnerUUID())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     public static void enforceMaxSteleForOwner(
             ServerLevel level,
             EntityType<GeoFangPillarEntity> type,

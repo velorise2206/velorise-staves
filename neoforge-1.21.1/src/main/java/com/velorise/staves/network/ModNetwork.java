@@ -119,7 +119,7 @@ public final class ModNetwork {
                 0.0F,
                 durationTicks
         );
-        PacketDistributor.sendToPlayer(player, payload);
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, payload);
     }
 
     public static void sendConfigSyncToPlayer(ServerPlayer player) {

@@ -5,6 +5,8 @@ import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.element.ElementalResonanceManager;
 import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.Packet;
@@ -64,6 +66,8 @@ public class HydroSalonSummonEntity extends Entity {
     private @Nullable UUID ownerUuid;
     private int ageTicks;
     private Vec3 anchorPos = Vec3.ZERO;
+    private Vec3 wanderPos = Vec3.ZERO;
+    private int nextWanderTick = 0;
 
     public HydroSalonSummonEntity(EntityType<? extends HydroSalonSummonEntity> type, Level level) {
         super(type, level);
@@ -275,15 +279,16 @@ public class HydroSalonSummonEntity extends Entity {
         if (this.anchorPos.equals(Vec3.ZERO)) {
             this.anchorPos = this.position();
         }
-        double bob = Math.sin((this.tickCount + this.getId() * 7) * 0.08D) * 0.14D;
+        double bob = Math.sin((this.ageTicks + this.getId() * 7) * 0.08D) * 0.14D;
         this.setPos(this.anchorPos.x, this.anchorPos.y + bob, this.anchorPos.z);
         this.setYRot((this.getYRot() + 2.5F) % 360.0F);
 
-        if (this.tickCount % 40 == 0) {
+        // Strictly heal once every 2.0 seconds (40 ticks) per Genshin Singer of Many Waters interval
+        if (this.ageTicks >= 40 && this.ageTicks % 40 == 0) {
             this.setLastActionTick(this.tickCount);
             double radius = isNetherite() ? 8.0D : 6.0D;
             float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
-            float baseHeal = isNetherite() ? (ownerMaxHp * 0.12F + 2.0F) : (ownerMaxHp * 0.08F + 1.0F);
+            float baseHeal = isNetherite() ? (ownerMaxHp * 0.08F + 1.5F) : (ownerMaxHp * 0.05F + 1.0F);
 
             AABB healBox = this.getBoundingBox().inflate(radius, 4.0D, radius);
             List<LivingEntity> allies = level.getEntitiesOfClass(LivingEntity.class, healBox, e ->
@@ -309,47 +314,138 @@ public class HydroSalonSummonEntity extends Entity {
         }
     }
 
+    private static double resolveNaturalGroundY(ServerLevel level, double x, double refY, double z) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(
+                Mth.floor(x), Mth.floor(refY) + 3, Mth.floor(z));
+        for (int i = 0; i < 8; i++) {
+            BlockPos below = cursor.below();
+            boolean solidOrLiquidBelow = !level.getBlockState(below).getCollisionShape(level, below).isEmpty()
+                    || !level.getFluidState(below).isEmpty();
+            boolean freeAtCursor = level.getBlockState(cursor).getCollisionShape(level, cursor).isEmpty()
+                    && level.getFluidState(cursor).isEmpty();
+            if (solidOrLiquidBelow && freeAtCursor) {
+                return below.getY() + 1.0D;
+            }
+            cursor.move(Direction.DOWN);
+        }
+        return refY;
+    }
+
     private void tickSalonMember(ServerLevel level, ServerPlayer owner, int role) {
         LivingEntity target = findBestTarget(level, owner, 16.0D);
 
         int interval = switch (role) {
-            case ROLE_CHEVALMARIN -> 20; // 1.0s rapid bubble stream
-            case ROLE_CRABALETTA -> 50;  // 2.5s heavy crab slam
-            default -> 35;               // 1.75s AoE bubble cannon
+            case ROLE_CHEVALMARIN -> 32; // ~1.6s bubble stream
+            case ROLE_CRABALETTA -> 72;  // ~3.6s heavy crab slam
+            default -> 48;               // ~2.4s AoE bubble cannon
         };
 
-        boolean attackingNow = target != null && ((this.tickCount + role * 11) % interval == 0);
+        int phase = this.ageTicks + role * 13;
+        boolean attackingNow = target != null && this.ageTicks >= 12 && (phase % interval == 0);
 
-        double orbitAngle = Math.toRadians(owner.getYRot() + role * 120.0D + this.tickCount * 2.4D);
-        double orbitRadius = 2.15D;
-        double bob = Math.sin((this.tickCount + role * 19) * 0.12D) * 0.18D;
-        Vec3 desiredPos = new Vec3(
-                owner.getX() + Math.cos(orbitAngle) * orbitRadius,
-                owner.getY() + 1.05D + role * 0.12D + bob,
-                owner.getZ() + Math.sin(orbitAngle) * orbitRadius
-        );
+        double hoverOffset = switch (role) {
+            case ROLE_CRABALETTA -> 0.52D;
+            case ROLE_USHER -> 0.82D;
+            default -> 1.08D;
+        };
 
-        if (target != null && role == ROLE_CRABALETTA && ((this.tickCount + role * 11) % interval >= interval - 8)) {
+        // Re-pick a natural world position periodically or when far from owner/target
+        boolean needNewSpot = this.wanderPos.equals(Vec3.ZERO) || this.ageTicks >= this.nextWanderTick;
+        if (target != null) {
+            double dTargetSqr = this.wanderPos.distanceToSqr(target.position());
+            if (dTargetSqr > 49.0D || dTargetSqr < 1.2D) {
+                needNewSpot = true;
+            }
+        } else if (this.wanderPos.distanceToSqr(owner.position()) > 36.0D) {
+            needNewSpot = true;
+        }
+
+        if (this.position().distanceToSqr(owner.position()) > 484.0D) {
+            // Teleport near owner if owner moved > 22 blocks away
+            double baseAng = Math.toRadians(owner.getYRot() + 110.0D + role * 70.0D);
+            double tx = owner.getX() + Math.cos(baseAng) * 2.4D;
+            double tz = owner.getZ() + Math.sin(baseAng) * 2.4D;
+            double ty = resolveNaturalGroundY(level, tx, owner.getY(), tz) + hoverOffset;
+            this.wanderPos = new Vec3(tx, ty, tz);
+            this.setPos(tx, ty, tz);
+            this.nextWanderTick = this.ageTicks + 40 + this.random.nextInt(35);
+            needNewSpot = false;
+        }
+
+        if (needNewSpot) {
+            if (target != null) {
+                double standOffDist = switch (role) {
+                    case ROLE_CRABALETTA -> 2.1D + this.random.nextDouble() * 1.1D;
+                    case ROLE_USHER -> 3.4D + this.random.nextDouble() * 1.6D;
+                    default -> 4.2D + this.random.nextDouble() * 1.8D;
+                };
+                Vec3 fromTargetToOwner = owner.position().subtract(target.position());
+                double baseYaw = fromTargetToOwner.lengthSqr() > 1.0E-4D
+                        ? Math.atan2(fromTargetToOwner.z, fromTargetToOwner.x)
+                        : (this.random.nextDouble() * Math.PI * 2.0D);
+                double roleSpread = (role - 1) * 0.95D + (this.random.nextDouble() - 0.5D) * 0.75D;
+                double ang = baseYaw + roleSpread;
+                double wx = target.getX() + Math.cos(ang) * standOffDist;
+                double wz = target.getZ() + Math.sin(ang) * standOffDist;
+                double wy = resolveNaturalGroundY(level, wx, target.getY(), wz) + hoverOffset;
+                this.wanderPos = new Vec3(wx, wy, wz);
+                this.nextWanderTick = this.ageTicks + 35 + this.random.nextInt(35);
+            } else {
+                double dist = 2.0D + this.random.nextDouble() * 2.8D;
+                double baseAngle = Math.toRadians(owner.getYRot() + 90.0D) + (role - 1) * 1.15D + (this.random.nextDouble() - 0.5D) * 1.1D;
+                double wx = owner.getX() + Math.cos(baseAngle) * dist;
+                double wz = owner.getZ() + Math.sin(baseAngle) * dist;
+                double wy = resolveNaturalGroundY(level, wx, owner.getY(), wz) + hoverOffset;
+                this.wanderPos = new Vec3(wx, wy, wz);
+                this.nextWanderTick = this.ageTicks + 45 + this.random.nextInt(45);
+            }
+        }
+
+        double bob = Math.sin((this.ageTicks + role * 19) * 0.10D) * 0.12D;
+        Vec3 desiredPos = new Vec3(this.wanderPos.x, this.wanderPos.y + bob, this.wanderPos.z);
+
+        if (target != null && role == ROLE_CRABALETTA && (phase % interval >= interval - 10)) {
             // Mademoiselle Crabaletta lunges toward the target right as she slams!
-            Vec3 toOwner = owner.position().subtract(target.position());
-            Vec3 standOff = toOwner.lengthSqr() > 1.0E-4D ? toOwner.normalize().scale(1.1D) : new Vec3(0.8D, 0.0D, 0.0D);
-            desiredPos = target.position().add(standOff).add(0.0D, target.getBbHeight() * 0.45D, 0.0D);
+            Vec3 toSelf = this.position().subtract(target.position());
+            Vec3 standOff = new Vec3(toSelf.x, 0.0D, toSelf.z);
+            standOff = standOff.lengthSqr() > 1.0E-4D ? standOff.normalize().scale(1.05D) : new Vec3(0.85D, 0.0D, 0.0D);
+            desiredPos = target.position().add(standOff).add(0.0D, Math.max(0.35D, target.getBbHeight() * 0.45D), 0.0D);
         }
 
         Vec3 delta = desiredPos.subtract(this.position());
+        double horizLen = Math.sqrt(delta.x * delta.x + delta.z * delta.z);
+        boolean crabLunging = target != null && role == ROLE_CRABALETTA && (phase % interval >= interval - 10);
+        double maxHorizSpeed = crabLunging ? 0.52D : 0.16D;
+        double moveX = delta.x * (crabLunging ? 0.36D : 0.14D);
+        double moveZ = delta.z * (crabLunging ? 0.36D : 0.14D);
+        double stepHoriz = Math.sqrt(moveX * moveX + moveZ * moveZ);
+        if (stepHoriz > maxHorizSpeed && stepHoriz > 1.0E-5D) {
+            moveX = (moveX / stepHoriz) * maxHorizSpeed;
+            moveZ = (moveZ / stepHoriz) * maxHorizSpeed;
+        }
+        double moveY = Mth.clamp(delta.y * 0.20D, -0.22D, 0.22D);
+
         this.setPos(
-                this.getX() + delta.x * 0.28D,
-                this.getY() + delta.y * 0.28D,
-                this.getZ() + delta.z * 0.28D
+                this.getX() + moveX,
+                this.getY() + moveY,
+                this.getZ() + moveZ
         );
 
         if (target != null) {
             double dx = target.getX() - this.getX();
             double dz = target.getZ() - this.getZ();
-            float yaw = (float) (Mth.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
-            this.setYRot(yaw);
+            float targetYaw = (float) (Mth.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+            this.setYRot(Mth.rotLerp(0.30F, this.getYRot(), targetYaw));
+        } else if (horizLen > 0.22D) {
+            float moveYaw = (float) (Mth.atan2(delta.z, delta.x) * (180.0D / Math.PI)) - 90.0F;
+            this.setYRot(Mth.rotLerp(0.22F, this.getYRot(), moveYaw));
         } else {
-            this.setYRot(owner.getYRot());
+            double dx = owner.getX() - this.getX();
+            double dz = owner.getZ() - this.getZ();
+            if (dx * dx + dz * dz > 0.25D) {
+                float lookOwnerYaw = (float) (Mth.atan2(dz, dx) * (180.0D / Math.PI)) - 90.0F;
+                this.setYRot(Mth.rotLerp(0.12F, this.getYRot(), lookOwnerYaw));
+            }
         }
 
         if (attackingNow) {
@@ -371,7 +467,7 @@ public class HydroSalonSummonEntity extends Entity {
             float curHp = ally.getHealth();
             if (curHp > floorHp + 0.01F) {
                 float drain = Math.min(curHp - floorHp, maxHp * 0.02F);
-                ally.setHealth(Math.max(floorHp, curHp - drain));
+                ElementalGaugeManager.drainHealthSilently(ally, Math.max(floorHp, curHp - drain));
                 ElementalGaugeManager.recordFurinaHpFluctuation(level, owner, drain / maxHp);
                 drainedAllies++;
                 if (drainedAllies >= 4) break;

@@ -503,5 +503,6 @@
   "item.velorise_staves.netherite_vortex_vanquisher.desc": "Perceur prismatique forgé en Netherite. Jusqu'à 2 Dorsales rocheuses simultanées (1,5U Géo), Bouclier de jade renforcé, aura -20 % RÉS et +30 % DGT sous bouclier.",
   "tooltip.velorise_staves.vortex_jade_shield": "  S'accroupir + Clic droit : Bouclier de jade (150 % absorption & +20 %–30 % DGT)",
   "tooltip.velorise_staves.vortex_res_shred": "  Aura de jade : -20 % à toutes les RÉS élémentaires et physiques (4,5 m)",
-  "codex.velorise_staves.staff.vortex": "Invoque une Dorsale rocheuse (6 m, 1➔2 stèles). S'accroupir+Clic droit crée un Bouclier de jade (150 % absorption, -20 % RÉS)."
+  "codex.velorise_staves.staff.vortex": "Invoque une Dorsale rocheuse (6 m, 1➔2 stèles). S'accroupir+Clic droit crée un Bouclier de jade (150 % absorption, -20 % RÉS).",
+  "effect.velorise_staves.geo_shield": "Bouclier de jade (Géo)"
 }

@@ -503,5 +503,6 @@
   "item.velorise_staves.netherite_vortex_vanquisher.desc": "Lanza Perforanubes forjada en netherita. Hasta 2 Crestas de Piedra simultáneas (1.5U Geo), Escudo de Jade mejorado, aura de -20% RES y +30% de daño bajo escudo.",
   "tooltip.velorise_staves.vortex_jade_shield": "  Agacharse + Clic derecho: Escudo de Jade (150% absorción y +20%–30% daño)",
   "tooltip.velorise_staves.vortex_res_shred": "  Aura de Jade: -20% a todas las RES elementales y físicas (4.5 m)",
-  "codex.velorise_staves.staff.vortex": "Invoca Cresta de Piedra (resonancia de 6 m, 1➔2 estelas). Agacharse+Clic derecho forma Escudo de Jade (150% absorción, -20% RES)."
+  "codex.velorise_staves.staff.vortex": "Invoca Cresta de Piedra (resonancia de 6 m, 1➔2 estelas). Agacharse+Clic derecho forma Escudo de Jade (150% absorción, -20% RES).",
+  "effect.velorise_staves.geo_shield": "Escudo de jade (Geo)"
 }

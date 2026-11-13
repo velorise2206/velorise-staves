@@ -91,7 +91,7 @@ public final class ClientAuraRenderer {
             ResourceLocation res = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + lower + ".png");
             TEXTURES.put(e, res);
             HUD_TEXTURES.put(e, res);
-            if (e == Element.PYRO || e == Element.HYDRO || e == Element.ELECTRO || e == Element.CRYO) {
+            if (e == Element.PYRO || e == Element.HYDRO || e == Element.ELECTRO || e == Element.CRYO || e == Element.GEO) {
                 SHIELD_TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/mob_effect/" + lower + "_shield.png"));
             }
         }
@@ -311,6 +311,7 @@ public final class ClientAuraRenderer {
         PoseStack poseStack = event.getPoseStack();
         MultiBufferSource buffer = event.getMultiBufferSource();
         renderFrozenIceOverlay(entity, event.getRenderer().getModel(), poseStack, buffer);
+        renderJadeShieldBarrier(entity, poseStack, buffer);
         render(entity, poseStack, buffer);
     }
 
@@ -432,6 +433,186 @@ public final class ClientAuraRenderer {
         VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
         model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0x7378E1FF);
         poseStack.popPose();
+    }
+
+    public static void renderJadeShieldBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (renderingScreen || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        if (!ClientAuraTracker.hasJadeShield(entity)) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+
+        VertexConsumer vc = buffer.getBuffer(RenderType.lightning());
+        float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
+
+        poseStack.pushPose();
+        // Slowly rotate the golden cylinder & sigil
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 2.2F));
+        Matrix4f mat = poseStack.last().pose();
+
+        int segs = 16;
+        float radius = Math.max(0.68F, entity.getBbWidth() * 0.96F);
+        float yBot = 0.08F;
+        float yTop = entity.getBbHeight() + 0.14F;
+        float yMid = (yBot + yTop) * 0.5F;
+
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (i * 2.0D * Math.PI / segs);
+            float a1 = (float) ((i + 1) * 2.0D * Math.PI / segs);
+            float x0 = Mth.cos(a0) * radius;
+            float z0 = Mth.sin(a0) * radius;
+            float x1 = Mth.cos(a1) * radius;
+            float z1 = Mth.sin(a1) * radius;
+
+            // Lower golden cylinder wall (feathered bottom -> warm golden body)
+            emitCrystalQuad(vc, mat,
+                    x0, yBot, z0, 255, 200, 50, 14,
+                    x1, yBot, z1, 255, 200, 50, 14,
+                    x1, yMid, z1, 255, 212, 68, 56,
+                    x0, yMid, z0, 255, 212, 68, 56);
+            emitCrystalQuad(vc, mat,
+                    x0, yMid, z0, 255, 212, 68, 56,
+                    x1, yMid, z1, 255, 212, 68, 56,
+                    x1, yBot, z1, 255, 200, 50, 14,
+                    x0, yBot, z0, 255, 200, 50, 14);
+
+            // Upper golden cylinder wall (warm golden body -> feathered top)
+            emitCrystalQuad(vc, mat,
+                    x0, yMid, z0, 255, 212, 68, 56,
+                    x1, yMid, z1, 255, 212, 68, 56,
+                    x1, yTop, z1, 255, 228, 105, 14,
+                    x0, yTop, z0, 255, 228, 105, 14);
+            emitCrystalQuad(vc, mat,
+                    x0, yTop, z0, 255, 228, 105, 14,
+                    x1, yTop, z1, 255, 228, 105, 14,
+                    x1, yMid, z1, 255, 212, 68, 56,
+                    x0, yMid, z0, 255, 212, 68, 56);
+
+            // Crisp luminous Geo border rings at top and bottom of cylinder
+            float bandH = 0.032F;
+            emitCrystalQuad(vc, mat,
+                    x0, yBot, z0, 255, 218, 75, 130,
+                    x1, yBot, z1, 255, 218, 75, 130,
+                    x1, yBot + bandH, z1, 255, 238, 120, 0,
+                    x0, yBot + bandH, z0, 255, 238, 120, 0);
+            emitCrystalQuad(vc, mat,
+                    x0, yTop - bandH, z0, 255, 238, 120, 0,
+                    x1, yTop - bandH, z1, 255, 238, 120, 0,
+                    x1, yTop, z1, 255, 218, 75, 130,
+                    x0, yTop, z0, 255, 218, 75, 130);
+        }
+
+        // 4 Liyue Geo Diamond Runes etched on the cylinder wall (every 90 degrees)
+        float runeR = radius + 0.008F;
+        float dSize = 0.22F;
+        for (int k = 0; k < 4; k++) {
+            poseStack.pushPose();
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(k * 90.0F));
+            Matrix4f rMat = poseStack.last().pose();
+            // Outer diamond ring
+            drawShieldDiamondRing(vc, rMat, runeR, yMid, dSize, 0.028F, 255, 224, 82, 165);
+            // Inner nested diamond
+            drawShieldDiamondRing(vc, rMat, runeR + 0.003F, yMid, dSize * 0.52F, 0.022F, 255, 245, 150, 195);
+            poseStack.popPose();
+        }
+        poseStack.popPose();
+
+        // 4 Diagonal Floating Dark-Bronze & Gold Monolith Plates (Top-Left, Top-Right, Bottom-Left, Bottom-Right)
+        // Aligned to face the camera's horizontal yaw so the iconic X-shaped 4-corner talisman frame is visible from any angle!
+        float camYaw = mc.gameRenderer.getMainCamera().getYRot();
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-camYaw));
+        float bob = Mth.sin(time * 0.10F) * 0.04F;
+        float plateDist = radius + 0.08F;
+
+        float[][] corners = {
+                {-0.62F, yTop - 0.34F + bob,  36.0F}, // Top-Left
+                { 0.62F, yTop - 0.34F - bob, -36.0F}, // Top-Right
+                {-0.62F, yBot + 0.36F - bob, -36.0F}, // Bottom-Left
+                { 0.62F, yBot + 0.36F + bob,  36.0F}  // Bottom-Right
+        };
+
+        for (int c = 0; c < 4; c++) {
+            float cx = corners[c][0];
+            float cy = corners[c][1];
+            float tiltDeg = corners[c][2];
+
+            // Front (+Z) and Back (-Z) sets of floating armor plates
+            for (int side = -1; side <= 1; side += 2) {
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, side * plateDist * 0.68F);
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(tiltDeg));
+                Matrix4f pMat = poseStack.last().pose();
+
+                // Outer Dark-Bronze Liyue Basalt Armor Segment
+                drawJadeArmorBox(vc, pMat, -0.17F, -0.055F, -0.025F, 0.17F, 0.055F, 0.025F, 48, 30, 20, 235);
+                // Stepped Dark-Bronze Notches
+                drawJadeArmorBox(vc, pMat, -0.22F, -0.032F, -0.020F, -0.17F, 0.032F, 0.020F, 36, 22, 15, 235);
+                drawJadeArmorBox(vc, pMat,  0.17F, -0.032F, -0.020F,  0.22F, 0.032F, 0.020F, 36, 22, 15, 235);
+                // Inner Glowing Geo Gold Energy Trim Bar
+                float innerY = (cy > yMid) ? -0.072F : 0.055F;
+                drawJadeArmorBox(vc, pMat, -0.15F, innerY, -0.018F, 0.15F, innerY + 0.022F, 0.018F, 255, 215, 64, 240);
+                // Bright Gold Fretwork Stripe along center of basalt plate
+                drawJadeArmorBox(vc, pMat, -0.12F, -0.012F, -0.028F, 0.12F, 0.012F, 0.028F, 245, 185, 48, 245);
+
+                poseStack.popPose();
+            }
+        }
+        poseStack.popPose();
+
+        if (buffer instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(RenderType.lightning());
+        }
+    }
+
+    private static void drawShieldDiamondRing(
+            VertexConsumer vc, Matrix4f mat,
+            float z, float cy, float rad, float thick,
+            int r, int g, int b, int a
+    ) {
+        float rIn = Math.max(0.01F, rad - thick);
+        float[][] pts = {
+                {0.0F,  1.0F},
+                {1.0F,  0.0F},
+                {0.0F, -1.0F},
+                {-1.0F, 0.0F}
+        };
+        for (int i = 0; i < 4; i++) {
+            float[] p0 = pts[i];
+            float[] p1 = pts[(i + 1) % 4];
+            emitCrystalQuad(vc, mat,
+                    p0[0] * rIn, cy + p0[1] * rIn, z, r, g, b, a,
+                    p0[0] * rad, cy + p0[1] * rad, z, r, g, b, a,
+                    p1[0] * rad, cy + p1[1] * rad, z, r, g, b, a,
+                    p1[0] * rIn, cy + p1[1] * rIn, z, r, g, b, a);
+            emitCrystalQuad(vc, mat,
+                    p1[0] * rIn, cy + p1[1] * rIn, z, r, g, b, a,
+                    p1[0] * rad, cy + p1[1] * rad, z, r, g, b, a,
+                    p0[0] * rad, cy + p0[1] * rad, z, r, g, b, a,
+                    p0[0] * rIn, cy + p0[1] * rIn, z, r, g, b, a);
+        }
+    }
+
+    private static void drawJadeArmorBox(
+            VertexConsumer vc, Matrix4f mat,
+            float x0, float y0, float z0,
+            float x1, float y1, float z1,
+            int r, int g, int b, int a
+    ) {
+        // Front (+Z)
+        emitCrystalQuad(vc, mat, x0, y0, z1, r, g, b, a, x1, y0, z1, r, g, b, a, x1, y1, z1, r, g, b, a, x0, y1, z1, r, g, b, a);
+        // Back (-Z)
+        emitCrystalQuad(vc, mat, x1, y0, z0, r, g, b, a, x0, y0, z0, r, g, b, a, x0, y1, z0, r, g, b, a, x1, y1, z0, r, g, b, a);
+        // Top (+Y)
+        emitCrystalQuad(vc, mat, x0, y1, z1, r, g, b, a, x1, y1, z1, r, g, b, a, x1, y1, z0, r, g, b, a, x0, y1, z0, r, g, b, a);
+        // Bottom (-Y)
+        emitCrystalQuad(vc, mat, x0, y0, z0, r, g, b, a, x1, y0, z0, r, g, b, a, x1, y0, z1, r, g, b, a, x0, y0, z1, r, g, b, a);
+        // Left (-X)
+        emitCrystalQuad(vc, mat, x0, y0, z0, r, g, b, a, x0, y0, z1, r, g, b, a, x0, y1, z1, r, g, b, a, x0, y1, z0, r, g, b, a);
+        // Right (+X)
+        emitCrystalQuad(vc, mat, x1, y0, z1, r, g, b, a, x1, y0, z0, r, g, b, a, x1, y1, z0, r, g, b, a, x1, y1, z1, r, g, b, a);
     }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {

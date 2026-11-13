@@ -1117,6 +1117,21 @@ public final class ElementalGaugeManager {
         return 1.0F + (bestPoints / 300.0F) * maxBonus;
     }
 
+    /**
+     * Silently adjusts an entity's health (e.g. Furina's Salon Solitaire HP offer or Neuvillette's beam)
+     * without triggering any hurt sound, red hurt flash, camera tilt, or knockback impulse.
+     */
+    public static void drainHealthSilently(LivingEntity entity, float newHealth) {
+        if (entity == null || !entity.isAlive()) return;
+        Vec3 prevVel = entity.getDeltaMovement();
+        float clamped = Math.max(0.5F, Math.min(entity.getMaxHealth(), newHealth));
+        entity.setHealth(clamped);
+        entity.hurtTime = 0;
+        entity.hurtDuration = 0;
+        entity.hurtMarked = false;
+        entity.setDeltaMovement(prevVel);
+    }
+
     public static void activateJadeShield(ServerPlayer player, boolean isNetherite) {
         if (player == null || player.level().isClientSide()) return;
         long now = player.level().getGameTime();
@@ -1129,16 +1144,36 @@ public final class ElementalGaugeManager {
             shieldHp *= 1.15F;
         }
         player.setAbsorptionAmount(Math.max(player.getAbsorptionAmount(), shieldHp));
+        com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(player, Element.GEO, 400);
     }
 
     public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
         Long until = JADE_SHIELD_UNTIL.get(player.getUUID());
-        if (until == null || player.level().getGameTime() >= until) {
+        if (until == null) {
             return false;
         }
-        if (player.getAbsorptionAmount() <= 0.01F) {
+        long now = player.level().getGameTime();
+        if (now >= until) {
             JADE_SHIELD_UNTIL.remove(player.getUUID());
+            if (!player.level().isClientSide() && player instanceof ServerPlayer sp) {
+                Element cryst = CrystallizeShardManager.getActiveShield(sp, now);
+                if (cryst == null) {
+                    com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(sp, null, 0);
+                }
+            }
+            return false;
+        }
+        if (!player.isCreative() && player.getAbsorptionAmount() <= 0.01F) {
+            JADE_SHIELD_UNTIL.remove(player.getUUID());
+            if (!player.level().isClientSide() && player instanceof ServerPlayer sp) {
+                Element cryst = CrystallizeShardManager.getActiveShield(sp, now);
+                if (cryst == null) {
+                    com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(sp, null, 0);
+                }
+                sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                        SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 0.9F, 0.75F);
+            }
             return false;
         }
         return true;
@@ -1802,8 +1837,9 @@ public final class ElementalGaugeManager {
                     }
                     Element chosenElem = chooseOmniMutatedAttackElement(target, omniAttacker);
                     ServerPlayer attackerPlayer = omniAttacker instanceof ServerPlayer sp ? sp : null;
+                    boolean hadElectroBeforeOmni = hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO);
                     applyElementBypassIcd(level, target, chosenElem, 1.0F, attackerPlayer, 0.0F);
-                    if (chosenElem == Element.PYRO
+                    if (chosenElem == Element.PYRO && !hadElectroBeforeOmni
                             && target.isAlive()
                             && !isPyroInnate(target)
                             && !isOmniInnate(target)
@@ -1843,8 +1879,9 @@ public final class ElementalGaugeManager {
                         ServerPlayer attackerPlayer = mutatedAttacker instanceof ServerPlayer sp ? sp : null;
                         for (Element mutatedElem : mutatedSet) {
                             if (!target.isAlive()) break;
+                            boolean hadElectroBeforeMut = hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO);
                             applyElementBypassIcd(level, target, mutatedElem, 1.0F, attackerPlayer, 0.0F);
-                            if (mutatedElem == Element.PYRO
+                            if (mutatedElem == Element.PYRO && !hadElectroBeforeMut
                                     && target.isAlive()
                                     && !isPyroInnate(target)
                                     && !isOmniInnate(target)
@@ -2153,8 +2190,21 @@ public final class ElementalGaugeManager {
 
         // 2. Check if entity has Electro -> Overloaded
         if (targetGauges.containsKey(Element.ELECTRO) || innateSet.contains(Element.ELECTRO)) {
-            if (!checkReactionIcd(target, ElementalReaction.OVERLOADED, now)) return;
+            if (!checkReactionIcd(target, ElementalReaction.OVERLOADED, now)) {
+                if (!target.isInLava()) {
+                    target.clearFire();
+                }
+                return;
+            }
             targetGauges.remove(Element.ELECTRO);
+            targetGauges.remove(Element.PYRO);
+            BURNING_UNTIL.remove(id);
+            BURNING_EM_LEVEL.remove(id);
+            BURNING_ATTACKER_UUID.remove(id);
+            LAST_BURN_PYRO_REFRESH.remove(id);
+            if (!target.isInLava()) {
+                target.clearFire();
+            }
             enforceInnateLock(target, targetGauges, id, innateSet, now);
             if (target.level() instanceof ServerLevel sl) {
                 triggerOverloadExplosion(sl, target, null, 1.0D);
@@ -2578,6 +2628,7 @@ public final class ElementalGaugeManager {
     public static void ensurePreDeathPyroIgnite(@Nullable LivingEntity target, int seconds) {
         if (target == null || !target.isAlive() || seconds <= 0) return;
         if (isPyroInnate(target) || isPyroResistant(target) || isEntityInWater(target)) return;
+        if (hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO)) return;
         if (target.getRemainingFireTicks() < seconds * 20) {
             target.igniteForSeconds(seconds);
         }
@@ -3011,7 +3062,7 @@ public final class ElementalGaugeManager {
             }
             baseDamage = 0.0F;
             effectiveDamage = 0.0F;
-        } else if (attackElement == Element.PYRO) {
+        } else if (attackElement == Element.PYRO && !hasElement(target, Element.ELECTRO) && !hasInnateElement(target, Element.ELECTRO)) {
             ensurePreDeathPyroIgnite(target, 3);
         }
 
@@ -3187,7 +3238,7 @@ public final class ElementalGaugeManager {
                 targetGauges.put(Element.HYDRO, createAuraGauge(target, Element.HYDRO, 1.25F));
             }
         } else if (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0) {
-            if (!hasInnate) {
+            if (!hasInnate && !targetGauges.containsKey(Element.ELECTRO)) {
                 if (!targetGauges.containsKey(Element.PYRO)) {
                     targetGauges.put(Element.PYRO, createAuraGauge(target, Element.PYRO, 1.25F));
                 } else {
@@ -3431,8 +3482,25 @@ public final class ElementalGaugeManager {
             if (reaction != ElementalReaction.NONE) {
                 boolean alreadyBurning = reaction == ElementalReaction.BURNING && BURNING_UNTIL.containsKey(targetId);
                 if (!alreadyBurning && !checkReactionIcd(target, reaction, now)) {
+                    if (reaction == ElementalReaction.OVERLOADED) {
+                        GaugeState blockedAura = targetGauges.get(auraElement);
+                        if (blockedAura != null) {
+                            blockedAura.consume(attackU * reaction.getConsumptionModifier());
+                            if (blockedAura.isExpired()) {
+                                targetGauges.remove(auraElement);
+                            }
+                        }
+                        BURNING_UNTIL.remove(targetId);
+                        BURNING_EM_LEVEL.remove(targetId);
+                        BURNING_ATTACKER_UUID.remove(targetId);
+                        LAST_BURN_PYRO_REFRESH.remove(targetId);
+                        if (!target.isInLava()) {
+                            target.clearFire();
+                        }
+                        enforceInnateLock(target, targetGauges, targetId, innateElements, now);
+                    }
                     float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
-                    if (effectiveDamage > 0.0F) syncAuras(target, targetGauges.keySet(), null, attackElement, null, resDmg);
+                    syncAuras(target, targetGauges.keySet(), null, attackElement, null, resDmg);
                     return;
                 }
                 GaugeState aura = targetGauges.get(auraElement);
@@ -3784,6 +3852,13 @@ public final class ElementalGaugeManager {
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
             }
             case OVERLOADED -> {
+                BURNING_UNTIL.remove(target.getUUID());
+                BURNING_EM_LEVEL.remove(target.getUUID());
+                BURNING_ATTACKER_UUID.remove(target.getUUID());
+                LAST_BURN_PYRO_REFRESH.remove(target.getUUID());
+                if (!target.isInLava()) {
+                    target.clearFire();
+                }
                 triggerOverloadExplosion(level, target, attacker, dmgMult);
             }
             case ELECTRO_CHARGED -> {

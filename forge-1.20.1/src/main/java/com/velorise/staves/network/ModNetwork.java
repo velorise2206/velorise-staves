@@ -159,7 +159,7 @@ public final class ModNetwork {
                 0.0F,
                 durationTicks
         );
-        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> player), packet);
     }
 
     public static void sendConfigSyncToPlayer(ServerPlayer player) {

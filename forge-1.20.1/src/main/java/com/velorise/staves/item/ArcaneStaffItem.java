@@ -212,12 +212,14 @@ public final class ArcaneStaffItem extends Item {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
                     case GHASTFIRE -> SoundEvents.GHAST_WARN;
+                    case VORTEX -> SoundEvents.DEEPSLATE_STEP;
                     default -> SoundEvents.GUARDIAN_AMBIENT;
                 };
                 float cuePitch = switch (kind) {
                     case ECHO -> 0.85F;
                     case LIGHTNING -> 1.5F;
                     case GHASTFIRE -> 0.9F;
+                    case VORTEX -> 0.75F;
                     default -> 1.25F;
                 };
                 level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, cuePitch);
@@ -363,7 +365,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE;
+        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX;
     }
 
     private boolean isChannelingKind() {
@@ -420,6 +422,7 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 50;
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
+        if (kind == Kind.VORTEX) return 10; // 0.5s hold to form Jade Shield; release earlier to tap-place Stone Stele
         return isCharged() ? 30 : 0;
     }
 
@@ -466,6 +469,14 @@ public final class ArcaneStaffItem extends Item {
             }
             return;
         }
+        if (kind == Kind.VORTEX) {
+            if (count % 2 == 0) {
+                serverLevel.sendParticles(ParticleTypes.WAX_ON,
+                        player.getX(), player.getY() + 1.0D, player.getZ(),
+                        4, 0.45D, 0.5D, 0.45D, 0.02D);
+            }
+            return;
+        }
         if (kind == Kind.GHASTFIRE) {
             if (count % 3 == 0) {
                 Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.8D));
@@ -491,6 +502,16 @@ public final class ArcaneStaffItem extends Item {
             return stack;
         }
         if (ElementalResonanceManager.isOverloaded(player)) return stack;
+        if (kind == Kind.VORTEX) {
+            InteractionHand usedHand = player.getUsedItemHand();
+            if (castVortexVanquisher(player, true)) {
+                stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+                ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                player.awardStat(Stats.ITEM_USED.get(this));
+                player.swing(usedHand, true);
+            }
+            return stack;
+        }
         if (kind == Kind.GHASTFIRE) {
             InteractionHand usedHand = player.getUsedItemHand();
             shootGhastfire(player);
@@ -514,6 +535,18 @@ public final class ArcaneStaffItem extends Item {
                 finishLightningStorm(player);
             } else if (kind == Kind.GUARDIAN) {
                 finishGuardianBeam(player);
+            } else if (kind == Kind.VORTEX) {
+                if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
+                    int elapsed = this.getUseDuration(stack) - timeLeft;
+                    boolean holdShield = elapsed >= 8 || player.isShiftKeyDown();
+                    InteractionHand usedHand = player.getUsedItemHand();
+                    if (castVortexVanquisher(player, holdShield)) {
+                        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+                        ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                        player.awardStat(Stats.ITEM_USED.get(this));
+                        player.swing(usedHand, true);
+                    }
+                }
             }
         }
     }
@@ -700,6 +733,10 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean castVortexVanquisher(ServerPlayer player) {
+        return castVortexVanquisher(player, player.isShiftKeyDown());
+    }
+
+    private boolean castVortexVanquisher(ServerPlayer player, boolean holdJadeShield) {
         ServerLevel level = player.serverLevel();
         Vec3 direction = player.getLookAngle();
         Vec3 flat = new Vec3(direction.x, 0.0D, direction.z);
@@ -707,46 +744,61 @@ public final class ArcaneStaffItem extends Item {
         flat = flat.normalize();
         float yaw = (float) Math.atan2(flat.z, flat.x);
 
-        boolean holdJadeShield = player.isShiftKeyDown();
-        boolean castUnderFeet = player.getXRot() >= 50.0F;
+        int maxSteles = isNetherite ? 2 : 1;
+        int currentSteles = com.velorise.staves.entity.GeoFangPillarEntity.countActiveStelesForOwner(
+                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID());
 
-        double steleX;
-        double steleZ;
-        if (castUnderFeet) {
-            steleX = player.getX();
-            steleZ = player.getZ();
-        } else {
-            HitResult hit = player.pick(12.0D, 0.0F, false);
-            if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult bhr) {
-                BlockPos bp = bhr.getBlockPos();
-                steleX = bp.getX() + 0.5D;
-                steleZ = bp.getZ() + 0.5D;
+        // Genshin Dominus Lapidis rule:
+        // - Press (Tap): always summons a Stone Stele (replacing oldest if at cap).
+        // - Hold: forms Jade Shield + AoE Geo shockwave, and ONLY summons a Stone Stele if below maxStele cap!
+        boolean shouldSpawnStele = !holdJadeShield || (currentSteles < maxSteles);
+        boolean castUnderFeet = !holdJadeShield && player.getXRot() >= 50.0F;
+
+        double steleX = player.getX() + flat.x * 2.5D;
+        double steleZ = player.getZ() + flat.z * 2.5D;
+        double steleY = player.getY();
+
+        if (shouldSpawnStele) {
+            if (castUnderFeet) {
+                steleX = player.getX();
+                steleZ = player.getZ();
+            } else if (!holdJadeShield) {
+                HitResult hit = player.pick(12.0D, 0.0F, false);
+                if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult bhr) {
+                    BlockPos bp = bhr.getBlockPos();
+                    steleX = bp.getX() + 0.5D;
+                    steleZ = bp.getZ() + 0.5D;
+                } else {
+                    double tx = player.getX() + flat.x * 2.5D;
+                    double tz = player.getZ() + flat.z * 2.5D;
+                    steleX = Math.floor(tx) + 0.5D;
+                    steleZ = Math.floor(tz) + 0.5D;
+                }
             } else {
                 double tx = player.getX() + flat.x * 2.5D;
                 double tz = player.getZ() + flat.z * 2.5D;
                 steleX = Math.floor(tx) + 0.5D;
                 steleZ = Math.floor(tz) + 0.5D;
             }
-        }
-        double steleY = findGroundY(level, steleX, player.getY(), steleZ);
+            steleY = findGroundY(level, steleX, player.getY(), steleZ);
 
-        int maxSteles = isNetherite ? 2 : 1;
-        com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxSteleForOwner(
-                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID(), maxSteles);
+            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxSteleForOwner(
+                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(), player.getUUID(), maxSteles);
 
-        com.velorise.staves.entity.GeoFangPillarEntity stele =
-                new com.velorise.staves.entity.GeoFangPillarEntity(
-                        com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(),
-                        level,
-                        steleX, steleY, steleZ,
-                        (float) Math.toDegrees(yaw),
-                        player,
-                        isNetherite
-                );
-        stele.setStoneStele(true);
-        level.addFreshEntity(stele);
-        if (castUnderFeet) {
-            stele.liftEntityOntoPillar(player);
+            com.velorise.staves.entity.GeoFangPillarEntity stele =
+                    new com.velorise.staves.entity.GeoFangPillarEntity(
+                            com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR.get(),
+                            level,
+                            steleX, steleY, steleZ,
+                            (float) Math.toDegrees(yaw),
+                            player,
+                            isNetherite
+                    );
+            stele.setStoneStele(true);
+            level.addFreshEntity(stele);
+            if (castUnderFeet) {
+                stele.liftEntityOntoPillar(player);
+            }
         }
 
         // Initial Dominus Lapidis Geo shockwave (scales with 1.9% Max HP)
@@ -764,10 +816,16 @@ public final class ArcaneStaffItem extends Item {
 
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
-            level.playSound(null, player.blockPosition(), SoundEvents.ANVIL_PLACE, SoundSource.PLAYERS, 0.75F, 0.85F);
-            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 0.95F);
+            // Authentic earthen stone/bedrock formation sounds for Jade Shield
+            level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);
+            level.playSound(null, player.blockPosition(), SoundEvents.DEEPSLATE_TILES_PLACE, SoundSource.PLAYERS, 1.0F, 0.72F);
+            level.playSound(null, player.blockPosition(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 0.95F, 0.60F);
+            level.playSound(null, player.blockPosition(), SoundEvents.GILDED_BLACKSTONE_STEP, SoundSource.PLAYERS, 0.9F, 0.85F);
         } else {
-            level.playSound(null, BlockPos.containing(steleX, steleY, steleZ), SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.65F, 0.9F);
+            BlockPos soundPos = BlockPos.containing(steleX, steleY, steleZ);
+            level.playSound(null, soundPos, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 0.95F, 0.70F);
+            level.playSound(null, soundPos, SoundEvents.DEEPSLATE_BRICKS_PLACE, SoundSource.PLAYERS, 1.0F, 0.75F);
+            level.playSound(null, soundPos, SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 0.9F, 0.65F);
         }
         com.velorise.staves.advancement.ModAdvancements.trigger(
                 player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
@@ -891,7 +949,7 @@ public final class ArcaneStaffItem extends Item {
         // Self HP drain while channeling Equitable Judgment down to 50% Max HP cap
         if (!player.isCreative() && player.getHealth() > player.getMaxHealth() * 0.50F) {
             float newHp = Math.max(player.getMaxHealth() * 0.50F, player.getHealth() - 0.5F);
-            player.setHealth(newHp);
+            ElementalGaugeManager.drainHealthSilently(player, newHp);
         }
         Vec3 start = player.getEyePosition();
         double range = isNetherite ? 28.0D : 24.0D;
