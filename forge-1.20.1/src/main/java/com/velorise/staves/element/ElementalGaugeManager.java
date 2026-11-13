@@ -129,6 +129,9 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Float> PLAYER_LAST_HP = new ConcurrentHashMap<>();
     private static final Map<UUID, Float> PRE_ATTACK_STRENGTH = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> PLAYER_HP_CHANGE_BUFF_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Map<String, Long>> DRACONIC_GLORIES_STACKS = new ConcurrentHashMap<>();
+    public record SourcewaterDroplet(ServerLevel level, Vec3 pos, long spawnTick, @Nullable UUID ownerId) {}
+    private static final java.util.List<SourcewaterDroplet> SOURCEWATER_DROPLETS = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static final long HP_CHANGE_BUFF_TICKS = 200L;
 
     public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
@@ -698,6 +701,7 @@ public final class ElementalGaugeManager {
         PLAYER_LAST_HP.remove(id);
         PRE_ATTACK_STRENGTH.remove(id);
         PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
+        DRACONIC_GLORIES_STACKS.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
         com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
         MobHazardAvoidanceManager.clearEntityState(entity);
@@ -764,6 +768,8 @@ public final class ElementalGaugeManager {
         PLAYER_LAST_HP.clear();
         PRE_ATTACK_STRENGTH.clear();
         PLAYER_HP_CHANGE_BUFF_UNTIL.clear();
+        DRACONIC_GLORIES_STACKS.clear();
+        SOURCEWATER_DROPLETS.clear();
         ICD_TRACKER.clear();
         REACTION_ICD_TRACKER.clear();
         LAST_THORNS_REFLECT.clear();
@@ -1053,6 +1059,153 @@ public final class ElementalGaugeManager {
         updatePlayerHpTracking(player, now);
         Long until = PLAYER_HP_CHANGE_BUFF_UNTIL.get(player.getUUID());
         return until != null && now < until;
+    }
+
+    public static boolean carriesGuardianLens(Player player) {
+        if (player == null) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void onHydroReactionTriggered(
+            ServerLevel level,
+            Vec3 targetPos,
+            ElementalReaction reaction,
+            @Nullable Element reactedAura,
+            @Nullable Element triggerElem,
+            @Nullable ServerPlayer attacker
+    ) {
+        if (level == null || reaction == null) return;
+        boolean isHydroReaction = switch (reaction) {
+            case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE, FROZEN, ELECTRO_CHARGED, BLOOM, REVERSE_BLOOM -> true;
+            case SWIRL, CRYSTALLIZE -> reactedAura == Element.HYDRO || triggerElem == Element.HYDRO;
+            default -> false;
+        };
+        if (!isHydroReaction) return;
+
+        long now = level.getGameTime();
+        if (attacker != null) {
+            String stackKey = switch (reaction) {
+                case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE -> "VAPORIZE";
+                case FROZEN -> "FROZEN";
+                case ELECTRO_CHARGED -> "ELECTRO_CHARGED";
+                case BLOOM, REVERSE_BLOOM -> "BLOOM";
+                case SWIRL -> "HYDRO_SWIRL";
+                case CRYSTALLIZE -> "HYDRO_CRYSTALLIZE";
+                default -> reaction.name();
+            };
+            Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.computeIfAbsent(attacker.getUUID(), k -> new ConcurrentHashMap<>());
+            stacks.entrySet().removeIf(e -> now >= e.getValue());
+            stacks.put(stackKey, now + 600L); // 30s Past Draconic Glories stack
+        }
+
+        ServerPlayer holder = (attacker != null && carriesGuardianLens(attacker)) ? attacker : null;
+        if (holder == null) {
+            for (ServerPlayer sp : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.position().distanceToSqr(targetPos) <= 256.0D)) {
+                if (carriesGuardianLens(sp)) {
+                    holder = sp;
+                    break;
+                }
+            }
+        }
+        if (holder != null) {
+            spawnSourcewaterDroplet(level, targetPos, holder.getUUID(), now);
+        }
+    }
+
+    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) {
+        if (entity == null) return 0;
+        Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.get(entity.getUUID());
+        if (stacks == null || stacks.isEmpty()) return 0;
+        long now = entity.level().getGameTime();
+        stacks.entrySet().removeIf(e -> now >= e.getValue());
+        return Math.min(3, stacks.size());
+    }
+
+    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) {
+        int stacks = getDraconicGloriesStacks(entity);
+        return switch (stacks) {
+            case 1 -> 1.15F;
+            case 2 -> 1.30F;
+            case 3 -> 1.60F;
+            default -> 1.00F;
+        };
+    }
+
+    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) {
+        SOURCEWATER_DROPLETS.removeIf(d -> d.level() != level || (now - d.spawnTick()) >= 300L);
+        long activeInLevel = SOURCEWATER_DROPLETS.stream().filter(d -> d.level() == level).count();
+        if (activeInLevel >= 6) {
+            for (SourcewaterDroplet d : SOURCEWATER_DROPLETS) {
+                if (d.level() == level) {
+                    SOURCEWATER_DROPLETS.remove(d);
+                    break;
+                }
+            }
+        }
+        double ox = (level.random.nextDouble() - 0.5D) * 1.6D;
+        double oz = (level.random.nextDouble() - 0.5D) * 1.6D;
+        Vec3 dropPos = new Vec3(basePos.x + ox, basePos.y + 0.45D, basePos.z + oz);
+        SOURCEWATER_DROPLETS.add(new SourcewaterDroplet(level, dropPos, now, ownerId));
+        level.sendParticles(ParticleTypes.SPLASH, dropPos.x, dropPos.y, dropPos.z, 10, 0.2D, 0.2D, 0.2D, 0.04D);
+        level.sendParticles(ParticleTypes.GLOW, dropPos.x, dropPos.y, dropPos.z, 6, 0.15D, 0.15D, 0.15D, 0.02D);
+    }
+
+    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) {
+        if (level == null || caster == null || SOURCEWATER_DROPLETS.isEmpty()) return 0;
+        double r2 = radius * radius;
+        Vec3 cPos = caster.position();
+        int absorbed = 0;
+        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
+            if (droplet.level() != level) continue;
+            if (droplet.pos().distanceToSqr(cPos) <= r2) {
+                SOURCEWATER_DROPLETS.remove(droplet);
+                absorbed++;
+                level.sendParticles(ParticleTypes.BUBBLE_POP, droplet.pos().x, droplet.pos().y, droplet.pos().z, 12, 0.2D, 0.2D, 0.2D, 0.04D);
+                level.sendParticles(ParticleTypes.HEART, caster.getX(), caster.getY() + 1.2D, caster.getZ(), 1, 0.2D, 0.2D, 0.2D, 0.02D);
+                if (absorbed >= maxCount) break;
+            }
+        }
+        if (absorbed > 0) {
+            caster.heal(absorbed * 2.0F);
+            level.playSound(null, caster.blockPosition(), SoundEvents.BUCKET_FILL, SoundSource.PLAYERS, 0.85F, 1.35F);
+        }
+        return absorbed;
+    }
+
+    private static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) {
+        if (SOURCEWATER_DROPLETS.isEmpty()) return;
+        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
+            ServerLevel lvl = droplet.level();
+            if (lvl == null || serverNow < droplet.spawnTick() || (serverNow - droplet.spawnTick()) >= 300L) {
+                SOURCEWATER_DROPLETS.remove(droplet);
+                continue;
+            }
+            if (serverNow % 5 == 0) {
+                lvl.sendParticles(ParticleTypes.DRIPPING_WATER, droplet.pos().x, droplet.pos().y, droplet.pos().z, 3, 0.12D, 0.12D, 0.12D, 0.01D);
+                lvl.sendParticles(ParticleTypes.GLOW, droplet.pos().x, droplet.pos().y, droplet.pos().z, 2, 0.10D, 0.10D, 0.10D, 0.01D);
+            }
+            for (ServerPlayer player : lvl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.position().distanceToSqr(droplet.pos()) <= 2.25D)) {
+                if (player.getHealth() < player.getMaxHealth()) {
+                    SOURCEWATER_DROPLETS.remove(droplet);
+                    player.heal(2.0F);
+                    lvl.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.1D, player.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.02D);
+                    lvl.playSound(null, player.blockPosition(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.65F, 1.4F);
+                    break;
+                }
+            }
+        }
     }
 
     public static @Nullable Element getElementForEffect(MobEffect effect) {
@@ -3473,6 +3626,7 @@ public final class ElementalGaugeManager {
                     attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
             notifyResonanceReaction(reaction, attacker, level.getGameTime());
         }
+        onHydroReactionTriggered(level, target.position(), reaction, auraElement, null, attacker);
         Vec3 pos = target.position();
         int emLevel = getElementalMasteryLevel(attacker);
         float transEmMult = getTransformativeMultiplier(emLevel);
@@ -3683,6 +3837,7 @@ public final class ElementalGaugeManager {
             });
         }
 
+        tickSourcewaterDroplets(server, serverNow);
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());
@@ -3732,6 +3887,7 @@ public final class ElementalGaugeManager {
         PENDING_EVOKER_CONSTRUCTS.remove(id);
         PLAYER_LAST_HP.remove(id);
         PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
+        DRACONIC_GLORIES_STACKS.remove(id);
                 continue;
             }
 

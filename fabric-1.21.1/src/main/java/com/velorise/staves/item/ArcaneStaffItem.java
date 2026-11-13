@@ -178,6 +178,10 @@ public final class ArcaneStaffItem extends Item {
             if (!level.isClientSide()) {
                 if (isChannelingKind()) {
                     ACTIVE_CHANNELING.put(player.getUUID(), stack);
+                    if (kind == Kind.GUARDIAN && level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
+                        int absorbed = ElementalGaugeManager.consumeSourcewaterDropletsForChannel(sl, sp, 12.0D, 3);
+                        sp.getPersistentData().putBoolean("VeloriseGuardianInstant", absorbed > 0);
+                    }
                 }
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
@@ -383,7 +387,17 @@ public final class ArcaneStaffItem extends Item {
         }
         if (kind == Kind.GUARDIAN) {
             int elapsed = 50 - count;
-            if (elapsed < 0 || elapsed % 5 != 0) return;
+            if (elapsed < 0) return;
+            boolean instant = player.getPersistentData().getBoolean("VeloriseGuardianInstant");
+            if (!instant && elapsed < 10) {
+                // Brief 0.5s wind-up when no Sourcewater Droplets were absorbed
+                if (elapsed % 2 == 0) {
+                    Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.75D));
+                    serverLevel.sendParticles(ParticleTypes.SPLASH, eye.x, eye.y, eye.z, 4, 0.15D, 0.15D, 0.15D, 0.03D);
+                }
+                return;
+            }
+            if (elapsed % 5 != 0) return;
             LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
             fireGuardian(player, target);
             if (elapsed % 20 == 0) {
@@ -449,6 +463,7 @@ public final class ArcaneStaffItem extends Item {
 
     private void finishGuardianBeam(ServerPlayer player) {
         ACTIVE_CHANNELING.remove(player.getUUID());
+        player.getPersistentData().remove("VeloriseGuardianInstant");
         ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
     }
@@ -725,15 +740,22 @@ public final class ArcaneStaffItem extends Item {
 
     private void fireGuardian(ServerPlayer player, LivingEntity target) {
         ServerLevel level = player.serverLevel();
+        // Self HP drain while channeling Equitable Judgment down to 50% Max HP cap
+        if (!player.isCreative() && player.getHealth() > player.getMaxHealth() * 0.50F) {
+            float newHp = Math.max(player.getMaxHealth() * 0.50F, player.getHealth() - 0.5F);
+            player.setHealth(newHp);
+        }
         Vec3 start = player.getEyePosition();
         double range = isNetherite ? 28.0D : 24.0D;
         Vec3 end = target == null ? rayEndOutline(player, range) : target.getBoundingBox().getCenter();
         if (target != null) {
+            float draconicMult = ElementalGaugeManager.getDraconicGloriesMultiplier(player);
             boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);
-            float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * (hpBuff ? 2.0F : 1.0F);
+            float totalMult = Math.max(draconicMult, hpBuff ? 1.25F : 1.0F);
+            float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * totalMult;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
-            if (hpBuff) {
+            if (totalMult > 1.05F) {
                 level.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.05D);
             }
         }
