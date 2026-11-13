@@ -776,6 +776,16 @@ public class ElementalCodexScreen extends Screen {
                         )
                 ));
                 cards.add(new GuideCard(
+                        tr("codex.velorise_staves.mastery.prot.title"), 0xFF64D2FF,
+                        null, null, new ItemStack(Items.ENCHANTED_BOOK), new ItemStack(Items.NETHERITE_CHESTPLATE),
+                        tr("codex.velorise_staves.badge.max_level_4"), 0xFF64D2FF,
+                        List.of(
+                                tr("codex.velorise_staves.mastery.prot.p1"),
+                                tr("codex.velorise_staves.mastery.prot.p2"),
+                                tr("codex.velorise_staves.mastery.prot.p3")
+                        )
+                ));
+                cards.add(new GuideCard(
                         tr("codex.velorise_staves.mastery.card2.title"), 0xFF55EFC4,
                         null, null, new ItemStack(Items.ENCHANTING_TABLE), new ItemStack(Items.EMERALD),
                         tr("codex.velorise_staves.badge.survival_sources"), 0xFF55EFC4,

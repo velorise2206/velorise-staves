@@ -62,13 +62,27 @@ public class GeoFangPillarRenderer extends EntityRenderer<GeoFangPillarEntity> {
                 ? Mth.clamp((entity.tickCount + partialTicks - (GeoFangPillarEntity.MAX_LIFETIME_TICKS - 12)) / 12.0F, 0.0F, 1.0F)
                 : 0.0F;
 
-        float heightBlocks = tallStele ? 2.0F : 1.15F;
+        float heightBlocks = entity.isStoneStele() ? 3.5F : (entity.isNetherite() ? 2.0F : 1.15F);
         float halfW = tallStele ? 0.34F : 0.30F;
         float yOffset = -((1.0F - rise) + sink) * heightBlocks;
 
         poseStack.pushPose();
-        poseStack.translate(0.0F, yOffset, 0.0F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - entity.getYRot()));
+        if (entity.isHorizontalStele()) {
+            net.minecraft.core.Direction dir = entity.getAttachDirection();
+            float horizYaw = switch (dir) {
+                case NORTH -> 180.0F;
+                case EAST -> 90.0F;
+                case WEST -> -90.0F;
+                default -> 0.0F;
+            };
+            poseStack.translate(0.0F, 0.45F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(horizYaw));
+            poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+            poseStack.translate(0.0F, yOffset, 0.0F);
+        } else {
+            poseStack.translate(0.0F, yOffset, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - entity.getYRot()));
+        }
 
         float scalePulse = 1.0F + pulseWave * 0.035F;
         poseStack.scale(scalePulse, 1.0F, scalePulse);

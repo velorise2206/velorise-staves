@@ -124,6 +124,18 @@ public final class ClientAuraRenderer {
         }
     }
 
+    public static boolean tryRender32pxElementItem(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
+        if (stack == null || stack.isEmpty() || !StavesConfig.isUse32pxElementIcons()) return false;
+        if (!(stack.getItem() instanceof com.velorise.staves.item.ElementItem elemItem)) return false;
+        ResourceLocation tex = elemItem.isOmni() ? getOmniIconTexture() : getElementIconTexture(elemItem.getElement());
+        if (tex == null) return false;
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
+        guiGraphics.blit(tex, x, y, 0.0F, 0.0F, 16, 16, 16, 16);
+        return true;
+    }
+
     public static void renderItemElementCornerBadge(GuiGraphics guiGraphics, ItemStack stack, int x, int y) {
         if (stack == null || stack.isEmpty()) return;
         ResourceLocation tex = null;
@@ -828,7 +840,7 @@ public final class ClientAuraRenderer {
      */
     public static void renderPlayerAuraHud(GuiGraphics guiGraphics) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.options.hideGui || mc.getDebugOverlay().showDebugScreen()) return;
         if (!mc.player.isAlive() || mc.player.isDeadOrDying()) {
             ClientAuraTracker.remove(mc.player.getId());
             ClientAuraTracker.activeCrystallizeShield = null;

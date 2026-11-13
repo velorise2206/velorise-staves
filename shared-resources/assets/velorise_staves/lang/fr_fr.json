@@ -498,14 +498,19 @@
   "message.velorise_staves.splendor_arkhe_switched": "Alignement Arkhe changé en : %s",
   "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, silently drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (heals 1§f§r/2s Basic, scales with Max HP on Netherite). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",
   "item.velorise_staves.vortex_vanquisher": "Perceur prismatique",
-  "item.velorise_staves.vortex_vanquisher.desc": "Zhongli's Geo polearm (Dominus Lapidis). Tap Right-Click (4s CD): Summons a Stone Stele (30s) pulsing AoE Geo waves every 2s. Hold Right-Click 0.5s (12s CD): Forms a Jade Shield (20s, 150% All-DMG absorption & -20% All Elemental/Physical RES to nearby foes) and summons 1 Stone Stele (30s).",
+  "item.velorise_staves.vortex_vanquisher.desc": "Zhongli's Geo polearm (Dominus Lapidis). Tap Right-Click (4s CD): Summons a 3.5m Stone Stele (30s; places vertically on ground or horizontally when aiming at a block's side face; does not taunt mobs) pulsing AoE Geo waves every 2s. Hold Right-Click 0.5s (12s CD): Forms a Jade Shield (20s, 150% All-DMG absorption & -20% All Elemental/Physical RES to nearby foes) and summons 1 Stone Stele (30s).",
   "item.velorise_staves.netherite_vortex_vanquisher": "Perceur prismatique en Netherite",
-  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Netherite-forged Geo Archon polearm. Tap Right-Click (4s CD): Summons up to 2 Stone Steles (30s). Hold Right-Click 0.5s (12s CD): Forms a stronger Jade Shield (20s, 150% All-DMG absorption & -20% All Elemental/Physical RES to nearby foes) and summons a Stone Stele (30s).",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Netherite-forged Geo Archon polearm. Tap Right-Click (4s CD): Summons up to 2 3.5m Stone Steles (30s; vertical or horizontal on block sides; no mob taunt). Hold Right-Click 0.5s (12s CD): Forms a stronger Jade Shield (20s, 150% All-DMG absorption & -20% All Elemental/Physical RES to nearby foes) and summons a Stone Stele (30s).",
   "tooltip.velorise_staves.vortex_jade_shield": "  S'accroupir + Clic droit : Bouclier de jade (150 % absorption & +20 %–30 % DGT)",
   "tooltip.velorise_staves.vortex_res_shred": "  Aura de jade : -20 % à toutes les RÉS élémentaires et physiques (4,5 m)",
-  "codex.velorise_staves.staff.vortex": "§eTap (4s CD):§r Summons a §6Stone Stele (30s)§r pulsing Geo waves every 2s. §6Hold (12s CD):§r Forms §6Jade Shield (20s)§r shredding §c-20% All Elemental & Physical RES§r of nearby foes + summons 1 Stone Stele (30s).",
+  "codex.velorise_staves.staff.vortex": "§eTap (4s CD):§r Summons a §63.5m Stone Stele (30s)§r (vertical or horizontal on block sides, no mob taunt) pulsing Geo waves every 2s. §6Hold (12s CD):§r Forms §6Jade Shield (20s)§r shredding §c-20% All Elemental & Physical RES§r + summons 1 Stone Stele (30s).",
   "effect.velorise_staves.geo_shield": "Bouclier de jade (Géo)",
   "config.velorise_staves.icon_32px": "Element Icon Size",
   "config.velorise_staves.icon_32px.desc": "Client-side rendering option: Switch element icons between 16x16px (default unified) and 32x32px (high-detail).",
-  "tooltip.velorise_staves.cooldown_custom": "  Cooldown: %s"
+  "tooltip.velorise_staves.cooldown_custom": "  Cooldown: %s",
+  "codex.velorise_staves.badge.max_level_4": "MAX LEVEL IV",
+  "codex.velorise_staves.mastery.prot.title": "Elemental Protection I–IV (Armor)",
+  "codex.velorise_staves.mastery.prot.p1": "• §bElemental DMG Reduction:§r Reduces incoming Staff & Reaction damage by §a-5%/lvl§r across all 4 armor slots (up to §a-80% DMG§r at 16 total levels).",
+  "codex.velorise_staves.mastery.prot.p2": "• §bAura & Freeze Tenacity:§r Shortens incoming Elemental Aura durations by §a-3%/lvl§r and §bFrozen§r duration by §a-4%/lvl§r (up to §a-60%§r).",
+  "codex.velorise_staves.mastery.prot.p3": "• §6Compatibility:§r Applies to Helmet, Chestplate, Leggings & Boots (mutually exclusive with vanilla Protection types on the same piece)."
 }

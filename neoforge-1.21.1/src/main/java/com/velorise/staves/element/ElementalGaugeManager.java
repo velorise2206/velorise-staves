@@ -1229,22 +1229,47 @@ public final class ElementalGaugeManager {
     }
 
     public static void applyFurinaWaterWalking(Player player) {
-        if (player == null || player.isShiftKeyDown() || player.isSpectator()) return;
-        BlockPos feetPos = player.blockPosition();
-        BlockPos belowPos = feetPos.below();
-        boolean waterAtFeet = player.level().getFluidState(feetPos).is( net.minecraft.tags.FluidTags.WATER );
-        boolean waterBelow = player.level().getFluidState(belowPos).is( net.minecraft.tags.FluidTags.WATER );
-        boolean headSubmerged = player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER);
-        if (!headSubmerged && (waterAtFeet || waterBelow)) {
-            Vec3 dv = player.getDeltaMovement();
-            if (waterAtFeet && dv.y < 0.08D) {
-                player.setDeltaMovement(dv.x, 0.08D, dv.z);
-            } else if (dv.y < 0.0D) {
-                player.setDeltaMovement(dv.x, 0.0D, dv.z);
-            }
-            player.setOnGround(true);
-            player.fallDistance = 0.0F;
+        if (player == null || player.isShiftKeyDown() || player.isSpectator() || player.getAbilities().flying) return;
+        if (player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
+
+        double px = player.getX();
+        double py = player.getY();
+        double pz = player.getZ();
+
+        BlockPos feetBlock = BlockPos.containing(px, py, pz);
+        BlockPos belowBlock = BlockPos.containing(px, py - 0.25D, pz);
+
+        BlockPos waterPos = null;
+        if (player.level().getFluidState(feetBlock).is(net.minecraft.tags.FluidTags.WATER)
+                && !player.level().getFluidState(feetBlock.above()).is(net.minecraft.tags.FluidTags.WATER)) {
+            waterPos = feetBlock;
+        } else if (player.level().getFluidState(belowBlock).is(net.minecraft.tags.FluidTags.WATER)
+                && !player.level().getFluidState(belowBlock.above()).is(net.minecraft.tags.FluidTags.WATER)) {
+            waterPos = belowBlock;
         }
+        if (waterPos == null) return;
+
+        float fluidHeight = player.level().getFluidState(waterPos).getOwnHeight();
+        double surfaceY = waterPos.getY() + Math.max(0.88D, fluidHeight);
+
+        // Strictly engage only right at the water surface (never while airborne in a jump above the water!)
+        if (py > surfaceY + 0.08D || py < surfaceY - 0.55D) {
+            return;
+        }
+
+        Vec3 dv = player.getDeltaMovement();
+        if (dv.y > 0.12D) {
+            return;
+        }
+
+        if (py < surfaceY - 0.02D) {
+            player.setPos(px, surfaceY, pz);
+        }
+        if (dv.y < 0.0D) {
+            player.setDeltaMovement(dv.x, 0.0D, dv.z);
+        }
+        player.setOnGround(true);
+        player.fallDistance = 0.0F;
     }
 
     public static boolean hasRecentHpChangeBuff(ServerPlayer player) {

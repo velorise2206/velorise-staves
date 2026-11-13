@@ -37,6 +37,9 @@ pyro_resonance_damage_bonus = 0.10
 # Armor durability wear mode on elemental hits: "NORMAL", "REDUCED", or "NONE"
 elemental_armor_durability_wear = "REDUCED"
 
+# Client-side preference: switch element icons & GUI element items between 16x16px (default) and 32x32px (high-detail)
+use_32px_element_icons = false
+
 [scaling]
 # Genshin-style Co-Op Multi-Player Dynamic Mob HP & ATK Scaling
 enable_coop_mob_scaling = true

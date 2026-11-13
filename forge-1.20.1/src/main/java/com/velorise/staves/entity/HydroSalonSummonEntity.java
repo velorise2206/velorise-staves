@@ -234,21 +234,6 @@ public class HydroSalonSummonEntity extends Entity {
         this.ageTicks++;
 
         if (this.level().isClientSide()) {
-            if (this.tickCount % 4 == 0) {
-                if (getRole() == ROLE_SINGER) {
-                    this.level().addParticle(ParticleTypes.END_ROD,
-                            this.getX() + (this.random.nextDouble() - 0.5D) * 0.6D,
-                            this.getY() + 0.4D + this.random.nextDouble() * 0.6D,
-                            this.getZ() + (this.random.nextDouble() - 0.5D) * 0.6D,
-                            0.0D, 0.02D, 0.0D);
-                } else {
-                    this.level().addParticle(ParticleTypes.BUBBLE_POP,
-                            this.getX() + (this.random.nextDouble() - 0.5D) * 0.45D,
-                            this.getY() + 0.25D + this.random.nextDouble() * 0.4D,
-                            this.getZ() + (this.random.nextDouble() - 0.5D) * 0.45D,
-                            0.0D, 0.01D, 0.0D);
-                }
-            }
             return;
         }
 
@@ -312,8 +297,7 @@ public class HydroSalonSummonEntity extends Entity {
                 level.sendParticles(ParticleTypes.HEART, ally.getX(), ally.getY() + ally.getBbHeight() + 0.25D, ally.getZ(),
                         2, 0.25D, 0.15D, 0.25D, 0.02D);
             }
-            level.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.2D, this.getZ(),
-                    28, radius * 0.35D, 0.15D, radius * 0.35D, 0.08D);
+
             level.playSound(null, this.blockPosition(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.85F, 1.35F);
         }
     }
@@ -489,15 +473,7 @@ public class HydroSalonSummonEntity extends Entity {
         float baseDamage = ownerMaxHp * hpRatio * drainDamageMult;
         float gaugeU = isNetherite() ? 1.5F : 1.0F;
 
-        Vec3 start = this.position().add(0.0D, 0.35D, 0.0D);
-        Vec3 end = primaryTarget.position().add(0.0D, primaryTarget.getBbHeight() * 0.5D, 0.0D);
-        int steps = Math.max(4, (int) (start.distanceTo(end) * 3.0D));
-        for (int i = 0; i <= steps; i++) {
-            double t = i / (double) steps;
-            Vec3 p = start.lerp(end, t);
-            level.sendParticles(ParticleTypes.BUBBLE, p.x, p.y, p.z, 2, 0.06D, 0.06D, 0.06D, 0.01D);
-            level.sendParticles(ParticleTypes.SPLASH, p.x, p.y, p.z, 1, 0.04D, 0.04D, 0.04D, 0.01D);
-        }
+
 
         if (role == ROLE_CHEVALMARIN) {
             ElementalGaugeManager.applyElement(level, primaryTarget, Element.HYDRO, gaugeU, owner, baseDamage);
@@ -513,8 +489,7 @@ public class HydroSalonSummonEntity extends Entity {
             for (LivingEntity hit : hits) {
                 ElementalGaugeManager.applyElement(level, hit, Element.HYDRO, gaugeU, owner, baseDamage);
             }
-            level.sendParticles(ParticleTypes.BUBBLE_POP, end.x, end.y, end.z, 18, 0.45D, 0.35D, 0.45D, 0.06D);
-            level.sendParticles(ParticleTypes.SPLASH, end.x, end.y, end.z, 22, 0.5D, 0.3D, 0.5D, 0.08D);
+
             level.playSound(null, primaryTarget.blockPosition(),
                     role == ROLE_CRABALETTA ? SoundEvents.PLAYER_SPLASH_HIGH_SPEED : SoundEvents.GENERIC_SPLASH,
                     SoundSource.PLAYERS, 0.85F, role == ROLE_CRABALETTA ? 0.95F : 1.25F);

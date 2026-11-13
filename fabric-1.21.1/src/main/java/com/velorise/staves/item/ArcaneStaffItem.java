@@ -769,28 +769,40 @@ public final class ArcaneStaffItem extends Item {
         double steleY = player.getY();
 
         if (shouldSpawnStele) {
+            net.minecraft.core.Direction attachDir = net.minecraft.core.Direction.UP;
             if (castUnderFeet) {
                 steleX = player.getX();
                 steleZ = player.getZ();
-            } else if (!holdJadeShield) {
+                steleY = findGroundY(level, steleX, player.getY(), steleZ);
+            } else {
                 HitResult hit = player.pick(12.0D, 0.0F, false);
                 if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult bhr) {
                     BlockPos bp = bhr.getBlockPos();
-                    steleX = bp.getX() + 0.5D;
-                    steleZ = bp.getZ() + 0.5D;
+                    net.minecraft.core.Direction face = bhr.getDirection();
+                    if (face.getAxis().isHorizontal()) {
+                        attachDir = face;
+                        steleX = bp.getX() + 0.5D + face.getStepX() * 0.5D;
+                        steleY = bp.getY() + 0.05D;
+                        steleZ = bp.getZ() + 0.5D + face.getStepZ() * 0.5D;
+                    } else if (!holdJadeShield) {
+                        steleX = bp.getX() + 0.5D;
+                        steleZ = bp.getZ() + 0.5D;
+                        steleY = findGroundY(level, steleX, bp.getY() + 1.0D, steleZ);
+                    } else {
+                        double tx = player.getX() + flat.x * 2.5D;
+                        double tz = player.getZ() + flat.z * 2.5D;
+                        steleX = Math.floor(tx) + 0.5D;
+                        steleZ = Math.floor(tz) + 0.5D;
+                        steleY = findGroundY(level, steleX, player.getY(), steleZ);
+                    }
                 } else {
                     double tx = player.getX() + flat.x * 2.5D;
                     double tz = player.getZ() + flat.z * 2.5D;
                     steleX = Math.floor(tx) + 0.5D;
                     steleZ = Math.floor(tz) + 0.5D;
+                    steleY = findGroundY(level, steleX, player.getY(), steleZ);
                 }
-            } else {
-                double tx = player.getX() + flat.x * 2.5D;
-                double tz = player.getZ() + flat.z * 2.5D;
-                steleX = Math.floor(tx) + 0.5D;
-                steleZ = Math.floor(tz) + 0.5D;
             }
-            steleY = findGroundY(level, steleX, player.getY(), steleZ);
 
             com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxSteleForOwner(
                     level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID(), maxSteles);
@@ -805,6 +817,7 @@ public final class ArcaneStaffItem extends Item {
                             isNetherite
                     );
             stele.setStoneStele(true);
+            stele.setAttachDirection(attachDir);
             level.addFreshEntity(stele);
             if (castUnderFeet) {
                 stele.liftEntityOntoPillar(player);

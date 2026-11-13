@@ -498,14 +498,19 @@
   "message.velorise_staves.splendor_arkhe_switched": "Đã chuyển thuộc tính Arkhe sang: %s",
   "codex.velorise_staves.staff.splendor": "Triệu hồi Salon Cô Độc (Ousia: 3 thú cưng Thủy, rút máu êm >50% HP nhân tới 1.4x DMG) hoặc Ca Sĩ Nước Nguồn (Pneuma: hồi 1§f§r/2s ở bản thường, tăng theo Max HP ở Netherite). Đi trên mặt nước & tích Náo Nhiệt (+25%→+30% DMG/Heal).",
   "item.velorise_staves.vortex_vanquisher": "Giáo Nịnh Thần",
-  "item.velorise_staves.vortex_vanquisher.desc": "Thương Nham của Zhongli (Tâm Trái Đất). Nhấn thường (CD 4s): Triệu hồi Cột Đá tồn tại 30s gây sát thương Nham diện rộng và cộng hưởng mỗi 2s. Nhấn giữ 0.5s (CD 12s): Tạo Khiên Ngọc (20s, hấp thụ 150% mọi sát thương & giảm 20% kháng mọi nguyên tố/vật lý của địch xung quanh) đồng thời tạo 1 Cột Đá (30s).",
+  "item.velorise_staves.vortex_vanquisher.desc": "Thương Nham của Zhongli (Tâm Trái Đất). Nhấn thường (CD 4s): Triệu hồi Cột Đá cao 3.5m tồn tại 30s (đặt thẳng đứng trên mặt đất hoặc đặt nằm ngang khi nhắm vào cạnh bên của khối, không thu hút quái) cộng hưởng mỗi 2s. Nhấn giữ 0.5s (CD 12s): Tạo Khiên Ngọc (20s, hấp thụ 150% mọi sát thương & giảm 20% kháng mọi nguyên tố/vật lý của địch xung quanh) đồng thời tạo 1 Cột Đá (30s).",
   "item.velorise_staves.netherite_vortex_vanquisher": "Giáo Nịnh Thần Netherite",
-  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Thương Nham Thần tối thượng của Zhongli. Nhấn thường (CD 4s): Triệu hồi tối đa 2 Cột Đá (30s). Nhấn giữ 0.5s (CD 12s): Tạo Khiên Ngọc (20s, hấp thụ 150% mọi sát thương & giảm 20% kháng mọi nguyên tố/vật lý của địch xung quanh) đồng thời triệu hồi Cột Đá (30s).",
+  "item.velorise_staves.netherite_vortex_vanquisher.desc": "Thương Nham Thần tối thượng của Zhongli. Nhấn thường (CD 4s): Triệu hồi tối đa 2 Cột Đá cao 3.5m (30s, đặt đứng hoặc nằm ngang vào cạnh block, không thu hút quái). Nhấn giữ 0.5s (CD 12s): Tạo Khiên Ngọc (20s, hấp thụ 150% mọi sát thương & giảm 20% kháng mọi nguyên tố/vật lý của địch xung quanh) đồng thời triệu hồi Cột Đá (30s).",
   "tooltip.velorise_staves.vortex_jade_shield": "  Nhấn thả: Đặt Vách Đá | Nhấn giữ (0.5s): Tạo Khiên Ngọc (Hấp thụ 150% & +20%–30% DMG)",
   "tooltip.velorise_staves.vortex_res_shred": "  Hào quang Khiên Ngọc: -20% Toàn bộ Kháng Nguyên Tố & Vật Lý (4.5m)",
-  "codex.velorise_staves.staff.vortex": "§eNhấn thường (CD 4s):§r Triệu hồi §6Cột Đá (30s)§r cộng hưởng mỗi 2s. §6Nhấn giữ (CD 12s):§r Tạo §6Khiên Ngọc (20s)§r giảm §c20% Kháng mọi Nguyên Tố & Vật Lý§r của địch xung quanh + tạo 1 Cột Đá (30s).",
+  "codex.velorise_staves.staff.vortex": "§eNhấn thường (CD 4s):§r Triệu hồi §6Cột Đá 3.5m (30s)§r (đặt đứng hoặc nằm ngang vào cạnh block, không thu hút quái) cộng hưởng mỗi 2s. §6Nhấn giữ (CD 12s):§r Tạo §6Khiên Ngọc (20s)§r giảm §c20% Kháng mọi Nguyên Tố & Vật Lý§r + tạo 1 Cột Đá (30s).",
   "effect.velorise_staves.geo_shield": "Khiên Ngọc (Nham)",
   "config.velorise_staves.icon_32px": "Độ Phân Giải Icon",
   "config.velorise_staves.icon_32px.desc": "Tùy chọn hiển thị phía Client: Chọn kích thước icon nguyên tố giữa 16x16px (mặc định đồng bộ) và 32x32px (chi tiết cao).",
-  "tooltip.velorise_staves.cooldown_custom": "  Hồi chiêu: %s"
+  "tooltip.velorise_staves.cooldown_custom": "  Hồi chiêu: %s",
+  "codex.velorise_staves.badge.max_level_4": "CẤP TỐI ĐA IV",
+  "codex.velorise_staves.mastery.prot.title": "Bảo Vệ Nguyên Tố I–IV (Giáp)",
+  "codex.velorise_staves.mastery.prot.p1": "• §bGiảm Sát Thương Nguyên Tố:§r Giảm §a-5%/cấp§r sát thương từ Trượng & Phản ứng Nguyên Tố trên cả 4 món giáp (tối đa §a-80% DMG§r ở tổng 16 cấp).",
+  "codex.velorise_staves.mastery.prot.p2": "• §bKháng Hiệu Ứng:§r Rút ngắn thời gian dính Ấn Nguyên Tố §a-3%/cấp§r và thời gian bị §bĐóng Băng§r §a-4%/cấp§r (tối đa §a-60%§r).",
+  "codex.velorise_staves.mastery.prot.p3": "• §6Tương thích:§r Ép cho Mũ, Giáp Ngực, Quần, Giày (xung khắc với Bảo Vệ thường/Lửa/Nổ/Đạn trên cùng 1 món giáp)."
 }

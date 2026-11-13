@@ -116,6 +116,8 @@ public class GeoFangPillarEntity extends Entity {
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_STELE =
             SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Byte> DATA_ATTACH_DIR =
+            SynchedEntityData.defineId(GeoFangPillarEntity.class, EntityDataSerializers.BYTE);
 
     private static final class ActiveGeoWave {
         int age;
@@ -194,19 +196,41 @@ public class GeoFangPillarEntity extends Entity {
         this.entityData.define(DATA_HURT_TICK, -100);
         this.entityData.define(DATA_NETHERITE, false);
         this.entityData.define(DATA_STELE, false);
+        this.entityData.define(DATA_ATTACH_DIR, (byte) net.minecraft.core.Direction.UP.get3DDataValue());
     }
 
     @Override
     public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
         super.onSyncedDataUpdated(key);
-        if (DATA_NETHERITE.equals(key) || DATA_STELE.equals(key)) {
+        if (DATA_NETHERITE.equals(key) || DATA_STELE.equals(key) || DATA_ATTACH_DIR.equals(key)) {
             this.refreshDimensions();
         }
     }
 
     @Override
     public EntityDimensions getDimensions(Pose pose) {
-        return EntityDimensions.scalable(1.0F, (isNetherite() || isStoneStele()) ? 2.0F : 1.0F);
+        if (isStoneStele()) {
+            return EntityDimensions.scalable(1.0F, isHorizontalStele() ? 0.90F : 3.5F);
+        }
+        return EntityDimensions.scalable(1.0F, isNetherite() ? 2.0F : 1.0F);
+    }
+
+    @Override
+    protected AABB makeBoundingBox() {
+        if (isHorizontalStele()) {
+            net.minecraft.core.Direction dir = getAttachDirection();
+            double x = this.getX();
+            double y = this.getY();
+            double z = this.getZ();
+            double len = 3.5D;
+            double hw = 0.45D;
+            double minX = dir.getStepX() > 0 ? x : (dir.getStepX() < 0 ? x - len : x - hw);
+            double maxX = dir.getStepX() > 0 ? x + len : (dir.getStepX() < 0 ? x : x + hw);
+            double minZ = dir.getStepZ() > 0 ? z : (dir.getStepZ() < 0 ? z - len : z - hw);
+            double maxZ = dir.getStepZ() > 0 ? z + len : (dir.getStepZ() < 0 ? z : z + hw);
+            return new AABB(minX, y, minZ, maxX, y + 0.90D, maxZ);
+        }
+        return super.makeBoundingBox();
     }
 
     public boolean isStoneStele() {
@@ -216,6 +240,19 @@ public class GeoFangPillarEntity extends Entity {
     public void setStoneStele(boolean stele) {
         this.entityData.set(DATA_STELE, stele);
         this.refreshDimensions();
+    }
+
+    public net.minecraft.core.Direction getAttachDirection() {
+        return net.minecraft.core.Direction.from3DDataValue(this.entityData.get(DATA_ATTACH_DIR));
+    }
+
+    public void setAttachDirection(net.minecraft.core.Direction dir) {
+        this.entityData.set(DATA_ATTACH_DIR, (byte) (dir != null ? dir.get3DDataValue() : net.minecraft.core.Direction.UP.get3DDataValue()));
+        this.refreshDimensions();
+    }
+
+    public boolean isHorizontalStele() {
+        return isStoneStele() && getAttachDirection().getAxis().isHorizontal();
     }
 
     public boolean isNetherite() {
@@ -469,7 +506,9 @@ public class GeoFangPillarEntity extends Entity {
             }
         }
 
-        tickTauntedMobs(sl);
+        if (!isStoneStele()) {
+            tickTauntedMobs(sl);
+        }
     }
 
     private void tickClientWaves() {
@@ -495,11 +534,11 @@ public class GeoFangPillarEntity extends Entity {
     }
 
     public void liftEntityOntoPillar(LivingEntity living) {
-        if (living == null || !living.isAlive() || living.isSpectator()) return;
+        if (living == null || !living.isAlive() || living.isSpectator() || isHorizontalStele()) return;
         this.refreshDimensions();
         double topY = this.getBoundingBox().maxY + 0.06D;
         double dy = topY - living.getY();
-        if (dy > -0.25D && dy <= 2.65D) {
+        if (dy > -0.25D && dy <= (isStoneStele() ? 3.85D : 2.65D)) {
             AABB targetBox = living.getBoundingBox().move(
                     this.getX() - living.getX(),
                     Math.max(0.0D, dy),
@@ -517,6 +556,7 @@ public class GeoFangPillarEntity extends Entity {
     }
 
     private void liftOverlappingEntities(ServerLevel level) {
+        if (isHorizontalStele()) return;
         List<LivingEntity> overlapping = level.getEntitiesOfClass(
                 LivingEntity.class,
                 this.getBoundingBox().inflate(0.25D, 0.25D, 0.25D),
@@ -589,7 +629,9 @@ public class GeoFangPillarEntity extends Entity {
                     } else {
                         ElementalGaugeManager.applyElementWithCredit(level, target, Element.GEO, waveUnits, ownerLiving, waveDamage);
                     }
-                    tauntMob(target, owner);
+                    if (!isStoneStele()) {
+                        tauntMob(target, owner);
+                    }
                 }
             }
         } finally {
@@ -633,6 +675,7 @@ public class GeoFangPillarEntity extends Entity {
      * Redirects a hit mob's hostility away from the pillar's owner and lures it toward this construct.
      */
     public void tauntMob(LivingEntity target, @Nullable Entity owner) {
+        if (isStoneStele()) return;
         if (!(target instanceof Mob mob) || !mob.isAlive() || mob.isRemoved() || ElementalGaugeManager.isEntityFrozen(mob)) {
             return;
         }
@@ -1088,6 +1131,12 @@ public class GeoFangPillarEntity extends Entity {
         if (tag.contains("IsNetherite")) {
             setNetherite(tag.getBoolean("IsNetherite"));
         }
+        if (tag.contains("IsStoneStele")) {
+            setStoneStele(tag.getBoolean("IsStoneStele"));
+        }
+        if (tag.contains("AttachDir")) {
+            setAttachDirection(net.minecraft.core.Direction.from3DDataValue(tag.getByte("AttachDir")));
+        }
         if (tag.contains("ConstructMaxHealth")) {
             this.entityData.set(DATA_MAX_HEALTH, Math.max(2.0F, tag.getFloat("ConstructMaxHealth")));
         }
@@ -1104,6 +1153,8 @@ public class GeoFangPillarEntity extends Entity {
             tag.putUUID("Owner", this.ownerUUID);
         }
         tag.putBoolean("IsNetherite", isNetherite());
+        tag.putBoolean("IsStoneStele", isStoneStele());
+        tag.putByte("AttachDir", (byte) getAttachDirection().get3DDataValue());
         tag.putFloat("ConstructMaxHealth", getMaxConstructHealth());
         tag.putFloat("ConstructHealth", getHealth());
         tag.putInt("Age", this.ageTicks);
