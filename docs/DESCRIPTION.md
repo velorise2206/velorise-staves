@@ -2,7 +2,11 @@
 
 <p align="center">
   <a href="https://github.com/hungbbdzz/velorise-staves/wiki"><img src="https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white" alt="Official Wiki" /></a>
-  <a href="https://modrinth.com/mod/velorises-staves-elements"><img src="https://img.shields.io/badge/Modrinth-Available_Now-00af5c?style=for-the-badge&logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <!-- Modrinth (Pending Review): Auto-activates once approved -->
+  <a href="https://modrinth.com/mod/velorises-staves-elements"><img src="https://img.shields.io/badge/Modrinth-Pending_Review-orange?style=for-the-badge&logo=modrinth&logoColor=white" alt="Modrinth" /></a>
+  <!-- Modrinth Dynamic Downloads Badge (Uncomment once published):
+  <a href="https://modrinth.com/mod/velorises-staves-elements"><img src="https://img.shields.io/modrinth/dt/velorises-staves-elements?style=for-the-badge&logo=modrinth&label=Modrinth&color=00af5c" alt="Modrinth Downloads" /></a>
+  -->
   <a href="https://www.curseforge.com/minecraft/mc-mods/velorises-staves-elements"><img src="https://img.shields.io/badge/CurseForge-Available_Now-f16436?style=for-the-badge&logo=curseforge&logoColor=white" alt="CurseForge" /></a>
   <a href="https://github.com/hungbbdzz/velorise-staves"><img src="https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" /></a>
   <a href="https://github.com/hungbbdzz/velorise-staves/issues"><img src="https://img.shields.io/badge/Issues-Report_Bug-red?style=for-the-badge&logo=github&logoColor=white" alt="Report Bug" /></a>

@@ -1,6 +1,11 @@
 # Velorise's Staves
 
 [![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/hungbbdzz/velorise-staves/wiki)
+[![CurseForge](https://img.shields.io/badge/CurseForge-Available_Now-f16436?style=for-the-badge&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/velorises-staves-elements)
+[![Modrinth](https://img.shields.io/badge/Modrinth-Pending_Review-orange?style=for-the-badge&logo=modrinth&logoColor=white)](https://modrinth.com/mod/velorises-staves-elements)
+<!-- Modrinth Dynamic Downloads Badge (Uncomment once published):
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/velorises-staves-elements?style=for-the-badge&logo=modrinth&label=Modrinth&color=00af5c)](https://modrinth.com/mod/velorises-staves-elements)
+-->
 [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/hungbbdzz/velorise-staves)
