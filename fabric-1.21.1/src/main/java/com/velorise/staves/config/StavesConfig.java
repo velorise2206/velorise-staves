@@ -164,6 +164,9 @@ public final class StavesConfig {
                     }
                     String fullKey = currentSection.isEmpty() ? key : currentSection + "." + key;
                     ConfigEntry<?> entry = ENTRIES.get(fullKey);
+                    if (entry == null && "mechanics.max_staves_in_inventory".equals(fullKey)) {
+                        entry = ENTRIES.get("elemental_gauge.max_staves_in_inventory");
+                    }
                     if (entry != null) {
                         entry.parseAndSet(val);
                     }

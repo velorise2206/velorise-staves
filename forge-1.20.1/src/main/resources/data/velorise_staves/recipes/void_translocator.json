@@ -1,21 +1,24 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  P",
-                    " S ",
-                    "S  "
-                ],
-    "key":  {
-                "S":  {
-                          "item":  "minecraft:stick"
-                      },
-                "P":  {
-                          "item":  "minecraft:ender_pearl"
-                      }
-            },
-    "result":  {
-                   "item":  "velorise_staves:void_translocator",
-                   "count":  1
-               }
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "pattern": [
+        "  P",
+        " E ",
+        "B  "
+    ],
+    "key": {
+        "P": {
+            "item": "minecraft:ender_pearl"
+        },
+        "E": {
+            "item": "velorise_staves:electro_element"
+        },
+        "B": {
+            "item": "minecraft:blaze_rod"
+        }
+    },
+    "result": {
+        "item": "velorise_staves:void_translocator",
+        "count": 1
+    }
 }

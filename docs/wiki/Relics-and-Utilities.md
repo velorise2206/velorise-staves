@@ -51,7 +51,7 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * Resets fall distance to 0, ensuring **zero fall damage** upon landing.
   * Self-inflicts a lingering Electro charge on the caster (1.0U Basic / 1.5U Netherite) upon blink discharge.
 * **Crafting Recipe:**
-  * Shaped: 1 Ender Pearl + 2 Sticks placed diagonally.
+  * Shaped (3x3 Diagonal): 1 Ender Pearl (Top-Right) + 1 Electro Element (Center) + 1 Blaze Rod (Bottom-Left).
 
 > [!WARNING]
 > ### ⚡ Critical Hazard: Self-Applied Electro Aura

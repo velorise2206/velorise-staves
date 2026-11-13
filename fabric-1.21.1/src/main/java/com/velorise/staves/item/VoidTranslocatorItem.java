@@ -137,7 +137,7 @@ public class VoidTranslocatorItem extends Item {
     @Override
     public boolean isValidRepairItem(ItemStack toRepair, ItemStack repair) {
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
-        return repair.is(Items.ENDER_PEARL) || super.isValidRepairItem(toRepair, repair);
+        return repair.is(Items.ENDER_PEARL) || repair.is(Items.BLAZE_ROD) || com.velorise.staves.VeloriseStavesMod.elementFromItem(repair) == Element.ELECTRO || super.isValidRepairItem(toRepair, repair);
     }
 
     @Override
