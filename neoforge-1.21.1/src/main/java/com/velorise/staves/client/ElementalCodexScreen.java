@@ -105,11 +105,24 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.REACTIONS_AMP, "swirl", new String[]{"swirl"}, new String[]{"swirl"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "hyperbloom", new String[]{"hyperbloom"}, new String[]{"hyperbloom"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "burgeon", new String[]{"burgeon"}, new String[]{"burgeon"}),
-            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "bloom", new String[]{"bloom"}, new String[]{"bloom"}),
+            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "bloom", new String[]{"bloom"}, new String[]{"bloom", "dendro core", "dendro cores", "hạt nhân thảo"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "catalyze", new String[]{"quicken", "aggravate", "spread"}, new String[]{"catalyze", "quicken", "quickened", "aggravate", "spread"}),
             new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "burning", new String[]{"burning"}, new String[]{"burning"}),
-            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "crystallize", new String[]{"crystallize"}, new String[]{"crystallize", "crystallized"}),
-            new ReactionLinkSpec(Tab.RESONANCE, "tab_resonance", new String[]{}, new String[]{"elemental resonance", "resonance"})
+            new ReactionLinkSpec(Tab.REACTIONS_DENDRO, "crystallize", new String[]{"crystallize"}, new String[]{"crystallize", "crystallized", "crystallize shield", "crystallize shards", "mảnh khiên kết tinh", "mảnh kết tinh", "khiên kết tinh", "khiên tim vàng"}),
+            new ReactionLinkSpec(Tab.RESONANCE, "tab_resonance", new String[]{}, new String[]{"elemental resonance", "resonance", "cộng hưởng nguyên tố", "cộng hưởng"}),
+            new ReactionLinkSpec(Tab.MASTERY, "mastery_em", new String[]{}, new String[]{"elemental mastery", "tinh thông nguyên tố", "ttnt"}),
+            new ReactionLinkSpec(Tab.MASTERY, "mastery_prot", new String[]{}, new String[]{"elemental protection", "bảo vệ nguyên tố"}),
+            new ReactionLinkSpec(Tab.INNATE, "innate_rules", new String[]{}, new String[]{"tab 5", "mục 5", "quái bẩm sinh", "innate mobs", "omni mutated", "đột biến omni"}),
+            new ReactionLinkSpec(Tab.INNATE, "innate_drops", new String[]{}, new String[]{"omni element", "nguyên tố omni"}),
+            new ReactionLinkSpec(Tab.ENVIRONMENT, "env_sculk", new String[]{}, new String[]{"calibrated sculk sensor", "sculk sensor", "sculk sensors", "cảm biến sculk hiệu chỉnh", "cảm biến sculk"}),
+            new ReactionLinkSpec(Tab.ENVIRONMENT, "env_redstone", new String[]{}, new String[]{"tesla coil", "tesla coils", "cuộn tesla", "cột thu lôi"}),
+            new ReactionLinkSpec(Tab.ENVIRONMENT, "env_amethyst", new String[]{}, new String[]{"amethyst cluster", "amethyst clusters", "cụm thạch anh tím", "hốc thạch anh tím"}),
+            new ReactionLinkSpec(Tab.STAVES, "omni_staff", new String[]{}, new String[]{"omni staff", "netherite omni staff", "quyền trượng vạn năng", "trượng omni"}),
+            new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "giáo nịnh thần", "stone stele", "vách đá", "jade shield", "khiên ngọc"}),
+            new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "ánh nước tĩnh lặng", "salon solitaire", "salon cô độc", "singer of many waters", "ca sĩ nước nguồn"}),
+            new ReactionLinkSpec(Tab.STAVES, "guardian_lens", new String[]{}, new String[]{"guardian lens", "thấu kính hộ vệ", "sourcewater droplets", "sourcewater", "nguồn nước trong", "vinh quang rồng"}),
+            new ReactionLinkSpec(Tab.STAVES, "evoker_fang_staff", new String[]{}, new String[]{"evoker fang staff", "gậy nanh ma quái", "geo fang pillar", "trụ nanh nham"}),
+            new ReactionLinkSpec(Tab.STAVES, "utility_relics", new String[]{}, new String[]{"void translocator", "magic mirror", "bộ dịch chuyển hư không", "gương ma thuật"})
     );
 
     private static boolean containsCjkOrHangul(String s) {
@@ -151,6 +164,51 @@ public class ElementalCodexScreen extends Screen {
             }
             for (String fb : spec.enFallbacks()) {
                 registerLinkWord(dedup, fb, spec.tab(), spec.cardKey());
+            }
+        }
+        // Automatically register localized item names for all 15 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
+        String[] allStaffIds = {
+                "inferno_rod", "ghastfire_staff", "guardian_lens", "splendor_of_tranquil_waters",
+                "frostbolt_wand", "arc_caster", "dragonfire_scepter", "shulker_seeker",
+                "wither_scepter", "webcaster", "wind_staff", "resonant_echo",
+                "evoker_fang_staff", "vortex_vanquisher", "omni_staff"
+        };
+        for (String sId : allStaffIds) {
+            if (I18n.exists("item.velorise_staves." + sId)) {
+                registerLinkWord(dedup, I18n.get("item.velorise_staves." + sId), Tab.STAVES, sId);
+            }
+            if (I18n.exists("item.velorise_staves.netherite_" + sId)) {
+                registerLinkWord(dedup, I18n.get("item.velorise_staves.netherite_" + sId), Tab.STAVES, sId);
+            }
+        }
+        for (String uId : new String[]{"void_translocator", "netherite_void_translocator", "magic_mirror", "netherite_magic_mirror"}) {
+            if (I18n.exists("item.velorise_staves." + uId)) {
+                registerLinkWord(dedup, I18n.get("item.velorise_staves." + uId), Tab.STAVES, "utility_relics");
+            }
+        }
+        if (I18n.exists("item.velorise_staves.dendro_core")) {
+            registerLinkWord(dedup, I18n.get("item.velorise_staves.dendro_core"), Tab.REACTIONS_DENDRO, "bloom");
+        }
+        if (I18n.exists("item.velorise_staves.omni_element")) {
+            registerLinkWord(dedup, I18n.get("item.velorise_staves.omni_element"), Tab.INNATE, "innate_drops");
+        }
+        if (I18n.exists("enchantment.velorise_staves.elemental_mastery")) {
+            registerLinkWord(dedup, I18n.get("enchantment.velorise_staves.elemental_mastery"), Tab.MASTERY, "mastery_em");
+        }
+        if (I18n.exists("enchantment.velorise_staves.elemental_protection")) {
+            registerLinkWord(dedup, I18n.get("enchantment.velorise_staves.elemental_protection"), Tab.MASTERY, "mastery_prot");
+        }
+        for (Element el : Element.values()) {
+            String lowerEl = el.name().toLowerCase(Locale.ROOT);
+            String targetCard = "elem_" + lowerEl;
+            registerLinkWord(dedup, lowerEl, Tab.ELEMENTS, targetCard);
+            if (I18n.exists(el.translationKey())) {
+                String trEl = I18n.get(el.translationKey()).trim();
+                if (containsCjkOrHangul(trEl) && trEl.length() == 1) {
+                    registerLinkWord(dedup, trEl + "元素", Tab.ELEMENTS, targetCard);
+                } else {
+                    registerLinkWord(dedup, trEl, Tab.ELEMENTS, targetCard);
+                }
             }
         }
         List<ReactionLink> sorted = new ArrayList<>(dedup.values());
@@ -448,43 +506,43 @@ public class ElementalCodexScreen extends Screen {
                         Element.PYRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.PYRO).toUpperCase(Locale.ROOT), 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.elem.pyro.p1"), tr("codex.velorise_staves.elem.pyro.p2"))
-                ));
+                ).withKey("elem_pyro"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.hydro.title"), 0xFF0A84FF,
                         Element.HYDRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.HYDRO).toUpperCase(Locale.ROOT), 0xFF0A84FF,
                         List.of(tr("codex.velorise_staves.elem.hydro.p1"), tr("codex.velorise_staves.elem.hydro.p2"))
-                ));
+                ).withKey("elem_hydro"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.anemo.title"), 0xFF55EFC4,
                         Element.ANEMO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.ANEMO).toUpperCase(Locale.ROOT), 0xFF55EFC4,
                         List.of(tr("codex.velorise_staves.elem.anemo.p1"), tr("codex.velorise_staves.elem.anemo.p2"))
-                ));
+                ).withKey("elem_anemo"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.electro.title"), 0xFFBF5AF2,
                         Element.ELECTRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.ELECTRO).toUpperCase(Locale.ROOT), 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.elem.electro.p1"), tr("codex.velorise_staves.elem.electro.p2"))
-                ));
+                ).withKey("elem_electro"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.dendro.title"), 0xFF32D74B,
                         Element.DENDRO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.DENDRO).toUpperCase(Locale.ROOT), 0xFF32D74B,
                         List.of(tr("codex.velorise_staves.elem.dendro.p1"), tr("codex.velorise_staves.elem.dendro.p2"))
-                ));
+                ).withKey("elem_dendro"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.cryo.title"), 0xFF64D2FF,
                         Element.CRYO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.CRYO).toUpperCase(Locale.ROOT), 0xFF64D2FF,
                         List.of(tr("codex.velorise_staves.elem.cryo.p1"), tr("codex.velorise_staves.elem.cryo.p2"))
-                ));
+                ).withKey("elem_cryo"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.elem.geo.title"), 0xFFFFD60A,
                         Element.GEO, null, ItemStack.EMPTY, ItemStack.EMPTY,
                         elemTitle(Element.GEO).toUpperCase(Locale.ROOT), 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.elem.geo.p1"), tr("codex.velorise_staves.elem.geo.p2"))
-                ));
+                ).withKey("elem_geo"));
             }
             case REACTIONS_AMP -> {
                 cards.add(new GuideCard(
@@ -588,7 +646,7 @@ public class ElementalCodexScreen extends Screen {
                         null, null, EntityType.BLAZE, EntityType.CREEPER,
                         tr("codex.velorise_staves.badge.innate_rules"), 0xFFFFD60A,
                         List.of(tr("codex.velorise_staves.innate.rules.p1"), tr("codex.velorise_staves.innate.rules.p2"))
-                ));
+                ).withKey("innate_rules"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.drops.title"), 0xFFFF9F0A,
                         null, null, getModItemStack("pyro_element"), getModItemStack("omni_element"),
@@ -598,7 +656,7 @@ public class ElementalCodexScreen extends Screen {
                                 tr("codex.velorise_staves.innate.drops.p2"),
                                 tr("codex.velorise_staves.innate.drops.p3")
                         )
-                ));
+                ).withKey("innate_drops"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.innate.pyro.title"), 0xFFFF453A,
                         Element.PYRO, null, EntityType.BLAZE, EntityType.MAGMA_CUBE,
@@ -642,37 +700,37 @@ public class ElementalCodexScreen extends Screen {
                         Element.ELECTRO, null, new ItemStack(Items.SCULK_SENSOR), new ItemStack(Items.CALIBRATED_SCULK_SENSOR),
                         tr("codex.velorise_staves.badge.env_sculk"), 0xFF00D2D3,
                         List.of(tr("codex.velorise_staves.env.sculk.p1"), tr("codex.velorise_staves.env.sculk.p2"))
-                ));
+                ).withKey("env_sculk"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.redstone.title"), 0xFFFF453A,
                         Element.ELECTRO, null, new ItemStack(Items.LIGHTNING_ROD), new ItemStack(Items.OBSERVER),
                         tr("codex.velorise_staves.badge.env_redstone"), 0xFFFF453A,
                         List.of(tr("codex.velorise_staves.env.redstone.p1"), tr("codex.velorise_staves.env.redstone.p2"))
-                ));
+                ).withKey("env_redstone"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.amethyst.title"), 0xFFBF5AF2,
                         Element.ELECTRO, Element.PYRO, new ItemStack(Items.AMETHYST_CLUSTER), new ItemStack(Items.AMETHYST_SHARD),
                         tr("codex.velorise_staves.badge.env_amethyst"), 0xFFBF5AF2,
                         List.of(tr("codex.velorise_staves.env.amethyst.p1"), tr("codex.velorise_staves.env.amethyst.p2"))
-                ));
+                ).withKey("env_amethyst"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.pyro_melt.title"), 0xFFFF6B4A,
                         Element.PYRO, Element.CRYO, new ItemStack(Items.ICE), new ItemStack(Items.WATER_BUCKET),
                         tr("codex.velorise_staves.badge.env_pyro_melt"), 0xFFFF6B4A,
                         List.of(tr("codex.velorise_staves.env.pyro_melt.p1"), tr("codex.velorise_staves.env.pyro_melt.p2"))
-                ));
+                ).withKey("env_pyro_melt"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.pyro_burn.title"), 0xFFFF8C33,
                         Element.PYRO, null, new ItemStack(Items.TNT), new ItemStack(Items.CAMPFIRE),
                         tr("codex.velorise_staves.badge.env_pyro_burn"), 0xFFFF8C33,
                         List.of(tr("codex.velorise_staves.env.pyro_burn.p1"), tr("codex.velorise_staves.env.pyro_burn.p2"))
-                ));
+                ).withKey("env_pyro_burn"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.env.world_traps.title"), 0xFF32D74B,
                         Element.HYDRO, Element.DENDRO, new ItemStack(Items.SOUL_CAMPFIRE), new ItemStack(Items.POINTED_DRIPSTONE),
                         tr("codex.velorise_staves.badge.env_world"), 0xFF32D74B,
                         List.of(tr("codex.velorise_staves.env.world_traps.p1"), tr("codex.velorise_staves.env.world_traps.p2"))
-                ));
+                ).withKey("env_world_traps"));
             }
             case STAVES -> {
                 String perHit = tr("codex.velorise_staves.staff.per_hit");
@@ -745,7 +803,7 @@ public class ElementalCodexScreen extends Screen {
                             el, null, basicStack, ItemStack.EMPTY,
                             badge, color,
                             List.of(statsCombat, statsDur, tr(descKey))
-                    );
+                    ).withKey(baseId);
                     cards.add(kind == ArcaneStaffItem.Kind.OMNI ? staffCard.withOmniIcon() : staffCard);
                 }
                 // Utility Artifacts
@@ -761,7 +819,7 @@ public class ElementalCodexScreen extends Screen {
                                 tr("codex.velorise_staves.staff.utility.p1", fmt(vBasic), fmt(vNeth)),
                                 tr("codex.velorise_staves.staff.utility.p2", fmt(mCd))
                         )
-                ));
+                ).withKey("utility_relics"));
             }
             case MASTERY -> {
                 cards.add(new GuideCard(
@@ -774,7 +832,7 @@ public class ElementalCodexScreen extends Screen {
                                 tr("codex.velorise_staves.mastery.card1.p3"),
                                 tr("codex.velorise_staves.mastery.card1.p4")
                         )
-                ));
+                ).withKey("mastery_em"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.mastery.prot.title"), 0xFF64D2FF,
                         null, null, new ItemStack(Items.ENCHANTED_BOOK), new ItemStack(Items.NETHERITE_CHESTPLATE),
@@ -784,7 +842,7 @@ public class ElementalCodexScreen extends Screen {
                                 tr("codex.velorise_staves.mastery.prot.p2"),
                                 tr("codex.velorise_staves.mastery.prot.p3")
                         )
-                ));
+                ).withKey("mastery_prot"));
                 cards.add(new GuideCard(
                         tr("codex.velorise_staves.mastery.card2.title"), 0xFF55EFC4,
                         null, null, new ItemStack(Items.ENCHANTING_TABLE), new ItemStack(Items.EMERALD),

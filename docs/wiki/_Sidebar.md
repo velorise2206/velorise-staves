@@ -20,7 +20,7 @@
 * **[Environmental Interactions](Environmental-Interactions)**
   * [Electrified Water](Environmental-Interactions#1-electrified-water)
   * [Frost Walking](Environmental-Interactions#2-temporary-frost-walking)
-  * [Geo Constructs & Pillars](Environmental-Interactions#3-geo-constructs--fang-pillars)
+  * [Geo Constructs & Pillars](Environmental-Interactions#3-geo-constructs-fang-pillars--stone-steles)
   * [Tesla Coils](Environmental-Interactions#5-tesla-coils--storm-overcharge)
 * **[Potion & Trident Synergies](Elements-and-Reactions#vanilla-mechanics-synergy-potions-arrows-tridents-mace--thorns)**
 * **[Relics & Utilities](Relics-and-Utilities)**

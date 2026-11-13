@@ -23,7 +23,9 @@
     "KeyboardInputMixin",
     "PlayerTabOverlayMixin",
     "MouseHandlerMixin",
-    "GuiGraphicsMixin"
+    "GuiGraphicsMixin",
+    "HumanoidModelMixin",
+    "ItemInHandRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

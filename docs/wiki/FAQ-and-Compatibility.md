@@ -42,7 +42,7 @@ Frequently asked questions regarding gameplay mechanics, compatibility, performa
 ### How do I see what aura is active on a mob or how much HP a Geo Pillar has?
 * **Jade / Waila Integration (`VeloriseStavesJadePlugin.java`):**
   * Pointing your crosshair at any mob displays active elemental auras, remaining gauge duration, and `Omni ∞` immunity badges.
-  * Pointing at a [**Geo Fang Pillar**](Environmental-Interactions#3-geo-constructs--fang-pillars) displays its live **Geo Construct Health** bar (`HP / Max HP`).
+  * Pointing at a [**Geo Fang Pillar**](Environmental-Interactions#3-geo-constructs-fang-pillars--stone-steles) displays its live **Geo Construct Health** bar (`HP / Max HP`).
 
 ---
 

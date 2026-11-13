@@ -124,6 +124,14 @@ public final class ModNetwork {
         }
     }
 
+    public static void sendStaffAnimation(Entity target, int animType) {
+        if (target == null || target.level().isClientSide()) return;
+        AuraSyncPacket packet = new AuraSyncPacket(
+                target.getId(), java.util.Collections.emptyList(), null, null, null, (float) animType, -5, false
+        );
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
+    }
+
     public static void sendSilentHealthSync(Entity target, float newHealth) {
         if (target == null || target.level().isClientSide()) return;
         AuraSyncPacket packet = new AuraSyncPacket(

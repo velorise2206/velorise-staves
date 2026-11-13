@@ -83,6 +83,14 @@ public final class ModNetwork {
         }
     }
 
+    public static void sendStaffAnimation(Entity target, int animType) {
+        if (target == null || target.level().isClientSide()) return;
+        AuraSyncPayload payload = new AuraSyncPayload(
+                target.getId(), java.util.Collections.emptyList(), null, null, null, (float) animType, -5, false
+        );
+        PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
+    }
+
     public static void sendSilentHealthSync(Entity target, float newHealth) {
         if (target == null || target.level().isClientSide()) return;
         AuraSyncPayload payload = new AuraSyncPayload(

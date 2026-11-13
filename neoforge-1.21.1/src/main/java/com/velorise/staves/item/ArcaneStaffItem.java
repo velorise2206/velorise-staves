@@ -444,6 +444,9 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
+        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR) {
+            return UseAnim.NONE;
+        }
         return isCharged() ? UseAnim.BOW : UseAnim.NONE;
     }
 
@@ -510,7 +513,6 @@ public final class ArcaneStaffItem extends Item {
                     if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
                         SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
                         switchSplendorArkhe(player, stack);
-                        player.swing(player.getUsedItemHand(), true);
                     }
                 } else if (count % 2 == 0) {
                     serverLevel.sendParticles(ParticleTypes.SPLASH,
@@ -554,7 +556,6 @@ public final class ArcaneStaffItem extends Item {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                 ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(true));
                 player.awardStat(Stats.ITEM_USED.get(this));
-                player.swing(player.getUsedItemHand(), true);
             }
             return stack;
         }
@@ -591,7 +592,6 @@ public final class ArcaneStaffItem extends Item {
                     if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
                         SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
                         switchSplendorArkhe(player, stack);
-                        player.swing(player.getUsedItemHand(), true);
                         player.getCooldowns().addCooldown(this, 10);
                     }
                 } else if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
@@ -599,7 +599,6 @@ public final class ArcaneStaffItem extends Item {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                         ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
                         player.awardStat(Stats.ITEM_USED.get(this));
-                        player.swing(player.getUsedItemHand(), true);
                     }
                 }
             } else if (kind == Kind.VORTEX) {
@@ -610,7 +609,6 @@ public final class ArcaneStaffItem extends Item {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                         ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(holdShield));
                         player.awardStat(Stats.ITEM_USED.get(this));
-                        player.swing(player.getUsedItemHand(), true);
                     }
                 }
             }
@@ -897,6 +895,7 @@ public final class ArcaneStaffItem extends Item {
             ElementalGaugeManager.applyElement(level, target, Element.GEO, gaugeU, player, baseDmg);
         }
 
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
             // Authentic earthen stone/bedrock formation sounds for Jade Shield
@@ -1192,6 +1191,7 @@ public final class ArcaneStaffItem extends Item {
         if (!(sp.level() instanceof ServerLevel sl)) return;
         boolean nextPneuma = !isSplendorPneuma(stack);
         setSplendorPneuma(stack, nextPneuma);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(sp, 2);
         String modeKey = nextPneuma
                 ? "tooltip.velorise_staves.splendor.mode_pneuma"
                 : "tooltip.velorise_staves.splendor.mode_ousia";
@@ -1212,6 +1212,7 @@ public final class ArcaneStaffItem extends Item {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         boolean pneuma = isSplendorPneuma(stack);
         com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(serverLevel, player, isNetherite, pneuma);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 1);
         return true;
     }
 

@@ -35,6 +35,7 @@ Unlike conventional magic mods where spells exist only as isolated projectiles, 
 
 ---
 
+<a id="3-geo-constructs--fang-pillars"></a>
 ## 3. Geo Constructs, Fang Pillars & Stone Steles
 
 * **Mechanism:**

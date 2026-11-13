@@ -14,6 +14,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * Tracks active overhead elemental icons, dual-icon reaction animations, and floating 3D reaction text on the client.
  */
 public final class ClientAuraTracker {
+    public static final int ANIM_SPLENDOR_SUMMON = 1;
+    public static final int ANIM_SPLENDOR_SWITCH = 2;
+    public static final int ANIM_VORTEX_HOLD_BURST = 3;
+    public static final int ANIM_VORTEX_TAP = 4;
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
@@ -46,6 +50,9 @@ public final class ClientAuraTracker {
         public float capturedXRot = 0.0F;
         public int capturedTickCount = 0;
         public long lastStruggleTime = 0L;
+        public int staffAnimType = 0;
+        public long staffAnimStartTime = 0L;
+        public long staffAnimUntil = 0L;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -262,6 +269,23 @@ public final class ClientAuraTracker {
         FLOATING_TEXTS.removeIf(t -> now >= t.until);
     }
 
+
+    public static void triggerStaffAnimation(int entityId, int animType) {
+        if (entityId <= 0 || animType <= 0) return;
+        long now = System.currentTimeMillis();
+        long durationMs = switch (animType) {
+            case ANIM_SPLENDOR_SUMMON -> 850L;
+            case ANIM_SPLENDOR_SWITCH -> 650L;
+            case ANIM_VORTEX_HOLD_BURST -> 750L;
+            case ANIM_VORTEX_TAP -> 500L;
+            default -> 600L;
+        };
+        AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+        entry.staffAnimType = animType;
+        entry.staffAnimStartTime = now;
+        entry.staffAnimUntil = now + durationMs;
+    }
+
     private ClientAuraTracker() {}
 
     public static void update(
@@ -349,6 +373,10 @@ public final class ClientAuraTracker {
                     ModMobEffects.removeAllShields(mc.player);
                 }
             }
+            return;
+        }
+        if (durationTicks == -5) {
+            triggerStaffAnimation(entityId, Math.round(damage));
             return;
         }
         if (durationTicks == -4) {
@@ -487,7 +515,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.staffAnimUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }

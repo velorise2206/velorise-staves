@@ -12,7 +12,7 @@
 
 📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/velorise2206/velorise-staves/wiki)!**
 
-A lightweight Minecraft magic & combat mod introducing **13 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **11 custom advancements**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
+A lightweight Minecraft magic & combat mod introducing **15 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **12 custom advancements**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -81,7 +81,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
   <tr>
     <td align="center" width="50%">
       <img src="docs/showcase/ingame%20items.png" alt="Ingame Items" width="100%"/><br/>
-      <b>Staves &amp; Essences</b> — 13 staves, utility artifacts, elements &amp; books
+      <b>Staves &amp; Essences</b> — 15 staves, utility artifacts, elements &amp; books
     </td>
     <td align="center" width="50%">
       <img src="docs/showcase/omni%20craft%20recipe.png" alt="Omni Element Crafting" width="100%"/><br/>
@@ -94,17 +94,19 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ## Features
 
-### Combat Staves (13 Types + Netherite Upgrades)
+### Combat Staves (15 Types + Netherite Upgrades)
 
 - **Inferno Rod** (![Pyro][pyro] Pyro): Rapid-fires blazing fireballs in tight bursts.
 - **Ghastfire Staff** (![Pyro][pyro] Pyro): Launches explosive fireballs that detonate on contact.
-- **Guardian Lens** (![Hydro][hydro] Hydro): Channels a continuous prismatic beam that damages targets and extinguishes environmental fire, soul fire, campfires, and candles.
+- **Guardian Lens** (![Hydro][hydro] Hydro): Absorbs Sourcewater Droplets to unleash a continuous 3.0s *Equitable Judgment* Hydro beam scaling with Max HP & Past Draconic Glories.
+- **Splendor of Tranquil Waters** (![Hydro][hydro] Hydro): Furina's dual-stance (`Ousia` / `Pneuma`) scepter that summons Salon Solitaire or Singer of Many Waters, grants Water Walking & Fanfare buffs, and features custom First/Third-Person animations.
 - **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
-- **Stormcaller** (![Electro][electro] Electro): Summons instant lightning strikes onto your crosshair.
+- **Arc Caster** (![Electro][electro] Electro): Channels a high-voltage lightning stream that chains across nearby enemies and electrifies water.
 - **Wind Staff** (![Anemo][anemo] Anemo): Fires gusting wind charges that trigger rapid Swirl reactions (backported to Forge 1.20.1 using custom Breeze Rods & Wind Charges crafted from Anemo Essence).
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
 - **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
-- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs and raises a **Geo Fang Pillar** (Basic: `1x1x1` hitbox, `HP = 1x creator's max HP`, `3m` square waves `0.5♥ / 0.5U` every 2s; Netherite: `1x2x1` hitbox, `HP = 2x creator's max HP`, `5m` square waves `1♥ / 1U` every 2s, up to 3 active) that taunts enemies onto the pillar and blocks attacks/projectiles.
+- **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs and raises a **Geo Fang Pillar** (`1x1x1` Basic / `1x2x1` Netherite, up to 3 active) that taunts enemies, pulses Geo waves, and elevates the caster when cast beneath feet.
+- **Vortex Vanquisher** (![Geo][geo] Geo): Zhongli's Geo polearm — Tap to summon a 3.5m resonant **Stone Stele** (vertical or horizontal wall-mounted), or Hold 1.5s (with custom chest-convergence & radial-spread animation) to form a **Jade Shield** (`150%` absorption, `-20%` All RES shred, `+20%–30%` DMG).
 - **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
 - **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Dendro/Nether): Discharges a 3-skull spread inflicting Wither decay and applying Dendro.
@@ -113,7 +115,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 *All staves can be upgraded to Netherite via the Smithing Table for boosted damage, range, and reduced cooldowns, and scale with the custom **Elemental Mastery I–III** enchantment.*
 
 > [!NOTE]
-> **Full 1.20.1 & 1.21.1 Parity:** All **13 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges and Breeze Rods crafted from `anemo_element`).
+> **Full 1.20.1 & 1.21.1 Parity:** All **15 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges and Breeze Rods crafted from `anemo_element`).
 
 ### Elemental Essences, Anvil Repair & Imbued Swords
 
@@ -125,7 +127,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Void Translocator**: Blink forward up to 24 blocks (36 Netherite) through solid obstacles safely.
 - **Magic Mirror**: Channel to recall back to your bed or world spawn point (cross-dimensional on Netherite).
 - **Elemental Codex**: Interactive in-game guidebook with clickable reaction links, heart-rendered damage stats, live server config sync, and **9-language** localization (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`).
-- **Advancements Tab (11 Advancements)**: Dedicated advancement tree covering weapon crafting, Netherite smithing, Elemental Mastery, Omni Staff, EGT reactions, Dendro Cores, Crystallize shields, Geo Fang Pillars, Tesla Coils, and spatial artifacts.
+- **Advancements Tab (12 Advancements)**: Dedicated advancement tree covering weapon crafting, Netherite smithing, Elemental Mastery, Omni Staff, EGT reactions, Dendro Cores, Crystallize shields, Geo Fang Pillars, Tesla Coils, and spatial artifacts.
 
 ---
 

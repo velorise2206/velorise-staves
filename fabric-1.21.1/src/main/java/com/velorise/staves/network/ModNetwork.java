@@ -99,6 +99,19 @@ public final class ModNetwork {
         }
     }
 
+    public static void sendStaffAnimation(Entity target, int animType) {
+        if (target == null || target.level().isClientSide()) return;
+        AuraSyncPayload payload = new AuraSyncPayload(
+                target.getId(), java.util.Collections.emptyList(), null, null, null, (float) animType, -5, false
+        );
+        for (ServerPlayer player : PlayerLookup.tracking(target)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+        if (target instanceof ServerPlayer self) {
+            ServerPlayNetworking.send(self, payload);
+        }
+    }
+
     public static void sendSilentHealthSync(Entity target, float newHealth) {
         if (target == null || target.level().isClientSide()) return;
         AuraSyncPayload payload = new AuraSyncPayload(
