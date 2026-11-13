@@ -14,27 +14,31 @@
 ## Part I — New Staves & Combat Reworks (Genshin References)
 
 ### 1. [Geo Staff] Vortex Vanquisher / Dominus Lapidis (Zhongli Reference)
-* **Visual & Naming:** Reimagined as a combat staff based on Zhongli's signature weapon (**Vortex Vanquisher**), using authentic *Genshin Impact* naming for abilities and mechanics.
+* **Visual, Naming & Localization:** Reimagined as a combat staff based on Zhongli's signature weapon (**Vortex Vanquisher**), using official *Genshin Impact* localized names across all 9 supported mod languages (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `ru_ru`, `fr_fr`, `es_es`, `de_de`).
+* **Suggested Recipe (3x3 Diagonal):** `minecraft:gold_block` (Top-Right) + `velorise_staves:geo_element` (Center) + `minecraft:blaze_rod` (Bottom-Left); upgradeable to Netherite via Smithing Table.
 * **Ability 1 (Tap / Quick Cast — Stone Stele / Dominus Lapidis):**
-  * Summons a tall, monolithic **Stone Stele (Geo Construct)** at the target location.
+  * Summons a tall, monolithic **Stone Stele (Geo Construct Entity)** at the target location (max 1 active on Basic, 2 on Netherite).
   * Periodically pulses resonant Geo shockwaves in a 6-block radius, dealing Geo damage and applying `1.0U` Geo to mobs within range.
   * Resonates with nearby Geo constructs or Crystallize shields, extending pulse range and triggering frequent Crystallize reactions.
 * **Ability 2 (Hold / Charge Cast — Jade Shield):**
   * Forms a fortified **Jade Shield** around the caster that scales with the player's Max Health.
-  * Possesses **150% absorption effectiveness** against all Elemental and Physical damage.
-  * While active, creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by **20%**.
+  * Possesses **150% absorption effectiveness** against all Elemental and Physical damage, plus **full Knockback Resistance** while active (allowing uninterrupted channeling with Guardian's Lens).
+  * Creates a close-range aura (3-block radius) that decreases surrounding enemy Elemental and Physical Resistances by **20%**.
 
 ---
 
 ### 2. [Hydro Staff] Splendor of Tranquil Waters / Salon Solitaire (Furina Reference)
-* **Visual & Naming:** Reimagined as a combat staff modeled after Furina's signature weapon (**Splendor of Tranquil Waters**), using authentic *Genshin Impact* naming and dual-alignment (Ousia / Pneuma) mechanics.
-* **Dual-Mode Switching (Arkhe: Ousia ↔ Pneuma):** Players can toggle between two stances (e.g., via Crouch + Right-Click or Charged Attack):
+* **Visual, Naming & Localization:** Reimagined as a combat staff modeled after Furina's signature weapon (**Splendor of Tranquil Waters**), using official *Genshin Impact* localized names across all 9 supported mod languages.
+* **Suggested Recipe (3x3 Diagonal):** `minecraft:heart_of_the_sea` (Top-Right — repurposing it after removing it from Guardian's Lens) + `velorise_staves:hydro_element` (Center) + `minecraft:end_rod` (Bottom-Left).
+* **Dual-Mode Switching (Arkhe: Ousia ↔ Pneuma):** Players can toggle between two stances (e.g., via Crouch + Right-Click):
   * **Mode 1 — Ousia (*Salon Solitaire*):**
     * Summons 3 autonomous Hydro Salon Members (*Gentilhomme Usher*, *Surintendante Chevalmarin*, and *Mademoiselle Crabaletta*) that actively attack nearby hostile mobs and apply Hydro.
-    * Their attack damage scales mildly with the caster's **Max HP**.
-    * On each hit, the Salon Members drain a small percentage of HP from the caster and nearby allied players, **stopping HP drain once an entity reaches the 50% Max HP cap** (mirroring Furina's signature HP drain mechanic).
+    * Attack damage scales mildly with the caster's **Max HP**, boosted slightly based on how many valid targets had HP above 50% drained.
+    * On each hit, the Salon Members drain a small percentage of HP from the caster and nearby allied players/pets (co-op safe team check), **stopping HP drain once an entity reaches the 50% Max HP cap**.
   * **Mode 2 — Pneuma (*Singer of Many Waters*):**
-    * Summons the *Singer of Many Waters* construct/companion, which periodically pulses **AoE Hydro healing** to the caster and nearby allies within range.
+    * Summons the *Singer of Many Waters* companion, which periodically pulses **AoE Hydro healing** to the caster and nearby allies within range.
+* **Passive — Water Walking:** While *Salon Solitaire* or *Singer of Many Waters* is active, the caster **can walk on water surfaces** (holding Sneak/Shift allows diving normally; despawns summons if the staff leaves inventory).
+* **Passive — Fanfare Buff:** HP fluctuations (draining or healing) while the summons are active accumulate **Fanfare** stacks, granting up to **+25–30% All Damage & Healing Bonus** to the caster and nearby allies.
 
 ---
 
