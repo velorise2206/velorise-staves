@@ -83,8 +83,9 @@ public final class DendroCoreManager {
     private static final Set<UUID> ACTIVE_MISSILE_VISUALS = Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
     // Vibrant neon lime dust (size 1.25F, bright dendro green)
     private static final DustParticleOptions HYPERBLOOM_FOOTPRINT = new DustParticleOptions(new Vector3f(0.35F, 1.0F, 0.2F), 1.25F);
-    private static final Map<UUID, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
+    public record BloomIcdKey(UUID targetId, ElementalReaction reaction) {}
+    private static final Map<BloomIcdKey, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<BloomIcdKey, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
 
     private DendroCoreManager() {}
 
@@ -97,17 +98,17 @@ public final class DendroCoreManager {
         return visual;
     }
 
-    private static boolean canTakeBloomDamage(LivingEntity victim, long now) {
-        UUID id = victim.getUUID();
-        Long lastTick = LAST_DMG_TICK.get(id);
-        if (lastTick == null || now < lastTick || (now - lastTick) >= 10L) { // 0.5s window
-            LAST_DMG_TICK.put(id, now);
-            DMG_INSTANCE_COUNT.put(id, 1);
+    private static boolean canTakeBloomDamage(LivingEntity victim, ElementalReaction reactionType, long now) {
+        BloomIcdKey key = new BloomIcdKey(victim.getUUID(), reactionType);
+        Long lastTick = LAST_DMG_TICK.get(key);
+        if (lastTick == null || now < lastTick || (now - lastTick) >= 10L) { // 0.5s (10-tick) window per reaction type
+            LAST_DMG_TICK.put(key, now);
+            DMG_INSTANCE_COUNT.put(key, 1);
             return true;
         }
-        int count = DMG_INSTANCE_COUNT.getOrDefault(id, 0);
+        int count = DMG_INSTANCE_COUNT.getOrDefault(key, 0);
         if (count < 2) {
-            DMG_INSTANCE_COUNT.put(id, count + 1);
+            DMG_INSTANCE_COUNT.put(key, count + 1);
             return true;
         }
         return false;
@@ -190,7 +191,7 @@ public final class DendroCoreManager {
         float rawDmg = 4.0F * core.damageMultiplier;
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            if (canTakeBloomDamage(victim, core.level.getGameTime())) {
+            if (canTakeBloomDamage(victim, ElementalReaction.BLOOM, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, owner);
                 // Genshin Impact: Innate Dendro beings are immune to Dendro Bloom damage
                 if (ElementalGaugeManager.isOmniInnate(victim)) {
@@ -283,7 +284,7 @@ public final class DendroCoreManager {
         float burgeonDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
         AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-            if (canTakeBloomDamage(victim, core.level.getGameTime())) {
+            if (canTakeBloomDamage(victim, ElementalReaction.BURGEON, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, attacker);
                 if (ElementalGaugeManager.isOmniInnate(victim)) {
                     ElementalGaugeManager.notifyOmniImmuneEnvironmental(core.level, victim);
@@ -297,7 +298,6 @@ public final class DendroCoreManager {
                 if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, core.level.getGameTime()) == Element.PYRO) {
                     effectiveDmg *= 0.4F;
                 }
-                ElementalGaugeManager.ensurePreDeathPyroIgnite(victim, 3);
                 DamageSource burgeonSource = ElementalDeathMessageHelper.createDamageSource(core.level, attacker, ElementalReaction.BURGEON, Element.PYRO);
                 ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, burgeonSource, effectiveDmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
@@ -366,7 +366,7 @@ public final class DendroCoreManager {
                 AABB splashBox = new AABB(hitPos.x - 1.0D, hitPos.y - 1.0D, hitPos.z - 1.0D, hitPos.x + 1.0D, hitPos.y + 1.0D, hitPos.z + 1.0D);
                 boolean hitAny = false;
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
-                    if (canTakeBloomDamage(nearby, level.getGameTime())) {
+                    if (canTakeBloomDamage(nearby, ElementalReaction.HYPERBLOOM, level.getGameTime())) {
                         ElementalGaugeManager.triggerMobAggro(level, nearby, m.attacker);
                         if (ElementalGaugeManager.isOmniInnate(nearby)) {
                             ElementalGaugeManager.notifyOmniImmuneEnvironmental(level, nearby);
@@ -395,7 +395,7 @@ public final class DendroCoreManager {
                     } else if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
                         ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
                     } else {
-                        if (canTakeBloomDamage(victim, level.getGameTime())) {
+                        if (canTakeBloomDamage(victim, ElementalReaction.HYPERBLOOM, level.getGameTime())) {
                             float hDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, m.damage);
                             DamageSource hyperSource = ElementalDeathMessageHelper.createDamageSource(level, m.attacker, ElementalReaction.HYPERBLOOM, Element.ELECTRO);
                             ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, hyperSource, hDmg);

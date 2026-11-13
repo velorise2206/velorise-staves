@@ -306,11 +306,12 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onEntityTickPost(net.neoforged.neoforge.event.tick.EntityTickEvent.Post event) {
         Entity entity = event.getEntity();
-        if (!entity.level().isClientSide()
-                && entity instanceof LivingEntity living
-                && (living.getRemainingFireTicks() > 0 || living.isOnFire())
-                && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
-            ElementalGaugeManager.extinguishPyroInnate(living);
+        if (!entity.level().isClientSide() && entity instanceof LivingEntity living) {
+            ElementalGaugeManager.tickEntityFreezeGuard(living);
+            if ((living.getRemainingFireTicks() > 0 || living.isOnFire())
+                    && (ElementalGaugeManager.isPyroInnate(living) || ElementalGaugeManager.isOmniInnate(living))) {
+                ElementalGaugeManager.extinguishPyroInnate(living);
+            }
         }
     }
 

@@ -298,10 +298,12 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingTick(net.minecraftforge.event.entity.living.LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
-        if (!entity.level().isClientSide()
-                && (entity.getRemainingFireTicks() > 0 || entity.isOnFire())
-                && (ElementalGaugeManager.isPyroInnate(entity) || ElementalGaugeManager.isOmniInnate(entity))) {
-            ElementalGaugeManager.extinguishPyroInnate(entity);
+        if (!entity.level().isClientSide()) {
+            ElementalGaugeManager.tickEntityFreezeGuard(entity);
+            if ((entity.getRemainingFireTicks() > 0 || entity.isOnFire())
+                    && (ElementalGaugeManager.isPyroInnate(entity) || ElementalGaugeManager.isOmniInnate(entity))) {
+                ElementalGaugeManager.extinguishPyroInnate(entity);
+            }
         }
     }
 

@@ -261,7 +261,12 @@ Eligible hostile mobs (`allow_hostile_mob_mutation = true`) and Golems (`allow_g
 | **Boss Entities** *(Warden, Ender Dragon, Wither, Elder Guardian)* | **Frozen Immobilization Immunity** | Bosses still take reaction damage from Cryo + Hydro, but cannot be locked in a Frozen statue pose. |
 | **Geo-Innate Mobs** | **+50% Projectile & Explosion RES** | Reduces damage from ranged projectiles and explosive reactions (**Overloaded**, **Burgeon**, **Shatter**) by an additional 50% (capped at 90% total RES). |
 | **Anemo-Innate Mobs** *(Breeze, Phantom, Vex)* | **100% Fall Damage Immunity** | Immune to fall impact damage (except pointed stalagmites). |
-| **Superconduct Shred** | **-40% Physical RES (12s)** | Reduces target Physical Resistance by 40% for 12 seconds. |
+| **Superconduct Shred** | **-40% Physical RES (12s)** | Reduces target Physical Resistance by 40% for 12 seconds (pushing a 10% base RES mob to `-30% RES` = **+15% physical damage amplification** under the 3-tier Genshin curve). |
+
+> **Authentic 3-Tier Genshin Resistance Formula (`computeResistanceMultiplier`):**
+> * **Negative Resistance ($RES < 0$):** $\text{Multiplier} = 1.0 - \frac{RES}{2.0}$ *(Resistance shred below 0% is halved in effectiveness).*
+> * **Standard Resistance ($0 \le RES \le 0.75$):** $\text{Multiplier} = 1.0 - RES$.
+> * **Extreme High Resistance ($RES > 0.75$):** $\text{Multiplier} = \frac{1.0}{4.0 \times RES + 1.0}$ *(Prevents 100% invulnerability on stacked resistances).*
 
 ### 4. Elemental Pets & Tamed Companions
 **Wolves** (`minecraft:wolf`) and **Foxes** (`minecraft:fox`) are included in `mutable_mob_whitelist` by default:

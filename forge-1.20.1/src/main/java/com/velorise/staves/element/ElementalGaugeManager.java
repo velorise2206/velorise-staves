@@ -286,10 +286,6 @@ public final class ElementalGaugeManager {
             if (quickenEnd != null && now < quickenEnd) {
                 durationTicks = Math.max(durationTicks, (int) (quickenEnd - now));
             }
-            Long frozenEnd = FROZEN_UNTIL.get(id);
-            if (frozenEnd != null && now < frozenEnd) {
-                durationTicks = Math.max(durationTicks, (int) (frozenEnd - now));
-            }
             EnumSet<Element> innateSet = getInnateElements(target);
             if (isOmniInnate(target)) {
                 durationTicks = -2; // -2 represents permanent Omni Mutated innate state
@@ -299,6 +295,12 @@ public final class ElementalGaugeManager {
                         durationTicks = -1; // -1 represents permanent innate aura
                         break;
                     }
+                }
+            }
+            if (isEntityFrozen(target)) {
+                int freezeRem = getFrozenRemainingTicks(id, now);
+                if (freezeRem > 0) {
+                    durationTicks = freezeRem;
                 }
             }
         }
@@ -535,6 +537,22 @@ public final class ElementalGaugeManager {
         return 0.10F;
     }
 
+    /**
+     * Authentic Genshin Impact 3-Tier Piecewise Resistance Formula:
+     * - Negative RES (RES < 0): 1.0 - (RES / 2.0)
+     * - Standard RES (0 <= RES <= 0.75): 1.0 - RES
+     * - Extreme High RES (RES > 0.75): 1.0 / (4.0 * RES + 1.0)
+     */
+    public static float computeResistanceMultiplier(float res) {
+        if (res < 0.0F) {
+            return 1.0F - (res / 2.0F);
+        }
+        if (res <= 0.75F) {
+            return 1.0F - res;
+        }
+        return 1.0F / (4.0F * res + 1.0F);
+    }
+
     public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) {
         return getEffectivePhysicalMultiplier(target, null, now);
     }
@@ -547,13 +565,22 @@ public final class ElementalGaugeManager {
         if (hasSuperconductDebuff(target, now)) {
             res -= 0.40F;
         }
-        res = Math.min(0.90F, res);
-        return res >= 0.0F ? Math.max(0.0F, 1.0F - res) : (1.0F - res);
+        return computeResistanceMultiplier(res);
+    }
+
+    public static float getEffectiveElementalResistance(@Nullable LivingEntity target, @Nullable Element element, long now) {
+        float res = getMobElementalResistance(target, element);
+        if (target != null && element == Element.GEO && ElementalResonanceManager.hasGeoResShred(target, now)) {
+            res -= 0.20F;
+        }
+        return res;
     }
 
     public static float applyMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element, float damage) {
         if (damage <= 0.0F || !(target instanceof Mob)) return damage;
-        return damage * Math.max(0.0F, 1.0F - getMobElementalResistance(target, element));
+        long now = target.level().getGameTime();
+        float res = getEffectiveElementalResistance(target, element, now);
+        return damage * computeResistanceMultiplier(res);
     }
 
     public static @Nullable Element inferElementFromDamageSource(DamageSource source) {
@@ -605,11 +632,11 @@ public final class ElementalGaugeManager {
             Element elem = (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.getElement() != null)
                     ? erds.getElement()
                     : inferElementFromDamageSource(source);
-            float elemRes = getMobElementalResistance(entity, elem);
+            float elemRes = getEffectiveElementalResistance(entity, elem, now);
             if (isGeoProjOrExp) {
-                elemRes = Math.min(0.90F, elemRes + 0.50F);
+                elemRes += 0.50F;
             }
-            return entity instanceof Mob ? amount * Math.max(0.0F, 1.0F - elemRes) : amount;
+            return entity instanceof Mob ? amount * computeResistanceMultiplier(elemRes) : amount;
         }
         if (isGeoProjOrExp) {
             return amount * 0.50F;
@@ -824,6 +851,7 @@ public final class ElementalGaugeManager {
 
         if (target instanceof Mob mob) {
             mob.getNavigation().stop();
+            mob.setTarget(null);
             mob.setAggressive(false);
             mob.setZza(0.0F);
             mob.setXxa(0.0F);
@@ -842,19 +870,48 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static int getFrozenRemainingTicks(UUID id, long now) {
+        int rem = 0;
+        GaugeState fg = FROZEN_GAUGES.get(id);
+        if (fg != null && !fg.isExpired()) {
+            rem = fg.getRemainingTicks();
+        }
+        Long frozenEnd = FROZEN_UNTIL.get(id);
+        if (frozenEnd != null && now < frozenEnd) {
+            int endRem = (int) (frozenEnd - now);
+            rem = rem > 0 ? Math.min(rem, endRem) : endRem;
+        }
+        return Math.max(0, rem);
+    }
+
+    public static void tickEntityFreezeGuard(LivingEntity entity) {
+        if (entity == null || entity.level().isClientSide()) return;
+        UUID id = entity.getUUID();
+        if (isEntityFrozen(entity)) {
+            enforceFrozenPose(entity, id);
+        } else if (entity instanceof Mob mob && (mob.getTags().contains(TAG_FROZEN_STATUE) || FROZEN_POSES.containsKey(id))) {
+            clearFreezeState(entity, id);
+        }
+    }
+
     private static void clearFreezeState(LivingEntity target, UUID id) {
-        FROZEN_GAUGES.remove(id);
-        FROZEN_UNTIL.remove(id);
-        FROZEN_POSES.remove(id);
+        boolean hadFreeze = FROZEN_GAUGES.remove(id) != null
+                || FROZEN_UNTIL.remove(id) != null
+                || FROZEN_POSES.remove(id) != null;
         LAST_FREEZE_STRUGGLE.remove(id);
         target.setTicksFrozen(0);
         MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
         if (slow != null && slow.getAmplifier() >= 6) {
             target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
         }
+        boolean hadTag = false;
         if (target instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
+            hadTag = true;
+        }
+        if ((hadFreeze || hadTag) && !target.level().isClientSide() && target.isAlive()) {
+            syncAuras(target, getEntityElements(id), null, null, null, 0.0F);
         }
     }
 
@@ -2800,46 +2857,64 @@ public final class ElementalGaugeManager {
         boolean isFrozen = (freezeGauge != null && !freezeGauge.isExpired()) && (frozenEnd == null || now < frozenEnd);
 
         if (isFrozen && freezeGauge != null) {
-            if (attackElement == Element.GEO) {
+            // Genshin Impact Heavy / Blunt / Melee Shatter Priority:
+            // Blunt strikes, Geo attacks, and melee sword hits trigger Shatter FIRST, consuming the Freeze gauge
+            // before applying the weapon's secondary element onto any remaining underlying aura!
+            if (attackElement == Element.GEO || meleeOut != null) {
                 if (!checkReactionIcd(target, ElementalReaction.SHATTER, now)) {
-                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
-                    if (resDmg > 0.0F) syncAuras(target, targetGauges.keySet(), null, attackElement, null, resDmg);
-                    return;
-                }
-                freezeGauge.consume(8.0F);
-                if (freezeGauge.isExpired()) {
-                    clearFreezeState(target, targetId);
-                }
-                float bonus = (float) (10.0F * dmgMult) * transEmMult;
-                float shatterDamage = effectiveDamage + bonus;
-                float resShatter = dealOrDeferDamage(level, target, attacker, shatterDamage, attackElement, meleeOut, ElementalReaction.SHATTER);
-                level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
-                level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
-                // Note: underlying HYDRO or CRYO in targetGauges is preserved (enabling Shatter-Crystallize or Shatter-Vape)!
-                // Shatter-Crystallize: If target has underlying HYDRO or CRYO aura, Geo triggers Crystallize immediately!
-                Element underlying = null;
-                if (targetGauges.containsKey(Element.CRYO)) underlying = Element.CRYO;
-                else if (targetGauges.containsKey(Element.HYDRO)) underlying = Element.HYDRO;
-                else if (innateElements.contains(Element.CRYO)) underlying = Element.CRYO;
-                else if (innateElements.contains(Element.HYDRO)) underlying = Element.HYDRO;
-
-                if (underlying != null && checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
-                    GaugeState underAura = targetGauges.get(underlying);
-                    float underBefore = underAura != null ? underAura.getUnits() : 1.25F;
-                    float consumed = attackU * ElementalReaction.CRYSTALLIZE.getConsumptionModifier();
-                    float removedU = Math.min(underBefore, consumed);
-                    if (underAura != null) {
-                        underAura.consume(consumed);
-                        if (underAura.isExpired()) {
-                            targetGauges.remove(underlying);
-                        }
+                    if (attackElement == Element.GEO) {
+                        float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
+                        if (resDmg > 0.0F) syncAuras(target, targetGauges.keySet(), null, attackElement, null, resDmg);
+                        return;
                     }
-                    executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, underlying, removedU, attacker, dmgMult);
+                } else {
+                    freezeGauge.consume(8.0F);
+                    if (freezeGauge.isExpired()) {
+                        clearFreezeState(target, targetId);
+                    }
+                    float bonus = (float) (10.0F * dmgMult) * transEmMult;
+                    effectiveDamage += bonus;
+                    level.sendParticles(ParticleTypes.ITEM_SNOWBALL, target.getX(), target.getY() + 0.8D, target.getZ(), 30, 0.35D, 0.4D, 0.35D, 0.06D);
+                    level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 0.8F);
+                    if (attacker != null) {
+                        com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
+                    }
+
+                    if (attackElement == Element.GEO) {
+                        float resShatter = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SHATTER);
+                        Element underlying = null;
+                        if (targetGauges.containsKey(Element.CRYO)) underlying = Element.CRYO;
+                        else if (targetGauges.containsKey(Element.HYDRO)) underlying = Element.HYDRO;
+                        else if (innateElements.contains(Element.CRYO)) underlying = Element.CRYO;
+                        else if (innateElements.contains(Element.HYDRO)) underlying = Element.HYDRO;
+
+                        if (underlying != null && checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
+                            GaugeState underAura = targetGauges.get(underlying);
+                            float underBefore = underAura != null ? underAura.getUnits() : 1.25F;
+                            float consumed = attackU * ElementalReaction.CRYSTALLIZE.getConsumptionModifier();
+                            float removedU = Math.min(underBefore, consumed);
+                            if (underAura != null) {
+                                underAura.consume(consumed);
+                                if (underAura.isExpired()) {
+                                    targetGauges.remove(underlying);
+                                }
+                            }
+                            executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, underlying, removedU, attacker, dmgMult);
+                        }
+                        enforceInnateLock(target, targetGauges, targetId, innateElements, now);
+                        syncAuras(target, targetGauges.keySet(), Element.CRYO, attackElement, ElementalReaction.SHATTER, resShatter);
+                        return;
+                    }
+                    if (findPrimaryReactiveAura(targetGauges, attackElement) == null) {
+                        if (attackElement.isAura() && innateElements.isEmpty()) {
+                            targetGauges.put(attackElement, createAuraGauge(target, attackElement, attackU));
+                        }
+                        float resShatter = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SHATTER);
+                        enforceInnateLock(target, targetGauges, targetId, innateElements, now);
+                        syncAuras(target, targetGauges.keySet(), Element.CRYO, attackElement, ElementalReaction.SHATTER, resShatter);
+                        return;
+                    }
                 }
-                enforceInnateLock(target, targetGauges, targetId, innateElements, now);
-                syncAuras(target, targetGauges.keySet(), Element.CRYO, attackElement, ElementalReaction.SHATTER, resShatter);
-                    if (attacker != null) com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
-                return;
             } else if (attackElement == Element.PYRO) {
                 if (!checkReactionIcd(target, ElementalReaction.FORWARD_MELT, now)) {
                     float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
@@ -3369,6 +3444,9 @@ public final class ElementalGaugeManager {
                 if (auraElement == Element.PYRO) {
                     EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 3.5D);
                 }
+                if (auraElement == Element.PYRO || auraElement == Element.ELECTRO) {
+                    DendroCoreManager.checkReactionsNear(level, pos, 5.0D, auraElement, attacker);
+                }
                 float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult) * transEmMult;
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != target && e != attacker)) {
                     applyElement(level, nearby, auraElement, swirlSpreadU, attacker, swirlAoeDmg);
@@ -3402,7 +3480,6 @@ public final class ElementalGaugeManager {
             if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.PYRO) {
                 dmg *= 0.4F;
             }
-            ensurePreDeathPyroIgnite(victim, 3);
             victim.invulnerableTime = 0;
             LivingEntity olCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
             if (dmg > 0.0F) {
@@ -3485,6 +3562,7 @@ public final class ElementalGaugeManager {
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());
+        activeEntityIds.addAll(FROZEN_UNTIL.keySet());
 
         for (UUID id : activeEntityIds) {
             LivingEntity target = null;
