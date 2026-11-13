@@ -3,7 +3,7 @@
 **Velorise's Staves & Elements** provides extensive configuration options tailored for server administrators and modpack creators looking to tune combat balance, cooldown pacing, mob mutation rates, and environmental rules.
 
 * **Configuration File Locations:**
-  * **NeoForge & Forge:** `.minecraft/config/velorise_staves-server.toml` (or `saves/<world>/serverconfig/velorise_staves-server.toml`).
+  * **NeoForge & Forge:** `.minecraft/config/velorise_staves.toml` (Common Config across client & dedicated server).
   * **Fabric:** `.minecraft/config/velorise_staves.json5`.
 
 ---
@@ -13,7 +13,7 @@
 Tune global damage and cooldown multipliers for all [**Arcane Staves**](Staves-List#arcane-staves--netherite-upgrades) and configure the [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap) inventory limit:
 
 ```toml
-[general]
+[mechanics]
 # Global damage multiplier applied to all elemental staves (Default: 1.0)
 # Scale up to 1.5 - 2.0 for hardcore modpacks with high-health custom mobs.
 damage_multiplier = 1.0
@@ -21,7 +21,12 @@ damage_multiplier = 1.0
 # Global cooldown multiplier for all staves (Default: 1.0)
 # Set to 0.5 to halve cooldown durations for fast-paced combat.
 cooldown_multiplier = 1.0
+```
 
+Configure [**Arcane Overload**](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap) and Elemental Gauge mechanics:
+
+```toml
+[elemental_gauge]
 # Maximum number of Arcane Staves allowed in a single player inventory (Default: 4)
 # Carrying more than this limit triggers the Arcane Overload penalty.
 # Set to 0 to remove all inventory capacity limits.
@@ -35,7 +40,7 @@ max_staves_in_inventory = 4
 Customize recall channeling and blink reach for the [**Magic Mirror**](Relics-and-Utilities#magic-mirror) and [**Void Translocator**](Relics-and-Utilities#void-translocator):
 
 ```toml
-[utilities]
+[mechanics]
 # Allows the standard Magic Mirror to teleport across dimensions (Default: false)
 # When set to false, cross-dimensional teleportation requires the Netherite variant.
 basic_mirror_cross_dimension = false
@@ -57,15 +62,16 @@ void_translocator_range_netherite = 36.0
 Control spawn probabilities for [**Innate Elemental Mobs**](Elements-and-Reactions#innate-elemental-mobs-drops--rare-omni-mutations) and rare [**Omni-Mutated Mob**](Elements-and-Reactions#2-mob-mutation-rules-7-default-6-elemental--1-omni) encounters:
 
 ```toml
-[mutations]
+[elemental_gauge]
 # Chance (from 0.0 to 1.0) for newly spawned mobs to carry innate elemental mutations (Default: 0.07 -> 7%)
 # Mutated mobs drop their corresponding Elemental Essence upon defeat.
 innate_mutation_chance = 0.07
 
+[innate_mutation]
 # Allows hostile mobs (Zombies, Skeletons, Creepers) to mutate with elemental auras (Default: true)
 allow_hostile_mob_mutation = true
 
-# Allows Iron Golems to spawn with elemental mutations (Default: true)
+# Allows Golems to spawn with elemental mutations (Default: true)
 allow_golem_mutation = true
 
 # Allows passive animals to spawn with elemental mutations (Default: false)
@@ -79,7 +85,7 @@ allow_neutral_and_passive_mutation = false
 Configure [**Arc Caster**](Staves-List#arc-caster) Creeper charging and [**Webcaster**](Staves-List#webcaster) temporary cobweb duration:
 
 ```toml
-[interactions]
+[mechanics]
 # Striking a Creeper with Arc Caster lightning transforms it into a Charged Creeper (Default: true)
 arc_caster_charge_creeper = true
 

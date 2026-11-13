@@ -91,7 +91,7 @@ Track your arcane progression through **11 custom Advancements** and experience 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Advancements Tree</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/advancements_tree.jpg" width="400" /><br/><sub><i>Dedicated advancement tab guiding players through essence harvesting, staff forging, and mastering reactions.</i></sub></td>
+      <td align="center"><b>Advancements Tree</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/advenment.png" width="400" /><br/><sub><i>Dedicated advancement tab guiding players through essence harvesting, staff forging, and mastering reactions.</i></sub></td>
       <td align="center"><b>Custom Reaction Death Messages</b><br/><img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/death_message_overloaded.jpg" width="360" /><br/><sub><i>Unique death messages for all elemental reactions and innate/mutated mob kills (e.g. "blown apart by Overloaded", "shattered to pieces by Shatter").</i></sub></td>
     </tr>
   </table>

@@ -16,7 +16,7 @@
 
 * **Elemental Alignment:** <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png" width="16" height="16" /> Dynamic Omni (Cycles across all 7 elements).
 * **Core Mechanics:**
-  * Press **`R`** (or `Shift + Right-Click`) to open the **Radial Element Wheel** to switch your active elemental alignment instantly.
+  * Press **`[Tab]`** to open the **Radial Element Wheel** to switch your active elemental alignment instantly.
   * Fires homing prism crystals that automatically select the optimal reaction element against the target's current aura.
 * **Combat Stats:**
   * **Range:** 36m (1.75m AoE) [Basic] / 48m (2.5m AoE) [Netherite]
