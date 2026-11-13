@@ -12,6 +12,7 @@ public final class ModAdvancements {
     public static final String EVENT_TESLA_COIL = "tesla_coil";
     public static final String EVENT_ELEMENTAL_MASTERY = "elemental_mastery";
     public static final String EVENT_SPATIAL_TRAVELER = "spatial_traveler";
+    public static final String EVENT_TAME_OMNI_PET = "tame_omni_pet";
 
     private ModAdvancements() {}
 

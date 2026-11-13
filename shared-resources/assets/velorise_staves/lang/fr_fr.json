@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Élément : %s (1.0U | Partenaire de résonance Hydro)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Applique 1.0U Hydro en mêlée/lancer et active la résonance Hydro avec un bâton",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Évolue selon les PV max du lanceur (10%/coup | 15% Netherite)",
-  "jade.velorise_staves.env_wet": "Trempé (Env)"
+  "jade.velorise_staves.env_wet": "Trempé (Env)",
+  "death.velorise_staves.pet_owned_name": "%2$s de %1$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "Un bon compagnon !",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Apprivoisez un loup ou un renard doté de la légendaire mutation Omni"
 }

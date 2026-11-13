@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Nguyên tố: %s (1.0U | Cộng hưởng Thủy)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Gắn 1.0U Thủy khi đâm/phóng & ghép cặp với Trượng kích hoạt Cộng hưởng Thủy",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Tăng theo Máu tối đa người dùng (10%/nhát | 15% Netherite)",
-  "jade.velorise_staves.env_wet": "Ẩm Ướt (MT)"
+  "jade.velorise_staves.env_wet": "Ẩm Ướt (MT)",
+  "death.velorise_staves.pet_owned_name": "%2$s của %1$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "Thú Cưng Ngoan!",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Thuần hóa một chú Sói hoặc Cáo mang Đột Biến Omni huyền thoại"
 }

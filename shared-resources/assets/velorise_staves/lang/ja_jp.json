@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "元素: %s (1.0U | 水元素共鳴パートナー)",
   "tooltip.velorise_staves.trident_hydro.hint": "  近接・投擲で 1.0U 水元素を付着し、杖と組んで水元素共鳴を発動",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ 使用者の最大HPに応じて増加 (10%/ヒット | ネザライト 15%)",
-  "jade.velorise_staves.env_wet": "湿潤 (環境)"
+  "jade.velorise_staves.env_wet": "湿潤 (環境)",
+  "death.velorise_staves.pet_owned_name": "%1$sの%2$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "いい子だね！",
+  "advancement.velorise_staves.tame_omni_pet.desc": "伝説のオムニ変異を宿したオオカミまたはキツネを手懐ける"
 }

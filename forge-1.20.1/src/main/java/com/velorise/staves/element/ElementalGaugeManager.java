@@ -4098,6 +4098,11 @@ public final class ElementalGaugeManager {
                         if (isOmniInnate(nearby)) {
                             OMNI_INNATE_ENTITIES.add(nearby.getUUID());
                             extinguishPyroInnate(nearby);
+                            if (serverNow % 20 == 0 && nearby instanceof net.minecraft.world.entity.TamableAnimal ta
+                                    && ta.isTame() && player.getUUID().equals(ta.getOwnerUUID())) {
+                                com.velorise.staves.advancement.ModAdvancements.trigger(
+                                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAME_OMNI_PET);
+                            }
                             if (serverNow % 40 == 0) {
                                 com.velorise.staves.network.ModNetwork.sendAuraSync(nearby, Collections.emptyList(), null, null, null, 0.0F, -2);
                             }

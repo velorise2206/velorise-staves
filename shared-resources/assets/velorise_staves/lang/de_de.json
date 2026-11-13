@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Element: %s (1.0U | Hydro-Resonanzpartner)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Verursacht 1.0U Hydro im Nahkampf/Wurf & aktiviert Hydro-Resonanz mit einem Stab",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Skaliert mit max. LP des Nutzers (10%/Treffer | 15% Netherit)",
-  "jade.velorise_staves.env_wet": "Nass (Umg.)"
+  "jade.velorise_staves.env_wet": "Nass (Umg.)",
+  "death.velorise_staves.pet_owned_name": "%2$s von %1$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "Ein braves Haustier!",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Zähme einen treuen Wolf oder Fuchs mit der legendären Omni-Mutation"
 }

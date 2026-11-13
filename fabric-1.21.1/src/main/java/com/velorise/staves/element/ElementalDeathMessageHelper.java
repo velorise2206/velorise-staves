@@ -124,6 +124,34 @@ public final class ElementalDeathMessageHelper {
         );
     }
 
+    private static final ChatFormatting[] CHROMATIC_OMNI_COLORS = {
+            ChatFormatting.RED,          // Pyro
+            ChatFormatting.GOLD,         // Geo
+            ChatFormatting.GREEN,        // Dendro
+            ChatFormatting.DARK_AQUA,    // Anemo
+            ChatFormatting.AQUA,         // Cryo
+            ChatFormatting.BLUE,         // Hydro
+            ChatFormatting.LIGHT_PURPLE  // Electro
+    };
+
+    /**
+     * Renders the localized "Omni" label with a dynamic time-based chromatic rainbow cycle
+     * across all 7 elemental colors.
+     */
+    public static net.minecraft.network.chat.MutableComponent createChromaticOmniComponent() {
+        String raw = Component.translatable("element.velorise_staves.omni").getString();
+        if (raw == null || raw.isEmpty()) {
+            raw = "Omni";
+        }
+        int phase = (int) ((System.currentTimeMillis() / 180L) % CHROMATIC_OMNI_COLORS.length);
+        net.minecraft.network.chat.MutableComponent result = Component.empty();
+        for (int i = 0; i < raw.length(); i++) {
+            ChatFormatting col = CHROMATIC_OMNI_COLORS[(phase + i) % CHROMATIC_OMNI_COLORS.length];
+            result.append(Component.literal(String.valueOf(raw.charAt(i))).withStyle(col));
+        }
+        return result;
+    }
+
     public static boolean isInnateOrMutatedMob(@Nullable Entity entity) {
         if (!(entity instanceof LivingEntity living) || living instanceof Player) return false;
         return ElementalGaugeManager.isOmniInnate(living) || !ElementalGaugeManager.getInnateElements(living).isEmpty();
@@ -136,7 +164,7 @@ public final class ElementalDeathMessageHelper {
         }
         net.minecraft.network.chat.MutableComponent elemComp = null;
         if (ElementalGaugeManager.isOmniInnate(living)) {
-            elemComp = Component.translatable("element.velorise_staves.omni").withStyle(ChatFormatting.GOLD);
+            elemComp = createChromaticOmniComponent();
         } else {
             java.util.EnumSet<Element> innates = ElementalGaugeManager.getInnateElements(living);
             for (Element innate : innates) {
@@ -149,10 +177,22 @@ public final class ElementalDeathMessageHelper {
             }
         }
         if (elemComp == null) return base;
-        if (living.hasCustomName() && base.getString().toLowerCase(Locale.ROOT).contains(elemComp.getString().toLowerCase(Locale.ROOT))) {
+        String plainElem = Component.translatable("element.velorise_staves.omni").getString();
+        if (living.hasCustomName() && (base.getString().toLowerCase(Locale.ROOT).contains(elemComp.getString().toLowerCase(Locale.ROOT))
+                || base.getString().toLowerCase(Locale.ROOT).contains(plainElem.toLowerCase(Locale.ROOT)))) {
             return base;
         }
-        return Component.translatable("death.velorise_staves.innate_mob_name", elemComp, base).withStyle(base.getStyle());
+        Component formatted = Component.translatable("death.velorise_staves.innate_mob_name", elemComp, base).withStyle(base.getStyle());
+        if (living instanceof net.minecraft.world.entity.TamableAnimal tamable && tamable.isTame() && tamable.getOwner() != null) {
+            return Component.translatable("death.velorise_staves.pet_owned_name", tamable.getOwner().getDisplayName(), formatted);
+        }
+        return formatted;
+    }
+
+    public static Component formatVictimDisplayName(LivingEntity victim) {
+        if (victim == null) return Component.empty();
+        if (victim instanceof Player) return victim.getDisplayName();
+        return formatKillerDisplayName(victim);
     }
 
     @SuppressWarnings("unchecked")
@@ -220,7 +260,7 @@ public final class ElementalDeathMessageHelper {
         }
 
         Entity credit = src.getEntity() != null ? src.getEntity() : src.getDirectEntity();
-        if (isInnateOrMutatedMob(credit)) {
+        if (isInnateOrMutatedMob(credit) || isInnateOrMutatedMob(killed)) {
             DamageSource upgraded = new ElementalReactionDamageSource(
                     src.typeHolder(), src.getDirectEntity(), src.getEntity(), src.sourcePositionRaw(),
                     null, null, src
@@ -297,6 +337,7 @@ public final class ElementalDeathMessageHelper {
             Entity causing = this.getEntity();
             Entity direct = this.getDirectEntity();
             Entity rawKiller = causing != null ? causing : direct;
+            Component victimComp = formatVictimDisplayName(killedEntity);
             Component killerComp = (rawKiller != null && rawKiller != killedEntity)
                     ? formatKillerDisplayName(rawKiller)
                     : null;
@@ -331,27 +372,33 @@ public final class ElementalDeathMessageHelper {
                 };
                 Component styledReact = reactComp.copy().withStyle(reactColor);
                 if (killerComp != null) {
-                    return Component.translatable(baseKey + ".player", killedEntity.getDisplayName(), styledReact, killerComp);
+                    return Component.translatable(baseKey + ".player", victimComp, styledReact, killerComp);
                 }
-                return Component.translatable(baseKey, killedEntity.getDisplayName(), styledReact);
+                return Component.translatable(baseKey, victimComp, styledReact);
             }
 
             if (element != null && delegate == null) {
                 Component elemComp = Component.translatable(element.translationKey()).withStyle(element.color());
                 if (killerComp != null) {
-                    return Component.translatable("death.velorise_staves.element.player", killedEntity.getDisplayName(), elemComp, killerComp);
+                    return Component.translatable("death.velorise_staves.element.player", victimComp, elemComp, killerComp);
                 }
-                return Component.translatable("death.velorise_staves.element", killedEntity.getDisplayName(), elemComp);
+                return Component.translatable("death.velorise_staves.element", victimComp, elemComp);
             }
 
-            if (rawKiller != null && isInnateOrMutatedMob(rawKiller)) {
-                Component innateName = formatKillerDisplayName(rawKiller);
+            if ((rawKiller != null && isInnateOrMutatedMob(rawKiller)) || isInnateOrMutatedMob(killedEntity)) {
                 String attackKey = "death.attack." + this.getMsgId();
-                ItemStack weapon = causing instanceof LivingEntity livingKiller ? livingKiller.getMainHandItem() : ItemStack.EMPTY;
-                if (!weapon.isEmpty() && weapon.has(DataComponents.CUSTOM_NAME)) {
-                    return Component.translatable(attackKey + ".item", killedEntity.getDisplayName(), innateName, weapon.getDisplayName());
+                if (killerComp != null) {
+                    ItemStack weapon = causing instanceof LivingEntity livingKiller ? livingKiller.getMainHandItem() : ItemStack.EMPTY;
+                    if (!weapon.isEmpty() && weapon.has(DataComponents.CUSTOM_NAME)) {
+                        return Component.translatable(attackKey + ".item", victimComp, killerComp, weapon.getDisplayName());
+                    }
+                    return Component.translatable(attackKey, victimComp, killerComp);
                 }
-                return Component.translatable(attackKey, killedEntity.getDisplayName(), innateName);
+                LivingEntity creditKill = killedEntity.getKillCredit();
+                if (creditKill != null && creditKill != killedEntity) {
+                    return Component.translatable(attackKey + ".player", victimComp, formatKillerDisplayName(creditKill));
+                }
+                return Component.translatable(attackKey, victimComp);
             }
 
             if (delegate != null) {

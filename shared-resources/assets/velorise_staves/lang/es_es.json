@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Elemento: %s (1.0U | Compañero de resonancia Hydro)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Aplica 1.0U Hydro al golpear/lanzar y activa resonancia Hydro junto a un bastón",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Escala con la Vida Máx. del usuario (10%/golpe | 15% Netherita)",
-  "jade.velorise_staves.env_wet": "Mojado (Amb)"
+  "jade.velorise_staves.env_wet": "Mojado (Amb)",
+  "death.velorise_staves.pet_owned_name": "%2$s de %1$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "¡Una buena mascota!",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Domestica a un lobo o zorro imbuido con la legendaria mutación Omni"
 }

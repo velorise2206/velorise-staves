@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Element: %s (1.0U | Resonance Partner)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Applies 1.0U Hydro on melee/throw & pairs with Staves for Hydro Resonance",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Scales with Caster's Max HP (10%/hit | 15% Netherite)",
-  "jade.velorise_staves.env_wet": "Wet (Env)"
+  "jade.velorise_staves.env_wet": "Wet (Env)",
+  "death.velorise_staves.pet_owned_name": "%1$s's %2$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "A Good Pet!",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Tame a loyal Wolf or Fox imbued with the legendary Omni Mutation"
 }

@@ -96,9 +96,8 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
             IElementHelper helper = IElementHelper.get();
             tooltip.add(new ElementIcon(OMNI_TEXTURE, 12, 12));
             tooltip.append(helper.spacer(2, 0));
-            Component comp = Component.translatable("element.velorise_staves.omni")
-                    .append(Component.literal(" ∞"))
-                    .withStyle(ChatFormatting.GOLD);
+            Component comp = com.velorise.staves.element.ElementalDeathMessageHelper.createChromaticOmniComponent()
+                    .append(Component.literal(" ∞").withStyle(ChatFormatting.GOLD));
             tooltip.append(helper.text(comp));
             return;
         }

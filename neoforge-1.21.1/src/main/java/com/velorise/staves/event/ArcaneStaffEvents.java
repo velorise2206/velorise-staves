@@ -100,6 +100,16 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onAnimalTame(net.neoforged.neoforge.event.entity.living.AnimalTameEvent event) {
+        if (!event.getAnimal().level().isClientSide()
+                && event.getTamer() instanceof ServerPlayer sp
+                && ElementalGaugeManager.isOmniInnate(event.getAnimal())) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    sp, com.velorise.staves.advancement.ModAdvancements.EVENT_TAME_OMNI_PET);
+        }
+    }
+
+    @SubscribeEvent
     public static void onLivingHeal(net.neoforged.neoforge.event.entity.living.LivingHealEvent event) {
         if (!event.getEntity().level().isClientSide() && event.getAmount() > 0.0F) {
             event.setAmount(com.velorise.staves.element.ElementalResonanceManager.modifyIncomingHeal(event.getEntity(), event.getAmount()));

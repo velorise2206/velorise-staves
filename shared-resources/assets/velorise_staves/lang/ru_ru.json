@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "Элемент: %s (1.0U | Партнёр Гидро резонанса)",
   "tooltip.velorise_staves.trident_hydro.hint": "  Накладывает 1.0U Гидро при ударе/броске и активирует Гидро резонанс с посохом",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ Масштабируется от макс. ОЗ (10%/удар | 15% Незерит)",
-  "jade.velorise_staves.env_wet": "Мокрый (Среда)"
+  "jade.velorise_staves.env_wet": "Мокрый (Среда)",
+  "death.velorise_staves.pet_owned_name": "%2$s игрока %1$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "Хороший питомец!",
+  "advancement.velorise_staves.tame_omni_pet.desc": "Приручите верного волка или лису с легендарной Омни-мутацией"
 }

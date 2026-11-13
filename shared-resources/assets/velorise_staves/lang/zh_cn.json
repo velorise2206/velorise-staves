@@ -482,5 +482,8 @@
   "tooltip.velorise_staves.trident_hydro": "元素：%s（1.0U | 水元素共鸣搭档）",
   "tooltip.velorise_staves.trident_hydro.hint": "  近战或投掷附着 1.0U 水元素，并可搭配法杖激活水元素共鸣",
   "tooltip.velorise_staves.guardian_hp_scale": "  ✦ 基于施法者生命值上限（10%/击 | 下界合金 15%）",
-  "jade.velorise_staves.env_wet": "潮湿 (环境)"
+  "jade.velorise_staves.env_wet": "潮湿 (环境)",
+  "death.velorise_staves.pet_owned_name": "%1$s的%2$s",
+  "advancement.velorise_staves.tame_omni_pet.title": "好乖的宠物！",
+  "advancement.velorise_staves.tame_omni_pet.desc": "驯服一只拥有传奇全能（Omni）突变的忠诚狼或狐狸"
 }
