@@ -1401,7 +1401,7 @@ public final class ElementalGaugeManager {
         LivingEntity target = findNearestNightsFocusTarget(level, player);
         if (target == null) return false;
         boolean isNetherite = NIGHTS_FOCUS_NETHERITE.getOrDefault(player.getUUID(), false);
-        float dmg = isNetherite ? 4.5F : 3.0F;
+        float dmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.NIGHTS_FOCUS, isNetherite) * 0.75F;
         float units = isNetherite ? 0.75F : 0.5F;
 
         Vec3 start = player.position().add(0.0D, player.getBbHeight() + 0.65D, 0.0D);

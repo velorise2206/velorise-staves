@@ -528,6 +528,8 @@
   "codex.velorise_staves.links.evoker_fang_staff": "bastón de colmillos de invocador|pilar geo",
   "codex.velorise_staves.links.utility_relics": "translocador del vacío|espejo mágico",
   "tooltip.velorise_staves.guardian_hp_scale.netherite": "  ✦ Scales with Caster's Max HP (15%/hit)",
+  "tooltip.velorise_staves.guardian_tap_orb": "  Tap: Hydro Orb (1♥, 1U) | Hold (3s): Hydro Beam (8 hits)",
+  "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
   "tooltip.velorise_staves.trap_poison.netherite": "Trap + Strong Poison",
   "tooltip.velorise_staves.vortex_jade_shield.netherite": "  Tap: Stone Stele (Max 3) | Hold (1.5s): Jade Shield (150% Absorb & +30% DMG)",
   "item.velorise_staves.frost_rod": "Frost Rod",

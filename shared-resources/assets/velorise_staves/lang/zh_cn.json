@@ -528,6 +528,8 @@
   "codex.velorise_staves.links.evoker_fang_staff": "唤魔尖牙法杖|岩牙石柱",
   "codex.velorise_staves.links.utility_relics": "虚空传送器|魔镜",
   "tooltip.velorise_staves.guardian_hp_scale.netherite": "  ✦ 随施法者最大生命值提升 (15%/次)",
+  "tooltip.velorise_staves.guardian_tap_orb": "  Tap: Hydro Orb (1♥, 1U) | Hold (3s): Hydro Beam (8 hits)",
+  "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
   "tooltip.velorise_staves.trap_poison.netherite": "束缚 + 剧毒",
   "tooltip.velorise_staves.vortex_jade_shield.netherite": "  点按：岩脊 (最多3个) | 长按 (1.5s)：玉璋护盾 (150%吸收 & +30%伤害)",
   "item.velorise_staves.frost_rod": "极寒之棒",

@@ -528,6 +528,8 @@
   "codex.velorise_staves.links.evoker_fang_staff": "소환사 송곳니 지팡이|바위 송곳니 기둥",
   "codex.velorise_staves.links.utility_relics": "공허 전이기|마법 거울",
   "tooltip.velorise_staves.guardian_hp_scale.netherite": "  ✦ 시전자 최대 HP 비례 강화 (15%/타)",
+  "tooltip.velorise_staves.guardian_tap_orb": "  Tap: Hydro Orb (1♥, 1U) | Hold (3s): Hydro Beam (8 hits)",
+  "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
   "tooltip.velorise_staves.trap_poison.netherite": "속박 + 맹독",
   "tooltip.velorise_staves.vortex_jade_shield.netherite": "  짧게: 암주 (최대 3) | 길게 (1.5s): 옥홀 방패 (150% 흡수 & +30% 피해)",
   "item.velorise_staves.frost_rod": "서리 막대기",

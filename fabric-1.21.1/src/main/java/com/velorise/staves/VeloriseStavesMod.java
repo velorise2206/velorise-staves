@@ -475,7 +475,8 @@ public final class VeloriseStavesMod implements ModInitializer {
                     && fangs.getTags().contains("velorise_staves:geo_fangs")) {
                 if (entity.level() instanceof net.minecraft.server.level.ServerLevel sl) {
                     boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
-                    float baseDmg = isNetherite ? 4.5F : 3.0F;
+                    float baseDmg = com.velorise.staves.config.StavesConfig.getStaffBaseDamage(
+                            com.velorise.staves.item.ArcaneStaffItem.Kind.EVOKER, isNetherite);
                     float attackU = isNetherite ? 1.5F : 1.0F;
                     net.minecraft.server.level.ServerPlayer attacker = source.getEntity() instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null;
                     ElementalGaugeManager.applyElement(sl, entity, com.velorise.staves.element.Element.GEO, attackU, attacker, baseDmg);
