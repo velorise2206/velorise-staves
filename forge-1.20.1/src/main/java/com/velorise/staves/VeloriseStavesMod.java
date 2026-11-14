@@ -72,6 +72,14 @@ public final class VeloriseStavesMod {
                     .updateInterval(1)
                     .build("hydro_salon_summon"));
 
+    public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity>> FLAMESTRIDER_BIKE =
+            ENTITY_TYPES.register("flamestrider_bike", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.FlamestriderBikeEntity>of(com.velorise.staves.entity.FlamestriderBikeEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.35F, 1.05F)
+                    .clientTrackingRange(12)
+                    .updateInterval(1)
+                    .build("flamestrider_bike"));
+
     public static final net.minecraftforge.registries.RegistryObject<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.WindChargeEntity>> WIND_CHARGE_ENTITY =
             ENTITY_TYPES.register("wind_charge", () -> net.minecraft.world.entity.EntityType.Builder
                     .<com.velorise.staves.entity.WindChargeEntity>of(com.velorise.staves.entity.WindChargeEntity::new, net.minecraft.world.entity.MobCategory.MISC)
@@ -136,6 +144,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NIGHTS_FOCUS_STAFF = ITEMS.register("nights_focus_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 150, false));
 
+    public static final Supplier<Item> THOUSAND_BLAZING_SUNS = ITEMS.register("thousand_blazing_suns",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 160, false));
+
     public static final Supplier<Item> FROST_ROD = ITEMS.register("frost_rod",
         () -> new Item(new Item.Properties()));
 
@@ -144,6 +155,12 @@ public final class VeloriseStavesMod {
 
     public static final Supplier<Item> WIND_STAFF = ITEMS.register("wind_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 140, false));
+
+    public static final Supplier<Item> THE_DAYBREAK_CHRONICLES = ITEMS.register("the_daybreak_chronicles",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, 140, false));
+
+    public static final Supplier<Item> ENGULFING_LIGHTNING = ITEMS.register("engulfing_lightning",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, 140, false));
 
     public static final Supplier<Item> OMNI_STAFF = ITEMS.register("omni_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 250, false));
@@ -257,11 +274,20 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_NIGHTS_FOCUS_STAFF = ITEMS.register("netherite_nights_focus_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 500, true));
 
+    public static final Supplier<Item> NETHERITE_THOUSAND_BLAZING_SUNS = ITEMS.register("netherite_thousand_blazing_suns",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 520, true));
+
     public static final Supplier<Item> NETHERITE_WEBCASTER = ITEMS.register("netherite_webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
 
     public static final Supplier<Item> NETHERITE_WIND_STAFF = ITEMS.register("netherite_wind_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 500, true));
+
+    public static final Supplier<Item> NETHERITE_THE_DAYBREAK_CHRONICLES = ITEMS.register("netherite_the_daybreak_chronicles",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, 500, true));
+
+    public static final Supplier<Item> NETHERITE_ENGULFING_LIGHTNING = ITEMS.register("netherite_engulfing_lightning",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, 500, true));
 
     public static final Supplier<Item> NETHERITE_OMNI_STAFF = ITEMS.register("netherite_omni_staff",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 900, true));
@@ -296,8 +322,11 @@ public final class VeloriseStavesMod {
                 output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(NIGHTS_FOCUS_STAFF.get());
+                output.accept(THOUSAND_BLAZING_SUNS.get());
                 output.accept(WEBCASTER.get());
                 output.accept(WIND_STAFF.get());
+                output.accept(THE_DAYBREAK_CHRONICLES.get());
+                output.accept(ENGULFING_LIGHTNING.get());
                 output.accept(OMNI_STAFF.get());
                 output.accept(VOID_TRANSLOCATOR.get());
                 output.accept(MAGIC_MIRROR.get());
@@ -316,8 +345,11 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
+                output.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_WIND_STAFF.get());
+                output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
+                output.accept(NETHERITE_ENGULFING_LIGHTNING.get());
                 output.accept(NETHERITE_OMNI_STAFF.get());
                 output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
@@ -389,8 +421,11 @@ public final class VeloriseStavesMod {
             event.accept(ARC_CASTER.get());
             event.accept(FROSTBOLT_WAND.get());
             event.accept(NIGHTS_FOCUS_STAFF.get());
+            event.accept(THOUSAND_BLAZING_SUNS.get());
             event.accept(WEBCASTER.get());
             event.accept(WIND_STAFF.get());
+            event.accept(THE_DAYBREAK_CHRONICLES.get());
+            event.accept(ENGULFING_LIGHTNING.get());
             event.accept(OMNI_STAFF.get());
             event.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
             event.accept(NETHERITE_RESONANT_ECHO.get());
@@ -405,8 +440,11 @@ public final class VeloriseStavesMod {
             event.accept(NETHERITE_ARC_CASTER.get());
             event.accept(NETHERITE_FROSTBOLT_WAND.get());
             event.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
+            event.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
             event.accept(NETHERITE_WEBCASTER.get());
             event.accept(NETHERITE_WIND_STAFF.get());
+            event.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
+            event.accept(NETHERITE_ENGULFING_LIGHTNING.get());
             event.accept(NETHERITE_OMNI_STAFF.get());
             event.accept(WIND_CHARGE.get());
         } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) {

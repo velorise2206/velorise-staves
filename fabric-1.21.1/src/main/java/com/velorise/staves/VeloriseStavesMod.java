@@ -85,6 +85,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NIGHTS_FOCUS_STAFF = registerItem("nights_focus_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.NIGHTS_FOCUS, false), false));
 
+    public static final Item THOUSAND_BLAZING_SUNS = registerItem("thousand_blazing_suns",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, false), false));
+
     public static final Item FROST_ROD = registerItem("frost_rod",
         new Item(new Item.Properties()));
 
@@ -93,6 +96,12 @@ public final class VeloriseStavesMod implements ModInitializer {
 
     public static final Item WIND_STAFF = registerItem("wind_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, false), false));
+
+    public static final Item THE_DAYBREAK_CHRONICLES = registerItem("the_daybreak_chronicles",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.DAYBREAK, false), false));
+
+    public static final Item ENGULFING_LIGHTNING = registerItem("engulfing_lightning",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, false), false));
 
     public static final Item OMNI_STAFF = registerItem("omni_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.OMNI, false), false));
@@ -189,6 +198,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_FROSTBOLT_WAND = registerItem("netherite_frostbolt_wand",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.FROST, true), true));
 
+    public static final Item NETHERITE_THOUSAND_BLAZING_SUNS = registerItem("netherite_thousand_blazing_suns",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, true), true));
+
     public static final Item NETHERITE_NIGHTS_FOCUS_STAFF = registerItem("netherite_nights_focus_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.NIGHTS_FOCUS, true), true));
 
@@ -197,6 +209,12 @@ public final class VeloriseStavesMod implements ModInitializer {
 
     public static final Item NETHERITE_WIND_STAFF = registerItem("netherite_wind_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WIND, true), true));
+
+    public static final Item NETHERITE_THE_DAYBREAK_CHRONICLES = registerItem("netherite_the_daybreak_chronicles",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.DAYBREAK, true), true));
+
+    public static final Item NETHERITE_ENGULFING_LIGHTNING = registerItem("netherite_engulfing_lightning",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, true), true));
 
     public static final Item NETHERITE_OMNI_STAFF = registerItem("netherite_omni_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.OMNI, true), true));
@@ -226,6 +244,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(RESONANT_ECHO);
             output.accept(INFERNO_ROD);
             output.accept(GHASTFIRE_STAFF);
+            output.accept(THOUSAND_BLAZING_SUNS);
             output.accept(WITHER_SCEPTER);
             output.accept(SHULKER_SEEKER);
             output.accept(GUARDIAN_LENS);
@@ -237,6 +256,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NIGHTS_FOCUS_STAFF);
             output.accept(WEBCASTER);
             output.accept(WIND_STAFF);
+            output.accept(THE_DAYBREAK_CHRONICLES);
+            output.accept(ENGULFING_LIGHTNING);
             output.accept(OMNI_STAFF);
             output.accept(VOID_TRANSLOCATOR);
             output.accept(MAGIC_MIRROR);
@@ -246,6 +267,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_RESONANT_ECHO);
             output.accept(NETHERITE_INFERNO_ROD);
             output.accept(NETHERITE_GHASTFIRE_STAFF);
+            output.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
             output.accept(NETHERITE_WITHER_SCEPTER);
             output.accept(NETHERITE_SHULKER_SEEKER);
             output.accept(NETHERITE_GUARDIAN_LENS);
@@ -257,6 +279,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_NIGHTS_FOCUS_STAFF);
             output.accept(NETHERITE_WEBCASTER);
             output.accept(NETHERITE_WIND_STAFF);
+            output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES);
+            output.accept(NETHERITE_ENGULFING_LIGHTNING);
             output.accept(NETHERITE_OMNI_STAFF);
             output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(NETHERITE_MAGIC_MIRROR);
@@ -363,6 +387,21 @@ public final class VeloriseStavesMod implements ModInitializer {
                             .build("hydro_salon_summon")
             );
 
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> FLAMESTRIDER_BIKE =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "flamestrider_bike"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.FlamestriderBikeEntity>of(
+                                    com.velorise.staves.entity.FlamestriderBikeEntity::new,
+                                    net.minecraft.world.entity.MobCategory.MISC
+                            )
+                            .sized(1.15F, 0.95F)
+                            .clientTrackingRange(10)
+                            .updateInterval(1)
+                            .build("flamestrider_bike")
+            );
+
     @Override
     public void onInitialize() {
         StavesConfig.load();
@@ -376,6 +415,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(RESONANT_ECHO);
             entries.accept(INFERNO_ROD);
             entries.accept(GHASTFIRE_STAFF);
+            entries.accept(THOUSAND_BLAZING_SUNS);
             entries.accept(WITHER_SCEPTER);
             entries.accept(SHULKER_SEEKER);
             entries.accept(GUARDIAN_LENS);
@@ -387,11 +427,14 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NIGHTS_FOCUS_STAFF);
             entries.accept(WEBCASTER);
             entries.accept(WIND_STAFF);
+            entries.accept(THE_DAYBREAK_CHRONICLES);
+            entries.accept(ENGULFING_LIGHTNING);
             entries.accept(OMNI_STAFF);
             entries.accept(NETHERITE_DRAGONFIRE_SCEPTER);
             entries.accept(NETHERITE_RESONANT_ECHO);
             entries.accept(NETHERITE_INFERNO_ROD);
             entries.accept(NETHERITE_GHASTFIRE_STAFF);
+            entries.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
             entries.accept(NETHERITE_WITHER_SCEPTER);
             entries.accept(NETHERITE_SHULKER_SEEKER);
             entries.accept(NETHERITE_GUARDIAN_LENS);
@@ -403,6 +446,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_NIGHTS_FOCUS_STAFF);
             entries.accept(NETHERITE_WEBCASTER);
             entries.accept(NETHERITE_WIND_STAFF);
+            entries.accept(NETHERITE_THE_DAYBREAK_CHRONICLES);
+            entries.accept(NETHERITE_ENGULFING_LIGHTNING);
             entries.accept(NETHERITE_OMNI_STAFF);
         });
 
@@ -497,7 +542,9 @@ public final class VeloriseStavesMod implements ModInitializer {
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, damage, afterDamage, blocked) -> {
             if (!blocked && !entity.level().isClientSide()) {
                 ElementalGaugeManager.trySendPhysicalDamageFloat(entity, source, afterDamage);
+                ElementalGaugeManager.tryInterruptGuardianChanneling(entity, afterDamage);
                 ElementalGaugeManager.handleLivingIncomingDamage(entity, source);
+                ElementalGaugeManager.triggerRaidenEyeCoordinatedStrike(entity, source);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
             }
         });

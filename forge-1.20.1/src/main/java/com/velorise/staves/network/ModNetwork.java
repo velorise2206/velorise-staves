@@ -63,6 +63,24 @@ public final class ModNetwork {
                 .encoder(SelectOmniModePacket::toBytes)
                 .consumerMainThread(SelectOmniModePacket::handle)
                 .add();
+
+        CHANNEL.messageBuilder(MavuikaSyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(MavuikaSyncPacket::new)
+                .encoder(MavuikaSyncPacket::toBytes)
+                .consumerMainThread(MavuikaSyncPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(MavuikaActionPacket.class, packetId++, NetworkDirection.PLAY_TO_SERVER)
+                .decoder(MavuikaActionPacket::new)
+                .encoder(MavuikaActionPacket::toBytes)
+                .consumerMainThread(MavuikaActionPacket::handle)
+                .add();
+
+        CHANNEL.messageBuilder(RaidenSyncPacket.class, packetId++, NetworkDirection.PLAY_TO_CLIENT)
+                .decoder(RaidenSyncPacket::new)
+                .encoder(RaidenSyncPacket::toBytes)
+                .consumerMainThread(RaidenSyncPacket::handle)
+                .add();
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -194,5 +212,22 @@ public final class ModNetwork {
 
     public static void sendSelectOmniMode(int mode) {
         CHANNEL.sendToServer(new SelectOmniModePacket(mode));
+    }
+
+    public static void sendMavuikaSync(Entity target, int auraRemainingTicks, float nightsoulPoints, boolean netherite) {
+        if (target == null || target.level().isClientSide()) return;
+        int ultiCooldownTicks = com.velorise.staves.element.ElementalGaugeManager.getMavuikaUltiCooldownTicks(target);
+        MavuikaSyncPacket packet = new MavuikaSyncPacket(target.getId(), auraRemainingTicks, nightsoulPoints, netherite, ultiCooldownTicks);
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
+    }
+
+    public static void sendMavuikaAction(byte action) {
+        CHANNEL.sendToServer(new MavuikaActionPacket(action));
+    }
+
+    public static void sendRaidenSync(Entity target, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+        if (target == null || target.level().isClientSide()) return;
+        RaidenSyncPacket packet = new RaidenSyncPacket(target.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite);
+        CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
     }
 }

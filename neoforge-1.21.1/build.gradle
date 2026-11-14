@@ -60,6 +60,9 @@ dependencies {
 
     compileOnly "maven.modrinth:jade:15.10.6+neoforge"
     runtimeOnly "maven.modrinth:jade:15.10.6+neoforge"
+
+    runtimeOnly files("run/mods/moonlight-1.21-2.14.22-neoforge.jar")
+    runtimeOnly files("run/mods/dummmmmmy-1.21-2.0.6-neoforge.jar")
 }
 
 tasks.withType(ProcessResources).configureEach {

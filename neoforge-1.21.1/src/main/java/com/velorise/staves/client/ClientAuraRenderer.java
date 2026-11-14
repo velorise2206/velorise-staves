@@ -417,7 +417,8 @@ public final class ClientAuraRenderer {
                 com.velorise.staves.item.ArcaneStaffItem.Kind k = staff.kind();
                 if (k == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX
                         || k == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
-                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
+                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE
+                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                     int elapsed = Math.max(0, staff.getUseDuration(useStack, entity) - entity.getUseItemRemainingTicks());
                     LAST_USE_TICKS.put(id, elapsed);
                     LAST_USE_KIND.put(id, k);
@@ -448,6 +449,19 @@ public final class ClientAuraRenderer {
                     );
                 } else if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE && prevElapsed >= 6) {
                     ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_GHASTFIRE_SLAM);
+                } else if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING && prevElapsed >= 10) {
+                    ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_RAIDEN_DRAW);
+                }
+            }
+        }
+        if (entity.swinging && entity.swingTime == 0 && ClientAuraTracker.isRaidenMusouActive(id)) {
+            ItemStack main = entity.getMainHandItem();
+            if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
+                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+                long now = System.currentTimeMillis();
+                if (d == null || now >= d.staffAnimUntil || d.staffAnimType != ClientAuraTracker.ANIM_RAIDEN_DRAW) {
+                    ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_RAIDEN_SLASH);
                 }
             }
         }
@@ -489,6 +503,45 @@ public final class ClientAuraRenderer {
         if (entity == null || model == null || ClientAuraTracker.isFrozen(entity.getId())) return;
         pollClientUseTransitions(entity);
 
+        if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            model.leftArm.xRot = -0.95F;
+            model.leftArm.yRot = 0.14F;
+            model.leftArm.zRot = -0.05F;
+            int step = bike.getNaStep();
+            int naT = bike.getNaTicks();
+            if (step == 6 && naT > 0) {
+                float armPitch;
+                if (naT > 6) {
+                    float w = (16.0F - naT) / 10.0F;
+                    armPitch = Mth.lerp(w, -0.95F, -2.75F);
+                } else if (naT > 3) {
+                    float s = (6.0F - naT) / 3.0F;
+                    armPitch = Mth.lerp(s, -2.75F, -0.35F);
+                } else {
+                    float r = (3.0F - naT) / 3.0F;
+                    armPitch = Mth.lerp(r, -0.35F, -0.95F);
+                }
+                model.rightArm.xRot = armPitch;
+                model.rightArm.yRot = 0.0F;
+                model.rightArm.zRot = 0.08F;
+            } else if (step == 1 && naT > 0) {
+                float t = 1.0F - (naT / 10.0F);
+                model.rightArm.xRot = Mth.lerp(t, -2.1F, -0.35F);
+                model.rightArm.yRot = -0.25F;
+                model.rightArm.zRot = 0.22F;
+            } else if (step == 3 && naT > 0) {
+                float t = 1.0F - (naT / 10.0F);
+                model.rightArm.xRot = -1.25F;
+                model.rightArm.yRot = Mth.lerp(t, -0.85F, 0.75F);
+                model.rightArm.zRot = 0.45F;
+            } else {
+                model.rightArm.xRot = -0.95F;
+                model.rightArm.yRot = -0.14F;
+                model.rightArm.zRot = 0.05F;
+            }
+            return;
+        }
+
         long now = System.currentTimeMillis();
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
@@ -510,6 +563,17 @@ public final class ClientAuraRenderer {
                     model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.18F);
                     model.head.xRot += 0.15F * w;
                     model.hat.copyFrom(model.head);
+                    return;
+                }
+                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                    float w = smoothStep01(elapsed / 12.0F);
+                    net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+                    net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+                    float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+                    // Raiden Hold Q wind-up: draw hand across chest
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.25F);
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.85F);
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.35F);
                     return;
                 }
                 if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 2 && activeAnim == 0) {
@@ -546,6 +610,28 @@ public final class ClientAuraRenderer {
         float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
         float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
 
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
+            net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            float slash = smoothStep01(t / 0.42F);
+            float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.35F, -0.85F));
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.95F, 1.05F));
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.40F, -0.55F));
+            return;
+        }
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
+            net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            float slash = smoothStep01(t / 0.45F);
+            float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.95F, -0.35F));
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.55F, -0.65F));
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.25F);
+            return;
+        }
         if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM) {
             float slam = smoothStep01(t / 0.35F);
             float w = (t < 0.45F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.45F) / 0.55F) * (float) Math.PI));
@@ -816,6 +902,35 @@ public final class ClientAuraRenderer {
                 poseStack.translate(-dir * 0.06F * (1.0F - slam) * w, Mth.lerp(slam, 0.16F, -0.22F) * w, Mth.lerp(slam, -0.10F, -0.24F) * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, -18.0F, -68.0F) * w));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * (1.0F - slam) * w));
+                return;
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            if (player.isUsingItem() && player.getUseItem() == stack) {
+                int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
+                float w = smoothStep01((elapsed + partialTicks) / 12.0F);
+                poseStack.translate(-dir * 0.24F * w, -0.05F * w, -0.14F * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 42.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 32.0F * w));
+                return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float slash = smoothStep01(t / 0.40F);
+                float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
+                poseStack.translate(dir * Mth.lerp(slash, -0.24F, 0.16F) * w, -0.04F * w, -0.18F * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 48.0F, -68.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 35.0F, -55.0F) * w));
+                return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float slash = smoothStep01(t / 0.45F);
+                float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
+                poseStack.translate(dir * Mth.lerp(slash, 0.12F, -0.22F) * w, Mth.lerp(slash, 0.12F, -0.16F) * w, -0.16F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, 12.0F, -48.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -35.0F, 42.0F) * w));
                 return;
             }
         }
@@ -1391,13 +1506,15 @@ public final class ClientAuraRenderer {
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen) return;
+        if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        renderMavuikaSunAuraRing(entity, poseStack, buffer);
+        renderRaidenEyeRing(entity, poseStack, buffer);
+
         boolean showIcons = true;
         try {
             showIcons = StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get();
         } catch (Exception ignored) {}
         if (!showIcons) return;
-
-        if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
@@ -1645,6 +1762,8 @@ public final class ClientAuraRenderer {
         renderResonanceHud(guiGraphics, mc);
         renderFreezeStruggleHud(guiGraphics, mc);
         renderChargeProgressHud(guiGraphics, mc);
+        renderMavuikaNightsoulHud(guiGraphics, mc);
+        renderRaidenHud(guiGraphics, mc);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -2027,6 +2146,7 @@ public final class ClientAuraRenderer {
         int targetTicks = switch (staff.kind()) {
             case VORTEX -> 28;
             case SPLENDOR -> 10;
+            case THOUSAND_BLAZING_SUNS -> 7;
             case GHASTFIRE -> 40;
             case LIGHTNING -> 60;
             case GUARDIAN -> com.velorise.staves.item.ArcaneStaffItem.isGuardianInstant(stack) ? 60 : (elapsed < 60 ? 60 : 120);
@@ -2035,6 +2155,40 @@ public final class ClientAuraRenderer {
         float pct = Mth.clamp((float) elapsed / (float) targetTicks, 0.0F, 1.0F);
         int sw = guiGraphics.guiWidth();
         int sh = guiGraphics.guiHeight();
+        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+            float cx = sw * 0.5F;
+            float cy = sh * 0.5F;
+            Matrix4f mat = guiGraphics.pose().last().pose();
+            VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+            drawHudArc(vc, mat, cx, cy, 12.0F, 15.0F, 0.0F, 360.0F, 32, 10, 26, 48, 145);
+            if (pct > 0.005F) {
+                float halfDeg = 180.0F * pct;
+                int segs = Math.max(2, Math.round(16 * pct));
+                int r = pct >= 1.0F ? 175 : 85;
+                int g = pct >= 1.0F ? 250 : 225;
+                int b = 255;
+                drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F, 90.0F + halfDeg, segs, r, g, b, 240);
+                drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F - halfDeg, 90.0F, segs, r, g, b, 240);
+            }
+            guiGraphics.flush();
+            return;
+        }
+        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            ResourceLocation sunsTex = ResourceLocation.fromNamespaceAndPath(
+                    com.velorise.staves.VeloriseStavesMod.MODID,
+                    "textures/gui/sun_charge.png"
+            );
+            int iconX = sw / 2 - 8;
+            int iconY = sh / 2 + 12;
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(0.35F, 0.35F, 0.35F, 0.65F);
+            guiGraphics.blit(sunsTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
+            int fillH = Math.max(1, Math.round(16 * pct));
+            int topY = iconY + (16 - fillH);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.blit(sunsTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
+            return;
+        }
         int barW = 56;
         int barH = 4;
         int x = (sw - barW) / 2;
@@ -2705,6 +2859,41 @@ public final class ClientAuraRenderer {
             if (endPos == null) endPos = arc.end;
 
             if (startPos == null || endPos == null) continue;
+            if (arc.color == 0xFFB84DFF || arc.color == 0xFFE0B0FF) {
+                boolean isMusou = (arc.color == 0xFFE0B0FF);
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                float fade = (prog < 0.25F) ? (prog / 0.25F) : (1.0F - (prog - 0.25F) / 0.75F);
+                int alpha = Mth.clamp((int) (255.0F * fade), 10, 255);
+                Vec3 sCam = startPos.subtract(camPos);
+                Vec3 eCam = endPos.subtract(camPos);
+                Vec3 slashDir = eCam.subtract(sCam);
+                if (slashDir.lengthSqr() > 1.0E-5D) {
+                    Vec3 unit = slashDir.normalize();
+                    Vec3 toCam = sCam.add(eCam).scale(-0.5D);
+                    Vec3 perp = unit.cross(toCam.lengthSqr() > 1.0E-4D ? toCam.normalize() : new Vec3(0.0D, 1.0D, 0.0D));
+                    if (perp.lengthSqr() < 1.0E-4D) perp = unit.cross(new Vec3(1.0D, 0.0D, 0.0D));
+                    perp = perp.normalize();
+                    double outerHalf = (isMusou ? 0.24D : 0.13D) * (1.05D - prog * 0.35D);
+                    double innerHalf = outerHalf * 0.34D;
+                    Vec3 midCam = sCam.lerp(eCam, 0.5D);
+                    Vec3 pOut = perp.scale(outerHalf);
+                    Vec3 pIn = perp.scale(innerHalf);
+                    // Tapered diamond-blade outer violet glow (start -> mid -> end)
+                    emitCrystalQuad(consumer, matrix,
+                            (float) sCam.x, (float) sCam.y, (float) sCam.z, 178, 72, 255, alpha / 2,
+                            (float) (midCam.x + pOut.x), (float) (midCam.y + pOut.y), (float) (midCam.z + pOut.z), 192, 92, 255, alpha,
+                            (float) eCam.x, (float) eCam.y, (float) eCam.z, 178, 72, 255, alpha / 2,
+                            (float) (midCam.x - pOut.x), (float) (midCam.y - pOut.y), (float) (midCam.z - pOut.z), 192, 92, 255, alpha);
+                    // Razor-sharp white-violet core
+                    emitCrystalQuad(consumer, matrix,
+                            (float) sCam.x, (float) sCam.y, (float) sCam.z, 245, 225, 255, alpha,
+                            (float) (midCam.x + pIn.x), (float) (midCam.y + pIn.y), (float) (midCam.z + pIn.z), 255, 248, 255, alpha,
+                            (float) eCam.x, (float) eCam.y, (float) eCam.z, 245, 225, 255, alpha,
+                            (float) (midCam.x - pIn.x), (float) (midCam.y - pIn.y), (float) (midCam.z - pIn.z), 255, 248, 255, alpha);
+                }
+                continue;
+            }
             if (arc.color == 0xFF7BE8FF) {
                 float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
                 float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
@@ -3116,5 +3305,257 @@ public final class ClientAuraRenderer {
         consumer.addVertex(matrix, x2, y2, z2).setColor(r2, g2, b2, a2);
         consumer.addVertex(matrix, x3, y3, z3).setColor(r3, g3, b3, a3);
         consumer.addVertex(matrix, x4, y4, z4).setColor(r4, g4, b4, a4);
+    }
+
+    public static void renderMavuikaSunAuraRing(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (!ClientAuraTracker.isMavuikaAuraActive(entity.getId())) return;
+        if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+        ClientAuraTracker.MavuikaDisplayState state = ClientAuraTracker.getMavuika(entity.getId());
+        boolean netherite = state != null && state.netherite;
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        ResourceLocation sunTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/mavuika_sun_aura.png");
+        VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(sunTex));
+        poseStack.pushPose();
+        poseStack.translate(0.0F, entity.getBbHeight() * 0.72F, 0.0F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.0F, 0.0F, -0.46F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(time * 1.6F));
+
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat = pose.pose();
+        float pulse = 1.0F + 0.03F * Mth.sin(time * 0.22F);
+        float half = 0.88F * pulse;
+        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        int cr = 255, cg = netherite ? 255 : 225, cb = netherite ? 255 : 195, ca = 240;
+
+        // Front face
+        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+
+        // Back face
+        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+
+        poseStack.popPose();
+    }
+
+    private static void renderMavuikaNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null) return;
+        boolean holdingSuns = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                || (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
+        if (!holdingSuns) return;
+        ClientAuraTracker.MavuikaDisplayState state = ClientAuraTracker.getMavuika(mc.player.getId());
+        if (state == null) return;
+        float auraTicks = state.effectiveAuraTicks();
+        float points = state.nightsoulPoints;
+        if (auraTicks <= 0.0F && points <= 0.001F) return;
+
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        float cx = sw * 0.5F - 38.0F;
+        float cy = sh * 0.5F;
+
+        float startDeg = 128.0F;
+        float endDeg = 232.0F;
+        int segments = 24;
+
+        Matrix4f mat = guiGraphics.pose().last().pose();
+        VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+
+        float ultiCdTicks = state.effectiveUltiCooldownTicks();
+        boolean cdReady = ultiCdTicks <= 0.0F;
+        boolean qReady = points >= 5.0F && cdReady;
+
+        drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments, 18, 12, 16, qReady ? 195 : 135);
+
+        float nsFrac = Mth.clamp(points / 10.0F, 0.0F, 1.0F);
+        if (nsFrac > 0.005F) {
+            float fillEnd = Mth.lerp(nsFrac, startDeg, endDeg);
+            float pulse = qReady ? (0.85F + 0.15F * Mth.sin(System.currentTimeMillis() * 0.01F)) : 1.0F;
+            int r = qReady ? 255 : (cdReady ? 175 : 120);
+            int g = qReady ? Math.round(215 * pulse) : (cdReady ? 75 : 48);
+            int b = qReady ? Math.round(70 * pulse) : (cdReady ? 22 : 18);
+            int a = qReady ? 250 : 175;
+            drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * nsFrac)), r, g, b, a);
+        }
+
+        float midDeg = (startDeg + endDeg) * 0.5F;
+        drawHudArc(vc, mat, cx, cy, 27.5F, 36.5F, midDeg - 1.8F, midDeg + 1.8F, 1,
+                qReady ? 255 : 150, qReady ? 245 : 135, qReady ? 190 : 105, qReady ? 245 : 155);
+
+        // Shared Nightsoul's Blessing curved red bar (80 max C0 / 120 max C1 Netherite, 10 pts per segment)
+        if (auraTicks > 0.0F) {
+            float fuelFrac = Mth.clamp(state.nightsoulFuel() / state.maxNightsoulFuel(), 0.0F, 1.0F);
+            int fuelTicks = state.netherite ? 12 : 8;
+            drawHudArc(vc, mat, cx, cy, 35.0F, 42.5F, startDeg, endDeg, segments, 24, 10, 10, 210);
+            if (fuelFrac > 0.005F) {
+                int fillSegs = Math.max(2, Math.round(segments * fuelFrac));
+                for (int s = 0; s < fillSegs; s++) {
+                    float f0 = (float) s / segments;
+                    float f1 = Math.min(fuelFrac, (float) (s + 1) / segments);
+                    if (f1 <= f0) break;
+                    float d0 = Mth.lerp(f0, startDeg, endDeg);
+                    float d1 = Mth.lerp(f1, startDeg, endDeg);
+                    float t = (f0 + f1) * 0.5F;
+                    int r = 240 + Math.round(15.0F * t);
+                    int g = 38 + Math.round(135.0F * t);
+                    int b = 16 + Math.round(28.0F * t);
+                    drawHudArc(vc, mat, cx, cy, 35.8F, 41.7F, d0, d1, 1, r, g, b, 245);
+                }
+            }
+            for (int tick = 1; tick < fuelTicks; tick++) {
+                float tickDeg = Mth.lerp(tick / (float) fuelTicks, startDeg, endDeg);
+                drawHudArc(vc, mat, cx, cy, 34.8F, 42.7F, tickDeg - 1.3F, tickDeg + 1.3F, 1, 10, 6, 6, 255);
+            }
+        }
+
+        guiGraphics.flush();
+
+        Font font = mc.font;
+        int labelX = Math.round(cx - 46);
+        int labelY = Math.round(cy - 4);
+        String valText = String.format(java.util.Locale.ROOT, "%.1f", points);
+        int valColor = qReady ? 0xFFFFE066 : (cdReady ? 0xFFCC7744 : 0xFF996655);
+        guiGraphics.drawString(font, valText, labelX, labelY - 5, valColor, true);
+        if (qReady) {
+            guiGraphics.drawString(font, "[R]", labelX + 2, labelY + 5, 0xFFFFF0A0, true);
+        } else if (!cdReady) {
+            String cdText = String.format(java.util.Locale.ROOT, "%.0fs", Math.ceil(ultiCdTicks / 20.0F));
+            guiGraphics.drawString(font, cdText, labelX + 2, labelY + 5, 0xFFAA8877, true);
+        }
+    }
+
+    public static void renderRaidenEyeRing(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        ClientAuraTracker.RaidenDisplayState state = ClientAuraTracker.getRaiden(entity.getId());
+        if (state == null) return;
+        float eyeTicks = state.effectiveEyeTicks();
+        float musouTicks = state.effectiveMusouTicks();
+        if (eyeTicks <= 0.0F && musouTicks <= 0.0F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        ResourceLocation eyeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_eye_aura.png");
+        VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(eyeTex));
+        poseStack.pushPose();
+        poseStack.translate(0.0F, entity.getBbHeight() * 0.78F, 0.0F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.0F, 0.0F, -0.44F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(time * (musouTicks > 0.0F ? 2.4F : 0.9F)));
+
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat = pose.pose();
+        float pulse = 1.0F + 0.04F * Mth.sin(time * 0.20F);
+        float half = (musouTicks > 0.0F ? 0.96F : 0.84F) * pulse;
+        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        int cr = state.netherite ? 255 : 238;
+        int cg = state.netherite ? 235 : 200;
+        int cb = 255;
+        int ca = 242;
+
+        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+
+        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+
+        poseStack.popPose();
+    }
+
+    private static void renderRaidenHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null) return;
+        ClientAuraTracker.RaidenDisplayState state = ClientAuraTracker.getRaiden(mc.player.getId());
+        boolean holdingRaiden = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
+                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+        if (state == null) return;
+        float eyeTicks = state.effectiveEyeTicks();
+        float musouTicks = state.effectiveMusouTicks();
+        if (!holdingRaiden && eyeTicks <= 0.0F && musouTicks <= 0.0F) return;
+
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        float cx = sw * 0.5F + 38.0F;
+        float cy = sh * 0.5F;
+
+        Matrix4f mat = guiGraphics.pose().last().pose();
+        VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+
+        float startDeg = -52.0F;
+        float endDeg = 52.0F;
+        int segments = 20;
+
+        // Background Chakra Desiderata arc (Resolve 0..60)
+        drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments, 28, 12, 42, 165);
+        float resolveFrac = Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
+        if (resolveFrac > 0.01F) {
+            float fillEnd = Mth.lerp(resolveFrac, startDeg, endDeg);
+            drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * resolveFrac)), 195, 95, 255, 240);
+        }
+
+        // Outer Musou Isshin 7s arc when active
+        if (musouTicks > 0.0F) {
+            float mFrac = Mth.clamp(musouTicks / 140.0F, 0.0F, 1.0F);
+            drawHudArc(vc, mat, cx, cy, 36.0F, 41.0F, startDeg, endDeg, segments, 22, 8, 36, 190);
+            if (mFrac > 0.01F) {
+                float mEnd = Mth.lerp(mFrac, startDeg, endDeg);
+                drawHudArc(vc, mat, cx, cy, 36.5F, 40.5F, startDeg, mEnd, Math.max(2, Math.round(segments * mFrac)), 235, 175, 255, 250);
+            }
+        }
+        guiGraphics.flush();
+
+        Font font = mc.font;
+        int labelX = Math.round(cx + 38);
+        int labelY = Math.round(cy - 9);
+        if (eyeTicks > 0.0F) {
+            String eyeStr = String.format(java.util.Locale.ROOT, "\u25C9 %.0fs", Math.ceil(eyeTicks / 20.0F));
+            guiGraphics.drawString(font, eyeStr, labelX, labelY, 0xFFD99BFF, true);
+            labelY += 10;
+        }
+        guiGraphics.drawString(font, "Resolve " + state.resolve + "/60", labelX, labelY, 0xFFE6C2FF, true);
+        if (musouTicks > 0.0F) {
+            String mStr = String.format(java.util.Locale.ROOT, "Musou %.1fs", musouTicks / 20.0F);
+            guiGraphics.drawString(font, mStr, labelX, labelY + 10, 0xFFFFD6FF, true);
+        }
+    }
+
+    private static void drawHudArc(VertexConsumer vc, Matrix4f mat, float cx, float cy,
+                                   float rIn, float rOut, float startDeg, float endDeg, int segs,
+                                   int r, int g, int b, int a) {
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) Math.toRadians(Mth.lerp((float) i / segs, startDeg, endDeg));
+            float a1 = (float) Math.toRadians(Mth.lerp((float) (i + 1) / segs, startDeg, endDeg));
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+
+            vc.addVertex(mat, cx + c0 * rIn, cy + s0 * rIn, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, cx + c1 * rIn, cy + s1 * rIn, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, cx + c1 * rOut, cy + s1 * rOut, 0.0F).setColor(r, g, b, a);
+            vc.addVertex(mat, cx + c0 * rOut, cy + s0 * rOut, 0.0F).setColor(r, g, b, a);
+        }
     }
 }

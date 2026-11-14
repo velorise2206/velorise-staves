@@ -2,10 +2,13 @@ package com.velorise.staves.element;
 
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.item.ArcaneStaffItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import org.joml.Vector3f;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -133,6 +136,26 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_SKILL_STAR = new ConcurrentHashMap<>();
     private static final Map<UUID, Float> NIGHTS_FOCUS_BASE_HP = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> NIGHTS_FOCUS_PENDING_SHOTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_AURA_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> MAVUIKA_AURA_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_AURA_NEXT_STRIKE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> MAVUIKA_NIGHTSOUL_POINTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> MAVUIKA_NIGHTSOUL_FUEL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_CRUCIBLE_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> MAVUIKA_CRUCIBLE_POINTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_LAST_NA_FS_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_SKILL_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> MAVUIKA_ULTI_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_EYE_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> RAIDEN_EYE_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_EYE_NEXT_PROC = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> RAIDEN_RESOLVE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_MUSOU_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> RAIDEN_MUSOU_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_SKILL_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_BURST_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> RAIDEN_NA_COMBO = new ConcurrentHashMap<>();
+    private static final ThreadLocal<Boolean> IS_PROCESSING_RAIDEN_PROC = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
@@ -158,6 +181,25 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Map<String, Long>> DRACONIC_GLORIES_STACKS = new ConcurrentHashMap<>();
     public record SourcewaterDroplet(ServerLevel level, Vec3 pos, long spawnTick, @Nullable UUID ownerId) {}
     private static final java.util.List<SourcewaterDroplet> SOURCEWATER_DROPLETS = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final class DaybreakVortexField {
+        final ServerLevel level;
+        final Vec3 center;
+        final UUID ownerId;
+        final boolean isNetherite;
+        final long expireTick;
+        final double radius;
+        @Nullable Element absorbedElement;
+
+        DaybreakVortexField(ServerLevel level, Vec3 center, UUID ownerId, boolean isNetherite, long expireTick, double radius) {
+            this.level = level;
+            this.center = center;
+            this.ownerId = ownerId;
+            this.isNetherite = isNetherite;
+            this.expireTick = expireTick;
+            this.radius = radius;
+        }
+    }
+    private static final java.util.List<DaybreakVortexField> DAYBREAK_VORTICES = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static final long HP_CHANGE_BUFF_TICKS = 200L;
 
     public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
@@ -325,7 +367,7 @@ public final class ElementalGaugeManager {
         if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
             ElementalDeathMessageHelper.recordReactionForDeath(target, reaction, trigger != null ? trigger : reactedAura, CURRENT_REACTION_ATTACKER.get());
         }
-        if (alive && reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE
+        if (alive && damage > 0.0F && reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE
                 && reaction != ElementalReaction.BLOOM && reaction != ElementalReaction.REVERSE_BLOOM
                 && reaction != ElementalReaction.BURGEON && reaction != ElementalReaction.HYPERBLOOM
                 && !(reaction == ElementalReaction.BURNING
@@ -727,6 +769,21 @@ public final class ElementalGaugeManager {
         NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
         NIGHTS_FOCUS_BASE_HP.remove(id);
         NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+        MAVUIKA_AURA_UNTIL.remove(id);
+        MAVUIKA_AURA_NETHERITE.remove(id);
+        MAVUIKA_AURA_NEXT_STRIKE.remove(id);
+        MAVUIKA_NIGHTSOUL_POINTS.remove(id);
+        MAVUIKA_LAST_NA_FS_TICK.remove(id);
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(id);
+        RAIDEN_EYE_UNTIL.remove(id);
+        RAIDEN_EYE_NETHERITE.remove(id);
+        RAIDEN_EYE_NEXT_PROC.remove(id);
+        RAIDEN_RESOLVE.remove(id);
+        RAIDEN_MUSOU_UNTIL.remove(id);
+        RAIDEN_MUSOU_NETHERITE.remove(id);
+        RAIDEN_SKILL_CD_UNTIL.remove(id);
+        RAIDEN_BURST_CD_UNTIL.remove(id);
+        RAIDEN_NA_COMBO.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
         com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
@@ -810,6 +867,21 @@ public final class ElementalGaugeManager {
         NIGHTS_FOCUS_BASE_HP.clear();
         NIGHTS_FOCUS_PENDING_SHOTS.clear();
         NIGHTS_FOCUS_PROJECTILES.clear();
+        MAVUIKA_AURA_UNTIL.clear();
+        MAVUIKA_AURA_NETHERITE.clear();
+        MAVUIKA_AURA_NEXT_STRIKE.clear();
+        MAVUIKA_NIGHTSOUL_POINTS.clear();
+        MAVUIKA_LAST_NA_FS_TICK.clear();
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.clear();
+        RAIDEN_EYE_UNTIL.clear();
+        RAIDEN_EYE_NETHERITE.clear();
+        RAIDEN_EYE_NEXT_PROC.clear();
+        RAIDEN_RESOLVE.clear();
+        RAIDEN_MUSOU_UNTIL.clear();
+        RAIDEN_MUSOU_NETHERITE.clear();
+        RAIDEN_SKILL_CD_UNTIL.clear();
+        RAIDEN_BURST_CD_UNTIL.clear();
+        RAIDEN_NA_COMBO.clear();
         LAST_ELEMENTAL_ARMOR_WEAR.clear();
         SOURCEWATER_DROPLETS.clear();
         ICD_TRACKER.clear();
@@ -1171,6 +1243,395 @@ public final class ElementalGaugeManager {
         return 1.0F + (bestPoints / 300.0F) * maxBonus;
     }
 
+    public static boolean isMavuikaOnCooldown(UUID id, long now) {
+        Long cdUntil = MAVUIKA_SKILL_COOLDOWN_UNTIL.get(id);
+        return cdUntil != null && now < cdUntil;
+    }
+
+    public static void activateMavuikaSunAura(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
+        if (player == null || player.level().isClientSide()) return;
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        float maxFuel = isNetherite ? 120.0F : 80.0F; // Genshin C0: 80, C1 (Netherite): 120 max Nightsoul points
+        MAVUIKA_AURA_UNTIL.put(id, now + 400L);
+        MAVUIKA_NIGHTSOUL_FUEL.put(id, maxFuel);
+        MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
+        MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.put(id, now + 300L); // Genshin Mavuika E cooldown: 15.0s (300 ticks)
+        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, Math.round(maxFuel * 10.0F), pts, isNetherite);
+        for (int a = 0; a < 12; a++) {
+            double ang = a * (Math.PI * 2.0D / 12.0D);
+            double px = player.getX() + Math.cos(ang) * 0.9D;
+            double pz = player.getZ() + Math.sin(ang) * 0.9D;
+            level.sendParticles(ParticleTypes.FLAME, px, player.getY() + 1.05D, pz, 2, 0.05D, 0.12D, 0.05D, 0.02D);
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.1F);
+    }
+
+    private static boolean isMavuikaInCombat(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return false;
+        ServerLevel level = player.serverLevel();
+        AABB nearBox = player.getBoundingBox().inflate(14.0D, 6.0D, 14.0D);
+        return !level.getEntitiesOfClass(LivingEntity.class, nearBox,
+                e -> e.isAlive() && !e.isRemoved() && !(e instanceof Player) && !isPassiveAquaticOrAmbient(e)).isEmpty();
+    }
+
+    public static void consumeMavuikaNightsoulFuel(ServerPlayer player, float amount) {
+        if (player == null || amount <= 0.0F) return;
+        UUID id = player.getUUID();
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        if (now < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return; // Crucible of Death and Life: no Nightsoul cost
+        Float cur = MAVUIKA_NIGHTSOUL_FUEL.get(id);
+        if (cur == null || cur <= 0.0F) return;
+        float next = Math.max(0.0F, cur - amount);
+        float drained = cur - next;
+        MAVUIKA_NIGHTSOUL_FUEL.put(id, next);
+        if (drained > 0.0F && isMavuikaInCombat(player)) {
+            // Genshin: Only when in combat do consumed Nightsoul points convert to Fighting Spirit (C1 Netherite: +25% efficiency)
+            boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, false);
+            float fsEfficiency = neth ? 1.25F : 1.0F;
+            float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+            MAVUIKA_NIGHTSOUL_POINTS.put(id, Math.min(10.0F, curPts + drained * 0.05F * fsEfficiency));
+        }
+    }
+
+    public static void addMavuikaNormalAttackFightingSpirit(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        UUID id = player.getUUID();
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        boolean holdingMain = main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
+        boolean holdingOff = off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
+        if (!holdingMain && !holdingOff && !isMavuikaAuraActive(id, now)) return;
+        long lastNaFs = MAVUIKA_LAST_NA_FS_TICK.getOrDefault(id, -100L);
+        if (now - lastNaFs < 2L) return; // Genshin A1 passive: 0.1s ICD
+        MAVUIKA_LAST_NA_FS_TICK.put(id, now);
+        boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id,
+                (holdingMain && ((com.velorise.staves.item.ArcaneStaffItem) main.getItem()).isNetherite())
+                        || (holdingOff && ((com.velorise.staves.item.ArcaneStaffItem) off.getItem()).isNetherite()));
+        float fsEfficiency = neth ? 1.25F : 1.0F;
+        float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        float updated = Math.min(10.0F, curPts + 0.075F * fsEfficiency); // Genshin: +1.5 Fighting Spirit per NA hit (C1: +25%)
+        if (updated != curPts) {
+            MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
+            int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
+            com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, updated, neth);
+        }
+    }
+
+    public static boolean isMavuikaAuraActive(UUID id, long now) {
+        return MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) > 0.01F;
+    }
+
+    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
+        summonAndMountFlamestrider(player, isNetherite, cooldownTicks, true);
+    }
+
+    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks, boolean dealCastSweep) {
+        if (player == null || player.level().isClientSide()) return;
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        boolean firstCast = !isMavuikaAuraActive(player.getUUID(), now);
+        if (firstCast) {
+            activateMavuikaSunAura(player, isNetherite, cooldownTicks);
+        }
+        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+            return;
+        }
+        com.velorise.staves.entity.FlamestriderBikeEntity bike =
+                com.velorise.staves.VeloriseStavesMod.FLAMESTRIDER_BIKE.get().create(level);
+        if (bike == null) return;
+        bike.moveTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
+        bike.setOwner(player);
+        bike.setNetherite(isNetherite);
+        level.addFreshEntity(bike);
+        player.startRiding(bike, true);
+        if (firstCast && dealCastSweep) {
+            // Genshin Hold E (first cast): initial forward bike tail-whip Pyro sweep on mount
+            float castDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite) * 0.65F;
+            Vec3 fwd = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
+            Vec3 sweepCenter = player.position().add(fwd.scale(2.0D)).add(0.0D, 0.5D, 0.0D);
+            AABB sweepBox = new AABB(sweepCenter.x - 3.6D, sweepCenter.y - 1.5D, sweepCenter.z - 3.6D,
+                    sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D);
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                    e -> e.isAlive() && !e.isRemoved() && e != player && !isPassiveAquaticOrAmbient(e))) {
+                applyElement(level, target, Element.PYRO, isNetherite ? 1.5F : 1.0F, player, castDmg);
+                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                        10, 0.25D, 0.25D, 0.25D, 0.05D);
+            }
+            bike.triggerMountWhip();
+        }
+        level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.5D, player.getZ(), 22, 0.55D, 0.3D, 0.55D, 0.07D);
+        level.playSound(null, player.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.9F, 0.95F);
+    }
+
+    public static void toggleMavuikaBike(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            player.stopRiding();
+            bike.discard();
+            return;
+        }
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        com.velorise.staves.item.ArcaneStaffItem staff = null;
+        if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            staff = sm;
+        } else if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            staff = so;
+        }
+        if (staff == null || ElementalResonanceManager.isOverloaded(player)) return;
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        if (!isMavuikaAuraActive(player.getUUID(), now) && isMavuikaOnCooldown(player.getUUID(), now)) return;
+        summonAndMountFlamestrider(player, staff.isNetherite(), staff.getCooldownTicks());
+    }
+
+    public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) {
+        if (!(target instanceof ServerPlayer sp)) return 0;
+        long now = sp.serverLevel().getServer().overworld().getGameTime();
+        return (int) Math.max(0L, MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(sp.getUUID(), 0L) - now);
+    }
+
+    public static float getMavuikaCrucibleNaBonusMultiplier(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return 0.0F;
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (now >= MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return 0.0F;
+        // Genshin Lv.10 Crucible: +0.51% ATK per Fighting Spirit (1.0 mod pt = 20 FS; 1.0x baseDmg ~= 200% ATK)
+        return MAVUIKA_CRUCIBLE_POINTS.getOrDefault(id, 0.0F) * 0.051F;
+    }
+
+    public static float getMavuikaCrucibleChargedBonusMultiplier(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return 0.0F;
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (now >= MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return 0.0F;
+        // Genshin Lv.10 Crucible: +1.02% ATK per Fighting Spirit (1.0 mod pt = 20 FS; 1.0x baseDmg ~= 200% ATK)
+        return MAVUIKA_CRUCIBLE_POINTS.getOrDefault(id, 0.0F) * 0.102F;
+    }
+
+    public static void triggerMavuikaUlti(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        com.velorise.staves.item.ArcaneStaffItem sunsStaff = null;
+        if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            sunsStaff = sm;
+        } else if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            sunsStaff = so;
+        }
+        if (sunsStaff == null) return;
+        boolean isNetherite = sunsStaff.isNetherite();
+
+        UUID id = player.getUUID();
+        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        if (pts < 5.0F) return;
+
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        if (now < MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L)) return; // 18.0s Genshin Q cooldown
+        MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
+        float clampedPts = Math.min(10.0F, pts);
+        // Genshin Lv.10 Sunfell Slice: 800.64% + 2.9% * FS (1.0 mod pt = 20 FS; 1.0x baseDmg ~= 200% ATK -> 4.00x + 0.29x/pt)
+        float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite);
+        float ultiDmg = baseDmg * (4.00F + clampedPts * 0.29F);
+
+        MAVUIKA_NIGHTSOUL_POINTS.put(id, 0.0F);
+        if (!isMavuikaAuraActive(id, now)) {
+            MAVUIKA_AURA_UNTIL.put(id, now + 140L);
+            MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
+            MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
+        } else {
+            MAVUIKA_AURA_UNTIL.put(id, Math.max(MAVUIKA_AURA_UNTIL.getOrDefault(id, 0L), now + 140L));
+        }
+
+        if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+            summonAndMountFlamestrider(player, isNetherite, 300, false);
+        }
+        MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F), 60.0F));
+        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
+        MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
+        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            bike.startUltiSlam(ultiDmg);
+        } else {
+            executeMavuikaUltiImpact(level, player, ultiDmg);
+        }
+
+        int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
+        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, 0.0F, isNetherite);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player,
+                com.velorise.staves.advancement.ModAdvancements.EVENT_RAT_FROM_THE_SKY);
+    }
+
+    public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) {
+        if (level == null || player == null || !player.isAlive()) return;
+        Vec3 forward = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
+        Vec3 origin = player.position();
+        AABB box = player.getBoundingBox().inflate(5.5D, 2.5D, 5.5D);
+        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && !e.isRemoved() && e != player);
+        for (LivingEntity target : targets) {
+            Vec3 toTarget = target.position().subtract(origin);
+            double distSqr = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+            if (distSqr > 25.0D || Math.abs(toTarget.y) > 3.2D) continue;
+            Vec3 horiz = new Vec3(toTarget.x, 0.0D, toTarget.z);
+            if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < 0.0D) continue;
+            applyElement(level, target, Element.PYRO, 2.0F, player, ultiDmg);
+        }
+
+        Vec3 slamCenter = origin.add(forward.scale(2.5D));
+        level.sendParticles(ParticleTypes.EXPLOSION, slamCenter.x, slamCenter.y + 0.8D, slamCenter.z, 2, 0.6D, 0.3D, 0.6D, 0.0D);
+        for (int a = -90; a <= 90; a += 15) {
+            Vec3 dir = Vec3.directionFromRotation(0.0F, player.getYRot() + a);
+            for (double r = 1.5D; r <= 5.0D; r += 1.2D) {
+                Vec3 p = origin.add(dir.scale(r));
+                level.sendParticles(ParticleTypes.FLAME, p.x, origin.y + 0.4D, p.z, 3, 0.12D, 0.18D, 0.12D, 0.04D);
+                level.sendParticles(ParticleTypes.LAVA, p.x, origin.y + 0.5D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
+            }
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.0F, 0.9F);
+        level.playSound(null, player.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0F, 0.8F);
+    }
+
+    private static void tickMavuikaSunAura(MinecraftServer server, long serverNow) {
+        if (MAVUIKA_NIGHTSOUL_FUEL.isEmpty() && MAVUIKA_AURA_UNTIL.isEmpty() && MAVUIKA_NIGHTSOUL_POINTS.isEmpty()) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            UUID id = player.getUUID();
+            float fuel = MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F);
+            boolean active = fuel > 0.01F;
+            boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, false);
+            if (!active) {
+                if (MAVUIKA_AURA_UNTIL.remove(id) != null || MAVUIKA_NIGHTSOUL_FUEL.remove(id) != null) {
+                    if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                        player.stopRiding();
+                        bike.discard();
+                    }
+                    float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+                    com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
+                    int remCd = (int) Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - serverNow);
+                    if (remCd > 0) {
+                        for (ItemStack invStack : player.getInventory().items) {
+                            if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                                player.getCooldowns().addCooldown(staff, remCd);
+                            }
+                        }
+                        ItemStack off = player.getOffhandItem();
+                        if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                            player.getCooldowns().addCooldown(staff, remCd);
+                        }
+                    }
+                }
+                continue;
+            }
+            if (!player.isAlive()) {
+                MAVUIKA_AURA_UNTIL.remove(id);
+                MAVUIKA_NIGHTSOUL_FUEL.remove(id);
+                MAVUIKA_NIGHTSOUL_POINTS.remove(id);
+                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, 0.0F, neth);
+                continue;
+            }
+
+            ServerLevel level = player.serverLevel();
+            boolean onBike = player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity;
+            boolean crucibleActive = serverNow < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L);
+            float drainPerTick = 0.325F; // ~6.5 pts/s off-bike Sun Ring (~12.3s)
+            if (crucibleActive) {
+                drainPerTick = 0.0F; // Crucible of Death and Life: 7s without Nightsoul consumption
+            } else if (onBike && player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                drainPerTick = 0.45F; // 9 pts/s base riding
+                if (bike.isDashingServer()) {
+                    drainPerTick = 1.45F; // 29 pts/s while dashing
+                } else if (bike.isInWater()) {
+                    drainPerTick = 0.70F; // 14 pts/s surfing water
+                } else if (bike.isGliding()) {
+                    drainPerTick = 0.60F; // 12 pts/s gliding mid-air
+                } else if (bike.isBikeSprinting()) {
+                    drainPerTick = 0.70F; // 14 pts/s continuous hold-sprint
+                } else if (bike.isSpinning()) {
+                    drainPerTick = 0.55F; // 11 pts/s Charged Attack
+                }
+            }
+            float prevFuel = fuel;
+            fuel = Math.max(0.0F, fuel - drainPerTick);
+            float drained = prevFuel - fuel;
+            if (drained > 0.0F && isMavuikaInCombat(player)) {
+                float fsEfficiency = neth ? 1.25F : 1.0F;
+                float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+                MAVUIKA_NIGHTSOUL_POINTS.put(id, Math.min(10.0F, curPts + drained * 0.05F * fsEfficiency));
+            }
+            MAVUIKA_NIGHTSOUL_FUEL.put(id, fuel);
+            if (fuel <= 0.01F) {
+                MAVUIKA_NIGHTSOUL_FUEL.remove(id);
+                MAVUIKA_AURA_UNTIL.remove(id);
+                if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                    if (!bike.isSpinning() && !bike.isFinisherPlaying()
+                            && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
+                        player.stopRiding();
+                        bike.discard();
+                    }
+                }
+                float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
+                int remCd = (int) Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - serverNow);
+                if (remCd > 0) {
+                    for (ItemStack invStack : player.getInventory().items) {
+                        if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                            player.getCooldowns().addCooldown(staff, remCd);
+                        }
+                    }
+                    ItemStack off = player.getOffhandItem();
+                    if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                            && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                        player.getCooldowns().addCooldown(staff, remCd);
+                    }
+                }
+                continue;
+            }
+            long nextStrike = MAVUIKA_AURA_NEXT_STRIKE.getOrDefault(id, 0L);
+            if (!onBike && serverNow >= nextStrike) {
+                MAVUIKA_AURA_NEXT_STRIKE.put(id, serverNow + 40L);
+                double radius = neth ? 8.0D : 6.0D;
+                AABB box = player.getBoundingBox().inflate(radius, 3.5D, radius);
+                List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, box,
+                        cand -> cand.isAlive() && !cand.isRemoved() && cand != player && !isPassiveAquaticOrAmbient(cand)
+                                && cand.distanceToSqr(player) <= radius * radius);
+                if (!candidates.isEmpty()) {
+                    candidates.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(player)));
+                    int maxTargets = Math.min(10, candidates.size()); // Genshin Ring of Searing Radiance: up to 10 opponents
+                    float strikeDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth) * 0.5F;
+                    for (int ti = 0; ti < maxTargets; ti++) {
+                        LivingEntity target = candidates.get(ti);
+                        applyElement(level, target, Element.PYRO, neth ? 1.5F : 1.0F, player, strikeDmg);
+                        for (int h = 0; h < 6; h++) {
+                            level.sendParticles(ParticleTypes.FLAME,
+                                    target.getX(), target.getY() + target.getBbHeight() + 0.3D + h * 0.45D, target.getZ(),
+                                    2, 0.08D, 0.08D, 0.08D, 0.02D);
+                        }
+                    }
+                    level.playSound(null, candidates.get(0).blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.55F, 1.35F);
+                }
+            }
+
+            if (serverNow % 2L == 0L) {
+                int rem = Math.max(1, Math.round(fuel * 10.0F));
+                float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, pts, neth);
+            }
+        }
+    }
+
     /**
      * Silently adjusts an entity's health (e.g. Furina's Salon Solitaire HP offer or Neuvillette's beam)
      * without triggering any hurt sound, red hurt flash, camera tilt, or knockback impulse.
@@ -1257,6 +1718,21 @@ public final class ElementalGaugeManager {
         NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
         NIGHTS_FOCUS_BASE_HP.remove(id);
         NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+        MAVUIKA_AURA_UNTIL.remove(id);
+        MAVUIKA_AURA_NETHERITE.remove(id);
+        MAVUIKA_AURA_NEXT_STRIKE.remove(id);
+        MAVUIKA_NIGHTSOUL_POINTS.remove(id);
+        MAVUIKA_LAST_NA_FS_TICK.remove(id);
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(id);
+        RAIDEN_EYE_UNTIL.remove(id);
+        RAIDEN_EYE_NETHERITE.remove(id);
+        RAIDEN_EYE_NEXT_PROC.remove(id);
+        RAIDEN_RESOLVE.remove(id);
+        RAIDEN_MUSOU_UNTIL.remove(id);
+        RAIDEN_MUSOU_NETHERITE.remove(id);
+        RAIDEN_SKILL_CD_UNTIL.remove(id);
+        RAIDEN_BURST_CD_UNTIL.remove(id);
+        RAIDEN_NA_COMBO.remove(id);
         long now = player.level().getGameTime();
         Element cryst = CrystallizeShardManager.getActiveShield(player, now);
         if (cryst == null) {
@@ -1706,13 +2182,46 @@ public final class ElementalGaugeManager {
         }
     }
 
+    private static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && staff.isNetherite()) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && staff.isNetherite()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) {
+        if (damageDealt <= 0.0F || !(victim instanceof ServerPlayer sp)) return;
+        if (sp.getAbsorptionAmount() > 0.0F) return;
+        if (!sp.isUsingItem()) return;
+        ItemStack active = sp.getUseItem();
+        if (active.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                && !staff.isNetherite()) {
+            sp.stopUsingItem();
+            sp.serverLevel().playSound(null, sp.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.PLAYERS, 0.55F, 1.25F);
+        }
+    }
+
     public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) {
         if (entity == null) return 0;
+        int c1Base = hasNetheriteGuardianLens(entity) ? 1 : 0;
         Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.get(entity.getUUID());
-        if (stacks == null || stacks.isEmpty()) return 0;
+        if (stacks == null || stacks.isEmpty()) return c1Base;
         long now = entity.level().getGameTime();
         stacks.entrySet().removeIf(e -> now >= e.getValue());
-        return Math.min(3, stacks.size());
+        return Math.min(3, stacks.size() + c1Base);
     }
 
     public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) {
@@ -4505,6 +5014,7 @@ public final class ElementalGaugeManager {
         }
 
         tickSourcewaterDroplets(server, serverNow);
+        tickDaybreakVortices(server, serverNow);
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());
@@ -4845,6 +5355,8 @@ public final class ElementalGaugeManager {
 
         // 7. Environmental water, fire, lingering potion clouds & cryo checks on active online players
         tickNightsFocusProjectiles();
+        tickMavuikaSunAura(server, serverNow);
+        tickRaidenState(server, serverNow);
         Set<UUID> visitedNearby = new HashSet<>();
         Set<UUID> visitedClouds = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -5231,6 +5743,493 @@ public final class ElementalGaugeManager {
                             false
                     );
             entry.level().addFreshEntity(construct);
+        }
+    }
+
+    public static void summonDaybreakVortex(ServerPlayer owner, Vec3 center, boolean isNetherite) {
+        ServerLevel level = owner.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        long duration = 160L; // 8.0s Genshin Wind's Grand Ode (same for Basic & Netherite)
+        double radius = isNetherite ? 12.0D : 8.0D; // 8m Basic, 12m Netherite (x1.5)
+        DAYBREAK_VORTICES.removeIf(v -> v.ownerId.equals(owner.getUUID()));
+        DAYBREAK_VORTICES.add(new DaybreakVortexField(level, center, owner.getUUID(), isNetherite, now + duration, radius));
+        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, center.x, center.y + 0.9D, center.z, 2, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, center.x, center.y + 0.9D, center.z, 3, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.sendParticles(ParticleTypes.GUST, center.x, center.y + 0.9D, center.z, 4, 0.0D, 0.0D, 0.0D, 0.0D);
+        level.playSound(null, center.x, center.y, center.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.2F, 0.85F);
+    }
+
+    private static void tickDaybreakVortices(MinecraftServer server, long serverNow) {
+        if (DAYBREAK_VORTICES.isEmpty()) return;
+        DAYBREAK_VORTICES.removeIf(v -> serverNow >= v.expireTick || v.level == null);
+        for (DaybreakVortexField vortex : DAYBREAK_VORTICES) {
+            ServerLevel level = vortex.level;
+            Vec3 center = vortex.center;
+            double radius = vortex.radius;
+            double radiusSqr = radius * radius;
+            ServerPlayer owner = server.getPlayerList().getPlayer(vortex.ownerId);
+
+            if (serverNow % 2L == 0L) {
+                double cx = center.x;
+                double cy = center.y + 1.0D;
+                double cz = center.z;
+                // Concentric Breeze rings around the exact Stormeye center (small -> medium -> outer Q range), no messy dust
+                if (serverNow % 4L == 0L) {
+                    level.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, cx, cy, cz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                }
+                double[] ringRadii = { 1.25D, radius * 0.50D, radius * 0.92D };
+                double baseAngle = (serverNow * 0.14D);
+                for (int rIdx = 0; rIdx < ringRadii.length; rIdx++) {
+                    double r = ringRadii[rIdx];
+                    int points = rIdx == 0 ? 4 : (rIdx == 1 ? 6 : 8);
+                    double dirSign = (rIdx % 2 == 0) ? 1.0D : -1.0D;
+                    for (int p = 0; p < points; p++) {
+                        double angle = baseAngle * dirSign + (Math.PI * 2.0D * p) / points;
+                        double px = cx + Math.cos(angle) * r;
+                        double pz = cz + Math.sin(angle) * r;
+                        double py = cy + Math.sin(angle * 2.0D + serverNow * 0.1D) * (0.25D + rIdx * 0.15D);
+                        level.sendParticles(ParticleTypes.GUST, px, py, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                        if (vortex.absorbedElement != null) {
+                            var absorbedParticle = switch (vortex.absorbedElement) {
+                                case PYRO -> ParticleTypes.FLAME;
+                                case HYDRO -> ParticleTypes.SPLASH;
+                                case ELECTRO -> ParticleTypes.ELECTRIC_SPARK;
+                                case CRYO -> ParticleTypes.SNOWFLAKE;
+                                default -> ParticleTypes.GUST;
+                            };
+                            if (p % 2 == 0) {
+                                level.sendParticles(absorbedParticle, px, py, pz, 1, 0.0D, 0.0D, 0.0D, 0.01D);
+                            }
+                        }
+                    }
+                }
+
+                AABB pullBox = new AABB(center, center).inflate(radius);
+                Vec3 eyeTarget = center.add(0.0D, 0.85D, 0.0D);
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, pullBox, e -> e.isAlive() && !e.isRemoved())) {
+                    if (target.getUUID().equals(vortex.ownerId)) continue;
+                    if (target instanceof net.minecraft.world.entity.TamableAnimal tame && vortex.ownerId.equals(tame.getOwnerUUID())) continue;
+                    if (target instanceof ServerPlayer && !server.isPvpAllowed()) continue;
+                    if (isEntityFrozen(target)) continue;
+                    double distSqr = target.position().distanceToSqr(center);
+                    if (distSqr > radiusSqr) continue;
+
+                    Vec3 diff = eyeTarget.subtract(target.getBoundingBox().getCenter());
+                    double dist = diff.length();
+                    if (dist > 0.25D) {
+                        Vec3 dir = diff.scale(1.0D / dist);
+                        double bossScale = target.getMaxHealth() >= 100.0F ? 0.35D : 1.0D;
+                        double pullStrength = Math.min(0.42D, 0.16D + (dist / radius) * 0.26D) * bossScale;
+                        Vec3 cur = target.getDeltaMovement();
+                        double nextY = (target.getMaxHealth() >= 100.0F)
+                                ? cur.y
+                                : Math.max(-0.08D, Math.min(0.32D, cur.y * 0.65D + dir.y * 0.22D + 0.06D));
+                        target.setDeltaMovement(
+                                cur.x * 0.72D + dir.x * pullStrength,
+                                nextY,
+                                cur.z * 0.72D + dir.z * pullStrength
+                        );
+                        target.fallDistance = 0.0F;
+                        target.hurtMarked = true;
+                    }
+                }
+            }
+
+            if (serverNow % 10L == 0L) {
+                AABB tickBox = new AABB(center, center).inflate(radius);
+                List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, tickBox, e -> {
+                    if (!e.isAlive() || e.isRemoved() || e.getUUID().equals(vortex.ownerId)) return false;
+                    if (e instanceof net.minecraft.world.entity.TamableAnimal tame && vortex.ownerId.equals(tame.getOwnerUUID())) return false;
+                    if (e instanceof ServerPlayer && !server.isPvpAllowed()) return false;
+                    return e.position().distanceToSqr(center) <= radiusSqr;
+                });
+
+                if (vortex.absorbedElement == null) {
+                    Element absorbed = detectDaybreakAbsorption(level, center, targets);
+                    if (absorbed != null) {
+                        vortex.absorbedElement = absorbed;
+                        level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+                    }
+                }
+
+                float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK, vortex.isNetherite);
+                float anemoTickDmg = baseDmg * 0.6F;
+                float absorbedTickDmg = baseDmg * 0.45F;
+                for (LivingEntity target : targets) {
+                    applyElement(level, target, Element.ANEMO, 1.0F, owner, anemoTickDmg);
+                    if (vortex.absorbedElement != null) {
+                        applyElement(level, target, vortex.absorbedElement, 1.0F, owner, absorbedTickDmg);
+                    }
+                }
+                level.playSound(null, center.x, center.y, center.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 0.35F, 1.4F);
+            }
+        }
+    }
+
+    private static @Nullable Element detectDaybreakAbsorption(ServerLevel level, Vec3 center, List<LivingEntity> targets) {
+        Element[] priority = {Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO};
+        for (Element candidate : priority) {
+            for (LivingEntity target : targets) {
+                Map<Element, GaugeState> gauges = GAUGES.get(target.getUUID());
+                if (gauges != null && gauges.containsKey(candidate)) {
+                    return candidate;
+                }
+                if (candidate == Element.PYRO && target.isOnFire()) {
+                    return Element.PYRO;
+                }
+                if (candidate == Element.HYDRO && target.isInWaterOrRain()) {
+                    return Element.HYDRO;
+                }
+            }
+        }
+        // Environmental fire absorption near vortex center (Fire, Soul Fire, Lava, lit Campfire, Torches)
+        BlockPos origin = BlockPos.containing(center);
+        for (BlockPos p : BlockPos.betweenClosed(origin.offset(-3, -2, -3), origin.offset(3, 2, 3))) {
+            BlockState st = level.getBlockState(p);
+            if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.LAVA) || st.is(Blocks.MAGMA_BLOCK)
+                    || st.is(Blocks.TORCH) || st.is(Blocks.WALL_TORCH)
+                    || st.is(Blocks.SOUL_TORCH) || st.is(Blocks.SOUL_WALL_TORCH)
+                    || (st.getBlock() instanceof net.minecraft.world.level.block.CampfireBlock
+                        && (!st.hasProperty(net.minecraft.world.level.block.CampfireBlock.LIT)
+                            || st.getValue(net.minecraft.world.level.block.CampfireBlock.LIT)))) {
+                return Element.PYRO;
+            }
+        }
+        return null;
+    }
+
+    // ==================== RAIDEN SHOGUN: ENGULFING LIGHTNING ====================
+
+    private static boolean isRaidenProtectedAlly(ServerPlayer owner, LivingEntity e) {
+        if (e instanceof net.minecraft.world.entity.TamableAnimal tame && owner.getUUID().equals(tame.getOwnerUUID())) {
+            return true;
+        }
+        return e instanceof ServerPlayer && owner.getServer() != null && !owner.getServer().isPvpAllowed();
+    }
+
+    public static boolean isRaidenSkillOnCooldown(UUID id, long now) {
+        return now < RAIDEN_SKILL_CD_UNTIL.getOrDefault(id, 0L);
+    }
+
+    public static long getRaidenSkillRemainingTicks(UUID id, long now) {
+        return Math.max(0L, RAIDEN_SKILL_CD_UNTIL.getOrDefault(id, 0L) - now);
+    }
+
+    public static boolean isRaidenBurstOnCooldown(UUID id, long now) {
+        return now < RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L);
+    }
+
+    public static long getRaidenBurstRemainingTicks(UUID id, long now) {
+        return Math.max(0L, RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L) - now);
+    }
+
+    public static boolean isRaidenMusouActive(UUID id, long now) {
+        return now < RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L);
+    }
+
+    public static int getRaidenResolve(UUID id) {
+        return RAIDEN_RESOLVE.getOrDefault(id, 0);
+    }
+
+    private static void syncRaidenState(ServerPlayer player, long now) {
+        if (player == null) return;
+        UUID id = player.getUUID();
+        int eyeRem = (int) Math.max(0L, RAIDEN_EYE_UNTIL.getOrDefault(id, 0L) - now);
+        int musouRem = (int) Math.max(0L, RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L) - now);
+        int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
+        boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false) || RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
+        com.velorise.staves.network.ModNetwork.sendRaidenSync(player, eyeRem, musouRem, resolve, neth);
+    }
+
+    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) {
+        Vec3 fwd = new Vec3(forward.x, 0.0D, forward.z);
+        if (fwd.lengthSqr() < 1.0E-4D) fwd = new Vec3(0.0D, 0.0D, 1.0D);
+        else fwd = fwd.normalize();
+        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
+        Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
+        int color = (isMusouBurst || isCharged) ? 0xFFE0B0FF : 0xFFB84DFF;
+        int dur = isMusouBurst ? 10 : 6;
+
+        if (isCharged) {
+            // Charged Attack: crisp X-crescent double straight Electro slash
+            Vec3 s1 = center.add(right.scale(-span)).add(up.scale(-span * 0.55D));
+            Vec3 e1 = center.add(right.scale(span)).add(up.scale(span * 0.65D));
+            Vec3 s2 = center.add(right.scale(span)).add(up.scale(-span * 0.55D));
+            Vec3 e2 = center.add(right.scale(-span)).add(up.scale(span * 0.65D));
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
+            return;
+        }
+        if (isMusouBurst) {
+            // Musou no Hitotachi: massive wide horizontal + diagonal space-rending slash
+            Vec3 s = center.add(right.scale(-span)).add(up.scale(-0.35D));
+            Vec3 e = center.add(right.scale(span)).add(up.scale(0.55D));
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, color);
+            return;
+        }
+        // N1..N4 Musou Isshin combo angles
+        Vec3 s;
+        Vec3 e;
+        switch (Math.floorMod(comboStep, 4)) {
+            case 0 -> { // N1: diagonal down-right -> up-left
+                s = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.45D));
+                e = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.50D));
+            }
+            case 1 -> { // N2: diagonal up-right -> down-left
+                s = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.50D));
+                e = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.40D));
+            }
+            case 2 -> { // N3: sweeping horizontal cross-slash
+                s = center.add(right.scale(-span)).add(up.scale(0.08D));
+                e = center.add(right.scale(span)).add(up.scale(-0.08D));
+            }
+            default -> { // N4: upward crescent finisher
+                s = center.add(right.scale(-span * 0.65D)).add(up.scale(-span * 0.65D));
+                e = center.add(right.scale(span * 0.70D)).add(up.scale(span * 0.85D));
+            }
+        }
+        com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, color);
+    }
+
+    public static void addRaidenResolve(ServerPlayer player, int baseAmount) {
+        if (player == null || baseAmount <= 0) return;
+        boolean hasNetherite = player.getMainHandItem().getItem() instanceof ArcaneStaffItem staff
+                && staff.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                && staff.isNetherite();
+        int gained = hasNetherite ? (int) Math.ceil(baseAmount * 1.5D) : baseAmount;
+        UUID id = player.getUUID();
+        int updated = Math.min(60, RAIDEN_RESOLVE.getOrDefault(id, 0) + gained);
+        RAIDEN_RESOLVE.put(id, updated);
+        if (player.level() instanceof ServerLevel sl) {
+            syncRaidenState(player, sl.getServer().overworld().getGameTime());
+        }
+    }
+
+    public static boolean activateRaidenEye(ServerPlayer player, boolean isNetherite) {
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (isRaidenSkillOnCooldown(id, now)) {
+            double rem = getRaidenSkillRemainingTicks(id, now) / 20.0D;
+            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§dBaleful Omen CD: %.1fs", rem)), true);
+            return false;
+        }
+        RAIDEN_EYE_UNTIL.put(id, now + 300L); // Balanced E duration: 15.0s
+        RAIDEN_EYE_NETHERITE.put(id, isNetherite);
+        RAIDEN_EYE_NEXT_PROC.put(id, now + 18L); // Genshin coordinated strike ICD: 0.9s
+        RAIDEN_SKILL_CD_UNTIL.put(id, now + 200L); // Genshin E cooldown: 10.0s
+        addRaidenResolve(player, 6);
+
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
+        float dmg = (float) (3.0D * scale * StavesConfig.getDamageMultiplier());
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        double radius = isNetherite ? 6.75D : 4.5D;
+        Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
+
+        IS_PROCESSING_RAIDEN_PROC.set(true);
+        try {
+            AABB box = player.getBoundingBox().inflate(radius, 2.5D, radius);
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                target.hurt(level.damageSources().indirectMagic(player, player), dmg);
+                applyElement(level, target, Element.ELECTRO, attackU, player, dmg);
+            }
+        } finally {
+            IS_PROCESSING_RAIDEN_PROC.set(false);
+        }
+
+        DustParticleOptions electroDust = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), isNetherite ? 1.6F : 1.25F);
+        for (int i = 0; i < 24; i++) {
+            double angle = (Math.PI * 2.0D * i) / 24.0D;
+            double px = center.x + Math.cos(angle) * (radius * 0.6D);
+            double pz = center.z + Math.sin(angle) * (radius * 0.6D);
+            level.sendParticles(electroDust, px, center.y, pz, 1, 0.05D, 0.05D, 0.05D, 0.01D);
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y, center.z, 18, 0.8D, 0.4D, 0.8D, 0.08D);
+        sendRaidenSlashArc(level, center.add(player.getLookAngle().scale(1.2D)), player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6F, 1.55F);
+        player.displayClientMessage(Component.literal("§d⚡ Eye of Stormy Judgment (15s)"), true);
+        syncRaidenState(player, now);
+        return true;
+    }
+
+    public static boolean activateRaidenMusouBurst(ServerPlayer player, boolean isNetherite) {
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (isRaidenBurstOnCooldown(id, now)) {
+            double rem = getRaidenBurstRemainingTicks(id, now) / 20.0D;
+            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§dMusou Shinsetsu CD: %.1fs", rem)), true);
+            return false;
+        }
+        int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
+        RAIDEN_RESOLVE.put(id, 0);
+        float resolveMult = 1.0F + (resolve / 60.0F) * 0.75F;
+
+        RAIDEN_MUSOU_UNTIL.put(id, now + 140L); // Genshin Q Musou Isshin stance: 7.0s
+        RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
+        RAIDEN_BURST_CD_UNTIL.put(id, now + 360L); // Genshin Q cooldown: 18.0s
+
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
+        float hitotachiDmg = (float) (8.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
+        float attackU = isNetherite ? 3.0F : 2.0F;
+        double reach = isNetherite ? 9.0D : 6.0D;
+        double aoeRadius = isNetherite ? 5.25D : 3.5D;
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 slashCenter = player.getEyePosition().add(look.scale(reach * 0.5D));
+
+        IS_PROCESSING_RAIDEN_PROC.set(true);
+        try {
+            AABB box = new AABB(slashCenter, slashCenter).inflate(aoeRadius, 3.0D, aoeRadius);
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                target.hurt(level.damageSources().indirectMagic(player, player), hitotachiDmg);
+                applyElement(level, target, Element.ELECTRO, attackU, player, hitotachiDmg);
+            }
+        } finally {
+            IS_PROCESSING_RAIDEN_PROC.set(false);
+        }
+
+        DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
+        Vec3 right = new Vec3(-look.z, 0.0D, look.x);
+        if (right.lengthSqr() < 1.0E-4D) right = new Vec3(1.0D, 0.0D, 0.0D);
+        else right = right.normalize();
+        for (int i = -10; i <= 10; i++) {
+            double t = i / 10.0D;
+            Vec3 arcPos = slashCenter.add(right.scale(t * aoeRadius)).add(0.0D, Math.cos(t * 1.4D) * 0.6D - 0.3D, 0.0D);
+            level.sendParticles(violetSlash, arcPos.x, arcPos.y, arcPos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcPos.x, arcPos.y, arcPos.z, 2, 0.12D, 0.12D, 0.12D, 0.06D);
+        }
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
+        sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius);
+        player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s) | Resolve: " + resolve), true);
+        syncRaidenState(player, now);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
+        return true;
+    }
+
+    public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) {
+        if (target == null || !target.isAlive() || !(target.level() instanceof ServerLevel level)) return;
+        if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return;
+        ServerPlayer attacker = null;
+        if (source.getEntity() instanceof ServerPlayer sp) attacker = sp;
+        else if (source.getDirectEntity() instanceof ServerPlayer sp) attacker = sp;
+        if (attacker == null || attacker == target) return;
+
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = attacker.getUUID();
+        if (now >= RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)) return;
+        if (now < RAIDEN_EYE_NEXT_PROC.getOrDefault(id, 0L)) return;
+
+        RAIDEN_EYE_NEXT_PROC.put(id, now + 18L); // 0.9s Genshin coordinated attack interval
+        boolean isNetherite = RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
+        addRaidenResolve(attacker, 2);
+
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
+        float dmg = (float) (2.5D * scale * StavesConfig.getDamageMultiplier());
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        double aoe = isNetherite ? 4.5D : 3.0D;
+        Vec3 pos = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
+
+        final ServerPlayer finalAttacker = attacker;
+        IS_PROCESSING_RAIDEN_PROC.set(true);
+        try {
+            AABB box = target.getBoundingBox().inflate(aoe, 2.0D, aoe);
+            for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isSpectator() && e != finalAttacker && !isRaidenProtectedAlly(finalAttacker, e))) {
+                victim.hurt(level.damageSources().indirectMagic(finalAttacker, finalAttacker), dmg);
+                applyElement(level, victim, Element.ELECTRO, attackU, finalAttacker, dmg);
+            }
+        } finally {
+            IS_PROCESSING_RAIDEN_PROC.set(false);
+        }
+
+        DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
+        level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.06D);
+        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.9D : 1.4D);
+        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
+    }
+
+    public static float applyRaidenMusouIsshinHit(LivingEntity target, DamageSource source, float incomingDamage) {
+        if (target == null || !target.isAlive() || incomingDamage <= 0.0F) return incomingDamage;
+        if (!(target.level() instanceof ServerLevel level)) return incomingDamage;
+        if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return incomingDamage;
+        if (!source.is(DamageTypes.PLAYER_ATTACK)) return incomingDamage;
+        if (!(source.getDirectEntity() instanceof ServerPlayer attacker) || attacker == target) return incomingDamage;
+
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = attacker.getUUID();
+        if (!isRaidenMusouActive(id, now)) return incomingDamage;
+        ItemStack mainHand = attacker.getMainHandItem();
+        if (!(mainHand.getItem() instanceof ArcaneStaffItem staff) || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            return incomingDamage;
+        }
+
+        boolean isNetherite = staff.isNetherite();
+        boolean isCharged = attacker.isShiftKeyDown();
+        int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
+        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 4));
+        float atkStrength = Math.max(0.35F, getEffectiveAttackStrengthScale(attacker));
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
+        float chargedMult = isCharged ? 1.35F : 1.0F;
+        float bonusDmg = (float) (4.0D * scale * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
+        float totalDmg = incomingDamage + bonusDmg;
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        float[] outDamage = new float[] { totalDmg };
+
+        IS_PROCESSING_RAIDEN_PROC.set(true);
+        try {
+            applyElement(level, target, Element.ELECTRO, attackU, attacker, totalDmg, true, outDamage);
+            double sweepRadius = (isNetherite ? 5.25D : 3.5D) * (isCharged ? 1.35D : 1.0D);
+            AABB sweepBox = target.getBoundingBox().inflate(sweepRadius, 1.75D, sweepRadius);
+            for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                    e -> e.isAlive() && !e.isSpectator() && e != attacker && e != target && !isRaidenProtectedAlly(attacker, e))) {
+                nearby.hurt(level.damageSources().indirectMagic(attacker, attacker), bonusDmg * 0.75F);
+                applyElement(level, nearby, Element.ELECTRO, attackU, attacker, bonusDmg * 0.75F);
+            }
+        } finally {
+            IS_PROCESSING_RAIDEN_PROC.set(false);
+        }
+
+        Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
+        sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D));
+        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
+        level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 10, 0.4D, 0.3D, 0.4D, 0.07D);
+        level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
+        return outDamage[0];
+    }
+
+    private static void tickRaidenState(MinecraftServer server, long serverNow) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            UUID id = player.getUUID();
+            boolean eyeActive = serverNow < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L);
+            boolean musouActive = serverNow < RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L);
+
+            if (musouActive) {
+                ItemStack mainHand = player.getMainHandItem();
+                if (!(mainHand.getItem() instanceof ArcaneStaffItem staff)
+                        || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                    RAIDEN_MUSOU_UNTIL.remove(id);
+                    musouActive = false;
+                } else if (serverNow % 3 == 0 && player.level() instanceof ServerLevel sl) {
+                    boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
+                    DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
+                    sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
+                    sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.05D, player.getZ(), 2, 0.3D, 0.35D, 0.3D, 0.02D);
+                }
+            }
+
+            if ((eyeActive || musouActive || RAIDEN_RESOLVE.getOrDefault(id, 0) > 0) && serverNow % 10 == 0) {
+                syncRaidenState(player, serverNow);
+            }
+            if (!eyeActive && RAIDEN_EYE_UNTIL.containsKey(id)) {
+                RAIDEN_EYE_UNTIL.remove(id);
+                syncRaidenState(player, serverNow);
+            }
         }
     }
 }

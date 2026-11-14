@@ -27,6 +27,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.monster.Creeper;
@@ -42,6 +43,8 @@ import net.minecraft.world.entity.projectile.WitherSkull;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.item.Tiers;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.item.component.CustomData;
@@ -101,8 +104,8 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public enum Kind {
-        DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, NIGHTS_FOCUS, WEB, WIND, OMNI
+        DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, THOUSAND_BLAZING_SUNS,
+        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, NIGHTS_FOCUS, WEB, WIND, DAYBREAK, ENGULFING_LIGHTNING, OMNI
     }
 
     public static final String TAG_OMNI_MODE = "OmniMode";
@@ -190,11 +193,19 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public ArcaneStaffItem(Kind kind, int maxDurability, boolean isNetherite) {
-        super(isNetherite
-            ? new Item.Properties().stacksTo(1).durability(maxDurability).fireResistant()
-            : new Item.Properties().stacksTo(1).durability(maxDurability));
+        super(buildProperties(kind, maxDurability, isNetherite));
         this.kind = kind;
         this.isNetherite = isNetherite;
+    }
+
+    private static Item.Properties buildProperties(Kind kind, int maxDurability, boolean isNetherite) {
+        Item.Properties props = new Item.Properties().stacksTo(1).durability(maxDurability);
+        if (isNetherite) props = props.fireResistant();
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            props = props.attributes(SwordItem.createAttributes(Tiers.NETHERITE, 3, -2.4F))
+                    .component(DataComponents.TOOL, Items.NETHERITE_SWORD.components().get(DataComponents.TOOL));
+        }
+        return props;
     }
 
     public Kind kind() {
@@ -203,6 +214,10 @@ public final class ArcaneStaffItem extends Item {
 
     public boolean isNetherite() {
         return isNetherite;
+    }
+
+    public Kind getKind() {
+        return kind;
     }
 
     @Override
@@ -218,6 +233,7 @@ public final class ArcaneStaffItem extends Item {
             return InteractionResultHolder.fail(stack);
         }
         if (kind == Kind.SPLENDOR && player.isShiftKeyDown()) {
+            if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
             if (!level.isClientSide() && player instanceof ServerPlayer sp) {
                 long now = level.getGameTime();
                 long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(sp.getUUID(), -100L);
@@ -228,6 +244,26 @@ public final class ArcaneStaffItem extends Item {
                 }
             }
             return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+        }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+                return InteractionResultHolder.pass(stack);
+            }
+            if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+            if (!level.isClientSide() && player instanceof ServerPlayer sp) {
+                long now = sp.serverLevel().getServer().overworld().getGameTime();
+                if (ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
+                    ElementalGaugeManager.summonAndMountFlamestrider(sp, isNetherite, getCooldownTicks());
+                    player.getCooldowns().addCooldown(this, 12);
+                    return InteractionResultHolder.sidedSuccess(stack, false);
+                }
+                if (ElementalGaugeManager.isMavuikaOnCooldown(sp.getUUID(), now) || ElementalResonanceManager.isOverloaded(sp)) {
+                    return InteractionResultHolder.fail(stack);
+                }
+            } else if (level.isClientSide() && com.velorise.staves.client.ClientAuraTracker.isMavuikaAuraActive(player.getId())) {
+                player.getCooldowns().addCooldown(this, 12);
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
         }
         if (kind != Kind.SPLENDOR && player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
@@ -294,7 +330,7 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> shootWind(serverPlayer);
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
             case OMNI -> shootOmni(serverPlayer, stack);
-            case ECHO, GUARDIAN, LIGHTNING -> false;
+            case ECHO, GUARDIAN, LIGHTNING, THOUSAND_BLAZING_SUNS, DAYBREAK, ENGULFING_LIGHTNING -> false;
         };
 
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -392,7 +428,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR;
+        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK || kind == Kind.ENGULFING_LIGHTNING;
     }
 
     private boolean isChannelingKind() {
@@ -408,6 +444,13 @@ public final class ArcaneStaffItem extends Item {
     public int getVortexCooldownTicks(boolean holdJadeShield) {
         double tapSeconds = StavesConfig.getStaffCooldownSeconds(Kind.VORTEX); // 4.0s default
         double seconds = holdJadeShield ? (tapSeconds * 3.0D) : tapSeconds; // Tap = 4.0s, Hold = 12.0s
+        double mult = StavesConfig.getCooldownMultiplier();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
+    public int getDaybreakCooldownTicks(boolean holdVortex) {
+        double tapSeconds = StavesConfig.getStaffCooldownSeconds(Kind.DAYBREAK); // 2.0s default
+        double seconds = holdVortex ? Math.max(15.0D, tapSeconds * 7.5D) : tapSeconds; // Tap = 2.0s, Hold Q = 15.0s
         double mult = StavesConfig.getCooldownMultiplier();
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
@@ -452,13 +495,14 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.GUARDIAN) return 120; // 3.0s charge (instant with droplets) + 3.0s Hydro torrent
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
         if (kind == Kind.VORTEX) return 30; // 1.5s hold for Zhongli Jade Shield + AoE Geo shockwave
-        if (kind == Kind.SPLENDOR) return 72000; // Hold locks after 0.5s Arkhe switch until player releases and presses again
+        if (kind == Kind.DAYBREAK || kind == Kind.ENGULFING_LIGHTNING) return 10; // 0.5s hold for Burst
+        if (kind == Kind.SPLENDOR || kind == Kind.THOUSAND_BLAZING_SUNS) return 72000; // Hold locks after 0.5s Arkhe switch until player releases and presses again
         return isCharged() ? 30 : 0;
     }
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
-        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE) {
+        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK || kind == Kind.ENGULFING_LIGHTNING) {
             return UseAnim.NONE;
         }
         return isCharged() ? UseAnim.BOW : UseAnim.NONE;
@@ -466,9 +510,35 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int count) {
+        if (kind == Kind.THOUSAND_BLAZING_SUNS && level.isClientSide() && entity instanceof Player clientPlayer) {
+            if (!(clientPlayer.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+                int elapsed = getUseDuration(stack, entity) - count;
+                if (elapsed >= 7) {
+                    clientPlayer.stopUsingItem();
+                }
+            }
+            return;
+        }
         if (!isCharged() || level.isClientSide() || !(level instanceof ServerLevel serverLevel) || !(entity instanceof ServerPlayer player)) return;
         if (ElementalResonanceManager.isOverloaded(player)) {
             player.stopUsingItem();
+            return;
+        }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+                int elapsed = getUseDuration(stack, entity) - count;
+                if (elapsed >= 7) {
+                    long now = serverLevel.getServer().overworld().getGameTime();
+                    if (!ElementalGaugeManager.isMavuikaOnCooldown(player.getUUID(), now)) {
+                        ElementalGaugeManager.summonAndMountFlamestrider(player, isNetherite, getCooldownTicks());
+                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        player.awardStat(Stats.ITEM_USED.get(this));
+                    }
+                    player.stopUsingItem();
+                } else if (count % 2 == 0) {
+                    serverLevel.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 1.0D, player.getZ(), 4, 0.35D, 0.35D, 0.35D, 0.03D);
+                }
+            }
             return;
         }
         if (kind == Kind.LIGHTNING) {
@@ -534,6 +604,22 @@ public final class ArcaneStaffItem extends Item {
             }
             return;
         }
+        if (kind == Kind.DAYBREAK) {
+            if (count % 2 == 0) {
+                serverLevel.sendParticles(ParticleTypes.CLOUD,
+                        player.getX(), player.getY() + 1.0D, player.getZ(),
+                        3, 0.4D, 0.4D, 0.4D, 0.03D);
+            }
+            return;
+        }
+        if (kind == Kind.ENGULFING_LIGHTNING) {
+            if (count % 2 == 0) {
+                serverLevel.sendParticles(ParticleTypes.ELECTRIC_SPARK,
+                        player.getX(), player.getY() + 1.15D, player.getZ(),
+                        4, 0.35D, 0.35D, 0.35D, 0.04D);
+            }
+            return;
+        }
         if (kind == Kind.SPLENDOR) {
             int elapsed = 72000 - count;
             if (!Boolean.TRUE.equals(SPLENDOR_SWITCHED_THIS_HOLD.get(player.getUUID()))) {
@@ -577,12 +663,33 @@ public final class ArcaneStaffItem extends Item {
             SPLENDOR_SWITCHED_THIS_HOLD.remove(player.getUUID());
             return stack;
         }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            return stack;
+        }
         if (kind == Kind.VORTEX) {
             if (!player.getCooldowns().isOnCooldown(this) && castVortexVanquisher(player, true)) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                 ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(true));
                 player.awardStat(Stats.ITEM_USED.get(this));
             }
+            return stack;
+        }
+        if (kind == Kind.DAYBREAK) {
+            if (!player.getCooldowns().isOnCooldown(this) && castDaybreakVortex(player)) {
+                stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
+                player.awardStat(Stats.ITEM_USED.get(this));
+            }
+            return stack;
+        }
+        if (kind == Kind.ENGULFING_LIGHTNING) {
+            if (ElementalGaugeManager.activateRaidenMusouBurst(player, isNetherite)) {
+                stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                player.awardStat(Stats.ITEM_USED.get(this));
+            }
+            return stack;
+        }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
             return stack;
         }
         if (kind == Kind.GHASTFIRE) {
@@ -657,6 +764,18 @@ public final class ArcaneStaffItem extends Item {
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
                 }
+            } else if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+                if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                        && !ElementalResonanceManager.isOverloaded(player)) {
+                    long now = player.serverLevel().getServer().overworld().getGameTime();
+                    if (ElementalGaugeManager.isMavuikaAuraActive(player.getUUID(), now)) {
+                        ElementalGaugeManager.summonAndMountFlamestrider(player, isNetherite, getCooldownTicks());
+                    } else if (!ElementalGaugeManager.isMavuikaOnCooldown(player.getUUID(), now)) {
+                        ElementalGaugeManager.activateMavuikaSunAura(player, isNetherite, getCooldownTicks());
+                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        player.awardStat(Stats.ITEM_USED.get(this));
+                    }
+                }
             } else if (kind == Kind.VORTEX) {
                 if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     int elapsed = this.getUseDuration(stack, entity) - timeLeft;
@@ -665,6 +784,27 @@ public final class ArcaneStaffItem extends Item {
                         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
                         ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(holdShield));
                         player.awardStat(Stats.ITEM_USED.get(this));
+                    }
+                }
+            } else if (kind == Kind.DAYBREAK) {
+                if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
+                    int elapsed = this.getUseDuration(stack, entity) - timeLeft;
+                    if (elapsed < 10) {
+                        if (shootDaybreakBreeze(player)) {
+                            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                            ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(false));
+                            player.awardStat(Stats.ITEM_USED.get(this));
+                        }
+                    }
+                }
+            } else if (kind == Kind.ENGULFING_LIGHTNING) {
+                if (!ElementalResonanceManager.isOverloaded(player)) {
+                    int elapsed = this.getUseDuration(stack, entity) - timeLeft;
+                    if (elapsed < 10) {
+                        if (ElementalGaugeManager.activateRaidenEye(player, isNetherite)) {
+                            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                            player.awardStat(Stats.ITEM_USED.get(this));
+                        }
                     }
                 }
             }
@@ -759,6 +899,49 @@ public final class ArcaneStaffItem extends Item {
         return true;
     }
 
+    private boolean shootDaybreakBreeze(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        String tag = isNetherite ? "netherite_daybreak" : "daybreak";
+        spawnDaybreakWindCharge(level, player, tag, 0.0F, false);
+        if (isNetherite) {
+            spawnDaybreakWindCharge(level, player, tag, -14.0F, true);
+            spawnDaybreakWindCharge(level, player, tag, 14.0F, true);
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.WIND_CHARGE_THROW, SoundSource.PLAYERS, 0.95F, isNetherite ? 1.12F : 1.0F);
+        return true;
+    }
+
+    private void spawnDaybreakWindCharge(ServerLevel level, ServerPlayer player, String tag, float yawOffsetDeg, boolean sideBolt) {
+        net.minecraft.world.entity.projectile.windcharge.WindCharge projectile =
+                new net.minecraft.world.entity.projectile.windcharge.WindCharge(player, level, player.getX(), player.getEyeY() - 0.1D, player.getZ());
+        prepareProjectile(projectile, player, tag, 28.0D, 1.6F);
+        if (Math.abs(yawOffsetDeg) > 0.01F) {
+            Vec3 dir = Vec3.directionFromRotation(player.getXRot(), player.getYRot() + yawOffsetDeg);
+            projectile.shoot(dir.x, dir.y, dir.z, 1.6F, 0.0F);
+        }
+        if (sideBolt) {
+            projectile.addTag("velorise_daybreak_side");
+        }
+        level.addFreshEntity(projectile);
+    }
+
+    private boolean castDaybreakVortex(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        Vec3 maxEnd = eye.add(look.scale(10.0D));
+        BlockHitResult hit = level.clip(new ClipContext(eye, maxEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        Vec3 center = hit.getType() == HitResult.Type.BLOCK
+                ? hit.getLocation().add(0.0D, 0.8D, 0.0D)
+                : eye.add(look.scale(7.5D));
+        ElementalGaugeManager.summonDaybreakVortex(player, center, isNetherite);
+        if (isNetherite) {
+            spawnDaybreakWindCharge(level, player, "netherite_daybreak", -14.0F, true);
+            spawnDaybreakWindCharge(level, player, "netherite_daybreak", 14.0F, true);
+        }
+        return true;
+    }
+
     private boolean shootOmni(ServerPlayer player, ItemStack stack) {
         ServerLevel level = player.serverLevel();
         int mode = getOmniModeIndex(stack);
@@ -849,7 +1032,8 @@ public final class ArcaneStaffItem extends Item {
         double constructY = fangLanding.y();
         double constructZ = fangLanding.z();
         com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
-                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
+                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID(),
+                false, isNetherite ? 2 : 1);
         com.velorise.staves.entity.GeoFangPillarEntity construct =
                 new com.velorise.staves.entity.GeoFangPillarEntity(
                         com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR,
@@ -888,11 +1072,12 @@ public final class ArcaneStaffItem extends Item {
         int maxConstructs = com.velorise.staves.entity.GeoFangPillarEntity.MAX_CONSTRUCTS_PER_OWNER;
         int currentConstructs = com.velorise.staves.entity.GeoFangPillarEntity.countActiveConstructsForOwner(
                 level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
+        int maxSteles = isNetherite ? 2 : 1;
+        int currentSteles = com.velorise.staves.entity.GeoFangPillarEntity.countActiveStelesForOwner(
+                level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
 
-        // Genshin Dominus Lapidis + Default Geo Construct Cap (3):
-        // - Press (Tap): always summons a Stone Stele (replacing oldest construct if at 3-construct cap).
-        // - Hold (1.5s): forms Jade Shield + AoE Geo shockwave, and summons a Stone Stele if below 3-construct cap!
-        boolean shouldSpawnStele = !holdJadeShield || (currentConstructs < maxConstructs);
+        // Genshin Dominus Lapidis (C0 = 1 stele, Netherite C1 = 2 steles) + Global Geo Construct Cap (3):
+        boolean shouldSpawnStele = !holdJadeShield || (currentConstructs < maxConstructs && currentSteles < maxSteles);
         boolean castUnderFeet = !holdJadeShield && player.getXRot() >= 50.0F;
 
         double steleX = player.getX() + flat.x * 2.5D;
@@ -955,7 +1140,8 @@ public final class ArcaneStaffItem extends Item {
             }
 
             com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
-                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
+                    level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID(),
+                    true, isNetherite ? 2 : 1);
 
             com.velorise.staves.entity.GeoFangPillarEntity stele =
                     new com.velorise.staves.entity.GeoFangPillarEntity(
@@ -1222,7 +1408,9 @@ public final class ArcaneStaffItem extends Item {
 
         float draconicMult = ElementalGaugeManager.getDraconicGloriesMultiplier(player);
         boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);
-        float totalMult = Math.max(draconicMult, hpBuff ? 1.25F : 1.0F);
+        float hpRatio = player.getMaxHealth() > 0.0F ? (player.getHealth() / player.getMaxHealth()) : 1.0F;
+        float a4Bonus = net.minecraft.util.Mth.clamp((hpRatio - 0.30F) * 0.60F, 0.0F, 0.30F);
+        float totalMult = draconicMult * (1.0F + a4Bonus + (hpBuff ? 0.15F : 0.0F));
         float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * totalMult;
         float attackU = isNetherite ? 1.5F : 1.0F;
 
@@ -1314,11 +1502,12 @@ public final class ArcaneStaffItem extends Item {
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
         boolean validBase = switch (kind) {
             case DRAGONFIRE, INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
+            case THOUSAND_BLAZING_SUNS -> repair.is(Items.BLAZE_ROD) || repair.is(Items.BLAZE_POWDER);
             case ECHO -> repair.is(Items.ECHO_SHARD) || repair.is(Items.BLAZE_ROD);
             case GUARDIAN, SPLENDOR -> repair.is(Items.PRISMARINE_SHARD) || repair.is(Items.PRISMARINE_CRYSTALS) || repair.is(Items.HEART_OF_THE_SEA) || repair.is(Items.END_ROD);
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
-            case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
-            case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
+            case WIND, DAYBREAK -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
+            case LIGHTNING, ENGULFING_LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
             case EVOKER, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
             case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.FROST_ROD) || repair.is(Items.SHIELD);
             case VORTEX -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(Items.BLAZE_ROD);
@@ -1329,9 +1518,9 @@ public final class ArcaneStaffItem extends Item {
 
     public @Nullable Element getElement() {
         return switch (kind) {
-            case DRAGONFIRE, SHULKER, LIGHTNING -> Element.ELECTRO;
-            case ECHO, WIND -> Element.ANEMO;
-            case INFERNO, GHASTFIRE -> Element.PYRO;
+            case DRAGONFIRE, SHULKER, LIGHTNING, ENGULFING_LIGHTNING -> Element.ELECTRO;
+            case ECHO, WIND, DAYBREAK -> Element.ANEMO;
+            case INFERNO, GHASTFIRE, THOUSAND_BLAZING_SUNS -> Element.PYRO;
             case GUARDIAN, SPLENDOR -> Element.HYDRO;
             case EVOKER, VORTEX -> Element.GEO;
             case FROST, NIGHTS_FOCUS -> Element.CRYO;
@@ -1346,6 +1535,7 @@ public final class ArcaneStaffItem extends Item {
             case ECHO -> isNetherite ? "32m" : "28m";
             case INFERNO -> "30m";
             case GHASTFIRE -> isNetherite ? "36m (4.5m AoE / 5s Field)" : "36m (3.5m AoE / 5s Field)";
+            case THOUSAND_BLAZING_SUNS -> isNetherite ? "8m Aura / 3m Bike / 5m Ulti" : "6m Aura / 3m Bike";
             case WITHER -> isNetherite ? "32m (4.0m AoE)" : "32m (3.0m AoE)";
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
@@ -1357,6 +1547,8 @@ public final class ArcaneStaffItem extends Item {
             case NIGHTS_FOCUS -> "3.5m AoE / 16m Stars";
             case WEB -> "28m";
             case WIND -> isNetherite ? "28m (4.5m AoE)" : "28m (3.5m AoE)";
+            case DAYBREAK -> isNetherite ? "28m / 12m Vortex (8s)" : "28m / 8m Vortex (8s)";
+            case ENGULFING_LIGHTNING -> isNetherite ? "4.5m Eye (15s) / 9m Burst (7s)" : "3.0m Eye (15s) / 6m Burst (7s)";
             case OMNI -> isNetherite ? "48m (2.5m AoE)" : "36m (1.75m AoE)";
         };
     }
@@ -1478,6 +1670,11 @@ public final class ArcaneStaffItem extends Item {
             case ECHO -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.ECHO, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U") + swirlTag;
             case INFERNO -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.INFERNO, isNetherite)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
             case GHASTFIRE -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.GHASTFIRE, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
+            case THOUSAND_BLAZING_SUNS -> {
+                float spinDmg = StavesConfig.getStaffBaseDamage(Kind.THOUSAND_BLAZING_SUNS, isNetherite);
+                float auraDmg = spinDmg * 0.5F;
+                yield fmtHearts(auraDmg) + heart + "/2s (Aura) | " + fmtHearts(spinDmg) + heart + "/1s (Bike) " + icon + (isNetherite ? "1.5U" : "1U");
+            }
             case WITHER -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.WITHER, isNetherite)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
             case SHULKER -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.SHULKER, isNetherite)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> {
@@ -1508,6 +1705,11 @@ public final class ArcaneStaffItem extends Item {
             }
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
             case WIND -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.WIND, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case DAYBREAK -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.DAYBREAK, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case ENGULFING_LIGHTNING -> {
+                float baseDmg = StavesConfig.getStaffBaseDamage(Kind.ENGULFING_LIGHTNING, isNetherite);
+                yield fmtHearts(baseDmg * 0.625F) + heart + " (E) / " + fmtHearts(baseDmg * 2.0F) + heart + " (Q) " + icon + (isNetherite ? "1.5U" : "1U");
+            }
             case OMNI -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.OMNI, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
         };
     }
@@ -1589,6 +1791,24 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.nights_focus_stars.netherite"
                     : "tooltip.velorise_staves.nights_focus_stars").withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_aura"), ChatFormatting.GOLD, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_bike"), ChatFormatting.YELLOW, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_ulti"), ChatFormatting.RED, 44, "  ");
+        } else if (kind == Kind.DAYBREAK) {
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.daybreak_tap.netherite"
+                    : "tooltip.velorise_staves.daybreak_tap"), ChatFormatting.GREEN, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.daybreak_hold.netherite"
+                    : "tooltip.velorise_staves.daybreak_hold"), ChatFormatting.AQUA, 44, "  ");
+        } else if (kind == Kind.ENGULFING_LIGHTNING) {
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.engulfing_lightning_tap.netherite"
+                    : "tooltip.velorise_staves.engulfing_lightning_tap"), ChatFormatting.LIGHT_PURPLE, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.engulfing_lightning_hold.netherite"
+                    : "tooltip.velorise_staves.engulfing_lightning_hold"), ChatFormatting.DARK_PURPLE, 44, "  ");
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {
@@ -1596,6 +1816,13 @@ public final class ArcaneStaffItem extends Item {
             float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(true)) / 20.0F;
             String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Hold)", tapSec, holdSec);
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.DAYBREAK) {
+            float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getDaybreakCooldownTicks(false)) / 20.0F;
+            float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getDaybreakCooldownTicks(true)) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Hold)", tapSec, holdSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.ENGULFING_LIGHTNING) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", "10.0s (E) / 18.0s (Q)").withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.GUARDIAN) {
             float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(40) / 20.0F;
             float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
@@ -1699,6 +1926,32 @@ public final class ArcaneStaffItem extends Item {
                 tooltip.add(Component.literal(line.toString()).withStyle(color));
             }
         }
+    }
+
+    @Override
+    public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp && sp.level() instanceof ServerLevel sl) {
+                long now = sl.getServer().overworld().getGameTime();
+                if (ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
+                    ElementalGaugeManager.applyElement(sl, target, Element.PYRO, 1.0F, sp, 0.0F);
+                    target.igniteForSeconds(4.0F);
+                    sl.sendParticles(ParticleTypes.FLAME,
+                            target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                            10, 0.28D, 0.3D, 0.28D, 0.04D);
+                }
+            }
+            return true;
+        }
+        return super.hurtEnemy(stack, target, attacker);
+    }
+
+    @Override
+    public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            stack.hurtAndBreak(1, attacker, EquipmentSlot.MAINHAND);
+        }
+        super.postHurtEnemy(stack, target, attacker);
     }
 
     private static boolean isWideTooltipChar(char c) {

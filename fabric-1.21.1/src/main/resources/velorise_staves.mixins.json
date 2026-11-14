@@ -25,7 +25,8 @@
     "MouseHandlerMixin",
     "GuiGraphicsMixin",
     "HumanoidModelMixin",
-    "ItemInHandRendererMixin"
+    "ItemInHandRendererMixin",
+    "MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1

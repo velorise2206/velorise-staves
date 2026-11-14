@@ -182,6 +182,7 @@ public final class ArcaneStaffEvents {
             case "frost" -> resolveFrost(level, hit, owner, hitResult, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, hitResult, isNetherite);
             case "wind" -> resolveWind(level, hit, owner, hitResult, isNetherite);
+            case "daybreak" -> resolveDaybreak(level, hit, owner, projectile, hitResult, isNetherite);
             case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, hitResult, isNetherite);
             default -> {}
         }
@@ -465,9 +466,18 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.75F, 1.25F);
     }
 
+    private static void resolveDaybreak(ServerLevel level, Vec3 hit, Entity owner, Projectile projectile, HitResult hitResult, boolean isNetherite) {
+        boolean sideBolt = projectile.getTags().contains("velorise_daybreak_side");
+        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.DAYBREAK, sideBolt ? 0.5F : 1.0F);
+    }
+
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {
+        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.WIND, 1.0F);
+    }
+
+    private static void resolveWindInternal(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite, ArcaneStaffItem.Kind kind, float dmgScale) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.WIND, isNetherite);
+        float baseDmg = StavesConfig.getStaffBaseDamage(kind, isNetherite) * dmgScale;
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double radiusSqr = radius * radius;

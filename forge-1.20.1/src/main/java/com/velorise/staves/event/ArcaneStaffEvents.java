@@ -239,6 +239,7 @@ public final class ArcaneStaffEvents {
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
             case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
+            case "daybreak" -> resolveDaybreak(level, hit, owner, event, isNetherite);
             case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, event, isNetherite);
             default -> {}
         }
@@ -344,11 +345,13 @@ public final class ArcaneStaffEvents {
             }
         }
         event.setAmount(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getAmount()));
+        event.setAmount(ElementalGaugeManager.applyRaidenMusouIsshinHit(entity, src, event.getAmount()));
         event.setAmount(ElementalGaugeManager.applyMobDamageResistances(entity, src, event.getAmount()));
         float resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyPhysicalAttackDamage(entity, src, event.getAmount());
         resDmg = com.velorise.staves.element.ElementalResonanceManager.modifyIncomingDefenseDamage(entity, src, resDmg);
         event.setAmount(resDmg);
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
+        ElementalGaugeManager.triggerRaidenEyeCoordinatedStrike(entity, event.getSource());
         ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
     }
 
@@ -357,6 +360,7 @@ public final class ArcaneStaffEvents {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
         ElementalGaugeManager.trySendPhysicalDamageFloat(entity, event.getSource(), event.getAmount());
+        ElementalGaugeManager.tryInterruptGuardianChanneling(entity, event.getAmount());
     }
 
     @SubscribeEvent
@@ -711,6 +715,15 @@ public final class ArcaneStaffEvents {
         level.sendParticles(ParticleTypes.SPLASH, hit.x, hit.y + 0.15D, hit.z, 18, 0.25D, 0.2D, 0.25D, 0.06D);
         level.sendParticles(ParticleTypes.BUBBLE_POP, hit.x, hit.y + 0.15D, hit.z, 8, 0.2D, 0.2D, 0.2D, 0.03D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.75F, 1.25F);
+    }
+
+    private static void resolveDaybreak(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        boolean sideBolt = event.getProjectile().getPersistentData().getBoolean("VeloriseDaybreakSideBolt");
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.DAYBREAK, isNetherite) * (sideBolt ? 0.5F : 1.0F);
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        double radius = isNetherite ? 4.5D : 3.5D;
+        double boostScale = isNetherite ? 1.25D : 1.05D;
+        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale);
     }
 
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {

@@ -12,7 +12,7 @@
 
 📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/velorise2206/velorise-staves/wiki)!**
 
-A lightweight Minecraft magic & combat mod introducing **16 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **17 custom advancements (including 6 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
+A lightweight Minecraft magic & combat mod introducing **17 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **17 custom advancements (including 6 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -81,7 +81,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
   <tr>
     <td align="center" width="50%">
       <img src="docs/showcase/ingame%20items.png" alt="Ingame Items" width="100%"/><br/>
-      <b>Staves &amp; Essences</b> — 16 staves, utility artifacts, elements &amp; books
+      <b>Staves &amp; Essences</b> — 17 staves, utility artifacts, elements &amp; books
     </td>
     <td align="center" width="50%">
       <img src="docs/showcase/omni%20craft%20recipe.png" alt="Omni Element Crafting" width="100%"/><br/>
@@ -94,10 +94,11 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ## Features
 
-### Combat Staves (16 Types + Netherite Upgrades)
+### Combat Staves (17 Types + Netherite Upgrades)
 
 - **Inferno Rod** (![Pyro][pyro] Pyro): Rapid-fires blazing fireballs in tight bursts.
 - **Ghastfire Staff** (![Pyro][pyro] Pyro): Launches explosive fireballs that detonate on contact.
+- **A Thousand Blazing Suns** (![Pyro][pyro] Pyro): Tap to summon an 8s **Sun Ring** behind you (striking nearby enemies every 2s for Pyro); hold or tap again during Aura to mount the **Flamestrider** bike (water-skimming, double-Space wing glide, hold Right-Click to spin 3m AoE, Left-Click/Sprint for **Dash Cancel**). **Netherite** tier unlocks the curved **Nightsoul** gauge (+0.5/s near mobs across casts) and **`[R]` Sun Slam Ulti** (180° frontal 5m AoE, 5–10 hearts).
 - **Guardian Lens** (![Hydro][hydro] Hydro): Quick-tap fires a **Hydro Orb** (`1♥`, `2.0s` CD) for easy reaction triggers, or Hold 3s (instant with **Sourcewater Droplets**) to unleash a continuous 3.0s *Equitable Judgment* Hydro beam scaling with Max HP & Past Draconic Glories (`6.0s` CD).
 - **Splendor of Tranquil Waters** (![Hydro][hydro] Hydro): Furina's dual-stance (`Ousia` / `Pneuma`) scepter that summons Salon Solitaire or Singer of Many Waters, grants Water Walking & Fanfare buffs, and features custom First/Third-Person animations.
 - **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
@@ -116,7 +117,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 *All staves can be upgraded to Netherite via the Smithing Table for **1.5x combat stats (damage, HP scaling, elemental gauge U, and effect durations)** and extended range (without reducing cooldowns), and scale with the custom **Elemental Mastery I–III** enchantment.*
 
 > [!NOTE]
-> **Full 1.20.1 & 1.21.1 Parity:** All **16 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges, Breeze Rods crafted from `anemo_element`, and Frost Rods crafted from `cryo_element` + `breeze_rod`).
+> **Full 1.20.1 & 1.21.1 Parity:** All **17 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges, Breeze Rods crafted from `anemo_element`, and Frost Rods crafted from `cryo_element` + `breeze_rod`).
 
 ### Elemental Essences, Anvil Repair & Imbued Swords
 

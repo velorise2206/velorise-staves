@@ -73,17 +73,137 @@ public final class OmniWheelOverlay {
         return ClientAuraRenderer.getElementIconTexture(OmniOrbEntity.WHEEL_ELEMENTS[clamped]);
     }
 
+    public static final KeyMapping MAVUIKA_ULTI_KEY = new KeyMapping(
+            "key.velorise_staves.mavuika_ulti",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_R,
+            "key.categories.velorise_staves"
+    );
+    private static boolean wasBikeDashDown = false;
+    private static boolean bikeSprintActive = false;
+    private static boolean bikeMountWaitRelease = false;
+    private static boolean wasRidingBike = false;
+    private static int bikeAttackHoldTicks = 0;
+    private static boolean bikeSpinActive = false;
+    private static boolean bikeDismountWaitAttackRelease = false;
+    private static int queuedFastAttackClicks = 0;
+
     @EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class ModBusEvents {
         @SubscribeEvent
         public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
             event.register(OMNI_WHEEL_KEY);
+            event.register(MAVUIKA_ULTI_KEY);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onInteractionKeyTriggered(InputEvent.InteractionKeyMappingTriggered event) {
+        if (!event.isAttack()) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease)) {
+            if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+                queuedFastAttackClicks++;
+            }
+            event.setSwingHand(false);
+            event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
-        tick(Minecraft.getInstance());
+        Minecraft mc = Minecraft.getInstance();
+        tick(mc);
+        if (mc.player == null || mc.screen != null) {
+            wasBikeDashDown = false;
+            bikeSprintActive = false;
+            bikeMountWaitRelease = false;
+            wasRidingBike = false;
+            bikeAttackHoldTicks = 0;
+            bikeSpinActive = false;
+            queuedFastAttackClicks = 0;
+            return;
+        }
+        while (MAVUIKA_ULTI_KEY.consumeClick()) {
+            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
+        }
+        if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            if (!wasRidingBike) {
+                wasRidingBike = true;
+                bikeMountWaitRelease = mc.options.keyUse.isDown();
+                bikeDismountWaitAttackRelease = false;
+                queuedFastAttackClicks = 0;
+            }
+            if (bikeMountWaitRelease && !mc.options.keyUse.isDown()) {
+                bikeMountWaitRelease = false;
+            }
+            int attackClicks = queuedFastAttackClicks;
+            queuedFastAttackClicks = 0;
+            while (mc.options.keyAttack.consumeClick()) {
+                // Suppress melee swing/block-breaking while riding bike, but count fast taps
+                attackClicks++;
+            }
+            while (mc.options.keyUse.consumeClick()) {
+                // Suppress item right-click re-triggers while riding bike
+            }
+            if (bike.getUltiTicks() > 8 || (bike.getNaStep() == 6 && bike.getNaTicks() > 4)) {
+                bikeAttackHoldTicks = 0;
+                bikeSpinActive = false;
+            } else {
+                boolean attackDown = mc.options.keyAttack.isDown();
+                if (attackDown) {
+                    bikeAttackHoldTicks++;
+                    if (!bikeSpinActive && bikeAttackHoldTicks >= 5) {
+                        bikeSpinActive = true;
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                    }
+                } else if (bikeAttackHoldTicks > 0) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(bikeSpinActive
+                            ? com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP
+                            : com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    bikeAttackHoldTicks = 0;
+                    bikeSpinActive = false;
+                } else if (attackClicks > 0) {
+                    // Ultra-fast tap pressed and released within the same client tick
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                }
+            }
+            boolean useHeld = !bikeMountWaitRelease && mc.options.keyUse.isDown();
+            boolean sprintDown = mc.options.keySprint.isDown() || useHeld;
+            boolean dashTriggered = sprintDown && !wasBikeDashDown && !bike.isOnDashCooldown();
+            wasBikeDashDown = sprintDown;
+            if (dashTriggered) {
+                bike.triggerClientDash(mc.player);
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
+                bikeAttackHoldTicks = 0;
+                bikeSpinActive = false;
+            }
+            boolean wantSprint = sprintDown && bike.tickCount >= 10;
+            if (wantSprint != bikeSprintActive) {
+                bikeSprintActive = wantSprint;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(wantSprint
+                        ? com.velorise.staves.network.MavuikaActionPayload.ACTION_SPRINT_START
+                        : com.velorise.staves.network.MavuikaActionPayload.ACTION_SPRINT_STOP);
+            }
+        } else {
+            if (wasRidingBike && mc.options.keyAttack.isDown()) {
+                bikeDismountWaitAttackRelease = true;
+            }
+            wasRidingBike = false;
+            bikeMountWaitRelease = false;
+            wasBikeDashDown = false;
+            bikeSprintActive = false;
+            bikeAttackHoldTicks = 0;
+            bikeSpinActive = false;
+            if (bikeDismountWaitAttackRelease) {
+                if (!mc.options.keyAttack.isDown()) {
+                    bikeDismountWaitAttackRelease = false;
+                } else {
+                    while (mc.options.keyAttack.consumeClick()) {
+                    }
+                }
+            }
+        }
     }
 
     @SubscribeEvent

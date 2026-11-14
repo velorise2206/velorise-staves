@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * when damaged by an elemental reaction with no visible enemy nearby.
  */
 public final class MobHazardAvoidanceManager {
-    private static final long FLEE_DURATION_TICKS = 90L; // 4.5 seconds
+    private static final long FLEE_DURATION_TICKS = 40L; // 2.0 seconds
 
     private record DangerState(ServerLevel level, Vec3 dangerPos, long expireTick) {}
 

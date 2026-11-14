@@ -23,6 +23,9 @@ public abstract class PlayerAttackMixin {
         Player self = (Player) (Object) this;
         if (!self.level().isClientSide()) {
             ElementalGaugeManager.recordPreAttackStrength(self, self.getAttackStrengthScale(0.5F));
+            if (self instanceof net.minecraft.server.level.ServerPlayer sp && target instanceof net.minecraft.world.entity.LivingEntity) {
+                ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
+            }
         }
     }
 
