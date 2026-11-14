@@ -3,12 +3,15 @@
   "category": "equipment",
   "pattern": [
     "  W",
-    " B ",
+    " E ",
     "B  "
   ],
   "key": {
     "B": {
       "item": "minecraft:breeze_rod"
+    },
+    "E": {
+      "item": "velorise_staves:anemo_element"
     },
     "W": {
       "item": "minecraft:wind_charge"

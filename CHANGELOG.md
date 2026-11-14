@@ -7,28 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.2] - 2026-11-14
+## [1.1.0] - 2026-11-14
 
-### Changed & Fixed (All 3 Loaders: NeoForge 1.21.1, Fabric 1.21.1, Forge 1.20.1)
+### Added (All 3 Loaders: NeoForge 1.21.1, Fabric 1.21.1, Forge 1.20.1)
 
-- **Neuvillette (`Guardian Lens`) Rework**:
-  - Drains **8% Max HP every 0.5s** (`10 ticks`, up to `48% Max HP` over the 3.0s channel) and **automatically stops draining at `<= 50% Max HP`** while the beam continues firing normally.
-  - **Sourcewater Droplets** now heal **16% Max HP** each (3 droplets = `48% Max HP`) and can **only be picked up or absorbed by their creator (`ownerId`)**.
-  - The Hydro beam now **pierces through all enemies** along the straight line up to max range (`24m` / `28m`), accompanied by high-density rushing water particles and surging water audio on charge and fire.
-- **Zhongli (`Vortex Vanquisher` & `GeoFangPillarEntity`) Updates**:
-  - Reduced Stone Stele Geo resonance wave radius from `6 blocks` to **`4 blocks`** (`4.5D`).
-  - Fixed underwater & mid-air pillar placement (`ClipContext.Block.COLLIDER` + construct raycast + downward solid/construct landing resolution and gravity settling), fixed standing on pillars submerged in water on **Fabric 1.21.1** (`supportEntitiesStandingOnTop` + `applyFurinaWaterWalking` construct guard), and enabled **pillar-on-pillar stacking**.
-  - Shrunk the **Jade Shield** 3D barrier model by **~50%** so it extends compactly from **neck to knee** (`0.23H` to `0.77H`).
-  - Split `Vortex Vanquisher` tooltip by tier: Basic displays **`+20% DMG`**, Netherite displays **`+30% DMG`**.
-- **Furina (`Splendor of Tranquil Waters`) Fixes & Balance**:
-  - Fixed 3rd-person (`F5` / Multiplayer) pet summon animation not playing because `ClientAuraRenderer.render()` was prematurely removing `AuraDisplayData` when `data.elements` was empty.
-  - Adjusted 1st-person and 3rd-person Arkhe switch/summon animations to lower the extended arm in front of the body and rotate the scepter tip **90° straight down into the ground** instead of angled ~45° forward.
-  - Updated default cooldown to **`20.0s`** with **`30.0s`** pet duration (matching Genshin Impact), and updated crafting recipe to require **3x `hydro_element`** (slots 2, 5, 6).
-- **Crafting Recipes, Omni Staff Tags, JEI & 1.5x Netherite Rule**:
-  - Updated recipes for **`ghastfire_staff`** (`pyro_element` in slot 3, `ghast_tear` in slot 5), **`frostbolt_wand`** (`cryo_element` in slot 5), and **`webcaster`** (`dendro_element` in slot 5).
-  - Added all Basic & Netherite staves to `*_staves` and `omni_upgradeable_*_staves` item tags and registered all 15 Basic + 15 Netherite staves in `VeloriseJeiPlugin`.
-  - Updated **`Arc Caster`** tooltip to **`0.5♥ / hit`** (Basic) and **`0.75♥ / hit`** (Netherite), and standardized all Netherite staves to **1.5x Basic stats** without reducing cooldowns.
-  - Added **5 Hidden Advancements**: **Beheaded** (`beheaded`), **I Don't Have Order** (`i_dont_have_order`), **Web Developer** (`web_developer`), **Take My Ball** (`take_my_ball`), and **Solidify!** (`geo_architect`).
+- **New Staves & Materials**:
+  - **Nights of Formal Focus** *(Cryo)* & **Frost Rod**: New Cryo shield staff with Night Stars and homing Shooting Stars, crafted with the new Frost Rod (`cryo_element` + Blaze/Breeze Rod).
+  - **Splendor of Tranquil Waters** *(Hydro)*: Summons Salon Solitaire Hydro pets (Ousia) or a healing water summon (Pneuma) with water-walking while active.
+  - **Vortex Vanquisher** *(Geo)*: Tap to raise a stackable Stone Stele construct pulsing Geo waves; Hold to conjure a Jade Shield with Geo RES shred.
+- **Hidden Advancements**:
+  - Added new hidden advancements for staves and elemental reactions.
+- **Animations, HUD & Codex UX**:
+  - Added 1st-person and 3rd-person (`F5` / Multiplayer) animations for *Splendor of Tranquil Waters*, *Vortex Vanquisher*, and *Ghastfire Staff*.
+  - Added a compact Charge Progress Bar HUD beneath the crosshair for charged staves.
+  - Added 16x16 default item icons with an optional 32x32 HD client toggle, F3 HUD auto-hide, and clickable reaction hyperlinks in the Elemental Codex.
+
+### Changed & Fixed
+
+- **Guardian Lens Rework**: Pierces all enemies along the beam, stops self-HP drain at `<= 50% Max HP`, and locks Sourcewater Droplets to their creator.
+- **Zhongli & Construct Fixes**: Improved underwater, mid-air, and stacked Stone Stele placement, fixed standing on submerged pillars on Fabric 1.21.1, fixed Jade Shield survival absorption cap, and made the Jade Shield barrier more compact.
+- **Recipes, Tags & Balance**: Updated crafting recipes (`splendor_of_tranquil_waters`, `evoker_fang_staff`, `ghastfire_staff`, `frostbolt_wand`, `webcaster`), standardized Netherite staves to 1.5x Basic stats without cooldown reduction, synced all staves in tags and JEI, and tuned Elemental Resonance & co-op scaling.
+- **Core Bugfixes**: Fixed `StackOverflowError` in `checkInnateMutation`, permanent Pyro aura on entities, `EvokerFangsModel` & i-frame reset for Geo Fang, Arc Caster tooltip display, Overload chain, and screen shake issues.
 
 ---
 

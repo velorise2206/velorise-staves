@@ -41,6 +41,9 @@ public final class ClientAuraTracker {
         public boolean isFrozen = false;
         public long frozenUntil = 0L;
         public long jadeShieldUntil = 0L;
+        public long nightsFocusUntil = 0L;
+        public int nightsFocusStars = 0;
+        public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
         public boolean poseCaptured = false;
         public float capturedWalkPos = 0.0F;
@@ -274,6 +277,23 @@ public final class ClientAuraTracker {
     public static void triggerStaffAnimation(int entityId, int animType) {
         if (entityId <= 0 || animType <= 0) return;
         long now = System.currentTimeMillis();
+        if (animType >= 10 && animType <= 14) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (entry.nightsFocusUntil <= now) {
+                entry.nightsFocusAppliedTime = now;
+                entry.nightsFocusUntil = now + 12000L;
+            }
+            entry.nightsFocusStars = animType - 10;
+            return;
+        }
+        if (animType == 19) {
+            AuraDisplayData entry = DATA.get(entityId);
+            if (entry != null) {
+                entry.nightsFocusUntil = 0L;
+                entry.nightsFocusStars = 0;
+            }
+            return;
+        }
         long durationMs = switch (animType) {
             case ANIM_SPLENDOR_SUMMON -> 850L;
             case ANIM_SPLENDOR_SWITCH -> 650L;
@@ -517,7 +537,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.staffAnimUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -545,6 +565,25 @@ public final class ClientAuraTracker {
         }
         AuraDisplayData data = DATA.get(entity.getId());
         return data != null && now < data.jadeShieldUntil;
+    }
+
+    public static boolean hasNightsFocusShield(net.minecraft.world.entity.LivingEntity entity) {
+        if (entity == null || !entity.isAlive()) return false;
+        AuraDisplayData data = DATA.get(entity.getId());
+        if (data == null) return false;
+        long now = System.currentTimeMillis();
+        if (now >= data.nightsFocusUntil) return false;
+        boolean graceActive = (now - data.nightsFocusAppliedTime) < 1500L;
+        if (!graceActive && !entity.isSpectator() && !(entity instanceof net.minecraft.world.entity.player.Player p && p.isCreative()) && entity.getAbsorptionAmount() <= 0.01F) {
+            return false;
+        }
+        return true;
+    }
+
+    public static int getNightsFocusStars(net.minecraft.world.entity.LivingEntity entity) {
+        if (entity == null) return 0;
+        AuraDisplayData data = DATA.get(entity.getId());
+        return data != null ? Math.max(0, Math.min(4, data.nightsFocusStars)) : 0;
     }
 
     public static boolean isFrozen(int entityId) {

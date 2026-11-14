@@ -2,16 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "ITI",
+    "I I",
     " G ",
     "B  "
   ],
   "key": {
     "I": {
       "item": "minecraft:iron_ingot"
-    },
-    "T": {
-      "item": "minecraft:totem_of_undying"
     },
     "G": {
       "item": "velorise_staves:geo_element"

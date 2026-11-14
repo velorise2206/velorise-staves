@@ -358,6 +358,7 @@ public final class ClientAuraRenderer {
         MultiBufferSource buffer = event.getMultiBufferSource();
         renderFrozenIceOverlay(entity, event.getRenderer().getModel(), poseStack, buffer);
         renderJadeShieldBarrier(entity, poseStack, buffer);
+        renderNightsFocusBarrier(entity, poseStack, buffer);
         render(entity, poseStack, buffer);
     }
 
@@ -1147,6 +1148,196 @@ public final class ClientAuraRenderer {
         emitCrystalQuad(vc, mat, x1, y0, z1, r, g, b, a, x1, y0, z0, r, g, b, a, x1, y1, z0, r, g, b, a, x1, y1, z1, r, g, b, a);
     }
 
+    public static void renderNightsFocusBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (renderingScreen || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        if (!ClientAuraTracker.hasNightsFocusShield(entity)) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+
+        VertexConsumer vc = buffer.getBuffer(RenderType.lightning());
+        float time = entity.tickCount + mc.getFrameTime();
+        float h = entity.getBbHeight();
+        float radius = Math.max(0.95F, h * 0.62F);
+        float centerY = h * 0.50F;
+        float pulse = 1.0F + 0.025F * Mth.sin(time * 0.14F);
+        float rSphere = radius * pulse;
+
+        poseStack.pushPose();
+        poseStack.translate(0.0F, centerY, 0.0F);
+
+        // 1. Translucent starry Curtain of Slumber dome
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 1.4F));
+        Matrix4f sphereMat = poseStack.last().pose();
+        int stacks = 10;
+        int slices = 18;
+        for (int i = 0; i < stacks; i++) {
+            float phi0 = (float) (-Math.PI * 0.5D + Math.PI * i / stacks);
+            float phi1 = (float) (-Math.PI * 0.5D + Math.PI * (i + 1) / stacks);
+            float y0 = Mth.sin(phi0) * rSphere;
+            float y1 = Mth.sin(phi1) * rSphere;
+            float ringR0 = Mth.cos(phi0) * rSphere;
+            float ringR1 = Mth.cos(phi1) * rSphere;
+
+            float eq0 = 1.0F - Math.abs(Mth.sin(phi0));
+            float eq1 = 1.0F - Math.abs(Mth.sin(phi1));
+            int r0 = (int) Mth.lerp(eq0, 110, 145);
+            int g0 = (int) Mth.lerp(eq0, 130, 225);
+            int b0 = 255;
+            int a0 = (int) Mth.lerp(eq0, 16, 38);
+            int r1 = (int) Mth.lerp(eq1, 110, 145);
+            int g1 = (int) Mth.lerp(eq1, 130, 225);
+            int b1 = 255;
+            int a1 = (int) Mth.lerp(eq1, 16, 38);
+
+            for (int j = 0; j < slices; j++) {
+                float th0 = (float) (j * 2.0D * Math.PI / slices);
+                float th1 = (float) ((j + 1) * 2.0D * Math.PI / slices);
+                float x00 = Mth.cos(th0) * ringR0, z00 = Mth.sin(th0) * ringR0;
+                float x01 = Mth.cos(th1) * ringR0, z01 = Mth.sin(th1) * ringR0;
+                float x10 = Mth.cos(th0) * ringR1, z10 = Mth.sin(th0) * ringR1;
+                float x11 = Mth.cos(th1) * ringR1, z11 = Mth.sin(th1) * ringR1;
+
+                emitCrystalQuad(vc, sphereMat,
+                        x00, y0, z00, r0, g0, b0, a0,
+                        x01, y0, z01, r0, g0, b0, a0,
+                        x11, y1, z11, r1, g1, b1, a1,
+                        x10, y1, z10, r1, g1, b1, a1);
+                emitCrystalQuad(vc, sphereMat,
+                        x10, y1, z10, r1, g1, b1, a1,
+                        x11, y1, z11, r1, g1, b1, a1,
+                        x01, y0, z01, r0, g0, b0, a0,
+                        x00, y0, z00, r0, g0, b0, a0);
+            }
+        }
+        poseStack.popPose();
+
+        // 2. Two tilted celestial astrolabe rings
+        renderCelestialOrbitRing(poseStack, vc, rSphere * 1.03F, 0.022F, 24.0F, 12.0F, time * 2.6F, 160, 235, 255, 135);
+        renderCelestialOrbitRing(poseStack, vc, rSphere * 1.06F, 0.018F, -32.0F, -18.0F, -time * 1.9F, 150, 175, 255, 110);
+
+        // 3. 0..4 Suspended 3D 4-Pointed Night Stars hanging in an arc inside the upper dome
+        int stars = ClientAuraTracker.getNightsFocusStars(entity);
+        if (stars > 0) {
+            poseStack.pushPose();
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 1.4F));
+            float[][] archOffsets = {
+                    {-0.56F, 0.34F, 0.22F},
+                    {-0.24F, 0.56F, 0.34F},
+                    { 0.24F, 0.56F, 0.34F},
+                    { 0.56F, 0.34F, 0.22F}
+            };
+            Matrix4f archMat = poseStack.last().pose();
+            for (int s = 0; s < stars; s++) {
+                float sx = archOffsets[s][0] * rSphere;
+                float sy = archOffsets[s][1] * rSphere + 0.03F * Mth.sin(time * 0.16F + s * 1.4F);
+                float sz = archOffsets[s][2] * rSphere;
+                float ceilY = (float) Math.sqrt(Math.max(0.04F, rSphere * rSphere - sx * sx - sz * sz));
+                // Luminous vertical star-thread from dome ceiling down to the hanging star
+                float tw = 0.012F;
+                emitCrystalQuad(vc, archMat,
+                        sx - tw, sy + 0.10F, sz, 180, 235, 255, 165,
+                        sx + tw, sy + 0.10F, sz, 180, 235, 255, 165,
+                        sx + tw, ceilY, sz, 140, 210, 255, 70,
+                        sx - tw, ceilY, sz, 140, 210, 255, 70);
+                emitCrystalQuad(vc, archMat,
+                        sx, sy + 0.10F, sz - tw, 180, 235, 255, 165,
+                        sx, sy + 0.10F, sz + tw, 180, 235, 255, 165,
+                        sx, ceilY, sz + tw, 140, 210, 255, 70,
+                        sx, ceilY, sz - tw, 140, 210, 255, 70);
+
+                poseStack.pushPose();
+                poseStack.translate(sx, sy, sz);
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 4.0F + s * 45.0F));
+                renderFourPointStar3D(vc, poseStack.last().pose(), 0.14F, 0.05F, 235, 250, 255, 250, 125, 195, 255, 125);
+                poseStack.popPose();
+            }
+            poseStack.popPose();
+        }
+
+        poseStack.popPose();
+    }
+
+    private static void renderCelestialOrbitRing(
+            PoseStack poseStack, VertexConsumer vc, float ringR, float halfThick,
+            float tiltX, float tiltZ, float spinY, int r, int g, int b, int a) {
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(tiltX));
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(tiltZ));
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(spinY));
+        Matrix4f mat = poseStack.last().pose();
+        int segs = 28;
+        float rIn = ringR - halfThick;
+        float rOut = ringR + halfThick;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (i * 2.0D * Math.PI / segs);
+            float a1 = (float) ((i + 1) * 2.0D * Math.PI / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+            emitCrystalQuad(vc, mat,
+                    c0 * rIn, 0.0F, s0 * rIn, r, g, b, a,
+                    c1 * rIn, 0.0F, s1 * rIn, r, g, b, a,
+                    c1 * rOut, 0.0F, s1 * rOut, r, g, b, a,
+                    c0 * rOut, 0.0F, s0 * rOut, r, g, b, a);
+            emitCrystalQuad(vc, mat,
+                    c0 * rOut, 0.0F, s0 * rOut, r, g, b, a,
+                    c1 * rOut, 0.0F, s1 * rOut, r, g, b, a,
+                    c1 * rIn, 0.0F, s1 * rIn, r, g, b, a,
+                    c0 * rIn, 0.0F, s0 * rIn, r, g, b, a);
+        }
+        poseStack.popPose();
+    }
+
+    private static void renderFourPointStar3D(
+            VertexConsumer vc, Matrix4f mat, float outerLen, float innerThick,
+            int cr, int cg, int cb, int ca, int gr, int gg, int gb, int ga) {
+        emitStarDiamond(vc, mat, outerLen * 1.45F, innerThick * 1.45F, gr, gg, gb, ga);
+        emitStarDiamond(vc, mat, outerLen, innerThick, cr, cg, cb, ca);
+    }
+
+    private static void emitStarDiamond(VertexConsumer vc, Matrix4f mat, float len, float w, int r, int g, int b, int a) {
+        float[][] tips = {{0, len, 0}, {0, -len, 0}, {len, 0, 0}, {-len, 0, 0}, {0, 0, len}, {0, 0, -len}};
+        for (float[] tip : tips) {
+            if (Math.abs(tip[1]) > 0.001F) {
+                emitCrystalQuad(vc, mat,
+                        -w, 0, 0, r, g, b, a,
+                        0, tip[1], 0, r, g, b, a,
+                        w, 0, 0, r, g, b, a,
+                        0, 0, w, r, g, b, a);
+                emitCrystalQuad(vc, mat,
+                        w, 0, 0, r, g, b, a,
+                        0, tip[1], 0, r, g, b, a,
+                        -w, 0, 0, r, g, b, a,
+                        0, 0, -w, r, g, b, a);
+            } else if (Math.abs(tip[0]) > 0.001F) {
+                emitCrystalQuad(vc, mat,
+                        0, -w, 0, r, g, b, a,
+                        tip[0], 0, 0, r, g, b, a,
+                        0, w, 0, r, g, b, a,
+                        0, 0, w, r, g, b, a);
+                emitCrystalQuad(vc, mat,
+                        0, w, 0, r, g, b, a,
+                        tip[0], 0, 0, r, g, b, a,
+                        0, -w, 0, r, g, b, a,
+                        0, 0, -w, r, g, b, a);
+            } else {
+                emitCrystalQuad(vc, mat,
+                        -w, 0, 0, r, g, b, a,
+                        0, 0, tip[2], r, g, b, a,
+                        w, 0, 0, r, g, b, a,
+                        0, w, 0, r, g, b, a);
+                emitCrystalQuad(vc, mat,
+                        w, 0, 0, r, g, b, a,
+                        0, 0, tip[2], r, g, b, a,
+                        -w, 0, 0, r, g, b, a,
+                        0, -w, 0, r, g, b, a);
+            }
+        }
+    }
+
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen) return;
         boolean showIcons = true;
@@ -1197,7 +1388,7 @@ public final class ClientAuraRenderer {
                 data.lastDamage = 0.0F;
             }
             if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now
-                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
+                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -1788,10 +1979,12 @@ public final class ClientAuraRenderer {
         if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) || !staff.isCharged()) return;
         int elapsed = Math.max(0, staff.getUseDuration(stack) - mc.player.getUseItemRemainingTicks());
         int targetTicks = switch (staff.kind()) {
-            case VORTEX -> 26;
+            case VORTEX -> 28;
             case SPLENDOR -> 10;
-            case GHASTFIRE -> 16;
-            default -> 20;
+            case GHASTFIRE -> 40;
+            case LIGHTNING -> 60;
+            case GUARDIAN -> 70;
+            default -> 30;
         };
         float pct = Mth.clamp((float) elapsed / (float) targetTicks, 0.0F, 1.0F);
         int sw = guiGraphics.guiWidth();
@@ -2380,6 +2573,36 @@ public final class ClientAuraRenderer {
             if (endPos == null) endPos = arc.end;
 
             if (startPos == null || endPos == null) continue;
+            if (arc.color == 0xFF7BE8FF) {
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                Vec3 arcHeight = new Vec3(0.0D, Math.sin(prog * Math.PI) * 1.15D, 0.0D);
+                Vec3 headPos = startPos.lerp(endPos, prog).add(arcHeight);
+                float tailProg = Math.max(0.0F, prog - 0.32F);
+                Vec3 tailPos = startPos.lerp(endPos, tailProg).add(0.0D, Math.sin(tailProg * Math.PI) * 1.15D, 0.0D);
+
+                poseStack.pushPose();
+                poseStack.translate(headPos.x - camPos.x, headPos.y - camPos.y, headPos.z - camPos.z);
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(prog * 720.0F));
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(prog * 360.0F));
+                renderFourPointStar3D(consumer, poseStack.last().pose(), 0.22F, 0.07F, 240, 252, 255, 255, 110, 210, 255, 130);
+                poseStack.popPose();
+
+                Vec3 hCam = headPos.subtract(camPos);
+                Vec3 tCam = tailPos.subtract(camPos);
+                Vec3 dir = hCam.subtract(tCam);
+                if (dir.lengthSqr() > 1.0E-5D) {
+                    Vec3 side = dir.normalize().cross(new Vec3(0.0D, 1.0D, 0.0D));
+                    if (side.lengthSqr() < 1.0E-4D) side = new Vec3(1.0D, 0.0D, 0.0D);
+                    side = side.normalize().scale(0.045D);
+                    emitCrystalQuad(consumer, matrix,
+                            (float) (tCam.x - side.x), (float) (tCam.y - side.y), (float) (tCam.z - side.z), 110, 175, 255, 20,
+                            (float) (tCam.x + side.x), (float) (tCam.y + side.y), (float) (tCam.z + side.z), 110, 175, 255, 20,
+                            (float) (hCam.x + side.x * 1.8D), (float) (hCam.y + side.y * 1.8D), (float) (hCam.z + side.z * 1.8D), 220, 248, 255, 220,
+                            (float) (hCam.x - side.x * 1.8D), (float) (hCam.y - side.y * 1.8D), (float) (hCam.z - side.z * 1.8D), 220, 248, 255, 220);
+                }
+                continue;
+            }
             Vec3 diff = endPos.subtract(startPos);
             double dist = diff.length();
             if (dist < 0.05D) continue;
