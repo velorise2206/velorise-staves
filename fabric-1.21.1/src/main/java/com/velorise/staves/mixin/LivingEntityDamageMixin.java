@@ -9,9 +9,17 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityDamageMixin {
+    @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
+    private void velorise$onLivingHurtHead(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        if (!entity.level().isClientSide() && ElementalGaugeManager.isRaidenIframeActive(entity)) {
+            cir.setReturnValue(false);
+        }
+    }
     @Inject(method = "completeUsingItem", at = @At("HEAD"))
     private void velorise$onCompleteUsingItem(CallbackInfo ci) {
         LivingEntity entity = (LivingEntity) (Object) this;
