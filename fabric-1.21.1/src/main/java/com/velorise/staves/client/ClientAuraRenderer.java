@@ -722,12 +722,24 @@ public final class ClientAuraRenderer {
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            float slash = smoothStep01(t / 0.42F);
-            float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.35F, -0.85F));
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.95F, 1.05F));
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.40F, -0.55F));
+            float w = (t < 0.72F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
+            if (t < 0.45F) {
+                float draw = smoothStep01(t / 0.45F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(draw, -1.15F, -1.42F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(draw, -0.75F, -1.08F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(draw, 0.28F, 0.48F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * draw);
+                model.head.xRot += 0.14F * draw;
+                model.hat.copyFrom(model.head);
+            } else {
+                float slash = smoothStep01((t - 0.45F) / 0.25F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.42F, -0.78F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -1.08F, 1.15F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.48F, -0.62F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(slash, 0.25F, 0.42F));
+            }
             return;
         }
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
@@ -1025,11 +1037,18 @@ public final class ClientAuraRenderer {
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                float slash = smoothStep01(t / 0.40F);
-                float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
-                poseStack.translate(dir * Mth.lerp(slash, -0.24F, 0.16F) * w, -0.04F * w, -0.18F * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 48.0F, -68.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 35.0F, -55.0F) * w));
+                float w = (t < 0.72F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
+                if (t < 0.45F) {
+                    float draw = smoothStep01(t / 0.45F);
+                    poseStack.translate(-dir * Mth.lerp(draw, 0.22F, 0.34F) * w, Mth.lerp(draw, -0.04F, -0.10F) * w, -0.16F * w);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(draw, 40.0F, 64.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(draw, 30.0F, 48.0F) * w));
+                } else {
+                    float slash = smoothStep01((t - 0.45F) / 0.25F);
+                    poseStack.translate(dir * Mth.lerp(slash, -0.34F, 0.22F) * w, Mth.lerp(slash, -0.10F, 0.02F) * w, -0.20F * w);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 64.0F, -78.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 48.0F, -62.0F) * w));
+                }
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH && data != null) {
@@ -3380,7 +3399,7 @@ public final class ClientAuraRenderer {
         if (state == null) return;
         float eyeTicks = state.effectiveEyeTicks();
         float musouTicks = state.effectiveMusouTicks();
-        if (eyeTicks <= 0.0F && musouTicks <= 0.0F) return;
+        if (eyeTicks <= 0.0F && musouTicks <= 0.0F && state.resolve <= 0) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
@@ -3389,36 +3408,98 @@ public final class ClientAuraRenderer {
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
-
-        ResourceLocation eyeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_eye_aura.png");
-        VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(eyeTex));
-        poseStack.pushPose();
-        poseStack.translate(0.0F, entity.getBbHeight() * 0.78F, 0.0F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-        poseStack.translate(0.0F, 0.0F, -0.44F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(time * (musouTicks > 0.0F ? 2.4F : 0.9F)));
-
-        PoseStack.Pose pose = poseStack.last();
-        Matrix4f mat = pose.pose();
-        float pulse = 1.0F + 0.04F * Mth.sin(time * 0.20F);
-        float half = (musouTicks > 0.0F ? 0.96F : 0.84F) * pulse;
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        int cr = state.netherite ? 255 : 238;
-        int cg = state.netherite ? 235 : 200;
-        int cb = 255;
-        int ca = 242;
 
-        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
-        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+        if (state.resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F) {
+            float resolveFrac = musouTicks > 0.0F ? 1.0F : Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
+            ResourceLocation ringTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_chakra_ring.png");
+            VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(ringTex));
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.76F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.translate(0.0F, 0.0F, -0.44F);
 
-        vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
-        vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
-        vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
-        vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            PoseStack.Pose pose = poseStack.last();
+            Matrix4f mat = pose.pose();
+            float pulse = 1.0F + 0.025F * Mth.sin(time * 0.20F);
+            float half = (musouTicks > 0.0F ? 0.94F : Mth.lerp(resolveFrac, 0.78F, 0.88F)) * pulse;
+            int baseCr = musouTicks > 0.0F ? 225 : 145;
+            int baseCg = musouTicks > 0.0F ? (state.netherite ? 175 : 150) : 75;
+            int baseCb = 255;
+            int baseCa = musouTicks > 0.0F ? 210 : (state.resolve > 0 ? 115 : 65);
 
-        poseStack.popPose();
+            vc.addVertex(mat, -half, -half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat,  half, -half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat,  half,  half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat, -half,  half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+
+            vc.addVertex(mat, -half,  half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat,  half,  half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat,  half, -half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat, -half, -half, 0.0F).setColor(baseCr, baseCg, baseCb, baseCa).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+
+            if (resolveFrac > 0.001F) {
+                VertexConsumer glowVc = buffer.getBuffer(RenderType.lightning());
+                float rMid = half * 0.74F;
+                float rIn = rMid - half * 0.065F;
+                float rOut = rMid + half * 0.065F;
+                float rCoreIn = rMid - half * 0.028F;
+                float rCoreOut = rMid + half * 0.028F;
+                float maxTheta = (float) Math.PI * resolveFrac;
+                int segs = 24;
+                int outerAlpha = musouTicks > 0.0F ? 220 : 175;
+                int coreAlpha = 245;
+
+                for (int side = -1; side <= 1; side += 2) {
+                    for (int i = 0; i < segs; i++) {
+                        float t0 = (float) i / (float) segs;
+                        float t1 = (float) (i + 1) / (float) segs;
+                        float a0 = -(float) (Math.PI * 0.5) + side * (maxTheta * t0);
+                        float a1 = -(float) (Math.PI * 0.5) + side * (maxTheta * t1);
+                        float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                        float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+
+                        for (float z : new float[]{0.003F, -0.003F}) {
+                            glowVc.addVertex(mat, c0 * rIn,  s0 * rIn,  z).setColor(185, 95, 255, outerAlpha);
+                            glowVc.addVertex(mat, c0 * rOut, s0 * rOut, z).setColor(185, 95, 255, outerAlpha);
+                            glowVc.addVertex(mat, c1 * rOut, s1 * rOut, z).setColor(185, 95, 255, outerAlpha);
+                            glowVc.addVertex(mat, c1 * rIn,  s1 * rIn,  z).setColor(185, 95, 255, outerAlpha);
+
+                            glowVc.addVertex(mat, c0 * rCoreIn,  s0 * rCoreIn,  z * 1.4F).setColor(245, 225, 255, coreAlpha);
+                            glowVc.addVertex(mat, c0 * rCoreOut, s0 * rCoreOut, z * 1.4F).setColor(245, 225, 255, coreAlpha);
+                            glowVc.addVertex(mat, c1 * rCoreOut, s1 * rCoreOut, z * 1.4F).setColor(245, 225, 255, coreAlpha);
+                            glowVc.addVertex(mat, c1 * rCoreIn,  s1 * rCoreIn,  z * 1.4F).setColor(245, 225, 255, coreAlpha);
+                        }
+                    }
+                }
+            }
+            poseStack.popPose();
+        }
+
+        if (eyeTicks > 0.0F) {
+            ResourceLocation eyeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_eye_aura.png");
+            VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(eyeTex));
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() + 0.36F + 0.04F * Mth.sin(time * 0.14F), 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.translate(0.0F, 0.0F, -0.22F);
+
+            PoseStack.Pose pose = poseStack.last();
+            Matrix4f mat = pose.pose();
+            float half = 0.34F;
+            int cr = 255, cg = state.netherite ? 235 : 210, cb = 255, ca = 245;
+
+            vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+            vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, 1.0F);
+
+            vc.addVertex(mat, -half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat,  half,  half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 0.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat,  half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(1.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            vc.addVertex(mat, -half, -half, 0.0F).setColor(cr, cg, cb, ca).setUv(0.0F, 1.0F).setOverlay(overlay).setLight(FULL_BRIGHT).setNormal(pose, 0.0F, 0.0F, -1.0F);
+            poseStack.popPose();
+        }
     }
 
     private static void renderRaidenHud(GuiGraphics guiGraphics, Minecraft mc) {

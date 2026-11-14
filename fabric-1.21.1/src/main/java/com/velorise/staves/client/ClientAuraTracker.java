@@ -302,7 +302,7 @@ public final class ClientAuraTracker {
             case ANIM_VORTEX_HOLD_BURST -> 750L;
             case ANIM_VORTEX_TAP -> 500L;
             case ANIM_GHASTFIRE_SLAM -> 450L;
-            case ANIM_RAIDEN_DRAW -> 500L;
+            case ANIM_RAIDEN_DRAW -> 1500L;
             case ANIM_RAIDEN_SLASH -> 280L;
             default -> 600L;
         };

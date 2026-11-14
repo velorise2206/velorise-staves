@@ -270,6 +270,10 @@ public final class ArcaneStaffEvents {
     public static void onLivingAttack(net.minecraftforge.event.entity.living.LivingAttackEvent event) {
         LivingEntity entity = event.getEntity();
         DamageSource src = event.getSource();
+        if (!entity.level().isClientSide() && ElementalGaugeManager.isRaidenIframeActive(entity)) {
+            event.setCanceled(true);
+            return;
+        }
         if (!entity.level().isClientSide()
                 && !(src.getDirectEntity() instanceof EvokerFangs f && f.getTags().contains("velorise_staves:geo_fangs"))
                 && com.velorise.staves.entity.GeoFangPillarEntity.interceptIncomingDamage(entity, src, event.getAmount())) {

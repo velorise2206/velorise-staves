@@ -148,6 +148,7 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Boolean> RAIDEN_MUSOU_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> RAIDEN_SKILL_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> RAIDEN_BURST_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_IFRAME_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> RAIDEN_NA_COMBO = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_RAIDEN_PROC = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
@@ -785,6 +786,7 @@ public final class ElementalGaugeManager {
         RAIDEN_MUSOU_NETHERITE.remove(id);
         RAIDEN_SKILL_CD_UNTIL.remove(id);
         RAIDEN_BURST_CD_UNTIL.remove(id);
+        RAIDEN_IFRAME_UNTIL.remove(id);
         RAIDEN_NA_COMBO.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
@@ -881,6 +883,7 @@ public final class ElementalGaugeManager {
         RAIDEN_MUSOU_NETHERITE.clear();
         RAIDEN_SKILL_CD_UNTIL.clear();
         RAIDEN_BURST_CD_UNTIL.clear();
+        RAIDEN_IFRAME_UNTIL.clear();
         RAIDEN_NA_COMBO.clear();
         LAST_ELEMENTAL_ARMOR_WEAR.clear();
         SOURCEWATER_DROPLETS.clear();
@@ -1669,6 +1672,7 @@ public final class ElementalGaugeManager {
         RAIDEN_MUSOU_NETHERITE.remove(id);
         RAIDEN_SKILL_CD_UNTIL.remove(id);
         RAIDEN_BURST_CD_UNTIL.remove(id);
+        RAIDEN_IFRAME_UNTIL.remove(id);
         RAIDEN_NA_COMBO.remove(id);
         long now = player.level().getGameTime();
         Element cryst = CrystallizeShardManager.getActiveShield(player, now);
@@ -5874,6 +5878,12 @@ public final class ElementalGaugeManager {
         return now < RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L);
     }
 
+    public static boolean isRaidenIframeActive(@Nullable Entity entity) {
+        if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl)) return false;
+        long now = sl.getServer().overworld().getGameTime();
+        return now < RAIDEN_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L);
+    }
+
     public static int getRaidenResolve(UUID id) {
         return RAIDEN_RESOLVE.getOrDefault(id, 0);
     }
@@ -6013,6 +6023,8 @@ public final class ElementalGaugeManager {
         RAIDEN_MUSOU_UNTIL.put(id, now + 140L);
         RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
         RAIDEN_BURST_CD_UNTIL.put(id, now + 360L);
+        RAIDEN_IFRAME_UNTIL.put(id, now + 30L);
+        player.invulnerableTime = Math.max(player.invulnerableTime, 30);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
         float hitotachiDmg = (float) (8.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
