@@ -50,6 +50,9 @@ public final class EnvironmentalBlockManager {
     private static final Map<BlockPos, Long> LAST_LIGHTNING_ROD_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> LAST_TESLA_COIL_ZAP = new ConcurrentHashMap<>();
     private static final Map<BlockPos, Long> TESLA_COIL_OVERCHARGE_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, PlayerBlockScanCache> PLAYER_TESLA_SCAN_CACHE = new ConcurrentHashMap<>();
+
+    private record PlayerBlockScanCache(long lastScanTick, BlockPos centerPos, List<BlockPos> lightningRods, List<BlockPos> redstoneSources) {}
 
     private EnvironmentalBlockManager() {}
 
@@ -60,6 +63,7 @@ public final class EnvironmentalBlockManager {
         LAST_LIGHTNING_ROD_ZAP.clear();
         LAST_TESLA_COIL_ZAP.clear();
         TESLA_COIL_OVERCHARGE_UNTIL.clear();
+        PLAYER_TESLA_SCAN_CACHE.clear();
     }
 
     /**
@@ -425,37 +429,65 @@ public final class EnvironmentalBlockManager {
             for (ServerPlayer player : players) {
                 // Check active Tesla Coils (Lightning Rod on Redstone Block), powered Lightning Rods, and block-form energized Redstone
                 BlockPos playerPos = player.blockPosition();
-                int redstoneArcBudget = (serverNow % 3L == 0L) ? 4 : 0;
-                for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-14, -6, -14), playerPos.offset(14, 6, 14))) {
-                    if (!level.hasChunkAt(p)) continue;
-                    BlockState st = level.getBlockState(p);
-                    if (st.is(Blocks.LIGHTNING_ROD)) {
-                        BlockPos below = p.below();
-                        if (level.hasChunkAt(below) && level.getBlockState(below).is(Blocks.REDSTONE_BLOCK)) {
-                            if (st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
-                                activateTeslaCoil(level, p, serverNow);
-                            }
-                            if (tickedTeslaCoils.add(p.immutable())) {
-                                tickTeslaCoil(level, p, st, serverNow);
-                            }
-                            continue;
-                        }
-                        if (Math.abs(p.getX() - playerPos.getX()) <= 8
+                UUID playerId = player.getUUID();
+                PlayerBlockScanCache cache = PLAYER_TESLA_SCAN_CACHE.get(playerId);
+                if (cache == null
+                        || serverNow < cache.lastScanTick()
+                        || (serverNow - cache.lastScanTick()) >= 10L
+                        || cache.centerPos().distManhattan(playerPos) >= 6) {
+                    List<BlockPos> rods = new ArrayList<>();
+                    List<BlockPos> redstones = new ArrayList<>();
+                    for (BlockPos p : BlockPos.betweenClosed(playerPos.offset(-14, -6, -14), playerPos.offset(14, 6, 14))) {
+                        if (!level.hasChunkAt(p)) continue;
+                        BlockState st = level.getBlockState(p);
+                        if (st.is(Blocks.LIGHTNING_ROD)) {
+                            rods.add(p.immutable());
+                        } else if (Math.abs(p.getX() - playerPos.getX()) <= 8
                                 && Math.abs(p.getY() - playerPos.getY()) <= 4
                                 && Math.abs(p.getZ() - playerPos.getZ()) <= 8
-                                && st.hasProperty(LightningRodBlock.POWERED)
-                                && st.getValue(LightningRodBlock.POWERED)) {
-                            dischargeLightningRod(level, p, serverNow);
+                                && isBlockFormRedstoneLightningSource(st)
+                                && hasExposedFace(level, p)) {
+                            redstones.add(p.immutable());
                         }
-                    } else if (redstoneArcBudget > 0
-                            && Math.abs(p.getX() - playerPos.getX()) <= 8
+                    }
+                    cache = new PlayerBlockScanCache(serverNow, playerPos.immutable(), rods, redstones);
+                    PLAYER_TESLA_SCAN_CACHE.put(playerId, cache);
+                }
+
+                for (BlockPos p : cache.lightningRods()) {
+                    if (!level.hasChunkAt(p)) continue;
+                    BlockState st = level.getBlockState(p);
+                    if (!st.is(Blocks.LIGHTNING_ROD)) continue;
+                    BlockPos below = p.below();
+                    if (level.hasChunkAt(below) && level.getBlockState(below).is(Blocks.REDSTONE_BLOCK)) {
+                        if (st.hasProperty(LightningRodBlock.POWERED) && st.getValue(LightningRodBlock.POWERED)) {
+                            activateTeslaCoil(level, p, serverNow);
+                        }
+                        if (tickedTeslaCoils.add(p)) {
+                            tickTeslaCoil(level, p, st, serverNow);
+                        }
+                        continue;
+                    }
+                    if (Math.abs(p.getX() - playerPos.getX()) <= 8
                             && Math.abs(p.getY() - playerPos.getY()) <= 4
                             && Math.abs(p.getZ() - playerPos.getZ()) <= 8
-                            && level.random.nextInt(8) == 0
-                            && isBlockFormRedstoneLightningSource(st)
-                            && hasExposedFace(level, p)) {
-                        emitRedstoneBlockLightningArc(level, p);
-                        redstoneArcBudget--;
+                            && st.hasProperty(LightningRodBlock.POWERED)
+                            && st.getValue(LightningRodBlock.POWERED)) {
+                        dischargeLightningRod(level, p, serverNow);
+                    }
+                }
+
+                int redstoneArcBudget = (serverNow % 3L == 0L) ? 4 : 0;
+                if (redstoneArcBudget > 0 && !cache.redstoneSources().isEmpty()) {
+                    for (BlockPos p : cache.redstoneSources()) {
+                        if (redstoneArcBudget <= 0) break;
+                        if (!level.hasChunkAt(p)) continue;
+                        if (level.random.nextInt(8) != 0) continue;
+                        BlockState st = level.getBlockState(p);
+                        if (isBlockFormRedstoneLightningSource(st) && hasExposedFace(level, p)) {
+                            emitRedstoneBlockLightningArc(level, p);
+                            redstoneArcBudget--;
+                        }
                     }
                 }
 
@@ -467,8 +499,10 @@ public final class EnvironmentalBlockManager {
                 );
                 for (LivingEntity living : entities) {
                     if (processed.add(living.getUUID())) {
-                        // Fast check every tick for 2-tick Observer pulses
-                        tickObserverAndFastRedstone(level, living, serverNow);
+                        // Vanilla Observer pulses last 2 ticks, so checking every 2 ticks catches 100% of pulses at 50% cost
+                        if ((serverNow & 1L) == 0L) {
+                            tickObserverAndFastRedstone(level, living, serverNow);
+                        }
                         if ((living.tickCount + Math.abs(living.getId())) % 20 == 0) {
                             tickEntityEnvironmentalAuras(level, living);
                         }
