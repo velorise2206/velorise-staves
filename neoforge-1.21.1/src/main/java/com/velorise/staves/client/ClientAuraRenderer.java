@@ -803,9 +803,9 @@ public final class ClientAuraRenderer {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
                 float w = smoothStep01((elapsed + partialTicks) / 16.0F);
                 float tremor = Mth.sin((player.tickCount + partialTicks) * 1.8F) * 0.008F * w;
-                poseStack.translate(dir * 0.18F * w + tremor, 0.34F * w, -0.08F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 16.0F * w));
+                poseStack.translate(-dir * 0.06F * w + tremor, 0.16F * w, -0.10F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * w));
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM && data != null) {
@@ -813,8 +813,9 @@ public final class ClientAuraRenderer {
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 float slam = smoothStep01(t / 0.35F);
                 float w = (t < 0.45F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.45F) / 0.55F) * (float) Math.PI));
-                poseStack.translate(dir * 0.12F * (1.0F - slam) * w, Mth.lerp(slam, 0.34F, -0.22F) * w, Mth.lerp(slam, -0.08F, -0.22F) * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, 26.0F, -55.0F) * w));
+                poseStack.translate(-dir * 0.06F * (1.0F - slam) * w, Mth.lerp(slam, 0.16F, -0.22F) * w, Mth.lerp(slam, -0.10F, -0.24F) * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, -18.0F, -68.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * (1.0F - slam) * w));
                 return;
             }
         }
@@ -983,7 +984,7 @@ public final class ClientAuraRenderer {
             return;
         }
 
-        VertexConsumer vc = buffer.getBuffer(RenderType.lightning());
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
 
         poseStack.pushPose();
@@ -1149,6 +1150,24 @@ public final class ClientAuraRenderer {
         emitCrystalQuad(vc, mat, x1, y0, z1, r, g, b, a, x1, y0, z0, r, g, b, a, x1, y1, z0, r, g, b, a, x1, y1, z1, r, g, b, a);
     }
 
+    private static final class ShieldRenderTypes extends net.minecraft.client.renderer.RenderStateShard {
+        private ShieldRenderTypes() { super("", () -> {}, () -> {}); }
+        static final RenderType TRANSLUCENT_NO_DEPTH_WRITE = RenderType.create(
+                "velorise_shield_no_depth",
+                com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR,
+                com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+                256,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                        .setShaderState(RENDERTYPE_LIGHTNING_SHADER)
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .setCullState(NO_CULL)
+                        .createCompositeState(false)
+        );
+    }
+
     public static void renderNightsFocusBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
         if (!ClientAuraTracker.hasNightsFocusShield(entity)) return;
@@ -1158,7 +1177,7 @@ public final class ClientAuraRenderer {
             return;
         }
 
-        VertexConsumer vc = buffer.getBuffer(RenderType.lightning());
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
         float h = entity.getBbHeight();
         float radius = Math.max(0.95F, h * 0.62F);
@@ -2534,7 +2553,93 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static void renderGuardianHydroBeams(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        float partialTicks = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        Vec3 camPos = camera.getPosition();
+        Matrix4f matrix = poseStack.last().pose();
+        VertexConsumer consumer = null;
+        double timeSec = System.currentTimeMillis() * 0.001D;
+
+        for (net.minecraft.world.entity.player.Player player : mc.level.players()) {
+            if (!player.isUsingItem()) continue;
+            ItemStack stack = player.getUseItem();
+            if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) continue;
+            if (staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
+
+            int elapsed = staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks();
+            if (elapsed < 2) continue;
+
+            if (consumer == null) {
+                consumer = bufferSource.getBuffer(RenderType.lightning());
+            }
+
+            Vec3 eye = player.getEyePosition(partialTicks);
+            Vec3 look = player.getViewVector(partialTicks).normalize();
+            Vec3 worldUp = Math.abs(look.y) < 0.96D ? new Vec3(0.0D, 1.0D, 0.0D) : new Vec3(1.0D, 0.0D, 0.0D);
+            Vec3 right = look.cross(worldUp).normalize();
+            Vec3 up = right.cross(look).normalize();
+
+            double handSign = (player.getUsedItemHand() == net.minecraft.world.InteractionHand.MAIN_HAND ? 1.0D : -1.0D)
+                    * (player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0D : -1.0D);
+            Vec3 nozzle = eye.add(look.scale(1.05D)).add(right.scale(handSign * 0.22D)).add(up.scale(-0.16D));
+
+            double ringRadius = elapsed < 10 ? Mth.lerp(elapsed / 10.0F, 0.34F, 0.19F) : 0.19D;
+            int ringSegs = 16;
+            for (int i = 0; i < ringSegs; i++) {
+                double a1 = (Math.PI * 2.0D * i) / ringSegs + timeSec * 2.4D;
+                double a2 = (Math.PI * 2.0D * (i + 1)) / ringSegs + timeSec * 2.4D;
+                Vec3 p1 = nozzle.add(right.scale(Math.cos(a1) * ringRadius)).add(up.scale(Math.sin(a1) * ringRadius)).subtract(camPos);
+                Vec3 p2 = nozzle.add(right.scale(Math.cos(a2) * ringRadius)).add(up.scale(Math.sin(a2) * ringRadius)).subtract(camPos);
+                drawQuadRibbon(consumer, matrix, p1, p2, look, 0.015D, 90, 220, 255, 195);
+            }
+
+            if (elapsed < 10) continue;
+
+            double range = staff.isNetherite() ? 28.0D : 24.0D;
+            net.minecraft.world.phys.HitResult hit = player.pick(range, partialTicks, false);
+            Vec3 end = hit.getLocation();
+
+            Vec3 a = nozzle.subtract(camPos);
+            Vec3 b = end.subtract(camPos);
+            Vec3 beamDir = b.subtract(a);
+            double beamLen = beamDir.length();
+            if (beamLen < 0.25D) continue;
+
+            Vec3 normal = beamDir.cross(a.scale(-1.0D));
+            if (normal.lengthSqr() < 1.0E-6D) normal = right;
+            else normal = normal.normalize();
+
+            drawQuadRibbon(consumer, matrix, a, b, normal, 0.075D, 45, 180, 255, 165);
+            drawQuadRibbon(consumer, matrix, a, b, normal, 0.028D, 210, 248, 255, 240);
+
+            Vec3 unitDir = beamDir.scale(1.0D / beamLen);
+            int spiralSegs = Math.max(8, Math.min(36, (int) (beamLen * 1.3D)));
+            Vec3 prevSpiral = null;
+            for (int i = 0; i <= spiralSegs; i++) {
+                double dist = (beamLen * i) / spiralSegs;
+                double ang = dist * 1.7D - timeSec * 15.0D;
+                Vec3 spiralPt = a.add(unitDir.scale(dist))
+                        .add(right.scale(Math.cos(ang) * 0.105D))
+                        .add(up.scale(Math.sin(ang) * 0.105D));
+                if (prevSpiral != null) {
+                    Vec3 sNorm = spiralPt.subtract(prevSpiral).cross(prevSpiral.scale(-1.0D));
+                    if (sNorm.lengthSqr() < 1.0E-6D) sNorm = normal;
+                    else sNorm = sNorm.normalize();
+                    drawQuadRibbon(consumer, matrix, prevSpiral, spiralPt, sNorm, 0.014D, 120, 235, 255, 200);
+                }
+                prevSpiral = spiralPt;
+            }
+        }
+
+        if (consumer != null && bufferSource instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(RenderType.lightning());
+        }
+    }
+
     public static void renderActiveElectricArcs(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
+        renderGuardianHydroBeams(poseStack, bufferSource, camera);
         if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;

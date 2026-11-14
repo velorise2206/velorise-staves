@@ -47,7 +47,7 @@ Combine 1 staff from each of the 7 elemental groups (`pyro_staves`, `hydro_stave
 Combine a **Netherite Upgrade Template** + **Any Basic Elemental Staff** + <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="16" height="16" /> [**Omni Element**](Relics-and-Utilities#omni-element) in a Smithing Table:
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_omni_staff_smithing.png" width="400" alt="Omni Staff Smithing Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_omni_staff_smithing_cycle.gif" width="400" alt="Omni Staff Smithing Recipe" />
 </div>
 </details>
 

@@ -749,7 +749,7 @@ public class ElementalCodexScreen extends Screen {
                                 "§6" + fmtHearts(gNeth * dmgMult) + "–" + fmtHearts(gNeth * 2.0F * dmgMult) + "§f\uE008§6x8 (3s)", "24m➔28m", "codex.velorise_staves.staff.guardian"},
                         {"splendor_of_tranquil_waters", ArcaneStaffItem.Kind.SPLENDOR, Element.HYDRO,
                                 fmtHearts(maxHp * 0.05F * dmgMult) + "–" + fmtHearts(maxHp * 0.14F * 1.4F * dmgMult) + "§f\uE008§r",
-                                "§6" + fmtHearts(maxHp * 0.075F * dmgMult) + "–" + fmtHearts(maxHp * 0.21F * 1.4F * dmgMult) + "§f\uE008§6", "16m / 30s", "codex.velorise_staves.staff.splendor"},
+                                "§6" + fmtHearts(maxHp * 0.075F * dmgMult) + "–" + fmtHearts(maxHp * 0.21F * 1.4F * dmgMult) + "§f\uE008§6", "16m / 15s", "codex.velorise_staves.staff.splendor"},
                         {"frostbolt_wand", ArcaneStaffItem.Kind.FROST, Element.CRYO,
                                 fmtHearts(3.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x3", "28m", "codex.velorise_staves.staff.frostbolt"},
                         {"arc_caster", ArcaneStaffItem.Kind.LIGHTNING, Element.ELECTRO,

@@ -49,7 +49,7 @@ public class HydroSalonSummonEntity extends Entity {
     public static final int ROLE_CRABALETTA = 2;
     public static final int ROLE_SINGER = 3;
 
-    public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
+    public static final int MAX_LIFETIME_TICKS = 300; // 15 seconds
 
     private static final EntityDataAccessor<Byte> DATA_ROLE =
             SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.BYTE);
@@ -66,6 +66,17 @@ public class HydroSalonSummonEntity extends Entity {
     private Vec3 anchorPos = Vec3.ZERO;
     private Vec3 wanderPos = Vec3.ZERO;
     private int nextWanderTick = 0;
+    private double clientPrevX;
+    private double clientPrevY;
+    private double clientPrevZ;
+    private boolean clientPosInit;
+    private float clientMoveSpeed;
+    private float clientTentaclePhase;
+    private float clientPrevTentaclePhase;
+
+    public float getTentaclePhase(float partialTicks) {
+        return Mth.lerp(partialTicks, this.clientPrevTentaclePhase, this.clientTentaclePhase);
+    }
 
     public HydroSalonSummonEntity(EntityType<? extends HydroSalonSummonEntity> type, Level level) {
         super(type, level);
@@ -191,6 +202,55 @@ public class HydroSalonSummonEntity extends Entity {
         return false;
     }
 
+    public static void switchArkheInPlace(
+            ServerLevel level,
+            ServerPlayer owner,
+            boolean isNetherite,
+            boolean pneumaMode
+    ) {
+        UUID ownerId = owner.getUUID();
+        Vec3 sumPos = Vec3.ZERO;
+        int count = 0;
+        int preservedAge = 0;
+        ServerLevel targetLevel = level;
+        for (ServerLevel lvl : level.getServer().getAllLevels()) {
+            for (Entity e : lvl.getAllEntities()) {
+                if (e instanceof HydroSalonSummonEntity summon
+                        && summon.isAlive()
+                        && ownerId.equals(summon.ownerUuid)) {
+                    sumPos = sumPos.add(summon.position());
+                    preservedAge = Math.max(preservedAge, summon.ageTicks);
+                    targetLevel = lvl;
+                    count++;
+                }
+            }
+        }
+        if (count == 0) return;
+        Vec3 anchor = sumPos.scale(1.0D / count);
+        clearOwnerSummons(level, ownerId);
+
+        EntityType<HydroSalonSummonEntity> type = VeloriseStavesMod.HYDRO_SALON_SUMMON.get();
+        if (pneumaMode) {
+            HydroSalonSummonEntity singer = new HydroSalonSummonEntity(
+                    type, targetLevel, owner, ROLE_SINGER, isNetherite, anchor);
+            singer.ageTicks = preservedAge;
+            targetLevel.addFreshEntity(singer);
+            targetLevel.sendParticles(ParticleTypes.END_ROD, anchor.x, anchor.y + 0.6D, anchor.z, 18, 0.35D, 0.45D, 0.35D, 0.04D);
+            targetLevel.sendParticles(ParticleTypes.SPLASH, anchor.x, anchor.y + 0.3D, anchor.z, 24, 0.45D, 0.25D, 0.45D, 0.06D);
+        } else {
+            for (int role = 0; role < 3; role++) {
+                double angleRad = Math.toRadians(owner.getYRot() + role * 120.0D);
+                Vec3 offset = new Vec3(Math.cos(angleRad) * 1.6D, 0.35D + role * 0.12D, Math.sin(angleRad) * 1.6D);
+                Vec3 spawnPos = anchor.add(offset);
+                HydroSalonSummonEntity member = new HydroSalonSummonEntity(
+                        type, targetLevel, owner, role, isNetherite, spawnPos);
+                member.ageTicks = preservedAge;
+                targetLevel.addFreshEntity(member);
+                targetLevel.sendParticles(ParticleTypes.BUBBLE_POP, spawnPos.x, spawnPos.y + 0.3D, spawnPos.z, 14, 0.25D, 0.25D, 0.25D, 0.04D);
+            }
+        }
+    }
+
     public static void summonOrSwitchArkhe(
             ServerLevel level,
             ServerPlayer owner,
@@ -231,6 +291,23 @@ public class HydroSalonSummonEntity extends Entity {
         this.ageTicks++;
 
         if (this.level().isClientSide()) {
+            if (!this.clientPosInit) {
+                this.clientPrevX = this.getX();
+                this.clientPrevY = this.getY();
+                this.clientPrevZ = this.getZ();
+                this.clientPosInit = true;
+            }
+            double dx = this.getX() - this.clientPrevX;
+            double dy = this.getY() - this.clientPrevY;
+            double dz = this.getZ() - this.clientPrevZ;
+            this.clientPrevX = this.getX();
+            this.clientPrevY = this.getY();
+            this.clientPrevZ = this.getZ();
+
+            float instantSpeed = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+            this.clientMoveSpeed = Mth.lerp(0.35F, this.clientMoveSpeed, Math.min(instantSpeed, 0.5F));
+            this.clientPrevTentaclePhase = this.clientTentaclePhase;
+            this.clientTentaclePhase += this.clientMoveSpeed * 3.2F;
             return;
         }
 
