@@ -3,12 +3,15 @@
   "category": "equipment",
   "pattern": [
     "  W",
-    " B ",
+    " E ",
     "B  "
   ],
   "key": {
     "B": {
       "item": "velorise_staves:breeze_rod"
+    },
+    "E": {
+      "item": "velorise_staves:anemo_element"
     },
     "W": {
       "item": "velorise_staves:wind_charge"

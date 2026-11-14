@@ -1228,6 +1228,7 @@ public final class ElementalGaugeManager {
         }
         setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
         CrystallizeShardManager.onShieldApplied(player, Element.CRYO, 240);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
     }
 
     private static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) {
@@ -1244,6 +1245,7 @@ public final class ElementalGaugeManager {
         if (cryst == null) {
             com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
         }
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 19);
         if (playBreakSound && player.level() instanceof ServerLevel sl) {
             sl.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.9F, 1.35F);
@@ -1302,6 +1304,7 @@ public final class ElementalGaugeManager {
                 sl.playSound(null, player.getX(), player.getY(), player.getZ(),
                         SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.55F, 1.4F + 0.1F * next);
             }
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10 + next);
         }
     }
 
@@ -1336,6 +1339,7 @@ public final class ElementalGaugeManager {
             LivingEntity nearest = findNearestNightsFocusTarget(sl, player);
             if (nearest != null) {
                 NIGHTS_FOCUS_STARS.put(id, 0);
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
                 NIGHTS_FOCUS_PENDING_SHOTS.put(id, 4);
                 if (fireSingleNightsFocusStar(sl, player)) {
                     NIGHTS_FOCUS_PENDING_SHOTS.put(id, 3);
@@ -1381,6 +1385,7 @@ public final class ElementalGaugeManager {
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.PLAYERS, 0.7F, 1.5F);
+        com.velorise.staves.network.ModNetwork.sendElectricArc(level, start, end, 7, 0xFF7BE8FF);
         applyElement(level, target, Element.CRYO, units, player, dmg);
         return true;
     }

@@ -324,15 +324,25 @@ public final class CrystallizeShardManager {
     }
 
     private static void pickupShard(ServerLevel level, ServerPlayer player, Element element, int emLevel) {
-        // Replace any existing Crystallize shield (same or different element) and reset shield absorption
-        ModMobEffects.removeAllShields(player);
-        if (!player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 8.0F) {
-            player.setAbsorptionAmount(0.0F);
-        }
         // Elemental Mastery I-III grants +1.0 HP (+0.5 golden heart) shield absorption per level: 2.0 / 3.0 / 4.0 / 5.0 HP
         float shieldHp = 2.0F + 1.0F * Math.max(0, emLevel);
         if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
             shieldHp *= 1.15F;
+        }
+        // Do NOT overwrite an active Jade Shield or Nights of Formal Focus Cryo Shield!
+        if (ElementalGaugeManager.hasActiveJadeShield(player) || ElementalGaugeManager.hasActiveNightsFocusShield(player)) {
+            ElementalGaugeManager.setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
+            com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_CRYSTALLIZE_SHIELD);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.PLAYERS, 0.9F, 1.55F);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.7F, 1.3F);
+            return;
+        }
+        // Replace any existing Crystallize shield (same or different element) and reset shield absorption
+        ModMobEffects.removeAllShields(player);
+        if (!player.hasEffect(MobEffects.ABSORPTION) && player.getAbsorptionAmount() <= 8.0F) {
+            player.setAbsorptionAmount(0.0F);
         }
         int shieldAmp = Math.max(0, emLevel);
         var shieldObj = ModMobEffects.getShieldForElement(element);

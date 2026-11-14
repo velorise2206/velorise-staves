@@ -3,12 +3,15 @@
     "category":  "equipment",
     "pattern":  [
                     "  F",
-                    " B ",
+                    " E ",
                     "B  "
                 ],
     "key":  {
                 "F":  {
                           "item":  "minecraft:fire_charge"
+                      },
+                "E":  {
+                          "item":  "velorise_staves:pyro_element"
                       },
                 "B":  {
                           "item":  "minecraft:blaze_rod"

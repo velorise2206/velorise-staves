@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "velorise_staves:anemo_element"
+    },
+    {
+      "item": "velorise_staves:frost_rod"
+    }
+  ],
+  "result": {
+    "item": "velorise_staves:breeze_rod",
+    "count": 1
+  }
+}

@@ -3,12 +3,15 @@
     "category":  "equipment",
     "pattern":  [
                     "  W",
-                    " B ",
+                    " D ",
                     "B  "
                 ],
     "key":  {
                 "W":  {
                           "item":  "minecraft:wither_skeleton_skull"
+                      },
+                "D":  {
+                          "item":  "velorise_staves:dendro_element"
                       },
                 "B":  {
                           "item":  "minecraft:blaze_rod"
