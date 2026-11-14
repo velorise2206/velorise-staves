@@ -1,21 +1,23 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  T",
-                    " B ",
-                    "B  "
-                ],
-    "key":  {
-                "B":  {
-                          "item":  "minecraft:blaze_rod"
-                      },
-                "T":  {
-                          "item":  "minecraft:ghast_tear"
-                      }
-            },
-    "result":  {
-                   "item":  "velorise_staves:ghastfire_staff",
-                   "count":  1
-               }
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  P",
+    " T ",
+    "B  "
+  ],
+  "key": {
+    "P": {
+      "item": "velorise_staves:pyro_element"
+    },
+    "T": {
+      "item": "minecraft:ghast_tear"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
+    }
+  },
+  "result": {
+    "item": "velorise_staves:ghastfire_staff"
+  }
 }

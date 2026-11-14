@@ -429,10 +429,13 @@ public final class ElementalResonanceManager {
                 ? Math.max(1, (int) Math.round(baseTicks * 0.90D))
                 : Math.max(1, baseTicks);
         player.getCooldowns().addCooldown(item, finalTicks);
-        if (!player.level().isClientSide() && item instanceof ArcaneStaffItem) {
+        if (!player.level().isClientSide() && item instanceof ArcaneStaffItem staff) {
             RECORDED_STAFF_COOLDOWNS
                     .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
                     .put(item, new CooldownTrack(finalTicks));
+            if (player instanceof ServerPlayer sp && staff.kind() != ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
+                ElementalGaugeManager.onPlayerCastStaffSkill(sp);
+            }
         }
     }
 

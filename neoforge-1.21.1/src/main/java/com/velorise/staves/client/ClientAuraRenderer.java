@@ -415,7 +415,8 @@ public final class ClientAuraRenderer {
             if (useStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) {
                 com.velorise.staves.item.ArcaneStaffItem.Kind k = staff.kind();
                 if (k == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX
-                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
+                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
+                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
                     int elapsed = Math.max(0, staff.getUseDuration(useStack, entity) - entity.getUseItemRemainingTicks());
                     LAST_USE_TICKS.put(id, elapsed);
                     LAST_USE_KIND.put(id, k);
@@ -444,6 +445,8 @@ public final class ClientAuraRenderer {
                             id,
                             entity.isShiftKeyDown() ? ClientAuraTracker.ANIM_SPLENDOR_SWITCH : ClientAuraTracker.ANIM_SPLENDOR_SUMMON
                     );
+                } else if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE && prevElapsed >= 6) {
+                    ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_GHASTFIRE_SLAM);
                 }
             }
         }
@@ -508,21 +511,31 @@ public final class ClientAuraRenderer {
                     model.hat.copyFrom(model.head);
                     return;
                 }
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 3 && activeAnim == 0) {
-                    // Furina Hold wind-up (ticks 3..10): Raise scepter in front of chest before planting down
-                    float w = smoothStep01((elapsed - 2.0F) / 7.0F);
+                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 2 && activeAnim == 0) {
+                    // Furina Hold wind-up (ticks 2..10): Lower extended arm in front with vertical scepter
+                    float w = smoothStep01((elapsed - 1.5F) / 7.5F);
                     net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
                     net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
                     net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
                     float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
                     float offDir = -castDir;
 
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.24F);
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.42F);
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, -castDir * 0.08F);
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.68F);
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.04F);
                     offPart.xRot = Mth.lerp(w, offPart.xRot, -0.35F);
                     offPart.yRot = Mth.lerp(w, offPart.yRot, -offDir * 0.18F);
                     offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.22F);
+                    return;
+                }
+                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
+                    float w = smoothStep01(elapsed / 16.0F);
+                    float tremor = Mth.sin(ageInTicks * 1.8F) * 0.025F * w;
+                    net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE);
+                    net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+                    float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -2.65F + tremor);
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.14F);
                     return;
                 }
             }
@@ -532,8 +545,18 @@ public final class ClientAuraRenderer {
         float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
         float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
 
+        if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM) {
+            float slam = smoothStep01(t / 0.35F);
+            float w = (t < 0.45F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.45F) / 0.55F) * (float) Math.PI));
+            net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE);
+            net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slam, -2.65F, -0.25F));
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.10F * (1.0F - slam));
+            return;
+        }
         if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON) {
-            // Furina Summon: Casting hand plants scepter into the ground; opposite hand raises high to the sky
+            // Furina Summon: Lower extended casting hand plants scepter vertically into the ground; opposite hand raises high to the sky
             float w;
             if (t < 0.18F) {
                 w = Mth.sin((t / 0.18F) * ((float) Math.PI * 0.5F));
@@ -544,7 +567,7 @@ public final class ClientAuraRenderer {
             }
             float plantDown;
             if (t < 0.12F) {
-                plantDown = -0.35F * Mth.sin((t / 0.12F) * (float) Math.PI);
+                plantDown = -0.25F * Mth.sin((t / 0.12F) * (float) Math.PI);
             } else {
                 plantDown = smoothStep01((t - 0.12F) / 0.20F);
             }
@@ -556,10 +579,10 @@ public final class ClientAuraRenderer {
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
 
-            // Weapon hand: extended forward-downward, planting the cane firmly onto the ground
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.96F + 0.36F * plantDown);
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.32F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.10F);
+            // Weapon hand: lowered forward-downward, planting the scepter 90 deg vertically onto the ground
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(plantDown, -0.72F, -0.40F));
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.04F);
 
             // Other hand: raised high toward the heavens
             offPart.xRot = Mth.lerp(w, offPart.xRot, -2.72F - skyPulse);
@@ -569,7 +592,7 @@ public final class ClientAuraRenderer {
             model.head.xRot -= 0.08F * w;
             model.hat.copyFrom(model.head);
         } else if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
-            // Furina Arkhe Switch: Weapon hand lifts slightly and plants the scepter straight down into the ground
+            // Furina Arkhe Switch: Lower extended arm in front and plant scepter tip 90 deg straight down into the ground
             float w;
             if (t < 0.15F) {
                 w = Mth.sin((t / 0.15F) * ((float) Math.PI * 0.5F));
@@ -586,9 +609,9 @@ public final class ClientAuraRenderer {
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
 
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(plantDown, -1.24F, -0.54F));
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.44F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, -castDir * 0.08F);
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(plantDown, -0.68F, -0.40F));
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.04F);
 
             offPart.xRot = Mth.lerp(w, offPart.xRot, -0.36F);
             offPart.yRot = Mth.lerp(w, offPart.yRot, -offDir * 0.18F);
@@ -654,6 +677,7 @@ public final class ClientAuraRenderer {
         if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             float plantW = 0.0F;
             float downOffset = 0.0F;
+            float targetPitchDeg = -103.0F;
             if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON || activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -664,17 +688,24 @@ public final class ClientAuraRenderer {
                 } else {
                     plantW = 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
                 }
-                downOffset = smoothStep01(t / 0.22F) * 0.14F;
+                float slamDown = smoothStep01(t / 0.24F);
+                downOffset = slamDown * 0.14F;
+                float armDeg = Mth.lerp(slamDown, -39.0F, -23.0F);
+                targetPitchDeg = armDeg - 80.0F;
             } else if (entity.isUsingItem() && entity.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, entity) - entity.getUseItemRemainingTicks());
-                if (elapsed >= 3) {
-                    plantW = smoothStep01((elapsed - 2.0F) / 7.0F);
+                if (elapsed >= 2) {
+                    plantW = smoothStep01((elapsed - 1.5F) / 7.5F);
+                    float armDeg = Mth.lerp(plantW, -24.0F, -39.0F);
+                    targetPitchDeg = armDeg - 80.0F;
                 }
             }
             if (plantW > 0.001F) {
-                // Pivot around the hand grip so the tip of Splendor points vertically downward into the ground
-                poseStack.translate(0.0F, 0.08F * plantW, -0.08F * plantW + downOffset);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-118.0F * plantW));
+                float side = leftHand ? -1.0F : 1.0F;
+                // Exact compensation so the tip of Splendor points 90 deg straight down into the ground
+                poseStack.translate(0.0F, 0.06F * plantW, -0.08F * plantW + downOffset);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 10.3F * plantW));
+                poseStack.mulPose(Axis.XP.rotationDegrees(targetPitchDeg * plantW));
             }
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
             if (entity.isUsingItem() && entity.getUseItem() == stack) {
@@ -741,11 +772,10 @@ public final class ClientAuraRenderer {
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             if (player.isUsingItem() && player.getUseItem() == stack && activeAnim == 0) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
-                if (elapsed >= 3) {
-                    float w = smoothStep01((elapsed + partialTicks - 2.0F) / 7.0F);
-                    poseStack.translate(-dir * 0.22F * w, 0.18F * w, -0.16F * w);
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 22.0F * w));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-25.0F * w));
+                if (elapsed >= 2) {
+                    float w = smoothStep01((elapsed + partialTicks - 1.5F) / 7.5F);
+                    poseStack.translate(-dir * 0.20F * w, -0.08F * w, -0.16F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-195.0F * w));
                     return;
                 }
             }
@@ -761,12 +791,30 @@ public final class ClientAuraRenderer {
                     w = 0.5F * (1.0F + Mth.cos(((t - 0.70F) / 0.30F) * (float) Math.PI));
                 }
                 float lift = (t < 0.14F) ? Mth.sin((t / 0.14F) * (float) Math.PI) : 0.0F;
-                float plantDown = smoothStep01(Math.max(0.0F, t - 0.10F) / 0.20F);
+                float plantDown = smoothStep01(Math.max(0.0F, t - 0.08F) / 0.20F);
 
-                // Bring scepter to front-center, tilt vertical like a cane, and slam/plant straight down
-                poseStack.translate(-dir * 0.20F * w, (0.14F * lift - 0.32F * plantDown) * w, -0.18F * w);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 24.0F * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees((-36.0F * plantDown) * w));
+                // Lower hand in front and rotate scepter -200 deg around X so the tip points 90 deg straight down into the ground
+                poseStack.translate(-dir * 0.20F * w, (-0.06F * lift - 0.28F * plantDown) * w, -0.18F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(plantDown, -165.0F, -200.0F) * w));
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
+            if (player.isUsingItem() && player.getUseItem() == stack) {
+                int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
+                float w = smoothStep01((elapsed + partialTicks) / 16.0F);
+                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.8F) * 0.008F * w;
+                poseStack.translate(dir * 0.18F * w + tremor, 0.34F * w, -0.08F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 16.0F * w));
+                return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float slam = smoothStep01(t / 0.35F);
+                float w = (t < 0.45F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.45F) / 0.55F) * (float) Math.PI));
+                poseStack.translate(dir * 0.12F * (1.0F - slam) * w, Mth.lerp(slam, 0.34F, -0.22F) * w, Mth.lerp(slam, -0.08F, -0.22F) * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, 26.0F, -55.0F) * w));
+                return;
             }
         }
     }
@@ -943,9 +991,11 @@ public final class ClientAuraRenderer {
         Matrix4f mat = poseStack.last().pose();
 
         int segs = 16;
-        float radius = Math.max(0.68F, entity.getBbWidth() * 0.96F);
-        float yBot = 0.08F;
-        float yTop = entity.getBbHeight() + 0.14F;
+        // Shrunk by ~50%: compact close-fitting radius and height extending from knee (0.23H) to neck (0.77H)
+        float radius = Math.max(0.42F, entity.getBbWidth() * 0.62F);
+        float h = entity.getBbHeight();
+        float yBot = h * 0.23F;
+        float yTop = h * 0.77F;
         float yMid = (yBot + yTop) * 0.5F;
 
         for (int i = 0; i < segs; i++) {
@@ -956,7 +1006,7 @@ public final class ClientAuraRenderer {
             float x1 = Mth.cos(a1) * radius;
             float z1 = Mth.sin(a1) * radius;
 
-            // Lower golden cylinder wall (feathered bottom -> warm golden body)
+            // Lower golden cylinder wall (feathered knee bottom -> warm golden body)
             emitCrystalQuad(vc, mat,
                     x0, yBot, z0, 255, 200, 50, 14,
                     x1, yBot, z1, 255, 200, 50, 14,
@@ -968,7 +1018,7 @@ public final class ClientAuraRenderer {
                     x1, yBot, z1, 255, 200, 50, 14,
                     x0, yBot, z0, 255, 200, 50, 14);
 
-            // Upper golden cylinder wall (warm golden body -> feathered top)
+            // Upper golden cylinder wall (warm golden body -> feathered neck top)
             emitCrystalQuad(vc, mat,
                     x0, yMid, z0, 255, 212, 68, 56,
                     x1, yMid, z1, 255, 212, 68, 56,
@@ -980,8 +1030,8 @@ public final class ClientAuraRenderer {
                     x1, yMid, z1, 255, 212, 68, 56,
                     x0, yMid, z0, 255, 212, 68, 56);
 
-            // Crisp luminous Geo border rings at top and bottom of cylinder
-            float bandH = 0.032F;
+            // Crisp luminous Geo border rings at neck top and knee bottom of cylinder (scaled 50%)
+            float bandH = 0.018F;
             emitCrystalQuad(vc, mat,
                     x0, yBot, z0, 255, 218, 75, 130,
                     x1, yBot, z1, 255, 218, 75, 130,
@@ -994,34 +1044,31 @@ public final class ClientAuraRenderer {
                     x0, yTop, z0, 255, 218, 75, 130);
         }
 
-        // 4 Liyue Geo Diamond Runes etched on the cylinder wall (every 90 degrees)
-        float runeR = radius + 0.008F;
-        float dSize = 0.22F;
+        // 4 Liyue Geo Diamond Runes etched on the cylinder wall (scaled 50%)
+        float runeR = radius + 0.006F;
+        float dSize = 0.11F;
         for (int k = 0; k < 4; k++) {
             poseStack.pushPose();
             poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(k * 90.0F));
             Matrix4f rMat = poseStack.last().pose();
-            // Outer diamond ring
-            drawShieldDiamondRing(vc, rMat, runeR, yMid, dSize, 0.028F, 255, 224, 82, 165);
-            // Inner nested diamond
-            drawShieldDiamondRing(vc, rMat, runeR + 0.003F, yMid, dSize * 0.52F, 0.022F, 255, 245, 150, 195);
+            drawShieldDiamondRing(vc, rMat, runeR, yMid, dSize, 0.015F, 255, 224, 82, 165);
+            drawShieldDiamondRing(vc, rMat, runeR + 0.002F, yMid, dSize * 0.52F, 0.012F, 255, 245, 150, 195);
             poseStack.popPose();
         }
         poseStack.popPose();
 
-        // 4 Diagonal Floating Dark-Bronze & Gold Monolith Plates (Top-Left, Top-Right, Bottom-Left, Bottom-Right)
-        // Aligned to face the camera's horizontal yaw so the iconic X-shaped 4-corner talisman frame is visible from any angle!
+        // 4 Diagonal Floating Dark-Bronze & Gold Monolith Plates (scaled 50%, aligned from neck to knee)
         float camYaw = mc.gameRenderer.getMainCamera().getYRot();
         poseStack.pushPose();
         poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-camYaw));
-        float bob = Mth.sin(time * 0.10F) * 0.04F;
-        float plateDist = radius + 0.08F;
+        float bob = Mth.sin(time * 0.10F) * 0.02F;
+        float plateDist = radius + 0.04F;
 
         float[][] corners = {
-                {-0.62F, yTop - 0.34F + bob,  36.0F}, // Top-Left
-                { 0.62F, yTop - 0.34F - bob, -36.0F}, // Top-Right
-                {-0.62F, yBot + 0.36F - bob, -36.0F}, // Bottom-Left
-                { 0.62F, yBot + 0.36F + bob,  36.0F}  // Bottom-Right
+                {-0.31F, yTop - 0.14F + bob,  36.0F}, // Top-Left (neck level)
+                { 0.31F, yTop - 0.14F - bob, -36.0F}, // Top-Right (neck level)
+                {-0.31F, yBot + 0.14F - bob, -36.0F}, // Bottom-Left (knee level)
+                { 0.31F, yBot + 0.14F + bob,  36.0F}  // Bottom-Right (knee level)
         };
 
         for (int c = 0; c < 4; c++) {
@@ -1029,23 +1076,19 @@ public final class ClientAuraRenderer {
             float cy = corners[c][1];
             float tiltDeg = corners[c][2];
 
-            // Front (+Z) and Back (-Z) sets of floating armor plates
+            // Front (+Z) and Back (-Z) sets of compact floating armor plates
             for (int side = -1; side <= 1; side += 2) {
                 poseStack.pushPose();
                 poseStack.translate(cx, cy, side * plateDist * 0.68F);
                 poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(tiltDeg));
                 Matrix4f pMat = poseStack.last().pose();
 
-                // Outer Dark-Bronze Liyue Basalt Armor Segment
-                drawJadeArmorBox(vc, pMat, -0.17F, -0.055F, -0.025F, 0.17F, 0.055F, 0.025F, 48, 30, 20, 235);
-                // Stepped Dark-Bronze Notches
-                drawJadeArmorBox(vc, pMat, -0.22F, -0.032F, -0.020F, -0.17F, 0.032F, 0.020F, 36, 22, 15, 235);
-                drawJadeArmorBox(vc, pMat,  0.17F, -0.032F, -0.020F,  0.22F, 0.032F, 0.020F, 36, 22, 15, 235);
-                // Inner Glowing Geo Gold Energy Trim Bar
-                float innerY = (cy > yMid) ? -0.072F : 0.055F;
-                drawJadeArmorBox(vc, pMat, -0.15F, innerY, -0.018F, 0.15F, innerY + 0.022F, 0.018F, 255, 215, 64, 240);
-                // Bright Gold Fretwork Stripe along center of basalt plate
-                drawJadeArmorBox(vc, pMat, -0.12F, -0.012F, -0.028F, 0.12F, 0.012F, 0.028F, 245, 185, 48, 245);
+                drawJadeArmorBox(vc, pMat, -0.085F, -0.028F, -0.013F, 0.085F, 0.028F, 0.013F, 48, 30, 20, 235);
+                drawJadeArmorBox(vc, pMat, -0.11F, -0.016F, -0.010F, -0.085F, 0.016F, 0.010F, 36, 22, 15, 235);
+                drawJadeArmorBox(vc, pMat,  0.085F, -0.016F, -0.010F,  0.11F, 0.016F, 0.010F, 36, 22, 15, 235);
+                float innerY = (cy > yMid) ? -0.036F : 0.028F;
+                drawJadeArmorBox(vc, pMat, -0.075F, innerY, -0.009F, 0.075F, innerY + 0.011F, 0.009F, 255, 215, 64, 240);
+                drawJadeArmorBox(vc, pMat, -0.06F, -0.006F, -0.014F, 0.06F, 0.006F, 0.014F, 245, 185, 48, 245);
 
                 poseStack.popPose();
             }
@@ -1154,8 +1197,12 @@ public final class ClientAuraRenderer {
             if (data.damageUntil <= now) {
                 data.lastDamage = 0.0F;
             }
-            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && !hasInnate && !omniInnate) {
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now
+                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
+                return;
+            }
+            if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now && !hasInnate && !omniInnate) {
                 return;
             }
         }
@@ -1356,6 +1403,7 @@ public final class ClientAuraRenderer {
         renderCrystallizeShieldHud(guiGraphics, mc);
         renderResonanceHud(guiGraphics, mc);
         renderFreezeStruggleHud(guiGraphics, mc);
+        renderChargeProgressHud(guiGraphics, mc);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
         if (data == null || data.elements.isEmpty()) return;
@@ -1728,6 +1776,35 @@ public final class ClientAuraRenderer {
 
     private static boolean isBeneficial(MobEffectInstance inst) {
         return inst.getEffect().value().isBeneficial();
+    }
+
+    private static void renderChargeProgressHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null || !mc.player.isUsingItem()) return;
+        ItemStack stack = mc.player.getUseItem();
+        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) || !staff.isCharged()) return;
+        int elapsed = Math.max(0, staff.getUseDuration(stack, mc.player) - mc.player.getUseItemRemainingTicks());
+        int targetTicks = switch (staff.kind()) {
+            case VORTEX -> 26;
+            case SPLENDOR -> 10;
+            case GHASTFIRE -> 16;
+            default -> 20;
+        };
+        float pct = Mth.clamp((float) elapsed / (float) targetTicks, 0.0F, 1.0F);
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        int barW = 56;
+        int barH = 4;
+        int x = (sw - barW) / 2;
+        int y = sh / 2 + 12;
+        guiGraphics.fill(x - 1, y - 1, x + barW + 1, y + barH + 1, 0x90000000);
+        com.velorise.staves.element.Element elem = staff.getElement();
+        Integer rgb = elem != null ? elem.color().getColor() : null;
+        int elemColor = (rgb != null ? rgb : 0xFFFFFF) | 0xFF000000;
+        int fillColor = pct >= 1.0F ? 0xFFFFE066 : elemColor;
+        int fillW = Math.round(barW * pct);
+        if (fillW > 0) {
+            guiGraphics.fill(x, y, x + fillW, y + barH, fillColor);
+        }
     }
 
     private static void renderFreezeStruggleHud(GuiGraphics guiGraphics, Minecraft mc) {

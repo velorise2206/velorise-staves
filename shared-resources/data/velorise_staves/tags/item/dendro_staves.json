@@ -1,7 +1,9 @@
 {
   "replace": false,
   "values": [
+    "velorise_staves:wither_scepter",
+    "velorise_staves:netherite_wither_scepter",
     "velorise_staves:webcaster",
-    "velorise_staves:wither_scepter"
+    "velorise_staves:netherite_webcaster"
   ]
 }

@@ -89,7 +89,8 @@ public final class GhastfireFieldManager {
             // Every 20 ticks (1.0s) when the square wave completes its expansion, apply Pyro (1.0U) pulse
             if (age > 0L && phase == 0) {
                 ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
-                float damage = entry.isNetherite ? 2.5F : 1.5F;
+                float damage = entry.isNetherite ? 2.25F : 1.5F;
+                float pulseU = entry.isNetherite ? 1.5F : 1.0F;
                 Vec3 centerPos = cloud.position();
 
                 // 1. Burn and apply Pyro (1.0U) to all entities inside the square fire field
@@ -104,7 +105,7 @@ public final class GhastfireFieldManager {
                     if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                         target.igniteForSeconds(3);
                     }
-                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, 1.0F, owner, damage);
+                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, pulseU, owner, damage);
                     MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.PYRO, null);
                     level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
                 }

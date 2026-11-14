@@ -202,9 +202,10 @@ public final class ArcaneStaffEvents {
         level.addFreshEntity(cloud);
 
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 10.0F : 7.0F;
+        float baseDmg = isNetherite ? 10.5F : 7.0F;
+        float attackU = isNetherite ? 3.0F : 2.0F;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 2.0F, player, baseDmg);
+            ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
         }
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, player);
 
@@ -241,7 +242,7 @@ public final class ArcaneStaffEvents {
     private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {
         double radius = isNetherite ? 4.5D : 3.5D;
         float baseDmg = isNetherite ? 9.0F : 6.0F;
-        float attackU = isNetherite ? 4.0F : 2.0F;
+        float attackU = isNetherite ? 3.0F : 2.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
         for (LivingEntity target : affected) {
@@ -297,7 +298,7 @@ public final class ArcaneStaffEvents {
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
-                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 160 : 100, isNetherite ? 1 : 0));
+                target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 150 : 100, isNetherite ? 1 : 0));
             }
         }
         level.sendParticles(ParticleTypes.SMOKE, hit.x, hit.y, hit.z, isNetherite ? 40 : 30,
@@ -315,7 +316,7 @@ public final class ArcaneStaffEvents {
             if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
-                target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 80 : 60, 0));
+                target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 90 : 60, 0));
             }
         }
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.5D, Element.ELECTRO, player);
@@ -333,8 +334,8 @@ public final class ArcaneStaffEvents {
             if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
-                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 60, 1));
-                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 140 : 100));
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 90 : 60, 1));
+                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 150 : 100));
             }
             ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
         }
@@ -411,7 +412,7 @@ public final class ArcaneStaffEvents {
             pos = BlockPos.containing(hit);
         }
         int baseDuration = StavesConfig.TEMPORARY_WEB_DURATION_TICKS.get();
-        int webTicks = isNetherite ? (int) Math.round(baseDuration * 1.4D) : baseDuration;
+        int webTicks = isNetherite ? (int) Math.round(baseDuration * 1.5D) : baseDuration;
         int poisonAmplifier = isNetherite ? 1 : 0;
         java.util.UUID webOwner = owner instanceof ServerPlayer player ? player.getUUID() : null;
         if (!TemporaryWebManager.place(level, pos, webTicks, poisonAmplifier, webOwner)) {
@@ -433,6 +434,15 @@ public final class ArcaneStaffEvents {
             float baseDmg = 0.0F;
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, directHit, Element.DENDRO, attackU, player, baseDmg);
+            if (player != null && directHit instanceof net.minecraft.world.entity.monster.Spider) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(
+                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
+            }
+        }
+        if (player != null && !level.getEntitiesOfClass(net.minecraft.world.entity.monster.Spider.class,
+                new AABB(pos).inflate(0.85D), LivingEntity::isAlive).isEmpty()) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    player, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
         }
 
         level.sendParticles(ParticleTypes.POOF, hit.x, hit.y, hit.z, 14, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -441,7 +451,7 @@ public final class ArcaneStaffEvents {
 
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 2.5F : 1.5F;
+        float baseDmg = isNetherite ? 2.25F : 1.5F;
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double radiusSqr = radius * radius;
@@ -479,6 +489,18 @@ public final class ArcaneStaffEvents {
         LivingEntity directHit = hitEntity(hitResult);
         if (directHit != null && directHit != owner) {
             ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
+            if (player != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(
+                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+            }
+            if (player != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(
+                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+            }
+            if (player != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(
+                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+            }
             if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
                 Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
                 Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
@@ -495,6 +517,18 @@ public final class ArcaneStaffEvents {
         for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
             if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
                 ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
+                if (player != null) {
+                    com.velorise.staves.advancement.ModAdvancements.trigger(
+                            player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+                }
+                if (player != null) {
+                    com.velorise.staves.advancement.ModAdvancements.trigger(
+                            player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+                }
+                if (player != null) {
+                    com.velorise.staves.advancement.ModAdvancements.trigger(
+                            player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+                }
                 if (!ElementalGaugeManager.isEntityFrozen(nearby)) {
                     Vec3 diff = nearby.position().subtract(hit);
                     Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
@@ -515,7 +549,7 @@ public final class ArcaneStaffEvents {
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite, LightningBolt bolt) {
         double radius = isNetherite ? 4.5D : 3.5D;
         float baseDmg = isNetherite ? 7.5F : 5.0F;
-        float attackU = isNetherite ? 4.0F : 2.0F;
+        float attackU = isNetherite ? 3.0F : 2.0F;
         LightningBolt effectiveBolt = bolt != null ? bolt : EntityType.LIGHTNING_BOLT.create(level);
         boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
         for (LivingEntity target : targets(level, hit, radius, owner)) {

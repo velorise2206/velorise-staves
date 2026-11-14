@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "velorise_staves:resonant_echo",
-    "velorise_staves:wind_staff"
+    "velorise_staves:netherite_resonant_echo",
+    "velorise_staves:wind_staff",
+    "velorise_staves:netherite_wind_staff"
   ]
 }

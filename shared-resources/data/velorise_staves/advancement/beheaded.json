@@ -1,0 +1,45 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:splendor_of_tranquil_waters"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.beheaded.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.beheaded.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "beheaded": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "beheaded"
+      }
+    },
+    "obtain_splendor": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "velorise_staves:splendor_of_tranquil_waters",
+              "velorise_staves:netherite_splendor_of_tranquil_waters"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "beheaded",
+      "obtain_splendor"
+    ]
+  ]
+}

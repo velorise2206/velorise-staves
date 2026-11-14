@@ -3,15 +3,18 @@
   "category": "equipment",
   "pattern": [
     "  I",
-    " B ",
+    " C ",
     "B  "
   ],
   "key": {
-    "B": {
-      "item": "minecraft:blaze_rod"
-    },
     "I": {
       "item": "minecraft:blue_ice"
+    },
+    "C": {
+      "item": "velorise_staves:cryo_element"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
     }
   },
   "result": {

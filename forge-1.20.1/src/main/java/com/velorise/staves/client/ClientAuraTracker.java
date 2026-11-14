@@ -18,6 +18,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_SPLENDOR_SWITCH = 2;
     public static final int ANIM_VORTEX_HOLD_BURST = 3;
     public static final int ANIM_VORTEX_TAP = 4;
+    public static final int ANIM_GHASTFIRE_SLAM = 5;
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
@@ -278,6 +279,7 @@ public final class ClientAuraTracker {
             case ANIM_SPLENDOR_SWITCH -> 650L;
             case ANIM_VORTEX_HOLD_BURST -> 750L;
             case ANIM_VORTEX_TAP -> 500L;
+            case ANIM_GHASTFIRE_SLAM -> 450L;
             default -> 600L;
         };
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());

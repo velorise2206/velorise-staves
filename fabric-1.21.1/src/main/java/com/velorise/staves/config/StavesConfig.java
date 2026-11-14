@@ -90,7 +90,7 @@ public final class StavesConfig {
     public static final DoubleValue WITHER_COOLDOWN = defineDouble("cooldowns", "wither_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 5.0D, 0.5D, 60.0D);
-    public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 8.0D, 0.5D, 60.0D);
+    public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 20.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue VORTEX_COOLDOWN = defineDouble("cooldowns", "vortex_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue ARC_CASTER_COOLDOWN = defineDouble("cooldowns", "arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
@@ -533,7 +533,7 @@ public final class StavesConfig {
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
             case VORTEX -> isNetherite ? VORTEX_DURABILITY_NETHERITE.get() : VORTEX_DURABILITY_BASIC.get();
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
-            case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
+            case FROST, NIGHTS_FOCUS -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
             case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
@@ -570,6 +570,7 @@ public final class StavesConfig {
             case VORTEX -> VORTEX_COOLDOWN.get();
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
+            case NIGHTS_FOCUS -> 12.0D;
             case WEB -> WEBCASTER_COOLDOWN.get();
             case WIND -> WIND_COOLDOWN.get();
             case OMNI -> OMNI_COOLDOWN.get();

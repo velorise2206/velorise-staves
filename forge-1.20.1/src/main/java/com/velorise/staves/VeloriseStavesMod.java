@@ -133,6 +133,12 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> FROSTBOLT_WAND = ITEMS.register("frostbolt_wand",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 150, false));
 
+    public static final Supplier<Item> NIGHTS_FOCUS_STAFF = ITEMS.register("nights_focus_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 150, false));
+
+    public static final Supplier<Item> FROST_ROD = ITEMS.register("frost_rod",
+        () -> new Item(new Item.Properties()));
+
     public static final Supplier<Item> WEBCASTER = ITEMS.register("webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
 
@@ -248,6 +254,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_FROSTBOLT_WAND = ITEMS.register("netherite_frostbolt_wand",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 500, true));
 
+    public static final Supplier<Item> NETHERITE_NIGHTS_FOCUS_STAFF = ITEMS.register("netherite_nights_focus_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 500, true));
+
     public static final Supplier<Item> NETHERITE_WEBCASTER = ITEMS.register("netherite_webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
 
@@ -286,6 +295,7 @@ public final class VeloriseStavesMod {
                 output.accept(VORTEX_VANQUISHER.get());
                 output.accept(ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
+                output.accept(NIGHTS_FOCUS_STAFF.get());
                 output.accept(WEBCASTER.get());
                 output.accept(WIND_STAFF.get());
                 output.accept(OMNI_STAFF.get());
@@ -305,6 +315,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_VORTEX_VANQUISHER.get());
                 output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
+                output.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_WIND_STAFF.get());
                 output.accept(NETHERITE_OMNI_STAFF.get());
@@ -323,6 +334,7 @@ public final class VeloriseStavesMod {
                 output.accept(CRYO_ELEMENT.get());
                 output.accept(GEO_ELEMENT.get());
                 output.accept(OMNI_ELEMENT.get());
+                output.accept(FROST_ROD.get());
 
                 // Elemental Mastery I-III Enchanted Books
                 for (int lvl = 1; lvl <= 3; lvl++) {
@@ -376,6 +388,7 @@ public final class VeloriseStavesMod {
             event.accept(VORTEX_VANQUISHER.get());
             event.accept(ARC_CASTER.get());
             event.accept(FROSTBOLT_WAND.get());
+            event.accept(NIGHTS_FOCUS_STAFF.get());
             event.accept(WEBCASTER.get());
             event.accept(WIND_STAFF.get());
             event.accept(OMNI_STAFF.get());
@@ -391,6 +404,7 @@ public final class VeloriseStavesMod {
             event.accept(NETHERITE_VORTEX_VANQUISHER.get());
             event.accept(NETHERITE_ARC_CASTER.get());
             event.accept(NETHERITE_FROSTBOLT_WAND.get());
+            event.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
             event.accept(NETHERITE_WEBCASTER.get());
             event.accept(NETHERITE_WIND_STAFF.get());
             event.accept(NETHERITE_OMNI_STAFF.get());
@@ -412,6 +426,7 @@ public final class VeloriseStavesMod {
             event.accept(CRYO_ELEMENT.get());
             event.accept(GEO_ELEMENT.get());
             event.accept(OMNI_ELEMENT.get());
+            event.accept(FROST_ROD.get());
         }
     }
 }

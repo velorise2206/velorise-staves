@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  S",
+    " F ",
+    "F  "
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:shield"
+    },
+    "F": {
+      "item": "velorise_staves:frost_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:nights_focus_staff",
+    "count": 1
+  }
+}

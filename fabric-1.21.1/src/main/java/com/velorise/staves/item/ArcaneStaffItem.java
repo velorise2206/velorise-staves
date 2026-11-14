@@ -102,7 +102,7 @@ public final class ArcaneStaffItem extends Item {
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE,
-        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, WEB, WIND, OMNI
+        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, NIGHTS_FOCUS, WEB, WIND, OMNI
     }
 
     public static final String TAG_OMNI_MODE = "OmniMode";
@@ -221,6 +221,8 @@ public final class ArcaneStaffItem extends Item {
                     if (kind == Kind.GUARDIAN && level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
                         int absorbed = ElementalGaugeManager.consumeSourcewaterDropletsForChannel(sl, sp, 12.0D, 3);
                         GUARDIAN_INSTANT_PLAYERS.put(sp.getUUID(), absorbed > 0);
+                        sl.playSound(null, sp.blockPosition(), SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.PLAYERS, 0.85F, 1.15F);
+                        sl.playSound(null, sp.blockPosition(), SoundEvents.BUCKET_EMPTY, SoundSource.PLAYERS, 0.65F, 1.35F);
                     }
                 }
                 SoundEvent cueSound = switch (kind) {
@@ -264,6 +266,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> castFangs(serverPlayer);
             case VORTEX -> castVortexVanquisher(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
+            case NIGHTS_FOCUS -> castNightsFocus(serverPlayer);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
             case WIND -> shootWind(serverPlayer);
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
@@ -290,6 +293,21 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        }
+        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        }
+        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        }
+        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        }
+        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        }
         if (kind == Kind.SPLENDOR && entity instanceof Player p && !p.isShiftKeyDown()
                 && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
             com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
@@ -358,7 +376,7 @@ public final class ArcaneStaffItem extends Item {
         return state == null || state.shots <= 0;
     }
 
-    private boolean isCharged() {
+    public boolean isCharged() {
         return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR;
     }
 
@@ -425,7 +443,7 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
-        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR) {
+        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE) {
             return UseAnim.NONE;
         }
         return isCharged() ? UseAnim.BOW : UseAnim.NONE;
@@ -452,10 +470,14 @@ public final class ArcaneStaffItem extends Item {
             if (elapsed < 0) return;
             boolean instant = Boolean.TRUE.equals(GUARDIAN_INSTANT_PLAYERS.get(player.getUUID()));
             if (!instant && elapsed < 10) {
-                // Brief 0.5s wind-up when no Sourcewater Droplets were absorbed
-                if (elapsed % 2 == 0) {
-                    Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.75D));
-                    serverLevel.sendParticles(ParticleTypes.SPLASH, eye.x, eye.y, eye.z, 4, 0.15D, 0.15D, 0.15D, 0.03D);
+                // 0.5s converging Hydro vortex wind-up with water charging audio
+                Vec3 muzzle = entity.getEyePosition().add(entity.getLookAngle().scale(0.85D));
+                serverLevel.sendParticles(ParticleTypes.SPLASH, muzzle.x, muzzle.y, muzzle.z, 8, 0.22D, 0.22D, 0.22D, 0.06D);
+                serverLevel.sendParticles(ParticleTypes.BUBBLE_POP, muzzle.x, muzzle.y, muzzle.z, 6, 0.18D, 0.18D, 0.18D, 0.03D);
+                serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, muzzle.x, muzzle.y, muzzle.z, 4, 0.16D, 0.16D, 0.16D, 0.01D);
+                if (elapsed % 3 == 0) {
+                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, SoundSource.PLAYERS, 0.70F, 1.15F + elapsed * 0.04F);
+                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.55F, 1.35F);
                 }
                 return;
             }
@@ -464,9 +486,26 @@ public final class ArcaneStaffItem extends Item {
                 player.stopUsingItem();
                 return;
             }
-            if (beamElapsed % 8 != 0) return; // 8 hits over 3.0s (60 ticks): every 8 ticks (0.4s)
-            LivingEntity target = findTarget(player, isNetherite ? 28.0D : 24.0D, 1.2D);
-            fireGuardian(player, target);
+            // Drain 8% Max HP every 0.5s (10 ticks), up to 6 times (48% Max HP over 3s); automatically stops at <= 50% Max HP
+            if (beamElapsed % 10 == 0 && !player.isCreative()) {
+                float maxHp = Math.max(1.0F, player.getMaxHealth());
+                float halfHp = maxHp * 0.50F;
+                if (player.getHealth() > halfHp) {
+                    float drainAmount = maxHp * 0.08F;
+                    float newHp = Math.max(halfHp, player.getHealth() - drainAmount);
+                    float actualDrained = player.getHealth() - newHp;
+                    if (actualDrained > 0.0F) {
+                        ElementalGaugeManager.drainHealthSilently(player, newHp);
+                        ElementalGaugeManager.recordFurinaHpFluctuation(serverLevel, player, actualDrained / maxHp);
+                    }
+                }
+            }
+            if (beamElapsed % 2 == 0) {
+                spawnGuardianTorrentVisualsAndAudio(player, beamElapsed);
+            }
+            if (beamElapsed % 8 == 0) {
+                fireGuardian(player);
+            }
             if (beamElapsed == 0 || beamElapsed == 24 || beamElapsed == 48) {
                 stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
             }
@@ -554,8 +593,25 @@ public final class ArcaneStaffItem extends Item {
         return stack;
     }
 
+    private int getStaffUseElapsedTicks(int timeLeft) {
+        return 72000 - timeLeft;
+    }
+
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
+        if (level.isClientSide()) {
+            if (kind == Kind.SPLENDOR && entity instanceof Player clientPlayer) {
+                int elapsed = getStaffUseElapsedTicks(timeLeft);
+                if (elapsed < 10 && !clientPlayer.isShiftKeyDown()
+                        && !com.velorise.staves.element.ElementalResonanceManager.isOverloaded(clientPlayer)
+                        && !clientPlayer.getCooldowns().isOnCooldown(this)) {
+                    com.velorise.staves.client.ClientAuraTracker.triggerStaffAnimation(
+                            clientPlayer.getId(), com.velorise.staves.client.ClientAuraTracker.ANIM_SPLENDOR_SUMMON
+                    );
+                }
+            }
+            return;
+        }
         if (!level.isClientSide() && entity instanceof ServerPlayer player) {
             if (kind == Kind.LIGHTNING) {
                 finishLightningStorm(player);
@@ -694,6 +750,7 @@ public final class ArcaneStaffItem extends Item {
         orb.shoot(look.x, look.y, look.z, isNetherite ? 2.1F : 1.85F, 0.0F);
         level.addFreshEntity(orb);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, isNetherite ? 1.35F : 1.15F);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_OMNI);
         return true;
     }
 
@@ -745,18 +802,21 @@ public final class ArcaneStaffItem extends Item {
             level.addFreshEntity(fangs);
         }
         boolean castUnderFeet = player.getXRot() >= 50.0F;
-        double constructX;
-        double constructZ;
+        double rawX;
+        double rawZ;
         if (castUnderFeet) {
-            constructX = player.getX();
-            constructZ = player.getZ();
+            rawX = player.getX();
+            rawZ = player.getZ();
         } else {
             double firstX = player.getX() + flat.x * 1.5D;
             double firstZ = player.getZ() + flat.z * 1.5D;
-            constructX = Math.floor(firstX) + 0.5D;
-            constructZ = Math.floor(firstZ) + 0.5D;
+            rawX = Math.floor(firstX) + 0.5D;
+            rawZ = Math.floor(firstZ) + 0.5D;
         }
-        double constructY = findGroundY(level, constructX, player.getY(), constructZ);
+        ConstructLanding fangLanding = resolveConstructLanding(level, rawX, player.getY(), rawZ);
+        double constructX = fangLanding.x();
+        double constructY = fangLanding.y();
+        double constructZ = fangLanding.z();
         com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
                 level, com.velorise.staves.VeloriseStavesMod.GEO_FANG_PILLAR, player.getUUID());
         com.velorise.staves.entity.GeoFangPillarEntity construct =
@@ -772,6 +832,10 @@ public final class ArcaneStaffItem extends Item {
         if (castUnderFeet) {
             construct.liftEntityOntoPillar(player);
         }
+        if (fangLanding.stackedOnConstruct()) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(
+                    player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_ARCHITECT);
+        }
         com.velorise.staves.advancement.ModAdvancements.trigger(
                 player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
         level.playSound(null, player.blockPosition(), SoundEvents.EVOKER_CAST_SPELL, SoundSource.PLAYERS, 1.0F, 1.0F);
@@ -783,7 +847,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean castVortexVanquisher(ServerPlayer player, boolean holdJadeShield) {
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = (ServerLevel) player.level();
         Vec3 direction = player.getLookAngle();
         Vec3 flat = new Vec3(direction.x, 0.0D, direction.z);
         if (flat.lengthSqr() < 0.001D) flat = new Vec3(0.0D, 0.0D, 1.0D);
@@ -803,40 +867,59 @@ public final class ArcaneStaffItem extends Item {
         double steleX = player.getX() + flat.x * 2.5D;
         double steleZ = player.getZ() + flat.z * 2.5D;
         double steleY = player.getY();
+        boolean stackedOnConstruct = false;
 
         if (shouldSpawnStele) {
             net.minecraft.core.Direction attachDir = net.minecraft.core.Direction.UP;
             if (castUnderFeet) {
-                steleX = player.getX();
-                steleZ = player.getZ();
-                steleY = findGroundY(level, steleX, player.getY(), steleZ);
+                ConstructLanding landing = resolveConstructLanding(level, player.getX(), player.getY(), player.getZ());
+                steleX = landing.x();
+                steleY = landing.y();
+                steleZ = landing.z();
+                stackedOnConstruct = landing.stackedOnConstruct();
             } else {
-                HitResult hit = player.pick(12.0D, 0.0F, false);
-                if (hit.getType() == HitResult.Type.BLOCK && hit instanceof BlockHitResult bhr) {
+                Vec3 eye = player.getEyePosition();
+                Vec3 rayEndPos = eye.add(direction.scale(12.0D));
+                BlockHitResult bhr = level.clip(new ClipContext(eye, rayEndPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+                com.velorise.staves.entity.GeoFangPillarEntity aimedConstruct = findAimedConstruct(level, eye, rayEndPos, bhr);
+
+                if (aimedConstruct != null) {
+                    steleX = aimedConstruct.getX();
+                    steleZ = aimedConstruct.getZ();
+                    steleY = aimedConstruct.getBoundingBox().maxY;
+                    stackedOnConstruct = true;
+                } else if (bhr.getType() == HitResult.Type.BLOCK) {
                     BlockPos bp = bhr.getBlockPos();
                     net.minecraft.core.Direction face = bhr.getDirection();
-                    if (face.getAxis().isHorizontal()) {
+                    BlockPos adj = bp.relative(face);
+                    if (face.getAxis().isHorizontal() && level.getBlockState(adj).getCollisionShape(level, adj).isEmpty()) {
                         attachDir = face;
                         steleX = bp.getX() + 0.5D + face.getStepX() * 0.5D;
                         steleY = bp.getY() + 0.05D;
                         steleZ = bp.getZ() + 0.5D + face.getStepZ() * 0.5D;
                     } else if (!holdJadeShield) {
-                        steleX = bp.getX() + 0.5D;
-                        steleZ = bp.getZ() + 0.5D;
-                        steleY = findGroundY(level, steleX, bp.getY() + 1.0D, steleZ);
+                        ConstructLanding landing = resolveConstructLanding(level, bp.getX() + 0.5D, bp.getY() + 1.0D, bp.getZ() + 0.5D);
+                        steleX = landing.x();
+                        steleY = landing.y();
+                        steleZ = landing.z();
+                        stackedOnConstruct = landing.stackedOnConstruct();
                     } else {
-                        double tx = player.getX() + flat.x * 2.5D;
-                        double tz = player.getZ() + flat.z * 2.5D;
-                        steleX = Math.floor(tx) + 0.5D;
-                        steleZ = Math.floor(tz) + 0.5D;
-                        steleY = findGroundY(level, steleX, player.getY(), steleZ);
+                        double tx = Math.floor(player.getX() + flat.x * 2.5D) + 0.5D;
+                        double tz = Math.floor(player.getZ() + flat.z * 2.5D) + 0.5D;
+                        ConstructLanding landing = resolveConstructLanding(level, tx, player.getY(), tz);
+                        steleX = landing.x();
+                        steleY = landing.y();
+                        steleZ = landing.z();
+                        stackedOnConstruct = landing.stackedOnConstruct();
                     }
                 } else {
-                    double tx = player.getX() + flat.x * 2.5D;
-                    double tz = player.getZ() + flat.z * 2.5D;
-                    steleX = Math.floor(tx) + 0.5D;
-                    steleZ = Math.floor(tz) + 0.5D;
-                    steleY = findGroundY(level, steleX, player.getY(), steleZ);
+                    double tx = Math.floor(player.getX() + flat.x * 2.5D) + 0.5D;
+                    double tz = Math.floor(player.getZ() + flat.z * 2.5D) + 0.5D;
+                    ConstructLanding landing = resolveConstructLanding(level, tx, player.getY(), tz);
+                    steleX = landing.x();
+                    steleY = landing.y();
+                    steleZ = landing.z();
+                    stackedOnConstruct = landing.stackedOnConstruct();
                 }
             }
 
@@ -854,15 +937,21 @@ public final class ArcaneStaffItem extends Item {
                     );
             stele.setStoneStele(true);
             stele.setAttachDirection(attachDir);
+            stele.setPos(steleX, steleY, steleZ);
+            stele.refreshDimensions();
             level.addFreshEntity(stele);
             if (castUnderFeet) {
                 stele.liftEntityOntoPillar(player);
             }
+            if (stackedOnConstruct) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(
+                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_ARCHITECT);
+            }
         }
 
-        // Initial Dominus Lapidis Geo shockwave (Basic: 2.0 hearts [4.0 HP], Netherite: 3.0 hearts [6.0 HP] + 1.9% Max HP)
+        // Initial Dominus Lapidis Geo shockwave (Basic: 2.0 hearts [4.0 HP] + 1.9% Max HP; Netherite: 1.5x = 3.0 hearts [6.0 HP] + 2.85% Max HP)
         float maxHp = Math.max(20.0F, player.getMaxHealth());
-        float baseDmg = (isNetherite ? 6.0F : 4.0F) + maxHp * 0.019F;
+        float baseDmg = (isNetherite ? 6.0F : 4.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
         float gaugeU = isNetherite ? 1.5F : 1.0F;
         Vec3 shockCenter = holdJadeShield ? player.position() : new Vec3(steleX, steleY, steleZ);
         AABB box = new AABB(
@@ -876,7 +965,6 @@ public final class ArcaneStaffItem extends Item {
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
-            // Authentic earthen stone/bedrock formation sounds for Jade Shield
             level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);
             level.playSound(null, player.blockPosition(), SoundEvents.DEEPSLATE_TILES_PLACE, SoundSource.PLAYERS, 1.0F, 0.72F);
             level.playSound(null, player.blockPosition(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 0.95F, 0.60F);
@@ -889,20 +977,81 @@ public final class ArcaneStaffItem extends Item {
         }
         com.velorise.staves.advancement.ModAdvancements.trigger(
                 player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
+        com.velorise.staves.advancement.ModAdvancements.trigger(
+                player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_ORDER);
         return true;
     }
 
-    private static double findGroundY(ServerLevel level, double x, double originY, double z) {
-        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos((int)Math.floor(x), (int)Math.floor(originY) + 2, (int)Math.floor(z));
-        for (int i = 0; i < 7; i++) {
-            BlockPos below = cursor.below();
-            if (!level.getBlockState(below).getCollisionShape(level, below).isEmpty()
-                && level.getBlockState(cursor).getCollisionShape(level, cursor).isEmpty()) {
-                return below.getY() + 1.0D;
+    private record ConstructLanding(double x, double y, double z, boolean stackedOnConstruct) {}
+
+    private static com.velorise.staves.entity.GeoFangPillarEntity findAimedConstruct(
+            ServerLevel level,
+            Vec3 eye,
+            Vec3 rayEndPos,
+            BlockHitResult bhr
+    ) {
+        double maxDistSqr = bhr.getType() == HitResult.Type.BLOCK
+                ? eye.distanceToSqr(bhr.getLocation())
+                : eye.distanceToSqr(rayEndPos);
+        AABB searchBox = new AABB(eye, rayEndPos).inflate(1.0D);
+        com.velorise.staves.entity.GeoFangPillarEntity best = null;
+        double bestDistSqr = maxDistSqr;
+        for (com.velorise.staves.entity.GeoFangPillarEntity construct : level.getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                searchBox,
+                e -> e.isAlive() && !e.isHorizontalStele())) {
+            java.util.Optional<Vec3> clip = construct.getBoundingBox().inflate(0.15D).clip(eye, rayEndPos);
+            if (clip.isPresent()) {
+                double d2 = eye.distanceToSqr(clip.get());
+                if (d2 <= bestDistSqr + 0.05D) {
+                    bestDistSqr = d2;
+                    best = construct;
+                }
             }
-            cursor.move(Direction.DOWN);
         }
-        return originY;
+        return best;
+    }
+
+    private static ConstructLanding resolveConstructLanding(ServerLevel level, double x, double originY, double z) {
+        double bestBlockY = level.getMinBuildHeight();
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int bx = (int) Math.floor(x);
+        int bz = (int) Math.floor(z);
+        int startBlockY = (int) Math.floor(originY) + 2;
+        for (int by = startBlockY; by >= level.getMinBuildHeight(); by--) {
+            cursor.set(bx, by, bz);
+            net.minecraft.world.phys.shapes.VoxelShape shape = level.getBlockState(cursor).getCollisionShape(level, cursor);
+            if (!shape.isEmpty()) {
+                BlockPos above = cursor.above();
+                if (level.getBlockState(above).getCollisionShape(level, above).isEmpty()) {
+                    bestBlockY = by + shape.max(Direction.Axis.Y);
+                    break;
+                }
+            }
+        }
+
+        com.velorise.staves.entity.GeoFangPillarEntity topConstruct = null;
+        double bestConstructY = bestBlockY;
+        AABB columnBox = new AABB(x - 0.55D, bestBlockY, z - 0.55D, x + 0.55D, originY + 4.0D, z + 0.55D);
+        for (com.velorise.staves.entity.GeoFangPillarEntity other : level.getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                columnBox,
+                e -> e.isAlive() && !e.isHorizontalStele())) {
+            double cTop = other.getBoundingBox().maxY;
+            if (cTop >= bestConstructY - 1.0E-3D) {
+                bestConstructY = cTop;
+                topConstruct = other;
+            }
+        }
+
+        if (topConstruct != null) {
+            return new ConstructLanding(topConstruct.getX(), bestConstructY, topConstruct.getZ(), true);
+        }
+        return new ConstructLanding(x, bestBlockY > level.getMinBuildHeight() ? bestBlockY : originY, z, false);
+    }
+
+    private static double findGroundY(ServerLevel level, double x, double originY, double z) {
+        return resolveConstructLanding(level, x, originY, z).y();
     }
 
     private void fireChanneledLightning(ServerLevel level, ServerPlayer player, int elapsed) {
@@ -1006,35 +1155,80 @@ public final class ArcaneStaffItem extends Item {
         return hit.getType() == HitResult.Type.MISS ? end : hit.getLocation();
     }
 
-    private void fireGuardian(ServerPlayer player, LivingEntity target) {
-        ServerLevel level = player.serverLevel();
-        // Self HP drain while channeling Equitable Judgment down to 50% Max HP cap
-        if (!player.isCreative() && player.getHealth() > player.getMaxHealth() * 0.50F) {
-            float newHp = Math.max(player.getMaxHealth() * 0.50F, player.getHealth() - 0.5F);
-            ElementalGaugeManager.drainHealthSilently(player, newHp);
-        }
-        Vec3 start = player.getEyePosition();
+    private void spawnGuardianTorrentVisualsAndAudio(ServerPlayer player, int beamElapsed) {
+        ServerLevel level = (ServerLevel) player.level();
         double range = isNetherite ? 28.0D : 24.0D;
-        Vec3 end = target == null ? rayEndOutline(player, range) : target.getBoundingBox().getCenter();
-        if (target != null) {
-            float draconicMult = ElementalGaugeManager.getDraconicGloriesMultiplier(player);
-            boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);
-            float totalMult = Math.max(draconicMult, hpBuff ? 1.25F : 1.0F);
-            float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * totalMult;
-            float attackU = isNetherite ? 1.5F : 1.0F;
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        Vec3 end = rayEnd(player, range, ClipContext.Block.COLLIDER);
+        double distance = start.distanceTo(end);
+
+        Vec3 nozzle = start.add(direction.scale(0.85D));
+        level.sendParticles(ParticleTypes.SPLASH, nozzle.x, nozzle.y, nozzle.z, 10, 0.24D, 0.24D, 0.24D, 0.08D);
+        level.sendParticles(ParticleTypes.BUBBLE_POP, nozzle.x, nozzle.y, nozzle.z, 6, 0.18D, 0.18D, 0.18D, 0.04D);
+
+        for (double step = 0.6D; step <= distance; step += 0.35D) {
+            Vec3 pos = start.add(direction.scale(step));
+            level.sendParticles(ParticleTypes.SPLASH, pos.x, pos.y, pos.z, 4, 0.14D, 0.14D, 0.14D, 0.05D);
+            level.sendParticles(ParticleTypes.BUBBLE_POP, pos.x, pos.y, pos.z, 3, 0.12D, 0.12D, 0.12D, 0.02D);
+            level.sendParticles(ParticleTypes.BUBBLE, pos.x, pos.y, pos.z, 2, 0.10D, 0.10D, 0.10D, 0.03D);
+            if (((int) (step * 3.0D) + beamElapsed) % 2 == 0) {
+                level.sendParticles(ParticleTypes.FALLING_WATER, pos.x, pos.y, pos.z, 2, 0.12D, 0.12D, 0.12D, 0.01D);
+                level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y, pos.z, 1, 0.08D, 0.08D, 0.08D, 0.005D);
+            }
+            if (isNetherite) {
+                level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y, pos.z, 1, 0.08D, 0.08D, 0.08D, 0.0D);
+            }
+        }
+        level.sendParticles(ParticleTypes.SPLASH, end.x, end.y, end.z, 14, 0.35D, 0.25D, 0.35D, 0.10D);
+
+        if (beamElapsed % 4 == 0) {
+            level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.55F, 1.35F);
+            level.playSound(null, player.blockPosition(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, SoundSource.PLAYERS, 0.75F, 1.20F);
+        }
+    }
+
+    private void fireGuardian(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        double range = isNetherite ? 28.0D : 24.0D;
+        double beamRadius = isNetherite ? 1.35D : 1.2D;
+        Vec3 end = rayEnd(player, range, ClipContext.Block.COLLIDER);
+        double maxDist = start.distanceTo(end);
+
+        AABB search = player.getBoundingBox().expandTowards(direction.scale(maxDist)).inflate(beamRadius + 1.0D);
+        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, search,
+                t -> t.isAlive() && t != player && !t.isSpectator() && !player.isAlliedTo(t))
+            .stream()
+            .filter(t -> distanceFromRay(start, direction, t.getBoundingBox().getCenter(), maxDist)
+                <= beamRadius + t.getBbWidth() * 0.5D)
+            .sorted(Comparator.comparingDouble(t -> projection(start, direction, t.getBoundingBox().getCenter())))
+            .toList();
+
+        float draconicMult = ElementalGaugeManager.getDraconicGloriesMultiplier(player);
+        boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);
+        float totalMult = Math.max(draconicMult, hpBuff ? 1.25F : 1.0F);
+        float baseDmg = computeGuardianBaseDamage(player.getMaxHealth(), isNetherite) * totalMult;
+        float attackU = isNetherite ? 1.5F : 1.0F;
+
+        for (LivingEntity target : targets) {
             target.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, baseDmg);
+            Vec3 tc = target.getBoundingBox().getCenter();
+            level.sendParticles(ParticleTypes.SPLASH, tc.x, tc.y, tc.z, 10, 0.25D, 0.25D, 0.25D, 0.06D);
             if (totalMult > 1.05F) {
-                level.sendParticles(ParticleTypes.CRIT, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.05D);
+                level.sendParticles(ParticleTypes.CRIT, tc.x, tc.y, tc.z, 4, 0.2D, 0.2D, 0.2D, 0.05D);
             }
         }
         EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, start, end, isNetherite ? 2.0D : 1.35D);
         drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
         level.playSound(null, player.blockPosition(), SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.9F, 1.2F);
+        level.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.70F, 1.15F);
     }
 
     private void fireEcho(ServerPlayer player) {
-        ServerLevel level = player.serverLevel();
+        ServerLevel level = (ServerLevel) player.level();
         Vec3 start = player.getEyePosition();
         Vec3 direction = player.getLookAngle().normalize();
         double range = isNetherite ? 32.0D : 28.0D;
@@ -1049,8 +1243,8 @@ public final class ArcaneStaffItem extends Item {
             .sorted(Comparator.comparingDouble(target -> projection(start, direction, target.getBoundingBox().getCenter())))
             .toList();
 
-        float baseDmg = isNetherite ? 16.0F : 11.0F;
-        float attackU = isNetherite ? 4.0F : 2.0F;
+        float baseDmg = isNetherite ? 16.5F : 11.0F;
+        float attackU = isNetherite ? 3.0F : 2.0F;
         for (LivingEntity target : targets) {
             ElementalGaugeManager.applyElement(level, target, Element.ANEMO, attackU, player, baseDmg);
         }
@@ -1113,6 +1307,7 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> repair.is(Items.BREEZE_ROD) || repair.is(Items.WIND_CHARGE);
             case LIGHTNING -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.LIGHTNING_ROD);
             case EVOKER, FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
+            case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.FROST_ROD) || repair.is(Items.SHIELD);
             case VORTEX -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(Items.BLAZE_ROD);
             case OMNI -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.DIAMOND) || repair.is(Items.NETHER_STAR);
         };
@@ -1126,7 +1321,7 @@ public final class ArcaneStaffItem extends Item {
             case INFERNO, GHASTFIRE -> Element.PYRO;
             case GUARDIAN, SPLENDOR -> Element.HYDRO;
             case EVOKER, VORTEX -> Element.GEO;
-            case FROST -> Element.CRYO;
+            case FROST, NIGHTS_FOCUS -> Element.CRYO;
             case WEB, WITHER -> Element.DENDRO;
             case OMNI -> null;
         };
@@ -1143,9 +1338,10 @@ public final class ArcaneStaffItem extends Item {
             case GUARDIAN -> isNetherite ? "28m" : "24m";
             case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (30s)" : "16m Ousia / 6m Pneuma (30s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
-            case VORTEX -> "12m (Max 3 Constructs, 6m Pulse / Jade Shield)";
+            case VORTEX -> "12m (Max 3 Constructs, 4m Pulse / Jade Shield)";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (2.0m AoE)" : "28m";
+            case NIGHTS_FOCUS -> "3.5m AoE / 16m Stars";
             case WEB -> "28m";
             case WIND -> isNetherite ? "28m (4.5m AoE)" : "28m (3.5m AoE)";
             case OMNI -> isNetherite ? "48m (2.5m AoE)" : "36m (1.75m AoE)";
@@ -1186,11 +1382,41 @@ public final class ArcaneStaffItem extends Item {
         }
     }
 
+    private boolean castNightsFocus(ServerPlayer player) {
+        if (!(player.level() instanceof ServerLevel serverLevel)) return false;
+        ElementalGaugeManager.activateNightsFocusShield(player, isNetherite);
+        float aoeDmg = isNetherite ? 6.0F : 4.0F;
+        float aoeUnits = isNetherite ? 1.5F : 1.0F;
+        AABB box = player.getBoundingBox().inflate(3.5D);
+        for (LivingEntity target : serverLevel.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+            if (target.distanceToSqr(player) <= 12.25D) {
+                ElementalGaugeManager.applyElement(serverLevel, target, Element.CRYO, aoeUnits, player, aoeDmg);
+            }
+        }
+        for (int i = 0; i < 24; i++) {
+            double ang = (Math.PI * 2.0D * i) / 24.0D;
+            double px = player.getX() + Math.cos(ang) * 2.2D;
+            double pz = player.getZ() + Math.sin(ang) * 2.2D;
+            serverLevel.sendParticles(ParticleTypes.SNOWFLAKE, px, player.getY() + 0.9D, pz, 2, 0.1D, 0.25D, 0.1D, 0.02D);
+        }
+        serverLevel.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
+        serverLevel.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.85F, 1.25F);
+        return true;
+    }
+
     private boolean castSplendorSummon(ServerPlayer player, ItemStack stack) {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         boolean pneuma = isSplendorPneuma(stack);
         com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(serverLevel, player, isNetherite, pneuma);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 1);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_HYDRO);
         return true;
     }
 
@@ -1233,12 +1459,12 @@ public final class ArcaneStaffItem extends Item {
         String witherTag = " " + Component.translatable(isNetherite ? "tooltip.velorise_staves.wither_ii" : "tooltip.velorise_staves.wither_i").getString();
         String perFang = " " + Component.translatable("tooltip.velorise_staves.per_fang").getString() + " ";
         String perHit = " " + Component.translatable("tooltip.velorise_staves.per_hit").getString() + " ";
-        String trapPoison = Component.translatable("tooltip.velorise_staves.trap_poison").getString();
+        String trapPoison = Component.translatable(isNetherite ? "tooltip.velorise_staves.trap_poison.netherite" : "tooltip.velorise_staves.trap_poison").getString();
         return switch (kind) {
-            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.0) : fmtHearts(7.0)) + heart + " " + cloudSuffix + " " + icon + "2U";
-            case ECHO -> (isNetherite ? fmtHearts(16.0) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U") + swirlTag;
+            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.5) : fmtHearts(7.0)) + heart + " " + cloudSuffix + " " + icon + (isNetherite ? "3U" : "2U");
+            case ECHO -> (isNetherite ? fmtHearts(16.5) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U") + swirlTag;
             case INFERNO -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
-            case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "4U" : "2U");
+            case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
             case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
             case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> {
@@ -1248,20 +1474,22 @@ public final class ArcaneStaffItem extends Item {
             case SPLENDOR -> {
                 float maxHp = getDisplayMaxHp();
                 float minHit = maxHp * (isNetherite ? 0.075F : 0.05F);
-                float maxHit = maxHp * (isNetherite ? 0.19F : 0.14F) * 1.4F;
+                float maxHit = maxHp * (isNetherite ? 0.21F : 0.14F) * 1.4F;
                 yield (fmtHearts(minHit) + "-" + fmtHearts(maxHit)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
             case VORTEX -> {
                 float maxHp = getDisplayMaxHp();
-                float slam = (isNetherite ? 6.0F : 4.0F) + maxHp * 0.019F;
-                float pulse = (isNetherite ? 3.0F : 2.0F) + maxHp * 0.019F;
+                float slam = (isNetherite ? 6.0F : 4.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
+                float pulse = (isNetherite ? 3.0F : 2.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
                 yield fmtHearts(slam) + heart + " (+" + fmtHearts(pulse) + heart + "/2s) " + icon + (isNetherite ? "1.5U" : "1U");
             }
-            case LIGHTNING -> (isNetherite ? fmtHearts(1.0) : fmtHearts(0.5)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
+            case LIGHTNING -> (isNetherite ? fmtHearts(1.5) : fmtHearts(1.0)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
             case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case NIGHTS_FOCUS -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U")
+                    + " + 4x " + (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart;
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
-            case WIND -> (isNetherite ? fmtHearts(2.5) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case WIND -> (isNetherite ? fmtHearts(2.25) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
             case OMNI -> (isNetherite ? fmtHearts(15.0) : fmtHearts(10.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
         };
     }
@@ -1319,7 +1547,9 @@ public final class ArcaneStaffItem extends Item {
         Element dispElem = kind == Kind.OMNI ? getOmniActiveElement(stack) : getElement();
         tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.GUARDIAN) {
-            tooltip.add(Component.translatable("tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.guardian_hp_scale.netherite"
+                    : "tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.SPLENDOR) {
             String modeKey = isSplendorPneuma(stack)
                     ? "tooltip.velorise_staves.splendor.mode_pneuma"
@@ -1327,8 +1557,17 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_hp_scale").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.VORTEX) {
-            tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_jade_shield").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.vortex_jade_shield.netherite"
+                    : "tooltip.velorise_staves.vortex_jade_shield").withStyle(ChatFormatting.GOLD));
             tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_res_shred").withStyle(ChatFormatting.YELLOW));
+        } else if (kind == Kind.NIGHTS_FOCUS) {
+            tooltip.add(Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.nights_focus_shield.netherite"
+                    : "tooltip.velorise_staves.nights_focus_shield").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.nights_focus_stars.netherite"
+                    : "tooltip.velorise_staves.nights_focus_stars").withStyle(ChatFormatting.BLUE));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {

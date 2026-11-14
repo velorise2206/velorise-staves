@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:geo_construct",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:evoker_fang_staff"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.geo_architect.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.geo_architect.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "geo_architect": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "geo_architect"
+      }
+    }
+  }
+}

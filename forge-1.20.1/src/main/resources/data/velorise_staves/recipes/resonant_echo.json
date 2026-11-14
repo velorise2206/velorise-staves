@@ -1,21 +1,24 @@
 {
-    "type": "minecraft:crafting_shaped",
-    "category": "equipment",
-    "pattern": [
-        "  C",
-        " E ",
-        "E  "
-    ],
-    "key": {
-        "C": {
-            "item": "minecraft:calibrated_sculk_sensor"
-        },
-        "E": {
-            "item": "minecraft:echo_shard"
-        }
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  C",
+    " A ",
+    "E  "
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:calibrated_sculk_sensor"
     },
-    "result": {
-        "item": "velorise_staves:resonant_echo",
-        "count": 1
+    "A": {
+      "item": "velorise_staves:anemo_element"
+    },
+    "E": {
+      "item": "minecraft:echo_shard"
     }
+  },
+  "result": {
+    "item": "velorise_staves:resonant_echo",
+    "count": 1
+  }
 }

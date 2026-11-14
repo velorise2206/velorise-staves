@@ -2,16 +2,22 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "  T",
-    " B ",
+    "ITI",
+    " G ",
     "B  "
   ],
   "key": {
-    "B": {
-      "item": "minecraft:blaze_rod"
+    "I": {
+      "item": "minecraft:iron_ingot"
     },
     "T": {
       "item": "minecraft:totem_of_undying"
+    },
+    "G": {
+      "item": "velorise_staves:geo_element"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
     }
   },
   "result": {

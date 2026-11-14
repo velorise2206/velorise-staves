@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:vortex_vanquisher"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.i_dont_have_order.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.i_dont_have_order.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "i_dont_have_order": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "i_dont_have_order"
+      }
+    }
+  }
+}

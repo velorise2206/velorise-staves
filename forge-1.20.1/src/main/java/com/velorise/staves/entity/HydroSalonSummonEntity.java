@@ -471,8 +471,8 @@ public class HydroSalonSummonEntity extends Entity {
         float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
         float hpRatio = switch (role) {
             case ROLE_CHEVALMARIN -> isNetherite() ? 0.075F : 0.05F;
-            case ROLE_CRABALETTA -> isNetherite() ? 0.19F : 0.14F;
-            default -> isNetherite() ? 0.11F : 0.08F;
+            case ROLE_CRABALETTA -> isNetherite() ? 0.21F : 0.14F;
+            default -> isNetherite() ? 0.12F : 0.08F;
         };
         float baseDamage = ownerMaxHp * hpRatio * drainDamageMult;
         float gaugeU = isNetherite() ? 1.5F : 1.0F;

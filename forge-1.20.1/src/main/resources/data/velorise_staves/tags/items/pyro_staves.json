@@ -2,6 +2,8 @@
   "replace": false,
   "values": [
     "velorise_staves:inferno_rod",
-    "velorise_staves:ghastfire_staff"
+    "velorise_staves:netherite_inferno_rod",
+    "velorise_staves:ghastfire_staff",
+    "velorise_staves:netherite_ghastfire_staff"
   ]
 }

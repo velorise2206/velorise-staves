@@ -82,6 +82,12 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item FROSTBOLT_WAND = registerItem("frostbolt_wand",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.FROST, false), false));
 
+    public static final Item NIGHTS_FOCUS_STAFF = registerItem("nights_focus_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.NIGHTS_FOCUS, false), false));
+
+    public static final Item FROST_ROD = registerItem("frost_rod",
+        new Item(new Item.Properties()));
+
     public static final Item WEBCASTER = registerItem("webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, false), false));
 
@@ -183,6 +189,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_FROSTBOLT_WAND = registerItem("netherite_frostbolt_wand",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.FROST, true), true));
 
+    public static final Item NETHERITE_NIGHTS_FOCUS_STAFF = registerItem("netherite_nights_focus_staff",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.NIGHTS_FOCUS, true), true));
+
     public static final Item NETHERITE_WEBCASTER = registerItem("netherite_webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, true), true));
 
@@ -225,6 +234,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(VORTEX_VANQUISHER);
             output.accept(ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
+            output.accept(NIGHTS_FOCUS_STAFF);
             output.accept(WEBCASTER);
             output.accept(WIND_STAFF);
             output.accept(OMNI_STAFF);
@@ -244,6 +254,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_VORTEX_VANQUISHER);
             output.accept(NETHERITE_ARC_CASTER);
             output.accept(NETHERITE_FROSTBOLT_WAND);
+            output.accept(NETHERITE_NIGHTS_FOCUS_STAFF);
             output.accept(NETHERITE_WEBCASTER);
             output.accept(NETHERITE_WIND_STAFF);
             output.accept(NETHERITE_OMNI_STAFF);
@@ -260,6 +271,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(CRYO_ELEMENT);
             output.accept(GEO_ELEMENT);
             output.accept(OMNI_ELEMENT);
+            output.accept(FROST_ROD);
 
             // Elemental Mastery I-III Enchanted Books
             parameters.holders().lookup(Registries.ENCHANTMENT)
@@ -372,6 +384,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(VORTEX_VANQUISHER);
             entries.accept(ARC_CASTER);
             entries.accept(FROSTBOLT_WAND);
+            entries.accept(NIGHTS_FOCUS_STAFF);
             entries.accept(WEBCASTER);
             entries.accept(WIND_STAFF);
             entries.accept(OMNI_STAFF);
@@ -387,6 +400,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_VORTEX_VANQUISHER);
             entries.accept(NETHERITE_ARC_CASTER);
             entries.accept(NETHERITE_FROSTBOLT_WAND);
+            entries.accept(NETHERITE_NIGHTS_FOCUS_STAFF);
             entries.accept(NETHERITE_WEBCASTER);
             entries.accept(NETHERITE_WIND_STAFF);
             entries.accept(NETHERITE_OMNI_STAFF);
@@ -410,6 +424,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(CRYO_ELEMENT);
             entries.accept(GEO_ELEMENT);
             entries.accept(OMNI_ELEMENT);
+            entries.accept(FROST_ROD);
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {

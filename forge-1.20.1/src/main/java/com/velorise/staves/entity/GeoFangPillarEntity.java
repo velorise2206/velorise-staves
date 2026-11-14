@@ -95,10 +95,10 @@ public class GeoFangPillarEntity extends Entity {
     public static final double NETHERITE_WAVE_END_RADIUS = 5.5D; // 5 blocks around 0.5m half-width pillar
     public static final double WAVE_END_RADIUS = NETHERITE_WAVE_END_RADIUS;
     public static final float BASIC_WAVE_GEO_DAMAGE = 1.0F; // 0.5 heart
-    public static final float NETHERITE_WAVE_GEO_DAMAGE = 2.0F; // 1.0 heart
+    public static final float NETHERITE_WAVE_GEO_DAMAGE = 1.5F; // 0.75 heart (1.5x Basic)
     public static final float WAVE_GEO_DAMAGE = BASIC_WAVE_GEO_DAMAGE;
     public static final float BASIC_WAVE_GEO_UNITS = 0.5F;
-    public static final float NETHERITE_WAVE_GEO_UNITS = 1.0F;
+    public static final float NETHERITE_WAVE_GEO_UNITS = 0.75F; // 1.5x Basic
     public static final float WAVE_GEO_UNITS = BASIC_WAVE_GEO_UNITS;
 
     private static final Vector3f GEO_GOLD_COLOR = new Vector3f(0.96F, 0.76F, 0.22F);
@@ -180,7 +180,7 @@ public class GeoFangPillarEntity extends Entity {
         this.setPos(x, y, z);
         this.setYRot(yawDegrees);
         this.setOwner(owner);
-        float mult = isNetherite ? 2.0F : 1.0F;
+        float mult = isNetherite ? 1.5F : 1.0F;
         float fallbackMax = isNetherite ? MAX_HEALTH : BASIC_MAX_HEALTH;
         float scaledMax = owner != null ? Math.max(2.0F, owner.getMaxHealth() * mult) : fallbackMax;
         this.entityData.set(DATA_MAX_HEALTH, scaledMax);
@@ -282,7 +282,7 @@ public class GeoFangPillarEntity extends Entity {
 
     public double getWaveEndRadius() {
         if (isStoneStele()) {
-            return 6.5D; // 6-block resonant radius around 0.5m half-width Stone Stele
+            return 4.5D; // 4-block resonant radius around 0.5m half-width Stone Stele
         }
         return isNetherite() ? NETHERITE_WAVE_END_RADIUS : BASIC_WAVE_END_RADIUS;
     }
@@ -291,7 +291,7 @@ public class GeoFangPillarEntity extends Entity {
         if (isStoneStele()) {
             Entity owner = getOwnerEntity();
             float maxHp = owner instanceof LivingEntity le ? le.getMaxHealth() : 20.0F;
-            return (isNetherite() ? 3.0F : 2.0F) + maxHp * 0.019F; // Dominance of Earth: +1.9% Max HP
+            return (isNetherite() ? 3.0F : 2.0F) + maxHp * (isNetherite() ? 0.0285F : 0.019F); // 1.5x on Netherite
         }
         return isNetherite() ? NETHERITE_WAVE_GEO_DAMAGE : BASIC_WAVE_GEO_DAMAGE;
     }
@@ -386,6 +386,11 @@ public class GeoFangPillarEntity extends Entity {
     @Override
     public boolean canBeCollidedWith() {
         return this.isAlive();
+    }
+
+    @Override
+    public boolean canCollideWith(Entity other) {
+        return (other.canBeCollidedWith() || other.isPushable()) && !this.isPassengerOfSameVehicle(other);
     }
 
     @Override
@@ -503,12 +508,17 @@ public class GeoFangPillarEntity extends Entity {
             this.refreshDimensions();
         }
 
+        if (this.tickCount <= 8) {
+            liftOverlappingEntitiesClientOrServer(this.level());
+        }
+        supportEntitiesStandingOnTop(this.level());
+
         if (!(this.level() instanceof ServerLevel sl)) {
             tickClientWaves();
             return;
         }
 
-        if (this.ageTicks <= 2) {
+        if (this.ageTicks <= 8) {
             this.refreshDimensions();
             liftOverlappingEntities(sl);
             if (this.ageTicks == 0) {
@@ -517,6 +527,9 @@ public class GeoFangPillarEntity extends Entity {
                 sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.35F),
                         this.getX(), this.getY() + 0.4D, this.getZ(), 14, 0.45D, 0.35D, 0.45D, 0.04D);
             }
+        }
+        if (!isHorizontalStele()) {
+            settleOntoSupportBelow(sl);
         }
 
         this.ageTicks++;
@@ -608,6 +621,108 @@ public class GeoFangPillarEntity extends Entity {
                 living.hurtMarked = true;
             }
         }
+    }
+
+    private void liftOverlappingEntitiesClientOrServer(Level lvl) {
+        if (isHorizontalStele()) return;
+        AABB pillarBox = this.getBoundingBox();
+        double topY = pillarBox.maxY + 0.02D;
+        List<LivingEntity> overlapping = lvl.getEntitiesOfClass(
+                LivingEntity.class,
+                pillarBox.inflate(0.08D, 0.15D, 0.08D),
+                e -> e.isAlive() && !e.isSpectator()
+        );
+        for (LivingEntity living : overlapping) {
+            if (living.getY() < topY - 0.02D && living.getBoundingBox().maxY > pillarBox.minY + 0.05D) {
+                living.setPos(living.getX(), topY, living.getZ());
+                Vec3 dv = living.getDeltaMovement();
+                if (dv.y < 0.0D) {
+                    living.setDeltaMovement(dv.x, 0.0D, dv.z);
+                }
+                living.setOnGround(true);
+                living.setSwimming(false);
+                living.fallDistance = 0.0F;
+            }
+        }
+    }
+
+    /**
+     * Ensures players and mobs can stand stably on top of the pillar even when submerged in water
+     * (fixes Fabric 1.21.1 water sinking / fluid drag pulling entities through the top of the construct).
+     */
+    private void supportEntitiesStandingOnTop(Level lvl) {
+        AABB pillarBox = this.getBoundingBox();
+        double topY = pillarBox.maxY;
+        AABB topSupportZone = new AABB(
+                pillarBox.minX - 0.08D, topY - 0.55D, pillarBox.minZ - 0.08D,
+                pillarBox.maxX + 0.08D, topY + 0.18D, pillarBox.maxZ + 0.08D
+        );
+        List<LivingEntity> onTop = lvl.getEntitiesOfClass(LivingEntity.class, topSupportZone,
+                e -> e.isAlive() && !e.isSpectator());
+        for (LivingEntity living : onTop) {
+            Vec3 dv = living.getDeltaMovement();
+            if (dv.y > 0.12D) continue;
+            if (living.getY() >= topY - 0.55D && living.getY() <= topY + 0.12D) {
+                if (living.isInWater() || living.getY() < topY - 0.01D) {
+                    living.setPos(living.getX(), topY, living.getZ());
+                }
+                if (dv.y < 0.0D) {
+                    living.setDeltaMovement(dv.x, 0.0D, dv.z);
+                }
+                living.setOnGround(true);
+                living.setSwimming(false);
+                living.fallDistance = 0.0F;
+            }
+        }
+    }
+
+    /**
+     * Drops the pillar down if spawned in mid-air or if a supporting block/pillar beneath it is removed.
+     */
+    private void settleOntoSupportBelow(ServerLevel sl) {
+        double supportY = findHighestSupportYBelow(sl, this.getX(), this.getY(), this.getZ(), this);
+        if (this.getY() > supportY + 1.0E-3D) {
+            double newY = Math.max(supportY, this.getY() - 0.65D);
+            double dy = newY - this.getY();
+            AABB oldBox = this.getBoundingBox();
+            this.setPos(this.getX(), newY, this.getZ());
+            List<LivingEntity> riders = sl.getEntitiesOfClass(LivingEntity.class,
+                    oldBox.move(0.0D, 0.25D, 0.0D).inflate(0.08D, 0.25D, 0.08D),
+                    e -> e.isAlive() && !e.isSpectator() && e.getY() >= oldBox.maxY - 0.25D);
+            for (LivingEntity rider : riders) {
+                rider.setPos(rider.getX(), rider.getY() + dy, rider.getZ());
+                rider.fallDistance = 0.0F;
+                rider.hurtMarked = true;
+            }
+        }
+    }
+
+    public static double findHighestSupportYBelow(ServerLevel sl, double x, double startY, double z, @Nullable GeoFangPillarEntity self) {
+        double bestY = sl.getMinBuildHeight();
+        net.minecraft.core.BlockPos.MutableBlockPos cursor = new net.minecraft.core.BlockPos.MutableBlockPos();
+        int bx = Mth.floor(x);
+        int bz = Mth.floor(z);
+        int topBlockY = Mth.floor(startY + 0.05D);
+        for (int by = topBlockY; by >= sl.getMinBuildHeight(); by--) {
+            cursor.set(bx, by, bz);
+            net.minecraft.world.phys.shapes.VoxelShape shape = sl.getBlockState(cursor).getCollisionShape(sl, cursor);
+            if (!shape.isEmpty()) {
+                double blockTop = by + shape.max(net.minecraft.core.Direction.Axis.Y);
+                if (blockTop <= startY + 0.25D) {
+                    bestY = blockTop;
+                    break;
+                }
+            }
+        }
+        AABB columnBox = new AABB(x - 0.45D, bestY, z - 0.45D, x + 0.45D, startY + 0.35D, z + 0.45D);
+        for (GeoFangPillarEntity other : sl.getEntitiesOfClass(GeoFangPillarEntity.class, columnBox,
+                e -> e.isAlive() && e != self && !e.isHorizontalStele())) {
+            double otherTop = other.getBoundingBox().maxY;
+            if (otherTop <= startY + 0.35D && otherTop > bestY) {
+                bestY = otherTop;
+            }
+        }
+        return bestY;
     }
 
     public void startWave(ServerLevel level, Set<UUID> sharedChain) {
@@ -1042,11 +1157,11 @@ public class GeoFangPillarEntity extends Entity {
             boolean isNetherite = staffKind.startsWith("netherite_");
             String baseKind = isNetherite ? staffKind.substring("netherite_".length()) : staffKind;
             float base = switch (baseKind) {
-                case "dragonfire" -> isNetherite ? 10.0F : 7.0F;
+                case "dragonfire" -> isNetherite ? 10.5F : 7.0F;
                 case "ghastfire" -> isNetherite ? 9.0F : 6.0F;
                 case "wither", "shulker" -> isNetherite ? 6.0F : 4.0F;
                 case "inferno", "frost" -> isNetherite ? 4.5F : 3.0F;
-                case "wind" -> isNetherite ? 2.5F : 1.5F;
+                case "wind" -> isNetherite ? 2.25F : 1.5F;
                 default -> 1.0F;
             };
             dmg = (float) (base * StavesConfig.DAMAGE_MULTIPLIER.get());

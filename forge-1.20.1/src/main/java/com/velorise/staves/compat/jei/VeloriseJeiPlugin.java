@@ -78,9 +78,38 @@ public final class VeloriseJeiPlugin implements IModPlugin {
             anvilRecipes.add(factory.createAnvilRecipe(left, allElements, outputs));
         }
 
-        // 2. Anvil Element Repair examples
-        anvilRecipes.add(createRepairExample(factory, VeloriseStavesMod.INFERNO_ROD.get(), VeloriseStavesMod.PYRO_ELEMENT.get()));
-        anvilRecipes.add(createRepairExample(factory, VeloriseStavesMod.ARC_CASTER.get(), VeloriseStavesMod.OMNI_ELEMENT.get()));
+        // 2. Anvil Element & Netherite Repair for all 15 Basic + 15 Netherite Staves
+        Item[][] staffRepairPairs = new Item[][]{
+                {VeloriseStavesMod.INFERNO_ROD.get(), VeloriseStavesMod.NETHERITE_INFERNO_ROD.get(), VeloriseStavesMod.PYRO_ELEMENT.get()},
+                {VeloriseStavesMod.GHASTFIRE_STAFF.get(), VeloriseStavesMod.NETHERITE_GHASTFIRE_STAFF.get(), VeloriseStavesMod.PYRO_ELEMENT.get()},
+                {VeloriseStavesMod.GUARDIAN_LENS.get(), VeloriseStavesMod.NETHERITE_GUARDIAN_LENS.get(), VeloriseStavesMod.HYDRO_ELEMENT.get()},
+                {VeloriseStavesMod.SPLENDOR_OF_TRANQUIL_WATERS.get(), VeloriseStavesMod.NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get(), VeloriseStavesMod.HYDRO_ELEMENT.get()},
+                {VeloriseStavesMod.FROSTBOLT_WAND.get(), VeloriseStavesMod.NETHERITE_FROSTBOLT_WAND.get(), VeloriseStavesMod.CRYO_ELEMENT.get()},
+                {VeloriseStavesMod.NIGHTS_FOCUS_STAFF.get(), VeloriseStavesMod.NETHERITE_NIGHTS_FOCUS_STAFF.get(), VeloriseStavesMod.CRYO_ELEMENT.get()},
+                {VeloriseStavesMod.ARC_CASTER.get(), VeloriseStavesMod.NETHERITE_ARC_CASTER.get(), VeloriseStavesMod.ELECTRO_ELEMENT.get()},
+                {VeloriseStavesMod.DRAGONFIRE_SCEPTER.get(), VeloriseStavesMod.NETHERITE_DRAGONFIRE_SCEPTER.get(), VeloriseStavesMod.ELECTRO_ELEMENT.get()},
+                {VeloriseStavesMod.SHULKER_SEEKER.get(), VeloriseStavesMod.NETHERITE_SHULKER_SEEKER.get(), VeloriseStavesMod.ELECTRO_ELEMENT.get()},
+                {VeloriseStavesMod.WITHER_SCEPTER.get(), VeloriseStavesMod.NETHERITE_WITHER_SCEPTER.get(), VeloriseStavesMod.DENDRO_ELEMENT.get()},
+                {VeloriseStavesMod.WEBCASTER.get(), VeloriseStavesMod.NETHERITE_WEBCASTER.get(), VeloriseStavesMod.DENDRO_ELEMENT.get()},
+                {VeloriseStavesMod.WIND_STAFF.get(), VeloriseStavesMod.NETHERITE_WIND_STAFF.get(), VeloriseStavesMod.ANEMO_ELEMENT.get()},
+                {VeloriseStavesMod.RESONANT_ECHO.get(), VeloriseStavesMod.NETHERITE_RESONANT_ECHO.get(), VeloriseStavesMod.ANEMO_ELEMENT.get()},
+                {VeloriseStavesMod.EVOKER_FANG_STAFF.get(), VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF.get(), VeloriseStavesMod.GEO_ELEMENT.get()},
+                {VeloriseStavesMod.VORTEX_VANQUISHER.get(), VeloriseStavesMod.NETHERITE_VORTEX_VANQUISHER.get(), VeloriseStavesMod.GEO_ELEMENT.get()},
+                {VeloriseStavesMod.OMNI_STAFF.get(), VeloriseStavesMod.NETHERITE_OMNI_STAFF.get(), VeloriseStavesMod.OMNI_ELEMENT.get()}
+        };
+        for (Item[] pair : staffRepairPairs) {
+            Item basicStaff = pair[0];
+            Item netheriteStaff = pair[1];
+            Item elemEssence = pair[2];
+
+            anvilRecipes.add(createRepairExample(factory, basicStaff, elemEssence));
+            anvilRecipes.add(createRepairExample(factory, netheriteStaff, elemEssence));
+            if (elemEssence != VeloriseStavesMod.OMNI_ELEMENT.get()) {
+                anvilRecipes.add(createRepairExample(factory, basicStaff, VeloriseStavesMod.OMNI_ELEMENT.get()));
+                anvilRecipes.add(createRepairExample(factory, netheriteStaff, VeloriseStavesMod.OMNI_ELEMENT.get()));
+            }
+            anvilRecipes.add(createRepairExample(factory, netheriteStaff, Items.NETHERITE_INGOT));
+        }
         registration.addRecipes(RecipeTypes.ANVIL, anvilRecipes);
 
         // 3. Omni Staff Smithing upgrades are native minecraft:smithing_transform recipes in datapack JSON.

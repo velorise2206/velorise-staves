@@ -121,6 +121,13 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Boolean> FURINA_FANFARE_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> JADE_SHIELD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> JADE_SHIELD_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> NIGHTS_FOCUS_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> NIGHTS_FOCUS_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> NIGHTS_FOCUS_STARS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_AUTO_STAR = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_SKILL_STAR = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> NIGHTS_FOCUS_BASE_HP = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> NIGHTS_FOCUS_PENDING_SHOTS = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
@@ -1184,6 +1191,189 @@ public final class ElementalGaugeManager {
         CrystallizeShardManager.onShieldApplied(player, Element.GEO, 400);
     }
 
+    public static void activateNightsFocusShield(ServerPlayer player, boolean isNetherite) {
+        if (player == null || player.level().isClientSide()) return;
+        UUID id = player.getUUID();
+        long now = player.level().getGameTime();
+        NIGHTS_FOCUS_UNTIL.put(id, now + 240L); // 12s Cryo Shield
+        NIGHTS_FOCUS_NETHERITE.put(id, isNetherite);
+        NIGHTS_FOCUS_STARS.put(id, 0);
+        NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
+        NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
+        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+
+        float maxHp = Math.max(20.0F, player.getMaxHealth());
+        float shieldHp = maxHp * (isNetherite ? 0.60F : 0.40F);
+        if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
+            shieldHp *= 1.15F;
+        }
+        NIGHTS_FOCUS_BASE_HP.put(id, shieldHp);
+        JADE_SHIELD_UNTIL.remove(id);
+
+        com.velorise.staves.effect.ModMobEffects.removeAllShields(player);
+        var cryoShieldObj = com.velorise.staves.effect.ModMobEffects.getShieldForElement(Element.CRYO);
+        if (cryoShieldObj != null && cryoShieldObj.isPresent()) {
+            player.addEffect(new MobEffectInstance(cryoShieldObj.get(), 240, isNetherite ? 1 : 0, false, false, true));
+        }
+        setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
+        CrystallizeShardManager.onShieldApplied(player, Element.CRYO, 240);
+    }
+
+    private static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) {
+        UUID id = player.getUUID();
+        NIGHTS_FOCUS_UNTIL.remove(id);
+        NIGHTS_FOCUS_NETHERITE.remove(id);
+        NIGHTS_FOCUS_STARS.remove(id);
+        NIGHTS_FOCUS_LAST_AUTO_STAR.remove(id);
+        NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
+        NIGHTS_FOCUS_BASE_HP.remove(id);
+        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+        long now = player.level().getGameTime();
+        Element cryst = CrystallizeShardManager.getActiveShield(player, now);
+        if (cryst == null) {
+            com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
+        }
+        if (playBreakSound && player.level() instanceof ServerLevel sl) {
+            sl.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.9F, 1.35F);
+        }
+    }
+
+    public static boolean hasActiveNightsFocusShield(@Nullable LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        Long until = NIGHTS_FOCUS_UNTIL.get(player.getUUID());
+        if (until == null) return false;
+        long now = player.level().getGameTime();
+        if (now >= until) {
+            if (player instanceof ServerPlayer sp) {
+                clearNightsFocusShield(sp, false);
+            } else {
+                NIGHTS_FOCUS_UNTIL.remove(player.getUUID());
+            }
+            return false;
+        }
+        if (!player.isCreative() && player.getAbsorptionAmount() <= 0.01F) {
+            if (player instanceof ServerPlayer sp) {
+                clearNightsFocusShield(sp, true);
+            } else {
+                NIGHTS_FOCUS_UNTIL.remove(player.getUUID());
+            }
+            return false;
+        }
+        return true;
+    }
+
+    public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) {
+        if (player == null || !hasActiveNightsFocusShield(player)) return;
+        UUID id = player.getUUID();
+        long now = player.level().getGameTime();
+        long lastSkill = NIGHTS_FOCUS_LAST_SKILL_STAR.getOrDefault(id, -100L);
+        if (now - lastSkill < 6L) return; // 0.3s cooldown
+        NIGHTS_FOCUS_LAST_SKILL_STAR.put(id, now);
+        addNightsFocusStars(player, 2, now);
+    }
+
+    private static void addNightsFocusStars(ServerPlayer player, int amount, long now) {
+        UUID id = player.getUUID();
+        int prev = NIGHTS_FOCUS_STARS.getOrDefault(id, 0);
+        int next = Math.min(4, prev + amount);
+        if (next > prev) {
+            int gained = next - prev;
+            NIGHTS_FOCUS_STARS.put(id, next);
+            float baseHp = NIGHTS_FOCUS_BASE_HP.getOrDefault(id, Math.max(20.0F, player.getMaxHealth()) * 0.40F);
+            float bonus = baseHp * 0.06F * gained;
+            if (bonus > 0.0F && player.getAbsorptionAmount() > 0.0F) {
+                setPlayerShieldAbsorption(player, Math.min(baseHp * 1.24F, player.getAbsorptionAmount() + bonus));
+            }
+            if (player.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1.5D, player.getZ(),
+                        4 * gained, 0.45D, 0.3D, 0.45D, 0.02D);
+                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
+                        SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.55F, 1.4F + 0.1F * next);
+            }
+        }
+    }
+
+    private static void tickNightsFocusShield(ServerPlayer player, long now) {
+        if (!hasActiveNightsFocusShield(player)) return;
+        UUID id = player.getUUID();
+        if (player.level() instanceof ServerLevel sl) {
+            if (now % 10 == 0) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1.0D, player.getZ(),
+                        3, 0.35D, 0.45D, 0.35D, 0.01D);
+            }
+            int pending = NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0);
+            if (pending > 0 && now % 3 == 0) {
+                if (fireSingleNightsFocusStar(sl, player)) {
+                    if (pending - 1 <= 0) {
+                        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+                    } else {
+                        NIGHTS_FOCUS_PENDING_SHOTS.put(id, pending - 1);
+                    }
+                }
+            }
+        }
+
+        long lastAuto = NIGHTS_FOCUS_LAST_AUTO_STAR.getOrDefault(id, now);
+        if (now - lastAuto >= 30L) { // 1.5s per Night Star
+            NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
+            addNightsFocusStars(player, 1, now);
+        }
+
+        int stars = NIGHTS_FOCUS_STARS.getOrDefault(id, 0);
+        if (stars >= 4 && NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0) <= 0 && player.level() instanceof ServerLevel sl) {
+            LivingEntity nearest = findNearestNightsFocusTarget(sl, player);
+            if (nearest != null) {
+                NIGHTS_FOCUS_STARS.put(id, 0);
+                NIGHTS_FOCUS_PENDING_SHOTS.put(id, 4);
+                if (fireSingleNightsFocusStar(sl, player)) {
+                    NIGHTS_FOCUS_PENDING_SHOTS.put(id, 3);
+                }
+            }
+        }
+    }
+
+    private static @Nullable LivingEntity findNearestNightsFocusTarget(ServerLevel level, ServerPlayer player) {
+        AABB box = player.getBoundingBox().inflate(16.0D);
+        LivingEntity best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box,
+                ent -> ent.isAlive() && !ent.isSpectator() && ent != player && !player.isAlliedTo(ent)
+                        && (ent instanceof net.minecraft.world.entity.monster.Enemy || ent instanceof Player))) {
+            double d = e.distanceToSqr(player);
+            if (d <= 256.0D && d < bestDist) {
+                bestDist = d;
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    private static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) {
+        LivingEntity target = findNearestNightsFocusTarget(level, player);
+        if (target == null) return false;
+        boolean isNetherite = NIGHTS_FOCUS_NETHERITE.getOrDefault(player.getUUID(), false);
+        float dmg = isNetherite ? 4.5F : 3.0F;
+        float units = isNetherite ? 0.75F : 0.5F;
+
+        Vec3 start = player.position().add(0.0D, player.getBbHeight() + 0.6D, 0.0D);
+        Vec3 end = target.getBoundingBox().getCenter();
+        Vec3 delta = end.subtract(start);
+        int steps = Math.max(8, Math.min(24, (int) (delta.length() * 2.5D)));
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            Vec3 p = start.add(delta.scale(t));
+            level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 1, 0.03D, 0.03D, 0.03D, 0.01D);
+            if (i % 2 == 0) {
+                level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+            }
+        }
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.PLAYERS, 0.7F, 1.5F);
+        applyElement(level, target, Element.CRYO, units, player, dmg);
+        return true;
+    }
+
     public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
         Long until = JADE_SHIELD_UNTIL.get(player.getUUID());
@@ -1250,6 +1440,41 @@ public final class ElementalGaugeManager {
     public static void applyFurinaWaterWalking(Player player) {
         if (player == null || player.isShiftKeyDown() || player.isSpectator() || player.getAbilities().flying) return;
         if (player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
+        if (!player.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
+                Entity::isAlive
+        ).isEmpty()) {
+            return;
+        }
+        if (!player.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
+                Entity::isAlive
+        ).isEmpty()) {
+            return;
+        }
+        if (!player.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
+                Entity::isAlive
+        ).isEmpty()) {
+            return;
+        }
+        if (!player.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
+                Entity::isAlive
+        ).isEmpty()) {
+            return;
+        }
+        if (!player.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
+                Entity::isAlive
+        ).isEmpty()) {
+            return;
+        }
 
         double px = player.getX();
         double py = player.getY();
@@ -1407,10 +1632,12 @@ public final class ElementalGaugeManager {
 
     public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) {
         SOURCEWATER_DROPLETS.removeIf(d -> d.level() != level || (now - d.spawnTick()) >= 300L);
-        long activeInLevel = SOURCEWATER_DROPLETS.stream().filter(d -> d.level() == level).count();
+        long activeInLevel = SOURCEWATER_DROPLETS.stream()
+                .filter(d -> d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId))
+                .count();
         if (activeInLevel >= 6) {
             for (SourcewaterDroplet d : SOURCEWATER_DROPLETS) {
-                if (d.level() == level) {
+                if (d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId)) {
                     SOURCEWATER_DROPLETS.remove(d);
                     break;
                 }
@@ -1428,9 +1655,11 @@ public final class ElementalGaugeManager {
         if (level == null || caster == null || SOURCEWATER_DROPLETS.isEmpty()) return 0;
         double r2 = radius * radius;
         Vec3 cPos = caster.position();
+        UUID casterId = caster.getUUID();
         int absorbed = 0;
         for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
             if (droplet.level() != level) continue;
+            if (droplet.ownerId() == null || !droplet.ownerId().equals(casterId)) continue;
             if (droplet.pos().distanceToSqr(cPos) <= r2) {
                 SOURCEWATER_DROPLETS.remove(droplet);
                 absorbed++;
@@ -1440,7 +1669,7 @@ public final class ElementalGaugeManager {
             }
         }
         if (absorbed > 0) {
-            caster.heal(absorbed * 2.0F);
+            caster.heal(caster.getMaxHealth() * 0.16F * absorbed);
             level.playSound(null, caster.blockPosition(), SoundEvents.BUCKET_FILL, SoundSource.PLAYERS, 0.85F, 1.35F);
         }
         return absorbed;
@@ -1458,10 +1687,13 @@ public final class ElementalGaugeManager {
                 lvl.sendParticles(ParticleTypes.DRIPPING_WATER, droplet.pos().x, droplet.pos().y, droplet.pos().z, 3, 0.12D, 0.12D, 0.12D, 0.01D);
                 lvl.sendParticles(ParticleTypes.GLOW, droplet.pos().x, droplet.pos().y, droplet.pos().z, 2, 0.10D, 0.10D, 0.10D, 0.01D);
             }
-            for (ServerPlayer player : lvl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.position().distanceToSqr(droplet.pos()) <= 2.25D)) {
+            UUID ownerId = droplet.ownerId();
+            if (ownerId == null) continue;
+            for (ServerPlayer player : lvl.getPlayers(p -> p.isAlive() && !p.isSpectator()
+                    && p.getUUID().equals(ownerId) && p.position().distanceToSqr(droplet.pos()) <= 2.25D)) {
                 if (player.getHealth() < player.getMaxHealth()) {
                     SOURCEWATER_DROPLETS.remove(droplet);
-                    player.heal(2.0F);
+                    player.heal(player.getMaxHealth() * 0.16F);
                     lvl.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.1D, player.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.02D);
                     lvl.playSound(null, player.blockPosition(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.65F, 1.4F);
                     break;
@@ -1734,6 +1966,7 @@ public final class ElementalGaugeManager {
 
     private static void notifyResonanceReaction(ElementalReaction reaction, @Nullable ServerPlayer attacker, long now) {
         if (attacker == null || reaction == ElementalReaction.NONE || reaction == ElementalReaction.IMMUNE) return;
+        triggerHiddenReactionAdvancements(attacker, reaction);
         switch (reaction) {
             case OVERLOADED, OVERVAPE, SUPERCONDUCT, ELECTRO_CHARGED ->
                     ElementalResonanceManager.onElectroReactionTriggered(attacker, now);
@@ -1753,6 +1986,27 @@ public final class ElementalGaugeManager {
 
     public static float getTransformativeMultiplier(int emLevel) {
         return 1.0F + 0.30F * Math.max(0, emLevel);
+    }
+
+    public static void triggerHiddenReactionAdvancements(@Nullable ServerPlayer attacker, @Nullable ElementalReaction reaction) {
+        if (attacker == null || reaction == null || reaction == ElementalReaction.NONE || reaction == ElementalReaction.IMMUNE) {
+            return;
+        }
+        switch (reaction) {
+            case OVERLOADED, OVERVAPE, FORWARD_VAPORIZE, REVERSE_VAPORIZE ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_PYRO);
+            case ELECTRO_CHARGED, SUPERCONDUCT ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ELECTRO);
+            case FROZEN, SHATTER, FORWARD_MELT, REVERSE_MELT ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_CRYO);
+            case SWIRL ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ANEMO);
+            case CRYSTALLIZE ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_GEO);
+            case BLOOM, REVERSE_BLOOM, BURNING, QUICKEN, AGGRAVATE, SPREAD ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_DENDRO);
+            default -> {}
+        }
     }
 
     public static float getCatalyzeMultiplier(int emLevel) {
@@ -3055,6 +3309,7 @@ public final class ElementalGaugeManager {
         if (resDamage > 0.0F) {
             if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
                 ElementalDeathMessageHelper.recordReactionForDeath(target, reaction, attackElement, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get());
+                triggerHiddenReactionAdvancements(attacker != null ? attacker : (CURRENT_REACTION_ATTACKER.get() instanceof ServerPlayer spAtt ? spAtt : null), reaction);
             }
             hurtWithPreAppliedElementalRes(target, getElementalDamageSource(level, attacker, reaction, attackElement), resDamage);
         }
@@ -4522,6 +4777,7 @@ public final class ElementalGaugeManager {
             if (hasActiveJadeShield(player) && player.level() instanceof ServerLevel jsl && serverNow % 10 == 0) {
                 jsl.sendParticles(ParticleTypes.WAX_ON, player.getX(), player.getY() + 1.0D, player.getZ(), 3, 0.35D, 0.45D, 0.35D, 0.01D);
             }
+            tickNightsFocusShield(player, serverNow);
             ElementalResonanceManager.tickPlayer(player);
             if (!player.isSpectator()) {
                 if (isEntityInWater(player)) {

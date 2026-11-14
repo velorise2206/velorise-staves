@@ -3,19 +3,21 @@
   "category": "equipment",
   "pattern": [
     "  W",
-    " B ",
+    " D ",
     "B  "
   ],
   "key": {
-    "B": {
-      "item": "minecraft:blaze_rod"
-    },
     "W": {
       "item": "minecraft:cobweb"
+    },
+    "D": {
+      "item": "velorise_staves:dendro_element"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
     }
   },
   "result": {
-    "item": "velorise_staves:webcaster",
-    "count": 1
+    "item": "velorise_staves:webcaster"
   }
 }

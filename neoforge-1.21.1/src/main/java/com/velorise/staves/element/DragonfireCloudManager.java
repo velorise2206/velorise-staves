@@ -91,7 +91,8 @@ public final class DragonfireCloudManager {
             if (age > 0L && phase == 0) {
                 BlockPos center = cloud.blockPosition();
                 ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
-                float damage = entry.isNetherite ? 2.5F : 1.8F;
+                float damage = entry.isNetherite ? 2.7F : 1.8F;
+                float pulseU = entry.isNetherite ? 1.5F : 1.0F;
 
                 // 1. Periodically electrify water beneath and around the cloud (every 1s, 1.0F shock damage)
                 ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
@@ -104,7 +105,7 @@ public final class DragonfireCloudManager {
                 );
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, 1.0F, owner, damage);
+                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, pulseU, owner, damage);
                     MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.ELECTRO, null);
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
                 }

@@ -1,6 +1,11 @@
 {
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
+  "pattern": [
+    " EH",
+    " EE",
+    "R  "
+  ],
   "key": {
     "H": {
       "item": "minecraft:heart_of_the_sea"
@@ -12,13 +17,8 @@
       "item": "minecraft:end_rod"
     }
   },
-  "pattern": [
-    "  H",
-    " E ",
-    "R  "
-  ],
   "result": {
-    "count": 1,
-    "id": "velorise_staves:splendor_of_tranquil_waters"
+    "id": "velorise_staves:splendor_of_tranquil_waters",
+    "count": 1
   }
 }

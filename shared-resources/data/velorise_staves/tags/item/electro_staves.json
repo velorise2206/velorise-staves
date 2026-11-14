@@ -2,7 +2,10 @@
   "replace": false,
   "values": [
     "velorise_staves:dragonfire_scepter",
+    "velorise_staves:netherite_dragonfire_scepter",
     "velorise_staves:shulker_seeker",
-    "velorise_staves:arc_caster"
+    "velorise_staves:netherite_shulker_seeker",
+    "velorise_staves:arc_caster",
+    "velorise_staves:netherite_arc_caster"
   ]
 }

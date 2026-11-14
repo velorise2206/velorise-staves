@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:electro_element"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.hidden_electro.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.hidden_electro.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "hidden_electro": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "hidden_electro"
+      }
+    }
+  }
+}

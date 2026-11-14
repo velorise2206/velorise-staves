@@ -81,6 +81,27 @@ public final class TemporaryWebManager {
                     for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, webBox, LivingEntity::isAlive)) {
                         if (entry.ownerId != null && entry.ownerId.equals(target.getUUID())) continue;
                         target.addEffect(new MobEffectInstance(MobEffects.POISON, POISON_DURATION_TICKS, entry.poisonAmplifier, true, true, true));
+                        if (entry.ownerId != null && target instanceof net.minecraft.world.entity.monster.Spider) {
+                            net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(entry.ownerId);
+                            if (sp != null) {
+                                com.velorise.staves.advancement.ModAdvancements.trigger(
+                                        sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
+                            }
+                        }
+                        if (entry.ownerId != null && target instanceof net.minecraft.world.entity.monster.Spider) {
+                            net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(entry.ownerId);
+                            if (sp != null) {
+                                com.velorise.staves.advancement.ModAdvancements.trigger(
+                                        sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
+                            }
+                        }
+                        if (entry.ownerId != null && target instanceof net.minecraft.world.entity.monster.Spider) {
+                            net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(entry.ownerId);
+                            if (sp != null) {
+                                com.velorise.staves.advancement.ModAdvancements.trigger(
+                                        sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
+                            }
+                        }
                     }
                 }
             }

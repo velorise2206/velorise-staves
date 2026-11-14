@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:hydro_element"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.hidden_hydro.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.hidden_hydro.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "hidden_hydro": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "hidden_hydro"
+      }
+    }
+  }
+}

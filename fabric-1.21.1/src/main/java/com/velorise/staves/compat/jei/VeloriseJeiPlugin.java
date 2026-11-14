@@ -82,9 +82,40 @@ public final class VeloriseJeiPlugin implements IModPlugin {
             ));
         }
 
-        // 2. Anvil Element Repair examples
-        anvilRecipes.add(createRepairExample(factory, VeloriseStavesMod.INFERNO_ROD, VeloriseStavesMod.PYRO_ELEMENT, "jei_repair_pyro"));
-        anvilRecipes.add(createRepairExample(factory, VeloriseStavesMod.ARC_CASTER, VeloriseStavesMod.OMNI_ELEMENT, "jei_repair_omni"));
+        // 2. Anvil Element & Netherite Repair for all 15 Basic + 15 Netherite Staves
+        Item[][] staffRepairPairs = new Item[][]{
+                {VeloriseStavesMod.INFERNO_ROD, VeloriseStavesMod.NETHERITE_INFERNO_ROD, VeloriseStavesMod.PYRO_ELEMENT},
+                {VeloriseStavesMod.GHASTFIRE_STAFF, VeloriseStavesMod.NETHERITE_GHASTFIRE_STAFF, VeloriseStavesMod.PYRO_ELEMENT},
+                {VeloriseStavesMod.GUARDIAN_LENS, VeloriseStavesMod.NETHERITE_GUARDIAN_LENS, VeloriseStavesMod.HYDRO_ELEMENT},
+                {VeloriseStavesMod.SPLENDOR_OF_TRANQUIL_WATERS, VeloriseStavesMod.NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS, VeloriseStavesMod.HYDRO_ELEMENT},
+                {VeloriseStavesMod.FROSTBOLT_WAND, VeloriseStavesMod.NETHERITE_FROSTBOLT_WAND, VeloriseStavesMod.CRYO_ELEMENT},
+                {VeloriseStavesMod.NIGHTS_FOCUS_STAFF, VeloriseStavesMod.NETHERITE_NIGHTS_FOCUS_STAFF, VeloriseStavesMod.CRYO_ELEMENT},
+                {VeloriseStavesMod.ARC_CASTER, VeloriseStavesMod.NETHERITE_ARC_CASTER, VeloriseStavesMod.ELECTRO_ELEMENT},
+                {VeloriseStavesMod.DRAGONFIRE_SCEPTER, VeloriseStavesMod.NETHERITE_DRAGONFIRE_SCEPTER, VeloriseStavesMod.ELECTRO_ELEMENT},
+                {VeloriseStavesMod.SHULKER_SEEKER, VeloriseStavesMod.NETHERITE_SHULKER_SEEKER, VeloriseStavesMod.ELECTRO_ELEMENT},
+                {VeloriseStavesMod.WITHER_SCEPTER, VeloriseStavesMod.NETHERITE_WITHER_SCEPTER, VeloriseStavesMod.DENDRO_ELEMENT},
+                {VeloriseStavesMod.WEBCASTER, VeloriseStavesMod.NETHERITE_WEBCASTER, VeloriseStavesMod.DENDRO_ELEMENT},
+                {VeloriseStavesMod.WIND_STAFF, VeloriseStavesMod.NETHERITE_WIND_STAFF, VeloriseStavesMod.ANEMO_ELEMENT},
+                {VeloriseStavesMod.RESONANT_ECHO, VeloriseStavesMod.NETHERITE_RESONANT_ECHO, VeloriseStavesMod.ANEMO_ELEMENT},
+                {VeloriseStavesMod.EVOKER_FANG_STAFF, VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF, VeloriseStavesMod.GEO_ELEMENT},
+                {VeloriseStavesMod.VORTEX_VANQUISHER, VeloriseStavesMod.NETHERITE_VORTEX_VANQUISHER, VeloriseStavesMod.GEO_ELEMENT},
+                {VeloriseStavesMod.OMNI_STAFF, VeloriseStavesMod.NETHERITE_OMNI_STAFF, VeloriseStavesMod.OMNI_ELEMENT}
+        };
+        for (Item[] pair : staffRepairPairs) {
+            Item basicStaff = pair[0];
+            Item netheriteStaff = pair[1];
+            Item elemEssence = pair[2];
+            String basePath = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(basicStaff).getPath();
+            String nethPath = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(netheriteStaff).getPath();
+
+            anvilRecipes.add(createRepairExample(factory, basicStaff, elemEssence, "jei_repair_elem_" + basePath));
+            anvilRecipes.add(createRepairExample(factory, netheriteStaff, elemEssence, "jei_repair_elem_" + nethPath));
+            if (elemEssence != VeloriseStavesMod.OMNI_ELEMENT) {
+                anvilRecipes.add(createRepairExample(factory, basicStaff, VeloriseStavesMod.OMNI_ELEMENT, "jei_repair_omni_" + basePath));
+                anvilRecipes.add(createRepairExample(factory, netheriteStaff, VeloriseStavesMod.OMNI_ELEMENT, "jei_repair_omni_" + nethPath));
+            }
+            anvilRecipes.add(createRepairExample(factory, netheriteStaff, Items.NETHERITE_INGOT, "jei_repair_netherite_" + nethPath));
+        }
         registration.addRecipes(RecipeTypes.ANVIL, anvilRecipes);
 
         // 3. Omni Staff Smithing upgrades are native minecraft:smithing_transform recipes in datapack JSON.

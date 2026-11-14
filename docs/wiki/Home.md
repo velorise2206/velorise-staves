@@ -87,7 +87,12 @@ Track your arcane progression through **12 custom Advancements** and experience 
 | **Tectonic Resonance** | `velorise_staves:geo_construct` | Summon a [**Geo Fang Pillar** or **Stone Stele**](Environmental-Interactions#3-geo-constructs-fang-pillars--stone-steles) using the [Evoker Fang Staff](Staves-List#evoker-fang-staff) or [Vortex Vanquisher](Staves-List#vortex-vanquisher). |
 | **High-Voltage Architect** | `velorise_staves:tesla_coil` | Activate or overcharge a Redstone [**Tesla Coil**](Environmental-Interactions#5-tesla-coils--storm-overcharge) (Lightning Rod atop a Redstone Block). |
 | **Spatial Riftwalker** | `velorise_staves:spatial_traveler` | Blink using the [**Void Translocator**](Relics-and-Utilities#void-translocator) or recall home with the [**Magic Mirror**](Relics-and-Utilities#magic-mirror). |
-| **A Good Pet!** | `velorise_staves:tame_omni_pet` | Tame a rare **Omni-Mutated Wolf** to gain an magic-immune adaptive companion! |
+| **A Good Pet!** | `velorise_staves:tame_omni_pet` | Tame a rare **Omni-Mutated Wolf** to gain a magic-immune adaptive companion! |
+| **Beheaded** *(Hidden)* | `velorise_staves:beheaded` | Obtain or wield Furina's royal scepter, [**Splendor of Tranquil Waters**](Staves-List#splendor-of-tranquil-waters). |
+| **I Don't Have Order** *(Hidden)* | `velorise_staves:i_dont_have_order` | Wield Zhongli's [**Vortex Vanquisher**](Staves-List#vortex-vanquisher) (only E Stone Stele & Jade Shield—no Q Planet Befall!). |
+| **Web Developer** *(Hidden)* | `velorise_staves:web_developer` | Shoot a cobweb from the [**Webcaster**](Staves-List#webcaster) directly onto a Spider. |
+| **Take My Ball** *(Hidden)* | `velorise_staves:take_my_ball` | Blast a mob with a Wind Charge fired from the [**Wind Staff**](Staves-List#wind-staff). |
+| **Solidify!** *(Hidden)* | `velorise_staves:geo_architect` | Stack a [**Geo Construct**](Environmental-Interactions#3-geo-constructs-fang-pillars--stone-steles) directly on top of another Geo Construct. |
 
 <div align="center">
   <table>

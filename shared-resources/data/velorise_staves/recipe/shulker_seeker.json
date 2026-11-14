@@ -1,21 +1,24 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  S",
-                    " R ",
-                    "R  "
-                ],
-    "key":  {
-                "R":  {
-                          "item":  "minecraft:end_rod"
-                      },
-                "S":  {
-                          "item":  "minecraft:shulker_shell"
-                      }
-            },
-    "result":  {
-                   "id":  "velorise_staves:shulker_seeker",
-                   "count":  1
-               }
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  S",
+    " E ",
+    "R  "
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:shulker_shell"
+    },
+    "E": {
+      "item": "velorise_staves:electro_element"
+    },
+    "R": {
+      "item": "minecraft:end_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:shulker_seeker",
+    "count": 1
+  }
 }

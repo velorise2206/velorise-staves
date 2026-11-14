@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:wind_staff"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.take_my_ball.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.take_my_ball.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "take_my_ball": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "take_my_ball"
+      }
+    }
+  }
+}
