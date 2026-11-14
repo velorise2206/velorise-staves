@@ -1317,21 +1317,28 @@ public final class ElementalGaugeManager {
                         3, 0.35D, 0.45D, 0.35D, 0.01D);
             }
             int pending = NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0);
-            if (pending > 0 && now % 3 == 0) {
+            if (pending > 0 && now % 9 == 0) {
                 if (fireSingleNightsFocusStar(sl, player)) {
-                    if (pending - 1 <= 0) {
+                    int remaining = pending - 1;
+                    if (remaining <= 0) {
                         NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+                        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
                     } else {
-                        NIGHTS_FOCUS_PENDING_SHOTS.put(id, pending - 1);
+                        NIGHTS_FOCUS_PENDING_SHOTS.put(id, remaining);
+                        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10 + remaining);
                     }
                 }
             }
         }
 
-        long lastAuto = NIGHTS_FOCUS_LAST_AUTO_STAR.getOrDefault(id, now);
-        if (now - lastAuto >= 30L) { // 1.5s per Night Star
+        if (NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0) > 0) {
             NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
-            addNightsFocusStars(player, 1, now);
+        } else {
+            long lastAuto = NIGHTS_FOCUS_LAST_AUTO_STAR.getOrDefault(id, now);
+            if (now - lastAuto >= 30L) { // 1.5s per Night Star
+                NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
+                addNightsFocusStars(player, 1, now);
+            }
         }
 
         int stars = NIGHTS_FOCUS_STARS.getOrDefault(id, 0);
@@ -1339,10 +1346,13 @@ public final class ElementalGaugeManager {
             LivingEntity nearest = findNearestNightsFocusTarget(sl, player);
             if (nearest != null) {
                 NIGHTS_FOCUS_STARS.put(id, 0);
-                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
-                NIGHTS_FOCUS_PENDING_SHOTS.put(id, 4);
+                NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
                 if (fireSingleNightsFocusStar(sl, player)) {
                     NIGHTS_FOCUS_PENDING_SHOTS.put(id, 3);
+                    com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 13);
+                } else {
+                    NIGHTS_FOCUS_PENDING_SHOTS.put(id, 4);
+                    com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 14);
                 }
             }
         }
@@ -1364,6 +1374,29 @@ public final class ElementalGaugeManager {
         return best;
     }
 
+    private static final class NightsFocusStarProjectile {
+        final ServerLevel level;
+        final ServerPlayer owner;
+        @Nullable LivingEntity target;
+        Vec3 pos;
+        Vec3 lastTargetPos;
+        final float damage;
+        final float units;
+        int age;
+
+        NightsFocusStarProjectile(ServerLevel level, ServerPlayer owner, LivingEntity target, Vec3 pos, float damage, float units) {
+            this.level = level;
+            this.owner = owner;
+            this.target = target;
+            this.pos = pos;
+            this.lastTargetPos = target.getBoundingBox().getCenter();
+            this.damage = damage;
+            this.units = units;
+        }
+    }
+
+    private static final List<NightsFocusStarProjectile> NIGHTS_FOCUS_PROJECTILES = new java.util.concurrent.CopyOnWriteArrayList<>();
+
     private static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) {
         LivingEntity target = findNearestNightsFocusTarget(level, player);
         if (target == null) return false;
@@ -1371,23 +1404,52 @@ public final class ElementalGaugeManager {
         float dmg = isNetherite ? 4.5F : 3.0F;
         float units = isNetherite ? 0.75F : 0.5F;
 
-        Vec3 start = player.position().add(0.0D, player.getBbHeight() + 0.6D, 0.0D);
-        Vec3 end = target.getBoundingBox().getCenter();
-        Vec3 delta = end.subtract(start);
-        int steps = Math.max(8, Math.min(24, (int) (delta.length() * 2.5D)));
-        for (int i = 0; i <= steps; i++) {
-            double t = (double) i / steps;
-            Vec3 p = start.add(delta.scale(t));
-            level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 1, 0.03D, 0.03D, 0.03D, 0.01D);
-            if (i % 2 == 0) {
-                level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-            }
-        }
+        Vec3 start = player.position().add(0.0D, player.getBbHeight() + 0.65D, 0.0D);
+        NIGHTS_FOCUS_PROJECTILES.add(new NightsFocusStarProjectile(level, player, target, start, dmg, units));
+        level.sendParticles(ParticleTypes.SNOWFLAKE, start.x, start.y, start.z, 4, 0.1D, 0.1D, 0.1D, 0.02D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.PLAYERS, 0.7F, 1.5F);
-        com.velorise.staves.network.ModNetwork.sendElectricArc(level, start, end, 7, 0xFF7BE8FF);
-        applyElement(level, target, Element.CRYO, units, player, dmg);
+                SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.PLAYERS, 0.6F, 1.55F);
         return true;
+    }
+
+    private static void tickNightsFocusProjectiles() {
+        if (NIGHTS_FOCUS_PROJECTILES.isEmpty()) return;
+        for (NightsFocusStarProjectile p : NIGHTS_FOCUS_PROJECTILES) {
+            p.age++;
+            Vec3 targetPos = (p.target != null && p.target.isAlive() && !p.target.isRemoved())
+                    ? p.target.getBoundingBox().getCenter()
+                    : p.lastTargetPos;
+            p.lastTargetPos = targetPos;
+
+            Vec3 toTarget = targetPos.subtract(p.pos);
+            double dist = toTarget.length();
+            boolean hit = dist <= 0.75D;
+            if (!hit && p.target != null && p.target.isAlive()) {
+                AABB box = new AABB(p.pos.x - 0.35D, p.pos.y - 0.35D, p.pos.z - 0.35D,
+                        p.pos.x + 0.35D, p.pos.y + 0.35D, p.pos.z + 0.35D);
+                hit = p.target.getBoundingBox().intersects(box);
+            }
+
+            if (hit || p.age > 65) {
+                NIGHTS_FOCUS_PROJECTILES.remove(p);
+                if (hit && p.target != null && p.target.isAlive()) {
+                    p.level.sendParticles(ParticleTypes.SNOWFLAKE, p.pos.x, p.pos.y, p.pos.z, 8, 0.18D, 0.18D, 0.18D, 0.04D);
+                    p.level.sendParticles(ParticleTypes.END_ROD, p.pos.x, p.pos.y, p.pos.z, 4, 0.1D, 0.1D, 0.1D, 0.02D);
+                    p.level.playSound(null, p.pos.x, p.pos.y, p.pos.z,
+                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.45F, 1.7F);
+                    applyElement(p.level, p.target, Element.CRYO, p.units, p.owner, p.damage);
+                }
+                continue;
+            }
+
+            Vec3 dir = dist > 1.0E-4D ? toTarget.scale(1.0D / dist) : new Vec3(0.0D, 1.0D, 0.0D);
+            if (p.age <= 4) {
+                dir = dir.add(0.0D, 0.35D, 0.0D).normalize();
+            }
+            p.pos = p.pos.add(dir.scale(0.55D)); // Moderate flight speed (~11 blocks/s)
+            p.level.sendParticles(ParticleTypes.SNOWFLAKE, p.pos.x, p.pos.y, p.pos.z, 2, 0.04D, 0.04D, 0.04D, 0.01D);
+            p.level.sendParticles(ParticleTypes.END_ROD, p.pos.x, p.pos.y, p.pos.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+        }
     }
 
     public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {
@@ -4785,6 +4847,7 @@ public final class ElementalGaugeManager {
         }
 
         // 7. Environmental water, fire, lingering potion clouds & cryo checks on active online players
+        tickNightsFocusProjectiles();
         Set<UUID> visitedNearby = new HashSet<>();
         Set<UUID> visitedClouds = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {

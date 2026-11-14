@@ -83,8 +83,9 @@ public class HydroSalonSummonRenderer extends EntityRenderer<HydroSalonSummonEnt
             float s = 0.46F + actionPulse * 0.06F;
             poseStack.scale(-s, -s, s);
             poseStack.translate(0.0F, -1.15F, 0.0F);
-            float tentacleAngle = Mth.sin(ageInTicks * 0.18F) * 0.35F + actionPulse * 0.45F;
-            this.squidModel.setupAnim(null, 0.0F, 0.0F, ageInTicks, 0.0F, tentacleAngle);
+            float tentaclePhase = entity.getTentaclePhase(partialTicks);
+            float tentacleAngle = 0.20F + Mth.abs(Mth.sin(tentaclePhase)) * 0.65F + actionPulse * 0.45F;
+            this.squidModel.setupAnim(null, 0.0F, 0.0F, tentacleAngle, 0.0F, 0.0F);
             VertexConsumer vc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(SQUID_TEXTURE));
             this.squidModel.renderToBuffer(poseStack, vc, fullBright, OverlayTexture.NO_OVERLAY, 0xFF2878F0);
             poseStack.popPose();

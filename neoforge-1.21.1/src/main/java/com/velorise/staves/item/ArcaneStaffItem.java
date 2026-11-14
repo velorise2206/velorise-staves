@@ -489,11 +489,7 @@ public final class ArcaneStaffItem extends Item {
             if (elapsed < 0) return;
             boolean instant = player.getPersistentData().getBoolean("VeloriseGuardianInstant");
             if (!instant && elapsed < 10) {
-                // 0.5s converging Hydro vortex wind-up with water charging audio
-                Vec3 muzzle = entity.getEyePosition().add(entity.getLookAngle().scale(0.85D));
-                serverLevel.sendParticles(ParticleTypes.SPLASH, muzzle.x, muzzle.y, muzzle.z, 8, 0.22D, 0.22D, 0.22D, 0.06D);
-                serverLevel.sendParticles(ParticleTypes.BUBBLE_POP, muzzle.x, muzzle.y, muzzle.z, 6, 0.18D, 0.18D, 0.18D, 0.03D);
-                serverLevel.sendParticles(ParticleTypes.DRIPPING_WATER, muzzle.x, muzzle.y, muzzle.z, 4, 0.16D, 0.16D, 0.16D, 0.01D);
+                // 0.5s converging Hydro vortex wind-up audio (visuals rendered cleanly on client)
                 if (elapsed % 3 == 0) {
                     serverLevel.playSound(null, player.blockPosition(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, SoundSource.PLAYERS, 0.70F, 1.15F + elapsed * 0.04F);
                     serverLevel.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.55F, 1.35F);
@@ -562,11 +558,6 @@ public final class ArcaneStaffItem extends Item {
             return;
         }
         if (kind == Kind.GHASTFIRE) {
-            if (count % 3 == 0) {
-                Vec3 eye = entity.getEyePosition().add(entity.getLookAngle().scale(0.8D));
-                serverLevel.sendParticles(ParticleTypes.FLAME, eye.x, eye.y, eye.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                serverLevel.sendParticles(ParticleTypes.SMOKE, eye.x, eye.y, eye.z, 1, 0.08D, 0.08D, 0.08D, 0.01D);
-            }
             return;
         }
         if (count % 5 != 0) return;
@@ -1180,29 +1171,11 @@ public final class ArcaneStaffItem extends Item {
     private void spawnGuardianTorrentVisualsAndAudio(ServerPlayer player, int beamElapsed) {
         ServerLevel level = (ServerLevel) player.level();
         double range = isNetherite ? 28.0D : 24.0D;
-        Vec3 start = player.getEyePosition();
-        Vec3 direction = player.getLookAngle().normalize();
         Vec3 end = rayEnd(player, range, ClipContext.Block.COLLIDER);
-        double distance = start.distanceTo(end);
 
-        Vec3 nozzle = start.add(direction.scale(0.85D));
-        level.sendParticles(ParticleTypes.SPLASH, nozzle.x, nozzle.y, nozzle.z, 10, 0.24D, 0.24D, 0.24D, 0.08D);
-        level.sendParticles(ParticleTypes.BUBBLE_POP, nozzle.x, nozzle.y, nozzle.z, 6, 0.18D, 0.18D, 0.18D, 0.04D);
-
-        for (double step = 0.6D; step <= distance; step += 0.35D) {
-            Vec3 pos = start.add(direction.scale(step));
-            level.sendParticles(ParticleTypes.SPLASH, pos.x, pos.y, pos.z, 4, 0.14D, 0.14D, 0.14D, 0.05D);
-            level.sendParticles(ParticleTypes.BUBBLE_POP, pos.x, pos.y, pos.z, 3, 0.12D, 0.12D, 0.12D, 0.02D);
-            level.sendParticles(ParticleTypes.BUBBLE, pos.x, pos.y, pos.z, 2, 0.10D, 0.10D, 0.10D, 0.03D);
-            if (((int) (step * 3.0D) + beamElapsed) % 2 == 0) {
-                level.sendParticles(ParticleTypes.FALLING_WATER, pos.x, pos.y, pos.z, 2, 0.12D, 0.12D, 0.12D, 0.01D);
-                level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y, pos.z, 1, 0.08D, 0.08D, 0.08D, 0.005D);
-            }
-            if (isNetherite) {
-                level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y, pos.z, 1, 0.08D, 0.08D, 0.08D, 0.0D);
-            }
-        }
-        level.sendParticles(ParticleTypes.SPLASH, end.x, end.y, end.z, 14, 0.35D, 0.25D, 0.35D, 0.10D);
+        // Clean impact splash at target endpoint only (sleek continuous 3D beam is rendered client-side)
+        level.sendParticles(ParticleTypes.SPLASH, end.x, end.y, end.z, 4, 0.20D, 0.18D, 0.20D, 0.06D);
+        level.sendParticles(ParticleTypes.BUBBLE_POP, end.x, end.y, end.z, 2, 0.14D, 0.14D, 0.14D, 0.03D);
 
         if (beamElapsed % 4 == 0) {
             level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.55F, 1.35F);
@@ -1244,7 +1217,6 @@ public final class ArcaneStaffItem extends Item {
             }
         }
         EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, start, end, isNetherite ? 2.0D : 1.35D);
-        drawBeam(level, start, end, ParticleTypes.ELECTRIC_SPARK, 0.45D);
         level.playSound(null, player.blockPosition(), SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.9F, 1.2F);
         level.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.70F, 1.15F);
     }
@@ -1358,7 +1330,7 @@ public final class ArcaneStaffItem extends Item {
             case WITHER -> isNetherite ? "32m (4.0m AoE)" : "32m (3.0m AoE)";
             case SHULKER -> "30m";
             case GUARDIAN -> isNetherite ? "28m" : "24m";
-            case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (30s)" : "16m Ousia / 6m Pneuma (30s)";
+            case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (15s)" : "16m Ousia / 6m Pneuma (15s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
             case VORTEX -> "12m (Max 3 Constructs, 4m Pulse / Jade Shield)";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
@@ -1400,13 +1372,14 @@ public final class ArcaneStaffItem extends Item {
         sl.sendParticles(ParticleTypes.SPLASH, sp.getX(), sp.getY() + 1.0D, sp.getZ(), 18, 0.55D, 0.35D, 0.55D, 0.06D);
         sl.sendParticles(ParticleTypes.END_ROD, sp.getX(), sp.getY() + 1.0D, sp.getZ(), 10, 0.45D, 0.35D, 0.45D, 0.03D);
         if (com.velorise.staves.entity.HydroSalonSummonEntity.hasAnySummonForOwner(sl, sp.getUUID())) {
-            com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(sl, sp, isNetherite, nextPneuma);
+            com.velorise.staves.entity.HydroSalonSummonEntity.switchArkheInPlace(sl, sp, isNetherite, nextPneuma);
         }
     }
 
     private boolean castNightsFocus(ServerPlayer player) {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         ElementalGaugeManager.activateNightsFocusShield(player, isNetherite);
+        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(serverLevel, player.position(), isNetherite ? 4 : 3);
         float aoeDmg = isNetherite ? 6.0F : 4.0F;
         float aoeUnits = isNetherite ? 1.5F : 1.0F;
         AABB box = player.getBoundingBox().inflate(3.5D);
