@@ -27,6 +27,12 @@ public final class ModNetwork {
         ServerPlayNetworking.registerGlobalReceiver(SelectOmniModePayload.TYPE, (payload, context) -> {
             context.server().execute(() -> SelectOmniModePayload.applySelection(context.player(), payload.mode()));
         });
+        PayloadTypeRegistry.playS2C().register(MavuikaSyncPayload.TYPE, MavuikaSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(RaidenSyncPayload.TYPE, RaidenSyncPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(MavuikaActionPayload.TYPE, MavuikaActionPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(MavuikaActionPayload.TYPE, (payload, context) -> {
+            context.server().execute(() -> MavuikaActionPayload.handle(context.player(), payload.action()));
+        });
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
@@ -192,5 +198,28 @@ public final class ModNetwork {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
                 new SelectOmniModePayload((byte) com.velorise.staves.entity.OmniOrbEntity.clampMode(mode))
         );
+    }
+
+    public static void sendMavuikaSync(ServerPlayer player, int auraRemainingTicks, float nightsoulPoints, boolean netherite) {
+        if (player == null) return;
+        int ultiCooldownTicks = com.velorise.staves.element.ElementalGaugeManager.getMavuikaUltiCooldownTicks(player);
+        MavuikaSyncPayload payload = new MavuikaSyncPayload(player.getId(), auraRemainingTicks, nightsoulPoints, netherite, ultiCooldownTicks);
+        for (ServerPlayer tracker : PlayerLookup.tracking(player)) {
+            ServerPlayNetworking.send(tracker, payload);
+        }
+        ServerPlayNetworking.send(player, payload);
+    }
+
+    public static void sendMavuikaAction(byte action) {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new MavuikaActionPayload(action));
+    }
+
+    public static void sendRaidenSync(ServerPlayer player, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+        if (player == null) return;
+        RaidenSyncPayload payload = new RaidenSyncPayload(player.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite);
+        for (ServerPlayer tracker : PlayerLookup.tracking(player)) {
+            ServerPlayNetworking.send(tracker, payload);
+        }
+        ServerPlayNetworking.send(player, payload);
     }
 }

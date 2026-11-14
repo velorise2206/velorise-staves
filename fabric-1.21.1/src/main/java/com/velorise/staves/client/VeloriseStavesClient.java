@@ -74,6 +74,24 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         });
 
         net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OMNI_WHEEL_KEY);
+        net.minecraft.client.KeyMapping mavuikaUltiKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
+                new net.minecraft.client.KeyMapping(
+                        "key.velorise_staves.mavuika_ulti",
+                        com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+                        org.lwjgl.glfw.GLFW.GLFW_KEY_R,
+                        "key.categories.velorise_staves"
+                )
+        );
+        ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.MavuikaSyncPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> ClientAuraTracker.updateMavuika(
+                    payload.entityId(), payload.auraRemainingTicks(), payload.nightsoulPoints(), payload.netherite(), payload.ultiCooldownTicks()
+            ));
+        });
+        ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.RaidenSyncPayload.TYPE, (payload, context) -> {
+            context.client().execute(() -> ClientAuraTracker.updateRaiden(
+                    payload.entityId(), payload.eyeRemainingTicks(), payload.musouRemainingTicks(), payload.resolve(), payload.netherite()
+            ));
+        });
 
         ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.ConfigSyncPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> com.velorise.staves.config.StavesConfig.applyServerSync(payload.data()));
@@ -99,10 +117,129 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             return net.minecraft.world.InteractionResult.PASS;
         });
 
-        ClientTickEvents.START_CLIENT_TICK.register(client -> ClientAuraRenderer.tickFrozenPlayer());
+        final boolean[] bikeDismountWaitAttackRelease = {false};
+        net.fabricmc.fabric.api.event.player.AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+        net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]) {
+                return net.minecraft.world.InteractionResult.FAIL;
+            }
+            return net.minecraft.world.InteractionResult.PASS;
+        });
+
+        final int[] queuedFastAttackClicks = {0};
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            ClientAuraRenderer.tickFrozenPlayer();
+            if (client.player != null && client.screen == null
+                    && client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+                while (client.options.keyAttack.consumeClick()) {
+                    queuedFastAttackClicks[0]++;
+                }
+            }
+        });
+        final boolean[] wasBikeDashDown = {false};
+        final boolean[] bikeSprintActive = {false};
+        final boolean[] bikeMountWaitRelease = {false};
+        final boolean[] wasRidingBike = {false};
+        final int[] bikeAttackHoldTicks = {0};
+        final boolean[] bikeSpinActive = {false};
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientAuraRenderer.tickFrozenPlayer();
             OmniWheelOverlay.tick(client);
+            if (client.player == null || client.screen != null) {
+                wasBikeDashDown[0] = false;
+                bikeSprintActive[0] = false;
+                bikeMountWaitRelease[0] = false;
+                wasRidingBike[0] = false;
+                bikeAttackHoldTicks[0] = 0;
+                bikeSpinActive[0] = false;
+                queuedFastAttackClicks[0] = 0;
+                return;
+            }
+            while (mavuikaUltiKey.consumeClick()) {
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
+            }
+            if (client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                if (!wasRidingBike[0]) {
+                    wasRidingBike[0] = true;
+                    bikeMountWaitRelease[0] = client.options.keyUse.isDown();
+                    bikeDismountWaitAttackRelease[0] = false;
+                    queuedFastAttackClicks[0] = 0;
+                }
+                if (bikeMountWaitRelease[0] && !client.options.keyUse.isDown()) {
+                    bikeMountWaitRelease[0] = false;
+                }
+                int attackClicks = queuedFastAttackClicks[0];
+                queuedFastAttackClicks[0] = 0;
+                while (client.options.keyAttack.consumeClick()) {
+                    // Suppress melee swing/block-breaking while riding bike, but count fast taps
+                    attackClicks++;
+                }
+                while (client.options.keyUse.consumeClick()) {
+                    // Suppress item right-click re-triggers while riding bike
+                }
+                if (bike.getUltiTicks() > 8 || (bike.getNaStep() == 6 && bike.getNaTicks() > 4)) {
+                    bikeAttackHoldTicks[0] = 0;
+                    bikeSpinActive[0] = false;
+                } else {
+                    boolean attackDown = client.options.keyAttack.isDown();
+                    if (attackDown) {
+                        bikeAttackHoldTicks[0]++;
+                        if (!bikeSpinActive[0] && bikeAttackHoldTicks[0] >= 5) {
+                            bikeSpinActive[0] = true;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                        }
+                    } else if (bikeAttackHoldTicks[0] > 0) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(bikeSpinActive[0]
+                                ? com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP
+                                : com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                        bikeAttackHoldTicks[0] = 0;
+                        bikeSpinActive[0] = false;
+                    } else if (attackClicks > 0) {
+                        // Ultra-fast tap pressed and released within the same client tick
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    }
+                }
+                boolean useHeld = !bikeMountWaitRelease[0] && client.options.keyUse.isDown();
+                boolean sprintDown = client.options.keySprint.isDown() || useHeld;
+                boolean dashTriggered = sprintDown && !wasBikeDashDown[0] && !bike.isOnDashCooldown();
+                wasBikeDashDown[0] = sprintDown;
+                if (dashTriggered) {
+                    bike.triggerClientDash(client.player);
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
+                    bikeAttackHoldTicks[0] = 0;
+                    bikeSpinActive[0] = false;
+                }
+                boolean wantSprint = sprintDown && bike.tickCount >= 10;
+                if (wantSprint != bikeSprintActive[0]) {
+                    bikeSprintActive[0] = wantSprint;
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(wantSprint
+                            ? com.velorise.staves.network.MavuikaActionPayload.ACTION_SPRINT_START
+                            : com.velorise.staves.network.MavuikaActionPayload.ACTION_SPRINT_STOP);
+                }
+            } else {
+                if (wasRidingBike[0] && client.options.keyAttack.isDown()) {
+                    bikeDismountWaitAttackRelease[0] = true;
+                }
+                wasRidingBike[0] = false;
+                bikeMountWaitRelease[0] = false;
+                wasBikeDashDown[0] = false;
+                bikeSprintActive[0] = false;
+                bikeAttackHoldTicks[0] = 0;
+                bikeSpinActive[0] = false;
+                if (bikeDismountWaitAttackRelease[0]) {
+                    if (!client.options.keyAttack.isDown()) {
+                        bikeDismountWaitAttackRelease[0] = false;
+                    } else {
+                        while (client.options.keyAttack.consumeClick()) {
+                        }
+                    }
+                }
+            }
         });
 
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
@@ -120,6 +257,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
                 com.velorise.staves.VeloriseStavesMod.HYDRO_SALON_SUMMON,
                 HydroSalonSummonRenderer::new
+        );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.FLAMESTRIDER_BIKE,
+                FlamestriderBikeRenderer::new
         );
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

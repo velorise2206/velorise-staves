@@ -87,6 +87,7 @@ public final class StavesConfig {
     public static final DoubleValue ECHO_COOLDOWN = defineDouble("cooldowns", "echo_cooldown", 8.0D, 0.5D, 60.0D);
     public static final DoubleValue INFERNO_COOLDOWN = defineDouble("cooldowns", "inferno_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue GHASTFIRE_COOLDOWN = defineDouble("cooldowns", "ghastfire_cooldown", 5.0D, 0.5D, 60.0D);
+    public static final DoubleValue THOUSAND_BLAZING_SUNS_COOLDOWN = defineDouble("cooldowns", "thousand_blazing_suns_cooldown", 10.0D, 0.5D, 60.0D);
     public static final DoubleValue WITHER_COOLDOWN = defineDouble("cooldowns", "wither_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 6.0D, 0.5D, 60.0D);
@@ -97,6 +98,8 @@ public final class StavesConfig {
     public static final DoubleValue FROSTBOLT_COOLDOWN = defineDouble("cooldowns", "frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue WIND_COOLDOWN = defineDouble("cooldowns", "wind_cooldown", 1.5D, 0.2D, 60.0D);
+    public static final DoubleValue DAYBREAK_COOLDOWN = defineDouble("cooldowns", "daybreak_cooldown", 2.0D, 0.5D, 60.0D);
+    public static final DoubleValue ENGULFING_LIGHTNING_COOLDOWN = defineDouble("cooldowns", "engulfing_lightning_cooldown", 10.0D, 0.5D, 60.0D);
     public static final DoubleValue OMNI_COOLDOWN = defineDouble("cooldowns", "omni_cooldown", 6.0D, 0.2D, 60.0D);
 
     // Basic Staff Base Damages (HP, 2.0 = 1 heart; Netherite automatically scales x1.5)
@@ -104,6 +107,7 @@ public final class StavesConfig {
     public static final DoubleValue ECHO_DAMAGE = defineDouble("damage", "echo_damage", 11.0D, 0.0D, 500.0D);
     public static final DoubleValue INFERNO_DAMAGE = defineDouble("damage", "inferno_damage", 3.0D, 0.0D, 500.0D);
     public static final DoubleValue GHASTFIRE_DAMAGE = defineDouble("damage", "ghastfire_damage", 6.0D, 0.0D, 500.0D);
+    public static final DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE = defineDouble("damage", "thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue WITHER_DAMAGE = defineDouble("damage", "wither_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue SHULKER_DAMAGE = defineDouble("damage", "shulker_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue GUARDIAN_DAMAGE = defineDouble("damage", "guardian_damage", 2.0D, 0.0D, 500.0D);
@@ -115,6 +119,8 @@ public final class StavesConfig {
     public static final DoubleValue NIGHTS_FOCUS_DAMAGE = defineDouble("damage", "nights_focus_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue WEBCASTER_DAMAGE = defineDouble("damage", "webcaster_damage", 1.5D, 0.0D, 500.0D);
     public static final DoubleValue WIND_DAMAGE = defineDouble("damage", "wind_damage", 1.5D, 0.0D, 500.0D);
+    public static final DoubleValue DAYBREAK_DAMAGE = defineDouble("damage", "daybreak_damage", 1.5D, 0.0D, 500.0D);
+    public static final DoubleValue ENGULFING_LIGHTNING_DAMAGE = defineDouble("damage", "engulfing_lightning_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue OMNI_DAMAGE = defineDouble("damage", "omni_damage", 10.0D, 0.0D, 500.0D);
 
     // Durabilities
@@ -126,6 +132,8 @@ public final class StavesConfig {
     public static final IntValue INFERNO_DURABILITY_NETHERITE = defineInt("durability", "inferno_netherite", 550, 10, 5000);
     public static final IntValue GHASTFIRE_DURABILITY_BASIC = defineInt("durability", "ghastfire_basic", 120, 10, 5000);
     public static final IntValue GHASTFIRE_DURABILITY_NETHERITE = defineInt("durability", "ghastfire_netherite", 450, 10, 5000);
+    public static final IntValue THOUSAND_BLAZING_SUNS_DURABILITY_BASIC = defineInt("durability", "thousand_blazing_suns_basic", 160, 10, 5000);
+    public static final IntValue THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE = defineInt("durability", "thousand_blazing_suns_netherite", 520, 10, 5000);
     public static final IntValue WITHER_DURABILITY_BASIC = defineInt("durability", "wither_basic", 140, 10, 5000);
     public static final IntValue WITHER_DURABILITY_NETHERITE = defineInt("durability", "wither_netherite", 500, 10, 5000);
     public static final IntValue SHULKER_DURABILITY_BASIC = defineInt("durability", "shulker_basic", 130, 10, 5000);
@@ -564,6 +572,7 @@ public final class StavesConfig {
             case ECHO -> 11.0D;
             case INFERNO -> 3.0D;
             case GHASTFIRE -> 6.0D;
+            case THOUSAND_BLAZING_SUNS -> 4.0D;
             case WITHER -> 4.0D;
             case SHULKER -> 4.0D;
             case GUARDIAN -> 2.0D;
@@ -575,6 +584,8 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> 4.0D;
             case WEB -> 1.5D;
             case WIND -> 1.5D;
+            case DAYBREAK -> 1.5D;
+            case ENGULFING_LIGHTNING -> 4.0D;
             case OMNI -> 10.0D;
         };
     }
@@ -602,6 +613,7 @@ public final class StavesConfig {
             case ECHO -> ECHO_DAMAGE.get();
             case INFERNO -> INFERNO_DAMAGE.get();
             case GHASTFIRE -> GHASTFIRE_DAMAGE.get();
+            case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
             case WITHER -> WITHER_DAMAGE.get();
             case SHULKER -> SHULKER_DAMAGE.get();
             case GUARDIAN -> GUARDIAN_DAMAGE.get();
@@ -613,6 +625,8 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> NIGHTS_FOCUS_DAMAGE.get();
             case WEB -> WEBCASTER_DAMAGE.get();
             case WIND -> WIND_DAMAGE.get();
+            case DAYBREAK -> DAYBREAK_DAMAGE.get();
+            case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_DAMAGE.get();
             case OMNI -> OMNI_DAMAGE.get();
         };
     }
@@ -631,6 +645,7 @@ public final class StavesConfig {
             case ECHO -> isNetherite ? ECHO_DURABILITY_NETHERITE.get() : ECHO_DURABILITY_BASIC.get();
             case INFERNO -> isNetherite ? INFERNO_DURABILITY_NETHERITE.get() : INFERNO_DURABILITY_BASIC.get();
             case GHASTFIRE -> isNetherite ? GHASTFIRE_DURABILITY_NETHERITE.get() : GHASTFIRE_DURABILITY_BASIC.get();
+            case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
             case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
@@ -641,6 +656,8 @@ public final class StavesConfig {
             case FROST, NIGHTS_FOCUS -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
             case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+            case DAYBREAK -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+            case ENGULFING_LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
         };
     }
@@ -667,6 +684,7 @@ public final class StavesConfig {
             case ECHO -> ECHO_COOLDOWN.get();
             case INFERNO -> INFERNO_COOLDOWN.get();
             case GHASTFIRE -> GHASTFIRE_COOLDOWN.get();
+            case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
             case WITHER -> WITHER_COOLDOWN.get();
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
@@ -678,6 +696,8 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> 12.0D;
             case WEB -> WEBCASTER_COOLDOWN.get();
             case WIND -> WIND_COOLDOWN.get();
+            case DAYBREAK -> DAYBREAK_COOLDOWN.get();
+            case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_COOLDOWN.get();
             case OMNI -> OMNI_COOLDOWN.get();
         };
     }

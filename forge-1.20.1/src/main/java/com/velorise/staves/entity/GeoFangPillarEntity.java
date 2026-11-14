@@ -414,11 +414,21 @@ public class GeoFangPillarEntity extends Entity {
         return true;
     }
 
-    /** Enforces the max 3 alive Geo Constructs limit per player by shattering oldest excess constructs. */
+    /** Enforces per-type construct cap (1 base, 2 Netherite C1) and global max 3 Geo Constructs per player. */
     public static void enforceMaxConstructsForOwner(
             ServerLevel level,
             EntityType<? extends GeoFangPillarEntity> type,
             UUID ownerUuid
+    ) {
+        enforceMaxConstructsForOwner(level, type, ownerUuid, false, MAX_CONSTRUCTS_PER_OWNER);
+    }
+
+    public static void enforceMaxConstructsForOwner(
+            ServerLevel level,
+            EntityType<? extends GeoFangPillarEntity> type,
+            UUID ownerUuid,
+            boolean isStele,
+            int typeMax
     ) {
         List<GeoFangPillarEntity> owned = new ArrayList<>();
         MinecraftServer server = level.getServer();
@@ -429,9 +439,27 @@ public class GeoFangPillarEntity extends Entity {
         } else {
             owned.addAll(level.getEntities(type, c -> c.isAlive() && !c.isRemoved() && ownerUuid.equals(c.getOwnerUUID())));
         }
+        owned.sort(Comparator.comparingLong(GeoFangPillarEntity::getCreatedGameTime).thenComparingInt(Entity::getId));
+
+        if (typeMax < MAX_CONSTRUCTS_PER_OWNER) {
+            List<GeoFangPillarEntity> sameType = new ArrayList<>();
+            for (GeoFangPillarEntity c : owned) {
+                if (c.isStoneStele() == isStele) {
+                    sameType.add(c);
+                }
+            }
+            if (sameType.size() >= typeMax) {
+                int toRemove = sameType.size() - (typeMax - 1);
+                for (int i = 0; i < toRemove; i++) {
+                    GeoFangPillarEntity old = sameType.get(i);
+                    old.shatter();
+                    owned.remove(old);
+                }
+            }
+        }
+
         if (owned.size() < MAX_CONSTRUCTS_PER_OWNER) return;
 
-        owned.sort(Comparator.comparingLong(GeoFangPillarEntity::getCreatedGameTime).thenComparingInt(Entity::getId));
         int toRemove = owned.size() - (MAX_CONSTRUCTS_PER_OWNER - 1);
         for (int i = 0; i < toRemove; i++) {
             owned.get(i).shatter();

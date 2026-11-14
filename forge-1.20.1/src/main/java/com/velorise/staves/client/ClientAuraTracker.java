@@ -19,6 +19,8 @@ public final class ClientAuraTracker {
     public static final int ANIM_VORTEX_HOLD_BURST = 3;
     public static final int ANIM_VORTEX_TAP = 4;
     public static final int ANIM_GHASTFIRE_SLAM = 5;
+    public static final int ANIM_RAIDEN_DRAW = 8;
+    public static final int ANIM_RAIDEN_SLASH = 9;
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
@@ -300,6 +302,8 @@ public final class ClientAuraTracker {
             case ANIM_VORTEX_HOLD_BURST -> 750L;
             case ANIM_VORTEX_TAP -> 500L;
             case ANIM_GHASTFIRE_SLAM -> 450L;
+            case ANIM_RAIDEN_DRAW -> 500L;
+            case ANIM_RAIDEN_SLASH -> 280L;
             default -> 600L;
         };
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
@@ -601,12 +605,123 @@ public final class ClientAuraTracker {
         return DATA.get(entityId);
     }
 
+    public static final class MavuikaDisplayState {
+        public int auraRemainingTicks;
+        public float nightsoulPoints;
+        public boolean netherite;
+        public int ultiCooldownTicks;
+        public long syncedAtMs;
+
+        public float effectiveAuraTicks() {
+            return Math.max(0.0F, auraRemainingTicks);
+        }
+
+        public float nightsoulFuel() {
+            return Math.max(0.0F, Math.min(80.0F, auraRemainingTicks / 10.0F));
+        }
+
+        public float effectiveUltiCooldownTicks() {
+            return Math.max(0.0F, ultiCooldownTicks - ((System.currentTimeMillis() - syncedAtMs) / 50.0F));
+        }
+
+        public boolean isUltiReady() {
+            return netherite && nightsoulPoints >= 5.0F && effectiveUltiCooldownTicks() <= 0.0F;
+        }
+    }
+
+    private static final java.util.Map<Integer, MavuikaDisplayState> MAVUIKA_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void updateMavuika(int entityId, int auraRemainingTicks, float nightsoulPoints, boolean netherite, int ultiCooldownTicks) {
+        if (auraRemainingTicks <= 0 && (!netherite || nightsoulPoints <= 0.001F) && ultiCooldownTicks <= 0) {
+            MAVUIKA_STATES.remove(entityId);
+            return;
+        }
+        MavuikaDisplayState state = MAVUIKA_STATES.computeIfAbsent(entityId, id -> new MavuikaDisplayState());
+        state.auraRemainingTicks = Math.max(0, auraRemainingTicks);
+        state.nightsoulPoints = Math.max(0.0F, Math.min(10.0F, nightsoulPoints));
+        state.netherite = netherite;
+        state.ultiCooldownTicks = Math.max(0, ultiCooldownTicks);
+        state.syncedAtMs = System.currentTimeMillis();
+    }
+
+    public static @Nullable MavuikaDisplayState getMavuika(int entityId) {
+        MavuikaDisplayState state = MAVUIKA_STATES.get(entityId);
+        if (state == null) return null;
+        if (state.effectiveAuraTicks() <= 0.0F && (!state.netherite || state.nightsoulPoints <= 0.001F) && state.effectiveUltiCooldownTicks() <= 0.0F) {
+            MAVUIKA_STATES.remove(entityId);
+            return null;
+        }
+        return state;
+    }
+
+    public static boolean isMavuikaAuraActive(int entityId) {
+        MavuikaDisplayState state = getMavuika(entityId);
+        return state != null && state.effectiveAuraTicks() > 0.0F;
+    }
+
+    public static final class RaidenDisplayState {
+        public int eyeRemainingTicks;
+        public int musouRemainingTicks;
+        public int resolve;
+        public boolean netherite;
+        public long syncedAtMs;
+
+        public float effectiveEyeTicks() {
+            long elapsedMs = Math.max(0L, System.currentTimeMillis() - syncedAtMs);
+            return Math.max(0.0F, eyeRemainingTicks - (elapsedMs / 50.0F));
+        }
+
+        public float effectiveMusouTicks() {
+            long elapsedMs = Math.max(0L, System.currentTimeMillis() - syncedAtMs);
+            return Math.max(0.0F, musouRemainingTicks - (elapsedMs / 50.0F));
+        }
+    }
+
+    private static final java.util.Map<Integer, RaidenDisplayState> RAIDEN_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void updateRaiden(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+        if (eyeRemainingTicks <= 0 && musouRemainingTicks <= 0 && resolve <= 0) {
+            RAIDEN_STATES.remove(entityId);
+            return;
+        }
+        RaidenDisplayState state = RAIDEN_STATES.computeIfAbsent(entityId, id -> new RaidenDisplayState());
+        state.eyeRemainingTicks = Math.max(0, eyeRemainingTicks);
+        state.musouRemainingTicks = Math.max(0, musouRemainingTicks);
+        state.resolve = Math.max(0, Math.min(60, resolve));
+        state.netherite = netherite;
+        state.syncedAtMs = System.currentTimeMillis();
+    }
+
+    public static @Nullable RaidenDisplayState getRaiden(int entityId) {
+        RaidenDisplayState state = RAIDEN_STATES.get(entityId);
+        if (state == null) return null;
+        if (state.effectiveEyeTicks() <= 0.0F && state.effectiveMusouTicks() <= 0.0F && state.resolve <= 0) {
+            RAIDEN_STATES.remove(entityId);
+            return null;
+        }
+        return state;
+    }
+
+    public static boolean isRaidenEyeActive(int entityId) {
+        RaidenDisplayState state = getRaiden(entityId);
+        return state != null && state.effectiveEyeTicks() > 0.0F;
+    }
+
+    public static boolean isRaidenMusouActive(int entityId) {
+        RaidenDisplayState state = getRaiden(entityId);
+        return state != null && state.effectiveMusouTicks() > 0.0F;
+    }
+
     public static void remove(int entityId) {
         DATA.remove(entityId);
+        MAVUIKA_STATES.remove(entityId);
+        RAIDEN_STATES.remove(entityId);
     }
 
     public static void clear() {
         DATA.clear();
+        MAVUIKA_STATES.clear();
+        RAIDEN_STATES.clear();
         ACTIVE_ARCS.clear();
         FLOATING_TEXTS.clear();
         activeCrystallizeShield = null;

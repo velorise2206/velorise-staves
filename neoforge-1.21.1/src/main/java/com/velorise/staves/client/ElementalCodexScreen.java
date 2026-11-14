@@ -118,6 +118,7 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.ENVIRONMENT, "env_redstone", new String[]{}, new String[]{"tesla coil", "tesla coils", "cuộn tesla", "cột thu lôi"}),
             new ReactionLinkSpec(Tab.ENVIRONMENT, "env_amethyst", new String[]{}, new String[]{"amethyst cluster", "amethyst clusters", "cụm thạch anh tím", "hốc thạch anh tím"}),
             new ReactionLinkSpec(Tab.STAVES, "omni_staff", new String[]{}, new String[]{"omni staff", "netherite omni staff", "quyền trượng vạn năng", "trượng omni"}),
+            new ReactionLinkSpec(Tab.STAVES, "thousand_blazing_suns", new String[]{}, new String[]{"a thousand blazing suns", "thousand blazing suns", "flamestrider", "nightsoul", "dạ hồn", "vầng dương rực cháy"}),
             new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "giáo nịnh thần", "stone stele", "vách đá", "jade shield", "khiên ngọc"}),
             new ReactionLinkSpec(Tab.STAVES, "nights_focus_staff", new String[]{}, new String[]{"nights of formal focus", "chìa khóa hiểu biết", "night star", "night stars", "sao đêm", "shooting star", "sao băng"}),
             new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "ánh nước tĩnh lặng", "salon solitaire", "salon cô độc", "singer of many waters", "ca sĩ nước nguồn"}),
@@ -167,11 +168,11 @@ public class ElementalCodexScreen extends Screen {
                 registerLinkWord(dedup, fb, spec.tab(), spec.cardKey());
             }
         }
-        // Automatically register localized item names for all 16 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
+        // Automatically register localized item names for all 17 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
         String[] allStaffIds = {
-                "inferno_rod", "ghastfire_staff", "guardian_lens", "splendor_of_tranquil_waters",
+                "inferno_rod", "ghastfire_staff", "thousand_blazing_suns", "guardian_lens", "splendor_of_tranquil_waters",
                 "frostbolt_wand", "nights_focus_staff", "arc_caster", "dragonfire_scepter", "shulker_seeker",
-                "wither_scepter", "webcaster", "wind_staff", "resonant_echo",
+                "wither_scepter", "webcaster", "wind_staff", "the_daybreak_chronicles", "engulfing_lightning", "resonant_echo",
                 "evoker_fang_staff", "vortex_vanquisher", "omni_staff"
         };
         for (String sId : allStaffIds) {
@@ -745,6 +746,8 @@ public class ElementalCodexScreen extends Screen {
                                 fmtHearts(3.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x3", "30m", "codex.velorise_staves.staff.inferno"},
                         {"ghastfire_staff", ArcaneStaffItem.Kind.GHASTFIRE, Element.PYRO,
                                 fmtHearts(6.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(9.0 * dmgMult) + "§f\uE008§6", "36m (AoE)", "codex.velorise_staves.staff.ghastfire"},
+                        {"thousand_blazing_suns", ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, Element.PYRO,
+                                fmtHearts(1.0 * dmgMult) + "–" + fmtHearts(2.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(1.5 * dmgMult) + "–" + fmtHearts(10.0 * dmgMult) + "§f\uE008§6", "8m / 3m / 5m", "codex.velorise_staves.staff.thousand_blazing_suns"},
                         {"guardian_lens", ArcaneStaffItem.Kind.GUARDIAN, Element.HYDRO,
                                 fmtHearts(gBasic * dmgMult) + "–" + fmtHearts(gBasic * 2.0F * dmgMult) + "§f\uE008§rx8 (3s)",
                                 "§6" + fmtHearts(gNeth * dmgMult) + "–" + fmtHearts(gNeth * 2.0F * dmgMult) + "§f\uE008§6x8 (3s)", "24m➔28m", "codex.velorise_staves.staff.guardian"},
@@ -767,6 +770,10 @@ public class ElementalCodexScreen extends Screen {
                                 trapPoison, trapPoison, "28m", "codex.velorise_staves.staff.webcaster"},
                         {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
                                 fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "28m (AoE)", "codex.velorise_staves.staff.wind"},
+                        {"the_daybreak_chronicles", ArcaneStaffItem.Kind.DAYBREAK, Element.ANEMO,
+                                fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "8m➔12m Vortex", "codex.velorise_staves.staff.the_daybreak_chronicles"},
+                        {"engulfing_lightning", ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, Element.ELECTRO,
+                                fmtHearts(2.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.75 * dmgMult) + "§f\uE008§6", "3.0m➔4.5m Eye", "codex.velorise_staves.staff.engulfing_lightning"},
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
                                 fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.5 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,

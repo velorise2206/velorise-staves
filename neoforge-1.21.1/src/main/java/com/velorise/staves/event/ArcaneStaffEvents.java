@@ -130,6 +130,9 @@ public final class ArcaneStaffEvents {
     public static void onAttackEntity(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
         if (!event.getEntity().level().isClientSide()) {
             ElementalGaugeManager.recordPreAttackStrength(event.getEntity(), event.getEntity().getAttackStrengthScale(0.5F));
+            if (event.getEntity() instanceof ServerPlayer sp && event.getTarget() instanceof LivingEntity) {
+                ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
+            }
         }
     }
 
@@ -237,6 +240,7 @@ public final class ArcaneStaffEvents {
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
             case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
+            case "daybreak" -> resolveDaybreak(level, hit, owner, event, isNetherite);
             case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, event, isNetherite);
             default -> {}
         }
@@ -357,6 +361,7 @@ public final class ArcaneStaffEvents {
 
         // 1B. Imbued Sword elemental hit (full-strength swing >= 0.9F applies 1U + scales physical damage on reactions)
         event.setNewDamage(ElementalGaugeManager.applyImbuedSwordHit(entity, src, event.getNewDamage()));
+        event.setNewDamage(ElementalGaugeManager.applyRaidenMusouIsshinHit(entity, src, event.getNewDamage()));
 
         // 2. Base Mob Resistances (10% Elemental/Physical, Iron Golem 50% Physical, Warden 70% Anemo) & Superconduct Physical RES Shred (-40%)
         event.setNewDamage(ElementalGaugeManager.applyMobDamageResistances(entity, src, event.getNewDamage()));
@@ -372,7 +377,9 @@ public final class ArcaneStaffEvents {
         LivingEntity entity = event.getEntity();
         if (entity.level().isClientSide()) return;
         ElementalGaugeManager.trySendPhysicalDamageFloat(entity, event.getSource(), event.getNewDamage());
+        ElementalGaugeManager.tryInterruptGuardianChanneling(entity, event.getNewDamage());
         ElementalGaugeManager.handleLivingIncomingDamage(entity, event.getSource());
+        ElementalGaugeManager.triggerRaidenEyeCoordinatedStrike(entity, event.getSource());
         ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
     }
 
@@ -726,9 +733,18 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.75F, 1.25F);
     }
 
+    private static void resolveDaybreak(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        boolean sideBolt = event.getProjectile().getPersistentData().getBoolean("VeloriseDaybreakSideBolt");
+        resolveWindInternal(level, hit, owner, event, isNetherite, ArcaneStaffItem.Kind.DAYBREAK, sideBolt ? 0.5F : 1.0F);
+    }
+
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        resolveWindInternal(level, hit, owner, event, isNetherite, ArcaneStaffItem.Kind.WIND, 1.0F);
+    }
+
+    private static void resolveWindInternal(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite, ArcaneStaffItem.Kind kind, float dmgScale) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.WIND, isNetherite);
+        float baseDmg = StavesConfig.getStaffBaseDamage(kind, isNetherite) * dmgScale;
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double radiusSqr = radius * radius;

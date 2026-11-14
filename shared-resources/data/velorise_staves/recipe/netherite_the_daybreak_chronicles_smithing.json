@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": {
+    "item": "minecraft:netherite_ingot"
+  },
+  "base": {
+    "item": "velorise_staves:the_daybreak_chronicles"
+  },
+  "result": {
+    "count": 1,
+    "id": "velorise_staves:netherite_the_daybreak_chronicles"
+  },
+  "template": {
+    "item": "minecraft:netherite_upgrade_smithing_template"
+  }
+}

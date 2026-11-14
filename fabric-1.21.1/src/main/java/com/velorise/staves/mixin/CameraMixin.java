@@ -20,6 +20,50 @@ public abstract class CameraMixin {
     @Shadow
     protected abstract void setRotation(float yRot, float xRot);
 
+    @Shadow
+    public abstract net.minecraft.world.phys.Vec3 getPosition();
+
+    @Shadow
+    protected abstract void setPosition(double x, double y, double z);
+
+    @Inject(method = "setup", at = @At("TAIL"))
+    private void velorise$anchorDonutSpinCamera(
+            BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci
+    ) {
+        if (entity != null && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike && bike.isSpinCameraAnchored()) {
+            double bikeX = net.minecraft.util.Mth.lerp(partialTick, bike.xo, bike.getX());
+            double bikeY = net.minecraft.util.Mth.lerp(partialTick, bike.yo, bike.getY());
+            double bikeZ = net.minecraft.util.Mth.lerp(partialTick, bike.zo, bike.getZ());
+            double pivotX = bike.getSpinPivotX(partialTick);
+            double pivotZ = bike.getSpinPivotZ(partialTick);
+            double dx = pivotX - bikeX;
+            double dz = pivotZ - bikeZ;
+            net.minecraft.world.phys.Vec3 pos = this.getPosition();
+            net.minecraft.world.phys.Vec3 targetPos = new net.minecraft.world.phys.Vec3(pos.x + dx, pos.y, pos.z + dz);
+            if (level instanceof net.minecraft.world.level.Level lvl) {
+                net.minecraft.world.phys.Vec3 pivotEye = new net.minecraft.world.phys.Vec3(pivotX, bikeY + entity.getEyeHeight(), pivotZ);
+                net.minecraft.world.phys.BlockHitResult hit = lvl.clip(new net.minecraft.world.level.ClipContext(
+                        pivotEye, targetPos,
+                        net.minecraft.world.level.ClipContext.Block.VISUAL,
+                        net.minecraft.world.level.ClipContext.Fluid.NONE,
+                        entity
+                ));
+                if (hit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+                    net.minecraft.world.phys.Vec3 hitLoc = hit.getLocation();
+                    net.minecraft.world.phys.Vec3 dir = targetPos.subtract(pivotEye);
+                    double len = dir.length();
+                    if (len > 1.0E-4D) {
+                        double safeDist = Math.max(0.15D, hitLoc.distanceTo(pivotEye) - 0.18D);
+                        targetPos = pivotEye.add(dir.scale(safeDist / len));
+                    } else {
+                        targetPos = hitLoc;
+                    }
+                }
+            }
+            this.setPosition(targetPos.x, targetPos.y, targetPos.z);
+        }
+    }
+
     @Inject(
             method = "setup",
             at = @At(

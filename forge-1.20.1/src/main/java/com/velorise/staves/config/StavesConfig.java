@@ -87,7 +87,10 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.DoubleValue FROSTBOLT_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue WEBCASTER_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue WIND_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue DAYBREAK_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue ENGULFING_LIGHTNING_COOLDOWN;
     public static final ForgeConfigSpec.DoubleValue OMNI_COOLDOWN;
+    public static final ForgeConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_COOLDOWN;
 
     // Basic Staff Base Damages (HP, 2.0 = 1 heart; Netherite automatically scales x1.5)
     public static final ForgeConfigSpec.DoubleValue DRAGONFIRE_DAMAGE;
@@ -105,11 +108,16 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.DoubleValue NIGHTS_FOCUS_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue WEBCASTER_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue WIND_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue DAYBREAK_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue ENGULFING_LIGHTNING_DAMAGE;
     public static final ForgeConfigSpec.DoubleValue OMNI_DAMAGE;
+    public static final ForgeConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE;
 
     // Durabilities
     public static final ForgeConfigSpec.IntValue DRAGONFIRE_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue DRAGONFIRE_DURABILITY_NETHERITE;
+    public static final ForgeConfigSpec.IntValue THOUSAND_BLAZING_SUNS_DURABILITY_BASIC;
+    public static final ForgeConfigSpec.IntValue THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue ECHO_DURABILITY_BASIC;
     public static final ForgeConfigSpec.IntValue ECHO_DURABILITY_NETHERITE;
     public static final ForgeConfigSpec.IntValue INFERNO_DURABILITY_BASIC;
@@ -263,8 +271,11 @@ public final class StavesConfig {
         VORTEX_COOLDOWN = builder.defineInRange("vortex_cooldown", 4.0D, 0.5D, 60.0D);
         ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
+        THOUSAND_BLAZING_SUNS_COOLDOWN = builder.defineInRange("thousand_blazing_suns_cooldown", 10.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);
         WIND_COOLDOWN = builder.defineInRange("wind_cooldown", 1.5D, 0.2D, 60.0D);
+        DAYBREAK_COOLDOWN = builder.defineInRange("daybreak_cooldown", 2.0D, 0.5D, 60.0D);
+        ENGULFING_LIGHTNING_COOLDOWN = builder.defineInRange("engulfing_lightning_cooldown", 10.0D, 0.5D, 60.0D);
         OMNI_COOLDOWN = builder.defineInRange("omni_cooldown", 6.0D, 0.2D, 60.0D);
         builder.pop();
 
@@ -284,12 +295,17 @@ public final class StavesConfig {
         NIGHTS_FOCUS_DAMAGE = builder.defineInRange("nights_focus_damage", 4.0D, 0.0D, 500.0D);
         WEBCASTER_DAMAGE = builder.defineInRange("webcaster_damage", 1.5D, 0.0D, 500.0D);
         WIND_DAMAGE = builder.defineInRange("wind_damage", 1.5D, 0.0D, 500.0D);
+        DAYBREAK_DAMAGE = builder.defineInRange("daybreak_damage", 1.5D, 0.0D, 500.0D);
+        ENGULFING_LIGHTNING_DAMAGE = builder.defineInRange("engulfing_lightning_damage", 4.0D, 0.0D, 500.0D);
         OMNI_DAMAGE = builder.defineInRange("omni_damage", 10.0D, 0.0D, 500.0D);
+        THOUSAND_BLAZING_SUNS_DAMAGE = builder.defineInRange("thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
         DRAGONFIRE_DURABILITY_BASIC = builder.defineInRange("dragonfire_basic", 130, 10, 5000);
         DRAGONFIRE_DURABILITY_NETHERITE = builder.defineInRange("dragonfire_netherite", 500, 10, 5000);
+        THOUSAND_BLAZING_SUNS_DURABILITY_BASIC = builder.defineInRange("thousand_blazing_suns_basic", 160, 10, 5000);
+        THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE = builder.defineInRange("thousand_blazing_suns_netherite", 520, 10, 5000);
         ECHO_DURABILITY_BASIC = builder.defineInRange("echo_basic", 130, 10, 5000);
         ECHO_DURABILITY_NETHERITE = builder.defineInRange("echo_netherite", 500, 10, 5000);
         INFERNO_DURABILITY_BASIC = builder.defineInRange("inferno_basic", 150, 10, 5000);
@@ -595,7 +611,10 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> 4.0D;
             case WEB -> 1.5D;
             case WIND -> 1.5D;
+            case DAYBREAK -> 1.5D;
+            case ENGULFING_LIGHTNING -> 4.0D;
             case OMNI -> 10.0D;
+            case THOUSAND_BLAZING_SUNS -> 4.0D;
         };
     }
 
@@ -633,7 +652,10 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> NIGHTS_FOCUS_DAMAGE.get();
             case WEB -> WEBCASTER_DAMAGE.get();
             case WIND -> WIND_DAMAGE.get();
+            case DAYBREAK -> DAYBREAK_DAMAGE.get();
+            case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_DAMAGE.get();
             case OMNI -> OMNI_DAMAGE.get();
+            case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
         };
     }
 
@@ -661,7 +683,10 @@ public final class StavesConfig {
             case FROST, NIGHTS_FOCUS -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
             case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+            case DAYBREAK -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
+            case ENGULFING_LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
+            case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
         };
     }
 
@@ -698,7 +723,10 @@ public final class StavesConfig {
             case NIGHTS_FOCUS -> 12.0D;
             case WEB -> WEBCASTER_COOLDOWN.get();
             case WIND -> WIND_COOLDOWN.get();
+            case DAYBREAK -> DAYBREAK_COOLDOWN.get();
+            case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_COOLDOWN.get();
             case OMNI -> OMNI_COOLDOWN.get();
+            case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
         };
     }
 

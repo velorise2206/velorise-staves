@@ -21,6 +21,8 @@ public final class ModAdvancements {
     public static final String EVENT_TAME_OMNI_PET = "tame_omni_pet";
     public static final String EVENT_BEHEADED = "beheaded";
     public static final String EVENT_NO_ORDER = "i_dont_have_order";
+    public static final String EVENT_RAT_FROM_THE_SKY = "rat_from_the_sky";
+    public static final String EVENT_INAZUMA_SHINES_ETERNAL = "inazuma_shines_eternal";
     public static final String EVENT_STARRY_NIGHT = "starry_night";
     public static final String EVENT_BROKEN_CONTRACT = "broken_contract";
     public static final String EVENT_WEB_DEVELOPER = "web_developer";
