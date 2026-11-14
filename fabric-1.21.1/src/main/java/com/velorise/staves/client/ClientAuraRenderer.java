@@ -857,12 +857,12 @@ public final class ClientAuraRenderer {
             if (player.isUsingItem() && player.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
                 float w = smoothStep01((elapsed + partialTicks) / 18.0F);
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.012F * w;
-                // Zhongli First-Person Hold: Bring polearm inward in front of the chest
-                poseStack.translate(-dir * 0.34F * w + tremor, 0.14F * w, -0.22F * w);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 38.0F * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * w));
-                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 20.0F * w));
+                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.010F * w;
+                // Zhongli First-Person Hold: Center polearm upright in front of the chest
+                poseStack.translate(-dir * 0.48F * w + tremor, 0.14F * w, -0.18F * w);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 14.0F * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 12.0F * w));
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
@@ -871,13 +871,13 @@ public final class ClientAuraRenderer {
                 float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
                 float w = (t < 0.64F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.64F) / 0.36F) * (float) Math.PI));
 
-                // Sweep from center chest wide outward to the side
-                float tx = Mth.lerp(sweep, -dir * 0.34F, dir * 0.36F) * w;
+                // Sweep smoothly from center chest outward as shield forms
+                float tx = Mth.lerp(sweep, -dir * 0.48F, dir * 0.14F) * w;
                 float ty = Mth.lerp(sweep, 0.14F, 0.06F) * w;
-                float tz = Mth.lerp(sweep, -0.22F, -0.10F) * w;
+                float tz = Mth.lerp(sweep, -0.18F, -0.10F) * w;
                 poseStack.translate(tx, ty, tz);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, dir * 38.0F, -dir * 32.0F) * w));
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(sweep, -dir * 20.0F, -dir * 42.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, dir * 14.0F, -dir * 24.0F) * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(sweep, -dir * 12.0F, -dir * 32.0F) * w));
                 return;
             }
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
@@ -936,6 +936,61 @@ public final class ClientAuraRenderer {
      * - Furina Summon: Opposite hand rises skyward while main hand plants Splendor into the ground.
      * - Zhongli Vortex Hold & Burst: Opposite hand converges in front of the chest and sweeps wide outward.
      */
+    public static boolean setupFirstPersonVortexMainArmPose(
+            net.minecraft.client.player.AbstractClientPlayer player,
+            float partialTicks,
+            net.minecraft.world.entity.HumanoidArm mainArm,
+            PoseStack poseStack
+    ) {
+        if (player == null) return false;
+        ItemStack mainStack = player.getMainHandItem();
+        if (!(mainStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) return false;
+        if (staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) return false;
+        return setupFirstPersonVortexArmPose(player, staff, mainStack, partialTicks, mainArm, poseStack);
+    }
+
+    private static boolean setupFirstPersonVortexArmPose(
+            net.minecraft.client.player.AbstractClientPlayer player,
+            com.velorise.staves.item.ArcaneStaffItem staff,
+            ItemStack mainStack,
+            float partialTicks,
+            net.minecraft.world.entity.HumanoidArm arm,
+            PoseStack poseStack
+    ) {
+        float armDir = (arm == net.minecraft.world.entity.HumanoidArm.RIGHT) ? 1.0F : -1.0F;
+        long now = System.currentTimeMillis();
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(player.getId());
+        int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
+
+        if (player.isUsingItem() && player.getUseItem() == mainStack) {
+            int elapsed = Math.max(0, staff.getUseDuration(mainStack, player) - player.getUseItemRemainingTicks());
+            float w = smoothStep01((elapsed + partialTicks) / 18.0F);
+            if (w <= 0.02F) return false;
+            float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.010F * w;
+            // Symmetrically raise both arms cleanly in front of the chest
+            poseStack.translate(-armDir * 0.44F * w + armDir * tremor, -0.22F * (1.0F - w) + 0.30F * w, -0.10F * w);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-armDir * 16.0F * w));
+            poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * w));
+            return true;
+        }
+        if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
+            float w = (t < 0.64F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.64F) / 0.36F) * (float) Math.PI));
+            if (w <= 0.02F) return false;
+
+            // Sweep both arms symmetrically outward from chest center
+            float tx = Mth.lerp(sweep, -armDir * 0.44F, armDir * 0.06F);
+            float ty = Mth.lerp(sweep, 0.30F, 0.24F) - 0.28F * (1.0F - w);
+            poseStack.translate(tx, ty, -0.10F * w);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, -armDir * 16.0F, armDir * 24.0F) * w));
+            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, 26.0F, 14.0F) * w));
+            return true;
+        }
+        return false;
+    }
+
     public static boolean setupFirstPersonEmptyOffhandPose(
             net.minecraft.client.player.AbstractClientPlayer player,
             float partialTicks,
@@ -952,31 +1007,7 @@ public final class ClientAuraRenderer {
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
 
         if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
-            if (player.isUsingItem() && player.getUseItem() == mainStack) {
-                int elapsed = Math.max(0, staff.getUseDuration(mainStack, player) - player.getUseItemRemainingTicks());
-                float w = smoothStep01((elapsed + partialTicks) / 18.0F);
-                if (w <= 0.02F) return false;
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.012F * w;
-                // Bring bare offhand inward across chest to meet the main hand
-                poseStack.translate(-offDir * 0.38F * w - tremor, -0.32F * (1.0F - w) + 0.16F * w, -0.18F * w);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-offDir * 42.0F * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(22.0F * w));
-                return true;
-            }
-            if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
-                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
-                float w = (t < 0.64F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.64F) / 0.36F) * (float) Math.PI));
-                if (w <= 0.02F) return false;
-
-                float tx = Mth.lerp(sweep, -offDir * 0.38F, offDir * 0.36F);
-                float ty = Mth.lerp(sweep, 0.16F, 0.04F) - 0.35F * (1.0F - w);
-                poseStack.translate(tx, ty, -0.15F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, -offDir * 42.0F, offDir * 35.0F) * w));
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(sweep, offDir * 15.0F, -offDir * 38.0F) * w));
-                return true;
-            }
+            return setupFirstPersonVortexArmPose(player, staff, mainStack, partialTicks, offArm, poseStack);
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
@@ -1939,7 +1970,7 @@ public final class ClientAuraRenderer {
             case SPLENDOR -> 10;
             case GHASTFIRE -> 40;
             case LIGHTNING -> 60;
-            case GUARDIAN -> 70;
+            case GUARDIAN -> com.velorise.staves.item.ArcaneStaffItem.isGuardianInstant(stack) ? 60 : (elapsed < 60 ? 60 : 120);
             default -> 30;
         };
         float pct = Mth.clamp((float) elapsed / (float) targetTicks, 0.0F, 1.0F);
@@ -2500,6 +2531,8 @@ public final class ClientAuraRenderer {
             if (staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
 
             int elapsed = staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks();
+            boolean instant = com.velorise.staves.item.ArcaneStaffItem.isGuardianInstant(stack);
+            if (!instant && elapsed < 60) continue;
             if (elapsed < 2) continue;
 
             if (consumer == null) {

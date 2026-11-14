@@ -500,6 +500,12 @@ public final class VeloriseStavesMod implements ModInitializer {
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(entity);
             }
         });
+        net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DEATH.register((entity, damageSource, damageAmount) -> {
+            if (!entity.level().isClientSide()) {
+                com.velorise.staves.advancement.ModAdvancements.handleLivingDeath(entity);
+            }
+            return true;
+        });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (!entity.level().isClientSide()) {
                 ElementalGaugeManager.tryDropElementOnDeath(entity, damageSource);

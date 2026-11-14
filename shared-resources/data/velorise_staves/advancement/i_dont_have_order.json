@@ -21,6 +21,25 @@
       "conditions": {
         "event": "i_dont_have_order"
       }
+    },
+    "obtain_vortex_vanquisher": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "velorise_staves:vortex_vanquisher",
+              "velorise_staves:netherite_vortex_vanquisher"
+            ]
+          }
+        ]
+      }
     }
-  }
+  },
+  "requirements": [
+    [
+      "i_dont_have_order",
+      "obtain_vortex_vanquisher"
+    ]
+  ]
 }
