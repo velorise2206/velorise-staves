@@ -119,6 +119,7 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.ENVIRONMENT, "env_amethyst", new String[]{}, new String[]{"amethyst cluster", "amethyst clusters", "cụm thạch anh tím", "hốc thạch anh tím"}),
             new ReactionLinkSpec(Tab.STAVES, "omni_staff", new String[]{}, new String[]{"omni staff", "netherite omni staff", "quyền trượng vạn năng", "trượng omni"}),
             new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "giáo nịnh thần", "stone stele", "vách đá", "jade shield", "khiên ngọc"}),
+            new ReactionLinkSpec(Tab.STAVES, "nights_focus_staff", new String[]{}, new String[]{"nights of formal focus", "chìa khóa hiểu biết", "night star", "night stars", "sao đêm", "shooting star", "sao băng"}),
             new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "ánh nước tĩnh lặng", "salon solitaire", "salon cô độc", "singer of many waters", "ca sĩ nước nguồn"}),
             new ReactionLinkSpec(Tab.STAVES, "guardian_lens", new String[]{}, new String[]{"guardian lens", "thấu kính hộ vệ", "sourcewater droplets", "sourcewater", "nguồn nước trong", "vinh quang rồng"}),
             new ReactionLinkSpec(Tab.STAVES, "evoker_fang_staff", new String[]{}, new String[]{"evoker fang staff", "gậy nanh ma quái", "geo fang pillar", "trụ nanh nham"}),
@@ -166,10 +167,10 @@ public class ElementalCodexScreen extends Screen {
                 registerLinkWord(dedup, fb, spec.tab(), spec.cardKey());
             }
         }
-        // Automatically register localized item names for all 15 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
+        // Automatically register localized item names for all 16 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
         String[] allStaffIds = {
                 "inferno_rod", "ghastfire_staff", "guardian_lens", "splendor_of_tranquil_waters",
-                "frostbolt_wand", "arc_caster", "dragonfire_scepter", "shulker_seeker",
+                "frostbolt_wand", "nights_focus_staff", "arc_caster", "dragonfire_scepter", "shulker_seeker",
                 "wither_scepter", "webcaster", "wind_staff", "resonant_echo",
                 "evoker_fang_staff", "vortex_vanquisher", "omni_staff"
         };
@@ -752,6 +753,8 @@ public class ElementalCodexScreen extends Screen {
                                 "§6" + fmtHearts(maxHp * 0.075F * dmgMult) + "–" + fmtHearts(maxHp * 0.21F * 1.4F * dmgMult) + "§f\uE008§6", "16m / 15s", "codex.velorise_staves.staff.splendor"},
                         {"frostbolt_wand", ArcaneStaffItem.Kind.FROST, Element.CRYO,
                                 fmtHearts(3.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x3", "28m", "codex.velorise_staves.staff.frostbolt"},
+                        {"nights_focus_staff", ArcaneStaffItem.Kind.NIGHTS_FOCUS, Element.CRYO,
+                                fmtHearts(2.0 * dmgMult) + "§f\uE008§r + 4x" + fmtHearts(1.5 * dmgMult), "§6" + fmtHearts(3.0 * dmgMult) + "§f\uE008§6 + 4x" + fmtHearts(2.25 * dmgMult), "20m (AoE / 12s Shield)", "codex.velorise_staves.staff.nights_focus"},
                         {"arc_caster", ArcaneStaffItem.Kind.LIGHTNING, Element.ELECTRO,
                                 fmtHearts(1.0 * dmgMult) + "§f\uE008§r" + perHit, "§6" + fmtHearts(1.5 * dmgMult) + "§f\uE008§6" + perHit, "30m➔36m", "codex.velorise_staves.staff.arc"},
                         {"dragonfire_scepter", ArcaneStaffItem.Kind.DRAGONFIRE, Element.ELECTRO,
