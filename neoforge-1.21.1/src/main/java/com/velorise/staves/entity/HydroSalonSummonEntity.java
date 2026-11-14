@@ -540,11 +540,13 @@ public class HydroSalonSummonEntity extends Entity {
         float drainDamageMult = 1.0F + 0.10F * Math.min(4, drainedAllies);
         float ownerMaxHp = Math.max(20.0F, owner.getMaxHealth());
         float hpRatio = switch (role) {
-            case ROLE_CHEVALMARIN -> isNetherite() ? 0.075F : 0.05F;
-            case ROLE_CRABALETTA -> isNetherite() ? 0.21F : 0.14F;
-            default -> isNetherite() ? 0.12F : 0.08F;
+            case ROLE_CHEVALMARIN -> 0.05F;
+            case ROLE_CRABALETTA -> 0.14F;
+            default -> 0.08F;
         };
-        float baseDamage = ownerMaxHp * hpRatio * drainDamageMult;
+        float splendorScale = com.velorise.staves.config.StavesConfig.getStaffDamageScale(
+                com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR, isNetherite());
+        float baseDamage = ownerMaxHp * hpRatio * splendorScale * drainDamageMult;
         float gaugeU = isNetherite() ? 1.5F : 1.0F;
 
 

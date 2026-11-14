@@ -237,6 +237,7 @@ public final class ArcaneStaffEvents {
             case "frost" -> resolveFrost(level, hit, owner, event, isNetherite);
             case "web" -> resolveWeb(level, hit, owner, event, isNetherite);
             case "wind" -> resolveWind(level, hit, owner, event, isNetherite);
+            case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, event, isNetherite);
             default -> {}
         }
         projectile.discard();
@@ -305,7 +306,7 @@ public final class ArcaneStaffEvents {
             entity.invulnerableTime = 0;
             if (entity.level() instanceof ServerLevel sl) {
                 boolean isNetherite = fangs.getTags().contains("velorise_staves:netherite_geo_fangs");
-                float baseDmg = isNetherite ? 4.5F : 3.0F;
+                float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.EVOKER, isNetherite);
                 float attackU = isNetherite ? 1.5F : 1.0F;
                 ServerPlayer attacker = src.getEntity() instanceof ServerPlayer sp ? sp : null;
                 ElementalGaugeManager.applyElement(sl, entity, Element.GEO, attackU, attacker, baseDmg);
@@ -464,7 +465,7 @@ public final class ArcaneStaffEvents {
         level.addFreshEntity(cloud);
 
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 10.5F : 7.0F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.DRAGONFIRE, isNetherite);
         float attackU = isNetherite ? 3.0F : 2.0F;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
@@ -488,7 +489,7 @@ public final class ArcaneStaffEvents {
             if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                 target.igniteForSeconds(isNetherite ? 5 : 3);
             }
-            float baseDmg = isNetherite ? 4.5F : 3.0F;
+            float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.INFERNO, isNetherite);
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         } else if (event.getRayTraceResult() instanceof BlockHitResult bhr) {
@@ -503,7 +504,7 @@ public final class ArcaneStaffEvents {
 
     private static void resolveGhastfire(ServerLevel level, Vec3 hit, Entity owner, net.minecraft.world.phys.HitResult hitResult, boolean isNetherite) {
         double radius = isNetherite ? 4.5D : 3.5D;
-        float baseDmg = isNetherite ? 9.0F : 6.0F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.GHASTFIRE, isNetherite);
         float attackU = isNetherite ? 3.0F : 2.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         List<LivingEntity> affected = targets(level, hit, radius, owner);
@@ -554,7 +555,7 @@ public final class ArcaneStaffEvents {
 
     private static void resolveWither(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
         double radius = isNetherite ? 4.0D : 3.0D;
-        float baseDmg = isNetherite ? 6.0F : 4.0F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.WITHER, isNetherite);
         float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
@@ -572,7 +573,7 @@ public final class ArcaneStaffEvents {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         if (target != null && target != owner) {
-            float baseDmg = isNetherite ? 6.0F : 4.0F;
+            float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.SHULKER, isNetherite);
             float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
@@ -589,7 +590,7 @@ public final class ArcaneStaffEvents {
     private static void resolveFrost(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 4.5F : 3.0F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.FROST, isNetherite);
         float attackU = isNetherite ? 1.5F : 1.0F;
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.CRYO, attackU, player, baseDmg);
@@ -711,9 +712,23 @@ public final class ArcaneStaffEvents {
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.7F, 1.5F);
     }
 
+    private static void resolveGuardianOrb(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
+        LivingEntity target = hitEntity(event);
+        ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        if (target != null && target != owner) {
+            float attackU = isNetherite ? 1.5F : 1.0F;
+            ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, 2.0F);
+        }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 2.0D, Element.HYDRO, player);
+        com.velorise.staves.element.EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, hit, hit, 1.0D);
+        level.sendParticles(ParticleTypes.SPLASH, hit.x, hit.y + 0.15D, hit.z, 18, 0.25D, 0.2D, 0.25D, 0.06D);
+        level.sendParticles(ParticleTypes.BUBBLE_POP, hit.x, hit.y + 0.15D, hit.z, 8, 0.2D, 0.2D, 0.2D, 0.03D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GENERIC_SPLASH, SoundSource.PLAYERS, 0.75F, 1.25F);
+    }
+
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = isNetherite ? 2.25F : 1.5F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.WIND, isNetherite);
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double radiusSqr = radius * radius;

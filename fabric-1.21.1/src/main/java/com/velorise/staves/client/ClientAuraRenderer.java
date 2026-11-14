@@ -967,25 +967,25 @@ public final class ClientAuraRenderer {
             float w = smoothStep01((elapsed + partialTicks) / 18.0F);
             if (w <= 0.02F) return false;
             float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.010F * w;
-            // Symmetrically raise both arms cleanly in front of the chest
-            poseStack.translate(-armDir * 0.44F * w + armDir * tremor, -0.22F * (1.0F - w) + 0.30F * w, -0.10F * w);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(-armDir * 16.0F * w));
+            // Symmetrically angle both arms into an inverted-V (/ \) so the hands touch at top-center while sleeves point toward bottom corners
+            poseStack.translate(armDir * 0.06F * w + armDir * tremor, -0.22F * (1.0F - w) + 0.02F * w, -0.10F * w);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 38.0F * w));
             poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * w));
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
+            float sweep = Mth.sin(Mth.clamp(t / 0.16F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
             float w = (t < 0.64F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.64F) / 0.36F) * (float) Math.PI));
             if (w <= 0.02F) return false;
 
-            // Sweep both arms symmetrically outward from chest center
-            float tx = Mth.lerp(sweep, -armDir * 0.44F, armDir * 0.06F);
-            float ty = Mth.lerp(sweep, 0.30F, 0.24F) - 0.28F * (1.0F - w);
+            // Snap both arms quickly from the inverted-V apex into parallel vertical (I  I) near screen edges
+            float tx = Mth.lerp(sweep, armDir * 0.06F, armDir * 0.34F);
+            float ty = Mth.lerp(sweep, 0.02F, -0.04F) - 0.22F * (1.0F - w);
             poseStack.translate(tx, ty, -0.10F * w);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, -armDir * 16.0F, armDir * 24.0F) * w));
-            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, 26.0F, 14.0F) * w));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(sweep, armDir * 38.0F, armDir * 18.0F) * w));
+            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, 26.0F, 20.0F) * w));
             return true;
         }
         return false;

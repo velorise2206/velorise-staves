@@ -528,6 +528,8 @@
   "codex.velorise_staves.links.evoker_fang_staff": "エヴォーカーの牙の杖|岩牙の柱",
   "codex.velorise_staves.links.utility_relics": "ヴォイドトランスロケーター|マジックミラー",
   "tooltip.velorise_staves.guardian_hp_scale.netherite": "  ✦ 術者の最大HPに応じて強化 (15%/回)",
+  "tooltip.velorise_staves.guardian_tap_orb": "  Tap: Hydro Orb (1♥, 1U) | Hold (3s): Hydro Beam (8 hits)",
+  "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
   "tooltip.velorise_staves.trap_poison.netherite": "拘束 + 猛毒",
   "tooltip.velorise_staves.vortex_jade_shield.netherite": "  単押し: 岩柱 (最大3) | 長押し (1.5s): 玉璋シールド (150%吸収 & +30% DMG)",
   "item.velorise_staves.frost_rod": "フロストロッド",

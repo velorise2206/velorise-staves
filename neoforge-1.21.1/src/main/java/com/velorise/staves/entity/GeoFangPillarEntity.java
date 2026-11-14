@@ -288,7 +288,8 @@ public class GeoFangPillarEntity extends Entity {
         if (isStoneStele()) {
             Entity owner = getOwnerEntity();
             float maxHp = owner instanceof LivingEntity le ? le.getMaxHealth() : 20.0F;
-            return (isNetherite() ? 3.0F : 2.0F) + maxHp * (isNetherite() ? 0.0285F : 0.019F); // 1.5x on Netherite
+            float scale = com.velorise.staves.config.StavesConfig.getStaffDamageScale(com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX, isNetherite());
+            return 2.0F * scale + maxHp * (isNetherite() ? 0.0285F : 0.019F);
         }
         return isNetherite() ? NETHERITE_WAVE_GEO_DAMAGE : BASIC_WAVE_GEO_DAMAGE;
     }

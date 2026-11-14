@@ -89,7 +89,7 @@ public final class StavesConfig {
     public static final DoubleValue GHASTFIRE_COOLDOWN = defineDouble("cooldowns", "ghastfire_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue WITHER_COOLDOWN = defineDouble("cooldowns", "wither_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
-    public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 5.0D, 0.5D, 60.0D);
+    public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 20.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue VORTEX_COOLDOWN = defineDouble("cooldowns", "vortex_cooldown", 4.0D, 0.5D, 60.0D);
@@ -98,6 +98,24 @@ public final class StavesConfig {
     public static final DoubleValue WEBCASTER_COOLDOWN = defineDouble("cooldowns", "webcaster_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue WIND_COOLDOWN = defineDouble("cooldowns", "wind_cooldown", 1.5D, 0.2D, 60.0D);
     public static final DoubleValue OMNI_COOLDOWN = defineDouble("cooldowns", "omni_cooldown", 6.0D, 0.2D, 60.0D);
+
+    // Basic Staff Base Damages (HP, 2.0 = 1 heart; Netherite automatically scales x1.5)
+    public static final DoubleValue DRAGONFIRE_DAMAGE = defineDouble("damage", "dragonfire_damage", 7.0D, 0.0D, 500.0D);
+    public static final DoubleValue ECHO_DAMAGE = defineDouble("damage", "echo_damage", 11.0D, 0.0D, 500.0D);
+    public static final DoubleValue INFERNO_DAMAGE = defineDouble("damage", "inferno_damage", 3.0D, 0.0D, 500.0D);
+    public static final DoubleValue GHASTFIRE_DAMAGE = defineDouble("damage", "ghastfire_damage", 6.0D, 0.0D, 500.0D);
+    public static final DoubleValue WITHER_DAMAGE = defineDouble("damage", "wither_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue SHULKER_DAMAGE = defineDouble("damage", "shulker_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue GUARDIAN_DAMAGE = defineDouble("damage", "guardian_damage", 2.0D, 0.0D, 500.0D);
+    public static final DoubleValue SPLENDOR_DAMAGE = defineDouble("damage", "splendor_damage", 1.0D, 0.0D, 500.0D);
+    public static final DoubleValue EVOKER_DAMAGE = defineDouble("damage", "evoker_damage", 3.0D, 0.0D, 500.0D);
+    public static final DoubleValue VORTEX_DAMAGE = defineDouble("damage", "vortex_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue ARC_CASTER_DAMAGE = defineDouble("damage", "arc_caster_damage", 1.0D, 0.0D, 500.0D);
+    public static final DoubleValue FROSTBOLT_DAMAGE = defineDouble("damage", "frostbolt_damage", 3.0D, 0.0D, 500.0D);
+    public static final DoubleValue NIGHTS_FOCUS_DAMAGE = defineDouble("damage", "nights_focus_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue WEBCASTER_DAMAGE = defineDouble("damage", "webcaster_damage", 1.5D, 0.0D, 500.0D);
+    public static final DoubleValue WIND_DAMAGE = defineDouble("damage", "wind_damage", 1.5D, 0.0D, 500.0D);
+    public static final DoubleValue OMNI_DAMAGE = defineDouble("damage", "omni_damage", 10.0D, 0.0D, 500.0D);
 
     // Durabilities
     public static final IntValue DRAGONFIRE_DURABILITY_BASIC = defineInt("durability", "dragonfire_basic", 130, 10, 5000);
@@ -281,6 +299,13 @@ public final class StavesConfig {
                         writer.write(shortKey + " = " + entry.getValue().get() + "\n");
                     }
                 }
+                writer.write("\n# Basic Staff Base Damages in HP (2.0 = 1 heart); Netherite automatically scales x1.5\n[damage]\n");
+                for (Map.Entry<String, ConfigEntry<?>> entry : ENTRIES.entrySet()) {
+                    if (entry.getKey().startsWith("damage.")) {
+                        String shortKey = entry.getKey().substring("damage.".length());
+                        writer.write(shortKey + " = " + entry.getValue().get() + "\n");
+                    }
+                }
                 writer.write("\n[durability]\n");
                 for (Map.Entry<String, ConfigEntry<?>> entry : ENTRIES.entrySet()) {
                     if (entry.getKey().startsWith("durability.")) {
@@ -335,6 +360,7 @@ public final class StavesConfig {
         public final double innateMutationChance;
         public final boolean enableElementalResonance;
         public final int maxStavesInInventory;
+        public final double[] staffDamages;
 
         public SyncedData(
                 double damageMultiplier,
@@ -354,7 +380,8 @@ public final class StavesConfig {
                 boolean enableElementalGauge,
                 double innateMutationChance,
                 boolean enableElementalResonance,
-                int maxStavesInInventory
+                int maxStavesInInventory,
+                double[] staffDamages
         ) {
             this.damageMultiplier = damageMultiplier;
             this.cooldownMultiplier = cooldownMultiplier;
@@ -374,6 +401,7 @@ public final class StavesConfig {
             this.innateMutationChance = innateMutationChance;
             this.enableElementalResonance = enableElementalResonance;
             this.maxStavesInInventory = maxStavesInInventory;
+            this.staffDamages = staffDamages;
         }
 
         public void write(net.minecraft.network.FriendlyByteBuf buf) {
@@ -398,6 +426,10 @@ public final class StavesConfig {
             buf.writeDouble(innateMutationChance);
             buf.writeBoolean(enableElementalResonance);
             buf.writeVarInt(maxStavesInInventory);
+            buf.writeVarInt(staffDamages.length);
+            for (double dmg : staffDamages) {
+                buf.writeDouble(dmg);
+            }
         }
 
         public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
@@ -425,7 +457,18 @@ public final class StavesConfig {
             double mutChance = buf.isReadable() ? buf.readDouble() : 0.07D;
             boolean resOn = buf.isReadable() ? buf.readBoolean() : true;
             int maxCap = buf.isReadable() ? buf.readVarInt() : 4;
-            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap);
+            double[] dmgs = new double[len];
+            for (int i = 0; i < len; i++) {
+                dmgs[i] = getDefaultBasicDamage(ArcaneStaffItem.Kind.values()[Math.min(i, ArcaneStaffItem.Kind.values().length - 1)]);
+            }
+            if (buf.isReadable()) {
+                int dmgLen = buf.readVarInt();
+                for (int i = 0; i < dmgLen && buf.isReadable(); i++) {
+                    double v = buf.readDouble();
+                    if (i < dmgs.length) dmgs[i] = v;
+                }
+            }
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs);
         }
     }
 
@@ -444,10 +487,12 @@ public final class StavesConfig {
         double[] cds = new double[kinds.length];
         int[] dBasic = new int[kinds.length];
         int[] dNeth = new int[kinds.length];
+        double[] dmgs = new double[kinds.length];
         for (int i = 0; i < kinds.length; i++) {
             cds[i] = getLocalStaffCooldownSeconds(kinds[i]);
             dBasic[i] = getLocalMaxDurability(kinds[i], false);
             dNeth[i] = getLocalMaxDurability(kinds[i], true);
+            dmgs[i] = getLocalStaffBasicDamage(kinds[i]);
         }
         return new SyncedData(
                 DAMAGE_MULTIPLIER.get(),
@@ -467,7 +512,8 @@ public final class StavesConfig {
                 ENABLE_ELEMENTAL_GAUGE.get(),
                 INNATE_MUTATION_CHANCE.get(),
                 ENABLE_ELEMENTAL_RESONANCE.get(),
-                MAX_STAVES_IN_INVENTORY.get()
+                MAX_STAVES_IN_INVENTORY.get(),
+                dmgs
         );
     }
 
@@ -510,6 +556,65 @@ public final class StavesConfig {
             return s.staffCooldowns[kind.ordinal()];
         }
         return getLocalStaffCooldownSeconds(kind);
+    }
+
+    public static double getDefaultBasicDamage(ArcaneStaffItem.Kind kind) {
+        return switch (kind) {
+            case DRAGONFIRE -> 7.0D;
+            case ECHO -> 11.0D;
+            case INFERNO -> 3.0D;
+            case GHASTFIRE -> 6.0D;
+            case WITHER -> 4.0D;
+            case SHULKER -> 4.0D;
+            case GUARDIAN -> 2.0D;
+            case SPLENDOR -> 1.0D;
+            case EVOKER -> 3.0D;
+            case VORTEX -> 4.0D;
+            case LIGHTNING -> 1.0D;
+            case FROST -> 3.0D;
+            case NIGHTS_FOCUS -> 4.0D;
+            case WEB -> 1.5D;
+            case WIND -> 1.5D;
+            case OMNI -> 10.0D;
+        };
+    }
+
+    public static double getStaffBasicDamage(ArcaneStaffItem.Kind kind) {
+        SyncedData s = syncedServerData;
+        if (s != null && s.staffDamages != null && kind.ordinal() < s.staffDamages.length) {
+            return s.staffDamages[kind.ordinal()];
+        }
+        return getLocalStaffBasicDamage(kind);
+    }
+
+    public static float getStaffBaseDamage(ArcaneStaffItem.Kind kind, boolean isNetherite) {
+        return (float) (getStaffBasicDamage(kind) * (isNetherite ? 1.5D : 1.0D));
+    }
+
+    public static float getStaffDamageScale(ArcaneStaffItem.Kind kind, boolean isNetherite) {
+        double def = Math.max(0.001D, getDefaultBasicDamage(kind));
+        return (float) ((getStaffBasicDamage(kind) / def) * (isNetherite ? 1.5D : 1.0D));
+    }
+
+    private static double getLocalStaffBasicDamage(ArcaneStaffItem.Kind kind) {
+        return switch (kind) {
+            case DRAGONFIRE -> DRAGONFIRE_DAMAGE.get();
+            case ECHO -> ECHO_DAMAGE.get();
+            case INFERNO -> INFERNO_DAMAGE.get();
+            case GHASTFIRE -> GHASTFIRE_DAMAGE.get();
+            case WITHER -> WITHER_DAMAGE.get();
+            case SHULKER -> SHULKER_DAMAGE.get();
+            case GUARDIAN -> GUARDIAN_DAMAGE.get();
+            case SPLENDOR -> SPLENDOR_DAMAGE.get();
+            case EVOKER -> EVOKER_DAMAGE.get();
+            case VORTEX -> VORTEX_DAMAGE.get();
+            case LIGHTNING -> ARC_CASTER_DAMAGE.get();
+            case FROST -> FROSTBOLT_DAMAGE.get();
+            case NIGHTS_FOCUS -> NIGHTS_FOCUS_DAMAGE.get();
+            case WEB -> WEBCASTER_DAMAGE.get();
+            case WIND -> WIND_DAMAGE.get();
+            case OMNI -> OMNI_DAMAGE.get();
+        };
     }
 
     public static int getMaxDurability(ArcaneStaffItem.Kind kind, boolean isNetherite) {

@@ -88,7 +88,8 @@ public class OmniOrbEntity extends ThrowableProjectile {
         this.setNoGravity(true);
         this.origin = owner.position();
         this.maxRange = isNetherite ? 48.0D : 36.0D;
-        this.baseDamage = isNetherite ? 15.0F : 10.0F;
+        this.baseDamage = com.velorise.staves.config.StavesConfig.getStaffBaseDamage(
+                com.velorise.staves.item.ArcaneStaffItem.Kind.OMNI, isNetherite);
         this.attackU = isNetherite ? 3.0F : 2.0F;
         this.entityData.set(DATA_MODE, (byte) clampMode(omniMode));
         this.entityData.set(DATA_NETHERITE, isNetherite);

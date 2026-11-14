@@ -528,6 +528,8 @@
   "codex.velorise_staves.links.evoker_fang_staff": "gậy nanh ma quái|trụ nanh nham|evoker fang staff",
   "codex.velorise_staves.links.utility_relics": "bộ dịch chuyển hư không|gương ma thuật|void translocator|magic mirror",
   "tooltip.velorise_staves.guardian_hp_scale.netherite": "  ✦ Tăng theo Máu tối đa người dùng (15%/nhát)",
+  "tooltip.velorise_staves.guardian_tap_orb": "  Nhấn nhẹ: Cầu Thủy (1♥, 1U) | Giữ (3s): Tia Thủy (8 lần)",
+  "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Nhấn nhẹ: Cầu Thủy (1♥, 1.5U) | Giữ (3s): Tia Thủy (8 lần)",
   "tooltip.velorise_staves.trap_poison.netherite": "Trói + Độc mạnh",
   "tooltip.velorise_staves.vortex_jade_shield.netherite": "  Nhấn thả: Vách Đá (Tối đa 3) | Nhấn giữ (1.5s): Khiên Ngọc (Hấp thụ 150% & +30% DMG)",
   "item.velorise_staves.frost_rod": "Que Lạnh",

@@ -622,7 +622,20 @@ public final class ArcaneStaffItem extends Item {
             if (kind == Kind.LIGHTNING) {
                 finishLightningStorm(player);
             } else if (kind == Kind.GUARDIAN) {
-                finishGuardianBeam(player);
+                int elapsed = 120 - timeLeft;
+                boolean instant = Boolean.TRUE.equals(GUARDIAN_INSTANT_PLAYERS.get(player.getUUID()));
+                if (!instant && elapsed < 60 && !ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
+                    ACTIVE_CHANNELING.remove(player.getUUID());
+                    GUARDIAN_INSTANT_PLAYERS.remove(player.getUUID());
+                    setGuardianInstant(stack, false);
+                    shootGuardianOrb(player);
+                    stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                    int tapCd = Math.max(1, (int) Math.round(2.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
+                    ElementalResonanceManager.applyCooldown(player, this, tapCd);
+                    player.awardStat(Stats.ITEM_USED.get(this));
+                } else {
+                    finishGuardianBeam(player);
+                }
             } else if (kind == Kind.SPLENDOR) {
                 boolean alreadySwitched = Boolean.TRUE.equals(SPLENDOR_SWITCHED_THIS_HOLD.remove(player.getUUID()));
                 int elapsed = this.getUseDuration(stack, entity) - timeLeft;
@@ -757,6 +770,18 @@ public final class ArcaneStaffItem extends Item {
         level.addFreshEntity(orb);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, isNetherite ? 1.35F : 1.15F);
         com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_OMNI);
+        return true;
+    }
+
+    private boolean shootGuardianOrb(ServerPlayer player) {
+        ServerLevel level = player.serverLevel();
+        Snowball projectile = EntityType.SNOWBALL.create(level);
+        if (projectile == null) return false;
+        projectile.setItem(new ItemStack(VeloriseStavesMod.HYDRO_ELEMENT));
+        String tag = isNetherite ? "netherite_guardian_orb" : "guardian_orb";
+        prepareProjectile(projectile, player, tag, isNetherite ? 28.0D : 24.0D, 1.5F);
+        level.addFreshEntity(projectile);
+        level.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.85F, 1.35F);
         return true;
     }
 
@@ -955,9 +980,10 @@ public final class ArcaneStaffItem extends Item {
             }
         }
 
-        // Initial Dominus Lapidis Geo shockwave (Basic: 2.0 hearts [4.0 HP] + 1.9% Max HP; Netherite: 1.5x = 3.0 hearts [6.0 HP] + 2.85% Max HP)
+        // Initial Dominus Lapidis Geo shockwave (Basic: 2.0 hearts [4.0 HP] + 1.9% Max HP; Netherite: 1.5x)
         float maxHp = Math.max(20.0F, player.getMaxHealth());
-        float baseDmg = (isNetherite ? 6.0F : 4.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
+        float vortexScale = StavesConfig.getStaffDamageScale(Kind.VORTEX, isNetherite);
+        float baseDmg = 4.0F * vortexScale + maxHp * (isNetherite ? 0.0285F : 0.019F);
         float gaugeU = isNetherite ? 1.5F : 1.0F;
         Vec3 shockCenter = holdJadeShield ? player.position() : new Vec3(steleX, steleY, steleZ);
         AABB box = new AABB(
@@ -1086,7 +1112,7 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.45F, 1.75F);
         }
 
-        float damagePerTick = isNetherite ? 1.5F : 1.0F;
+        float damagePerTick = StavesConfig.getStaffBaseDamage(Kind.LIGHTNING, isNetherite);
         float attackU = isNetherite ? 1.5F : 1.0F;
         boolean chargeCreeper = StavesConfig.ARC_CASTER_CHARGE_CREEPER.get();
 
@@ -1230,7 +1256,7 @@ public final class ArcaneStaffItem extends Item {
             .sorted(Comparator.comparingDouble(target -> projection(start, direction, target.getBoundingBox().getCenter())))
             .toList();
 
-        float baseDmg = isNetherite ? 16.5F : 11.0F;
+        float baseDmg = StavesConfig.getStaffBaseDamage(Kind.ECHO, isNetherite);
         float attackU = isNetherite ? 3.0F : 2.0F;
         for (LivingEntity target : targets) {
             ElementalGaugeManager.applyElement(level, target, Element.ANEMO, attackU, player, baseDmg);
@@ -1373,7 +1399,7 @@ public final class ArcaneStaffItem extends Item {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         ElementalGaugeManager.activateNightsFocusShield(player, isNetherite);
         com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(serverLevel, player.position(), isNetherite ? 4 : 3);
-        float aoeDmg = isNetherite ? 6.0F : 4.0F;
+        float aoeDmg = StavesConfig.getStaffBaseDamage(Kind.NIGHTS_FOCUS, isNetherite);
         float aoeUnits = isNetherite ? 1.5F : 1.0F;
         AABB box = player.getBoundingBox().inflate(3.5D);
         for (LivingEntity target : serverLevel.getEntitiesOfClass(LivingEntity.class, box,
@@ -1409,8 +1435,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public static float computeGuardianBaseDamage(float maxHp, boolean netherite) {
-        float basic = Math.max(0.0F, maxHp) * 0.10F;
-        return netherite ? basic * 1.5F : basic;
+        return Math.max(0.0F, maxHp) * 0.10F * StavesConfig.getStaffDamageScale(Kind.GUARDIAN, netherite);
     }
 
     private static float getDisplayMaxHp() {
@@ -1449,36 +1474,41 @@ public final class ArcaneStaffItem extends Item {
         String perHit = " " + Component.translatable("tooltip.velorise_staves.per_hit").getString() + " ";
         String trapPoison = Component.translatable(isNetherite ? "tooltip.velorise_staves.trap_poison.netherite" : "tooltip.velorise_staves.trap_poison").getString();
         return switch (kind) {
-            case DRAGONFIRE -> (isNetherite ? fmtHearts(10.5) : fmtHearts(7.0)) + heart + " " + cloudSuffix + " " + icon + (isNetherite ? "3U" : "2U");
-            case ECHO -> (isNetherite ? fmtHearts(16.5) : fmtHearts(11.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U") + swirlTag;
-            case INFERNO -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
-            case GHASTFIRE -> (isNetherite ? fmtHearts(9.0) : fmtHearts(6.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
-            case WITHER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
-            case SHULKER -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
+            case DRAGONFIRE -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.DRAGONFIRE, isNetherite)) + heart + " " + cloudSuffix + " " + icon + (isNetherite ? "3U" : "2U");
+            case ECHO -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.ECHO, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U") + swirlTag;
+            case INFERNO -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.INFERNO, isNetherite)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case GHASTFIRE -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.GHASTFIRE, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
+            case WITHER -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.WITHER, isNetherite)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U") + witherTag;
+            case SHULKER -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.SHULKER, isNetherite)) + heart + " x 2 " + icon + (isNetherite ? "1.5U" : "1U");
             case GUARDIAN -> {
                 float basicDmg = computeGuardianBaseDamage(getDisplayMaxHp(), isNetherite);
                 yield (fmtHearts(basicDmg) + "-" + fmtHearts(basicDmg * 2.0F)) + heart + " x 8 (3s) " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case SPLENDOR -> {
                 float maxHp = getDisplayMaxHp();
-                float minHit = maxHp * (isNetherite ? 0.075F : 0.05F);
-                float maxHit = maxHp * (isNetherite ? 0.21F : 0.14F) * 1.4F;
+                float scale = StavesConfig.getStaffDamageScale(Kind.SPLENDOR, isNetherite);
+                float minHit = maxHp * 0.05F * scale;
+                float maxHit = maxHp * 0.14F * 1.4F * scale;
                 yield (fmtHearts(minHit) + "-" + fmtHearts(maxHit)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U");
             }
-            case EVOKER -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
+            case EVOKER -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.EVOKER, isNetherite)) + heart + perFang + icon + (isNetherite ? "1.5U" : "1U");
             case VORTEX -> {
                 float maxHp = getDisplayMaxHp();
-                float slam = (isNetherite ? 6.0F : 4.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
-                float pulse = (isNetherite ? 3.0F : 2.0F) + maxHp * (isNetherite ? 0.0285F : 0.019F);
+                float scale = StavesConfig.getStaffDamageScale(Kind.VORTEX, isNetherite);
+                float slam = 4.0F * scale + maxHp * (isNetherite ? 0.0285F : 0.019F);
+                float pulse = 2.0F * scale + maxHp * (isNetherite ? 0.0285F : 0.019F);
                 yield fmtHearts(slam) + heart + " (+" + fmtHearts(pulse) + heart + "/2s) " + icon + (isNetherite ? "1.5U" : "1U");
             }
-            case LIGHTNING -> (isNetherite ? fmtHearts(1.5) : fmtHearts(1.0)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
-            case FROST -> (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
-            case NIGHTS_FOCUS -> (isNetherite ? fmtHearts(6.0) : fmtHearts(4.0)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U")
-                    + " + 4x " + (isNetherite ? fmtHearts(4.5) : fmtHearts(3.0)) + heart;
+            case LIGHTNING -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.LIGHTNING, isNetherite)) + heart + perHit + icon + (isNetherite ? "1.5U" : "1U");
+            case FROST -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.FROST, isNetherite)) + heart + " x 3 " + icon + (isNetherite ? "1.5U" : "1U");
+            case NIGHTS_FOCUS -> {
+                float nfDmg = StavesConfig.getStaffBaseDamage(Kind.NIGHTS_FOCUS, isNetherite);
+                yield fmtHearts(nfDmg) + heart + " " + icon + (isNetherite ? "1.5U" : "1U")
+                        + " + 4x " + fmtHearts(nfDmg * 0.75F) + heart;
+            }
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
-            case WIND -> (isNetherite ? fmtHearts(2.25) : fmtHearts(1.5)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
-            case OMNI -> (isNetherite ? fmtHearts(15.0) : fmtHearts(10.0)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
+            case WIND -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.WIND, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case OMNI -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.OMNI, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
         };
     }
 
@@ -1538,6 +1568,9 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.guardian_hp_scale.netherite"
                     : "tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.guardian_tap_orb.netherite"
+                    : "tooltip.velorise_staves.guardian_tap_orb").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.SPLENDOR) {
             String modeKey = isSplendorPneuma(stack)
                     ? "tooltip.velorise_staves.splendor.mode_pneuma"
@@ -1562,6 +1595,11 @@ public final class ArcaneStaffItem extends Item {
             float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(false)) / 20.0F;
             float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(true)) / 20.0F;
             String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Hold)", tapSec, holdSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.GUARDIAN) {
+            float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(40) / 20.0F;
+            float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Beam)", tapSec, holdSec);
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
