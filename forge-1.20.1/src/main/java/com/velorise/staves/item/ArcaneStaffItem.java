@@ -96,6 +96,25 @@ public final class ArcaneStaffItem extends Item {
 
     public static final String TAG_OMNI_MODE = "OmniMode";
     public static final String TAG_SPLENDOR_PNEUMA = "SplendorPneuma";
+    public static final String TAG_GUARDIAN_INSTANT = "GuardianInstant";
+
+    public static boolean isGuardianInstant(ItemStack stack) {
+        if (stack.isEmpty() || !stack.hasTag()) return false;
+        return stack.getTag().getBoolean(TAG_GUARDIAN_INSTANT);
+    }
+
+    public static void setGuardianInstant(ItemStack stack, boolean instant) {
+        if (stack.isEmpty()) return;
+        if (!instant) {
+            if (stack.hasTag()) {
+                CompoundTag tag = stack.getTag();
+                tag.remove(TAG_GUARDIAN_INSTANT);
+                if (tag.isEmpty()) stack.setTag(null);
+            }
+        } else {
+            stack.getOrCreateTag().putBoolean(TAG_GUARDIAN_INSTANT, true);
+        }
+    }
 
     public static boolean isSplendorPneuma(ItemStack stack) {
         if (stack.isEmpty() || !stack.hasTag()) return false;
@@ -205,7 +224,9 @@ public final class ArcaneStaffItem extends Item {
                     ACTIVE_CHANNELING.put(player.getUUID(), stack);
                     if (kind == Kind.GUARDIAN && level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
                         int absorbed = ElementalGaugeManager.consumeSourcewaterDropletsForChannel(sl, sp, 12.0D, 3);
-                        sp.getPersistentData().putBoolean("VeloriseGuardianInstant", absorbed > 0);
+                        boolean instant = absorbed > 0;
+                        sp.getPersistentData().putBoolean("VeloriseGuardianInstant", instant);
+                        setGuardianInstant(stack, instant);
                         sl.playSound(null, sp.blockPosition(), SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.PLAYERS, 0.85F, 1.15F);
                         sl.playSound(null, sp.blockPosition(), SoundEvents.BUCKET_EMPTY, SoundSource.PLAYERS, 0.65F, 1.35F);
                     }
@@ -278,17 +299,12 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
-        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
-            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        }
-        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
-            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        }
-        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
-            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        }
-        if (kind == Kind.SPLENDOR && entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
-            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+        if (entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
+            if (kind == Kind.SPLENDOR) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
+            } else if (kind == Kind.NIGHTS_FOCUS) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_STARRY_NIGHT);
+            }
         }
         if (kind == Kind.SPLENDOR && entity instanceof Player p && !p.isShiftKeyDown()
                 && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
@@ -444,7 +460,7 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public int getUseDuration(ItemStack stack) {
         if (kind == Kind.LIGHTNING) return 60;
-        if (kind == Kind.GUARDIAN) return 70;
+        if (kind == Kind.GUARDIAN) return 120; // 3.0s charge (instant with droplets) + 3.0s Hydro torrent
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
         if (kind == Kind.VORTEX) return 30; // 1.5s hold for Zhongli Jade Shield + AoE Geo shockwave
         if (kind == Kind.SPLENDOR) return 72000; // Hold locks after 0.5s Arkhe switch until player releases and presses again
@@ -477,18 +493,18 @@ public final class ArcaneStaffItem extends Item {
             return;
         }
         if (kind == Kind.GUARDIAN) {
-            int elapsed = 70 - count;
+            int elapsed = 120 - count;
             if (elapsed < 0) return;
             boolean instant = player.getPersistentData().getBoolean("VeloriseGuardianInstant");
-            if (!instant && elapsed < 10) {
-                // 0.5s converging Hydro vortex wind-up audio (visuals rendered cleanly on client)
-                if (elapsed % 3 == 0) {
-                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, SoundSource.PLAYERS, 0.70F, 1.15F + elapsed * 0.04F);
-                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.55F, 1.35F);
+            if (!instant && elapsed < 60) {
+                // 3.0s converging Hydro vortex wind-up audio when no Sourcewater Droplets were absorbed
+                if (elapsed % 6 == 0) {
+                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_INSIDE, SoundSource.PLAYERS, 0.70F, 0.95F + elapsed * 0.01F);
+                    serverLevel.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.55F, 1.15F);
                 }
                 return;
             }
-            int beamElapsed = instant ? elapsed : (elapsed - 10);
+            int beamElapsed = instant ? elapsed : (elapsed - 60);
             if (beamElapsed >= 60) {
                 player.stopUsingItem();
                 return;

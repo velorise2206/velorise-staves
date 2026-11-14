@@ -109,13 +109,22 @@ public abstract class ItemInHandRendererMixin {
             int combinedLight,
             CallbackInfo ci
     ) {
-        if (hand == InteractionHand.MAIN_HAND && player != null && !player.isScoping() && player.getOffhandItem().isEmpty()) {
-            HumanoidArm offArm = player.getMainArm().getOpposite();
+        if (hand == InteractionHand.MAIN_HAND && player != null && !player.isScoping()) {
+            HumanoidArm mainArm = player.getMainArm();
             poseStack.pushPose();
-            if (ClientAuraRenderer.setupFirstPersonEmptyOffhandPose(player, partialTicks, offArm, poseStack)) {
-                this.renderPlayerArm(poseStack, buffer, combinedLight, 0.0F, 0.0F, offArm);
+            if (ClientAuraRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack)) {
+                this.renderPlayerArm(poseStack, buffer, combinedLight, 0.0F, 0.0F, mainArm);
             }
             poseStack.popPose();
+
+            if (player.getOffhandItem().isEmpty()) {
+                HumanoidArm offArm = mainArm.getOpposite();
+                poseStack.pushPose();
+                if (ClientAuraRenderer.setupFirstPersonEmptyOffhandPose(player, partialTicks, offArm, poseStack)) {
+                    this.renderPlayerArm(poseStack, buffer, combinedLight, 0.0F, 0.0F, offArm);
+                }
+                poseStack.popPose();
+            }
         }
     }
 }

@@ -1,0 +1,45 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:nights_focus"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.starry_night.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.starry_night.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "starry_night": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "starry_night"
+      }
+    },
+    "obtain_nights_focus": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "velorise_staves:nights_focus",
+              "velorise_staves:netherite_nights_focus"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "starry_night",
+      "obtain_nights_focus"
+    ]
+  ]
+}

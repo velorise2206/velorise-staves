@@ -2066,8 +2066,6 @@ public final class ElementalGaugeManager {
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ELECTRO);
             case FROZEN, SHATTER, FORWARD_MELT, REVERSE_MELT ->
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_CRYO);
-            case SWIRL ->
-                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ANEMO);
             case CRYSTALLIZE ->
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_GEO);
             case BLOOM, REVERSE_BLOOM, BURNING, QUICKEN, AGGRAVATE, SPREAD ->

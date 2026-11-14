@@ -1,8 +1,14 @@
 package com.velorise.staves.advancement;
 
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public final class ModAdvancements {
     public static final String EVENT_FIRST_REACTION = "first_reaction";
@@ -15,6 +21,8 @@ public final class ModAdvancements {
     public static final String EVENT_TAME_OMNI_PET = "tame_omni_pet";
     public static final String EVENT_BEHEADED = "beheaded";
     public static final String EVENT_NO_ORDER = "i_dont_have_order";
+    public static final String EVENT_STARRY_NIGHT = "starry_night";
+    public static final String EVENT_BROKEN_CONTRACT = "broken_contract";
     public static final String EVENT_WEB_DEVELOPER = "web_developer";
     public static final String EVENT_TAKE_MY_BALL = "take_my_ball";
     public static final String EVENT_GEO_ARCHITECT = "geo_architect";
@@ -34,5 +42,25 @@ public final class ModAdvancements {
         try {
             VeloriseStavesMod.ADVANCEMENT_TRIGGER.trigger(player, event);
         } catch (Exception ignored) {}
+    }
+
+    public static void handleLivingDeath(@Nullable LivingEntity entity) {
+        if (entity == null || entity.level().isClientSide()) return;
+        if (entity instanceof ServerPlayer player) {
+            if (player.isUsingItem() && player.getUseItem().getItem() instanceof ArcaneStaffItem staff) {
+                ArcaneStaffItem.Kind k = staff.kind();
+                if (k == ArcaneStaffItem.Kind.VORTEX || k == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
+                    trigger(player, EVENT_BROKEN_CONTRACT);
+                }
+            }
+        } else if (entity instanceof OwnableEntity ownable) {
+            UUID ownerUuid = ownable.getOwnerUUID();
+            if (ownerUuid != null && entity.level() instanceof ServerLevel sl) {
+                ServerPlayer owner = sl.getServer().getPlayerList().getPlayer(ownerUuid);
+                if (owner != null) {
+                    trigger(owner, EVENT_HIDDEN_ANEMO);
+                }
+            }
+        }
     }
 }

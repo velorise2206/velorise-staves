@@ -119,6 +119,7 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         if (!event.getEntity().level().isClientSide()) {
+            com.velorise.staves.advancement.ModAdvancements.handleLivingDeath(event.getEntity());
             com.velorise.staves.element.ElementalDeathMessageHelper.enhanceLivingDeath(event.getEntity());
             ElementalGaugeManager.tryDropElementOnDeath(event.getEntity(), event.getSource());
             ElementalGaugeManager.clearEntityState(event.getEntity());
