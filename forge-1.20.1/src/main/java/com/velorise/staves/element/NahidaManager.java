@@ -462,9 +462,10 @@ public final class NahidaManager {
         float gaugeU = isNetherite ? 1.5F : 1.0F;
 
         if (!wasViewfinder) {
+            // Tap E: 360-degree pirouette sweep marking nearby enemies within a tight ~2.8m radius with Seeds of Skandha
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_TAP_E);
-            double radius = isNetherite ? 9.0D : 7.0D;
-            AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
+            double radius = 2.8D;
+            AABB box = player.getBoundingBox().inflate(radius, 2.0D, radius);
             List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
             nearby.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player)));
@@ -476,13 +477,13 @@ public final class NahidaManager {
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, skillDmg);
             }
-            for (int i = 0; i < 24; i++) {
-                double ang = (Math.PI * 2.0D * i) / 24.0D;
-                double rx = player.getX() + Math.cos(ang) * (radius * 0.55D);
-                double rz = player.getZ() + Math.sin(ang) * (radius * 0.55D);
-                level.sendParticles(DENDRO_GLOW_DUST, rx, player.getY() + 0.9D, rz, 2, 0.15D, 0.15D, 0.15D, 0.02D);
+            for (int i = 0; i < 20; i++) {
+                double ang = (Math.PI * 2.0D * i) / 20.0D;
+                double rx = player.getX() + Math.cos(ang) * 2.0D;
+                double rz = player.getZ() + Math.sin(ang) * 2.0D;
+                level.sendParticles(DENDRO_GLOW_DUST, rx, player.getY() + 0.35D, rz, 2, 0.10D, 0.10D, 0.10D, 0.02D);
             }
-            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.45F);
             int cdTicks = Math.max(20, (int) Math.round(5.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
             ElementalResonanceManager.applyCooldown(player, cooldownItem, cdTicks);
         } else {
@@ -695,30 +696,44 @@ public final class NahidaManager {
             NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
             ServerLevel level = player.serverLevel();
 
+            // 1. Check Idle Swing (standing still holding Nahida's catalyst for >= 70 ticks / 3.5s)
             boolean holdingNahida = isHoldingNahida(player);
-            Vec3 dv = player.getDeltaMovement();
-            double movedSq = player.position().distanceToSqr(st.lastStillPos);
-            st.lastStillPos = player.position();
-            boolean standingStill = holdingNahida
-                    && player.onGround()
-                    && !player.isUsingItem()
-                    && !player.swinging
-                    && !st.holdingViewfinder
-                    && movedSq < 0.0009D
-                    && Math.hypot(dv.x, dv.z) < 0.02D
-                    && (now - st.lastActionTick) >= 40L;
-            if (standingStill) {
-                st.stillTicks++;
-                if (st.stillTicks >= 110 && !st.idleSwingActive) {
-                    st.idleSwingActive = true;
-                    syncPlayerStateToClients(player, st, now, true);
+            if (st.lastStillPos == null || st.lastStillPos.equals(Vec3.ZERO)) {
+                st.lastStillPos = player.position();
+            }
+            double distFromAnchorSq = player.position().distanceToSqr(st.lastStillPos);
+            boolean onGround = player.onGround();
+            boolean notAttacking = !player.isUsingItem() && !player.swinging && !st.holdingViewfinder && (now - st.lastActionTick) >= 30L;
+
+            if (holdingNahida && onGround && notAttacking) {
+                if (distFromAnchorSq < 0.16D) { // within 0.4 blocks of anchor position
+                    st.stillTicks++;
+                    if (st.stillTicks >= 70 && !st.idleSwingActive) {
+                        st.idleSwingActive = true;
+                        st.lastStillPos = player.position(); // lock anchor exactly here
+                        syncPlayerStateToClients(player, st, now, true);
+                    }
+                } else {
+                    // Player walked away
+                    st.stillTicks = 0;
+                    st.lastStillPos = player.position();
+                    if (st.idleSwingActive) {
+                        st.idleSwingActive = false;
+                        syncPlayerStateToClients(player, st, now, true);
+                    }
                 }
             } else {
                 st.stillTicks = 0;
+                st.lastStillPos = player.position();
                 if (st.idleSwingActive) {
                     st.idleSwingActive = false;
                     syncPlayerStateToClients(player, st, now, true);
                 }
+            }
+
+            // Periodically refresh idle swing state sync every 20 ticks so client never drops it
+            if (st.idleSwingActive && now % 20L == 0L) {
+                syncPlayerStateToClients(player, st, now, false);
             }
 
             if (st.holdingViewfinder && (!holdingNahida || !player.isUsingItem())) {

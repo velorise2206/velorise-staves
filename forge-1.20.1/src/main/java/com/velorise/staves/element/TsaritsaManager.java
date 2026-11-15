@@ -22,6 +22,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -102,6 +103,18 @@ public final class TsaritsaManager {
 
     private static final Map<UUID, TsaritsaPlayerState> PLAYER_STATES = new ConcurrentHashMap<>();
     private static final Map<UUID, PolestarFieldState> POLESTAR_FIELDS = new ConcurrentHashMap<>();
+
+    private record PendingArrowStrike(
+            long triggerTick,
+            UUID playerId,
+            UUID targetId,
+            Vec3 origin,
+            Vec3 impactPos,
+            float damage,
+            boolean isNetherite
+    ) {}
+
+    private static final List<PendingArrowStrike> PENDING_ARROWS = new ArrayList<>();
 
     private TsaritsaManager() {}
 
@@ -541,34 +554,28 @@ public final class TsaritsaManager {
             hitTarget.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(hitTarget, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
 
-            // Spawn 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart) converging inward onto the target!
+            // Schedule 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart)
+            // in 3 distinct staggered waves (+3, +6, +9 ticks) to bypass Minecraft iframes!
             double baseAngle = player.getYRot() * (Math.PI / 180.0D);
+            float arrowSubDmg = baseDmg * 0.55F;
             for (int i = 0; i < 3; i++) {
                 double angle = baseAngle + (i * 2.0D * Math.PI / 3.0D);
                 Vec3 origin = impactPos.add(Math.cos(angle) * 4.2D, 2.4D, Math.sin(angle) * 4.2D);
-                ModNetwork.sendCryoArrow(level, origin, impactPos, 14, 2);
-                level.sendParticles(ParticleTypes.END_ROD, origin.x, origin.y, origin.z, 6, 0.15D, 0.15D, 0.15D, 0.02D);
-                for (int s = 1; s <= 6; s++) {
-                    Vec3 stepPos = origin.lerp(impactPos, s / 6.0D);
-                    level.sendParticles(ParticleTypes.SNOWFLAKE, stepPos.x, stepPos.y, stepPos.z, 2, 0.05D, 0.05D, 0.05D, 0.01D);
-                }
+                PENDING_ARROWS.add(new PendingArrowStrike(
+                        level.getGameTime() + 3L + (i * 3L),
+                        player.getUUID(),
+                        hitTarget.getUUID(),
+                        origin,
+                        impactPos,
+                        arrowSubDmg,
+                        state.netherite
+                ));
             }
 
-            // Converging AoE Snowflake explosion around hitTarget
-            level.sendParticles(ParticleTypes.SNOWFLAKE, impactPos.x, impactPos.y, impactPos.z, 36, 1.6D, 0.8D, 1.6D, 0.06D);
-            level.sendParticles(ParticleTypes.FIREWORK, impactPos.x, impactPos.y, impactPos.z, 16, 1.2D, 0.6D, 1.2D, 0.05D);
+            // Initial visual burst at impact
+            level.sendParticles(ParticleTypes.SNOWFLAKE, impactPos.x, impactPos.y, impactPos.z, 24, 1.2D, 0.6D, 1.2D, 0.05D);
+            level.sendParticles(ParticleTypes.FIREWORK, impactPos.x, impactPos.y, impactPos.z, 12, 0.8D, 0.4D, 0.8D, 0.04D);
             level.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.45F);
-
-            AABB aoeBox = new AABB(impactPos.x - 3.8D, impactPos.y - 2.2D, impactPos.z - 3.8D,
-                    impactPos.x + 3.8D, impactPos.y + 2.2D, impactPos.z + 3.8D);
-            List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, aoeBox,
-                    e -> e != player && e.isAlive() && isValidCombatTarget(player, e));
-            float arrowSubDmg = baseDmg * 0.55F;
-            for (LivingEntity sub : nearby) {
-                float finalSubDmg = applyStellarAndCrownMultipliers(player, sub, Element.CRYO, arrowSubDmg);
-                sub.invulnerableTime = 0;
-                ElementalGaugeManager.applyElement(sub, Element.CRYO, player, finalSubDmg, 1.0F);
-            }
         }
     }
 
@@ -832,6 +839,37 @@ public final class TsaritsaManager {
             }
         }
 
+        // Tick staggered converging Cryo Arrows (bypassing Minecraft iframes via sequential waves)
+        if (!PENDING_ARROWS.isEmpty()) {
+            Iterator<PendingArrowStrike> arrowIt = PENDING_ARROWS.iterator();
+            while (arrowIt.hasNext()) {
+                PendingArrowStrike pending = arrowIt.next();
+                if (now >= pending.triggerTick) {
+                    arrowIt.remove();
+                    ServerPlayer owner = level.getServer().getPlayerList().getPlayer(pending.playerId);
+                    if (owner != null && owner.isAlive() && owner.level() == level) {
+                        ModNetwork.sendCryoArrow(level, pending.origin, pending.impactPos, 14, 2);
+                        level.playSound(null, pending.impactPos.x, pending.impactPos.y, pending.impactPos.z,
+                                SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.55F);
+                        level.sendParticles(ParticleTypes.SNOWFLAKE, pending.impactPos.x, pending.impactPos.y, pending.impactPos.z,
+                                20, 1.2D, 0.6D, 1.2D, 0.05D);
+                        level.sendParticles(ParticleTypes.END_ROD, pending.impactPos.x, pending.impactPos.y, pending.impactPos.z,
+                                8, 0.8D, 0.4D, 0.8D, 0.03D);
+
+                        AABB aoeBox = new AABB(pending.impactPos.x - 2.8D, pending.impactPos.y - 1.8D, pending.impactPos.z - 2.8D,
+                                pending.impactPos.x + 2.8D, pending.impactPos.y + 1.8D, pending.impactPos.z + 2.8D);
+                        List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, aoeBox,
+                                e -> e != owner && e.isAlive() && isValidCombatTarget(owner, e));
+                        for (LivingEntity sub : nearby) {
+                            float finalSubDmg = applyStellarAndCrownMultipliers(owner, sub, Element.CRYO, pending.damage);
+                            sub.invulnerableTime = 0;
+                            ElementalGaugeManager.applyElement(sub, Element.CRYO, owner, finalSubDmg, 1.0F);
+                        }
+                    }
+                }
+            }
+        }
+
         for (ServerPlayer player : level.players()) {
             TsaritsaPlayerState state = PLAYER_STATES.get(player.getUUID());
             boolean holding = isHoldingTsaritsaWeapon(player);
@@ -932,7 +970,7 @@ public final class TsaritsaManager {
         if (now < state.dpsSealUntilTick) {
             mask |= (Math.max(0, Math.min(3, state.punishmentCharges)) << 5);
         }
-        if (mask != state.lastSyncedMask || (mask > 0 && now % 40L == 0L)) {
+        if (mask != state.lastSyncedMask || (mask > 0 && now % 10L == 0L)) {
             state.lastSyncedMask = mask;
             ModNetwork.sendStaffAnimation(player, 5000 + mask);
         }
