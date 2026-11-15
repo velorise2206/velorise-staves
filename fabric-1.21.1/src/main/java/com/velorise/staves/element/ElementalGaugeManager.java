@@ -1668,8 +1668,11 @@ public final class ElementalGaugeManager {
             if (!active) {
                 if (MAVUIKA_AURA_UNTIL.remove(id) != null || MAVUIKA_NIGHTSOUL_FUEL.remove(id) != null) {
                     if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                        player.stopRiding();
-                        bike.discard();
+                        if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
+                                && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
+                            player.stopRiding();
+                            bike.discard();
+                        }
                     }
                     float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                     com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
@@ -1718,7 +1721,7 @@ public final class ElementalGaugeManager {
                 MAVUIKA_NIGHTSOUL_FUEL.remove(id);
                 MAVUIKA_AURA_UNTIL.remove(id);
                 if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                    if (!bike.isSpinning() && !bike.isFinisherPlaying()
+                    if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
                             && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
                         player.stopRiding();
                         bike.discard();

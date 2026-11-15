@@ -180,6 +180,10 @@ public class FlamestriderBikeEntity extends Entity {
         return this.pendingFinisher || (getNaStep() == 6 && getNaTicks() > 0);
     }
 
+    public boolean isSpinInputHeld() {
+        return this.spinInputHeld;
+    }
+
     public int getPlungeWindup() {
         return this.entityData.get(DATA_PLUNGE_WINDUP);
     }
@@ -357,11 +361,14 @@ public class FlamestriderBikeEntity extends Entity {
                     this.entityData.set(DATA_NA_TICKS, 16);
                     this.pendingFinisher = true;
                     this.pendingDiscardAfterFinisher = true;
+                    sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.45F);
                 } else if (serverDashTicks > 0 || isPlunging() || getUltiTicks() > 0
+                        || isFinisherPlaying()
                         || (this.pendingDiscardAfterFinisher && (this.pendingFinisher || getNaTicks() > 0))) {
                     // Let active dash, plunge, ulti, or finisher complete before dismounting
                     this.sprintInputHeld = false;
                     setBikeSprinting(false);
+                    this.pendingDiscardAfterFinisher = true;
                 } else {
                     sp.stopRiding();
                     this.discard();
@@ -782,7 +789,7 @@ public class FlamestriderBikeEntity extends Entity {
         serverSpinAngle = 0.0F;
         spinInputHeld = false;
         pendingFinisher = false;
-        this.entityData.set(DATA_NA_TICKS, 0);
+        // Do not zero DATA_NA_TICKS here: allow remaining 6 recovery ticks to play out completely before dismounting
         setSpinning(false);
 
         Vec3 look = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();

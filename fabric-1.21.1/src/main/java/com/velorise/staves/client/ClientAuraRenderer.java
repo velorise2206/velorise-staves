@@ -481,22 +481,23 @@ public final class ClientAuraRenderer {
             poseStack.translate(0.0F, -1.501F, 0.0F);
             humanoid.body.translateAndRotate(poseStack);
 
-            float waveInner = Mth.sin(time * 0.18F) * 3.0F;
-            float waveOuter = Mth.sin(time * 0.18F - 0.85F) * 4.5F;
-            float pitchBreath = Mth.cos(time * 0.18F) * 1.6F;
+            float waveInner = Mth.sin(time * 0.18F) * 2.5F;
+            float waveOuter = Mth.sin(time * 0.18F - 0.85F) * 4.0F;
+            float pitchBreath = Mth.cos(time * 0.18F) * 1.5F;
             float u0 = 0.0F, uMid = 11.0F / 64.0F, u1 = 20.0F / 64.0F;
             float v0 = 0.0F, v1 = 16.0F / 32.0F;
-            float innerW = 0.76F;
-            float outerW = 0.64F;
-            float wingH = 0.96F;
+            float innerW = 0.72F;
+            float outerW = 0.62F;
+            float wingH = 1.02F;
 
             for (int side : new int[]{-1, 1}) {
                 poseStack.pushPose();
-                // Attach at upper shoulder blade and pitch ~74 deg so wings lie nearly parallel to the ground with a gentle downward glide angle
-                poseStack.translate(side * 0.08F, 0.04F, 0.145F);
-                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(74.0F + pitchBreath));
-                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(side * (-6.0F + waveInner)));
-                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(side * 6.0F));
+                // Attach at upper shoulder blade and pitch ~68 deg into glide airflow
+                poseStack.translate(side * 0.07F, 0.035F, 0.145F);
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(68.0F + pitchBreath));
+                // Inner wing root: sweep back 24 deg and arch upward 13 deg (authentic Genshin raptor dihedral)
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(side * (24.0F + waveInner)));
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(side * -13.0F));
                 PoseStack.Pose innerPose = poseStack.last();
                 if (side > 0) {
                     emitWingQuad(vc, innerPose,
@@ -506,7 +507,10 @@ public final class ClientAuraRenderer {
                             0.0F, wingH, 0.0F, u0, v1,
                             0.0F, 1.0F, 0.0F);
                     poseStack.translate(innerW, 0.0F, 0.0F);
-                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(waveOuter));
+                    // Outer wing feathers: sweep back another 13 deg and droop downward 20 deg (avian wingtip curve)
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(13.0F + waveOuter));
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(20.0F));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(5.0F));
                     PoseStack.Pose outerPose = poseStack.last();
                     emitWingQuad(vc, outerPose,
                             0.0F, 0.0F, 0.0F, uMid, v0,
@@ -522,7 +526,10 @@ public final class ClientAuraRenderer {
                             0.0F, wingH, 0.0F, u0, v1,
                             0.0F, 1.0F, 0.0F);
                     poseStack.translate(-innerW, 0.0F, 0.0F);
-                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-waveOuter));
+                    // Outer wing feathers: sweep back another 13 deg and droop downward 20 deg (symmetrical)
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-13.0F - waveOuter));
+                    poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-20.0F));
+                    poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(5.0F));
                     PoseStack.Pose outerPose = poseStack.last();
                     emitWingQuad(vc, outerPose,
                             0.0F, 0.0F, 0.0F, uMid, v0,
@@ -1029,17 +1036,23 @@ public final class ClientAuraRenderer {
         }
         if (ClientAuraTracker.isGliding(entity.getId())) {
             float breeze = Mth.sin(ageInTicks * 0.16F) * 0.04F;
-            model.body.xRot = 0.18F;
+            model.body.xRot = 0.22F;
             model.body.yRot = 0.0F;
             model.body.zRot = 0.0F;
-            model.rightArm.xRot = -0.55F + breeze;
-            model.leftArm.xRot = -0.55F - breeze;
-            model.rightArm.yRot = 0.0F;
-            model.leftArm.yRot = 0.0F;
-            model.rightArm.zRot = 0.62F;
-            model.leftArm.zRot = -0.62F;
-            model.rightLeg.xRot = 0.22F + breeze;
-            model.leftLeg.xRot = 0.32F - breeze;
+            // Genshin glider holding pose: arms reach forward-upward holding the harness grips
+            model.rightArm.xRot = -1.25F + breeze;
+            model.leftArm.xRot = -1.25F - breeze;
+            model.rightArm.yRot = -0.26F;
+            model.leftArm.yRot = 0.26F;
+            model.rightArm.zRot = 0.32F;
+            model.leftArm.zRot = -0.32F;
+            // Legs trail gracefully in the airflow
+            model.rightLeg.xRot = 0.28F + breeze;
+            model.leftLeg.xRot = 0.18F - breeze;
+            model.rightLeg.zRot = 0.06F;
+            model.leftLeg.zRot = -0.06F;
+            model.head.xRot = -0.16F;
+            model.hat.copyFrom(model.head);
             return;
         }
 
@@ -1385,7 +1398,7 @@ public final class ClientAuraRenderer {
             offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.75F);
             offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.65F);
         } else if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
-            // Furina Arkhe Switch: 360-degree ballet pirouette spin with graceful cane twirl
+            // Furina Arkhe Switch: elegant curtsy flourish (no 360-degree body spin; low sword salute)
             float w;
             if (t < 0.12F) {
                 w = smoothStep01(t / 0.12F);
@@ -1394,12 +1407,6 @@ public final class ClientAuraRenderer {
             } else {
                 w = 1.0F - smoothStep01((t - 0.88F) / 0.12F);
             }
-            float spinProgress = smoothStep01(t);
-            float fullSpin = spinProgress * ((float) Math.PI * 2.0F); // 360-degree pirouette!
-            model.body.yRot = fullSpin * w;
-            model.head.yRot = -fullSpin * 0.3F * w; // Head spots the audience
-            model.head.xRot -= 0.06F * Mth.sin(t * (float) Math.PI) * w;
-            model.hat.copyFrom(model.head);
 
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
@@ -1407,22 +1414,28 @@ public final class ClientAuraRenderer {
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
 
-            // Ballet pirouette leg work: right leg lifted slightly on toe/bent knee
-            float legLift = Mth.sin(t * (float) Math.PI);
-            model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.32F * legLift);
-            model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.15F * legLift);
-            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.25F * legLift);
-            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.10F * legLift);
+            // Elegant, poised torso: slight aristocratic curtsy bow, NO 360-degree spin
+            float bow = Mth.sin(t * (float) Math.PI);
+            model.body.xRot = Mth.lerp(w, model.body.xRot, 0.08F * bow);
+            model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * 0.12F * bow);
+            model.body.zRot = Mth.lerp(w, model.body.zRot, castDir * 0.04F * bow);
+            model.head.xRot = Mth.lerp(w, model.head.xRot, 0.12F * bow);
+            model.head.yRot = Mth.lerp(w, model.head.yRot, -castDir * 0.10F * bow);
+            model.hat.copyFrom(model.head);
 
-            // Cane flourish held out gracefully
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.15F);
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.45F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.35F);
+            // Poised feet: slight front-back footing, graceful court step
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.10F * bow);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.10F * bow);
 
-            // Left hand raised gracefully in ballet pose
-            offPart.xRot = Mth.lerp(w, offPart.xRot, -1.85F);
-            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * -0.55F);
-            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.45F);
+            // Sword hand held LOWER down beside hip/thigh, pointing gracefully toward ground (low rapier salute)
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.42F);
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.28F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.16F);
+
+            // Theatrical off-hand flourish / stage salute
+            offPart.xRot = Mth.lerp(w, offPart.xRot, -0.75F);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.52F);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.38F);
         } else if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST) {
             // Zhongli Hold Phase 2: Both arms sweep powerfully from crossed-chest out to wide radial spread
             float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
@@ -1746,7 +1759,7 @@ public final class ClientAuraRenderer {
             float plantW = 0.0F;
             float downOffset = 0.0F;
             float targetPitchDeg = -103.0F;
-            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON || activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
+            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 if (t < 0.16F) {
@@ -1760,6 +1773,15 @@ public final class ClientAuraRenderer {
                 downOffset = slamDown * 0.14F;
                 float armDeg = Mth.lerp(slamDown, -39.0F, -23.0F);
                 targetPitchDeg = armDeg - 80.0F;
+            } else if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float w = (t < 0.12F) ? smoothStep01(t / 0.12F) : (t < 0.88F ? 1.0F : 1.0F - smoothStep01((t - 0.88F) / 0.12F));
+                float side = leftHand ? -1.0F : 1.0F;
+                // Sword held low, pointing gracefully downwards along the body
+                poseStack.translate(side * 0.04F * w, -0.08F * w, 0.06F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(side * 14.0F * w));
             } else if (entity.isUsingItem() && entity.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, entity) - entity.getUseItemRemainingTicks());
                 if (elapsed >= 2) {
@@ -1986,10 +2008,12 @@ public final class ClientAuraRenderer {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 float w = (t < 0.12F) ? smoothStep01(t / 0.12F) : (t < 0.88F ? 1.0F : 1.0F - smoothStep01((t - 0.88F) / 0.12F));
-                float spin = t * 360.0F;
-                poseStack.translate(-dir * 0.16F * w, -0.06F * Mth.sin(t * (float) Math.PI) * w, -0.12F * w);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * spin * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F * w));
+                float dip = Mth.sin(t * (float) Math.PI);
+                // Graceful low rapier flourish dip without 360-degree spin
+                poseStack.translate(-dir * 0.18F * w, (-0.12F - 0.06F * dip) * w, -0.14F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees((-22.0F - 12.0F * dip) * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 16.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 10.0F * w));
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
