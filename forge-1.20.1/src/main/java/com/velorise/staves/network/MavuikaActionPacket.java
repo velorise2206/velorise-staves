@@ -28,6 +28,11 @@ public class MavuikaActionPacket {
     public static final byte ACTION_XILONEN_DASH = 16;
     public static final byte ACTION_XILONEN_JUMP = 17;
     public static final byte ACTION_FURINA_CA_SWITCH = 18;
+    public static final byte ACTION_NAHIDA_NA = 19;
+    public static final byte ACTION_NAHIDA_CA = 20;
+    public static final byte ACTION_TSARITSA_NA = 21;
+    public static final byte ACTION_TSARITSA_CA = 22;
+    public static final byte ACTION_TSARITSA_CA_FULL = 23;
 
     private final byte action;
 
@@ -86,6 +91,22 @@ public class MavuikaActionPacket {
                 com.velorise.staves.element.XilonenManager.handleSkateJumpBoost(player);
             } else if (packet.action == ACTION_FURINA_CA_SWITCH) {
                 com.velorise.staves.item.ArcaneStaffItem.handleFurinaLeftClickHoldSwitch(player);
+            } else if (packet.action == ACTION_NAHIDA_NA) {
+                if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                    com.velorise.staves.element.NahidaManager.handleNormalAttack(player);
+                }
+            } else if (packet.action == ACTION_NAHIDA_CA) {
+                if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                    com.velorise.staves.element.NahidaManager.handleChargedAttack(player);
+                }
+            } else if (packet.action == ACTION_TSARITSA_NA) {
+                if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                    com.velorise.staves.element.TsaritsaManager.performNormalAttack(player);
+                }
+            } else if (packet.action == ACTION_TSARITSA_CA) {
+                com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, false);
+            } else if (packet.action == ACTION_TSARITSA_CA_FULL) {
+                com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, true);
             }
         });
         ctx.setPacketHandled(true);

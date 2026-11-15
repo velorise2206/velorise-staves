@@ -1,0 +1,6 @@
+{
+  "parent": "velorise_staves:item/tsaritsa_bow",
+  "textures": {
+    "layer0": "velorise_staves:item/tsaritsa_bow_pulling_0"
+  }
+}

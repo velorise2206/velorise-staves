@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "combat",
+  "pattern": [
+    " DD",
+    "D W",
+    " D "
+  ],
+  "key": {
+    "D": {
+      "item": "velorise_staves:dendro_element"
+    },
+    "W": {
+      "item": "velorise_staves:wither_scepter"
+    }
+  },
+  "result": {
+    "item": "velorise_staves:thousand_floating_dreams",
+    "count": 1
+  }
+}

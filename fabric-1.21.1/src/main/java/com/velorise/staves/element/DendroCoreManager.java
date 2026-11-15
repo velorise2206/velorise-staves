@@ -207,6 +207,7 @@ public final class DendroCoreManager {
                 ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, bloomSource, dmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+                NahidaManager.onElementalReactionOrCoreDamage(core.level, victim, owner);
                 MobHazardAvoidanceManager.reportReactionOrHazard(victim, owner, pos, Element.DENDRO, Element.HYDRO);
             }
         }
@@ -302,6 +303,7 @@ public final class DendroCoreManager {
                 ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, burgeonSource, effectiveDmg);
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
                 ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
+                NahidaManager.onElementalReactionOrCoreDamage(core.level, victim, attacker instanceof ServerPlayer spAtt ? spAtt : null);
                 MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, pos, Element.DENDRO, Element.PYRO);
             }
         }
@@ -383,6 +385,7 @@ public final class DendroCoreManager {
                         ElementalGaugeManager.hurtWithPreAppliedElementalRes(nearby, hyperSource, hDmg);
                         ElementalGaugeManager.enforceFrozenPoseIfFrozen(nearby);
                         ElementalGaugeManager.syncAuras(nearby, ElementalGaugeManager.getEntityElements(nearby.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
+                        NahidaManager.onElementalReactionOrCoreDamage(level, nearby, m.attacker instanceof ServerPlayer spAtt ? spAtt : null);
                         MobHazardAvoidanceManager.reportReactionOrHazard(nearby, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
                         hitAny = true;
                     }

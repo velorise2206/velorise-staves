@@ -141,11 +141,11 @@ public final class PlungeAndGliderManager {
     public static void handleToggleGlider(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (!isWindGliderUnlocked(player)) return;
-        if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava()) {
+        if (player.getVehicle() != null || player.isInWater() || player.isInLava()) {
             return;
         }
+        // Cleanly separate from Creative flight and Elytra fall-flying conflicts
         if (player.getAbilities().flying) {
-            if (player.isShiftKeyDown()) return;
             player.getAbilities().flying = false;
             player.onUpdateAbilities();
         }
@@ -160,12 +160,13 @@ public final class PlungeAndGliderManager {
             st.gliding = false;
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
             player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.ARMOR_EQUIP_ELYTRA.value(), SoundSource.PLAYERS, 0.65F, 0.90F);
-        } else if (hasClearAirBeneath(player, 0.35D)) {
+        } else {
             st.gliding = true;
             st.gliderOpenedTick = player.level().getGameTime();
+            player.setOnGround(false);
             player.fallDistance = 0.0F;
             Vec3 dv = player.getDeltaMovement();
-            player.setDeltaMovement(dv.x, Math.max(dv.y, -0.14D), dv.z);
+            player.setDeltaMovement(dv.x, Math.min(dv.y, -0.08D), dv.z);
             player.hasImpulse = true;
             player.connection.send(new ClientboundSetEntityMotionPacket(player));
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_START);
@@ -232,6 +233,9 @@ public final class PlungeAndGliderManager {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
+            if (now % 40L == 0L) {
+                syncPlayerOnJoinOrRespawn(player);
+            }
             AirState st = STATES.get(player.getUUID());
             if (st == null) continue;
             ServerLevel level = player.serverLevel();
@@ -240,24 +244,31 @@ public final class PlungeAndGliderManager {
                 if (player.isFallFlying()) {
                     player.stopFallFlying();
                 }
-                boolean graceExpired = (now - st.gliderOpenedTick) > 4L;
-                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
+                boolean graceExpired = (now - st.gliderOpenedTick) > 10L;
+                if (!graceExpired && player.getAbilities().flying) {
+                    player.getAbilities().flying = false;
+                    player.onUpdateAbilities();
+                }
+                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || (graceExpired && player.getAbilities().flying) || player.getVehicle() != null) {
                     st.gliding = false;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
                 } else {
                     player.fallDistance = 0.0F;
-                    Vec3 dv = player.getDeltaMovement();
-                    Vec3 look = player.getLookAngle();
-                    Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
-                    if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
-
+                    if ((now - st.gliderOpenedTick) % 10L == 0L) {
+                        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_START);
+                    }
                     boolean inUpdraft = ElementalGaugeManager.isInsideAnemoUpdraft(level, player.position());
-                    double targetY = inUpdraft ? 0.38D : Math.max(dv.y, -0.14D);
-                    double targetX = Mth.lerp(0.18D, dv.x, horiz.x * 0.48D);
-                    double targetZ = Mth.lerp(0.18D, dv.z, horiz.z * 0.48D);
-                    player.setDeltaMovement(targetX, targetY, targetZ);
-                    player.hasImpulse = true;
-                    player.connection.send(new ClientboundSetEntityMotionPacket(player));
+                    if (inUpdraft) {
+                        Vec3 dv = player.getDeltaMovement();
+                        Vec3 look = player.getLookAngle();
+                        Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+                        if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
+                        double targetX = Mth.lerp(0.18D, dv.x, horiz.x * 0.48D);
+                        double targetZ = Mth.lerp(0.18D, dv.z, horiz.z * 0.48D);
+                        player.setDeltaMovement(targetX, 0.38D, targetZ);
+                        player.hasImpulse = true;
+                        player.connection.send(new ClientboundSetEntityMotionPacket(player));
+                    }
                     if (now % 6L == 0L) {
                         level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.9D, player.getZ(),
                                 1, 0.25D, 0.1D, 0.25D, 0.01D);

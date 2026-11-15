@@ -30,6 +30,11 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_XILONEN_DASH = 15;
     public static final byte ACTION_XILONEN_JUMP = 16;
     public static final byte ACTION_FURINA_CA_SWITCH = 17;
+    public static final byte ACTION_NAHIDA_NA = 18;
+    public static final byte ACTION_NAHIDA_CA = 19;
+    public static final byte ACTION_TSARITSA_NA = 20;
+    public static final byte ACTION_TSARITSA_CA = 21;
+    public static final byte ACTION_TSARITSA_CA_FULL = 22;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -84,6 +89,22 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
             com.velorise.staves.element.XilonenManager.handleSkateJumpBoost(player);
         } else if (action == ACTION_FURINA_CA_SWITCH) {
             com.velorise.staves.item.ArcaneStaffItem.handleFurinaLeftClickHoldSwitch(player);
+        } else if (action == ACTION_NAHIDA_NA) {
+            if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                com.velorise.staves.element.NahidaManager.handleNormalAttack(player);
+            }
+        } else if (action == ACTION_NAHIDA_CA) {
+            if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                com.velorise.staves.element.NahidaManager.handleChargedAttack(player);
+            }
+        } else if (action == ACTION_TSARITSA_NA) {
+            if (!com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(player)) {
+                com.velorise.staves.element.TsaritsaManager.performNormalAttack(player);
+            }
+        } else if (action == ACTION_TSARITSA_CA) {
+            com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, false);
+        } else if (action == ACTION_TSARITSA_CA_FULL) {
+            com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, true);
         }
     }
 }

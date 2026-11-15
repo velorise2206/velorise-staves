@@ -29,7 +29,13 @@ public final class WindGliderItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
-        if (!level.isClientSide() && player instanceof ServerPlayer sp) {
+        if (level.isClientSide()) {
+            if (!player.isShiftKeyDown()) {
+                com.velorise.staves.client.ClientAuraTracker.localWindGliderUnlocked = true;
+            }
+            return InteractionResultHolder.sidedSuccess(stack, true);
+        }
+        if (player instanceof ServerPlayer sp) {
             boolean alreadyUnlocked = PlungeAndGliderManager.isWindGliderUnlocked(sp);
             if (!alreadyUnlocked) {
                 PlungeAndGliderManager.setWindGliderUnlocked(sp, true);
@@ -53,6 +59,7 @@ public final class WindGliderItem extends Item {
                 );
                 return InteractionResultHolder.sidedSuccess(stack, false);
             } else {
+                PlungeAndGliderManager.setWindGliderUnlocked(sp, true);
                 sp.displayClientMessage(
                         Component.translatable("message.velorise_staves.wind_glider_already_unlocked").withStyle(ChatFormatting.AQUA),
                         true
@@ -65,7 +72,6 @@ public final class WindGliderItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
-        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider"), ChatFormatting.AQUA, 36, "  ");
-        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider.plunge"), ChatFormatting.GRAY, 36, "  ");
+        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider"), ChatFormatting.AQUA, 38, "  ");
     }
 }

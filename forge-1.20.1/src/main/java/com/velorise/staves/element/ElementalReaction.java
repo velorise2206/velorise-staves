@@ -29,7 +29,9 @@ public enum ElementalReaction {
     BURGEON("BURGEON", "🔥 + 🌱", 1.0F, 1.0F, ChatFormatting.GOLD),
     OVERVAPE("OVERVAPE", "🔥 + (💧 & ⚡)", 0.5F, 1.5F, ChatFormatting.GOLD),
     SWIRL("SWIRL", "🌪️ + Aura", 0.5F, 1.0F, ChatFormatting.DARK_AQUA),
-    CRYSTALLIZE("CRYSTALLIZE", "🪨 + Aura", 0.5F, 1.0F, ChatFormatting.GOLD);
+    CRYSTALLIZE("CRYSTALLIZE", "🪨 + Aura", 0.5F, 1.0F, ChatFormatting.GOLD),
+    STELLAR_CONDUCT("STELLAR-CONDUCT", "❄️ + ⚡ ✦", 1.0F, 1.0F, ChatFormatting.LIGHT_PURPLE),
+    STELLAR_SWIRL("STELLAR SWIRL", "🌪️ + ❄️ ✦", 0.5F, 1.0F, ChatFormatting.AQUA);
 
     private final String name;
     private final String formula;
@@ -50,7 +52,7 @@ public enum ElementalReaction {
     }
 
     public String translationKey() {
-        return name.isEmpty() ? "" : "reaction.velorise_staves." + name.toLowerCase(Locale.ROOT).replace('-', '_');
+        return name.isEmpty() ? "" : "reaction.velorise_staves." + name.toLowerCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
     }
 
     public String formula() {

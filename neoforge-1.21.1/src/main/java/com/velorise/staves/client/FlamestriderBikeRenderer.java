@@ -54,6 +54,18 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
                         (stack, level, entity, seed) -> ClientAuraRenderer.isDaybreakPulling(entity, stack) ? 1.0F : 0.0F);
             }
+            net.minecraft.resources.ResourceLocation spearStanceId = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("velorise_staves", "spear_stance");
+            for (net.minecraft.world.item.Item item : new net.minecraft.world.item.Item[]{
+                    VeloriseStavesMod.TSARITSA_BOW.get(),
+                    VeloriseStavesMod.NETHERITE_TSARITSA_BOW.get()
+            }) {
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullId,
+                        (stack, level, entity, seed) -> ClientAuraRenderer.getTsaritsaPullProgress(entity, stack));
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
+                        (stack, level, entity, seed) -> ClientAuraRenderer.isTsaritsaPulling(entity, stack) ? 1.0F : 0.0F);
+                net.minecraft.client.renderer.item.ItemProperties.register(item, spearStanceId,
+                        (stack, level, entity, seed) -> (entity != null && ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) ? 1.0F : 0.0F);
+            }
         });
     }
 

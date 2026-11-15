@@ -27,15 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages Item 4:
- * 1. Universal Plunge Attack (Left-Click in mid-air while holding any SwordItem or ArcaneStaffItem, except Guardian Lens):
- *    - Takes priority over vanilla Steve normal attack when airborne (fallDistance >= 1.5m or sufficient clearance from skate jump / updraft).
- *    - Rapid downward dive (dy = -1.35D) with 3rd-person/1st-person forward weapon plunge pose.
- *    - Genshin Fall Damage Reduction: <= 15 blocks = 0 damage; > 15 blocks = 50% reduced and capped at 40% Max HP.
- *    - Ground Impact AoE (3.5m) applying melee/elemental plunge damage + shockwave particles.
- * 2. Permanent Wind Glider (Phong Chi Duc):
- *    - Unlocked permanently via WindGliderItem (stored in player persistent data "VeloriseWindGliderUnlocked").
- *    - Press Space in mid-air to deploy/fold wings (cleanly separated from Elytra/Creative double-jump conflicts).
+ * Manages Universal Plunge Attack and Permanent Wind Glider on NeoForge 1.21.1.
  */
 public final class PlungeAndGliderManager {
     public static final String TAG_WIND_GLIDER_UNLOCKED = "VeloriseWindGliderUnlocked";
@@ -145,12 +137,11 @@ public final class PlungeAndGliderManager {
     public static void handleToggleGlider(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (!isWindGliderUnlocked(player)) return;
-        if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava()) {
+        if (player.getVehicle() != null || player.isInWater() || player.isInLava()) {
             return;
         }
-        // Prevent Creative mode double-space or Elytra fall-flying from blocking Wind Glider deployment
+        // Cleanly separate from Creative flight and Elytra fall-flying conflicts
         if (player.getAbilities().flying) {
-            if (player.isShiftKeyDown()) return;
             player.getAbilities().flying = false;
             player.onUpdateAbilities();
         }
@@ -165,12 +156,13 @@ public final class PlungeAndGliderManager {
             st.gliding = false;
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
             player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.ARMOR_EQUIP_ELYTRA.value(), SoundSource.PLAYERS, 0.65F, 0.90F);
-        } else if (hasClearAirBeneath(player, 0.35D)) {
+        } else {
             st.gliding = true;
             st.gliderOpenedTick = player.level().getGameTime();
+            player.setOnGround(false);
             player.fallDistance = 0.0F;
             Vec3 dv = player.getDeltaMovement();
-            player.setDeltaMovement(dv.x, Math.max(dv.y, -0.14D), dv.z);
+            player.setDeltaMovement(dv.x, Math.min(dv.y, -0.08D), dv.z);
             player.hasImpulse = true;
             player.connection.send(new ClientboundSetEntityMotionPacket(player));
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_START);
@@ -224,10 +216,10 @@ public final class PlungeAndGliderManager {
         if (st.plunging || (player.level().getGameTime() - st.plungeStartedTick) <= 10L) {
             float effectiveFall = Math.max(player.fallDistance, (float) Math.max(0.0D, st.plungeStartY - player.getY()));
             if (effectiveFall <= 15.0F) {
-                return 0.0F; // Genshin Standard: 0 fall damage for plunges <= 15m
+                return 0.0F;
             }
             float reduced = (effectiveFall - 15.0F) * 0.5F;
-            float maxCap = player.getMaxHealth() * 0.40F; // Hard-capped at 40% Max HP (never fatal)
+            float maxCap = player.getMaxHealth() * 0.40F;
             return Math.min(reduced, maxCap);
         }
         return rawFallDamage;
@@ -237,6 +229,9 @@ public final class PlungeAndGliderManager {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
+            if (now % 40L == 0L) {
+                syncPlayerOnJoinOrRespawn(player);
+            }
             AirState st = STATES.get(player.getUUID());
             if (st == null) continue;
             ServerLevel level = player.serverLevel();
@@ -245,24 +240,31 @@ public final class PlungeAndGliderManager {
                 if (player.isFallFlying()) {
                     player.stopFallFlying();
                 }
-                boolean graceExpired = (now - st.gliderOpenedTick) > 4L;
-                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
+                boolean graceExpired = (now - st.gliderOpenedTick) > 10L;
+                if (!graceExpired && player.getAbilities().flying) {
+                    player.getAbilities().flying = false;
+                    player.onUpdateAbilities();
+                }
+                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || (graceExpired && player.getAbilities().flying) || player.getVehicle() != null) {
                     st.gliding = false;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
                 } else {
                     player.fallDistance = 0.0F;
-                    Vec3 dv = player.getDeltaMovement();
-                    Vec3 look = player.getLookAngle();
-                    Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
-                    if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
-
+                    if ((now - st.gliderOpenedTick) % 10L == 0L) {
+                        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_START);
+                    }
                     boolean inUpdraft = ElementalGaugeManager.isInsideAnemoUpdraft(level, player.position());
-                    double targetY = inUpdraft ? 0.38D : Math.max(dv.y, -0.14D);
-                    double targetX = Mth.lerp(0.18D, dv.x, horiz.x * 0.48D);
-                    double targetZ = Mth.lerp(0.18D, dv.z, horiz.z * 0.48D);
-                    player.setDeltaMovement(targetX, targetY, targetZ);
-                    player.hasImpulse = true;
-                    player.connection.send(new ClientboundSetEntityMotionPacket(player));
+                    if (inUpdraft) {
+                        Vec3 dv = player.getDeltaMovement();
+                        Vec3 look = player.getLookAngle();
+                        Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+                        if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
+                        double targetX = Mth.lerp(0.18D, dv.x, horiz.x * 0.48D);
+                        double targetZ = Mth.lerp(0.18D, dv.z, horiz.z * 0.48D);
+                        player.setDeltaMovement(targetX, 0.38D, targetZ);
+                        player.hasImpulse = true;
+                        player.connection.send(new ClientboundSetEntityMotionPacket(player));
+                    }
                     if (now % 6L == 0L) {
                         level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.9D, player.getZ(),
                                 1, 0.25D, 0.1D, 0.25D, 0.01D);

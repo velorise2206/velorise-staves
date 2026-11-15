@@ -119,17 +119,25 @@ public final class VeloriseStavesClient implements ClientModInitializer {
 
         final boolean[] bikeDismountWaitAttackRelease = {false};
         net.fabricmc.fabric.api.event.player.AttackBlockCallback.EVENT.register((player, world, hand, pos, direction) -> {
+            com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(player.getMainHandItem());
             if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]
                     || com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(player)
-                    || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)) {
+                    || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
         });
         net.fabricmc.fabric.api.event.player.AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+            com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(player.getMainHandItem());
             if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]
                     || com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(player)
-                    || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)) {
+                    || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
@@ -162,6 +170,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final boolean[] wasXilonenDashKeyDown = {false};
         final int[] furinaAttackHoldTicks = {0};
         final boolean[] furinaCaTriggeredThisHold = {false};
+        final int[] nahidaAttackHoldTicks = {0};
+        final boolean[] nahidaCaTriggeredThisHold = {false};
+        final int[] tsaritsaSpearHoldTick = {0};
         final int[] lastSelectedHotbarSlot = {-1};
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientAuraRenderer.tickFrozenPlayer();
@@ -192,6 +203,12 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ventiUltiFiredThisHold[0] = false;
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
+                nahidaAttackHoldTicks[0] = 0;
+                nahidaCaTriggeredThisHold[0] = false;
+                tsaritsaSpearHoldTick[0] = 0;
+                ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                ClientAuraTracker.localTsaritsaHoldETicks = 0;
+                ClientAuraTracker.localTsaritsaHoldELocked = false;
                 return;
             }
             net.minecraft.world.item.ItemStack daybreakHeld = net.minecraft.world.item.ItemStack.EMPTY;
@@ -298,6 +315,97 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 furinaCaTriggeredThisHold[0] = false;
             }
 
+            if (!client.options.keyUse.isDown()) {
+                ClientAuraTracker.localTsaritsaHoldETicks = 0;
+                ClientAuraTracker.localTsaritsaHoldELocked = false;
+            }
+
+            com.velorise.staves.item.ArcaneStaffItem.Kind mainEffKind =
+                    com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem());
+            boolean holdingNahida = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS);
+            if (holdingNahida && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
+                int nahidaFast = 0;
+                while (client.options.keyAttack.consumeClick()) {
+                    nahidaFast++;
+                }
+                if (client.options.keyAttack.isDown()) {
+                    nahidaAttackHoldTicks[0]++;
+                    if (nahidaAttackHoldTicks[0] >= 10 && !nahidaCaTriggeredThisHold[0]) {
+                        nahidaCaTriggeredThisHold[0] = true;
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_CA);
+                    }
+                } else if (nahidaAttackHoldTicks[0] > 0) {
+                    if (!nahidaCaTriggeredThisHold[0]) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_NA);
+                    }
+                    nahidaAttackHoldTicks[0] = 0;
+                    nahidaCaTriggeredThisHold[0] = false;
+                } else if (nahidaFast > 0) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                            com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_NA);
+                }
+            } else {
+                nahidaAttackHoldTicks[0] = 0;
+                nahidaCaTriggeredThisHold[0] = false;
+            }
+
+            boolean holdingTsaritsa = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                    || mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR);
+            if (holdingTsaritsa && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
+                int tsaritsaFast = 0;
+                while (client.options.keyAttack.consumeClick()) {
+                    tsaritsaFast++;
+                }
+                boolean spearStance = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR)
+                        || ClientAuraTracker.isTsaritsaSpearStance(client.player.getId());
+                if (spearStance) {
+                    ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                    if (client.options.keyAttack.isDown()) {
+                        if (tsaritsaSpearHoldTick[0] % 7 == 0) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_NA);
+                        }
+                        tsaritsaSpearHoldTick[0]++;
+                    } else {
+                        if (tsaritsaFast > 0 && tsaritsaSpearHoldTick[0] == 0) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_NA);
+                        }
+                        tsaritsaSpearHoldTick[0] = 0;
+                    }
+                } else {
+                    tsaritsaSpearHoldTick[0] = 0;
+                    if (client.options.keyAttack.isDown() && !client.player.isUsingItem()) {
+                        ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
+                    } else {
+                        int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
+                        ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                        if (pulled >= 16) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_CA_FULL);
+                        } else if (pulled >= 6) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_CA);
+                        } else if (pulled > 0 || tsaritsaFast > 0) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_NA);
+                        }
+                    }
+                }
+            } else {
+                ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                tsaritsaSpearHoldTick[0] = 0;
+                if (mainEffKind != null && ClientAuraTracker.isTsaritsaDpsSeal(client.player.getId())
+                        && client.player.swinging && client.player.swingTime == 0) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                            com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_NA);
+                }
+            }
+
             if (ClientAuraTracker.isXilonenSkating(client.player.getId()) && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
                 if (!wasXilonenSkateActive[0]) {
                     wasXilonenSkateActive[0] = true;
@@ -326,12 +434,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         client.player.setDeltaMovement(v.x, Math.max(v.y, 0.58D), v.z);
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_XILONEN_JUMP);
-                    } else if (ClientAuraTracker.localWindGliderUnlocked
+                    } else if ((ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(client.player))
                             && !client.player.onGround() && !wasOnGround[0]
                             && !client.player.isInWater() && !client.player.isInLava()
-                            && !wasCreativeFlying[0] && client.player.getVehicle() == null
-                            && (ClientAuraTracker.isGliding(client.player.getId())
-                            || com.velorise.staves.element.PlungeAndGliderManager.hasClearAirBeneath(client.player, 0.35D))) {
+                            && !client.player.onClimbable() && client.player.getVehicle() == null) {
+                        ClientAuraTracker.localWindGliderUnlocked = true;
                         if (client.player.getAbilities().flying) {
                             client.player.getAbilities().flying = false;
                             client.player.onUpdateAbilities();
@@ -339,6 +446,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         if (client.player.isFallFlying()) {
                             client.player.stopFallFlying();
                         }
+                        boolean nextGlide = !ClientAuraTracker.isGliding(client.player.getId());
+                        ClientAuraTracker.triggerStaffAnimation(client.player.getId(),
+                                nextGlide ? ClientAuraTracker.ANIM_GLIDER_START : ClientAuraTracker.ANIM_GLIDER_STOP);
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_TOGGLE_GLIDER);
                     }
@@ -499,6 +609,18 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     (stack, level, entity, seed) -> ClientAuraRenderer.getDaybreakPullProgress(entity, stack));
             net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
                     (stack, level, entity, seed) -> ClientAuraRenderer.isDaybreakPulling(entity, stack) ? 1.0F : 0.0F);
+        }
+        net.minecraft.resources.ResourceLocation spearStanceId = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("velorise_staves", "spear_stance");
+        for (net.minecraft.world.item.Item item : new net.minecraft.world.item.Item[]{
+                com.velorise.staves.VeloriseStavesMod.TSARITSA_BOW,
+                com.velorise.staves.VeloriseStavesMod.NETHERITE_TSARITSA_BOW
+        }) {
+            net.minecraft.client.renderer.item.ItemProperties.register(item, pullId,
+                    (stack, level, entity, seed) -> ClientAuraRenderer.getTsaritsaPullProgress(entity, stack));
+            net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
+                    (stack, level, entity, seed) -> ClientAuraRenderer.isTsaritsaPulling(entity, stack) ? 1.0F : 0.0F);
+            net.minecraft.client.renderer.item.ItemProperties.register(item, spearStanceId,
+                    (stack, level, entity, seed) -> (entity != null && ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) ? 1.0F : 0.0F);
         }
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {

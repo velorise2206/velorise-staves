@@ -1,0 +1,783 @@
+package com.velorise.staves.element;
+
+import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.network.ModNetwork;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CocoaBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.NetherWartBlock;
+import net.minecraft.world.level.block.SweetBerryBushBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Manages Dendro Archon Nahida (A Thousand Floating Dreams) on Fabric 1.21.1.
+ */
+public final class NahidaManager {
+    private static final DustParticleOptions DENDRO_GLOW_DUST =
+            new DustParticleOptions(new Vector3f(0.32F, 0.98F, 0.28F), 1.35F);
+    private static final DustParticleOptions DENDRO_HEART_DUST =
+            new DustParticleOptions(new Vector3f(0.52F, 1.00F, 0.42F), 1.55F);
+
+    public static final class NahidaPlayerState {
+        public int naComboStep = 0;
+        public long lastNaTick = -100L;
+        public long lastActionTick = 0L;
+        public Vec3 lastStillPos = Vec3.ZERO;
+        public int stillTicks = 0;
+        public boolean idleSwingActive = false;
+        public boolean holdingViewfinder = false;
+        public boolean viewfinderNetherite = false;
+        public final Set<UUID> viewfinderMarkedTargets = new HashSet<>();
+        public long lastHarvestSweepTick = -100L;
+        public long lastTriKarmaProcTick = -100L;
+        public long shrineUntilTick = 0L;
+        public Vec3 shrineCenter = Vec3.ZERO;
+        public double shrineRadius = 12.0D;
+        public boolean shrineNetherite = false;
+        public int shrinePyroCount = 0;
+        public int shrineElectroCount = 0;
+        public int shrineHydroCount = 0;
+        public long ultiCooldownUntilTick = 0L;
+        public long iframeUntilTick = 0L;
+        public int lastSyncedPlayerCode = -1;
+        public int lastSyncedShrineCode = -1;
+    }
+
+    public static final class SkandhaMark {
+        public final UUID ownerId;
+        public final boolean netherite;
+        public long expireTick;
+
+        public SkandhaMark(UUID ownerId, boolean netherite, long expireTick) {
+            this.ownerId = ownerId;
+            this.netherite = netherite;
+            this.expireTick = expireTick;
+        }
+    }
+
+    private static final Map<UUID, NahidaPlayerState> PLAYER_STATES = new ConcurrentHashMap<>();
+    private static final Map<UUID, SkandhaMark> SKANDHA_MARKS = new ConcurrentHashMap<>();
+
+    private NahidaManager() {}
+
+    public static void clearAll() {
+        PLAYER_STATES.clear();
+        SKANDHA_MARKS.clear();
+    }
+
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId == null) return;
+        PLAYER_STATES.remove(playerId);
+        SKANDHA_MARKS.entrySet().removeIf(e -> playerId.equals(e.getValue().ownerId));
+    }
+
+    public static boolean isHoldingNahida(@Nullable Player player) {
+        if (player == null) return false;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS;
+    }
+
+    public static ItemStack getHeldNahidaStack(@Nullable Player player) {
+        if (player == null) return ItemStack.EMPTY;
+        ItemStack main = player.getMainHandItem();
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+            return main;
+        }
+        ItemStack off = player.getOffhandItem();
+        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+            return off;
+        }
+        return ItemStack.EMPTY;
+    }
+
+    public static boolean isNahidaIframeActive(@Nullable LivingEntity entity) {
+        if (!(entity instanceof ServerPlayer player)) return false;
+        NahidaPlayerState st = PLAYER_STATES.get(player.getUUID());
+        return st != null && player.level().getGameTime() < st.iframeUntilTick;
+    }
+
+    public static void markActiveAction(ServerPlayer player, long now) {
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        st.lastActionTick = now;
+        st.stillTicks = 0;
+        if (st.idleSwingActive) {
+            st.idleSwingActive = false;
+            syncPlayerStateToClients(player, st, now, true);
+        }
+    }
+
+    public static void handleNormalAttack(ServerPlayer player) {
+        if (player == null || !player.isAlive() || player.isSpectator()) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        ItemStack stack = getHeldNahidaStack(player);
+        if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
+
+        long now = level.getGameTime();
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        if (now - st.lastNaTick < 6L) return;
+        if (now - st.lastNaTick > 36L) {
+            st.naComboStep = 0;
+        }
+        st.naComboStep = (st.naComboStep % 4) + 1;
+        st.lastNaTick = now;
+        markActiveAction(player, now);
+
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        float baseScale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNeth);
+        int step = st.naComboStep;
+
+        if (player.onGround()) {
+            Vec3 dv = player.getDeltaMovement();
+            double hopY = (step == 4) ? 0.30D : 0.22D;
+            player.setDeltaMovement(dv.x * 1.05D, Math.max(dv.y, hopY), dv.z * 1.05D);
+            player.hasImpulse = true;
+            player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        }
+
+        int animCode = switch (step) {
+            case 1 -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_1;
+            case 2 -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_2;
+            case 3 -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_3;
+            default -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_4;
+        };
+        ModNetwork.sendStaffAnimation(player, animCode);
+
+        Vec3 look = player.getLookAngle();
+        Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+        if (horiz.lengthSqr() < 1.0E-4D) {
+            horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+        } else {
+            horiz = horiz.normalize();
+        }
+        Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+
+        if (step <= 3) {
+            double reach = 3.8D + step * 1.6D;
+            double halfWidth = 1.1D + step * 0.35D;
+            float dmg = (2.6F + step * 0.45F) * baseScale;
+            float gaugeU = isNeth ? 1.5F : 1.0F;
+
+            for (int i = 1; i <= step + 1; i++) {
+                double dist = i * 1.65D;
+                Vec3 tileCenter = player.position().add(horiz.scale(dist));
+                int pCount = 6 + step * 4;
+                level.sendParticles(DENDRO_GLOW_DUST, tileCenter.x, tileCenter.y + 0.15D, tileCenter.z,
+                        pCount, 0.35D + step * 0.12D, 0.12D, 0.35D + step * 0.12D, 0.02D);
+                level.sendParticles(ParticleTypes.COMPOSTER, tileCenter.x, tileCenter.y + 0.25D, tileCenter.z,
+                        4 + step * 2, 0.30D, 0.15D, 0.30D, 0.02D);
+            }
+
+            AABB hitBox = player.getBoundingBox().expandTowards(horiz.scale(reach)).inflate(halfWidth, 1.2D, halfWidth);
+            List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, hitBox,
+                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+            for (LivingEntity target : targets) {
+                Vec3 toTarget = target.position().subtract(player.position());
+                double proj = toTarget.dot(horiz);
+                if (proj < -0.5D || proj > reach + 1.0D) continue;
+                target.invulnerableTime = 0;
+                ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, dmg);
+            }
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, 1.25F + step * 0.12F);
+            level.playSound(null, player.blockPosition(), SoundEvents.AZALEA_LEAVES_PLACE, SoundSource.PLAYERS, 0.85F, 1.15F + step * 0.10F);
+        } else {
+            Vec3 burstCenter = player.position().add(horiz.scale(3.6D));
+            double radius = isNeth ? 4.5D : 3.5D;
+            float dmg = 5.0F * baseScale;
+            float gaugeU = isNeth ? 2.0F : 1.5F;
+
+            for (int i = 0; i < 24; i++) {
+                double t = (Math.PI * 2.0D * i) / 24.0D;
+                double hx = 16.0D * Math.pow(Math.sin(t), 3) / 14.0D;
+                double hy = (13.0D * Math.cos(t) - 5.0D * Math.cos(2.0D * t) - 2.0D * Math.cos(3.0D * t) - Math.cos(4.0D * t)) / 14.0D;
+                Vec3 hp = burstCenter.add(right.scale(hx)).add(0.0D, 1.15D + hy * 0.65D, 0.0D);
+                level.sendParticles(DENDRO_HEART_DUST, hp.x, hp.y, hp.z, 2, 0.05D, 0.05D, 0.05D, 0.01D);
+            }
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, burstCenter.x, burstCenter.y + 0.8D, burstCenter.z,
+                    28, radius * 0.4D, 0.45D, radius * 0.4D, 0.05D);
+            level.sendParticles(ParticleTypes.HAPPY_VILLAGER, burstCenter.x, burstCenter.y + 0.6D, burstCenter.z,
+                    18, radius * 0.35D, 0.35D, radius * 0.35D, 0.04D);
+
+            AABB aoeBox = new AABB(burstCenter, burstCenter).inflate(radius, 2.2D, radius);
+            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, aoeBox,
+                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
+                target.invulnerableTime = 0;
+                ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, dmg);
+            }
+            level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.55F);
+            level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.90F, 1.35F);
+        }
+    }
+
+    public static void handleChargedAttack(ServerPlayer player) {
+        if (player == null || !player.isAlive() || player.isSpectator()) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        ItemStack stack = getHeldNahidaStack(player);
+        if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
+
+        long now = level.getGameTime();
+        markActiveAction(player, now);
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_CA);
+
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        float baseScale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNeth);
+        float caDmg = 6.0F * baseScale;
+        float gaugeU = isNeth ? 2.0F : 1.5F;
+
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+        HitResult hit = level.clip(new ClipContext(eye, eye.add(look.scale(8.5D)),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        Vec3 center = hit.getType() == HitResult.Type.BLOCK
+                ? hit.getLocation()
+                : player.position().add(new Vec3(look.x, 0.0D, look.z).normalize().scale(4.5D));
+
+        double halfSide = isNeth ? 2.4D : 1.8D;
+        for (int i = -6; i <= 6; i++) {
+            double o = (i / 6.0D) * halfSide;
+            level.sendParticles(DENDRO_GLOW_DUST, center.x + o, center.y + 0.25D, center.z - halfSide, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+            level.sendParticles(DENDRO_GLOW_DUST, center.x + o, center.y + 0.25D, center.z + halfSide, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+            level.sendParticles(DENDRO_GLOW_DUST, center.x - halfSide, center.y + 0.25D, center.z + o, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+            level.sendParticles(DENDRO_GLOW_DUST, center.x + halfSide, center.y + 0.25D, center.z + o, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+        }
+        level.sendParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.6D, center.z, 24, halfSide * 0.5D, 0.35D, halfSide * 0.5D, 0.04D);
+
+        AABB box = new AABB(center.x - halfSide - 0.8D, center.y - 1.5D, center.z - halfSide - 0.8D,
+                center.x + halfSide + 0.8D, center.y + 2.8D, center.z + halfSide + 0.8D);
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
+            target.invulnerableTime = 0;
+            ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, caDmg);
+        }
+
+        InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+        level.playSound(null, BlockPos.containing(center), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.40F);
+        level.playSound(null, BlockPos.containing(center), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.70F, 1.55F);
+    }
+
+    public static void onStartHoldUse(ServerPlayer player, ItemStack stack, boolean isNetherite) {
+        if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        long now = level.getGameTime();
+        markActiveAction(player, now);
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        st.holdingViewfinder = false;
+        st.viewfinderNetherite = isNetherite;
+        st.viewfinderMarkedTargets.clear();
+    }
+
+    public static void onHoldUseTick(ServerLevel level, ServerPlayer player, ItemStack stack, int elapsedTicks, boolean isNetherite) {
+        long now = level.getGameTime();
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        st.lastActionTick = now;
+        st.stillTicks = 0;
+        if (st.idleSwingActive) {
+            st.idleSwingActive = false;
+        }
+        if (elapsedTicks >= 5 && !st.holdingViewfinder) {
+            st.holdingViewfinder = true;
+            syncPlayerStateToClients(player, st, now, true);
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.50F);
+        }
+        if (!st.holdingViewfinder) return;
+
+        double maxRange = isNetherite ? 28.0D : 20.0D;
+        Vec3 eye = player.getEyePosition();
+        Vec3 look = player.getLookAngle().normalize();
+
+        if (st.viewfinderMarkedTargets.size() < 8) {
+            AABB scanBox = player.getBoundingBox().expandTowards(look.scale(maxRange)).inflate(3.5D);
+            List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, scanBox,
+                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+            candidates.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player)));
+            for (LivingEntity cand : candidates) {
+                if (st.viewfinderMarkedTargets.size() >= 8) break;
+                if (st.viewfinderMarkedTargets.contains(cand.getUUID())) continue;
+                Vec3 toCand = cand.getBoundingBox().getCenter().subtract(eye);
+                double dist = toCand.length();
+                if (dist < 0.5D || dist > maxRange) continue;
+                double dot = toCand.scale(1.0D / dist).dot(look);
+                if (dot >= 0.86D) {
+                    st.viewfinderMarkedTargets.add(cand.getUUID());
+                    applySkandhaMark(level, player, cand, isNetherite, now);
+                    level.playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.65F, 1.45F + st.viewfinderMarkedTargets.size() * 0.05F);
+                }
+            }
+        }
+
+        if (now - st.lastHarvestSweepTick >= 3L) {
+            st.lastHarvestSweepTick = now;
+            performViewfinderHarvestAndVacuum(level, player, eye, look, maxRange);
+        }
+    }
+
+    private static void performViewfinderHarvestAndVacuum(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 look, double maxRange) {
+        AABB itemBox = player.getBoundingBox().expandTowards(look.scale(maxRange)).inflate(2.5D);
+        for (ItemEntity itemEnt : level.getEntitiesOfClass(ItemEntity.class, itemBox, e -> e.isAlive() && !e.getItem().isEmpty())) {
+            Vec3 toItem = itemEnt.position().add(0.0D, 0.25D, 0.0D).subtract(eye);
+            double dist = toItem.length();
+            if (dist > maxRange) continue;
+            if (dist < 2.5D || toItem.scale(1.0D / Math.max(0.01D, dist)).dot(look) >= 0.88D) {
+                Vec3 startPos = itemEnt.position();
+                ItemStack stack = itemEnt.getItem().copy();
+                if (player.getInventory().add(stack)) {
+                    if (stack.isEmpty()) {
+                        itemEnt.discard();
+                    } else {
+                        itemEnt.setItem(stack);
+                    }
+                    level.sendParticles(DENDRO_GLOW_DUST, startPos.x, startPos.y + 0.3D, startPos.z, 6, 0.18D, 0.18D, 0.18D, 0.02D);
+                    level.playSound(null, player.blockPosition(), SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.55F, 1.35F);
+                }
+            }
+        }
+
+        int steps = (int) Math.ceil(maxRange * 1.5D);
+        Set<BlockPos> checked = new HashSet<>();
+        for (int i = 2; i <= steps; i++) {
+            Vec3 sample = eye.add(look.scale(i / 1.5D));
+            BlockPos basePos = BlockPos.containing(sample);
+            for (BlockPos pos : new BlockPos[]{basePos, basePos.above(), basePos.below()}) {
+                if (!checked.add(pos)) continue;
+                BlockState state = level.getBlockState(pos);
+                if (state.isAir()) continue;
+                Block block = state.getBlock();
+
+                if (block instanceof SweetBerryBushBlock && state.hasProperty(SweetBerryBushBlock.AGE)) {
+                    int age = state.getValue(SweetBerryBushBlock.AGE);
+                    if (age >= 2) {
+                        int count = 1 + level.random.nextInt(2) + (age == 3 ? 1 : 0);
+                        giveOrDropHarvest(level, player, pos, new ItemStack(Items.SWEET_BERRIES, count));
+                        level.setBlock(pos, state.setValue(SweetBerryBushBlock.AGE, 1), 2);
+                        spawnHarvestParticles(level, pos);
+                    }
+                    continue;
+                }
+
+                if (block instanceof CropBlock crop && crop.isMaxAge(state)) {
+                    List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
+                    for (ItemStack drop : drops) {
+                        giveOrDropHarvest(level, player, pos, drop);
+                    }
+                    level.setBlock(pos, crop.getStateForAge(0), 2);
+                    spawnHarvestParticles(level, pos);
+                    continue;
+                }
+
+                if (block instanceof CocoaBlock && state.getValue(CocoaBlock.AGE) >= 2) {
+                    List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
+                    for (ItemStack drop : drops) {
+                        giveOrDropHarvest(level, player, pos, drop);
+                    }
+                    level.setBlock(pos, state.setValue(CocoaBlock.AGE, 0), 2);
+                    spawnHarvestParticles(level, pos);
+                    continue;
+                }
+                if (block instanceof NetherWartBlock && state.getValue(NetherWartBlock.AGE) >= 3) {
+                    List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
+                    for (ItemStack drop : drops) {
+                        giveOrDropHarvest(level, player, pos, drop);
+                    }
+                    level.setBlock(pos, state.setValue(NetherWartBlock.AGE, 0), 2);
+                    spawnHarvestParticles(level, pos);
+                    continue;
+                }
+
+                if (state.is(BlockTags.FLOWERS) && !state.is(Blocks.WITHER_ROSE)) {
+                    List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
+                    if (!drops.isEmpty()) {
+                        level.destroyBlock(pos, false, player);
+                        for (ItemStack drop : drops) {
+                            giveOrDropHarvest(level, player, pos, drop);
+                        }
+                        spawnHarvestParticles(level, pos);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void giveOrDropHarvest(ServerLevel level, ServerPlayer player, BlockPos pos, ItemStack stack) {
+        if (stack.isEmpty()) return;
+        ItemStack copy = stack.copy();
+        if (!player.getInventory().add(copy) && !copy.isEmpty()) {
+            Block.popResource(level, player.blockPosition(), copy);
+        }
+    }
+
+    private static void spawnHarvestParticles(ServerLevel level, BlockPos pos) {
+        level.sendParticles(DENDRO_GLOW_DUST, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
+                8, 0.25D, 0.25D, 0.25D, 0.02D);
+        level.sendParticles(ParticleTypes.HAPPY_VILLAGER, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
+                5, 0.25D, 0.25D, 0.25D, 0.02D);
+        level.playSound(null, pos, SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, SoundSource.PLAYERS, 0.75F, 1.35F);
+    }
+
+    public static boolean onReleaseHoldUse(ServerPlayer player, ItemStack stack, int elapsedTicks, boolean isNetherite, ArcaneStaffItem cooldownItem) {
+        if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        long now = level.getGameTime();
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        boolean wasViewfinder = st.holdingViewfinder || elapsedTicks >= 6;
+        st.holdingViewfinder = false;
+        syncPlayerStateToClients(player, st, now, true);
+
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNetherite);
+        float skillDmg = (wasViewfinder ? 5.0F : 4.0F) * scale;
+        float gaugeU = isNetherite ? 1.5F : 1.0F;
+
+        if (!wasViewfinder) {
+            ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_TAP_E);
+            double radius = isNetherite ? 9.0D : 7.0D;
+            AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
+            List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+            nearby.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player)));
+            int marked = 0;
+            for (LivingEntity target : nearby) {
+                if (marked >= 8) break;
+                marked++;
+                applySkandhaMark(level, player, target, isNetherite, now);
+                target.invulnerableTime = 0;
+                ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, skillDmg);
+            }
+            for (int i = 0; i < 24; i++) {
+                double ang = (Math.PI * 2.0D * i) / 24.0D;
+                double rx = player.getX() + Math.cos(ang) * (radius * 0.55D);
+                double rz = player.getZ() + Math.sin(ang) * (radius * 0.55D);
+                level.sendParticles(DENDRO_GLOW_DUST, rx, player.getY() + 0.9D, rz, 2, 0.15D, 0.15D, 0.15D, 0.02D);
+            }
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+            int cdTicks = Math.max(20, (int) Math.round(5.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
+            ElementalResonanceManager.applyCooldown(player, cooldownItem, cdTicks);
+        } else {
+            ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_HOLD_E);
+            if (st.viewfinderMarkedTargets.isEmpty()) {
+                AABB fallbackBox = player.getBoundingBox().inflate(7.5D, 3.0D, 7.5D);
+                List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, fallbackBox,
+                        e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+                for (LivingEntity target : nearby) {
+                    if (st.viewfinderMarkedTargets.size() >= 8) break;
+                    st.viewfinderMarkedTargets.add(target.getUUID());
+                    applySkandhaMark(level, player, target, isNetherite, now);
+                }
+            }
+            List<LivingEntity> linkedEntities = new ArrayList<>();
+            for (UUID targetId : st.viewfinderMarkedTargets) {
+                if (level.getEntity(targetId) instanceof LivingEntity target && target.isAlive()) {
+                    target.invulnerableTime = 0;
+                    ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, skillDmg);
+                    linkedEntities.add(target);
+                }
+            }
+            drawSkandhaLinks(level, linkedEntities);
+            st.viewfinderMarkedTargets.clear();
+            level.playSound(null, player.blockPosition(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.95F, 1.40F);
+            int cdTicks = Math.max(20, (int) Math.round(6.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
+            ElementalResonanceManager.applyCooldown(player, cooldownItem, cdTicks);
+        }
+        return true;
+    }
+
+    public static void applySkandhaMark(ServerLevel level, ServerPlayer owner, LivingEntity target, boolean isNetherite, long now) {
+        if (target == null || !target.isAlive()) return;
+        SKANDHA_MARKS.put(target.getUUID(), new SkandhaMark(owner.getUUID(), isNetherite, now + 500L));
+        ModNetwork.sendStaffAnimation(target, 4101);
+        level.sendParticles(DENDRO_GLOW_DUST, target.getX(), target.getY() + target.getBbHeight() * 0.65D, target.getZ(),
+                10, 0.30D, 0.30D, 0.30D, 0.03D);
+    }
+
+    private static void drawSkandhaLinks(ServerLevel level, List<LivingEntity> linked) {
+        if (linked.size() < 2) return;
+        for (int i = 0; i < linked.size(); i++) {
+            LivingEntity a = linked.get(i);
+            LivingEntity b = linked.get((i + 1) % linked.size());
+            if (a != b && a.distanceToSqr(b) <= 576.0D) {
+                ModNetwork.sendElectricArc(level, a, b, 14, 0xFF48F56E);
+            }
+        }
+    }
+
+    public static void onElementalReactionOrCoreDamage(
+            ServerLevel level,
+            LivingEntity triggeredTarget,
+            @Nullable ServerPlayer triggerAttacker
+    ) {
+        if (level == null || triggeredTarget == null) return;
+        SkandhaMark mark = SKANDHA_MARKS.get(triggeredTarget.getUUID());
+        if (mark == null) return;
+        long now = level.getGameTime();
+        if (now >= mark.expireTick) {
+            SKANDHA_MARKS.remove(triggeredTarget.getUUID());
+            ModNetwork.sendStaffAnimation(triggeredTarget, 4100);
+            return;
+        }
+        if (level.getServer() == null) return;
+        ServerPlayer owner = level.getServer().getPlayerList().getPlayer(mark.ownerId);
+        if (owner == null || !owner.isAlive() || owner.level() != level) return;
+
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(owner.getUUID(), k -> new NahidaPlayerState());
+        boolean shrineActive = now < st.shrineUntilTick;
+        int electroCnt = shrineActive ? st.shrineElectroCount : 0;
+        long icdTicks = electroCnt >= 2 ? 32L : (electroCnt == 1 ? 40L : 50L);
+        if (now - st.lastTriKarmaProcTick < icdTicks) return;
+        st.lastTriKarmaProcTick = now;
+
+        int pyroCnt = shrineActive ? st.shrinePyroCount : 0;
+        float pyroMult = pyroCnt >= 2 ? 1.45F : (pyroCnt == 1 ? 1.30F : 1.0F);
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(owner);
+        float emScale = 1.0F + emLvl * 0.20F;
+        float baseScale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, mark.netherite);
+        float triKarmaDmg = 5.0F * baseScale * pyroMult * emScale;
+        float gaugeU = mark.netherite ? 1.5F : 1.0F;
+
+        List<LivingEntity> linkedTargets = new ArrayList<>();
+        Iterator<Map.Entry<UUID, SkandhaMark>> it = SKANDHA_MARKS.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, SkandhaMark> entry = it.next();
+            SkandhaMark m = entry.getValue();
+            if (!mark.ownerId.equals(m.ownerId)) continue;
+            if (now >= m.expireTick) {
+                it.remove();
+                continue;
+            }
+            if (level.getEntity(entry.getKey()) instanceof LivingEntity linked && linked.isAlive() && linked.distanceToSqr(triggeredTarget) <= 576.0D) {
+                linkedTargets.add(linked);
+            }
+        }
+        if (linkedTargets.isEmpty()) return;
+
+        drawSkandhaLinks(level, linkedTargets);
+        for (LivingEntity victim : linkedTargets) {
+            victim.invulnerableTime = 0;
+            ElementalGaugeManager.applyElementBypassIcd(level, victim, Element.DENDRO, gaugeU, owner, triKarmaDmg);
+            level.sendParticles(DENDRO_GLOW_DUST, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
+                    12, 0.32D, 0.32D, 0.32D, 0.04D);
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
+                    8, 0.28D, 0.28D, 0.28D, 0.03D);
+        }
+        level.playSound(null, triggeredTarget.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.90F, 1.50F);
+    }
+
+    public static boolean triggerNahidaUlti(ServerPlayer player) {
+        if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        ItemStack stack = getHeldNahidaStack(player);
+        if (stack.isEmpty()) return false;
+
+        long now = level.getGameTime();
+        NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+        if (now < st.ultiCooldownUntilTick) {
+            double rem = (st.ultiCooldownUntilTick - now) / 20.0D;
+            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§a✦ Illusory Heart CD: %.1fs", rem)), true);
+            return false;
+        }
+
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        int baseCdTicks = 270;
+        int adjustedCd = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
+                ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
+                : baseCdTicks;
+        st.ultiCooldownUntilTick = now + adjustedCd;
+        st.iframeUntilTick = now + 34L;
+        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
+        ArchonUltiManager.grantUltiIframe(player, 34);
+        markActiveAction(player, now);
+
+        int pyro = 0;
+        int electro = 0;
+        int hydro = 0;
+        for (ItemStack s : player.getInventory().items) {
+            if (s.isEmpty() || !(s.getItem() instanceof ArcaneStaffItem staff)) continue;
+            Element el = staff.kind() == ArcaneStaffItem.Kind.OMNI
+                    ? ArcaneStaffItem.getOmniActiveElement(s)
+                    : staff.getElement();
+            if (el == Element.PYRO) pyro++;
+            else if (el == Element.ELECTRO) electro++;
+            else if (el == Element.HYDRO) hydro++;
+        }
+        if (isNeth) {
+            pyro++;
+            electro++;
+            hydro++;
+        }
+
+        long bonusHydroTicks = hydro >= 2 ? 160L : (hydro == 1 ? 100L : 0L);
+        long totalDurationTicks = 300L + bonusHydroTicks;
+        st.shrineUntilTick = now + totalDurationTicks;
+        st.shrineCenter = player.position();
+        st.shrineRadius = isNeth ? 15.0D : 12.0D;
+        st.shrineNetherite = isNeth;
+        st.shrinePyroCount = Math.min(2, pyro);
+        st.shrineElectroCount = Math.min(2, electro);
+        st.shrineHydroCount = Math.min(2, hydro);
+
+        InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
+        syncPlayerStateToClients(player, st, now, true);
+
+        for (int i = 0; i < 36; i++) {
+            double ang = (Math.PI * 2.0D * i) / 36.0D;
+            double rx = st.shrineCenter.x + Math.cos(ang) * (st.shrineRadius * 0.75D);
+            double rz = st.shrineCenter.z + Math.sin(ang) * (st.shrineRadius * 0.75D);
+            level.sendParticles(DENDRO_GLOW_DUST, rx, st.shrineCenter.y + 0.5D, rz, 3, 0.25D, 0.6D, 0.25D, 0.03D);
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, rx, st.shrineCenter.y + 2.5D, rz, 2, 0.3D, 0.5D, 0.3D, 0.02D);
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.25F);
+        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+        player.displayClientMessage(
+                Component.translatable("message.velorise_staves.nahida_shrine_activated").withStyle(ChatFormatting.GREEN),
+                true
+        );
+        return true;
+    }
+
+    public static int getBonusEmLevels(@Nullable LivingEntity entity) {
+        if (!(entity instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return 0;
+        long now = level.getGameTime();
+        for (ServerPlayer caster : level.players()) {
+            NahidaPlayerState st = PLAYER_STATES.get(caster.getUUID());
+            if (st != null && now < st.shrineUntilTick) {
+                if (caster == player || caster.isAlliedTo(player) || ElementalGaugeManager.isRaidenProtectedAlly(caster, player)) {
+                    if (player.position().distanceToSqr(st.shrineCenter) <= (st.shrineRadius + 1.5D) * (st.shrineRadius + 1.5D)) {
+                        return 2;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public static void tick(MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
+            ServerLevel level = player.serverLevel();
+
+            boolean holdingNahida = isHoldingNahida(player);
+            Vec3 dv = player.getDeltaMovement();
+            double movedSq = player.position().distanceToSqr(st.lastStillPos);
+            st.lastStillPos = player.position();
+            boolean standingStill = holdingNahida
+                    && player.onGround()
+                    && !player.isUsingItem()
+                    && !player.swinging
+                    && !st.holdingViewfinder
+                    && movedSq < 0.0009D
+                    && Math.hypot(dv.x, dv.z) < 0.02D
+                    && (now - st.lastActionTick) >= 40L;
+            if (standingStill) {
+                st.stillTicks++;
+                if (st.stillTicks >= 110 && !st.idleSwingActive) {
+                    st.idleSwingActive = true;
+                    syncPlayerStateToClients(player, st, now, true);
+                }
+            } else {
+                st.stillTicks = 0;
+                if (st.idleSwingActive) {
+                    st.idleSwingActive = false;
+                    syncPlayerStateToClients(player, st, now, true);
+                }
+            }
+
+            if (st.holdingViewfinder && (!holdingNahida || !player.isUsingItem())) {
+                st.holdingViewfinder = false;
+                syncPlayerStateToClients(player, st, now, true);
+            }
+
+            if (now < st.shrineUntilTick && now % 10L == 0L) {
+                for (int i = 0; i < 16; i++) {
+                    double ang = (Math.PI * 2.0D * i) / 16.0D + (now * 0.02D);
+                    double rx = st.shrineCenter.x + Math.cos(ang) * st.shrineRadius;
+                    double rz = st.shrineCenter.z + Math.sin(ang) * st.shrineRadius;
+                    level.sendParticles(DENDRO_GLOW_DUST, rx, st.shrineCenter.y + 0.25D, rz, 1, 0.1D, 0.2D, 0.1D, 0.01D);
+                }
+                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR,
+                        st.shrineCenter.x, st.shrineCenter.y + 3.5D, st.shrineCenter.z,
+                        6, st.shrineRadius * 0.45D, 1.5D, st.shrineRadius * 0.45D, 0.02D);
+            }
+
+            syncPlayerStateToClients(player, st, now, false);
+        }
+
+        if (now % 20L == 0L && !SKANDHA_MARKS.isEmpty()) {
+            Iterator<Map.Entry<UUID, SkandhaMark>> it = SKANDHA_MARKS.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<UUID, SkandhaMark> entry = it.next();
+                if (now >= entry.getValue().expireTick) {
+                    UUID targetId = entry.getKey();
+                    it.remove();
+                    for (ServerLevel lvl : server.getAllLevels()) {
+                        if (lvl.getEntity(targetId) instanceof LivingEntity le) {
+                            ModNetwork.sendStaffAnimation(le, 4100);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static void syncPlayerStateToClients(ServerPlayer player, NahidaPlayerState st, long now, boolean force) {
+        int playerCode = st.holdingViewfinder ? 4002 : (st.idleSwingActive ? 4001 : 4000);
+        if (force || playerCode != st.lastSyncedPlayerCode) {
+            st.lastSyncedPlayerCode = playerCode;
+            ModNetwork.sendStaffAnimation(player, playerCode);
+        }
+
+        int shrineCode;
+        if (now < st.shrineUntilTick) {
+            int mask = 1;
+            if (st.shrinePyroCount > 0) mask |= 2;
+            if (st.shrineElectroCount > 0) mask |= 4;
+            if (st.shrineHydroCount > 0) mask |= 8;
+            if (st.shrineNetherite) mask |= 16;
+            shrineCode = 4200 + mask;
+        } else {
+            shrineCode = 4200;
+        }
+        if (force || shrineCode != st.lastSyncedShrineCode) {
+            st.lastSyncedShrineCode = shrineCode;
+            ModNetwork.sendStaffAnimation(player, shrineCode);
+        }
+    }
+}
