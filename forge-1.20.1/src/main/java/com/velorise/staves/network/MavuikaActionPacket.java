@@ -53,6 +53,14 @@ public class MavuikaActionPacket {
         ctx.enqueueWork(() -> {
             ServerPlayer player = ctx.getSender();
             if (player == null) return;
+            if (packet.action != ACTION_TOGGLE_GLIDER
+                    && packet.action != ACTION_PLUNGE_ATTACK
+                    && packet.action != ACTION_SPIN_STOP
+                    && packet.action != ACTION_SPRINT_STOP
+                    && packet.action != ACTION_NEUVILLETTE_CA_STOP
+                    && com.velorise.staves.element.ElementalResonanceManager.checkAndNotifyOverloaded(player)) {
+                return;
+            }
             if (packet.action == ACTION_ULTI) {
                 ArchonUltiManager.triggerUlti(player);
             } else if (packet.action == ACTION_DASH_CANCEL) {

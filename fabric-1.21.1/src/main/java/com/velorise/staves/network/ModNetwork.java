@@ -35,7 +35,10 @@ public final class ModNetwork {
         });
         PayloadTypeRegistry.playC2S().register(RaidenSlashPayload.TYPE, RaidenSlashPayload.STREAM_CODEC);
         ServerPlayNetworking.registerGlobalReceiver(RaidenSlashPayload.TYPE, (payload, context) -> {
-            context.server().execute(() -> com.velorise.staves.element.ElementalGaugeManager.performRaidenMusouSwing(context.player(), payload.charged()));
+            context.server().execute(() -> {
+                if (com.velorise.staves.element.ElementalResonanceManager.checkAndNotifyOverloaded(context.player())) return;
+                com.velorise.staves.element.ElementalGaugeManager.performRaidenMusouSwing(context.player(), payload.charged());
+            });
         });
     }
 
@@ -65,6 +68,36 @@ public final class ModNetwork {
         net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.45D, 0);
         net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.45D, 0);
         ElectricArcPayload payload = new ElectricArcPayload(from.getId(), start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, color);
+        for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendNahidaShrine(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int mask) {
+        ElectricArcPayload payload = new ElectricArcPayload(-5, center.x, center.y, center.z, -5, radius, 0.0D, 0.0D, durationTicks, mask);
+        for (ServerPlayer player : PlayerLookup.around(level, center, 96.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendTsaritsaPolarField(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int variant) {
+        ElectricArcPayload payload = new ElectricArcPayload(-6, center.x, center.y, center.z, -6, radius, 0.0D, 0.0D, durationTicks, variant);
+        for (ServerPlayer player : PlayerLookup.around(level, center, 96.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendCryoArrow(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int style) {
+        ElectricArcPayload payload = new ElectricArcPayload(-7, start.x, start.y, start.z, -7, end.x, end.y, end.z, durationTicks, style);
+        for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendSkandhaLink(net.minecraft.server.level.ServerLevel level, Entity from, Entity to, int durationTicks) {
+        net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.55D, 0);
+        net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.55D, 0);
+        ElectricArcPayload payload = new ElectricArcPayload(-8, start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, 0xFF48F56E);
         for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
             ServerPlayNetworking.send(player, payload);
         }

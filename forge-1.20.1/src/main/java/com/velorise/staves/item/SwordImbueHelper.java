@@ -90,6 +90,31 @@ public final class SwordImbueHelper {
 
     public static @Nullable AnvilResult tryBuildAnvilResult(ItemStack left, ItemStack right, @Nullable String itemName) {
         if (left.isEmpty() || right.isEmpty()) return null;
+        if (ArcaneStaffItem.isOmniStaff(left)
+                && right.getItem() instanceof ArcaneStaffItem rightStaff
+                && rightStaff.kind() != ArcaneStaffItem.Kind.OMNI) {
+            Element elem = rightStaff.getElement();
+            if (elem != null) {
+                ArcaneStaffItem currentAbsorbed = ArcaneStaffItem.getAbsorbedStaffForElement(left, elem);
+                if (currentAbsorbed == rightStaff) {
+                    return null;
+                }
+                ItemStack output = left.copy();
+                output.setCount(1);
+                ArcaneStaffItem.recordAbsorbedStaff(output, right);
+                int xpCost = rightStaff.isNetherite() ? 6 : 4;
+                if (itemName != null && !StringUtil.isNullOrEmpty(itemName) && !itemName.trim().isEmpty()) {
+                    if (!itemName.equals(left.getHoverName().getString())) {
+                        output.setHoverName(Component.literal(itemName));
+                        xpCost += 1;
+                    }
+                } else if (left.hasCustomHoverName()) {
+                    output.resetHoverName();
+                    xpCost += 1;
+                }
+                return new AnvilResult(output, xpCost, 1);
+            }
+        }
         if (!(left.getItem() instanceof SwordItem) || !(right.getItem() instanceof ElementItem elemItem)) return null;
 
         Element rightElem = elemItem.getElement();

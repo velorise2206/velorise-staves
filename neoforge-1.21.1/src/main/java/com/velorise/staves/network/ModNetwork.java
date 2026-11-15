@@ -51,6 +51,28 @@ public final class ModNetwork {
         PacketDistributor.sendToPlayersNear(level, null, start.x, start.y, start.z, 64.0D, payload);
     }
 
+    public static void sendNahidaShrine(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int mask) {
+        ElectricArcPayload payload = new ElectricArcPayload(-5, center.x, center.y, center.z, -5, radius, 0.0D, 0.0D, durationTicks, mask);
+        PacketDistributor.sendToPlayersNear(level, null, center.x, center.y, center.z, 96.0D, payload);
+    }
+
+    public static void sendTsaritsaPolarField(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int variant) {
+        ElectricArcPayload payload = new ElectricArcPayload(-6, center.x, center.y, center.z, -6, radius, 0.0D, 0.0D, durationTicks, variant);
+        PacketDistributor.sendToPlayersNear(level, null, center.x, center.y, center.z, 96.0D, payload);
+    }
+
+    public static void sendCryoArrow(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int style) {
+        ElectricArcPayload payload = new ElectricArcPayload(-7, start.x, start.y, start.z, -7, end.x, end.y, end.z, durationTicks, style);
+        PacketDistributor.sendToPlayersNear(level, null, start.x, start.y, start.z, 64.0D, payload);
+    }
+
+    public static void sendSkandhaLink(net.minecraft.server.level.ServerLevel level, Entity from, Entity to, int durationTicks) {
+        net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.55D, 0);
+        net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.55D, 0);
+        ElectricArcPayload payload = new ElectricArcPayload(-8, start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, 0xFF48F56E);
+        PacketDistributor.sendToPlayersNear(level, null, start.x, start.y, start.z, 64.0D, payload);
+    }
+
     public static void sendAuraSync(
             Entity target,
             Collection<Element> elements,

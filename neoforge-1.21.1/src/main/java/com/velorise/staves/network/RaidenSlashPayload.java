@@ -28,6 +28,7 @@ public record RaidenSlashPayload(boolean charged) implements CustomPacketPayload
     public static void handle(RaidenSlashPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> {
             if (context.player() instanceof ServerPlayer player) {
+                if (com.velorise.staves.element.ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
                 ElementalGaugeManager.performRaidenMusouSwing(player, payload.charged());
             }
         });

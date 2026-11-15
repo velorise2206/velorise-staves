@@ -51,6 +51,14 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
 
     public static void handle(ServerPlayer player, byte action) {
         if (player == null) return;
+        if (action != ACTION_TOGGLE_GLIDER
+                && action != ACTION_PLUNGE_ATTACK
+                && action != ACTION_SPIN_STOP
+                && action != ACTION_SPRINT_STOP
+                && action != ACTION_NEUVILLETTE_CA_STOP
+                && com.velorise.staves.element.ElementalResonanceManager.checkAndNotifyOverloaded(player)) {
+            return;
+        }
         if (action == ACTION_ULTI) {
             ArchonUltiManager.triggerUlti(player);
         } else if (action == ACTION_DASH_CANCEL) {

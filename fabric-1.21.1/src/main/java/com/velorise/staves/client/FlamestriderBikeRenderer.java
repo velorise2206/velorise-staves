@@ -318,6 +318,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
     public static boolean pushRiderBikeTransform(net.minecraft.world.entity.LivingEntity rider, float partialTicks, PoseStack poseStack) {
         if (!(rider.getVehicle() instanceof FlamestriderBikeEntity bike)) {
             if (ClientAuraTracker.isXilonenSkating(rider.getId())
+                    && ClientAuraTracker.isXilonenJumpFlipping(rider.getId())
                     && !rider.onGround()
                     && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())
                     && !ClientAuraTracker.isPlunging(rider.getId())

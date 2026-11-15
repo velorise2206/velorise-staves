@@ -110,7 +110,8 @@ public final class ElementalResonanceManager {
     private static final Map<UUID, Float> LAST_EXHAUSTION = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> LAST_SELECTED_SLOT = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAST_STAFF_SWAP_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, long[]> OMNI_MODE_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> OMNI_GLOBAL_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_OVERLOAD_WARN_MS = new ConcurrentHashMap<>();
 
     // Client-side synced cache
     private static volatile int clientResonanceMask = 0;
@@ -130,7 +131,8 @@ public final class ElementalResonanceManager {
         LAST_EXHAUSTION.clear();
         LAST_SELECTED_SLOT.clear();
         LAST_STAFF_SWAP_TICK.clear();
-        OMNI_MODE_CD_UNTIL.clear();
+        OMNI_GLOBAL_CD_UNTIL.clear();
+        LAST_OVERLOAD_WARN_MS.clear();
     }
 
     public static void clearClientState() {
@@ -140,15 +142,31 @@ public final class ElementalResonanceManager {
         clientSwapCooldownUntilMs = 0L;
     }
 
+    public static boolean isSwapCooldownExempt(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        ArcaneStaffItem.Kind kind = ArcaneStaffItem.getEffectiveKind(stack);
+        if (kind == null) return false;
+        return switch (kind) {
+            case GHASTFIRE, ECHO, LIGHTNING, GUARDIAN, DAYBREAK, TSARITSA_BOW, TSARITSA_SPEAR -> true;
+            default -> false;
+        };
+    }
+
     public static void notifyClientSlotSwitchedToStaff(Player clientPlayer, ItemStack staffStack) {
+        if (clientPlayer == null || staffStack.isEmpty()) return;
+        if (isSwapCooldownExempt(staffStack)) {
+            clientSwapCooldownUntilMs = 0L;
+            return;
+        }
         clientSwapCooldownUntilMs = System.currentTimeMillis() + 1000L;
-        if (clientPlayer != null && !staffStack.isEmpty() && !clientPlayer.getCooldowns().isOnCooldown(staffStack.getItem())) {
+        if (!clientPlayer.getCooldowns().isOnCooldown(staffStack.getItem())) {
             clientPlayer.getCooldowns().addCooldown(staffStack.getItem(), SWAP_COOLDOWN_TICKS);
         }
     }
 
     public static boolean isOnSwapCooldown(@Nullable Player player) {
         if (player == null) return false;
+        if (isSwapCooldownExempt(player.getMainHandItem())) return false;
         if (player.level().isClientSide()) {
             return System.currentTimeMillis() < clientSwapCooldownUntilMs;
         }
@@ -193,7 +211,8 @@ public final class ElementalResonanceManager {
         LAST_EXHAUSTION.remove(playerId);
         LAST_SELECTED_SLOT.remove(playerId);
         LAST_STAFF_SWAP_TICK.remove(playerId);
-        OMNI_MODE_CD_UNTIL.remove(playerId);
+        OMNI_GLOBAL_CD_UNTIL.remove(playerId);
+        LAST_OVERLOAD_WARN_MS.remove(playerId);
     }
 
     private static List<ItemStack> buildPrioritySlotOrder(Inventory inv) {
@@ -341,9 +360,13 @@ public final class ElementalResonanceManager {
         if (prevSelected != null && prevSelected.intValue() != selected) {
             ItemStack main = player.getMainHandItem();
             if (!main.isEmpty() && main.getItem() instanceof ArcaneStaffItem staff) {
-                LAST_STAFF_SWAP_TICK.put(player.getUUID(), now);
-                if (!player.getCooldowns().isOnCooldown(staff)) {
-                    player.getCooldowns().addCooldown(staff, SWAP_COOLDOWN_TICKS);
+                if (isSwapCooldownExempt(main)) {
+                    LAST_STAFF_SWAP_TICK.remove(player.getUUID());
+                } else {
+                    LAST_STAFF_SWAP_TICK.put(player.getUUID(), now);
+                    if (!player.getCooldowns().isOnCooldown(staff)) {
+                        player.getCooldowns().addCooldown(staff, SWAP_COOLDOWN_TICKS);
+                    }
                 }
             }
         }
@@ -450,6 +473,23 @@ public final class ElementalResonanceManager {
         return state.overloaded;
     }
 
+    public static boolean checkAndNotifyOverloaded(@Nullable Player player) {
+        if (!isOverloaded(player)) return false;
+        if (!player.level().isClientSide()) {
+            long nowMs = System.currentTimeMillis();
+            Long lastWarn = LAST_OVERLOAD_WARN_MS.get(player.getUUID());
+            if (lastWarn == null || (nowMs - lastWarn) >= 600L) {
+                LAST_OVERLOAD_WARN_MS.put(player.getUUID(), nowMs);
+                player.displayClientMessage(
+                        net.minecraft.network.chat.Component.translatable("message.velorise_staves.staff_overload", getMaxStavesCap())
+                                .withStyle(net.minecraft.ChatFormatting.RED),
+                        true
+                );
+            }
+        }
+        return true;
+    }
+
     /**
      * Applies staff/artifact cooldown with Anemo Resonance -10% reduction and tracks active staff cooldowns for Electro Resonance.
      */
@@ -476,45 +516,24 @@ public final class ElementalResonanceManager {
         int finalTicks = hasResonance(player, ResonanceType.ANEMO)
                 ? Math.max(1, (int) Math.round(baseTicks * 0.90D))
                 : Math.max(1, baseTicks);
-        int mode = OmniOrbEntity.clampMode(ArcaneStaffItem.getOmniModeIndex(omniStack));
         if (!player.level().isClientSide()) {
             long now = player.level().getGameTime();
-            long[] cds = OMNI_MODE_CD_UNTIL.computeIfAbsent(player.getUUID(), k -> new long[8]);
-            cds[mode] = now + finalTicks;
-            Element el = OmniOrbEntity.modeToElement(mode);
-            if (el != null) {
-                ArcaneStaffItem absorbed = ArcaneStaffItem.getOmniAbsorbedStaff(omniStack, el);
-                if (absorbed != null) {
-                    player.getCooldowns().addCooldown(absorbed, finalTicks);
-                    RECORDED_STAFF_COOLDOWNS
-                            .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
-                            .put(absorbed, new CooldownTrack(finalTicks));
-                }
-            }
+            long prevUntil = OMNI_GLOBAL_CD_UNTIL.getOrDefault(player.getUUID(), 0L);
+            OMNI_GLOBAL_CD_UNTIL.put(player.getUUID(), Math.max(prevUntil, now + finalTicks));
         }
         applyCooldown(player, omniStack.getItem(), baseTicks);
     }
 
     public static void syncOmniModeCooldown(ServerPlayer player, ItemStack omniStack, int newMode) {
         if (player == null || omniStack.isEmpty()) return;
-        int mode = OmniOrbEntity.clampMode(newMode);
         long now = player.level().getGameTime();
-        long[] cds = OMNI_MODE_CD_UNTIL.get(player.getUUID());
-        long until = cds != null ? cds[mode] : 0L;
+        long until = OMNI_GLOBAL_CD_UNTIL.getOrDefault(player.getUUID(), 0L);
         int rem = (int) Math.max(0L, until - now);
-        if (isOnSwapCooldown(player)) {
-            long swapRem = SWAP_COOLDOWN_TICKS - (now - LAST_STAFF_SWAP_TICK.getOrDefault(player.getUUID(), 0L));
-            rem = Math.max(rem, (int) Math.max(0L, swapRem));
-        }
-        player.getCooldowns().removeCooldown(omniStack.getItem());
-        if (rem > 0) {
+        if (rem > 0 && !player.getCooldowns().isOnCooldown(omniStack.getItem())) {
             player.getCooldowns().addCooldown(omniStack.getItem(), rem);
             RECORDED_STAFF_COOLDOWNS
                     .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
                     .put(omniStack.getItem(), new CooldownTrack(rem));
-        } else {
-            Map<Item, CooldownTrack> tracks = RECORDED_STAFF_COOLDOWNS.get(player.getUUID());
-            if (tracks != null) tracks.remove(omniStack.getItem());
         }
     }
 
@@ -538,13 +557,9 @@ public final class ElementalResonanceManager {
             held.setDamageValue(Math.max(0, held.getDamageValue() - 1));
         }
 
-        long[] omniCds = OMNI_MODE_CD_UNTIL.get(attacker.getUUID());
-        if (omniCds != null) {
-            for (int i = 0; i < omniCds.length; i++) {
-                if (omniCds[i] > now) {
-                    omniCds[i] = Math.max(now, omniCds[i] - 20L);
-                }
-            }
+        Long omniUntil = OMNI_GLOBAL_CD_UNTIL.get(attacker.getUUID());
+        if (omniUntil != null && omniUntil > now) {
+            OMNI_GLOBAL_CD_UNTIL.put(attacker.getUUID(), Math.max(now, omniUntil - 20L));
         }
 
         Map<Item, CooldownTrack> tracks = RECORDED_STAFF_COOLDOWNS.get(attacker.getUUID());

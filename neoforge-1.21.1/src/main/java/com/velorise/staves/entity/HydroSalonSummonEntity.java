@@ -49,7 +49,7 @@ public class HydroSalonSummonEntity extends Entity {
     public static final int ROLE_CRABALETTA = 2;
     public static final int ROLE_SINGER = 3;
 
-    public static final int MAX_LIFETIME_TICKS = 300; // 15 seconds
+    public static final int MAX_LIFETIME_TICKS = 600; // 30 seconds
 
     private static final EntityDataAccessor<Byte> DATA_ROLE =
             SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.BYTE);
@@ -162,15 +162,21 @@ public class HydroSalonSummonEntity extends Entity {
     public static boolean carriesSplendorStaff(@Nullable Player player) {
         if (player == null) return false;
         for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff
-                    && staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) {
-                return true;
+            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff) {
+                if (staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) return true;
+                if (staff.kind() == ArcaneStaffItem.Kind.OMNI) {
+                    ArcaneStaffItem abs = ArcaneStaffItem.getAbsorbedStaffForElement(s, Element.HYDRO);
+                    if (abs != null && abs.kind() == ArcaneStaffItem.Kind.SPLENDOR) return true;
+                }
             }
         }
         for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff
-                    && staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) {
-                return true;
+            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff) {
+                if (staff.kind() == ArcaneStaffItem.Kind.SPLENDOR) return true;
+                if (staff.kind() == ArcaneStaffItem.Kind.OMNI) {
+                    ArcaneStaffItem abs = ArcaneStaffItem.getAbsorbedStaffForElement(s, Element.HYDRO);
+                    if (abs != null && abs.kind() == ArcaneStaffItem.Kind.SPLENDOR) return true;
+                }
             }
         }
         return false;

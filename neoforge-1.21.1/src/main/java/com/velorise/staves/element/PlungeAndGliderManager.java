@@ -39,6 +39,7 @@ public final class PlungeAndGliderManager {
         public float plungeStartFallDist = 0.0F;
         public double plungeStartY = 0.0D;
         public long plungeStartedTick = 0L;
+        public long plungeLandedTick = -100L;
     }
 
     private static final Map<UUID, AirState> STATES = new ConcurrentHashMap<>();
@@ -104,6 +105,50 @@ public final class PlungeAndGliderManager {
         if (player == null || NeuvilletteManager.isHoldingGuardianLens(player)) return false;
         ItemStack main = player.getMainHandItem();
         return main.getItem() instanceof ArcaneStaffItem || main.getItem() instanceof SwordItem;
+    }
+
+    public static boolean isHandBlockingGliderRightClick(Player player, ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        net.minecraft.world.item.Item item = stack.getItem();
+        if (item instanceof com.velorise.staves.item.WindGliderItem) {
+            return !isWindGliderUnlocked(player);
+        }
+        if (item instanceof ArcaneStaffItem) {
+            return !player.getCooldowns().isOnCooldown(item) && !ElementalResonanceManager.isOverloaded(player);
+        }
+        if (item instanceof com.velorise.staves.item.MagicMirrorItem
+                || item instanceof com.velorise.staves.item.VoidTranslocatorItem
+                || item instanceof com.velorise.staves.item.ElementalCodexItem) {
+            return !player.getCooldowns().isOnCooldown(item);
+        }
+        if (stack.getUseAnimation() != net.minecraft.world.item.UseAnim.NONE) {
+            return true;
+        }
+        if (item == net.minecraft.world.item.Items.ENDER_PEARL
+                || item instanceof net.minecraft.world.item.SnowballItem
+                || item instanceof net.minecraft.world.item.EggItem
+                || item instanceof net.minecraft.world.item.ExperienceBottleItem
+                || item instanceof net.minecraft.world.item.ThrowablePotionItem
+                || item instanceof net.minecraft.world.item.FishingRodItem
+                || item instanceof net.minecraft.world.item.FireworkRocketItem
+                || item instanceof net.minecraft.world.item.SpawnEggItem
+                || item instanceof net.minecraft.world.item.BucketItem) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean canRightClickToggleGlider(Player player) {
+        if (player == null || !player.isAlive() || player.isSpectator()) return false;
+        if (!isWindGliderUnlocked(player)) return false;
+        if (player.onGround() || player.isInWater() || player.isInLava()
+                || player.onClimbable() || player.getVehicle() != null || player.getAbilities().flying) {
+            return false;
+        }
+        if (isPlunging(player) || player.isUsingItem()) return false;
+        if (isHandBlockingGliderRightClick(player, player.getMainHandItem())) return false;
+        if (isHandBlockingGliderRightClick(player, player.getOffhandItem())) return false;
+        return true;
     }
 
     public static boolean hasClearAirBeneath(Player player, double minClearBlocks) {
@@ -194,10 +239,11 @@ public final class PlungeAndGliderManager {
         st.plungeStartY = player.getY();
         st.plungeStartedTick = player.level().getGameTime();
 
+        player.fallDistance = 0.0F;
         Vec3 look = player.getLookAngle();
         Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
         if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
-        player.setDeltaMovement(horiz.x * 0.22D, -1.35D, horiz.z * 0.22D);
+        player.setDeltaMovement(horiz.x * 0.18D, -0.675D, horiz.z * 0.18D);
         player.hasImpulse = true;
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
 
@@ -205,22 +251,24 @@ public final class PlungeAndGliderManager {
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_START);
     }
 
-    public static float modifyPlungeOrGliderFallDamage(LivingEntity entity, float rawFallDamage) {
-        if (!(entity instanceof ServerPlayer player)) return rawFallDamage;
-        AirState st = STATES.get(player.getUUID());
-        if (st == null) return rawFallDamage;
-        if (st.gliding) {
-            player.fallDistance = 0.0F;
-            return 0.0F;
+    public static boolean isPlungeFallImmune(LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        if (player.level().isClientSide()) {
+            return com.velorise.staves.client.ClientAuraTracker.isGliding(player.getId())
+                    || com.velorise.staves.client.ClientAuraTracker.isPlunging(player.getId());
         }
-        if (st.plunging || (player.level().getGameTime() - st.plungeStartedTick) <= 10L) {
-            float effectiveFall = Math.max(player.fallDistance, (float) Math.max(0.0D, st.plungeStartY - player.getY()));
-            if (effectiveFall <= 15.0F) {
-                return 0.0F;
-            }
-            float reduced = (effectiveFall - 15.0F) * 0.5F;
-            float maxCap = player.getMaxHealth() * 0.40F;
-            return Math.min(reduced, maxCap);
+        AirState st = STATES.get(player.getUUID());
+        if (st == null) return false;
+        long now = player.level().getGameTime();
+        return st.gliding || st.plunging
+                || (now - st.plungeLandedTick) <= 20L
+                || (now - st.plungeStartedTick) <= 20L;
+    }
+
+    public static float modifyPlungeOrGliderFallDamage(LivingEntity entity, float rawFallDamage) {
+        if (isPlungeFallImmune(entity)) {
+            entity.fallDistance = 0.0F;
+            return 0.0F;
         }
         return rawFallDamage;
     }
@@ -273,17 +321,21 @@ public final class PlungeAndGliderManager {
             }
 
             if (st.plunging) {
+                player.fallDistance = 0.0F;
                 if (player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
                     st.plunging = false;
+                    st.plungeLandedTick = now;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
-                } else if (player.onGround() || (now - st.plungeStartedTick) > 100L) {
+                } else if (player.onGround() || (now - st.plungeStartedTick) > 200L) {
                     st.plunging = false;
+                    st.plungeLandedTick = now;
+                    player.fallDistance = 0.0F;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
                     executePlungeImpact(level, player);
                 } else {
                     Vec3 dv = player.getDeltaMovement();
-                    if (dv.y > -1.25D) {
-                        player.setDeltaMovement(dv.x * 0.92D, -1.35D, dv.z * 0.92D);
+                    if (dv.y > -0.625D) {
+                        player.setDeltaMovement(dv.x * 0.92D, -0.675D, dv.z * 0.92D);
                         player.hasImpulse = true;
                         player.connection.send(new ClientboundSetEntityMotionPacket(player));
                     }
@@ -295,6 +347,7 @@ public final class PlungeAndGliderManager {
     }
 
     private static void executePlungeImpact(ServerLevel level, ServerPlayer player) {
+        player.fallDistance = 0.0F;
         ItemStack held = player.getMainHandItem();
         boolean isNeth = false;
         Element elem = null;

@@ -112,6 +112,28 @@ public final class ModNetwork {
         CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
     }
 
+    public static void sendNahidaShrine(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int mask) {
+        ElectricArcPacket packet = new ElectricArcPacket(-5, center.x, center.y, center.z, -5, radius, 0.0D, 0.0D, durationTicks, mask);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(center.x, center.y, center.z, 96.0D, level.dimension())), packet);
+    }
+
+    public static void sendTsaritsaPolarField(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int variant) {
+        ElectricArcPacket packet = new ElectricArcPacket(-6, center.x, center.y, center.z, -6, radius, 0.0D, 0.0D, durationTicks, variant);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(center.x, center.y, center.z, 96.0D, level.dimension())), packet);
+    }
+
+    public static void sendCryoArrow(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int style) {
+        ElectricArcPacket packet = new ElectricArcPacket(-7, start.x, start.y, start.z, -7, end.x, end.y, end.z, durationTicks, style);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
+    }
+
+    public static void sendSkandhaLink(net.minecraft.server.level.ServerLevel level, Entity from, Entity to, int durationTicks) {
+        net.minecraft.world.phys.Vec3 start = from.position().add(0, from.getBbHeight() * 0.55D, 0);
+        net.minecraft.world.phys.Vec3 end = to.position().add(0, to.getBbHeight() * 0.55D, 0);
+        ElectricArcPacket packet = new ElectricArcPacket(-8, start.x, start.y, start.z, to.getId(), end.x, end.y, end.z, durationTicks, 0xFF48F56E);
+        CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
+    }
+
     public static void sendAuraSync(
             Entity target,
             Collection<Element> elements,

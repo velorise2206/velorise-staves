@@ -66,6 +66,19 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 net.minecraft.client.renderer.item.ItemProperties.register(item, spearStanceId,
                         (stack, level, entity, seed) -> (entity != null && ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) ? 1.0F : 0.0F);
             }
+            for (net.minecraft.world.item.Item item : new net.minecraft.world.item.Item[]{
+                    VeloriseStavesMod.OMNI_STAFF.get(),
+                    VeloriseStavesMod.NETHERITE_OMNI_STAFF.get()
+            }) {
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullId,
+                        (stack, level, entity, seed) -> com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
+                                ? ClientAuraRenderer.getDaybreakPullProgress(entity, stack)
+                                : ClientAuraRenderer.getTsaritsaPullProgress(entity, stack));
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
+                        (stack, level, entity, seed) -> (ClientAuraRenderer.isDaybreakPulling(entity, stack) || ClientAuraRenderer.isTsaritsaPulling(entity, stack)) ? 1.0F : 0.0F);
+                net.minecraft.client.renderer.item.ItemProperties.register(item, spearStanceId,
+                        (stack, level, entity, seed) -> (entity != null && ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) ? 1.0F : 0.0F);
+            }
         });
     }
 
@@ -357,6 +370,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
     public static boolean pushRiderBikeTransform(net.minecraft.world.entity.LivingEntity rider, float partialTicks, PoseStack poseStack) {
         if (!(rider.getVehicle() instanceof FlamestriderBikeEntity bike)) {
             if (ClientAuraTracker.isXilonenSkating(rider.getId())
+                    && ClientAuraTracker.isXilonenJumpFlipping(rider.getId())
                     && !rider.onGround()
                     && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())
                     && !ClientAuraTracker.isPlunging(rider.getId())

@@ -241,7 +241,7 @@ public class FlamestriderBikeEntity extends Entity {
 
     @Override
     public float maxUpStep() {
-        return 1.05F;
+        return 1.25F;
     }
 
     @Override
