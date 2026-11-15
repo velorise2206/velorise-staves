@@ -2574,7 +2574,7 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public float getDestroySpeed(ItemStack stack, net.minecraft.world.level.block.state.BlockState state) {
         Kind k = getEffectiveKind(stack);
-        if (k == Kind.GUARDIAN || k == Kind.SPLENDOR || k == Kind.THOUSAND_FLOATING_DREAMS || k == Kind.TSARITSA_BOW || k == Kind.TSARITSA_SPEAR) {
+        if (k == Kind.DAYBREAK || k == Kind.GUARDIAN || k == Kind.SPLENDOR || k == Kind.THOUSAND_FLOATING_DREAMS || k == Kind.TSARITSA_BOW || k == Kind.TSARITSA_SPEAR) {
             return 0.0F;
         }
         return super.getDestroySpeed(stack, state);

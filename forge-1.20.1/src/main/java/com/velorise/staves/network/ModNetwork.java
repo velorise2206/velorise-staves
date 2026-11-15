@@ -264,9 +264,9 @@ public final class ModNetwork {
         CHANNEL.sendToServer(new MavuikaActionPacket(action));
     }
 
-    public static void sendRaidenSync(Entity target, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+    public static void sendRaidenSync(Entity target, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite, int burstCooldownTicks) {
         if (target == null || target.level().isClientSide()) return;
-        RaidenSyncPacket packet = new RaidenSyncPacket(target.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite);
+        RaidenSyncPacket packet = new RaidenSyncPacket(target.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite, burstCooldownTicks);
         CHANNEL.send(PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> target), packet);
     }
 }

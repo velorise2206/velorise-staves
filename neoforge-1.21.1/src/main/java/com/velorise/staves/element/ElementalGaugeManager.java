@@ -6193,7 +6193,8 @@ public final class ElementalGaugeManager {
         int musouRem = (int) Math.max(0L, RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L) - now);
         int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
         boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false) || RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
-        com.velorise.staves.network.ModNetwork.sendRaidenSync(player, eyeRem, musouRem, resolve, neth);
+        int burstCd = (int) Math.max(0L, RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L) - now);
+        com.velorise.staves.network.ModNetwork.sendRaidenSync(player, eyeRem, musouRem, resolve, neth, burstCd);
     }
 
     private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) {
@@ -6620,7 +6621,7 @@ public final class ElementalGaugeManager {
                 RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
             }
 
-            if ((eyeActive || musouActive || RAIDEN_RESOLVE.getOrDefault(id, 0) > 0) && serverNow % 10 == 0) {
+            if ((eyeActive || musouActive || RAIDEN_RESOLVE.getOrDefault(id, 0) > 0 || isRaidenBurstOnCooldown(id, serverNow)) && serverNow % 10 == 0) {
                 syncRaidenState(player, serverNow);
             }
             if (!eyeActive && RAIDEN_EYE_UNTIL.containsKey(id)) {

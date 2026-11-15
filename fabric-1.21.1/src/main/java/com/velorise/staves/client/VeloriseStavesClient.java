@@ -89,7 +89,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         });
         ClientPlayNetworking.registerGlobalReceiver(com.velorise.staves.network.RaidenSyncPayload.TYPE, (payload, context) -> {
             context.client().execute(() -> ClientAuraTracker.updateRaiden(
-                    payload.entityId(), payload.eyeRemainingTicks(), payload.musouRemainingTicks(), payload.resolve(), payload.netherite()
+                    payload.entityId(), payload.eyeRemainingTicks(), payload.musouRemainingTicks(), payload.resolve(), payload.netherite(), payload.burstCooldownTicks()
             ));
         });
 
@@ -123,6 +123,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]
                     || com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(player)
                     || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
@@ -135,6 +136,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease[0]
                     || com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(player)
                     || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(player)
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
@@ -355,6 +357,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     boolean leftPhysDown = client.options.keyAttack.isDown()
                             || org.lwjgl.glfw.GLFW.glfwGetMouseButton(client.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
                     if (leftPhysDown) {
+                        if (client.gameMode != null) {
+                            client.gameMode.stopDestroyBlock();
+                        }
+                        client.player.swinging = false;
+                        client.player.swingTime = 0;
                         ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
                     } else {
                         int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
@@ -391,6 +398,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 boolean leftPhysDown = client.options.keyAttack.isDown()
                         || org.lwjgl.glfw.GLFW.glfwGetMouseButton(client.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
                 if (leftPhysDown) {
+                    if (client.gameMode != null) {
+                        client.gameMode.stopDestroyBlock();
+                    }
+                    client.player.swinging = false;
+                    client.player.swingTime = 0;
                     ClientAuraTracker.localDaybreakBowPullTicks = Math.min(60, ClientAuraTracker.localDaybreakBowPullTicks + 1);
                     ClientAuraTracker.ventiUltiHoldTicks = ClientAuraTracker.localDaybreakBowPullTicks;
                 } else {

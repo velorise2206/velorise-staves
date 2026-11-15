@@ -12,13 +12,15 @@ public class RaidenSyncPacket {
     private final int musouRemainingTicks;
     private final int resolve;
     private final boolean netherite;
+    private final int burstCooldownTicks;
 
-    public RaidenSyncPacket(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+    public RaidenSyncPacket(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite, int burstCooldownTicks) {
         this.entityId = entityId;
         this.eyeRemainingTicks = eyeRemainingTicks;
         this.musouRemainingTicks = musouRemainingTicks;
         this.resolve = resolve;
         this.netherite = netherite;
+        this.burstCooldownTicks = burstCooldownTicks;
     }
 
     public RaidenSyncPacket(FriendlyByteBuf buf) {
@@ -27,6 +29,7 @@ public class RaidenSyncPacket {
         this.musouRemainingTicks = buf.readVarInt();
         this.resolve = buf.readVarInt();
         this.netherite = buf.readBoolean();
+        this.burstCooldownTicks = buf.readVarInt();
     }
 
     public void toBytes(FriendlyByteBuf buf) {
@@ -35,12 +38,13 @@ public class RaidenSyncPacket {
         buf.writeVarInt(musouRemainingTicks);
         buf.writeVarInt(resolve);
         buf.writeBoolean(netherite);
+        buf.writeVarInt(burstCooldownTicks);
     }
 
     public static void handle(RaidenSyncPacket packet, Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
         ctx.enqueueWork(() -> ClientAuraTracker.updateRaiden(
-                packet.entityId, packet.eyeRemainingTicks, packet.musouRemainingTicks, packet.resolve, packet.netherite
+                packet.entityId, packet.eyeRemainingTicks, packet.musouRemainingTicks, packet.resolve, packet.netherite, packet.burstCooldownTicks
         ));
         ctx.setPacketHandled(true);
     }

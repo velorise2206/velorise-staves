@@ -6331,6 +6331,7 @@ public final class ClientAuraRenderer {
         if (!holdingRaiden || state == null) return;
         float eyeTicks = state.effectiveEyeTicks();
         float musouTicks = state.effectiveMusouTicks();
+        float burstCdTicks = state.effectiveBurstCooldownTicks();
 
         int sw = guiGraphics.guiWidth();
         int sh = guiGraphics.guiHeight();
@@ -6344,7 +6345,7 @@ public final class ClientAuraRenderer {
         float endDeg = 52.0F;
         int segments = 20;
 
-        boolean burstReady = state.resolve >= 30 || musouTicks > 0.0F;
+        boolean burstReady = musouTicks <= 0.0F && burstCdTicks <= 0.0F;
 
         // Background Chakra Desiderata arc (Resolve 0..60)
         drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments,
@@ -6355,9 +6356,6 @@ public final class ClientAuraRenderer {
             drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * resolveFrac)),
                     burstReady ? 205 : 110, burstReady ? 105 : 82, burstReady ? 255 : 138, burstReady ? 245 : 155);
         }
-        float midDeg = (startDeg + endDeg) * 0.5F;
-        drawHudArc(vc, mat, cx, cy, 28.0F, 36.0F, midDeg - 1.2F, midDeg + 1.2F, 1,
-                burstReady ? 255 : 165, burstReady ? 225 : 135, burstReady ? 255 : 195, burstReady ? 235 : 190);
 
         // Outer Musou Isshin 7s arc when active
         if (musouTicks > 0.0F) {
@@ -6378,7 +6376,14 @@ public final class ClientAuraRenderer {
             guiGraphics.drawString(font, eyeStr, labelX, labelY, 0xFFD99BFF, true);
             labelY += 10;
         }
-        String resolveLabel = burstReady ? ("Resolve " + state.resolve + "/60 [R]") : ("Resolve " + state.resolve + "/60");
+        String resolveLabel;
+        if (burstReady) {
+            resolveLabel = "Resolve " + state.resolve + "/60 [R]";
+        } else if (musouTicks > 0.0F) {
+            resolveLabel = "Resolve " + state.resolve + "/60";
+        } else {
+            resolveLabel = String.format(java.util.Locale.ROOT, "Resolve %d/60 (%.1fs)", state.resolve, burstCdTicks / 20.0F);
+        }
         guiGraphics.drawString(font, resolveLabel, labelX, labelY, burstReady ? 0xFFE8CAFF : 0xAA7E6B8F, true);
         if (musouTicks > 0.0F) {
             String mStr = String.format(java.util.Locale.ROOT, "Musou %.1fs", musouTicks / 20.0F);

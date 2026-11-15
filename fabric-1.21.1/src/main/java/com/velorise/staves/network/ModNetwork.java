@@ -266,9 +266,9 @@ public final class ModNetwork {
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new MavuikaActionPayload(action));
     }
 
-    public static void sendRaidenSync(ServerPlayer player, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
+    public static void sendRaidenSync(ServerPlayer player, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite, int burstCooldownTicks) {
         if (player == null) return;
-        RaidenSyncPayload payload = new RaidenSyncPayload(player.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite);
+        RaidenSyncPayload payload = new RaidenSyncPayload(player.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite, burstCooldownTicks);
         for (ServerPlayer tracker : PlayerLookup.tracking(player)) {
             ServerPlayNetworking.send(tracker, payload);
         }
