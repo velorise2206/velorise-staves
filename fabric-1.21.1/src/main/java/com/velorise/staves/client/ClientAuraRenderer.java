@@ -471,7 +471,7 @@ public final class ClientAuraRenderer {
             poseStack.popPose();
         }
 
-        // 3. 3D Wind Glider (Phong Chi Duc): 2 symmetrical wing planes behind upright torso
+        // 3. 3D Wind Glider (Genshin-accurate horizontal glide canopy with subtle articulated feather motion)
         if (gliding) {
             ResourceLocation gliderTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/entity/wind_glider.png");
             VertexConsumer vc = buffer.getBuffer(RenderType.entityCutoutNoCull(gliderTex));
@@ -481,33 +481,55 @@ public final class ClientAuraRenderer {
             poseStack.translate(0.0F, -1.501F, 0.0F);
             humanoid.body.translateAndRotate(poseStack);
 
-            float flutter = Mth.sin(time * 0.22F) * 5.5F;
-            float u0 = 0.0F, u1 = 20.0F / 64.0F;
+            float waveInner = Mth.sin(time * 0.18F) * 3.0F;
+            float waveOuter = Mth.sin(time * 0.18F - 0.85F) * 4.5F;
+            float pitchBreath = Mth.cos(time * 0.18F) * 1.6F;
+            float u0 = 0.0F, uMid = 11.0F / 64.0F, u1 = 20.0F / 64.0F;
             float v0 = 0.0F, v1 = 16.0F / 32.0F;
-            float wingW = 1.38F;
+            float innerW = 0.76F;
+            float outerW = 0.64F;
             float wingH = 0.96F;
 
             for (int side : new int[]{-1, 1}) {
                 poseStack.pushPose();
-                // Attach at upper shoulder blade on back of torso (+Z is back in HumanoidModel space)
-                poseStack.translate(side * 0.08F, 0.06F, 0.145F);
-                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(side * (16.0F + flutter)));
-                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(side * -8.0F));
-                PoseStack.Pose pose = poseStack.last();
+                // Attach at upper shoulder blade and pitch ~74 deg so wings lie nearly parallel to the ground with a gentle downward glide angle
+                poseStack.translate(side * 0.08F, 0.04F, 0.145F);
+                poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(74.0F + pitchBreath));
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(side * (-6.0F + waveInner)));
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(side * 6.0F));
+                PoseStack.Pose innerPose = poseStack.last();
                 if (side > 0) {
-                    emitWingQuad(vc, pose,
+                    emitWingQuad(vc, innerPose,
                             0.0F, 0.0F, 0.0F, u0, v0,
-                            wingW, 0.0F, 0.0F, u1, v0,
-                            wingW, wingH, 0.0F, u1, v1,
+                            innerW, 0.0F, 0.0F, uMid, v0,
+                            innerW, wingH, 0.0F, uMid, v1,
                             0.0F, wingH, 0.0F, u0, v1,
-                            0.0F, 0.0F, 1.0F);
+                            0.0F, 1.0F, 0.0F);
+                    poseStack.translate(innerW, 0.0F, 0.0F);
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(waveOuter));
+                    PoseStack.Pose outerPose = poseStack.last();
+                    emitWingQuad(vc, outerPose,
+                            0.0F, 0.0F, 0.0F, uMid, v0,
+                            outerW, 0.0F, 0.0F, u1, v0,
+                            outerW, wingH, 0.0F, u1, v1,
+                            0.0F, wingH, 0.0F, uMid, v1,
+                            0.0F, 1.0F, 0.0F);
                 } else {
-                    emitWingQuad(vc, pose,
+                    emitWingQuad(vc, innerPose,
                             0.0F, 0.0F, 0.0F, u0, v0,
-                            -wingW, 0.0F, 0.0F, u1, v0,
-                            -wingW, wingH, 0.0F, u1, v1,
+                            -innerW, 0.0F, 0.0F, uMid, v0,
+                            -innerW, wingH, 0.0F, uMid, v1,
                             0.0F, wingH, 0.0F, u0, v1,
-                            0.0F, 0.0F, 1.0F);
+                            0.0F, 1.0F, 0.0F);
+                    poseStack.translate(-innerW, 0.0F, 0.0F);
+                    poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-waveOuter));
+                    PoseStack.Pose outerPose = poseStack.last();
+                    emitWingQuad(vc, outerPose,
+                            0.0F, 0.0F, 0.0F, uMid, v0,
+                            -outerW, 0.0F, 0.0F, u1, v0,
+                            -outerW, wingH, 0.0F, u1, v1,
+                            0.0F, wingH, 0.0F, uMid, v1,
+                            0.0F, 1.0F, 0.0F);
                 }
                 poseStack.popPose();
             }
@@ -785,7 +807,7 @@ public final class ClientAuraRenderer {
         if (entity.isUsingItem()) {
             ItemStack useStack = entity.getUseItem();
             if (useStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) {
-                com.velorise.staves.item.ArcaneStaffItem.Kind k = staff.kind();
+                com.velorise.staves.item.ArcaneStaffItem.Kind k = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(useStack);
                 if (k == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX
                         || k == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
                         || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
@@ -824,8 +846,7 @@ public final class ClientAuraRenderer {
         }
         if (entity != Minecraft.getInstance().player && entity.swinging && entity.swingTime == 0 && ClientAuraTracker.isRaidenMusouActive(id)) {
             ItemStack main = entity.getMainHandItem();
-            if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
-                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                 ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
                 long now = System.currentTimeMillis();
                 if (d == null || now >= d.staffAnimUntil) {
@@ -844,10 +865,10 @@ public final class ClientAuraRenderer {
             return entity.getUsedItemHand() == net.minecraft.world.InteractionHand.OFF_HAND ? main.getOpposite() : main;
         }
         if (targetKind != null) {
-            if (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s1 && s1.kind() == targetKind) {
+            if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == targetKind) {
                 return main;
             }
-            if (entity.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s2 && s2.kind() == targetKind) {
+            if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == targetKind) {
                 return main.getOpposite();
             }
         }
@@ -992,28 +1013,33 @@ public final class ClientAuraRenderer {
 
         // Item 5: Universal Plunge Attack & Wind Glider 3rd-Person Poses
         if (ClientAuraTracker.isPlunging(entity.getId())) {
-            model.body.xRot = 0.48F;
-            model.rightArm.xRot = -1.95F;
-            model.leftArm.xRot = -1.85F;
-            model.rightArm.yRot = -0.20F;
-            model.leftArm.yRot = 0.20F;
-            model.rightArm.zRot = -0.10F;
-            model.leftArm.zRot = 0.10F;
-            model.rightLeg.xRot = 0.35F;
-            model.leftLeg.xRot = 0.55F;
-            model.head.xRot = 0.35F;
+            model.attackTime = 0.0F;
+            model.body.xRot = 0.36F;
+            model.rightArm.xRot = -1.32F;
+            model.leftArm.xRot = -1.22F;
+            model.rightArm.yRot = -0.42F;
+            model.leftArm.yRot = 0.38F;
+            model.rightArm.zRot = -0.20F;
+            model.leftArm.zRot = 0.20F;
+            model.rightLeg.xRot = 0.32F;
+            model.leftLeg.xRot = 0.52F;
+            model.head.xRot = 0.26F;
             model.hat.copyFrom(model.head);
             return;
         }
         if (ClientAuraTracker.isGliding(entity.getId())) {
-            float breeze = Mth.sin(ageInTicks * 0.16F) * 0.05F;
-            model.body.xRot = 0.12F;
-            model.rightArm.xRot = -0.42F + breeze;
-            model.leftArm.xRot = -0.42F - breeze;
-            model.rightArm.zRot = 0.52F;
-            model.leftArm.zRot = -0.52F;
-            model.rightLeg.xRot = 0.18F + breeze;
-            model.leftLeg.xRot = 0.26F - breeze;
+            float breeze = Mth.sin(ageInTicks * 0.16F) * 0.04F;
+            model.body.xRot = 0.18F;
+            model.body.yRot = 0.0F;
+            model.body.zRot = 0.0F;
+            model.rightArm.xRot = -0.55F + breeze;
+            model.leftArm.xRot = -0.55F - breeze;
+            model.rightArm.yRot = 0.0F;
+            model.leftArm.yRot = 0.0F;
+            model.rightArm.zRot = 0.62F;
+            model.leftArm.zRot = -0.62F;
+            model.rightLeg.xRot = 0.22F + breeze;
+            model.leftLeg.xRot = 0.32F - breeze;
             return;
         }
 
@@ -1067,8 +1093,9 @@ public final class ClientAuraRenderer {
         if (entity.isUsingItem()) {
             ItemStack useStack = entity.getUseItem();
             if (useStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) {
+                com.velorise.staves.item.ArcaneStaffItem.Kind useKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(useStack);
                 int elapsed = Math.max(0, staff.getUseDuration(useStack, entity) - entity.getUseItemRemainingTicks());
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+                if (useKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
                     float w = smoothStep01(elapsed / 18.0F);
                     float tremor = Mth.sin(ageInTicks * 1.65F) * 0.032F * w;
                     // Zhongli Hold Phase 1: Bring both arms together crossed in front of the chest
@@ -1082,7 +1109,7 @@ public final class ClientAuraRenderer {
                     model.hat.copyFrom(model.head);
                     return;
                 }
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 2 && activeAnim == 0) {
+                if (useKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 2 && activeAnim == 0) {
                     // Furina Hold wind-up (ticks 2..10): Lower extended arm in front with vertical scepter
                     float w = smoothStep01((elapsed - 1.5F) / 7.5F);
                     net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
@@ -1099,7 +1126,7 @@ public final class ClientAuraRenderer {
                     offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.22F);
                     return;
                 }
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
+                if (useKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
                     float w = smoothStep01(elapsed / 16.0F);
                     float tremor = Mth.sin(ageInTicks * 1.8F) * 0.025F * w;
                     net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE);
@@ -1107,13 +1134,6 @@ public final class ClientAuraRenderer {
                     float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
                     mainPart.xRot = Mth.lerp(w, mainPart.xRot, -2.65F + tremor);
                     mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.14F);
-                    return;
-                }
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
-                    float pull01 = Mth.clamp(elapsed / 20.0F, 0.0F, 1.0F);
-                    net.minecraft.world.entity.HumanoidArm bowArm = entity.getUsedItemHand() == net.minecraft.world.InteractionHand.MAIN_HAND
-                            ? entity.getMainArm() : entity.getMainArm().getOpposite();
-                    applyDaybreakBowHumanoidPose(model, bowArm, pull01);
                     return;
                 }
             }
@@ -1144,15 +1164,7 @@ public final class ClientAuraRenderer {
             applyDaybreakBowHumanoidPose(model, entity.getMainArm(), pull01);
             return;
         }
-        if (mcLocal.player != null && entity.getId() == mcLocal.player.getId()
-                && ClientAuraTracker.ventiUltiHoldTicks > 0 && hasDaybreakEquipped(entity)) {
-            float pull01 = Mth.clamp(ClientAuraTracker.ventiUltiHoldTicks / 60.0F, 0.0F, 1.0F);
-            net.minecraft.world.entity.HumanoidArm bowArm = (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
-                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK)
-                    ? entity.getMainArm() : entity.getMainArm().getOpposite();
-            applyDaybreakBowHumanoidPose(model, bowArm, pull01);
-            return;
-        }
+
 
         if (activeAnim <= 0 || data == null) return;
         float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
@@ -1177,6 +1189,13 @@ public final class ClientAuraRenderer {
             net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
+
+            // Raiden combat footing: staggered stance, firm planted core
+            float stanceW = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
+            model.leftLeg.xRot = Mth.lerp(stanceW, model.leftLeg.xRot, 0.22F);
+            model.rightLeg.xRot = Mth.lerp(stanceW, model.rightLeg.xRot, -0.18F);
+            model.leftLeg.zRot = Mth.lerp(stanceW, model.leftLeg.zRot, -0.08F);
+            model.rightLeg.zRot = Mth.lerp(stanceW, model.rightLeg.zRot, 0.08F);
             if (t < 0.22F) {
                 // Phase 1: reach inward to chest/heart, grip inverted blade straight down
                 float reach = smoothStep01(t / 0.22F);
@@ -1314,22 +1333,16 @@ public final class ClientAuraRenderer {
             return;
         }
         if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON) {
-            // Furina Summon: Lower extended casting hand plants scepter vertically into the ground; opposite hand raises high to the sky
+            // Furina Summon: Theatrical stage curtsy/bow - cane planted forward, opposite hand swept outward
             float w;
             if (t < 0.18F) {
-                w = Mth.sin((t / 0.18F) * ((float) Math.PI * 0.5F));
-            } else if (t < 0.72F) {
+                w = smoothStep01(t / 0.18F);
+            } else if (t < 0.75F) {
                 w = 1.0F;
             } else {
-                w = 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
+                w = 1.0F - smoothStep01((t - 0.75F) / 0.25F);
             }
-            float plantDown;
-            if (t < 0.12F) {
-                plantDown = -0.25F * Mth.sin((t / 0.12F) * (float) Math.PI);
-            } else {
-                plantDown = smoothStep01((t - 0.12F) / 0.20F);
-            }
-            float skyPulse = Mth.sin(Mth.clamp((t - 0.14F) / 0.56F, 0.0F, 1.0F) * (float) Math.PI) * 0.14F;
+            float curtsy = Mth.sin(Mth.clamp(t / 0.40F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
 
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
@@ -1337,29 +1350,41 @@ public final class ClientAuraRenderer {
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
 
-            // Weapon hand: lowered forward-downward, planting the scepter 90 deg vertically onto the ground
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(plantDown, -0.72F, -0.40F));
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.04F);
-
-            // Other hand: raised high toward the heavens
-            offPart.xRot = Mth.lerp(w, offPart.xRot, -2.72F - skyPulse);
-            offPart.yRot = Mth.lerp(w, offPart.yRot, -offDir * 0.16F);
-            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.28F);
-
-            model.head.xRot -= 0.08F * w;
+            // Curtsy torso tilt
+            model.body.xRot = Mth.lerp(w, model.body.xRot, 0.18F * curtsy);
+            model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * -0.15F * curtsy);
+            model.head.xRot += 0.12F * curtsy * w;
             model.hat.copyFrom(model.head);
+
+            // Legs in elegant curtsy stance (front leg slightly bent, back leg extended)
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.20F * curtsy);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.28F * curtsy);
+
+            // Weapon hand: plants the cane forward-downward like a conductor / prima donna
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.55F);
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.22F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.12F);
+
+            // Other hand: dramatic outward theatrical bow sweep to salute the audience
+            offPart.xRot = Mth.lerp(w, offPart.xRot, -0.85F);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.75F);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.65F);
         } else if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
-            // Furina Arkhe Switch: Lower extended arm in front and plant scepter tip 90 deg straight down into the ground
+            // Furina Arkhe Switch: 360-degree ballet pirouette spin with graceful cane twirl
             float w;
-            if (t < 0.15F) {
-                w = Mth.sin((t / 0.15F) * ((float) Math.PI * 0.5F));
-            } else if (t < 0.68F) {
+            if (t < 0.12F) {
+                w = smoothStep01(t / 0.12F);
+            } else if (t < 0.88F) {
                 w = 1.0F;
             } else {
-                w = 0.5F * (1.0F + Mth.cos(((t - 0.68F) / 0.32F) * (float) Math.PI));
+                w = 1.0F - smoothStep01((t - 0.88F) / 0.12F);
             }
-            float plantDown = smoothStep01(t / 0.24F);
+            float spinProgress = smoothStep01(t);
+            float fullSpin = spinProgress * ((float) Math.PI * 2.0F); // 360-degree pirouette!
+            model.body.yRot = fullSpin * w;
+            model.head.yRot = -fullSpin * 0.3F * w; // Head spots the audience
+            model.head.xRot -= 0.06F * Mth.sin(t * (float) Math.PI) * w;
+            model.hat.copyFrom(model.head);
 
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
@@ -1367,13 +1392,22 @@ public final class ClientAuraRenderer {
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
 
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(plantDown, -0.68F, -0.40F));
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.04F);
+            // Ballet pirouette leg work: right leg lifted slightly on toe/bent knee
+            float legLift = Mth.sin(t * (float) Math.PI);
+            model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.32F * legLift);
+            model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.15F * legLift);
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.25F * legLift);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.10F * legLift);
 
-            offPart.xRot = Mth.lerp(w, offPart.xRot, -0.36F);
-            offPart.yRot = Mth.lerp(w, offPart.yRot, -offDir * 0.18F);
-            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.22F);
+            // Cane flourish held out gracefully
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.15F);
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.45F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.35F);
+
+            // Left hand raised gracefully in ballet pose
+            offPart.xRot = Mth.lerp(w, offPart.xRot, -1.85F);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * -0.55F);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.45F);
         } else if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST) {
             // Zhongli Hold Phase 2: Both arms sweep powerfully from crossed-chest out to wide radial spread
             float sweep = Mth.sin(Mth.clamp(t / 0.24F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
@@ -1425,6 +1459,12 @@ public final class ClientAuraRenderer {
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F);
             model.head.xRot += 0.10F * w;
             model.hat.copyFrom(model.head);
+
+            // Zhongli legs spread into firm, immovable A-stance
+            model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.22F);
+            model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.22F);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.05F);
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.05F);
         } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_SKATE_DASH) {
             float dash = Mth.sin(t * (float) Math.PI);
             model.body.xRot = 0.32F * dash;
@@ -1608,13 +1648,21 @@ public final class ClientAuraRenderer {
                 && displayContext != net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_LEFT_HAND) {
             return;
         }
+        if (ClientAuraTracker.isPlunging(entity.getId())) {
+            float side = leftHand ? -1.0F : 1.0F;
+            poseStack.translate(-side * 0.08F, 0.05F, -0.06F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 28.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-35.0F));
+            return;
+        }
         if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) return;
+        com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack);
 
         long now = System.currentTimeMillis();
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
 
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
+        if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             float plantW = 0.0F;
             float downOffset = 0.0F;
             float targetPitchDeg = -103.0F;
@@ -1647,7 +1695,7 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 10.3F * plantW));
                 poseStack.mulPose(Axis.XP.rotationDegrees(targetPitchDeg * plantW));
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
             if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -1663,7 +1711,7 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(side * 28.0F * w));
                 poseStack.mulPose(Axis.XP.rotationDegrees(-22.0F * w));
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             float side = leftHand ? -1.0F : 1.0F;
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
@@ -1691,7 +1739,7 @@ public final class ClientAuraRenderer {
                     poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(slash, 64.0F, -68.0F) * w));
                 }
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
                 && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
             int ultiT = bike.getUltiTicks();
             int naT = bike.getNaTicks();
@@ -1788,19 +1836,26 @@ public final class ClientAuraRenderer {
             PoseStack poseStack
     ) {
         if (player == null || stack == null || stack.isEmpty()) return;
-        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) return;
-        pollClientUseTransitions(player);
-
         net.minecraft.world.entity.HumanoidArm arm = (hand == net.minecraft.world.InteractionHand.MAIN_HAND)
                 ? player.getMainArm()
                 : player.getMainArm().getOpposite();
         float dir = (arm == net.minecraft.world.entity.HumanoidArm.RIGHT) ? 1.0F : -1.0F;
+        if (ClientAuraTracker.isPlunging(player.getId())) {
+            poseStack.translate(-dir * 0.32F, 0.10F, -0.18F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 32.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-42.0F));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 14.0F));
+            return;
+        }
+        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) return;
+        com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack);
+        pollClientUseTransitions(player);
 
         long now = System.currentTimeMillis();
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(player.getId());
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
 
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+        if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
             if (player.isUsingItem() && player.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
                 float w = smoothStep01((elapsed + partialTicks) / 18.0F);
@@ -1837,7 +1892,7 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(sweep, -dir * 12.0F, -dir * 32.0F) * w));
                 return;
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             if (player.isUsingItem() && player.getUseItem() == stack && activeAnim == 0) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
                 if (elapsed >= 2) {
@@ -1847,7 +1902,17 @@ public final class ClientAuraRenderer {
                     return;
                 }
             }
-            if ((activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON || activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) && data != null) {
+            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float w = (t < 0.12F) ? smoothStep01(t / 0.12F) : (t < 0.88F ? 1.0F : 1.0F - smoothStep01((t - 0.88F) / 0.12F));
+                float spin = t * 360.0F;
+                poseStack.translate(-dir * 0.16F * w, -0.06F * Mth.sin(t * (float) Math.PI) * w, -0.12F * w);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * spin * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F * w));
+                return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 float w;
@@ -1864,8 +1929,9 @@ public final class ClientAuraRenderer {
                 // Lower hand in front and rotate scepter -200 deg around X so the tip points 90 deg straight down into the ground
                 poseStack.translate(-dir * 0.20F * w, (-0.06F * lift - 0.28F * plantDown) * w, -0.18F * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(plantDown, -165.0F, -200.0F) * w));
+                return;
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
             if (player.isUsingItem() && player.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack, player) - player.getUseItemRemainingTicks());
                 float w = smoothStep01((elapsed + partialTicks) / 16.0F);
@@ -1885,7 +1951,7 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * (1.0F - slam) * w));
                 return;
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_EYE && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -1993,7 +2059,7 @@ public final class ClientAuraRenderer {
                 }
                 return;
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
             if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                 int ultiT = bike.getUltiTicks();
                 if (ultiT > 0) {
@@ -2079,16 +2145,6 @@ public final class ClientAuraRenderer {
                     }
                 }
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
-            float pull = getDaybreakPullProgress(player, partialTicks);
-            if (pull > 0.01F) {
-                float tremor = (pull >= 0.92F) ? Mth.sin((player.tickCount + partialTicks) * 1.9F) * 0.004F : 0.0F;
-                poseStack.translate(-dir * 0.20F * pull + tremor, 0.08F * pull + tremor * 0.5F, -0.10F * pull);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 26.0F * pull));
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 12.0F * pull));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-6.0F * pull));
-                return;
-            }
         }
         if (data != null && (activeAnim == ClientAuraTracker.ANIM_XILONEN_BURST
                 || activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_BURST
@@ -2130,7 +2186,7 @@ public final class ClientAuraRenderer {
         if (player == null) return false;
         ItemStack mainStack = player.getMainHandItem();
         if (!(mainStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) return false;
-        if (staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) return false;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mainStack) != com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) return false;
         return setupFirstPersonVortexArmPose(player, staff, mainStack, partialTicks, mainArm, poseStack);
     }
 
@@ -2203,9 +2259,10 @@ public final class ClientAuraRenderer {
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(player.getId());
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
 
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+        com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mainStack);
+        if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
             return setupFirstPersonVortexArmPose(player, staff, mainStack, partialTicks, offArm, poseStack);
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR) {
             if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -2224,23 +2281,13 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(offDir * 18.0F * w));
                 return true;
             }
-        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
-            float pull = getDaybreakPullProgress(player, partialTicks);
-            if (pull <= 0.01F) return false;
-            poseStack.translate(-offDir * Mth.lerp(pull, 0.36F, 0.22F), Mth.lerp(pull, -0.20F, -0.06F), Mth.lerp(pull, -0.28F, -0.06F));
-            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(pull, 28.0F, 14.0F)));
-            poseStack.mulPose(Axis.YP.rotationDegrees(offDir * Mth.lerp(pull, 32.0F, 48.0F)));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(offDir * 16.0F));
-            return true;
         }
         return false;
     }
 
     private static boolean hasDaybreakEquipped(LivingEntity entity) {
-        return (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem ms
-                && ms.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK)
-                || (entity.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem os
-                && os.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK);
+        return com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
+                || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK;
     }
 
     private static float getDaybreakPullProgress(LivingEntity entity, float partialTick) {
@@ -2248,7 +2295,7 @@ public final class ClientAuraRenderer {
         if (entity.isUsingItem()) {
             ItemStack useStack = entity.getUseItem();
             if (useStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
-                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(useStack) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
                 int elapsed = Math.max(0, s.getUseDuration(useStack, entity) - entity.getUseItemRemainingTicks());
                 return Mth.clamp((elapsed + partialTick) / 20.0F, 0.0F, 1.0F);
             }
@@ -2263,6 +2310,7 @@ public final class ClientAuraRenderer {
 
     public static boolean isDaybreakPulling(LivingEntity entity, ItemStack stack) {
         if (entity == null || stack == null || stack.isEmpty()) return false;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack) != com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) return false;
         if (entity.isUsingItem() && entity.getUseItem() == stack) return true;
         Minecraft mc = Minecraft.getInstance();
         return mc.player != null && entity.getId() == mc.player.getId()
@@ -2276,6 +2324,7 @@ public final class ClientAuraRenderer {
 
     public static boolean isTsaritsaPulling(LivingEntity entity, ItemStack stack) {
         if (entity == null || stack == null || stack.isEmpty()) return false;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack) != com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW) return false;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || entity.getId() != mc.player.getId()) return false;
         if (ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) return false;
@@ -2310,7 +2359,7 @@ public final class ClientAuraRenderer {
             PoseStack poseStack,
             MultiBufferSource bufferSource
     ) {
-        if (entity == null || stack == null || stack.isEmpty() || bufferSource == null) return;
+        if (true) return;
         if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)
                 || staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) return;
         boolean isFirst = displayContext == net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND
@@ -3410,9 +3459,10 @@ public final class ClientAuraRenderer {
         }
         if (!mc.player.isUsingItem()) return;
         ItemStack stack = mc.player.getUseItem();
-        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) || !staff.isCharged()) return;
+        com.velorise.staves.item.ArcaneStaffItem.Kind hudKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack);
+        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) || hudKind == null) return;
         int elapsed = Math.max(0, staff.getUseDuration(stack, mc.player) - mc.player.getUseItemRemainingTicks());
-        int targetTicks = switch (staff.kind()) {
+        int targetTicks = switch (hudKind) {
             case VORTEX -> 28;
             case SPLENDOR -> 10;
             case THOUSAND_BLAZING_SUNS -> 7;
@@ -3424,7 +3474,7 @@ public final class ClientAuraRenderer {
         float pct = Mth.clamp((float) elapsed / (float) targetTicks, 0.0F, 1.0F);
         int sw = guiGraphics.guiWidth();
         int sh = guiGraphics.guiHeight();
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+        if (hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
             float cx = sw * 0.5F;
             float cy = sh * 0.5F;
             Matrix4f mat = guiGraphics.pose().last().pose();
@@ -3442,13 +3492,13 @@ public final class ClientAuraRenderer {
             guiGraphics.flush();
             return;
         }
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
-                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
-                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+        if (hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
+                || hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                || hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             return;
         }
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+        if (hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
             ResourceLocation meteorTex = ResourceLocation.fromNamespaceAndPath(
                     com.velorise.staves.VeloriseStavesMod.MODID,
                     "textures/gui/planet_befall_charge.png"
@@ -3464,7 +3514,7 @@ public final class ClientAuraRenderer {
             guiGraphics.blit(meteorTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
             return;
         }
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+        if (hudKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
             ResourceLocation sunsTex = ResourceLocation.fromNamespaceAndPath(
                     com.velorise.staves.VeloriseStavesMod.MODID,
                     "textures/gui/sun_charge.png"
@@ -4034,12 +4084,12 @@ public final class ClientAuraRenderer {
             com.velorise.staves.item.ArcaneStaffItem staff = null;
             int elapsed = 15;
             if (firingLeftClick) {
-                if (player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                        && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                        && player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm) {
                     stack = player.getMainHandItem();
                     staff = sm;
-                } else if (player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                        && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                } else if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                        && player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so) {
                     stack = player.getOffhandItem();
                     staff = so;
                 }
@@ -4050,7 +4100,7 @@ public final class ClientAuraRenderer {
                 if (!player.isUsingItem()) continue;
                 stack = player.getUseItem();
                 if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s)) continue;
-                if (s.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
+                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack) != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
                 staff = s;
                 elapsed = 20;
             }
@@ -4082,7 +4132,7 @@ public final class ClientAuraRenderer {
 
             if (elapsed < 10) continue;
 
-            double range = staff.isNetherite() ? 28.0D : 24.0D;
+            double range = com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(stack) ? 28.0D : 24.0D;
             net.minecraft.world.phys.HitResult hit = player.pick(range, partialTicks, false);
             Vec3 end = hit.getLocation();
 
@@ -4138,11 +4188,12 @@ public final class ClientAuraRenderer {
         Vec3 camPos = camera.getPosition();
         PlanetBefallMeteorRenderer.render(poseStack, bufferSource, camPos, now);
         renderVentiWindChargeOrbs(poseStack, bufferSource, camPos, now);
+        renderNahidaAndTsaritsaWorldArcs(poseStack, bufferSource, camPos, now);
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
         Matrix4f matrix = poseStack.last().pose();
 
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
-            if (arc.fromEntityId == -3) continue;
+            if (arc.fromEntityId == -3 || arc.fromEntityId == -5 || arc.fromEntityId == -6 || arc.fromEntityId == -7 || arc.fromEntityId == -8) continue;
             Vec3 startPos = null;
             if (arc.fromEntityId >= 0) {
                 net.minecraft.world.entity.Entity from = mc.level.getEntity(arc.fromEntityId);
@@ -4413,6 +4464,309 @@ public final class ClientAuraRenderer {
 
     private static final net.minecraft.resources.ResourceLocation VENTI_WIND_CHARGE_TEX =
             net.minecraft.resources.ResourceLocation.withDefaultNamespace("textures/entity/projectiles/wind_charge.png");
+
+
+    private static void renderNahidaAndTsaritsaWorldArcs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return;
+        ResourceLocation skandhaTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/seed_of_skandha.png");
+        ResourceLocation cryoArrowTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/projectiles/cryo_arrow.png");
+
+        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            if (arc.start == null || arc.end == null) continue;
+            if (arc.fromEntityId == -5) {
+                // Section 18: Nahida 3D Shrine of Maya Temple
+                float radius = (float) Math.max(4.0D, arc.end.x);
+                float cx = (float) (arc.start.x - camPos.x);
+                float cy = (float) (arc.start.y - camPos.y);
+                float cz = (float) (arc.start.z - camPos.z);
+                float fadeIn = Mth.clamp((now - arc.startTime) / 350.0F, 0.0F, 1.0F);
+                float fadeOut = Mth.clamp((arc.expireTime - now) / 450.0F, 0.0F, 1.0F);
+                float fade = Math.min(fadeIn, fadeOut);
+                float timeSec = (now - arc.startTime) * 0.001F;
+                int aMain = Math.max(20, Math.round(165.0F * fade));
+                int aTrim = Math.max(25, Math.round(220.0F * fade));
+
+                VertexConsumer vc = bufferSource.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, cz);
+                Matrix4f mat = poseStack.last().pose();
+
+                // 1. Concentric Sumeru Mandala Floor Rings
+                int floorSegs = 32;
+                float rOuter = radius * 0.96F;
+                float rInner = radius * 0.88F;
+                float rMid1 = radius * 0.52F;
+                float rMid0 = radius * 0.46F;
+                for (int i = 0; i < floorSegs; i++) {
+                    float a0 = (float) (i * Math.PI * 2.0D / floorSegs) + timeSec * 0.25F;
+                    float a1 = (float) ((i + 1) * Math.PI * 2.0D / floorSegs) + timeSec * 0.25F;
+                    float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                    float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                    emitDoubleQuad(vc, mat,
+                            c0 * rInner, 0.05F, s0 * rInner,
+                            c0 * rOuter, 0.05F, s0 * rOuter,
+                            c1 * rOuter, 0.05F, s1 * rOuter,
+                            c1 * rInner, 0.05F, s1 * rInner,
+                            85, 255, 130, aMain);
+                    emitDoubleQuad(vc, mat,
+                            c0 * rMid0, 0.05F, s0 * rMid0,
+                            c0 * rMid1, 0.05F, s0 * rMid1,
+                            c1 * rMid1, 0.05F, s1 * rMid1,
+                            c1 * rMid0, 0.05F, s1 * rMid0,
+                            235, 215, 95, aMain);
+                }
+
+                // 2. 8 Tall Sumeru Sanctuary Pillars + Octagonal Arch Ring + 3D Lotus Dome Roof
+                int pillars = 8;
+                float pRadius = radius * 0.86F;
+                float pillarH = 6.2F;
+                float domeApexY = 10.8F;
+                for (int p = 0; p < pillars; p++) {
+                    float ang = (float) (p * Math.PI * 2.0D / pillars);
+                    float nextAng = (float) ((p + 1) * Math.PI * 2.0D / pillars);
+                    float px = Mth.cos(ang) * pRadius;
+                    float pz = Mth.sin(ang) * pRadius;
+                    float nx = Mth.cos(nextAng) * pRadius;
+                    float nz = Mth.sin(nextAng) * pRadius;
+
+                    // Golden pedestal base + Emerald-Jade pillar shaft + Lotus capital
+                    drawJadeArmorBox(vc, mat, px - 0.36F, 0.02F, pz - 0.36F, px + 0.36F, 0.48F, pz + 0.36F, 240, 205, 85, aTrim);
+                    drawJadeArmorBox(vc, mat, px - 0.22F, 0.48F, pz - 0.22F, px + 0.22F, pillarH - 0.42F, pz + 0.22F, 68, 235, 115, aMain);
+                    drawJadeArmorBox(vc, mat, px - 0.38F, pillarH - 0.42F, pz - 0.38F, px + 0.38F, pillarH, pz + 0.38F, 245, 215, 95, aTrim);
+
+                    // Upper Sanctuary Arch Beam connecting pillar p -> p+1
+                    emitDoubleQuad(vc, mat,
+                            px, pillarH - 0.25F, pz,
+                            nx, pillarH - 0.25F, nz,
+                            nx, pillarH + 0.18F, nz,
+                            px, pillarH + 0.18F, pz,
+                            240, 212, 92, aTrim);
+
+                    // 2-tier 3D Lotus Dome Ribs & Translucent Canopy Panels rising to apex
+                    float midR = pRadius * 0.54F;
+                    float midY = pillarH + 2.6F;
+                    float mx0 = Mth.cos(ang) * midR, mz0 = Mth.sin(ang) * midR;
+                    float mx1 = Mth.cos(nextAng) * midR, mz1 = Mth.sin(nextAng) * midR;
+                    emitDoubleQuad(vc, mat,
+                            px, pillarH, pz,
+                            nx, pillarH, nz,
+                            mx1, midY, mz1,
+                            mx0, midY, mz0,
+                            65, 235, 115, Math.max(18, aMain / 2));
+                    emitDoubleQuad(vc, mat,
+                            mx0, midY, mz0,
+                            mx1, midY, mz1,
+                            0.0F, domeApexY, 0.0F,
+                            0.0F, domeApexY, 0.0F,
+                            95, 255, 145, Math.max(22, (aMain * 2) / 3));
+                    // Golden rib along each dome meridian
+                    emitDoubleQuad(vc, mat,
+                            px - 0.08F, pillarH, pz - 0.08F,
+                            px + 0.08F, pillarH, pz + 0.08F,
+                            mx0 + 0.06F, midY, mz0 + 0.06F,
+                            mx0 - 0.06F, midY, mz0 - 0.06F,
+                            250, 225, 110, aTrim);
+                    emitDoubleQuad(vc, mat,
+                            mx0 - 0.06F, midY, mz0 - 0.06F,
+                            mx0 + 0.06F, midY, mz0 + 0.06F,
+                            0.04F, domeApexY, 0.04F,
+                            -0.04F, domeApexY, -0.04F,
+                            250, 225, 110, aTrim);
+                }
+
+                // 3. Central Sanctuary Spire Finial at top of Dome
+                drawJadeArmorBox(vc, mat, -0.24F, domeApexY - 0.15F, -0.24F, 0.24F, domeApexY + 1.45F, 0.24F, 245, 220, 95, aTrim);
+                drawJadeArmorBox(vc, mat, -0.12F, domeApexY + 1.45F, -0.12F, 0.12F, domeApexY + 2.35F, 0.12F, 120, 255, 155, aTrim);
+                poseStack.popPose();
+
+                // 4. Floating 4-Leaf Clover Seed of Skandha Emblem beneath the central dome
+                VertexConsumer skVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
+                poseStack.pushPose();
+                poseStack.translate(cx, cy + domeApexY - 1.35F + Mth.sin(timeSec * 2.2F) * 0.15F, cz);
+                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * 45.0F));
+                float cloverHalf = 1.15F;
+                for (int plane = 0; plane < 2; plane++) {
+                    poseStack.pushPose();
+                    poseStack.mulPose(Axis.YP.rotationDegrees(plane * 90.0F));
+                    PoseStack.Pose p = poseStack.last();
+                    emitWingQuad(skVc, p, -cloverHalf, -cloverHalf, 0.0F, 0.0F, 1.0F, cloverHalf, -cloverHalf, 0.0F, 1.0F, 1.0F, cloverHalf, cloverHalf, 0.0F, 1.0F, 0.0F, -cloverHalf, cloverHalf, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+                    emitWingQuad(skVc, p, -cloverHalf, cloverHalf, 0.0F, 0.0F, 0.0F, cloverHalf, cloverHalf, 0.0F, 1.0F, 0.0F, cloverHalf, -cloverHalf, 0.0F, 1.0F, 1.0F, -cloverHalf, -cloverHalf, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
+                    poseStack.popPose();
+                }
+                poseStack.popPose();
+            } else if (arc.fromEntityId == -6) {
+                // Section 17: Tsaritsa Dedicated Burst — Flat Glacial Ice Field on Ground + Central 3D Polar Ice Pillar
+                float radius = (float) Math.max(3.5D, arc.end.x);
+                float cx = (float) (arc.start.x - camPos.x);
+                float cy = (float) (arc.start.y - camPos.y);
+                float cz = (float) (arc.start.z - camPos.z);
+                float fadeIn = Mth.clamp((now - arc.startTime) / 300.0F, 0.0F, 1.0F);
+                float fadeOut = Mth.clamp((arc.expireTime - now) / 400.0F, 0.0F, 1.0F);
+                float fade = Math.min(fadeIn, fadeOut);
+                float timeSec = (now - arc.startTime) * 0.001F;
+                int aField = Math.max(20, Math.round(175.0F * fade));
+                int aPillar = Math.max(30, Math.round(225.0F * fade));
+
+                VertexConsumer vc = bufferSource.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, cz);
+                Matrix4f mat = poseStack.last().pose();
+
+                // 1. Flat Glacial Ice Field on Ground (concentric frost rings + 8 radial ice-lance snowflake spokes)
+                int segs = 32;
+                float rOut = radius;
+                float rRimIn = radius * 0.90F;
+                float rMidOut = radius * 0.55F;
+                float rMidIn = radius * 0.47F;
+                for (int i = 0; i < segs; i++) {
+                    float a0 = (float) (i * Math.PI * 2.0D / segs) - timeSec * 0.35F;
+                    float a1 = (float) ((i + 1) * Math.PI * 2.0D / segs) - timeSec * 0.35F;
+                    float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                    float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                    // Translucent glacial ground disc
+                    emitDoubleQuad(vc, mat,
+                            0.0F, 0.04F, 0.0F,
+                            c0 * rRimIn, 0.04F, s0 * rRimIn,
+                            c1 * rRimIn, 0.04F, s1 * rRimIn,
+                            0.0F, 0.04F, 0.0F,
+                            125, 220, 255, Math.max(12, aField / 3));
+                    // Outer frost rim
+                    emitDoubleQuad(vc, mat,
+                            c0 * rRimIn, 0.05F, s0 * rRimIn,
+                            c0 * rOut, 0.05F, s0 * rOut,
+                            c1 * rOut, 0.05F, s1 * rOut,
+                            c1 * rRimIn, 0.05F, s1 * rRimIn,
+                            185, 242, 255, aField);
+                    // Inner snowflake ring
+                    emitDoubleQuad(vc, mat,
+                            c0 * rMidIn, 0.055F, s0 * rMidIn,
+                            c0 * rMidOut, 0.055F, s0 * rMidOut,
+                            c1 * rMidOut, 0.055F, s1 * rMidOut,
+                            c1 * rMidIn, 0.055F, s1 * rMidIn,
+                            225, 250, 255, aField);
+                }
+                for (int k = 0; k < 8; k++) {
+                    float ang = (float) (k * Math.PI * 0.25D) + timeSec * 0.20F;
+                    float ca = Mth.cos(ang), sa = Mth.sin(ang);
+                    float px = -sa * 0.14F, pz = ca * 0.14F;
+                    emitDoubleQuad(vc, mat,
+                            ca * 0.65F - px, 0.06F, sa * 0.65F - pz,
+                            ca * 0.65F + px, 0.06F, sa * 0.65F + pz,
+                            ca * (rOut * 0.94F), 0.06F, sa * (rOut * 0.94F),
+                            ca * (rOut * 0.94F), 0.06F, sa * (rOut * 0.94F),
+                            220, 248, 255, aPillar);
+                }
+
+                // 2. Central 3D Polar Ice Pillar / Obelisk rising from the center of the Ice Field
+                int pillarFaces = 6;
+                float baseR = 0.88F;
+                float topR = 0.34F;
+                float pillarH = 6.6F;
+                float tipH = 7.8F;
+                for (int f = 0; f < pillarFaces; f++) {
+                    float a0 = (float) (f * Math.PI * 2.0D / pillarFaces) + timeSec * 0.45F;
+                    float a1 = (float) ((f + 1) * Math.PI * 2.0D / pillarFaces) + timeSec * 0.45F;
+                    float bx0 = Mth.cos(a0) * baseR, bz0 = Mth.sin(a0) * baseR;
+                    float bx1 = Mth.cos(a1) * baseR, bz1 = Mth.sin(a1) * baseR;
+                    float tx0 = Mth.cos(a0) * topR, tz0 = Mth.sin(a0) * topR;
+                    float tx1 = Mth.cos(a1) * topR, tz1 = Mth.sin(a1) * topR;
+                    int shade = (f % 2 == 0) ? 245 : 210;
+                    emitDoubleQuad(vc, mat,
+                            bx0, 0.05F, bz0,
+                            bx1, 0.05F, bz1,
+                            tx1, pillarH, tz1,
+                            tx0, pillarH, tz0,
+                            145, shade, 255, aPillar);
+                    emitDoubleQuad(vc, mat,
+                            tx0, pillarH, tz0,
+                            tx1, pillarH, tz1,
+                            0.0F, tipH, 0.0F,
+                            0.0F, tipH, 0.0F,
+                            225, 250, 255, aPillar);
+                }
+
+                // Spinning 3D Cryo Star Finial atop the Polar Ice Pillar
+                poseStack.pushPose();
+                poseStack.translate(0.0F, tipH + 0.55F + Mth.sin(timeSec * 2.5F) * 0.12F, 0.0F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * 90.0F));
+                renderFourPointStar3D(vc, poseStack.last().pose(), 0.72F, 0.22F, 240, 252, 255, aPillar, 110, 210, 255, aField);
+                poseStack.popPose();
+
+                poseStack.popPose();
+            } else if (arc.fromEntityId == -7) {
+                // Section 17: Tsaritsa 3D Textured Cryo Arrow (replaces Electro lightning arc)
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                Vec3 diff = arc.end.subtract(arc.start);
+                double len = diff.length();
+                if (len < 1.0E-3D) continue;
+                Vec3 dir = diff.scale(1.0D / len);
+                float headFrac = Mth.clamp(prog * 1.35F, 0.0F, 1.0F);
+                float tailFrac = Mth.clamp(headFrac - 0.38F, 0.0F, 1.0F);
+                Vec3 headPos = arc.start.lerp(arc.end, headFrac);
+                Vec3 tailPos = arc.start.lerp(arc.end, tailFrac);
+
+                // Frost ribbon wake behind arrow
+                VertexConsumer trailVc = bufferSource.getBuffer(RenderType.lightning());
+                Matrix4f trailMat = poseStack.last().pose();
+                Vec3 hCam = headPos.subtract(camPos);
+                Vec3 tCam = tailPos.subtract(camPos);
+                Vec3 worldUp = Math.abs(dir.y) < 0.95D ? new Vec3(0.0D, 1.0D, 0.0D) : new Vec3(1.0D, 0.0D, 0.0D);
+                Vec3 side = dir.cross(worldUp).normalize();
+                drawQuadRibbon(trailVc, trailMat, tCam, hCam, side, 0.045D, 135, 228, 255, 195);
+                drawQuadRibbon(trailVc, trailMat, tCam, hCam, worldUp, 0.022D, 235, 252, 255, 240);
+
+                // 3D Textured Cryo Arrow body (2 crossed planes aligned along flight direction)
+                VertexConsumer arrowVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(cryoArrowTex));
+                poseStack.pushPose();
+                poseStack.translate(hCam.x, hCam.y, hCam.z);
+                float yawDeg = (float) Math.toDegrees(Math.atan2(dir.x, dir.z));
+                float pitchDeg = (float) Math.toDegrees(Math.asin(Mth.clamp(dir.y, -1.0D, 1.0D)));
+                poseStack.mulPose(Axis.YP.rotationDegrees(yawDeg - 90.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(pitchDeg));
+                poseStack.mulPose(Axis.XP.rotationDegrees(prog * 360.0F));
+                float arrowLen = 1.05F;
+                float arrowHalfH = 0.22F;
+                for (int plane = 0; plane < 2; plane++) {
+                    poseStack.pushPose();
+                    poseStack.mulPose(Axis.XP.rotationDegrees(plane * 90.0F));
+                    PoseStack.Pose p = poseStack.last();
+                    emitWingQuad(arrowVc, p, -arrowLen, -arrowHalfH, 0.0F, 0.0F, 1.0F, 0.15F, -arrowHalfH, 0.0F, 1.0F, 1.0F, 0.15F, arrowHalfH, 0.0F, 1.0F, 0.0F, -arrowLen, arrowHalfH, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+                    emitWingQuad(arrowVc, p, -arrowLen, arrowHalfH, 0.0F, 0.0F, 0.0F, 0.15F, arrowHalfH, 0.0F, 1.0F, 0.0F, 0.15F, -arrowHalfH, 0.0F, 1.0F, 1.0F, -arrowLen, -arrowHalfH, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
+                    poseStack.popPose();
+                }
+                poseStack.popPose();
+            } else if (arc.fromEntityId == -8) {
+                // Section 18: Nahida Skandha Link with 4-Leaf Clover Seed of Skandha nodes
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                float fade = 1.0F - prog * 0.65F;
+                Vec3 sCam = arc.start.subtract(camPos);
+                Vec3 eCam = arc.end.subtract(camPos);
+                Vec3 chord = eCam.subtract(sCam);
+                if (chord.lengthSqr() > 1.0E-4D) {
+                    VertexConsumer linkVc = bufferSource.getBuffer(RenderType.lightning());
+                    Matrix4f linkMat = poseStack.last().pose();
+                    Vec3 n = new Vec3(0.0D, 1.0D, 0.0D);
+                    drawQuadRibbon(linkVc, linkMat, sCam, eCam, n, 0.042D, 75, 245, 115, Math.max(25, Math.round(210 * fade)));
+                    drawQuadRibbon(linkVc, linkMat, sCam, eCam, n, 0.016D, 220, 255, 225, Math.max(35, Math.round(245 * fade)));
+                }
+                VertexConsumer skVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
+                Vec3 midCam = sCam.lerp(eCam, 0.5D);
+                for (Vec3 node : new Vec3[]{sCam, midCam, eCam}) {
+                    poseStack.pushPose();
+                    poseStack.translate(node.x, node.y, node.z);
+                    poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+                    float h = 0.28F;
+                    PoseStack.Pose p = poseStack.last();
+                    emitWingQuad(skVc, p, -h, -h, 0.0F, 0.0F, 1.0F, h, -h, 0.0F, 1.0F, 1.0F, h, h, 0.0F, 1.0F, 0.0F, -h, h, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+                    emitWingQuad(skVc, p, -h, h, 0.0F, 0.0F, 0.0F, h, h, 0.0F, 1.0F, 0.0F, h, -h, 0.0F, 1.0F, 1.0F, -h, -h, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
+                    poseStack.popPose();
+                }
+            }
+        }
+    }
 
     private static void renderVentiWindChargeOrbs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         boolean showHitbox = Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes();
@@ -4954,10 +5308,8 @@ public final class ClientAuraRenderer {
 
     private static void renderMavuikaNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null) return;
-        boolean holdingSuns = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
-                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+        boolean holdingSuns = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
+                || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
                 || (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
         if (!holdingSuns) return;
         ClientAuraTracker.MavuikaDisplayState state = ClientAuraTracker.getMavuika(mc.player.getId());
@@ -5048,10 +5400,8 @@ public final class ClientAuraRenderer {
 
     private static void renderXilonenNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null) return;
-        boolean holdingXilo = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG)
-                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG);
+        boolean holdingXilo = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG
+                || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
         boolean skating = ClientAuraTracker.isXilonenSkating(mc.player.getId());
         boolean hasSamples = ClientAuraTracker.hasXilonenSourceSamples(mc.player.getId());
         if (!holdingXilo && !skating && !hasSamples) return;
@@ -5156,22 +5506,22 @@ public final class ClientAuraRenderer {
         }
 
         if (skandha) {
+            ResourceLocation skandhaTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/seed_of_skandha.png");
+            VertexConsumer skVc = buffer.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
             poseStack.pushPose();
-            poseStack.translate(0.0F, entity.getBbHeight() * 0.55F, 0.0F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(time * 4.0F));
-            Matrix4f mat = poseStack.last().pose();
-            float r = Math.max(0.36F, entity.getBbWidth() * 0.62F);
-            for (int i = 0; i < 4; i++) {
-                float a0 = (float) (i * Math.PI * 0.5D);
-                float a1 = a0 + 0.45F;
-                emitDoubleQuad(vc, mat,
-                        Mth.cos(a0) * r, -0.10F, Mth.sin(a0) * r,
-                        Mth.cos(a1) * r, 0.0F, Mth.sin(a1) * r,
-                        Mth.cos(a0) * (r + 0.14F), 0.12F, Mth.sin(a0) * (r + 0.14F),
-                        Mth.cos(a0 - 0.45F) * r, 0.0F, Mth.sin(a0 - 0.45F) * r,
-                        72, 245, 110, 225);
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.58F + Mth.sin(time * 0.14F) * 0.04F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.5F));
+            float half = Math.max(0.38F, entity.getBbWidth() * 0.58F);
+            for (int plane = 0; plane < 2; plane++) {
+                poseStack.pushPose();
+                poseStack.mulPose(Axis.YP.rotationDegrees(plane * 90.0F));
+                PoseStack.Pose p = poseStack.last();
+                emitWingQuad(skVc, p, -half, -half, 0.0F, 0.0F, 1.0F, half, -half, 0.0F, 1.0F, 1.0F, half, half, 0.0F, 1.0F, 0.0F, -half, half, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
+                emitWingQuad(skVc, p, -half, half, 0.0F, 0.0F, 0.0F, half, half, 0.0F, 1.0F, 0.0F, half, -half, 0.0F, 1.0F, 1.0F, -half, -half, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
+                poseStack.popPose();
             }
             poseStack.popPose();
+            vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         }
 
         if (shrine && !isFirstPersonSelf) {
@@ -5288,10 +5638,8 @@ public final class ClientAuraRenderer {
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
 
-        boolean holdingRaiden = (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
-                || (entity.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+        boolean holdingRaiden = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
         if (holdingRaiden && (state.resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F)) {
             float resolveFrac = musouTicks > 0.0F ? 1.0F : Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
             ResourceLocation ringTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_chakra_ring.png");
@@ -5401,10 +5749,8 @@ public final class ClientAuraRenderer {
     private static void renderRaidenHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null) return;
         ClientAuraTracker.RaidenDisplayState state = ClientAuraTracker.getRaiden(mc.player.getId());
-        boolean holdingRaiden = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
-                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+        boolean holdingRaiden = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
         if (!holdingRaiden || state == null) return;
         float eyeTicks = state.effectiveEyeTicks();
         float musouTicks = state.effectiveMusouTicks();

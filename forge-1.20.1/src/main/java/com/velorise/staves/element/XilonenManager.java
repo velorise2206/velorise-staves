@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class XilonenManager {
     private static final UUID SKATE_SPEED_UUID = UUID.fromString("c84159a2-74a1-4b92-8e14-2948105a1101");
+    private static final UUID SKATE_STEP_UUID = UUID.fromString("c84159a2-74a1-4b92-8e14-2948105a1104");
     private static final UUID C1_KB_RES_UUID = UUID.fromString("c84159a2-74a1-4b92-8e14-2948105a1102");
     private static final UUID C2_HYDRO_HP_UUID = UUID.fromString("c84159a2-74a1-4b92-8e14-2948105a1103");
 
@@ -159,6 +160,7 @@ public final class XilonenManager {
 
     public static boolean castYohualsScratch(ServerPlayer player, ItemStack stack, boolean isNetherite) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return false;
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.computeIfAbsent(player.getUUID(), k -> new XilonenPlayerState());
 
@@ -221,6 +223,7 @@ public final class XilonenManager {
         player.setDeltaMovement(dv.x * 1.12D, Math.max(dv.y, 0.58D), dv.z * 1.12D);
         player.hasImpulse = true;
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_JUMP_FLIP);
         player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.GOAT_LONG_JUMP, SoundSource.PLAYERS, 0.65F, 1.45F);
     }
 
@@ -379,7 +382,7 @@ public final class XilonenManager {
 
     public static boolean triggerXilonenUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         if (!isHoldingXilonen(player)) return false;
 
         boolean isNetherite = isEffectiveNetheriteHeld(player);
@@ -611,6 +614,20 @@ public final class XilonenManager {
                 }
             } else if (existing != null) {
                 spd.removeModifier(SKATE_SPEED_UUID);
+            }
+        }
+
+        AttributeInstance stepAttr = player.getAttribute(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get());
+        if (stepAttr != null) {
+            boolean wantSkateStep = st.skating && now < st.skateUntilTick;
+            AttributeModifier existingStep = stepAttr.getModifier(SKATE_STEP_UUID);
+            if (wantSkateStep) {
+                if (existingStep == null || Math.abs(existingStep.getAmount() - 0.65D) > 0.001D) {
+                    if (existingStep != null) stepAttr.removeModifier(SKATE_STEP_UUID);
+                    stepAttr.addTransientModifier(new AttributeModifier(SKATE_STEP_UUID, "Xilonen skate step height", 0.65D, AttributeModifier.Operation.ADDITION));
+                }
+            } else if (existingStep != null) {
+                stepAttr.removeModifier(SKATE_STEP_UUID);
             }
         }
 

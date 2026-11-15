@@ -68,10 +68,12 @@ public final class ArchonUltiManager {
     /** Dispatches the shared [R] burst keybind to whichever Genshin weapon the player is holding. */
     public static void triggerUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ElementalGaugeManager.triggerMavuikaUlti(player);
         ElementalGaugeManager.triggerRaidenUlti(player);
         triggerZhongliUlti(player);
+        triggerVentiUlti(player);
         triggerFurinaUlti(player);
         triggerLaylaUlti(player);
         XilonenManager.triggerXilonenUlti(player);
@@ -93,20 +95,29 @@ public final class ArchonUltiManager {
         }
     }
 
-    /** Casts Venti's Wind's Grand Ode after holding [R] to full charge (with 1.6s I-frames & Burst animation). */
+    /** Casts Venti's Wind's Grand Ode on pressing [R] (with 1.6s I-frames & Burst animation, supporting Omni Staff). */
     public static void triggerVentiUlti(ServerPlayer player) {
-        if (player == null || !player.isAlive() || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (player == null || !player.isAlive()) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
-        if (main.getItem() instanceof ArcaneStaffItem staff && staff.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-            if (staff.triggerDaybreakVortexFromKey(player, main)) {
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK
+                && main.getItem() instanceof ArcaneStaffItem mainStaff) {
+            ArcaneStaffItem targetStaff = mainStaff.kind() == ArcaneStaffItem.Kind.OMNI
+                    ? ArcaneStaffItem.getAbsorbedStaffForElement(main, Element.ANEMO)
+                    : mainStaff;
+            if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, main)) {
                 grantUltiIframe(player, 32);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
             return;
         }
         ItemStack off = player.getOffhandItem();
-        if (off.getItem() instanceof ArcaneStaffItem staff && staff.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-            if (staff.triggerDaybreakVortexFromKey(player, off)) {
+        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.DAYBREAK
+                && off.getItem() instanceof ArcaneStaffItem offStaff) {
+            ArcaneStaffItem targetStaff = offStaff.kind() == ArcaneStaffItem.Kind.OMNI
+                    ? ArcaneStaffItem.getAbsorbedStaffForElement(off, Element.ANEMO)
+                    : offStaff;
+            if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, off)) {
                 grantUltiIframe(player, 32);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
@@ -116,7 +127,7 @@ public final class ArchonUltiManager {
     /** Furina [R] Burst: Let the People Rejoice (15s CD, 1.6s I-frames, AoE Hydro stage burst + Universal Revelry Fanfare). */
     public static void triggerFurinaUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
         boolean isNeth;
@@ -176,7 +187,7 @@ public final class ArchonUltiManager {
     /** Layla [R] Burst: Dream of the Star-Stream Shaker (12s CD, 1.6s I-frames, AoE Cryo Dreamsphere + 4 Night Stars). */
     public static void triggerLaylaUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
         boolean isNeth;
@@ -232,25 +243,25 @@ public final class ArchonUltiManager {
         player.displayClientMessage(Component.literal("§b✦ Dream of the Star-Stream Shaker! (+4 Night Stars)"), true);
     }
 
-    /** Checks for an equipped Vortex Vanquisher and launches Planet Befall. */
+    /** Checks for an equipped Vortex Vanquisher (or Omni Staff locked to Vortex) and launches Planet Befall. */
     public static void triggerZhongliUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
-        ArcaneStaffItem vortexStaff;
-        if (stack.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.VORTEX) {
-            vortexStaff = staff;
+        boolean isNeth;
+        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
+            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
         } else {
             hand = InteractionHand.OFF_HAND;
             stack = player.getOffhandItem();
-            if (stack.getItem() instanceof ArcaneStaffItem staffOff && staffOff.kind() == ArcaneStaffItem.Kind.VORTEX) {
-                vortexStaff = staffOff;
+            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
+                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
             } else {
                 return;
             }
         }
-        activateZhongliPlanetBefall(player, stack, hand, vortexStaff.isNetherite());
+        activateZhongliPlanetBefall(player, stack, hand, isNeth);
     }
 
     private static void activateZhongliPlanetBefall(ServerPlayer player, ItemStack stack, InteractionHand hand, boolean isNetherite) {
@@ -393,12 +404,30 @@ public final class ArchonUltiManager {
 
         DustParticleOptions goldBurst = new DustParticleOptions(new Vector3f(0.96F, 0.74F, 0.22F), pending.isNetherite() ? 2.2F : 1.8F);
         DustParticleOptions basaltBurst = new DustParticleOptions(new Vector3f(0.24F, 0.18F, 0.12F), 1.6F);
-        level.sendParticles(goldBurst, impact.x, impact.y + 0.65D, impact.z, 36, aoeRadius * 0.42D, 0.55D, aoeRadius * 0.42D, 0.06D);
-        level.sendParticles(basaltBurst, impact.x, impact.y + 0.45D, impact.z, 28, aoeRadius * 0.38D, 0.40D, aoeRadius * 0.38D, 0.05D);
-        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, impact.x, impact.y + 0.25D, impact.z, 18, aoeRadius * 0.35D, 0.20D, aoeRadius * 0.35D, 0.03D);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.2F, 0.70F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.15F, 0.55F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 1.15F, 0.60F);
+        net.minecraft.core.particles.BlockParticleOption deepslateDebris =
+                new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState());
+        net.minecraft.core.particles.BlockParticleOption stoneDebris =
+                new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.COBBLESTONE.defaultBlockState());
+        level.sendParticles(goldBurst, impact.x, impact.y + 0.65D, impact.z, 42, aoeRadius * 0.45D, 0.55D, aoeRadius * 0.45D, 0.06D);
+        level.sendParticles(basaltBurst, impact.x, impact.y + 0.45D, impact.z, 36, aoeRadius * 0.42D, 0.40D, aoeRadius * 0.42D, 0.05D);
+        level.sendParticles(deepslateDebris, impact.x, impact.y + 0.35D, impact.z, 55, aoeRadius * 0.45D, 0.45D, aoeRadius * 0.45D, 0.18D);
+        level.sendParticles(stoneDebris, impact.x, impact.y + 0.30D, impact.z, 45, aoeRadius * 0.50D, 0.35D, aoeRadius * 0.50D, 0.16D);
+        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, impact.x, impact.y + 0.20D, impact.z, 28, aoeRadius * 0.45D, 0.18D, aoeRadius * 0.45D, 0.03D);
+        level.sendParticles(ParticleTypes.CLOUD, impact.x, impact.y + 0.15D, impact.z, 32, aoeRadius * 0.50D, 0.12D, aoeRadius * 0.50D, 0.05D);
+        int ringPoints = 28;
+        for (int i = 0; i < ringPoints; i++) {
+            double ang = (Math.PI * 2.0D * i) / ringPoints;
+            double rx = impact.x + Math.cos(ang) * (aoeRadius * 0.85D);
+            double rz = impact.z + Math.sin(ang) * (aoeRadius * 0.85D);
+            level.sendParticles(deepslateDebris, rx, impact.y + 0.20D, rz, 3, 0.25D, 0.15D, 0.25D, 0.12D);
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
+            level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
+        }
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.55F, 0.55F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.95F, 0.52F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.35F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 1.35F, 0.55F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 1.25F, 0.55F);
     }
 
     /** Processes pending delayed Archon Burst impacts on the server tick. */

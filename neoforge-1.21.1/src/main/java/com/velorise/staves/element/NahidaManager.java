@@ -164,13 +164,13 @@ public final class NahidaManager {
      */
     public static void handleNormalAttack(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
 
         long now = level.getGameTime();
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
-        if (now - st.lastNaTick < 6L) return;
+        if (now - st.lastNaTick < 10L) return;
         if (now - st.lastNaTick > 36L) {
             st.naComboStep = 0;
         }
@@ -273,7 +273,7 @@ public final class NahidaManager {
      */
     public static void handleChargedAttack(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
 
@@ -567,7 +567,7 @@ public final class NahidaManager {
             LivingEntity a = linked.get(i);
             LivingEntity b = linked.get((i + 1) % linked.size());
             if (a != b && a.distanceToSqr(b) <= 576.0D) {
-                ModNetwork.sendElectricArc(level, a, b, 14, 0xFF48F56E);
+                ModNetwork.sendSkandhaLink(level, a, b, 16);
             }
         }
     }
@@ -644,7 +644,7 @@ public final class NahidaManager {
      */
     public static boolean triggerNahidaUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty()) return false;
 
@@ -700,7 +700,10 @@ public final class NahidaManager {
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
 
+        int shrineMask = 1 | (st.shrinePyroCount > 0 ? 2 : 0) | (st.shrineElectroCount > 0 ? 4 : 0)
+                | (st.shrineHydroCount > 0 ? 8 : 0) | (st.shrineNetherite ? 16 : 0);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
+        ModNetwork.sendNahidaShrine(level, st.shrineCenter, st.shrineRadius, (int) totalDurationTicks, shrineMask);
         syncPlayerStateToClients(player, st, now, true);
 
         for (int i = 0; i < 36; i++) {

@@ -22,7 +22,12 @@ public abstract class PlayerAttackMixin {
     @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
     private void velorise$captureAttackStrengthPre(Entity target, CallbackInfo ci) {
         Player self = (Player) (Object) this;
-        if (NeuvilletteManager.isHoldingGuardianLens(self) || PlungeAndGliderManager.isPlunging(self)) {
+        com.velorise.staves.item.ArcaneStaffItem.Kind effKind = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(self.getMainHandItem());
+        if (NeuvilletteManager.isHoldingGuardianLens(self)
+                || PlungeAndGliderManager.isPlunging(self)
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             ci.cancel();
             return;
         }

@@ -40,6 +40,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_VENTI_BURST = 33;
     public static final int ANIM_FURINA_BURST = 34;
     public static final int ANIM_LAYLA_BURST = 35;
+    public static final int ANIM_XILONEN_JUMP_FLIP = 36;
 
     // Nahida (Thousand Floating Dreams)
     public static final int ANIM_NAHIDA_NA_1 = 40;
@@ -128,6 +129,8 @@ public final class ClientAuraTracker {
         public long petrifiedUntil = 0L;
         public boolean xilonenSkating = false;
         public boolean xilonenWallClimbing = false;
+        public long xilonenJumpFlipStartTime = 0L;
+        public long xilonenJumpFlipUntil = 0L;
         public boolean xilonenNetherite = false;
         public int xilonenNightsoulPoints = 0;
         public long xilonenSkateSyncUntil = 0L;
@@ -348,9 +351,9 @@ public final class ClientAuraTracker {
     public static void addArc(int fromId, net.minecraft.world.phys.Vec3 start, int toId, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
         long now = System.currentTimeMillis();
         long nextExpire = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
-        if (fromId == -2 && start != null) {
+        if ((fromId == -2 || fromId == -5 || fromId == -6) && start != null) {
             for (ActiveArc existing : ACTIVE_ARCS) {
-                if (existing.fromEntityId == -2 && existing.start != null && existing.start.distanceToSqr(start) < 0.25D) {
+                if (existing.fromEntityId == fromId && existing.start != null && existing.start.distanceToSqr(start) < 0.25D) {
                     existing.color = color;
                     existing.end = end;
                     existing.expireTime = nextExpire;
@@ -395,16 +398,26 @@ public final class ClientAuraTracker {
             localWindGliderUnlocked = false;
             return;
         }
+        if (animType == ANIM_XILONEN_JUMP_FLIP) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.xilonenJumpFlipStartTime = now;
+            entry.xilonenJumpFlipUntil = now + 550L;
+            return;
+        }
         if (animType == ANIM_GLIDER_START || animType == ANIM_GLIDER_STOP) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.gliding = (animType == ANIM_GLIDER_START);
-            if (entry.gliding) entry.plunging = false;
+            if (entry.gliding) {
+                entry.plunging = false;
+                entry.xilonenJumpFlipUntil = 0L;
+            }
             return;
         }
         if (animType == ANIM_PLUNGE_START) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.plunging = true;
             entry.gliding = false;
+            entry.xilonenJumpFlipUntil = 0L;
             entry.staffAnimType = ANIM_PLUNGE_START;
             entry.staffAnimStartTime = now;
             entry.staffAnimUntil = now + 3500L;
@@ -423,6 +436,7 @@ public final class ClientAuraTracker {
             if (animType == 1999) {
                 entry.xilonenSkating = false;
                 entry.xilonenWallClimbing = false;
+                entry.xilonenJumpFlipUntil = 0L;
                 entry.xilonenNightsoulPoints = 0;
                 entry.xilonenSkateSyncUntil = 0L;
             } else {
@@ -430,7 +444,10 @@ public final class ClientAuraTracker {
                 entry.xilonenNetherite = rem >= 200;
                 if (entry.xilonenNetherite) rem -= 200;
                 entry.xilonenWallClimbing = rem >= 100;
-                if (entry.xilonenWallClimbing) rem -= 100;
+                if (entry.xilonenWallClimbing) {
+                    rem -= 100;
+                    entry.xilonenJumpFlipUntil = 0L;
+                }
                 entry.xilonenNightsoulPoints = Math.max(0, Math.min(90, rem));
                 entry.xilonenSkating = entry.xilonenNightsoulPoints > 0;
                 entry.xilonenSkateSyncUntil = now + 15000L;
@@ -526,6 +543,9 @@ public final class ClientAuraTracker {
             return;
         }
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+        if (animType == ANIM_XILONEN_SKATE_DASH) {
+            entry.xilonenJumpFlipUntil = 0L;
+        }
         if (animType == ANIM_RAIDEN_SLASH) {
             if (now - entry.raidenLastSlashTime > 1500L) {
                 entry.raidenNextComboStep = 0;
@@ -997,6 +1017,13 @@ public final class ClientAuraTracker {
     public static boolean isXilonenWallClimbing(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         return data != null && data.xilonenSkating && data.xilonenWallClimbing && System.currentTimeMillis() < data.xilonenSkateSyncUntil;
+    }
+
+    public static boolean isXilonenJumpFlipping(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        long now = System.currentTimeMillis();
+        return data != null && data.xilonenSkating && !data.xilonenWallClimbing
+                && !data.plunging && !data.gliding && now < data.xilonenJumpFlipUntil;
     }
 
     public static boolean hasXilonenSourceSamples(int entityId) {

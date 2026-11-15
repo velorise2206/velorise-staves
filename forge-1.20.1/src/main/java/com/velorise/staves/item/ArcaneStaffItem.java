@@ -263,6 +263,19 @@ public final class ArcaneStaffItem extends Item {
         return getOmniAbsorbedStaff(omniStack, element);
     }
 
+    public static void recordAbsorbedStaff(ItemStack omniStack, ItemStack staffStack) {
+        if (!isOmniStaff(omniStack) || !(staffStack.getItem() instanceof ArcaneStaffItem staff) || staff.kind() == Kind.OMNI) return;
+        Element elem = staff.getElement();
+        if (elem == null) return;
+        String idStr = getItemIdString(staff);
+        if (idStr.isEmpty()) return;
+        updateCustomTag(omniStack, tag -> {
+            CompoundTag staves = tag.contains(TAG_OMNI_STAVES, 10) ? tag.getCompound(TAG_OMNI_STAVES) : new CompoundTag();
+            staves.putString(elem.name(), idStr);
+            tag.put(TAG_OMNI_STAVES, staves);
+        });
+    }
+
     public static Component getAbsorbedStaffWheelStats(@Nullable ArcaneStaffItem absorbed) {
         if (absorbed == null) return Component.empty();
         double cdSec = absorbed.getCooldownTicks() / 20.0;
@@ -379,21 +392,23 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public static void handleFurinaLeftClickHoldSwitch(ServerPlayer player) {
-        if (player == null || !player.isAlive() || ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (player == null || !player.isAlive() || ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = player.getMainHandItem();
-        ArcaneStaffItem staff = (stack.getItem() instanceof ArcaneStaffItem s && s.kind() == Kind.SPLENDOR) ? s : null;
-        if (staff == null) {
+        ArcaneStaffItem staff = null;
+        if (stack.getItem() instanceof ArcaneStaffItem s && getEffectiveKind(stack) == Kind.SPLENDOR) {
+            staff = (s.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : s;
+        } else {
             stack = player.getOffhandItem();
-            if (!(stack.getItem() instanceof ArcaneStaffItem staffOff && staffOff.kind() == Kind.SPLENDOR)) return;
-            staff = staffOff;
+            if (stack.getItem() instanceof ArcaneStaffItem so && getEffectiveKind(stack) == Kind.SPLENDOR) {
+                staff = (so.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : so;
+            }
         }
-        if (player.getCooldowns().isOnCooldown(staff)) return;
+        if (staff == null) return;
         long now = player.level().getGameTime();
         long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
         if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
             SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
             staff.switchSplendorArkhe(player, stack);
-            player.getCooldowns().addCooldown(staff, 10);
         }
     }
 
@@ -431,6 +446,9 @@ public final class ArcaneStaffItem extends Item {
         if (ElementalResonanceManager.isOnSwapCooldown(player)) {
             return InteractionResultHolder.fail(stack);
         }
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) {
+            return InteractionResultHolder.fail(stack);
+        }
         if (this.kind == Kind.OMNI) {
             Element activeElem = getOmniActiveElement(stack);
             if (activeElem != null) {
@@ -439,15 +457,6 @@ public final class ArcaneStaffItem extends Item {
                     return delegated.useDelegatedFromOmni(level, player, hand, stack, this);
                 }
             }
-        }
-        if (ElementalResonanceManager.isOverloaded(player)) {
-            if (!level.isClientSide()) {
-                player.displayClientMessage(
-                        Component.translatable("message.velorise_staves.staff_overload", StavesConfig.getMaxStavesInInventory())
-                                .withStyle(ChatFormatting.RED),
-                        true);
-            }
-            return InteractionResultHolder.fail(stack);
         }
         if (!level.isClientSide() && player instanceof ServerPlayer sp && kind != Kind.TSARITSA_BOW && kind != Kind.TSARITSA_SPEAR) {
             if (com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(sp)) {
@@ -586,12 +595,61 @@ public final class ArcaneStaffItem extends Item {
     public InteractionResultHolder<ItemStack> useDelegatedFromOmni(
             Level level, Player player, InteractionHand hand, ItemStack stack, ArcaneStaffItem omniOwner
     ) {
+        if (ElementalResonanceManager.isOnSwapCooldown(player) || ElementalResonanceManager.checkAndNotifyOverloaded(player)) {
+            return InteractionResultHolder.fail(stack);
+        }
+        boolean effNeth = omniOwner.isNetherite() || this.isNetherite;
+        if (!level.isClientSide() && player instanceof ServerPlayer sp && kind != Kind.TSARITSA_BOW && kind != Kind.TSARITSA_SPEAR) {
+            if (com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(sp)) {
+                return InteractionResultHolder.sidedSuccess(stack, false);
+            }
+        }
+        if ((kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) && level.isClientSide()
+                && com.velorise.staves.client.ClientAuraTracker.localTsaritsaHoldELocked) {
+            return InteractionResultHolder.fail(stack);
+        }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+            if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+                return InteractionResultHolder.pass(stack);
+            }
+            if (player.getCooldowns().isOnCooldown(omniOwner) || player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+            if (!level.isClientSide() && player instanceof ServerPlayer sp) {
+                long now = sp.serverLevel().getServer().overworld().getGameTime();
+                if (ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
+                    ElementalGaugeManager.summonAndMountFlamestrider(sp, effNeth, getCooldownTicks());
+                    player.getCooldowns().addCooldown(omniOwner, 12);
+                    return InteractionResultHolder.sidedSuccess(stack, false);
+                }
+                if (ElementalGaugeManager.isMavuikaOnCooldown(sp.getUUID(), now)) {
+                    ElementalGaugeManager.applyMavuikaDismountOrRemainingCooldown(sp);
+                    double rem = ElementalGaugeManager.getMavuikaSkillRemainingTicks(sp.getUUID(), now) / 20.0D;
+                    sp.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§6🔥 Flamestrider CD: %.1fs", rem)), true);
+                    return InteractionResultHolder.fail(stack);
+                }
+            } else if (level.isClientSide() && com.velorise.staves.client.ClientAuraTracker.isMavuikaAuraActive(player.getId())) {
+                player.getCooldowns().addCooldown(omniOwner, 12);
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+        }
+        if (kind == Kind.ENGULFING_LIGHTNING) {
+            if (player.getCooldowns().isOnCooldown(omniOwner) || player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+            if (level.isClientSide()) {
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+            if (player instanceof ServerPlayer sp && ElementalGaugeManager.activateRaidenEye(sp, effNeth)) {
+                stack.hurtAndBreak(1, sp, p -> p.broadcastBreakEvent(hand));
+                ElementalResonanceManager.applyOmniModeCooldown(sp, stack, getCooldownTicks());
+                sp.awardStat(Stats.ITEM_USED.get(omniOwner));
+                return InteractionResultHolder.sidedSuccess(stack, false);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
         if (player.getCooldowns().isOnCooldown(omniOwner) || player.getCooldowns().isOnCooldown(this)) {
             return InteractionResultHolder.fail(stack);
         }
         if (isCharged()) {
             if (kind == Kind.THOUSAND_FLOATING_DREAMS && !level.isClientSide() && player instanceof ServerPlayer sp) {
-                com.velorise.staves.element.NahidaManager.onStartHoldUse(sp, stack, omniOwner.isNetherite() || this.isNetherite);
+                com.velorise.staves.element.NahidaManager.onStartHoldUse(sp, stack, effNeth);
             }
             player.startUsingItem(hand);
             if (!level.isClientSide()) {
@@ -602,6 +660,9 @@ public final class ArcaneStaffItem extends Item {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
                     case GHASTFIRE -> SoundEvents.GHAST_WARN;
+                    case VORTEX -> SoundEvents.DEEPSLATE_STEP;
+                    case SPLENDOR -> SoundEvents.AMETHYST_BLOCK_RESONATE;
+                    case DAYBREAK -> com.velorise.staves.VeloriseStavesMod.WIND_CHARGE_THROW_SOUND.get();
                     default -> SoundEvents.GUARDIAN_AMBIENT;
                 };
                 level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, 1.0F);
@@ -618,13 +679,14 @@ public final class ArcaneStaffItem extends Item {
             case WITHER -> shootWither(serverPlayer);
             case SHULKER -> shootShulker(serverPlayer);
             case EVOKER -> castFangs(serverPlayer);
+            case VORTEX -> castVortexVanquisher(serverPlayer);
             case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
             case NIGHTS_FOCUS -> castNightsFocus(serverPlayer);
             case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
             case WIND -> shootWind(serverPlayer);
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
-            case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, omniOwner.isNetherite() || this.isNetherite);
-            case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, omniOwner.isNetherite() || this.isNetherite);
+            case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, effNeth);
+            case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, effNeth);
             default -> false;
         };
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -655,10 +717,11 @@ public final class ArcaneStaffItem extends Item {
                 com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_STARRY_NIGHT);
             }
         }
-        if (kind == Kind.SPLENDOR && entity instanceof Player p && !p.isShiftKeyDown()
+        Kind tickEffKind = getEffectiveKind(stack);
+        if (tickEffKind == Kind.SPLENDOR && entity instanceof Player p && !p.isShiftKeyDown()
                 && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
             com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
-        } else if (kind == Kind.GUARDIAN && entity instanceof Player p && !p.isShiftKeyDown()
+        } else if (tickEffKind == Kind.GUARDIAN && entity instanceof Player p && !p.isShiftKeyDown()
                 && (com.velorise.staves.element.NeuvilletteManager.isChannelingOrFiring(p) || (p.isUsingItem() && p.getUseItem() == stack))) {
             com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
         }
@@ -836,7 +899,7 @@ public final class ArcaneStaffItem extends Item {
             ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
             if (delegated != null && delegated.kind() != Kind.OMNI) return delegated.getUseAnimation(stack);
         }
-        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
+        if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
             return UseAnim.NONE;
         }
         return isCharged() ? UseAnim.BOW : UseAnim.NONE;
@@ -848,6 +911,9 @@ public final class ArcaneStaffItem extends Item {
             ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
             if (delegated != null && delegated.kind() != Kind.OMNI) {
                 delegated.onUseTick(level, entity, stack, count);
+                if (!level.isClientSide() && entity instanceof ServerPlayer sp && sp.getCooldowns().isOnCooldown(delegated)) {
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, delegated.getCooldownTicks());
+                }
                 return;
             }
         }
@@ -1086,6 +1152,14 @@ public final class ArcaneStaffItem extends Item {
             ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
             if (delegated != null && delegated.kind() != Kind.OMNI) {
                 delegated.releaseUsing(stack, level, entity, timeLeft);
+                if (!level.isClientSide() && entity instanceof ServerPlayer sp && sp.getCooldowns().isOnCooldown(delegated)) {
+                    int rem = switch (delegated.kind()) {
+                        case VORTEX -> delegated.getVortexCooldownTicks((delegated.getUseDuration(stack) - timeLeft) >= 28 || sp.isShiftKeyDown());
+                        case DAYBREAK -> delegated.getDaybreakCooldownTicks(false);
+                        default -> delegated.getCooldownTicks();
+                    };
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, rem);
+                }
                 return;
             }
         }
@@ -1119,14 +1193,12 @@ public final class ArcaneStaffItem extends Item {
                 int elapsed = this.getUseDuration(stack) - timeLeft;
                 if (alreadySwitched) {
                     SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), level.getGameTime());
-                    player.getCooldowns().addCooldown(this, 10);
                 } else if (elapsed >= 10 || player.isShiftKeyDown()) {
                     long now = level.getGameTime();
                     long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
                     if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
                         SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
                         switchSplendorArkhe(player, stack);
-                        player.getCooldowns().addCooldown(this, 10);
                     }
                 } else if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     InteractionHand usedHand = player.getUsedItemHand();
@@ -2145,10 +2217,17 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity) {
-        if (kind == Kind.ENGULFING_LIGHTNING && entity.level().isClientSide()
+        if (entity instanceof Player p && (com.velorise.staves.element.PlungeAndGliderManager.isPlunging(p)
+                || (entity.level().isClientSide() && com.velorise.staves.client.ClientAuraTracker.isPlunging(entity.getId())))) {
+            return true;
+        }
+        Kind effKind = getEffectiveKind(stack);
+        if (effKind == Kind.THOUSAND_FLOATING_DREAMS || effKind == Kind.TSARITSA_BOW || effKind == Kind.TSARITSA_SPEAR) {
+            return true;
+        }
+        if (effKind == Kind.ENGULFING_LIGHTNING && entity.level().isClientSide()
                 && entity == net.minecraft.client.Minecraft.getInstance().player
                 && com.velorise.staves.client.ClientAuraTracker.isRaidenMusouActive(entity.getId())) {
-            // Suppress vanilla left-click swing animation/spam while Musou Isshin is active; clicks go through cooldown-gated slash
             return true;
         }
         return super.onEntitySwing(stack, entity);
@@ -2189,77 +2268,48 @@ public final class ArcaneStaffItem extends Item {
                 ? getOmniAbsorbedStaff(stack, dispElem) : this;
         tooltip.add(Component.literal("  " + dispStaff.getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.GUARDIAN) {
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.guardian_hp_scale.netherite"
-                    : "tooltip.velorise_staves.guardian_hp_scale").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.guardian_tap_orb.netherite"
-                    : "tooltip.velorise_staves.guardian_tap_orb").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Hold Left-Click: Charge & Fire Hydro Beam").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Right-Click: Summon Hydro Droplets").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Press [R]: Hydro Burst & Spawn Droplets").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.SPLENDOR) {
             String modeKey = isSplendorPneuma(stack)
                     ? "tooltip.velorise_staves.splendor.mode_pneuma"
                     : "tooltip.velorise_staves.splendor.mode_ousia";
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_hp_scale").withStyle(ChatFormatting.AQUA));
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite ? "tooltip.velorise_staves.splendor_burst.netherite" : "tooltip.velorise_staves.splendor_burst"), ChatFormatting.GOLD, 42, "  ");
+            tooltip.add(Component.literal("  Right-Click: Summon Salon Members / Singer").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Charged Attack (Hold Left-Click): Switch Ousia / Pneuma").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Press [R]: Universal Revelry (Fanfare Aura)").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.VORTEX) {
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.vortex_jade_shield.netherite"
-                    : "tooltip.velorise_staves.vortex_jade_shield").withStyle(ChatFormatting.GOLD));
-            tooltip.add(Component.translatable("tooltip.velorise_staves.vortex_res_shred").withStyle(ChatFormatting.YELLOW));
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.vortex_burst.netherite"
-                    : "tooltip.velorise_staves.vortex_burst").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.literal("  Tap Right-Click: Summon Stone Stele").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.literal("  Hold Right-Click: Create Jade Shield").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.literal("  Press [R]: Drop Meteor (Petrify)").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.NIGHTS_FOCUS) {
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.nights_focus_shield.netherite"
-                    : "tooltip.velorise_staves.nights_focus_shield").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.nights_focus_stars.netherite"
-                    : "tooltip.velorise_staves.nights_focus_stars").withStyle(ChatFormatting.BLUE));
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.nights_focus_burst"), ChatFormatting.AQUA, 42, "  ");
+            tooltip.add(Component.literal("  Right-Click: Curtain of Slumber Shield").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Passive: Shooting Stars on E & Time").withStyle(ChatFormatting.BLUE));
+            tooltip.add(Component.literal("  Press [R]: Starlight Slug (Max Stars)").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.THOUSAND_BLAZING_SUNS) {
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_aura"), ChatFormatting.GOLD, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_bike"), ChatFormatting.YELLOW, 44, "  ");
-            if (isNetherite) {
-                appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_ulti"), ChatFormatting.RED, 44, "  ");
-            }
+            tooltip.add(Component.literal("  Tap Right-Click: Ring of Searing Radiance").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.literal("  Hold / Double-Tap Right-Click: Ride Flamestrider").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.literal("  Press [R]: Sunfell Meteor (Fighting Spirit)").withStyle(ChatFormatting.RED));
         } else if (kind == Kind.DAYBREAK) {
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.daybreak_tap.netherite"
-                    : "tooltip.velorise_staves.daybreak_tap"), ChatFormatting.GREEN, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.daybreak_hold.netherite"
-                    : "tooltip.velorise_staves.daybreak_hold"), ChatFormatting.AQUA, 44, "  ");
+            tooltip.add(Component.literal("  Hold Right-Click: Anemo Charged Arrow").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.literal("  Press [R]: Wind's Grand Ode (Vortex)").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.ENGULFING_LIGHTNING) {
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.engulfing_lightning_tap.netherite"
-                    : "tooltip.velorise_staves.engulfing_lightning_tap"), ChatFormatting.LIGHT_PURPLE, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.engulfing_lightning_hold.netherite"
-                    : "tooltip.velorise_staves.engulfing_lightning_hold"), ChatFormatting.DARK_PURPLE, 44, "  ");
+            tooltip.add(Component.literal("  Right-Click: Eye of Stormy Judgment").withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.literal("  Press [R]: Musou Isshin (Electro Sword)").withStyle(ChatFormatting.DARK_PURPLE));
         } else if (kind == Kind.PEAK_PATROL_SONG) {
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.peak_patrol_song_skate.netherite"
-                    : "tooltip.velorise_staves.peak_patrol_song_skate"), ChatFormatting.GOLD, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.peak_patrol_song_samples.netherite"
-                    : "tooltip.velorise_staves.peak_patrol_song_samples"), ChatFormatting.YELLOW, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.peak_patrol_song_ulti.netherite"
-                    : "tooltip.velorise_staves.peak_patrol_song_ulti"), ChatFormatting.AQUA, 44, "  ");
+            tooltip.add(Component.literal("  Right-Click: Rollerblade Rush (Nightsoul)").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.literal("  Left-Click: Skate Kick / Wall-Climb").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.literal("  Press [R]: Ocelotlicue Point (Soundwave / Heal)").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.THOUSAND_FLOATING_DREAMS) {
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_floating_dreams_attack"), ChatFormatting.GREEN, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_floating_dreams_skill"), ChatFormatting.GREEN, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.thousand_floating_dreams_burst.netherite"
-                    : "tooltip.velorise_staves.thousand_floating_dreams_burst"), ChatFormatting.GOLD, 44, "  ");
+            tooltip.add(Component.literal("  Tap Right-Click: Mark Enemies (Tri-Karma)").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.literal("  Hold Right-Click: Aim & Link Up to 8 Targets").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.literal("  Press [R]: Shrine of Maya (Domain Buff)").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.tsaritsa_bow_attack"), ChatFormatting.AQUA, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.tsaritsa_bow_skill"), ChatFormatting.BLUE, 44, "  ");
-            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
-                    ? "tooltip.velorise_staves.tsaritsa_bow_burst.netherite"
-                    : "tooltip.velorise_staves.tsaritsa_bow_burst"), ChatFormatting.LIGHT_PURPLE, 44, "  ");
+            tooltip.add(Component.literal("  Left-Click: Cryo Charged Arrow").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Right-Click: Cryo Skill").withStyle(ChatFormatting.BLUE));
+            tooltip.add(Component.literal("  Hold Right-Click: Switch Bow / Spear").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  Press [R]: Cryo Burst").withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", dispStaff.getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {
@@ -2287,6 +2337,11 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.THOUSAND_FLOATING_DREAMS) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", "5.0s (Tap) / 6.0s (Hold) | 13.5s [R]").withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.SPLENDOR) {
+            float eSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+            float qSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(300) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (E) | %.1fs [R]", eSec, qSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", "6.0s (E) | 15.0s [R]").withStyle(ChatFormatting.BLUE));
         } else {

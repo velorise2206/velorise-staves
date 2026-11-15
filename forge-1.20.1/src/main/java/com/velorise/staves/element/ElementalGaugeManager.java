@@ -1324,13 +1324,13 @@ public final class ElementalGaugeManager {
         }
         for (ItemStack invStack : player.getInventory().items) {
             if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(invStack) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
                 player.getCooldowns().addCooldown(staff, clientCd);
             }
         }
         ItemStack off = player.getOffhandItem();
         if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
             player.getCooldowns().addCooldown(staff, clientCd);
         }
     }
@@ -1424,20 +1424,19 @@ public final class ElementalGaugeManager {
             bike.discard();
             return;
         }
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
         ItemStack off = player.getOffhandItem();
-        com.velorise.staves.item.ArcaneStaffItem staff = null;
-        if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            staff = sm;
-        } else if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            staff = so;
+        ItemStack matched = ItemStack.EMPTY;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            matched = main;
+        } else if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            matched = off;
         }
-        if (staff == null || ElementalResonanceManager.isOverloaded(player)) return;
+        if (matched.isEmpty()) return;
         long now = player.serverLevel().getServer().overworld().getGameTime();
         if (!isMavuikaAuraActive(player.getUUID(), now) && isMavuikaOnCooldown(player.getUUID(), now)) return;
-        summonAndMountFlamestrider(player, staff.isNetherite(), staff.getCooldownTicks());
+        summonAndMountFlamestrider(player, com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(matched), 300);
     }
 
     public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) {
@@ -1728,6 +1727,8 @@ public final class ElementalGaugeManager {
 
     public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) {
         if (player == null || player.level().isClientSide()) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
+        ArchonUltiManager.grantUltiIframe(player, 24);
         UUID id = player.getUUID();
         long now = player.level().getGameTime();
         if (now >= NIGHTS_FOCUS_UNTIL.getOrDefault(id, 0L)) {
@@ -1821,11 +1822,11 @@ public final class ElementalGaugeManager {
         long last = RAIDEN_LAST_STAFF_RESOLVE_TICK.getOrDefault(id, -100L);
         if (now - last < 20L) return;
         boolean hasRaiden = now < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)
-                || (player.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
-                || (player.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+                || ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
         if (!hasRaiden) {
             for (ItemStack invStack : player.getInventory().items) {
-                if (invStack.getItem() instanceof ArcaneStaffItem si && si.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                if (ArcaneStaffItem.getEffectiveKind(invStack) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                     hasRaiden = true;
                     break;
                 }
@@ -2053,7 +2054,7 @@ public final class ElementalGaugeManager {
         if (NeuvilletteManager.isChannelingOrFiring(player)) return true;
         if (!player.isUsingItem()) return false;
         ItemStack active = player.getUseItem();
-        return active.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.GUARDIAN;
+        return ArcaneStaffItem.getEffectiveKind(active) == ArcaneStaffItem.Kind.GUARDIAN;
     }
 
     public static void applyFurinaWaterWalking(Player player) {
@@ -2143,14 +2144,12 @@ public final class ElementalGaugeManager {
     public static boolean carriesGuardianLens(Player player) {
         if (player == null) return false;
         for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
                 return true;
             }
         }
         for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
                 return true;
             }
         }
@@ -2195,16 +2194,16 @@ public final class ElementalGaugeManager {
     private static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) {
         if (!(entity instanceof Player player)) return false;
         for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                    && staff.isNetherite()) {
+            if (!s.isEmpty()
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
                 return true;
             }
         }
         for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                    && staff.isNetherite()) {
+            if (!s.isEmpty()
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
                 return true;
             }
         }
@@ -2217,9 +2216,8 @@ public final class ElementalGaugeManager {
         if (sp.getAbsorptionAmount() > 0.0F) return;
         if (!sp.isUsingItem()) return;
         ItemStack active = sp.getUseItem();
-        if (active.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                && !staff.isNetherite()) {
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(active) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                && !com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(active)) {
             sp.stopUsingItem();
             sp.serverLevel().playSound(null, sp.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.PLAYERS, 0.55F, 1.25F);
         }
@@ -6126,9 +6124,8 @@ public final class ElementalGaugeManager {
 
     public static void addRaidenResolve(ServerPlayer player, int baseAmount) {
         if (player == null || baseAmount <= 0) return;
-        boolean hasNetherite = player.getMainHandItem().getItem() instanceof ArcaneStaffItem staff
-                && staff.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
-                && staff.isNetherite();
+        boolean hasNetherite = ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                && ArcaneStaffItem.getEffectiveNetherite(player.getMainHandItem());
         int gained = hasNetherite ? (int) Math.ceil(baseAmount * 1.5D) : baseAmount;
         UUID id = player.getUUID();
         int updated = Math.min(60, RAIDEN_RESOLVE.getOrDefault(id, 0) + gained);
@@ -6265,21 +6262,19 @@ public final class ElementalGaugeManager {
 
     public static void triggerRaidenUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.isOverloaded(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
         ItemStack off = player.getOffhandItem();
         ItemStack raidenStack = ItemStack.EMPTY;
         boolean fromMain = false;
-        if (main.getItem() instanceof ArcaneStaffItem sm
-                && sm.kind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             raidenStack = main;
             fromMain = true;
-        } else if (off.getItem() instanceof ArcaneStaffItem so
-                && so.kind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        } else if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             raidenStack = off;
         }
         if (raidenStack.isEmpty()) return;
-        boolean isNetherite = ((ArcaneStaffItem) raidenStack.getItem()).isNetherite();
+        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(raidenStack);
         if (activateRaidenMusouBurst(player, isNetherite)) {
             final net.minecraft.world.InteractionHand breakHand = fromMain
                     ? net.minecraft.world.InteractionHand.MAIN_HAND
@@ -6343,11 +6338,11 @@ public final class ElementalGaugeManager {
         UUID id = attacker.getUUID();
         if (!isRaidenMusouActive(id, now)) return incomingDamage;
         ItemStack mainHand = attacker.getMainHandItem();
-        if (!(mainHand.getItem() instanceof ArcaneStaffItem staff) || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             return incomingDamage;
         }
 
-        boolean isNetherite = staff.isNetherite();
+        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
         boolean isCharged = false;
         if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) {
             return 0.0F;
@@ -6393,15 +6388,16 @@ public final class ElementalGaugeManager {
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
         if (!isRaidenMusouActive(id, now)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack mainHand = player.getMainHandItem();
-        if (!(mainHand.getItem() instanceof ArcaneStaffItem staff) || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             return;
         }
         if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) return;
         if (now - RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L) <= 1L) return;
 
         RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
-        boolean isNetherite = staff.isNetherite();
+        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
         int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
         RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
 
@@ -6459,8 +6455,7 @@ public final class ElementalGaugeManager {
 
             if (musouActive) {
                 ItemStack mainHand = player.getMainHandItem();
-                if (!(mainHand.getItem() instanceof ArcaneStaffItem staff)
-                        || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                     RAIDEN_MUSOU_UNTIL.remove(id);
                     RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
                     RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
@@ -6538,17 +6533,15 @@ public final class ElementalGaugeManager {
         boolean hasSuns = false;
         boolean nethSuns = false;
         for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
                 hasSuns = true;
-                if (staff.isNetherite()) nethSuns = true;
+                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) nethSuns = true;
             }
         }
         for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
                 hasSuns = true;
-                if (staff.isNetherite()) nethSuns = true;
+                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) nethSuns = true;
             }
         }
         UUID id = player.getUUID();

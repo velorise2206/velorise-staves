@@ -304,19 +304,9 @@ public final class OmniWheelOverlay {
     private static void renderHotbarBadge(GuiGraphics guiGraphics, Minecraft mc, ItemStack omniStack, int mode) {
         Element el = OmniOrbEntity.modeToElement(mode);
         Font font = mc.font;
-        Component label;
-        if (el != null) {
-            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, el);
-            if (absorbed != null) {
-                label = Component.translatable(el.translationKey())
-                        .append(Component.literal(" · ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
-                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.GRAY));
-            } else {
-                label = Component.translatable(el.translationKey());
-            }
-        } else {
-            label = Component.translatable("element.velorise_staves.omni");
-        }
+        Component label = (el != null)
+                ? Component.translatable(el.translationKey())
+                : Component.translatable("element.velorise_staves.omni");
 
         int textW = font.width(label);
         int badgeW = 20 + textW + 5;

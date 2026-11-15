@@ -101,7 +101,7 @@ public final class NeuvilletteManager {
             }
             return;
         }
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldGuardianLens(player);
         if (stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem)) return;
 
@@ -165,6 +165,7 @@ public final class NeuvilletteManager {
      */
     public static boolean castSkillE(ServerPlayer player, ItemStack stack, boolean isNetherite) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return false;
         long now = level.getGameTime();
         double range = 16.0D;
         double aoeRadius = isNetherite ? 4.5D : 3.5D;
@@ -235,7 +236,7 @@ public final class NeuvilletteManager {
      */
     public static boolean triggerNeuvilletteUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         ItemStack stack = getHeldGuardianLens(player);
         if (stack.isEmpty()) return false;
 

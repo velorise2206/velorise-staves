@@ -60,6 +60,7 @@ public final class TsaritsaManager {
         public long spearStanceUntilTick = 0L;
         public int spearComboStep = 0;
         public long lastSpearSlashTick = 0L;
+        public long lastBowNaTick = -100L;
 
         public long burstIframeUntilTick = 0L;
         public long burstCooldownUntilTick = 0L;
@@ -115,24 +116,19 @@ public final class TsaritsaManager {
 
     public static boolean isTsaritsaItem(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
-        if (stack.getItem() instanceof ArcaneStaffItem staff) {
-            return staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_BOW
-                    || staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR;
-        }
-        return false;
+        ArcaneStaffItem.Kind eff = ArcaneStaffItem.getEffectiveKind(stack);
+        return eff == ArcaneStaffItem.Kind.TSARITSA_BOW || eff == ArcaneStaffItem.Kind.TSARITSA_SPEAR;
     }
 
     public static boolean isHoldingNetheriteTsaritsa(Player player) {
         if (player == null) return false;
         ItemStack main = player.getMainHandItem();
-        if (main.getItem() instanceof ArcaneStaffItem staff
-                && (staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_BOW || staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR)) {
-            return staff.isNetherite();
+        if (isTsaritsaItem(main)) {
+            return ArcaneStaffItem.getEffectiveNetherite(main);
         }
         ItemStack off = player.getOffhandItem();
-        if (off.getItem() instanceof ArcaneStaffItem staff
-                && (staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_BOW || staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR)) {
-            return staff.isNetherite();
+        if (isTsaritsaItem(off)) {
+            return ArcaneStaffItem.getEffectiveNetherite(off);
         }
         return false;
     }
@@ -160,7 +156,7 @@ public final class TsaritsaManager {
         if (player == null) return false;
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
-            if (stack.getItem() instanceof ArcaneStaffItem staff && staff.isNetherite()) {
+            if (stack.getItem() instanceof ArcaneStaffItem staff && ArcaneStaffItem.getEffectiveNetherite(stack)) {
                 if (staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_BOW
                         || staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR
                         || staff.getKind() == ArcaneStaffItem.Kind.OMNI) {
@@ -174,7 +170,7 @@ public final class TsaritsaManager {
     public static boolean isSpearStanceActive(Player player) {
         if (player == null) return false;
         ItemStack main = player.getMainHandItem();
-        if (main.getItem() instanceof ArcaneStaffItem staff && staff.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             return true;
         }
         TsaritsaPlayerState state = PLAYER_STATES.get(player.getUUID());
@@ -245,7 +241,7 @@ public final class TsaritsaManager {
         if (state != null) {
             boolean holdingTsaritsa = isHoldingTsaritsaWeapon(attacker);
             boolean spearActive = now < state.spearStanceUntilTick
-                    || (attacker.getMainHandItem().getItem() instanceof ArcaneStaffItem s && s.getKind() == ArcaneStaffItem.Kind.TSARITSA_SPEAR);
+                    || ArcaneStaffItem.getEffectiveKind(attacker.getMainHandItem()) == ArcaneStaffItem.Kind.TSARITSA_SPEAR;
             boolean crownActive = now < state.azureCrownUntilTick;
             boolean sealPreserved = state.netherite && now < state.supportSealUntilTick;
 
@@ -333,7 +329,7 @@ public final class TsaritsaManager {
         }
 
         // Visual Polestar Field ring & starry burst
-        ModNetwork.sendVortexSphere(level, center.add(0.0D, 0.25D, 0.0D), POLESTAR_FIELD_RADIUS, 40, 0xFF7B68EE);
+        ModNetwork.sendTsaritsaPolarField(level, center, POLESTAR_FIELD_RADIUS, 40, 3);
         level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.5D, center.z, 24, 2.2D, 0.4D, 2.2D, 0.04D);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y + 0.6D, center.z, 20, 2.0D, 0.5D, 2.0D, 0.06D);
         level.sendParticles(ParticleTypes.END_ROD, center.x, center.y + 0.8D, center.z, 14, 1.8D, 0.4D, 1.8D, 0.03D);
@@ -392,6 +388,7 @@ public final class TsaritsaManager {
      */
     public static void performNormalAttack(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         if (!isHoldingTsaritsaWeapon(player)) return;
         if (player.getCooldowns().isOnCooldown(player.getMainHandItem().getItem())) return;
 
@@ -408,6 +405,9 @@ public final class TsaritsaManager {
     }
 
     private static void performBowNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
+        if (now - state.lastBowNaTick < 10L) return;
+        state.lastBowNaTick = now;
+
         float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW);
         if (state.netherite) baseDmg *= 1.15F;
 
@@ -424,8 +424,8 @@ public final class TsaritsaManager {
                 ? hitTarget.position().add(0.0D, hitTarget.getBbHeight() * 0.55D, 0.0D)
                 : eye.add(look.scale(range));
 
-        // Starlight Cryo arrow beam & particles
-        ModNetwork.sendElectricArc(level, eye.add(look.scale(0.6D)), endPos, 7, 0xFF88EEFF);
+        // Dedicated 3D Cryo Arrow projectile & frost particles
+        ModNetwork.sendCryoArrow(level, eye.add(look.scale(0.6D)), endPos, 8, 1);
         int steps = Math.max(4, (int) (eye.distanceTo(endPos) * 2.0D));
         for (int i = 1; i <= steps; i++) {
             double t = i / (double) steps;
@@ -441,6 +441,7 @@ public final class TsaritsaManager {
     }
 
     private static void performSpearNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
+        if (now - state.lastSpearSlashTick < 8L) return;
         if (now - state.lastSpearSlashTick > 28L) {
             state.spearComboStep = 0;
         }
@@ -497,6 +498,7 @@ public final class TsaritsaManager {
      */
     public static void performChargedBowShot(ServerPlayer player, boolean fullCharge) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         if (!isHoldingTsaritsaWeapon(player)) return;
         if (isSpearStanceActive(player)) {
             // Charged Attack is locked in Spear Stance; fallback to Spear NA
@@ -531,20 +533,20 @@ public final class TsaritsaManager {
             impactPos = bhr.getType() != HitResult.Type.MISS ? bhr.getLocation() : eye.add(look.scale(range));
         }
 
-        // Primary Frostbite Arrow beam
-        ModNetwork.sendElectricArc(level, eye.add(look.scale(0.6D)), impactPos, 12, 0xFF55E8FF);
+        // Primary Frostbite 3D Cryo Arrow
+        ModNetwork.sendCryoArrow(level, eye.add(look.scale(0.6D)), impactPos, 12, 2);
 
         if (hitTarget != null) {
             float primaryDmg = applyStellarAndCrownMultipliers(player, hitTarget, Element.CRYO, baseDmg);
             hitTarget.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(hitTarget, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
 
-            // Spawn 3 additional Stellar Cryo Arrows from 3 directions (120 degrees apart) converging inward onto the target!
+            // Spawn 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart) converging inward onto the target!
             double baseAngle = player.getYRot() * (Math.PI / 180.0D);
             for (int i = 0; i < 3; i++) {
                 double angle = baseAngle + (i * 2.0D * Math.PI / 3.0D);
                 Vec3 origin = impactPos.add(Math.cos(angle) * 4.2D, 2.4D, Math.sin(angle) * 4.2D);
-                ModNetwork.sendElectricArc(level, origin, impactPos, 14, 0xFF99F2FF);
+                ModNetwork.sendCryoArrow(level, origin, impactPos, 14, 2);
                 level.sendParticles(ParticleTypes.END_ROD, origin.x, origin.y, origin.z, 6, 0.15D, 0.15D, 0.15D, 0.02D);
                 for (int s = 1; s <= 6; s++) {
                     Vec3 stepPos = origin.lerp(impactPos, s / 6.0D);
@@ -577,6 +579,7 @@ public final class TsaritsaManager {
      */
     public static void performTapE(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         TsaritsaPlayerState state = getOrCreateState(player);
         state.netherite = isHoldingNetheriteTsaritsa(player);
         long now = level.getGameTime();
@@ -609,6 +612,7 @@ public final class TsaritsaManager {
      */
     public static void performHoldE(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         TsaritsaPlayerState state = getOrCreateState(player);
         state.netherite = isHoldingNetheriteTsaritsa(player);
         long now = level.getGameTime();
@@ -640,6 +644,7 @@ public final class TsaritsaManager {
      */
     public static boolean triggerTsaritsaUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         if (!isHoldingTsaritsaWeapon(player)) return false;
 
         TsaritsaPlayerState state = getOrCreateState(player);
@@ -657,10 +662,12 @@ public final class TsaritsaManager {
 
         state.burstCooldownUntilTick = now + BURST_COOLDOWN_TICKS;
         state.burstIframeUntilTick = now + BURST_IFRAME_TICKS;
+        player.invulnerableTime = Math.max(player.invulnerableTime, BURST_IFRAME_TICKS);
+        ArchonUltiManager.grantUltiIframe(player, BURST_IFRAME_TICKS);
 
         boolean spearMode = isSpearStanceActive(player);
         if (!spearMode) {
-            // Variant 1: Support Burst (Benevolent Blessing)
+            // Variant 1: Support Burst (Benevolent Blessing — Flat Ice Field + Central Polar Pillar)
             state.azureCrownUntilTick = Math.max(state.azureCrownUntilTick, now + SUPPORT_BURST_DURATION_TICKS);
             state.supportBurstUntilTick = now + SUPPORT_BURST_DURATION_TICKS;
             state.supportDomeCenter = player.position();
@@ -668,7 +675,7 @@ public final class TsaritsaManager {
             state.supportUnsealReady = true;
 
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT);
-            ModNetwork.sendVortexSphere(level, state.supportDomeCenter.add(0.0D, 0.3D, 0.0D), 10.0D, SUPPORT_BURST_DURATION_TICKS, 0xFF66D8FF);
+            ModNetwork.sendTsaritsaPolarField(level, state.supportDomeCenter, 10.0D, SUPPORT_BURST_DURATION_TICKS, 1);
             syncStateToClients(player, state, now);
 
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -690,20 +697,20 @@ public final class TsaritsaManager {
             state.punishmentCharges = 3;
 
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
-            ModNetwork.sendVortexSphere(level, state.dpsIceFieldCenter.add(0.0D, 0.25D, 0.0D), 7.5D, DPS_BURST_SEAL_TICKS, 0xFF33B5FF);
             syncStateToClients(player, state, now);
 
             // Apply 10.0s cooldown lock onto all other ArcaneStaffItems in inventory (hotbar switching for food/blocks stays free!)
             sealAllOtherStaves(player, DPS_BURST_SEAL_TICKS);
 
-            // Hurl Colossal Ice Spear impact
+            // Hurl Colossal Ice Spear impact -> Flat Ice Field + Central Polar Pillar at impact point
             Vec3 eye = player.getEyePosition();
             Vec3 look = player.getLookAngle().normalize();
             BlockHitResult bhr = level.clip(new ClipContext(eye, eye.add(look.scale(14.0D)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
             Vec3 spearImpact = bhr.getType() != HitResult.Type.MISS ? bhr.getLocation() : player.position().add(look.scale(6.0D));
             state.dpsIceFieldCenter = spearImpact;
 
-            ModNetwork.sendElectricArc(level, player.position().add(0.0D, 3.2D, 0.0D), spearImpact, 22, 0xFF55E8FF);
+            ModNetwork.sendTsaritsaPolarField(level, spearImpact, 7.5D, DPS_BURST_SEAL_TICKS, 2);
+            ModNetwork.sendCryoArrow(level, player.position().add(0.0D, 3.2D, 0.0D), spearImpact, 22, 3);
             level.sendParticles(ParticleTypes.SNOWFLAKE, spearImpact.x, spearImpact.y + 0.5D, spearImpact.z,
                     70, 3.5D, 1.2D, 3.5D, 0.08D);
             level.sendParticles(ParticleTypes.END_ROD, spearImpact.x, spearImpact.y + 1.0D, spearImpact.z,
@@ -769,7 +776,7 @@ public final class TsaritsaManager {
 
         // Colossal Ice Spear descending from the sky onto strikePos
         Vec3 skyOrigin = strikePos.add(0.0D, 9.0D, 0.0D);
-        ModNetwork.sendElectricArc(level, skyOrigin, strikePos.add(0.0D, 0.3D, 0.0D), 16, 0xFF33D6FF);
+        ModNetwork.sendCryoArrow(level, skyOrigin, strikePos.add(0.0D, 0.3D, 0.0D), 16, 3);
         level.sendParticles(ParticleTypes.SNOWFLAKE, strikePos.x, strikePos.y + 0.5D, strikePos.z,
                 40, 2.0D, 0.8D, 2.0D, 0.06D);
         level.sendParticles(ParticleTypes.END_ROD, strikePos.x, strikePos.y + 1.0D, strikePos.z,
@@ -887,7 +894,7 @@ public final class TsaritsaManager {
             double offsetAngle = (i * 2.0D * Math.PI / starCount) + (level.getGameTime() * 0.15D);
             Vec3 startPos = crownPos.add(Math.cos(offsetAngle) * 0.35D, 0.1D, Math.sin(offsetAngle) * 0.35D);
 
-            ModNetwork.sendElectricArc(level, startPos, hitPos, 10, 0xFF66EEFF);
+            ModNetwork.sendCryoArrow(level, startPos, hitPos, 10, 1);
             level.sendParticles(ParticleTypes.END_ROD, startPos.x, startPos.y, startPos.z, 3, 0.08D, 0.08D, 0.08D, 0.01D);
             level.sendParticles(ParticleTypes.SNOWFLAKE, hitPos.x, hitPos.y, hitPos.z, 8, 0.25D, 0.25D, 0.25D, 0.03D);
 

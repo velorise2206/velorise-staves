@@ -27,6 +27,7 @@ public class RaidenSlashPacket {
         ctx.enqueueWork(() -> {
             ServerPlayer player = ctx.getSender();
             if (player != null) {
+                if (com.velorise.staves.element.ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
                 ElementalGaugeManager.performRaidenMusouSwing(player, this.charged);
             }
         });

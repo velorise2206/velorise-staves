@@ -128,8 +128,12 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onLeftClickBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
+        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(event.getEntity().getMainHandItem());
         if (com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(event.getEntity())
-                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())) {
+                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())
+                || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             event.setCanceled(true);
         }
     }
@@ -141,8 +145,12 @@ public final class ArcaneStaffEvents {
 
     @SubscribeEvent
     public static void onAttackEntity(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(event.getEntity().getMainHandItem());
         if (com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(event.getEntity())
-                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())) {
+                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())
+                || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             event.setCanceled(true);
             return;
         }
@@ -305,7 +313,8 @@ public final class ArcaneStaffEvents {
         if (!event.getEntity().level().isClientSide() && event.getEntity() instanceof LivingEntity living) {
             if (event.getSource().is(DamageTypeTags.IS_FALL)
                     && !event.getSource().is(net.minecraft.world.damagesource.DamageTypes.STALAGMITE)
-                    && ElementalGaugeManager.isAnemoInnateMob(living)) {
+                    && (ElementalGaugeManager.isAnemoInnateMob(living)
+                            || com.velorise.staves.element.PlungeAndGliderManager.isPlungeFallImmune(living))) {
                 living.fallDistance = 0.0F;
                 event.setInvulnerable(true);
                 return;
@@ -322,7 +331,10 @@ public final class ArcaneStaffEvents {
     public static void onLivingIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
         LivingEntity entity = event.getEntity();
         DamageSource src = event.getSource();
-        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity) || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, src))) {
+        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity)
+                || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, src)
+                || (src.is(DamageTypeTags.IS_FALL) && com.velorise.staves.element.PlungeAndGliderManager.isPlungeFallImmune(entity)))) {
+            if (src.is(DamageTypeTags.IS_FALL)) entity.fallDistance = 0.0F;
             event.setCanceled(true);
             return;
         }

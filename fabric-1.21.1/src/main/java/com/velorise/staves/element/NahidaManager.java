@@ -48,7 +48,21 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages Dendro Archon Nahida (A Thousand Floating Dreams) on Fabric 1.21.1.
+ * Manages Dendro Archon Nahida (A Thousand Floating Dreams):
+ * - NA (4-step Hopscotch combo): Cute hopscotch bounce with growing glowing Dendro keyboard tiles & sprouting grass (Steps 1-3)
+ *   + Step 4 vine-heart & 4-petal flower AoE Dendro explosion.
+ * - CA (Hold Left-Click): Hand-woven glowing digital green Dendro square frame in front of player -> AoE Dendro burst.
+ * - Idle Animation (Dendro Vine Swing): Standing still for ~5.5s summons a glowing Dendro vine swing for the player to sit and sway on.
+ * - Skill E (All Schemes to Know):
+ *   - Tap Right-Click: Sweeps nearby enemies and links up to 8 targets with Seeds of Skandha (25s).
+ *   - Hold Right-Click: Camera Viewfinder mode (HUD viewfinder frame with 4 corner stars & 4-petal flower reticle)
+ *     that marks aimed enemies AND remotely harvests flowers, berries, mature crops, and vacuums ItemEntities into inventory!
+ *   - Tri-Karma Purification: Triggering an Elemental Reaction (or Dendro Core hit) on a Seed of Skandha target
+ *     unleashes linked Dendro damage across all connected targets (2.5s base ICD, reduced by Electro Shrine buff).
+ * - Burst [R] (Illusory Heart — Shrine of Maya):
+ *   - 1.7s (34 ticks) I-frame + prayer levitation animation expanding the emerald Shrine of Maya dome.
+ *   - Grants +2 EM levels to self & allies inside the Shrine, plus 3 elemental buffs (Pyro: +Tri-Karma DMG;
+ *     Electro: shorter Tri-Karma interval; Hydro: extended Shrine duration; Netherite C1 adds +1 to all 3 counts).
  */
 public final class NahidaManager {
     private static final DustParticleOptions DENDRO_GLOW_DUST =
@@ -144,15 +158,19 @@ public final class NahidaManager {
         }
     }
 
+    /**
+     * Normal Attack (Tap Left-Click): 4-step hopscotch combo with growing Dendro keyboard tiles & grass sprouts,
+     * culminating in Step 4's vine-heart + 4-petal flower AoE burst.
+     */
     public static void handleNormalAttack(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
 
         long now = level.getGameTime();
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
-        if (now - st.lastNaTick < 6L) return;
+        if (now - st.lastNaTick < 10L) return;
         if (now - st.lastNaTick > 36L) {
             st.naComboStep = 0;
         }
@@ -164,6 +182,7 @@ public final class NahidaManager {
         float baseScale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNeth);
         int step = st.naComboStep;
 
+        // Cute hopscotch bounce when on ground
         if (player.onGround()) {
             Vec3 dv = player.getDeltaMovement();
             double hopY = (step == 4) ? 0.30D : 0.22D;
@@ -218,11 +237,13 @@ public final class NahidaManager {
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, 1.25F + step * 0.12F);
             level.playSound(null, player.blockPosition(), SoundEvents.AZALEA_LEAVES_PLACE, SoundSource.PLAYERS, 0.85F, 1.15F + step * 0.10F);
         } else {
+            // Step 4 Finisher: Heart of Vines + 4-Petal Dendro Flower AoE Burst
             Vec3 burstCenter = player.position().add(horiz.scale(3.6D));
             double radius = isNeth ? 4.5D : 3.5D;
             float dmg = 5.0F * baseScale;
             float gaugeU = isNeth ? 2.0F : 1.5F;
 
+            // Heart curve particle outline + 4-petal flower burst
             for (int i = 0; i < 24; i++) {
                 double t = (Math.PI * 2.0D * i) / 24.0D;
                 double hx = 16.0D * Math.pow(Math.sin(t), 3) / 14.0D;
@@ -246,9 +267,13 @@ public final class NahidaManager {
         }
     }
 
+    /**
+     * Charged Attack (Hold Left-Click): Draws a glowing digital green Dendro square frame in front of the player,
+     * then bursts with AoE Dendro damage.
+     */
     public static void handleChargedAttack(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty() || !(player.level() instanceof ServerLevel level)) return;
 
@@ -293,6 +318,7 @@ public final class NahidaManager {
         level.playSound(null, BlockPos.containing(center), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.70F, 1.55F);
     }
 
+    /** Starts holding Right-Click (All Schemes to Know — Viewfinder / Tap E). */
     public static void onStartHoldUse(ServerPlayer player, ItemStack stack, boolean isNetherite) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
         long now = level.getGameTime();
@@ -303,6 +329,7 @@ public final class NahidaManager {
         st.viewfinderMarkedTargets.clear();
     }
 
+    /** Called every tick while holding Right-Click with Nahida's catalyst. */
     public static void onHoldUseTick(ServerLevel level, ServerPlayer player, ItemStack stack, int elapsedTicks, boolean isNetherite) {
         long now = level.getGameTime();
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
@@ -322,6 +349,7 @@ public final class NahidaManager {
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
 
+        // 1. Scan cone for enemies to lock-on with Seed of Skandha (up to 8 enemies)
         if (st.viewfinderMarkedTargets.size() < 8) {
             AABB scanBox = player.getBoundingBox().expandTowards(look.scale(maxRange)).inflate(3.5D);
             List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, scanBox,
@@ -334,7 +362,7 @@ public final class NahidaManager {
                 double dist = toCand.length();
                 if (dist < 0.5D || dist > maxRange) continue;
                 double dot = toCand.scale(1.0D / dist).dot(look);
-                if (dot >= 0.86D) {
+                if (dot >= 0.86D) { // ~30 degree camera viewfinder cone
                     st.viewfinderMarkedTargets.add(cand.getUUID());
                     applySkandhaMark(level, player, cand, isNetherite, now);
                     level.playSound(null, player.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.65F, 1.45F + st.viewfinderMarkedTargets.size() * 0.05F);
@@ -342,6 +370,7 @@ public final class NahidaManager {
             }
         }
 
+        // 2. Remote Harvest & Item Vacuum along the viewfinder ray (flowers, berries, mature crops, ItemEntities)
         if (now - st.lastHarvestSweepTick >= 3L) {
             st.lastHarvestSweepTick = now;
             performViewfinderHarvestAndVacuum(level, player, eye, look, maxRange);
@@ -349,6 +378,7 @@ public final class NahidaManager {
     }
 
     private static void performViewfinderHarvestAndVacuum(ServerLevel level, ServerPlayer player, Vec3 eye, Vec3 look, double maxRange) {
+        // A. Vacuum dropped ItemEntities within the viewfinder cone directly into inventory
         AABB itemBox = player.getBoundingBox().expandTowards(look.scale(maxRange)).inflate(2.5D);
         for (ItemEntity itemEnt : level.getEntitiesOfClass(ItemEntity.class, itemBox, e -> e.isAlive() && !e.getItem().isEmpty())) {
             Vec3 toItem = itemEnt.position().add(0.0D, 0.25D, 0.0D).subtract(eye);
@@ -369,6 +399,7 @@ public final class NahidaManager {
             }
         }
 
+        // B. Raycast blocks along look ray for flowers, sweet berry bushes, and mature crops
         int steps = (int) Math.ceil(maxRange * 1.5D);
         Set<BlockPos> checked = new HashSet<>();
         for (int i = 2; i <= steps; i++) {
@@ -380,6 +411,7 @@ public final class NahidaManager {
                 if (state.isAir()) continue;
                 Block block = state.getBlock();
 
+                // 1. Sweet Berry Bush (age >= 2)
                 if (block instanceof SweetBerryBushBlock && state.hasProperty(SweetBerryBushBlock.AGE)) {
                     int age = state.getValue(SweetBerryBushBlock.AGE);
                     if (age >= 2) {
@@ -391,6 +423,7 @@ public final class NahidaManager {
                     continue;
                 }
 
+                // 2. Mature CropBlock (Wheat, Carrots, Potatoes, Beetroots, Torchflower/Pitcher crops)
                 if (block instanceof CropBlock crop && crop.isMaxAge(state)) {
                     List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
                     for (ItemStack drop : drops) {
@@ -401,6 +434,7 @@ public final class NahidaManager {
                     continue;
                 }
 
+                // 3. Mature Cocoa / Nether Wart
                 if (block instanceof CocoaBlock && state.getValue(CocoaBlock.AGE) >= 2) {
                     List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
                     for (ItemStack drop : drops) {
@@ -420,6 +454,7 @@ public final class NahidaManager {
                     continue;
                 }
 
+                // 4. Flowers (collects flower item & replants / leaves nature intact or harvests)
                 if (state.is(BlockTags.FLOWERS) && !state.is(Blocks.WITHER_ROSE)) {
                     List<ItemStack> drops = Block.getDrops(state, level, pos, null, player, player.getMainHandItem());
                     if (!drops.isEmpty()) {
@@ -450,6 +485,7 @@ public final class NahidaManager {
         level.playSound(null, pos, SoundEvents.SWEET_BERRY_BUSH_PICK_BERRIES, SoundSource.PLAYERS, 0.75F, 1.35F);
     }
 
+    /** Releases Right-Click: executes Tap E (< 8 ticks) or finishes Hold E Viewfinder (>= 8 ticks). */
     public static boolean onReleaseHoldUse(ServerPlayer player, ItemStack stack, int elapsedTicks, boolean isNetherite, ArcaneStaffItem cooldownItem) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
         long now = level.getGameTime();
@@ -463,6 +499,7 @@ public final class NahidaManager {
         float gaugeU = isNetherite ? 1.5F : 1.0F;
 
         if (!wasViewfinder) {
+            // Tap E: Sweep 7m / 9m around player and mark up to 8 enemies with Seeds of Skandha
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_TAP_E);
             double radius = isNetherite ? 9.0D : 7.0D;
             AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
@@ -487,6 +524,7 @@ public final class NahidaManager {
             int cdTicks = Math.max(20, (int) Math.round(5.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
             ElementalResonanceManager.applyCooldown(player, cooldownItem, cdTicks);
         } else {
+            // Hold E release: Deal Dendro damage to all marked targets (and any nearby within 6m if none were aimed yet)
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_HOLD_E);
             if (st.viewfinderMarkedTargets.isEmpty()) {
                 AABB fallbackBox = player.getBoundingBox().inflate(7.5D, 3.0D, 7.5D);
@@ -517,7 +555,7 @@ public final class NahidaManager {
 
     public static void applySkandhaMark(ServerLevel level, ServerPlayer owner, LivingEntity target, boolean isNetherite, long now) {
         if (target == null || !target.isAlive()) return;
-        SKANDHA_MARKS.put(target.getUUID(), new SkandhaMark(owner.getUUID(), isNetherite, now + 500L));
+        SKANDHA_MARKS.put(target.getUUID(), new SkandhaMark(owner.getUUID(), isNetherite, now + 500L)); // 25.0s
         ModNetwork.sendStaffAnimation(target, 4101);
         level.sendParticles(DENDRO_GLOW_DUST, target.getX(), target.getY() + target.getBbHeight() * 0.65D, target.getZ(),
                 10, 0.30D, 0.30D, 0.30D, 0.03D);
@@ -529,11 +567,15 @@ public final class NahidaManager {
             LivingEntity a = linked.get(i);
             LivingEntity b = linked.get((i + 1) % linked.size());
             if (a != b && a.distanceToSqr(b) <= 576.0D) {
-                ModNetwork.sendElectricArc(level, a, b, 14, 0xFF48F56E);
+                ModNetwork.sendSkandhaLink(level, a, b, 16);
             }
         }
     }
 
+    /**
+     * Tri-Karma Purification: Triggered automatically whenever an enemy marked with a Seed of Skandha
+     * suffers an Elemental Reaction or takes Dendro Core (Bloom / Hyperbloom / Burgeon) damage.
+     */
     public static void onElementalReactionOrCoreDamage(
             ServerLevel level,
             LivingEntity triggeredTarget,
@@ -555,7 +597,7 @@ public final class NahidaManager {
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(owner.getUUID(), k -> new NahidaPlayerState());
         boolean shrineActive = now < st.shrineUntilTick;
         int electroCnt = shrineActive ? st.shrineElectroCount : 0;
-        long icdTicks = electroCnt >= 2 ? 32L : (electroCnt == 1 ? 40L : 50L);
+        long icdTicks = electroCnt >= 2 ? 32L : (electroCnt == 1 ? 40L : 50L); // 2.5s base -> 2.0s / 1.6s with Electro Shrine buff
         if (now - st.lastTriKarmaProcTick < icdTicks) return;
         st.lastTriKarmaProcTick = now;
 
@@ -595,9 +637,14 @@ public final class NahidaManager {
         level.playSound(null, triggeredTarget.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.90F, 1.50F);
     }
 
+    /**
+     * Burst [R] (Illusory Heart — Shrine of Maya):
+     * Grants 1.7s (34 ticks) of I-frames, triggers 5-star prayer levitation + emerald dome expansion,
+     * grants +2 EM levels inside the Shrine, and activates Pyro / Electro / Hydro Shrine buffs.
+     */
     public static boolean triggerNahidaUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         ItemStack stack = getHeldNahidaStack(player);
         if (stack.isEmpty()) return false;
 
@@ -610,16 +657,17 @@ public final class NahidaManager {
         }
 
         boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        int baseCdTicks = 270;
+        int baseCdTicks = 270; // 13.5s
         int adjustedCd = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
-        st.iframeUntilTick = now + 34L;
+        st.iframeUntilTick = now + 34L; // 1.7s I-frames
         player.invulnerableTime = Math.max(player.invulnerableTime, 34);
         ArchonUltiManager.grantUltiIframe(player, 34);
         markActiveAction(player, now);
 
+        // Count Pyro / Electro / Hydro staves in player's inventory + nearby allies
         int pyro = 0;
         int electro = 0;
         int hydro = 0;
@@ -632,14 +680,15 @@ public final class NahidaManager {
             else if (el == Element.ELECTRO) electro++;
             else if (el == Element.HYDRO) hydro++;
         }
+        // Netherite C1 (The Seed of Stored Knowledge): +1 bonus count to Pyro, Electro, and Hydro simultaneously!
         if (isNeth) {
             pyro++;
             electro++;
             hydro++;
         }
 
-        long bonusHydroTicks = hydro >= 2 ? 160L : (hydro == 1 ? 100L : 0L);
-        long totalDurationTicks = 300L + bonusHydroTicks;
+        long bonusHydroTicks = hydro >= 2 ? 160L : (hydro == 1 ? 100L : 0L); // +5s / +8s duration
+        long totalDurationTicks = 300L + bonusHydroTicks; // 15s base -> up to 23s
         st.shrineUntilTick = now + totalDurationTicks;
         st.shrineCenter = player.position();
         st.shrineRadius = isNeth ? 15.0D : 12.0D;
@@ -651,7 +700,10 @@ public final class NahidaManager {
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
 
+        int shrineMask = 1 | (st.shrinePyroCount > 0 ? 2 : 0) | (st.shrineElectroCount > 0 ? 4 : 0)
+                | (st.shrineHydroCount > 0 ? 8 : 0) | (st.shrineNetherite ? 16 : 0);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
+        ModNetwork.sendNahidaShrine(level, st.shrineCenter, st.shrineRadius, (int) totalDurationTicks, shrineMask);
         syncPlayerStateToClients(player, st, now, true);
 
         for (int i = 0; i < 36; i++) {
@@ -670,6 +722,7 @@ public final class NahidaManager {
         return true;
     }
 
+    /** Returns +2 EM levels if the entity is standing inside an active Shrine of Maya. */
     public static int getBonusEmLevels(@Nullable LivingEntity entity) {
         if (!(entity instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return 0;
         long now = level.getGameTime();
@@ -693,6 +746,7 @@ public final class NahidaManager {
             NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
             ServerLevel level = player.serverLevel();
 
+            // 1. Check Idle Swing (standing still holding Nahida's catalyst for >= 110 ticks / 5.5s)
             boolean holdingNahida = isHoldingNahida(player);
             Vec3 dv = player.getDeltaMovement();
             double movedSq = player.position().distanceToSqr(st.lastStillPos);
@@ -724,6 +778,7 @@ public final class NahidaManager {
                 syncPlayerStateToClients(player, st, now, true);
             }
 
+            // 2. Ambient Shrine of Maya particles
             if (now < st.shrineUntilTick && now % 10L == 0L) {
                 for (int i = 0; i < 16; i++) {
                     double ang = (Math.PI * 2.0D * i) / 16.0D + (now * 0.02D);
@@ -739,6 +794,7 @@ public final class NahidaManager {
             syncPlayerStateToClients(player, st, now, false);
         }
 
+        // Cleanup expired Skandha marks every 20 ticks
         if (now % 20L == 0L && !SKANDHA_MARKS.isEmpty()) {
             Iterator<Map.Entry<UUID, SkandhaMark>> it = SKANDHA_MARKS.entrySet().iterator();
             while (it.hasNext()) {

@@ -16,7 +16,10 @@ public abstract class LivingEntityDamageMixin {
     @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
     private void velorise$onLivingHurtHead(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity entity = (LivingEntity) (Object) this;
-        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity) || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, source))) {
+        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity)
+                || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, source)
+                || (source.is(net.minecraft.tags.DamageTypeTags.IS_FALL) && com.velorise.staves.element.PlungeAndGliderManager.isPlungeFallImmune(entity)))) {
+            if (source.is(net.minecraft.tags.DamageTypeTags.IS_FALL)) entity.fallDistance = 0.0F;
             cir.setReturnValue(false);
         }
     }

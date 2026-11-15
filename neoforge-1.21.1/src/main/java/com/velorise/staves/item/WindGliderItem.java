@@ -60,6 +60,10 @@ public final class WindGliderItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, false);
             } else {
                 PlungeAndGliderManager.setWindGliderUnlocked(sp, true);
+                if (!sp.onGround() && !sp.isInWater() && !sp.isInLava() && sp.getVehicle() == null) {
+                    PlungeAndGliderManager.handleToggleGlider(sp);
+                    return InteractionResultHolder.sidedSuccess(stack, false);
+                }
                 sp.displayClientMessage(
                         Component.translatable("message.velorise_staves.wind_glider_already_unlocked").withStyle(ChatFormatting.AQUA),
                         true

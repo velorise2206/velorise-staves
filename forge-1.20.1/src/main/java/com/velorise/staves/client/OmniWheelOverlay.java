@@ -89,6 +89,7 @@ public final class OmniWheelOverlay {
     private static boolean ventiUltiFiredThisHold = false;
     private static boolean neuvilletteLeftHoldSent = false;
     private static boolean wasAirJumpDown = false;
+    private static boolean wasAirUseDown = false;
     private static boolean wasAirAttackDown = false;
     private static boolean wasOnGround = true;
     private static boolean wasCreativeFlying = false;
@@ -149,17 +150,29 @@ public final class OmniWheelOverlay {
             }
         }
         if (mc.player != null
+                && (com.velorise.staves.client.ClientAuraTracker.isPlunging(mc.player.getId())
+                        || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(mc.player))) {
+            event.setSwingHand(false);
+            event.setCanceled(true);
+            return;
+        }
+        if (mc.player != null
                 && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
                 && com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
             event.setSwingHand(false);
             event.setCanceled(true);
+            mc.player.swinging = false;
+            mc.player.swingTime = 0;
+            mc.player.attackAnim = 0.0F;
+            mc.player.oAttackAnim = 0.0F;
+            com.velorise.staves.client.ClientAuraTracker.triggerStaffAnimation(
+                    mc.player.getId(), com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_START);
             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_PLUNGE_ATTACK);
             return;
         }
         if (mc.player != null
                 && com.velorise.staves.client.ClientAuraTracker.isRaidenMusouActive(mc.player.getId())
-                && mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                && ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             event.setSwingHand(false);
             event.setCanceled(true);
             if (!com.velorise.staves.client.ClientAuraTracker.localRaidenAttackHeld
@@ -211,40 +224,17 @@ public final class OmniWheelOverlay {
                 ClientAuraTracker.localTsaritsaHoldELocked = false;
                 return;
             }
-            ItemStack daybreakHeld = ItemStack.EMPTY;
-            if (mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem ms && ms.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-                daybreakHeld = mc.player.getMainHandItem();
-            } else if (mc.player.getOffhandItem().getItem() instanceof ArcaneStaffItem os && os.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-                daybreakHeld = mc.player.getOffhandItem();
-            }
-            if (!daybreakHeld.isEmpty()) {
-                while (MAVUIKA_ULTI_KEY.consumeClick()) {
-                    // Consume clicks so release doesn't spill into other staves
-                }
-                if (MAVUIKA_ULTI_KEY.isDown()) {
-                    if (!ventiUltiFiredThisHold && !mc.player.getCooldowns().isOnCooldown(daybreakHeld.getItem())) {
-                        int next = Math.min(60, ClientAuraTracker.ventiUltiHoldTicks + 1);
-                        ClientAuraTracker.ventiUltiHoldTicks = next;
-                        if (next == 1 || next % 5 == 0) {
-                            ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_VENTI_ULTI_CHARGE);
-                        }
-                        if (next >= 60) {
-                            ventiUltiFiredThisHold = true;
-                            ClientAuraTracker.ventiUltiHoldTicks = 0;
-                            ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_VENTI_ULTI_CAST);
-                        }
-                    }
-                } else {
-                    ClientAuraTracker.ventiUltiHoldTicks = 0;
-                    ventiUltiFiredThisHold = false;
-                }
-            } else {
-                ClientAuraTracker.ventiUltiHoldTicks = 0;
-                ventiUltiFiredThisHold = false;
-                while (MAVUIKA_ULTI_KEY.consumeClick()) {
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_ULTI);
-                }
-            }
+        if (ClientAuraTracker.isPlunging(mc.player.getId()) || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(mc.player)) {
+            mc.player.swinging = false;
+            mc.player.swingTime = 0;
+            mc.player.attackAnim = 0.0F;
+            mc.player.oAttackAnim = 0.0F;
+        }
+        ClientAuraTracker.ventiUltiHoldTicks = 0;
+        ventiUltiFiredThisHold = false;
+        while (MAVUIKA_ULTI_KEY.consumeClick()) {
+            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_ULTI);
+        }
     
         // Item 3: Neuvillette Hold Left-Click Charged Attack (Equitable Judgment)
         boolean holdingGuardian = com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(mc.player);
@@ -267,8 +257,8 @@ public final class OmniWheelOverlay {
         }
 
         // Furina Hold Left-Click Charged Attack (Arkhe Pneuma / Ousia Switch)
-        boolean holdingFurina = (mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem fm && fm.getKind() == ArcaneStaffItem.Kind.SPLENDOR)
-                || (mc.player.getOffhandItem().getItem() instanceof ArcaneStaffItem fo && fo.getKind() == ArcaneStaffItem.Kind.SPLENDOR);
+        boolean holdingFurina = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.SPLENDOR
+                || ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == ArcaneStaffItem.Kind.SPLENDOR;
         if (holdingFurina && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && mc.player.onGround()) {
             if (mc.options.keyAttack.isDown()) {
                 furinaAttackHoldTicks++;
@@ -392,26 +382,36 @@ public final class OmniWheelOverlay {
                 } else if (ClientAuraTracker.isXilonenSkating(mc.player.getId()) && (mc.player.onGround() || wasOnGround)) {
                     net.minecraft.world.phys.Vec3 v = mc.player.getDeltaMovement();
                     mc.player.setDeltaMovement(v.x, Math.max(v.y, 0.58D), v.z);
+                    ClientAuraTracker.triggerStaffAnimation(mc.player.getId(), ClientAuraTracker.ANIM_XILONEN_JUMP_FLIP);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_XILONEN_JUMP);
-                } else if ((ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(mc.player))
-                        && !mc.player.onGround() && !wasOnGround
-                        && !mc.player.isInWater() && !mc.player.isInLava()
-                        && !mc.player.onClimbable() && mc.player.getVehicle() == null) {
-                    ClientAuraTracker.localWindGliderUnlocked = true;
-                    if (mc.player.getAbilities().flying) {
-                        mc.player.getAbilities().flying = false;
-                        mc.player.onUpdateAbilities();
-                    }
-                    if (mc.player.isFallFlying()) {
-                        mc.player.stopFallFlying();
-                    }
-                    boolean nextGlide = !ClientAuraTracker.isGliding(mc.player.getId());
-                    ClientAuraTracker.triggerStaffAnimation(mc.player.getId(),
-                            nextGlide ? ClientAuraTracker.ANIM_GLIDER_START : ClientAuraTracker.ANIM_GLIDER_STOP);
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER);
                 }
             }
             wasAirJumpDown = jumpDown;
+            boolean useDown = mc.options.keyUse.isDown();
+            if (useDown && !wasAirUseDown
+                    && (ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(mc.player))
+                    && !mc.player.onGround() && !wasOnGround
+                    && !mc.player.isInWater() && !mc.player.isInLava()
+                    && !mc.player.onClimbable() && mc.player.getVehicle() == null
+                    && !ClientAuraTracker.isPlunging(mc.player.getId())
+                    && (mc.hitResult == null || mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.MISS)
+                    && com.velorise.staves.element.PlungeAndGliderManager.canRightClickToggleGlider(mc.player)) {
+                ClientAuraTracker.localWindGliderUnlocked = true;
+                while (mc.options.keyUse.consumeClick()) {
+                }
+                if (mc.player.getAbilities().flying) {
+                    mc.player.getAbilities().flying = false;
+                    mc.player.onUpdateAbilities();
+                }
+                if (mc.player.isFallFlying()) {
+                    mc.player.stopFallFlying();
+                }
+                boolean nextGlide = !ClientAuraTracker.isGliding(mc.player.getId());
+                ClientAuraTracker.triggerStaffAnimation(mc.player.getId(),
+                        nextGlide ? ClientAuraTracker.ANIM_GLIDER_START : ClientAuraTracker.ANIM_GLIDER_STOP);
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER);
+            }
+            wasAirUseDown = useDown;
             wasOnGround = mc.player.onGround();
             if (mc.player.onGround()) {
                 wasCreativeFlying = false;
@@ -453,6 +453,7 @@ public final class OmniWheelOverlay {
             wasAirAttackDown = atkDown;
         } else {
             wasAirJumpDown = false;
+            wasAirUseDown = false;
             wasAirAttackDown = false;
             wasOnGround = true;
             wasCreativeFlying = false;
@@ -791,19 +792,9 @@ public final class OmniWheelOverlay {
     private static void renderHotbarBadge(GuiGraphics guiGraphics, Minecraft mc, ItemStack omniStack, int mode) {
         Element el = OmniOrbEntity.modeToElement(mode);
         Font font = mc.font;
-        Component label;
-        if (el != null) {
-            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, el);
-            if (absorbed != null) {
-                label = Component.translatable(el.translationKey())
-                        .append(Component.literal(" · ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
-                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.GRAY));
-            } else {
-                label = Component.translatable(el.translationKey());
-            }
-        } else {
-            label = Component.translatable("element.velorise_staves.omni");
-        }
+        Component label = (el != null)
+                ? Component.translatable(el.translationKey())
+                : Component.translatable("element.velorise_staves.omni");
 
         int textW = font.width(label);
         int badgeW = 20 + textW + 5;
