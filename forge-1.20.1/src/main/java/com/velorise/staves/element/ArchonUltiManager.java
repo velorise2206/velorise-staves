@@ -62,6 +62,8 @@ public final class ArchonUltiManager {
         ElementalGaugeManager.triggerMavuikaUlti(player);
         ElementalGaugeManager.triggerRaidenUlti(player);
         triggerZhongliUlti(player);
+        XilonenManager.triggerXilonenUlti(player);
+        NeuvilletteManager.triggerNeuvilletteUlti(player);
     }
 
     /** Plays Venti hold-[R] wind-charge cadence feedback while charging Skyward Harp. */
@@ -126,8 +128,8 @@ public final class ArchonUltiManager {
         long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
                 ? 216L : 240L;
         ZHONGLI_BURST_CD_UNTIL.put(id, now + cdTicks);
-        ZHONGLI_IFRAME_UNTIL.put(id, now + 32L);
-        player.invulnerableTime = Math.max(player.invulnerableTime, 32);
+        ZHONGLI_IFRAME_UNTIL.put(id, now + 52L);
+        player.invulnerableTime = Math.max(player.invulnerableTime, 52);
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
         final InteractionHand usedHand = hand;
         stack.hurtAndBreak(isNetherite ? 3 : 2, player, p -> p.broadcastBreakEvent(usedHand));
@@ -186,20 +188,23 @@ public final class ArchonUltiManager {
             horizFwd = horizFwd.normalize();
         }
         Vec3 horizRight = new Vec3(-horizFwd.z, 0.0D, horizFwd.x);
-        double horizDist = Math.hypot(impactPos.x - player.getX(), impactPos.z - player.getZ());
-        double backPull = Math.min(4.2D, Math.max(-2.5D, horizDist - 3.5D));
-        Vec3 skyStart = impactPos.add(-horizFwd.x * backPull + horizRight.x * 2.4D, 15.5D, -horizFwd.z * backPull + horizRight.z * 2.4D);
+        double backFromPlayer = 5.2D;
+        Vec3 skyStart = new Vec3(
+                player.getX() - horizFwd.x * backFromPlayer + horizRight.x * 0.45D,
+                player.getY() + 17.5D,
+                player.getZ() - horizFwd.z * backFromPlayer + horizRight.z * 0.45D
+        );
 
         double aoeRadius = isNetherite ? 8.5D : 6.0D;
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.VORTEX, isNetherite);
-        float maxHpBonus = Math.max(0.0F, player.getMaxHealth() - 20.0F) * (isNetherite ? 0.35F : 0.25F);
-        float meteorDmg = (float) (((isNetherite ? 13.0D : 9.5D) * scale + maxHpBonus) * StavesConfig.getDamageMultiplier());
+        float maxHpBonus = Math.max(0.0F, player.getMaxHealth() - 20.0F) * (isNetherite ? 0.15F : 0.10F);
+        float meteorDmg = (float) (((isNetherite ? 7.5D : 5.5D) * scale + maxHpBonus) * StavesConfig.getDamageMultiplier());
         int petrifyTicks = isNetherite ? 100 : 80;
 
         ModNetwork.sendStaffAnimation(player, 15);
-        ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 36);
-        // Delay damage/petrify until the client meteor finishes its 1.1s (22t) descent.
-        ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 22L));
+        ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
+        // Delay damage/petrify until the client meteor finishes its 2.5s (50t) descent from behind Steve head.
+        ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
 
         DustParticleOptions goldAura = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
         level.sendParticles(goldAura, player.getX(), player.getY() + 1.0D, player.getZ(), 14, 0.4D, 0.35D, 0.4D, 0.02D);
@@ -237,6 +242,15 @@ public final class ArchonUltiManager {
             ElementalGaugeManager.activateJadeShield(caster, true);
             level.playSound(null, caster.getX(), caster.getY(), caster.getZ(),
                     SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 0.90F);
+            double shieldRadiusSq = 8.5D * 8.5D;
+            for (ServerPlayer ally : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p != caster)) {
+                if (!ElementalGaugeManager.isRaidenProtectedAlly(caster, ally) && !caster.isAlliedTo(ally)) continue;
+                if (ally.position().distanceToSqr(impact) <= shieldRadiusSq || ally.distanceToSqr(caster) <= shieldRadiusSq) {
+                    ElementalGaugeManager.activateJadeShield(ally, true);
+                    level.playSound(null, ally.getX(), ally.getY(), ally.getZ(),
+                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.80F, 0.95F);
+                }
+            }
         }
 
         DustParticleOptions goldBurst = new DustParticleOptions(new Vector3f(0.96F, 0.74F, 0.22F), pending.isNetherite() ? 2.2F : 1.8F);

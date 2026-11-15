@@ -345,6 +345,16 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
      */
     public static boolean pushRiderBikeTransform(net.minecraft.world.entity.LivingEntity rider, float partialTicks, PoseStack poseStack) {
         if (!(rider.getVehicle() instanceof FlamestriderBikeEntity bike)) {
+            if (ClientAuraTracker.isXilonenSkating(rider.getId())
+                    && !rider.onGround()
+                    && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())) {
+                poseStack.pushPose();
+                float spinDeg = ((rider.tickCount + partialTicks) * 28.0F) % 360.0F;
+                poseStack.translate(0.0D, 0.90D, 0.0D);
+                poseStack.mulPose(Axis.YP.rotationDegrees(spinDeg));
+                poseStack.translate(0.0D, -0.90D, 0.0D);
+                return true;
+            }
             return false;
         }
         boolean spinning = bike.isSpinning();

@@ -120,6 +120,7 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.STAVES, "omni_staff", new String[]{}, new String[]{"omni staff", "netherite omni staff", "quyền trượng vạn năng", "trượng omni"}),
             new ReactionLinkSpec(Tab.STAVES, "thousand_blazing_suns", new String[]{}, new String[]{"a thousand blazing suns", "thousand blazing suns", "flamestrider", "nightsoul", "dạ hồn", "vầng dương rực cháy"}),
             new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "giáo nịnh thần", "stone stele", "vách đá", "jade shield", "khiên ngọc"}),
+            new ReactionLinkSpec(Tab.STAVES, "peak_patrol_song", new String[]{}, new String[]{"peak patrol song", "khúc ca tuần đỉnh", "source samples", "nguồn âm vang", "xilonen"}),
             new ReactionLinkSpec(Tab.STAVES, "nights_focus_staff", new String[]{}, new String[]{"nights of formal focus", "chìa khóa hiểu biết", "night star", "night stars", "sao đêm", "shooting star", "sao băng"}),
             new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "ánh nước tĩnh lặng", "salon solitaire", "salon cô độc", "singer of many waters", "ca sĩ nước nguồn"}),
             new ReactionLinkSpec(Tab.STAVES, "guardian_lens", new String[]{}, new String[]{"guardian lens", "thấu kính hộ vệ", "sourcewater droplets", "sourcewater", "nguồn nước trong", "vinh quang rồng"}),
@@ -173,7 +174,7 @@ public class ElementalCodexScreen extends Screen {
                 "inferno_rod", "ghastfire_staff", "thousand_blazing_suns", "guardian_lens", "splendor_of_tranquil_waters",
                 "frostbolt_wand", "nights_focus_staff", "arc_caster", "dragonfire_scepter", "shulker_seeker",
                 "wither_scepter", "webcaster", "wind_staff", "the_daybreak_chronicles", "engulfing_lightning", "resonant_echo",
-                "evoker_fang_staff", "vortex_vanquisher", "omni_staff"
+                "evoker_fang_staff", "vortex_vanquisher", "peak_patrol_song", "omni_staff"
         };
         for (String sId : allStaffIds) {
             if (I18n.exists("item.velorise_staves." + sId)) {
@@ -183,7 +184,7 @@ public class ElementalCodexScreen extends Screen {
                 registerLinkWord(dedup, I18n.get("item.velorise_staves.netherite_" + sId), Tab.STAVES, sId);
             }
         }
-        for (String uId : new String[]{"void_translocator", "netherite_void_translocator", "magic_mirror", "netherite_magic_mirror"}) {
+        for (String uId : new String[]{"void_translocator", "netherite_void_translocator", "magic_mirror", "netherite_magic_mirror", "wind_glider"}) {
             if (I18n.exists("item.velorise_staves." + uId)) {
                 registerLinkWord(dedup, I18n.get("item.velorise_staves." + uId), Tab.STAVES, "utility_relics");
             }
@@ -781,6 +782,9 @@ public class ElementalCodexScreen extends Screen {
                         {"vortex_vanquisher", ArcaneStaffItem.Kind.VORTEX, Element.GEO,
                                 fmtHearts((4.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§r",
                                 "§6" + fmtHearts((6.0 + maxHp * 0.0285) * dmgMult) + "§f\uE008§6", "12m (Max 3 / 4m Pulse)", "codex.velorise_staves.staff.vortex"},
+                        {"peak_patrol_song", ArcaneStaffItem.Kind.PEAK_PATROL_SONG, Element.GEO,
+                                fmtHearts(4.0 * dmgMult) + "§f\uE008§r",
+                                "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6", "3m Skate / 8m -36% RES", "codex.velorise_staves.staff.peak_patrol_song"},
                         {"omni_staff", ArcaneStaffItem.Kind.OMNI, null,
                                 fmtHearts(10.0 * dmgMult) + "§f\uE008§r 2U", "§6" + fmtHearts(15.0 * dmgMult) + "§f\uE008§6 3U", "36m➔48m", "codex.velorise_staves.staff.omni"}
                 };

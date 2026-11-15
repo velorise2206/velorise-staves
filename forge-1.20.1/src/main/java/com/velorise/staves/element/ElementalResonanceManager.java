@@ -548,6 +548,7 @@ public final class ElementalResonanceManager {
         if (attacker != null) {
             damage *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
             damage *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
+            damage *= XilonenManager.getXilonenDamageMultiplier(attacker, attackElement, level.getGameTime());
         }
         if (!StavesConfig.isElementalResonanceEnabled()) return damage;
         long now = level.getGameTime();
@@ -573,6 +574,7 @@ public final class ElementalResonanceManager {
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
         amount *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
         amount *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
+        amount *= XilonenManager.getXilonenDamageMultiplier(attacker, Element.GEO, level.getGameTime());
         if (!StavesConfig.isElementalResonanceEnabled()) return amount;
 
         long now = level.getGameTime();

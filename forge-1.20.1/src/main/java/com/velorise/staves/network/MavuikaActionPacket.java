@@ -20,6 +20,11 @@ public class MavuikaActionPacket {
     public static final byte ACTION_SPRINT_STOP = 8;
     public static final byte ACTION_VENTI_ULTI_CHARGE = 9;
     public static final byte ACTION_VENTI_ULTI_CAST = 10;
+    public static final byte ACTION_PLUNGE_ATTACK = 11;
+    public static final byte ACTION_TOGGLE_GLIDER = 12;
+    public static final byte ACTION_NEUVILLETTE_CA_START = 13;
+    public static final byte ACTION_NEUVILLETTE_CA_STOP = 14;
+    public static final byte ACTION_XILONEN_WALL_LEAP = 15;
 
     private final byte action;
 
@@ -64,6 +69,14 @@ public class MavuikaActionPacket {
                 ArchonUltiManager.tickVentiUltiCharge(player);
             } else if (packet.action == ACTION_VENTI_ULTI_CAST) {
                 ArchonUltiManager.triggerVentiUlti(player);
+            } else if (packet.action == ACTION_PLUNGE_ATTACK) {
+                com.velorise.staves.element.PlungeAndGliderManager.handleStartPlunge(player);
+            } else if (packet.action == ACTION_TOGGLE_GLIDER) {
+                com.velorise.staves.element.PlungeAndGliderManager.handleToggleGlider(player);
+            } else if (packet.action == ACTION_NEUVILLETTE_CA_START || packet.action == ACTION_NEUVILLETTE_CA_STOP) {
+                com.velorise.staves.element.NeuvilletteManager.handleLeftClickHold(player, packet.action == ACTION_NEUVILLETTE_CA_START);
+            } else if (packet.action == ACTION_XILONEN_WALL_LEAP) {
+                com.velorise.staves.element.XilonenManager.handleWallLeap(player);
             }
         });
         ctx.setPacketHandled(true);

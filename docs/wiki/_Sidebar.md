@@ -12,7 +12,7 @@
 * **[Resonances & Overload](Elements-and-Reactions#elemental-resonance-system-all-8-resonances)**
   * [Arcane Overload (4-Staff Cap)](Elements-and-Reactions#arcane-overload-4-staff-inventory-cap)
   * [Innate & Mutated Mobs](Elements-and-Reactions#innate-elemental-mobs-drops--rare-omni-mutations)
-* **[Staves & Weapons (15 Archetypes)](Staves-List)**
+* **[Staves & Weapons (20 Archetypes)](Staves-List)**
   * [The Apex Weapon: Omni Staff](Staves-List#the-apex-weapon-omni-staff)
   * [Netherite Smithing Upgrade](Staves-List#netherite-smithing-upgrade-process)
   * [Staff Enchantments (EM)](Staves-List#staff-enchantments-elemental-mastery)
@@ -24,6 +24,7 @@
   * [Tesla Coils](Environmental-Interactions#5-tesla-coils--storm-overcharge)
 * **[Potion & Trident Synergies](Elements-and-Reactions#vanilla-mechanics-synergy-potions-arrows-tridents-mace--thorns)**
 * **[Relics & Utilities](Relics-and-Utilities)**
+  * [Wind Glider & Plunge Attack](Relics-and-Utilities#wind-glider-wings-of-companionship--universal-plunge-attack)
   * [Magic Mirror](Relics-and-Utilities#magic-mirror)
   * [Void Translocator](Relics-and-Utilities#void-translocator)
   * [Elemental Codex](Relics-and-Utilities#elemental-codex)
