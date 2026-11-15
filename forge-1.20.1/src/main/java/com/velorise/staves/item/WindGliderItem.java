@@ -65,7 +65,7 @@ public final class WindGliderItem extends Item {
 
     @Override
     public void appendHoverText(ItemStack stack, @org.jetbrains.annotations.Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
-        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider"), ChatFormatting.AQUA, 44, "  ");
-        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider.plunge"), ChatFormatting.GRAY, 44, "  ");
+        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider"), ChatFormatting.AQUA, 36, "  ");
+        ArcaneStaffItem.appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.wind_glider.plunge"), ChatFormatting.GRAY, 36, "  ");
     }
 }

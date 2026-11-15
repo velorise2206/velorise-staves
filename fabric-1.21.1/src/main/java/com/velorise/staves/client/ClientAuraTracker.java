@@ -36,6 +36,10 @@ public final class ClientAuraTracker {
     public static final int ANIM_GLIDER_STOP = 29;
     public static final int ANIM_GLIDER_UNLOCKED = 30;
     public static final int ANIM_GLIDER_LOCKED = 31;
+    public static final int ANIM_MAVUIKA_BURST = 32;
+    public static final int ANIM_VENTI_BURST = 33;
+    public static final int ANIM_FURINA_BURST = 34;
+    public static final int ANIM_LAYLA_BURST = 35;
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
     public static long localNextRaidenSwingMs = 0L;
@@ -461,16 +465,20 @@ public final class ClientAuraTracker {
             case ANIM_VORTEX_TAP -> 500L;
             case ANIM_GHASTFIRE_SLAM -> 450L;
             case ANIM_RAIDEN_EYE -> 420L;
-            case ANIM_RAIDEN_DRAW -> 1500L;
+            case ANIM_RAIDEN_DRAW -> 1600L;
             case ANIM_RAIDEN_SLASH -> (entry.raidenComboStep == 3 || entry.raidenComboStep == 4) ? 420L : 340L;
             case ANIM_RAIDEN_CA -> 480L;
             case ANIM_ZHONGLI_PLANET_BEFALL -> 2800L;
             case ANIM_XILONEN_SKATE_DASH -> 480L;
             case ANIM_XILONEN_KICK_1 -> 380L;
             case ANIM_XILONEN_KICK_2 -> 460L;
-            case ANIM_XILONEN_BURST -> 950L;
+            case ANIM_XILONEN_BURST -> 1600L;
             case ANIM_NEUVILLETTE_BURST -> 1700L;
             case ANIM_NEUVILLETTE_SKILL_E -> 550L;
+            case ANIM_MAVUIKA_BURST -> 1700L;
+            case ANIM_VENTI_BURST -> 1600L;
+            case ANIM_FURINA_BURST -> 1600L;
+            case ANIM_LAYLA_BURST -> 1600L;
             default -> 600L;
         };
         entry.staffAnimType = animType;
@@ -708,7 +716,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }

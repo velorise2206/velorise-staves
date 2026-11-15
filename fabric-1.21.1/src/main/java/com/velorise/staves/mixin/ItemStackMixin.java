@@ -20,7 +20,7 @@ public abstract class ItemStackMixin {
     private void velorise$dynamicConfigMaxDamage(CallbackInfoReturnable<Integer> cir) {
         Item item = this.getItem();
         if (item instanceof ArcaneStaffItem staff) {
-            cir.setReturnValue(StavesConfig.getMaxDurability(staff.kind(), staff.isNetherite()));
+            cir.setReturnValue(ArcaneStaffItem.getEffectiveMaxDamage((ItemStack) (Object) this, staff.kind(), staff.isNetherite()));
         } else if (item instanceof VoidTranslocatorItem translocator) {
             cir.setReturnValue(StavesConfig.getArtifactMaxDurability(true, translocator.isNetherite()));
         } else if (item instanceof MagicMirrorItem mirror) {

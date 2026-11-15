@@ -1,15 +1,37 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "equipment",
-  "ingredients": [
-    { "tag": "velorise_staves:pyro_staves" },
-    { "tag": "velorise_staves:hydro_staves" },
-    { "tag": "velorise_staves:cryo_staves" },
-    { "tag": "velorise_staves:electro_staves" },
-    { "tag": "velorise_staves:dendro_staves" },
-    { "tag": "velorise_staves:anemo_staves" },
-    { "tag": "velorise_staves:geo_staves" }
+  "pattern": [
+    "CHA",
+    "P G",
+    "SDE"
   ],
+  "key": {
+    "C": {
+      "tag": "velorise_staves:cryo_staves"
+    },
+    "H": {
+      "tag": "velorise_staves:hydro_staves"
+    },
+    "A": {
+      "tag": "velorise_staves:anemo_staves"
+    },
+    "P": {
+      "tag": "velorise_staves:pyro_staves"
+    },
+    "G": {
+      "tag": "velorise_staves:geo_staves"
+    },
+    "S": {
+      "item": "minecraft:diamond_sword"
+    },
+    "D": {
+      "tag": "velorise_staves:dendro_staves"
+    },
+    "E": {
+      "tag": "velorise_staves:electro_staves"
+    }
+  },
   "result": {
     "item": "velorise_staves:omni_staff",
     "count": 1

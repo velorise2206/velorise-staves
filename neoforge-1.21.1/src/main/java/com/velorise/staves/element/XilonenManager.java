@@ -5,7 +5,6 @@ import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
@@ -35,13 +34,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages Xilonen's Peak Patrol Song mechanics:
- * - Skill E (Yohual's Scratch): Roller Skate Nightsoul state (starts at 45/90 pts, 9s Basic / 13s Netherite),
- *   +35% skating speed, smooth vertical wall-climbing + Space wall-leap, and E -> N2 (2 melee kicks = +35 pts each -> 90/90)
+ * - Skill E (Yohual's Scratch): Roller Skate Nightsoul state (starts at 45/90 pts, ~9.0s Basic / 13.0s Netherite),
+ *   +65% skating speed, release-and-repress straight-line Skate Dash, boosted jump height for flat-ground Plunge Attack
+ *   with smooth X-axis Front Flip, vertical wall-climbing + Space wall-leap, and E -> N2 (2 melee kicks = +35 pts each -> 90/90)
  *   which depletes all 90 Nightsoul points at once, feeds +90 Fighting Spirit to Mavuika, and activates Source Samples (15s).
  * - Source Samples: -36% Elemental RES shred aura (8m) for sampled elements in the 4-staff inventory (persists off-field).
  * - Scroll of the Hero of Cinder City: triggering Crystallize grants +40% Elemental DMG for 18s to Geo + reacted element.
- * - Burst [R] (Ocelotlicue Point!): 1.0 HP (0.5 heart) AoE Geo wave + 8 ticks of single-target active-player healing over 12s
- *   (when >= 2 PHEC samples) or 2 extra Geo shockwaves (when < 2 PHEC samples).
+ * - Burst [R] (Ocelotlicue Point!): 1.6s I-frames + DJ turntable animation + 1.0 HP (0.5 heart) AoE Geo wave
+ *   + 8 ticks of single-target active-player healing over 12s (when >= 2 PHEC samples) or 2 extra Geo shockwaves (< 2 PHEC).
  * - Netherite C1 & C2: -30% Nightsoul consumption, +0.5 Knockback Resistance, and C2 elemental buffs per sample.
  */
 public final class XilonenManager {
@@ -57,6 +57,7 @@ public final class XilonenManager {
         public boolean netherite = false;
         public float nightsoulPoints = 0.0F;
         public long skateUntilTick = 0L;
+        public long lastDashTick = -100L;
         public int kickCombo = 0;
         public long lastKickTick = -100L;
         public boolean wallClimbing = false;
@@ -65,6 +66,7 @@ public final class XilonenManager {
         public final EnumSet<Element> activeSamples = EnumSet.of(Element.GEO);
         public int phecCount = 0;
         public long ultiCooldownUntilTick = 0L;
+        public long iframeUntilTick = 0L;
         public long burstHealUntilTick = 0L;
         public long nextBurstHealTick = 0L;
         public boolean burstNetherite = false;
@@ -92,6 +94,30 @@ public final class XilonenManager {
         CRYSTALLIZE_SCROLL_BUFFS.remove(playerId);
     }
 
+    public static boolean isHoldingXilonen(Player player) {
+        if (player == null) return false;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG
+                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
+    }
+
+    private static boolean isEffectiveNetheriteHeld(Player player) {
+        ItemStack main = player.getMainHandItem();
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+            return ArcaneStaffItem.getEffectiveNetherite(main);
+        }
+        ItemStack off = player.getOffhandItem();
+        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+            return ArcaneStaffItem.getEffectiveNetherite(off);
+        }
+        return false;
+    }
+
+    public static boolean isXilonenIframeActive(@Nullable LivingEntity entity) {
+        if (!(entity instanceof ServerPlayer player)) return false;
+        XilonenPlayerState st = STATES.get(player.getUUID());
+        return st != null && player.level().getGameTime() < st.iframeUntilTick;
+    }
+
     public static SampleLoadout scanInventorySamples(Player player) {
         EnumSet<Element> elems = EnumSet.of(Element.GEO);
         int phec = 0;
@@ -99,8 +125,8 @@ public final class XilonenManager {
         int countedStaves = 0;
         for (ItemStack s : player.getInventory().items) {
             if (s.isEmpty() || !(s.getItem() instanceof ArcaneStaffItem staff)) continue;
-            if (staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
-                if (staff.isNetherite()) nethXilo = true;
+            if (ArcaneStaffItem.getEffectiveKind(s) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                if (ArcaneStaffItem.getEffectiveNetherite(s)) nethXilo = true;
                 continue;
             }
             if (countedStaves >= 3) continue;
@@ -118,8 +144,8 @@ public final class XilonenManager {
         }
         for (ItemStack s : player.getInventory().offhand) {
             if (s.isEmpty() || !(s.getItem() instanceof ArcaneStaffItem staff)) continue;
-            if (staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
-                if (staff.isNetherite()) nethXilo = true;
+            if (ArcaneStaffItem.getEffectiveKind(s) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                if (ArcaneStaffItem.getEffectiveNetherite(s)) nethXilo = true;
                 continue;
             }
             if (countedStaves >= 3) continue;
@@ -138,6 +164,9 @@ public final class XilonenManager {
 
     public static boolean isSkating(Player player) {
         if (player == null) return false;
+        if (player.level().isClientSide()) {
+            return com.velorise.staves.client.ClientAuraTracker.isXilonenSkating(player.getId());
+        }
         XilonenPlayerState st = STATES.get(player.getUUID());
         return st != null && st.skating && player.level().getGameTime() < st.skateUntilTick && st.nightsoulPoints > 0.01F;
     }
@@ -147,25 +176,70 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.computeIfAbsent(player.getUUID(), k -> new XilonenPlayerState());
 
-        // Pressing Right-Click while already skating exits Roller Skate state cleanly and applies cooldown
+        // If already skating: Sneak + Right-Click exits Roller Skate state cleanly; normal repress performs Skate Dash
         if (st.skating && now < st.skateUntilTick) {
-            exitRollerSkateState(player, st, true);
-            return true;
+            if (player.isShiftKeyDown()) {
+                exitRollerSkateState(player, st, true);
+                return true;
+            }
+            handleSkateDash(player);
+            return false;
         }
 
         SampleLoadout loadout = scanInventorySamples(player);
         st.skating = true;
         st.netherite = isNetherite || loadout.hasNetheriteXilonen();
-        st.nightsoulPoints = 45.0F; // Starts at 45.0 / 90.0 Nightsoul points
-        long maxDurationTicks = st.netherite ? 260L : 180L; // 9s Basic, 13s Netherite (C1)
+        st.nightsoulPoints = 45.0F; // Starts at 45.0 / 90.0 Nightsoul points (~9.0s skate duration)
+        long maxDurationTicks = st.netherite ? 260L : 190L; // ~9.0s Basic, ~13.0s Netherite (C1)
         st.skateUntilTick = now + maxDurationTicks;
+        st.lastDashTick = now;
         st.kickCombo = 0;
         st.wallClimbing = false;
         st.activeSamples.clear();
         st.activeSamples.addAll(loadout.elements());
         st.phecCount = loadout.phecCount();
 
-        // Forward roller-skate lunge (3.0m) + Geo damage to enemies in path
+        executeForwardSkateLunge(level, player, st, 1.25D, 1.0F);
+        syncXilonenToClients(player, st, now, true);
+        return true;
+    }
+
+    public static void handleSkateDash(ServerPlayer player) {
+        if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        long now = level.getGameTime();
+        XilonenPlayerState st = STATES.get(player.getUUID());
+        if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) return;
+        if (now - st.lastDashTick < 10L) return; // Require release & repress + 0.5s ICD (prevents hold-drain)
+        st.lastDashTick = now;
+
+        float dashCost = 4.0F * (st.netherite ? 0.70F : 1.0F);
+        float consumed = Math.min(st.nightsoulPoints, dashCost);
+        st.nightsoulPoints = Math.max(0.0F, st.nightsoulPoints - dashCost);
+        ElementalGaugeManager.addMavuikaFightingSpiritFromExternalNightsoul(player, consumed);
+
+        executeForwardSkateLunge(level, player, st, 1.32D, 0.85F);
+        if (st.nightsoulPoints <= 0.01F) {
+            exitRollerSkateState(player, st, true);
+        } else {
+            syncXilonenToClients(player, st, now, true);
+        }
+    }
+
+    public static void handleSkateJumpBoost(ServerPlayer player) {
+        if (player == null) return;
+        XilonenPlayerState st = STATES.get(player.getUUID());
+        long now = player.level().getGameTime();
+        if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) return;
+        if (st.wallClimbing) return;
+
+        Vec3 dv = player.getDeltaMovement();
+        player.setDeltaMovement(dv.x * 1.12D, Math.max(dv.y, 0.58D), dv.z * 1.12D);
+        player.hasImpulse = true;
+        player.connection.send(new ClientboundSetEntityMotionPacket(player));
+        player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.GOAT_LONG_JUMP, SoundSource.PLAYERS, 0.65F, 1.45F);
+    }
+
+    private static void executeForwardSkateLunge(ServerLevel level, ServerPlayer player, XilonenPlayerState st, double speed, float dmgScale) {
         Vec3 look = player.getLookAngle();
         Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
         if (horiz.lengthSqr() < 1.0E-4D) {
@@ -174,14 +248,14 @@ public final class XilonenManager {
         } else {
             horiz = horiz.normalize();
         }
-        Vec3 lungeVel = new Vec3(horiz.x * 1.15D, Math.max(0.12D, player.getDeltaMovement().y), horiz.z * 1.15D);
+        Vec3 lungeVel = new Vec3(horiz.x * speed, Math.max(0.12D, player.getDeltaMovement().y), horiz.z * speed);
         player.setDeltaMovement(lungeVel);
         player.hasImpulse = true;
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
 
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, st.netherite);
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, st.netherite) * dmgScale;
         float gaugeU = st.netherite ? 1.5F : 1.0F;
-        AABB hitBox = player.getBoundingBox().expandTowards(horiz.scale(3.2D)).inflate(1.6D, 0.8D, 1.6D);
+        AABB hitBox = player.getBoundingBox().expandTowards(horiz.scale(3.4D)).inflate(1.6D, 0.8D, 1.6D);
         List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, hitBox,
                 e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
         for (LivingEntity target : targets) {
@@ -197,8 +271,6 @@ public final class XilonenManager {
         level.playSound(null, player.blockPosition(), SoundEvents.TRIDENT_RIPTIDE_1.value(), SoundSource.PLAYERS, 0.70F, 1.45F);
 
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_SKATE_DASH);
-        syncXilonenToClients(player, st, now, true);
-        return true;
     }
 
     public static void onMeleeHit(ServerPlayer player, LivingEntity target, ItemStack stack, boolean isNetherite) {
@@ -206,7 +278,7 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.get(player.getUUID());
         if (st == null || !st.skating || now >= st.skateUntilTick) return;
-        if (now - st.lastKickTick < 3L) return; // Prevent multi-entity sweep double-counting on same tick
+        if (now - st.lastKickTick < 3L) return;
         st.lastKickTick = now;
 
         st.kickCombo = (st.kickCombo % 2) + 1;
@@ -226,7 +298,6 @@ public final class XilonenManager {
         // +35.0 Nightsoul points per normal attack kick -> 45 + 35 + 35 = 115 >= 90 after 2 kicks!
         st.nightsoulPoints = Math.min(90.0F, st.nightsoulPoints + 35.0F);
         if (st.nightsoulPoints >= 90.0F) {
-            // Deplete all 90 Nightsoul points at once, feed +90 Fighting Spirit to Mavuika, and activate Source Samples for 15s!
             st.nightsoulPoints = 0.0F;
             ElementalGaugeManager.addMavuikaFightingSpiritFromExternalNightsoul(player, 90.0F);
 
@@ -261,7 +332,7 @@ public final class XilonenManager {
         if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.0F) return;
         if (!isAgainstClimbableWall(player)) return;
 
-        float cost = st.netherite ? 7.0F : 10.0F;
+        float cost = st.netherite ? 5.5F : 8.0F;
         float consumed = Math.min(st.nightsoulPoints, cost);
         st.nightsoulPoints = Math.max(0.0F, st.nightsoulPoints - cost);
         ElementalGaugeManager.addMavuikaFightingSpiritFromExternalNightsoul(player, consumed);
@@ -269,7 +340,7 @@ public final class XilonenManager {
         Vec3 look = player.getLookAngle();
         Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
         if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
-        player.setDeltaMovement(horiz.x * 0.42D, 0.68D, horiz.z * 0.42D);
+        player.setDeltaMovement(horiz.x * 0.48D, 0.72D, horiz.z * 0.48D);
         player.fallDistance = 0.0F;
         player.hasImpulse = true;
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
@@ -301,13 +372,21 @@ public final class XilonenManager {
         if (applyCooldown) {
             int cdTicks = Math.max(20, (int) Math.round(StavesConfig.getStaffCooldownSeconds(ArcaneStaffItem.Kind.PEAK_PATROL_SONG) * 20.0D * StavesConfig.getCooldownMultiplier()));
             for (ItemStack s : player.getInventory().items) {
-                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
-                    ElementalResonanceManager.applyCooldown(player, staff, cdTicks);
+                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff) {
+                    if (staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                        ElementalResonanceManager.applyCooldown(player, staff, cdTicks);
+                    } else if (staff.kind() == ArcaneStaffItem.Kind.OMNI && ArcaneStaffItem.getEffectiveKind(s) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                        ElementalResonanceManager.applyOmniModeCooldown(player, s, cdTicks);
+                    }
                 }
             }
             for (ItemStack s : player.getInventory().offhand) {
-                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
-                    ElementalResonanceManager.applyCooldown(player, staff, cdTicks);
+                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff) {
+                    if (staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                        ElementalResonanceManager.applyCooldown(player, staff, cdTicks);
+                    } else if (staff.kind() == ArcaneStaffItem.Kind.OMNI && ArcaneStaffItem.getEffectiveKind(s) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
+                        ElementalResonanceManager.applyOmniModeCooldown(player, s, cdTicks);
+                    }
                 }
             }
         }
@@ -316,16 +395,10 @@ public final class XilonenManager {
 
     public static boolean triggerXilonenUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player)) return false;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
+        if (!isHoldingXilonen(player)) return false;
 
-        ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        boolean holdingMain = main.getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
-        boolean holdingOff = off.getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
-        if (!holdingMain && !holdingOff) return false;
-
-        ItemStack heldStack = holdingMain ? main : off;
-        boolean isNetherite = ((ArcaneStaffItem) heldStack.getItem()).isNetherite();
+        boolean isNetherite = isEffectiveNetheriteHeld(player);
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.computeIfAbsent(player.getUUID(), k -> new XilonenPlayerState());
         if (now < st.ultiCooldownUntilTick) {
@@ -341,29 +414,27 @@ public final class XilonenManager {
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
+        st.iframeUntilTick = now + 32L; // 1.6s (32 ticks) Genshin Burst I-frame
+        player.invulnerableTime = Math.max(player.invulnerableTime, 32);
+        ArchonUltiManager.grantUltiIframe(player, 32);
 
-        // C2 Electro energy/Resolve restoration
         if (hasElectroC2) {
             ElementalGaugeManager.addMavuikaFightingSpiritFromExternalNightsoul(player, 30.0F);
         }
 
-        // Minor AoE Geo soundwave (1.0 HP = 0.5 heart) in 5.0m radius to trigger Crystallize & apply Geo
         float burstDmg = 1.0F;
         float gaugeU = isNetherite ? 1.5F : 1.0F;
         triggerBurstGeoSoundwave(level, player, burstDmg, gaugeU);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_BURST);
 
         if (loadout.phecCount() >= 2) {
-            // Single-target periodic healing for active player ONLY: 8 ticks over 12s (every 1.5s = 30 ticks)
             st.burstHealUntilTick = now + 240L;
             st.nextBurstHealTick = now + 30L;
             st.burstNetherite = isNetherite || loadout.hasNetheriteXilonen();
-            // Immediate first rhythm heal tick
             float firstHeal = st.burstNetherite ? 4.0F : 3.0F;
             player.heal(firstHeal);
             level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.2D, player.getZ(), 2, 0.25D, 0.25D, 0.25D, 0.02D);
         } else {
-            // Pure Geo (< 2 PHEC samples): 2 additional rhythmic Geo soundwave pulses
             st.extraGeoPulse1Tick = now + 15L;
             st.extraGeoPulse2Tick = now + 30L;
             st.burstNetherite = isNetherite || loadout.hasNetheriteXilonen();
@@ -395,12 +466,10 @@ public final class XilonenManager {
     public static void onCrystallizeTriggered(@Nullable ServerPlayer attacker, Element reactedAuraElement, long now) {
         if (attacker == null || reactedAuraElement == null) return;
         XilonenPlayerState st = STATES.get(attacker.getUUID());
-        boolean holdingXilo = (attacker.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG)
-                || (attacker.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG);
+        boolean holdingXilo = isHoldingXilonen(attacker);
         boolean activeXilo = holdingXilo || (st != null && (st.skating || now < st.sourceSamplesUntilTick));
         if (!activeXilo) return;
 
-        // Scroll of the Hero of Cinder City: +40% Elemental DMG for 18.0s (360 ticks) to Geo AND the reacted element
         long expire = now + 360L;
         if (attacker.level() instanceof ServerLevel level) {
             for (ServerPlayer ally : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(attacker) <= 144.0D)) {
@@ -419,7 +488,6 @@ public final class XilonenManager {
         if (attacker == null || attackElement == null) return 1.0F;
         float mult = 1.0F;
 
-        // 1. Scroll of the Hero of Cinder City (+40% DMG to Geo + Crystallized element for 18s)
         EnumMap<Element, Long> scroll = CRYSTALLIZE_SCROLL_BUFFS.get(attacker.getUUID());
         if (scroll != null) {
             Long until = scroll.get(attackElement);
@@ -428,7 +496,6 @@ public final class XilonenManager {
             }
         }
 
-        // 2. Netherite Xilonen C2 Elemental Sample Buffs (Geo +50%, Pyro +45%, Cryo +45% effective)
         XilonenPlayerState st = STATES.get(attacker.getUUID());
         boolean c2Active = st != null && st.samplesNetherite && (now < st.sourceSamplesUntilTick || st.skating);
         if (!c2Active && attacker.level() instanceof ServerLevel level) {
@@ -447,7 +514,7 @@ public final class XilonenManager {
             } else if (attackElement == Element.PYRO) {
                 mult += 0.45F;
             } else if (attackElement == Element.CRYO) {
-                mult += 0.45F; // +60% Cryo Crit DMG equivalent
+                mult += 0.45F;
             }
         }
         return mult;
@@ -463,12 +530,10 @@ public final class XilonenManager {
             if (!samplesActive && !skatingActive) continue;
 
             if (st.phecCount >= 2) {
-                // >= 2 PHEC samples: Source Samples active (even off-field) shreds -36% RES for all sampled elements
                 if (samplesActive && st.activeSamples.contains(element)) {
                     return 0.36F;
                 }
             } else {
-                // < 2 PHEC samples: Geo sample active while in Nightsoul or Source Samples
                 if (element == Element.GEO && (skatingActive || samplesActive)) {
                     return 0.36F;
                 }
@@ -485,10 +550,9 @@ public final class XilonenManager {
             if (st == null) continue;
             ServerLevel level = player.serverLevel();
 
-            // 1. Roller Skate Nightsoul state tick
+            // 1. Roller Skate Nightsoul state tick (~9.0s Basic / ~13.0s Netherite C1 from 45 points)
             if (st.skating) {
-                boolean holdingXilo = (player.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG)
-                        || (player.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG);
+                boolean holdingXilo = isHoldingXilonen(player);
                 if (!holdingXilo || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) {
                     exitRollerSkateState(player, st, true);
                 } else {
@@ -499,8 +563,8 @@ public final class XilonenManager {
                     st.wallClimbing = climbing;
                     float drain;
                     if (climbing) {
-                        drain = 0.65F * c1DrainMult;
-                        player.setDeltaMovement(dv.x * 0.85D, 0.28D, dv.z * 0.85D);
+                        drain = 0.28F * c1DrainMult;
+                        player.setDeltaMovement(dv.x * 0.88D, 0.35D, dv.z * 0.88D);
                         player.fallDistance = 0.0F;
                         player.hasImpulse = true;
                         player.connection.send(new ClientboundSetEntityMotionPacket(player));
@@ -510,7 +574,8 @@ public final class XilonenManager {
                             level.playSound(null, player.blockPosition(), SoundEvents.BASALT_STEP, SoundSource.PLAYERS, 0.45F, 1.35F);
                         }
                     } else {
-                        drain = (player.isSprinting() ? 0.35F : 0.25F) * c1DrainMult;
+                        // 45.0 pts / 0.24 pts/tick = 187.5 ticks (~9.3s) continuous skating (or ~13.3s on Netherite C1)
+                        drain = (horizSpeed > 0.02D ? 0.24F : 0.12F) * c1DrainMult;
                         if (now % 4L == 0L && horizSpeed > 0.05D) {
                             level.sendParticles(ParticleTypes.WAX_ON, player.getX(), player.getY() + 0.1D, player.getZ(),
                                     2, 0.18D, 0.05D, 0.18D, 0.02D);
@@ -529,8 +594,8 @@ public final class XilonenManager {
 
             // 2. Burst periodic single-target self-healing (active player ONLY)
             if (now < st.burstHealUntilTick && now >= st.nextBurstHealTick) {
-                st.nextBurstHealTick = now + 30L; // Every 1.5s (30 ticks)
-                float healAmt = st.burstNetherite ? 4.0F : 3.0F; // 1.5 hearts Basic / 2.0 hearts Netherite
+                st.nextBurstHealTick = now + 30L;
+                float healAmt = st.burstNetherite ? 4.0F : 3.0F;
                 player.heal(healAmt);
                 level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.15D, player.getZ(),
                         2, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -549,7 +614,7 @@ public final class XilonenManager {
                 triggerBurstGeoSoundwave(level, player, 1.0F, st.burstNetherite ? 1.5F : 1.0F);
             }
 
-            // 4. Attribute modifiers (Skate Speed +35%, C1 Knockback Resistance +0.5, C2 Hydro +45% Max HP)
+            // 4. Attribute modifiers (Skate Speed +65%, C1 Knockback Resistance +0.5, C2 Hydro +45% Max HP)
             updateAttributes(player, st, now);
 
             // 5. Sync state to client
@@ -561,10 +626,13 @@ public final class XilonenManager {
         AttributeInstance spd = player.getAttribute(Attributes.MOVEMENT_SPEED);
         if (spd != null) {
             boolean wantSkate = st.skating && now < st.skateUntilTick;
-            boolean hasSkate = spd.getModifier(SKATE_SPEED_ID) != null;
-            if (wantSkate && !hasSkate) {
-                spd.addTransientModifier(new AttributeModifier(SKATE_SPEED_ID, 0.35D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-            } else if (!wantSkate && hasSkate) {
+            AttributeModifier existing = spd.getModifier(SKATE_SPEED_ID);
+            if (wantSkate) {
+                if (existing == null || Math.abs(existing.amount() - 0.65D) > 0.001D) {
+                    if (existing != null) spd.removeModifier(SKATE_SPEED_ID);
+                    spd.addTransientModifier(new AttributeModifier(SKATE_SPEED_ID, 0.65D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+                }
+            } else if (existing != null) {
                 spd.removeModifier(SKATE_SPEED_ID);
             }
         }

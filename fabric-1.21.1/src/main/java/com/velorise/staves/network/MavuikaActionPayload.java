@@ -27,6 +27,9 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_NEUVILLETTE_CA_START = 12;
     public static final byte ACTION_NEUVILLETTE_CA_STOP = 13;
     public static final byte ACTION_XILONEN_WALL_LEAP = 14;
+    public static final byte ACTION_XILONEN_DASH = 15;
+    public static final byte ACTION_XILONEN_JUMP = 16;
+    public static final byte ACTION_FURINA_CA_SWITCH = 17;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -67,6 +70,20 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
             ArchonUltiManager.tickVentiUltiCharge(player);
         } else if (action == ACTION_VENTI_ULTI_CAST) {
             ArchonUltiManager.triggerVentiUlti(player);
+        } else if (action == ACTION_PLUNGE_ATTACK) {
+            com.velorise.staves.element.PlungeAndGliderManager.handleStartPlunge(player);
+        } else if (action == ACTION_TOGGLE_GLIDER) {
+            com.velorise.staves.element.PlungeAndGliderManager.handleToggleGlider(player);
+        } else if (action == ACTION_NEUVILLETTE_CA_START || action == ACTION_NEUVILLETTE_CA_STOP) {
+            com.velorise.staves.element.NeuvilletteManager.handleLeftClickHold(player, action == ACTION_NEUVILLETTE_CA_START);
+        } else if (action == ACTION_XILONEN_WALL_LEAP) {
+            com.velorise.staves.element.XilonenManager.handleWallLeap(player);
+        } else if (action == ACTION_XILONEN_DASH) {
+            com.velorise.staves.element.XilonenManager.handleSkateDash(player);
+        } else if (action == ACTION_XILONEN_JUMP) {
+            com.velorise.staves.element.XilonenManager.handleSkateJumpBoost(player);
+        } else if (action == ACTION_FURINA_CA_SWITCH) {
+            com.velorise.staves.item.ArcaneStaffItem.handleFurinaLeftClickHoldSwitch(player);
         }
     }
 }

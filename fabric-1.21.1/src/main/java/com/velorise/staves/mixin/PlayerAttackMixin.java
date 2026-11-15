@@ -1,6 +1,8 @@
 package com.velorise.staves.mixin;
 
 import com.velorise.staves.element.ElementalGaugeManager;
+import com.velorise.staves.element.NeuvilletteManager;
+import com.velorise.staves.element.PlungeAndGliderManager;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -12,15 +14,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Captures the player's melee attack strength scale BEFORE vanilla Player.attack() resets
- * attackStrengthTicker to 0, and hooks Player.actuallyHurt() so incoming-damage modifiers
- * (including imbued sword strikes, Crystallize shields, and Elemental Resonance) also run
- * when the target is a Player in PvP.
+ * attackStrengthTicker to 0, blocks normal attacks while holding Guardian Lens or Plunging,
+ * and hooks Player.actuallyHurt() for incoming-damage modifiers.
  */
 @Mixin(Player.class)
 public abstract class PlayerAttackMixin {
-    @Inject(method = "attack", at = @At("HEAD"))
+    @Inject(method = "attack", at = @At("HEAD"), cancellable = true)
     private void velorise$captureAttackStrengthPre(Entity target, CallbackInfo ci) {
         Player self = (Player) (Object) this;
+        if (NeuvilletteManager.isHoldingGuardianLens(self) || PlungeAndGliderManager.isPlunging(self)) {
+            ci.cancel();
+            return;
+        }
         if (!self.level().isClientSide()) {
             ElementalGaugeManager.recordPreAttackStrength(self, self.getAttackStrengthScale(0.5F));
             if (self instanceof net.minecraft.server.level.ServerPlayer sp && target instanceof net.minecraft.world.entity.LivingEntity) {

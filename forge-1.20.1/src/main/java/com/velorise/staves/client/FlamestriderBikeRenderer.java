@@ -346,11 +346,16 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         if (!(rider.getVehicle() instanceof FlamestriderBikeEntity bike)) {
             if (ClientAuraTracker.isXilonenSkating(rider.getId())
                     && !rider.onGround()
-                    && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())) {
+                    && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())
+                    && !ClientAuraTracker.isPlunging(rider.getId())
+                    && !ClientAuraTracker.isGliding(rider.getId())) {
                 poseStack.pushPose();
-                float spinDeg = ((rider.tickCount + partialTicks) * 28.0F) % 360.0F;
+                float bodyYaw = Mth.rotLerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
+                float flipDeg = ((rider.tickCount + partialTicks) * 30.0F) % 360.0F;
                 poseStack.translate(0.0D, 0.90D, 0.0D);
-                poseStack.mulPose(Axis.YP.rotationDegrees(spinDeg));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+                poseStack.mulPose(Axis.XP.rotationDegrees(flipDeg));
+                poseStack.mulPose(Axis.YP.rotationDegrees(bodyYaw));
                 poseStack.translate(0.0D, -0.90D, 0.0D);
                 return true;
             }
