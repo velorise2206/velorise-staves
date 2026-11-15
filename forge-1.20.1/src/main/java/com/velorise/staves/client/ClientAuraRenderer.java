@@ -929,21 +929,36 @@ public final class ClientAuraRenderer {
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
             net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            float offDir = -castDir;
             float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
             if (t < 0.28F) {
+                // Phase 1: Low Iaijutsu Sheathed Stance - Recoil & Gathering Arcane Lightning
                 float wind = smoothStep01(t / 0.28F);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(wind, -0.85F, -0.55F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(wind, -0.40F, -0.95F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(wind, -0.25F, -0.55F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.55F * wind);
-                model.body.yRot = castDir * 0.28F * wind * w;
+                model.body.xRot = Mth.lerp(w, model.body.xRot, 0.22F * wind);
+                model.body.yRot = Mth.lerp(w, model.body.yRot, -castDir * 0.32F * wind);
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.38F * wind);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.32F * wind);
+                model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.12F * wind);
+
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.45F);
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * -0.92F);
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * -0.55F);
+                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.52F);
+                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.45F);
+                model.head.xRot += 0.08F * wind * w;
             } else {
+                // Phase 2: Explosive Forward Surge & Dimensional Multi-Cut Cleave
                 float sweep = smoothStep01((t - 0.28F) / 0.46F);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(sweep, -0.55F, -2.15F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(sweep, -0.95F, 0.95F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(sweep, -0.55F, 0.55F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(sweep, -0.55F, 0.35F));
-                model.body.yRot = castDir * Mth.lerp(sweep, 0.28F, -0.36F) * w;
+                model.body.xRot = Mth.lerp(w, model.body.xRot, Mth.lerp(sweep, 0.22F, 0.28F));
+                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(sweep, -0.32F, 0.42F));
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, Mth.lerp(sweep, 0.38F, -0.25F));
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, Mth.lerp(sweep, -0.32F, 0.45F));
+
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(sweep, -0.45F, -1.85F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(sweep, -0.92F, 0.65F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(sweep, -0.55F, 0.45F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(sweep, -0.52F, 0.48F));
+                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * -0.35F);
             }
             return;
         }
@@ -1191,27 +1206,41 @@ public final class ClientAuraRenderer {
             } else {
                 model.leftLeg.xRot = -0.75F * hop;
             }
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_HOLD_E) {
+            // Nahida Hold E: Floating with dangling legs & both hands raised framing Camera Viewfinder
+            float w = (t < 0.15F) ? smoothStep01(t / 0.15F) : 1.0F;
+            float sway = Mth.sin(ageInTicks * 0.12F) * 0.04F;
+            model.leftLeg.xRot = 0.22F + sway;
+            model.rightLeg.xRot = 0.32F - sway;
+            model.leftLeg.zRot = -0.08F;
+            model.rightLeg.zRot = 0.08F;
+            // Both hands raised in front of eyes framing the viewfinder camera
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.45F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.45F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.42F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.42F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.15F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.15F);
+            model.head.xRot += 0.04F * w;
+            model.hat.copyFrom(model.head);
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA || activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
             float w = Mth.sin(t * (float) Math.PI);
             model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.55F);
             model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, Mth.cos(t * (float) Math.PI * 2.0F) * 0.45F);
             model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.95F);
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST) {
+            // Nahida Burst: Sacred Prayer with both hands clasped peacefully in front of heart
             float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
-            if (t < 0.55F) {
-                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.35F);
-                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.35F);
-                model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.68F);
-                model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.68F);
-                model.head.xRot += 0.18F * w;
-            } else {
-                float open = smoothStep01((t - 0.55F) / 0.30F);
-                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, Mth.lerp(open, -1.35F, -1.85F));
-                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, Mth.lerp(open, -1.35F, -1.85F));
-                model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.65F * open);
-                model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.65F * open);
-            }
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.35F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.35F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.72F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.72F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.18F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.18F);
+            model.head.xRot += 0.16F * w;
             model.hat.copyFrom(model.head);
+            model.leftLeg.xRot = 0.12F * w;
+            model.rightLeg.xRot = 0.12F * w;
         } else if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
             float w = Mth.sin(t * (float) Math.PI);
             if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
@@ -1673,14 +1702,15 @@ public final class ClientAuraRenderer {
                 float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
                 if (t < 0.28F) {
                     float wind = smoothStep01(t / 0.28F);
-                    poseStack.translate(-dir * Mth.lerp(wind, 0.10F, 0.32F) * w, -0.18F * wind * w, -0.18F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * wind * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 72.0F * wind * w));
+                    float tremor = Mth.sin((player.tickCount + partialTicks) * 2.8F) * 0.006F * wind;
+                    poseStack.translate(dir * 0.18F * wind * w + tremor, -0.22F * wind * w, -0.15F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F * wind * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 85.0F * wind * w));
                 } else {
                     float sweep = smoothStep01((t - 0.28F) / 0.46F);
-                    poseStack.translate(dir * Mth.lerp(sweep, -0.32F, 0.30F) * w, Mth.lerp(sweep, -0.18F, 0.24F) * w, -0.30F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -18.0F, -68.0F) * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 72.0F, -64.0F) * w));
+                    poseStack.translate(dir * Mth.lerp(sweep, 0.18F, -0.36F) * w, Mth.lerp(sweep, -0.22F, 0.28F) * w, -0.32F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -24.0F, -68.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 85.0F, -78.0F) * w));
                 }
                 return;
             }
