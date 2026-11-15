@@ -34,6 +34,8 @@ public final class CharacterVoiceManager {
         return false;
     }
 
+    private static final java.util.Map<Integer, Long> LAST_VOICE_TIME = new java.util.concurrent.ConcurrentHashMap<>();
+
     public static boolean isVoiceEnabled() {
         String cfg = StavesConfig.getCharacterVoiceLanguage();
         return !"disabled".equalsIgnoreCase(cfg) && !"off".equalsIgnoreCase(cfg) && !"none".equalsIgnoreCase(cfg);
@@ -41,6 +43,13 @@ public final class CharacterVoiceManager {
 
     public static void playClientZhongliVoice(int entityId, boolean holdShield) {
         if (!isVoiceEnabled()) return;
+        long now = System.currentTimeMillis();
+        Long last = LAST_VOICE_TIME.get(entityId);
+        if (last != null && (now - last) < 1400L) {
+            return;
+        }
+        LAST_VOICE_TIME.put(entityId, now);
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
@@ -61,6 +70,13 @@ public final class CharacterVoiceManager {
 
     public static void playClientZhongliBurstVoice(int entityId) {
         if (!isVoiceEnabled()) return;
+        long now = System.currentTimeMillis();
+        Long last = LAST_VOICE_TIME.get(entityId);
+        if (last != null && (now - last) < 2200L) {
+            return;
+        }
+        LAST_VOICE_TIME.put(entityId, now);
+
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
 
