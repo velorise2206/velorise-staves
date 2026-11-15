@@ -205,7 +205,7 @@ public final class NeuvilletteManager {
         level.playSound(null, BlockPos.containing(targetCenter), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.55F, 1.45F);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, isNetherite);
-        float skillDmg = (4.0F + player.getMaxHealth() * 0.12F) * scale;
+        float skillDmg = (1.5F + player.getMaxHealth() * 0.05F) * scale;
         float gaugeU = isNetherite ? 1.5F : 1.0F;
 
         AABB aoeBox = new AABB(
@@ -254,25 +254,27 @@ public final class NeuvilletteManager {
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
-        st.iframeUntilTick = now + 34L; // 1.7s (34 ticks) invulnerability frames
-        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
-        ArchonUltiManager.grantUltiIframe(player, 34);
+        st.iframeUntilTick = now + 38L; // 1.8s (36 ticks) cast animation + root
+        player.invulnerableTime = Math.max(player.invulnerableTime, 38);
+        ArchonUltiManager.applyBurstRoot(player, 36);
         st.burstCenter = player.position().add(player.getLookAngle().multiply(3.5D, 0.0D, 3.5D));
         st.burstNetherite = isNeth;
-        st.followUpWave1Tick = now + 14L;
-        st.followUpWave2Tick = now + 28L;
-
-        Vec3 dropCenter = player.position().add(player.getLookAngle().multiply(2.8D, 0.0D, 2.8D));
-        for (int i = 0; i < 6; i++) {
-            ElementalGaugeManager.spawnSourcewaterDroplet(level, dropCenter, player.getUUID(), now);
-        }
-
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, isNeth);
-        float initialDmg = (6.0F + player.getMaxHealth() * 0.18F) * scale;
-        float gaugeU = isNeth ? 3.0F : 2.0F;
-        triggerBurstHydroWave(level, player, st.burstCenter, isNeth ? 9.0D : 7.0D, initialDmg, gaugeU);
+        st.followUpWave1Tick = now + 34L + 10L;
+        st.followUpWave2Tick = now + 34L + 20L;
 
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NEUVILLETTE_BURST);
+        ArchonUltiManager.scheduleBurstAction(player, 34, () -> {
+            if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            long eruptNow = sl.getGameTime();
+            Vec3 dropCenter = player.position().add(player.getLookAngle().multiply(2.8D, 0.0D, 2.8D));
+            for (int i = 0; i < 6; i++) {
+                ElementalGaugeManager.spawnSourcewaterDroplet(sl, dropCenter, player.getUUID(), eruptNow);
+            }
+            float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, isNeth);
+            float initialDmg = (2.5F + player.getMaxHealth() * 0.08F) * scale;
+            float gaugeU = isNeth ? 3.0F : 2.0F;
+            triggerBurstHydroWave(sl, player, st.burstCenter, isNeth ? 9.0D : 7.0D, initialDmg, gaugeU);
+        });
         level.playSound(null, player.blockPosition(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.95F, 1.20F);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 1.0F, 0.85F);
         return true;
@@ -311,13 +313,13 @@ public final class NeuvilletteManager {
             if (st.followUpWave1Tick > 0L && now >= st.followUpWave1Tick) {
                 st.followUpWave1Tick = 0L;
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, st.burstNetherite);
-                float waveDmg = (3.5F + player.getMaxHealth() * 0.10F) * scale;
+                float waveDmg = (1.0F + player.getMaxHealth() * 0.035F) * scale;
                 triggerBurstHydroWave(level, player, st.burstCenter, st.burstNetherite ? 9.0D : 7.0D, waveDmg, st.burstNetherite ? 1.5F : 1.0F);
             }
             if (st.followUpWave2Tick > 0L && now >= st.followUpWave2Tick) {
                 st.followUpWave2Tick = 0L;
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, st.burstNetherite);
-                float waveDmg = (3.5F + player.getMaxHealth() * 0.10F) * scale;
+                float waveDmg = (1.0F + player.getMaxHealth() * 0.035F) * scale;
                 triggerBurstHydroWave(level, player, st.burstCenter, st.burstNetherite ? 9.0D : 7.0D, waveDmg, st.burstNetherite ? 1.5F : 1.0F);
             }
 

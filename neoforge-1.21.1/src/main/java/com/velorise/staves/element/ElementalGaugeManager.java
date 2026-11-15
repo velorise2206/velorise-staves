@@ -137,6 +137,9 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_SKILL_STAR = new ConcurrentHashMap<>();
     private static final Map<UUID, Float> NIGHTS_FOCUS_BASE_HP = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> NIGHTS_FOCUS_PENDING_SHOTS = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAYLA_DREAMSPHERE_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Boolean> LAYLA_DREAMSPHERE_NETHERITE = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAYLA_DREAMSPHERE_NEXT_SHOT = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> MAVUIKA_AURA_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> MAVUIKA_AURA_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> MAVUIKA_AURA_NEXT_STRIKE = new ConcurrentHashMap<>();
@@ -790,6 +793,9 @@ public final class ElementalGaugeManager {
         NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
         NIGHTS_FOCUS_BASE_HP.remove(id);
         NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
+        LAYLA_DREAMSPHERE_UNTIL.remove(id);
+        LAYLA_DREAMSPHERE_NETHERITE.remove(id);
+        LAYLA_DREAMSPHERE_NEXT_SHOT.remove(id);
         MAVUIKA_AURA_UNTIL.remove(id);
         MAVUIKA_AURA_NETHERITE.remove(id);
         MAVUIKA_AURA_NEXT_STRIKE.remove(id);
@@ -898,6 +904,9 @@ public final class ElementalGaugeManager {
         NIGHTS_FOCUS_LAST_SKILL_STAR.clear();
         NIGHTS_FOCUS_BASE_HP.clear();
         NIGHTS_FOCUS_PENDING_SHOTS.clear();
+        LAYLA_DREAMSPHERE_UNTIL.clear();
+        LAYLA_DREAMSPHERE_NETHERITE.clear();
+        LAYLA_DREAMSPHERE_NEXT_SHOT.clear();
         NIGHTS_FOCUS_PROJECTILES.clear();
         MAVUIKA_AURA_UNTIL.clear();
         MAVUIKA_AURA_NETHERITE.clear();
@@ -1566,6 +1575,7 @@ public final class ElementalGaugeManager {
         long now = level.getServer().overworld().getGameTime();
         if (now < MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L)) return; // 18.0s Genshin Q cooldown
         MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
+        com.velorise.staves.audio.CharacterVoiceManager.playMavuikaBurstVoice(player);
         float clampedPts = Math.min(10.0F, pts);
         // Genshin Lv.10 Sunfell Slice: 800.64% + 2.9% * FS (1.0 mod pt = 20 FS; 1.0x baseDmg ~= 200% ATK -> 4.00x + 0.29x/pt)
         float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite);
@@ -1842,6 +1852,9 @@ public final class ElementalGaugeManager {
             activateNightsFocusShield(player, isNetherite);
         }
         NIGHTS_FOCUS_STARS.put(id, 4);
+        LAYLA_DREAMSPHERE_UNTIL.put(id, now + 240L); // 12.0s Celestial Dreamsphere
+        LAYLA_DREAMSPHERE_NETHERITE.put(id, isNetherite);
+        LAYLA_DREAMSPHERE_NEXT_SHOT.put(id, now + 20L);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 14);
     }
 
@@ -1967,6 +1980,32 @@ public final class ElementalGaugeManager {
     }
 
     private static void tickNightsFocusShield(ServerPlayer player, long now) {
+        UUID dsId = player.getUUID();
+        long dsUntil = LAYLA_DREAMSPHERE_UNTIL.getOrDefault(dsId, 0L);
+        if (now < dsUntil && player.level() instanceof ServerLevel dsLevel) {
+            long nextShot = LAYLA_DREAMSPHERE_NEXT_SHOT.getOrDefault(dsId, 0L);
+            if (now >= nextShot) {
+                LAYLA_DREAMSPHERE_NEXT_SHOT.put(dsId, now + 30L); // Fires Starlight Slug every 1.5s (30 ticks)
+                LivingEntity dsTarget = findNearestNightsFocusTarget(dsLevel, player);
+                if (dsTarget != null) {
+                    boolean dsNeth = LAYLA_DREAMSPHERE_NETHERITE.getOrDefault(dsId, false);
+                    float slugDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.NIGHTS_FOCUS, dsNeth) * 0.90F;
+                    float slugUnits = dsNeth ? 1.0F : 0.75F;
+                    Vec3 spherePos = player.position().add(0.0D, player.getBbHeight() + 1.15D, 0.0D);
+                    NIGHTS_FOCUS_PROJECTILES.add(new NightsFocusStarProjectile(dsLevel, player, dsTarget, spherePos, slugDmg, slugUnits));
+                    dsLevel.sendParticles(ParticleTypes.SNOWFLAKE, spherePos.x, spherePos.y, spherePos.z, 6, 0.18D, 0.18D, 0.18D, 0.03D);
+                    dsLevel.sendParticles(ParticleTypes.END_ROD, spherePos.x, spherePos.y, spherePos.z, 3, 0.12D, 0.12D, 0.12D, 0.02D);
+                    dsLevel.playSound(null, spherePos.x, spherePos.y, spherePos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.70F, 1.60F);
+                    if (hasActiveNightsFocusShield(player)) {
+                        addNightsFocusStars(player, 1, now);
+                    }
+                }
+            }
+        } else if (dsUntil > 0L) {
+            LAYLA_DREAMSPHERE_UNTIL.remove(dsId);
+            LAYLA_DREAMSPHERE_NETHERITE.remove(dsId);
+            LAYLA_DREAMSPHERE_NEXT_SHOT.remove(dsId);
+        }
         if (!hasActiveNightsFocusShield(player)) return;
         UUID id = player.getUUID();
         if (player.level() instanceof ServerLevel sl) {
@@ -6251,7 +6290,7 @@ public final class ElementalGaugeManager {
         addRaidenResolve(player, 10);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (2.0D * scale * StavesConfig.getDamageMultiplier());
+        float dmg = (float) (3.5D * scale * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 6.75D : 4.5D;
         Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
@@ -6295,21 +6334,18 @@ public final class ElementalGaugeManager {
             return false;
         }
         int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
-        if (resolve < 30) {
-            player.displayClientMessage(Component.literal("§d⚡ Requires at least 30/60 Resolve to cast Musou Shinsetsu! (" + resolve + "/60)"), true);
-            return false;
-        }
         RAIDEN_RESOLVE.put(id, 0);
-        float resolveMult = 1.0F + (resolve / 60.0F) * 0.75F;
+        float resolveMult = 1.0F + (resolve / 60.0F) * 1.50F;
 
-        RAIDEN_MUSOU_UNTIL.put(id, now + 162L); // 22t draw windup + 7.0s (140t) Musou Isshin stance
+        RAIDEN_MUSOU_UNTIL.put(id, now + 172L); // 32t draw windup + 7.0s (140t) Musou Isshin stance
         RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
         RAIDEN_BURST_CD_UNTIL.put(id, now + 360L); // Genshin Q cooldown: 18.0s
-        RAIDEN_IFRAME_UNTIL.put(id, now + 32L); // 1.6s Burst i-frame covering full draw animation
-        RAIDEN_NEXT_SWING_TICK.put(id, now + 26L); // Lock NA attacks until chest draw + slash finishes
-        player.invulnerableTime = Math.max(player.invulnerableTime, 32);
+        RAIDEN_IFRAME_UNTIL.put(id, now + 34L); // 1.6s Burst i-frame covering full draw animation
+        RAIDEN_NEXT_SWING_TICK.put(id, now + 30L); // Lock NA attacks until chest draw + slash finishes
+        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
+        ArchonUltiManager.applyBurstRoot(player, 32);
 
-        RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 22L);
+        RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 28L);
         RAIDEN_PENDING_HITOTACHI_MULT.put(id, resolveMult);
 
         DustParticleOptions chargeGlow = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 1.5F : 1.25F);
@@ -6326,7 +6362,7 @@ public final class ElementalGaugeManager {
     private static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) {
         ServerLevel level = player.serverLevel();
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float hitotachiDmg = (float) (6.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
+        float hitotachiDmg = (float) (12.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 3.0F : 2.0F;
         double reach = isNetherite ? 9.0D : 6.0D;
         double aoeRadius = isNetherite ? 5.25D : 3.5D;
@@ -6401,7 +6437,7 @@ public final class ElementalGaugeManager {
         addRaidenResolve(attacker, 4);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (1.5D * scale * StavesConfig.getDamageMultiplier());
+        float dmg = (float) (2.5D * scale * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 1.5F : 1.0F;
         double aoe = isNetherite ? 1.5D : 1.0D;
         Vec3 pos = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
@@ -6453,7 +6489,8 @@ public final class ElementalGaugeManager {
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
         float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
         float chargedMult = isCharged ? 1.35F : finisherMult;
-        float bonusDmg = (float) (2.6D * scale * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
+        float musouResMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
+        float bonusDmg = (float) (5.0D * scale * musouResMult * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
         float totalDmg = bonusDmg;
         float attackU = isNetherite ? 1.5F : 1.0F;
         float[] outDamage = new float[] { totalDmg };
@@ -6502,7 +6539,8 @@ public final class ElementalGaugeManager {
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
         float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
         float chargedMult = isCharged ? 1.35F : finisherMult;
-        float slashDmg = (float) (2.6D * scale * chargedMult * StavesConfig.getDamageMultiplier());
+        float musouResMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
+        float slashDmg = (float) (5.0D * scale * musouResMult * chargedMult * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 1.5F : 1.0F;
         Vec3 look = player.getLookAngle().normalize();
         double reach = isCharged ? (isNetherite ? 9.5D : 7.5D) : ((isNetherite ? 5.25D : 3.75D) * finisherMult);
@@ -6563,8 +6601,8 @@ public final class ElementalGaugeManager {
                     Long pendingHitTick = RAIDEN_PENDING_HITOTACHI_TICK.get(id);
                     if (pendingHitTick != null && serverNow >= pendingHitTick) {
                         RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-                        Float pendingMult = RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
-                        if (player.isAlive() && pendingMult != null) {
+                        Float pendingMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
+                        if (player.isAlive()) {
                             boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
                             executeRaidenHitotachiImpact(player, neth, pendingMult);
                         }

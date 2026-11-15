@@ -35,6 +35,9 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_TSARITSA_NA = 20;
     public static final byte ACTION_TSARITSA_CA = 21;
     public static final byte ACTION_TSARITSA_CA_FULL = 22;
+    public static final byte ACTION_DAYBREAK_NA = 23;
+    public static final byte ACTION_DAYBREAK_CA = 24;
+    public static final byte ACTION_DAYBREAK_CA_FULL = 25;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -113,6 +116,12 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
             com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, false);
         } else if (action == ACTION_TSARITSA_CA_FULL) {
             com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, true);
+        } else if (action == ACTION_DAYBREAK_NA) {
+            com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.25F);
+        } else if (action == ACTION_DAYBREAK_CA) {
+            com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.65F);
+        } else if (action == ACTION_DAYBREAK_CA_FULL) {
+            com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 1.0F);
         }
     }
 }

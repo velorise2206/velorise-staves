@@ -268,15 +268,23 @@ public final class OmniWheelOverlay {
         Component titleComp;
         Component subComp;
         if (previewElem != null) {
-            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
-            if (absorbed != null) {
+            if (previewElem == Element.HYDRO && ArcaneStaffItem.isOmniTridentAbsorbed(omniStack)) {
+                boolean nethOmni = omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite();
                 titleComp = Component.translatable(previewElem.translationKey())
                         .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
-                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
-                subComp = ArcaneStaffItem.getAbsorbedStaffWheelStats(absorbed);
+                        .append(Component.translatable(net.minecraft.world.item.Items.TRIDENT.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
+                subComp = Component.literal((nethOmni ? "Netherite · " : "") + "CD: 2s").withStyle(net.minecraft.ChatFormatting.GRAY);
             } else {
-                titleComp = Component.translatable(previewElem.translationKey());
-                subComp = Component.translatable("wheel.velorise_staves.omni.locked");
+                ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
+                if (absorbed != null) {
+                    titleComp = Component.translatable(previewElem.translationKey())
+                            .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                            .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
+                    subComp = ArcaneStaffItem.getAbsorbedStaffWheelStats(absorbed);
+                } else {
+                    titleComp = Component.translatable(previewElem.translationKey());
+                    subComp = Component.translatable("wheel.velorise_staves.omni.locked");
+                }
             }
         } else {
             boolean netheriteOmni = omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite();

@@ -184,6 +184,7 @@ public final class ArcaneStaffEvents {
             case "wind" -> resolveWind(level, hit, owner, hitResult, isNetherite);
             case "daybreak" -> resolveDaybreak(level, hit, owner, projectile, hitResult, isNetherite);
             case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, hitResult, isNetherite);
+            case "omni_trident" -> resolveOmniTrident(level, hit, owner, hitResult, isNetherite);
             default -> {}
         }
         projectile.discard();
@@ -462,6 +463,22 @@ public final class ArcaneStaffEvents {
 
         level.sendParticles(ParticleTypes.POOF, hit.x, hit.y, hit.z, 14, 0.25D, 0.25D, 0.25D, 0.02D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SLIME_SQUISH, SoundSource.PLAYERS, 0.7F, 1.5F);
+    }
+
+    private static void resolveOmniTrident(ServerLevel level, Vec3 hit, Entity owner, HitResult event, boolean isNetherite) {
+        LivingEntity target = hitEntity(event);
+        ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        float dmg = (isNetherite ? 13.5F : 9.0F) * (float) StavesConfig.getDamageMultiplier();
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        if (target != null && target != owner) {
+            target.invulnerableTime = 0;
+            ElementalGaugeManager.applyElement(level, target, Element.HYDRO, attackU, player, dmg);
+        }
+        com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 2.5D, Element.HYDRO, player);
+        com.velorise.staves.element.EnvironmentalBlockManager.applyHydroEnvironmentEffects(level, hit, hit, 1.5D);
+        level.sendParticles(ParticleTypes.SPLASH, hit.x, hit.y + 0.25D, hit.z, 22, 0.35D, 0.25D, 0.35D, 0.08D);
+        level.sendParticles(ParticleTypes.BUBBLE_POP, hit.x, hit.y + 0.25D, hit.z, 12, 0.25D, 0.25D, 0.25D, 0.04D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.TRIDENT_HIT, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
     private static void resolveGuardianOrb(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {

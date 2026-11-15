@@ -208,6 +208,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 nahidaCaTriggeredThisHold[0] = false;
                 tsaritsaSpearHoldTick[0] = 0;
                 ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                ClientAuraTracker.localDaybreakBowPullTicks = 0;
                 ClientAuraTracker.localTsaritsaHoldETicks = 0;
                 ClientAuraTracker.localTsaritsaHoldELocked = false;
                 return;
@@ -218,8 +219,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 client.player.attackAnim = 0.0F;
                 client.player.oAttackAnim = 0.0F;
             }
-            ClientAuraTracker.ventiUltiHoldTicks = 0;
-            ventiUltiFiredThisHold[0] = false;
+            if (ClientAuraTracker.isFiveStarBurstRootActive(client.player.getId())) {
+                client.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+            }
             while (mavuikaUltiKey.consumeClick()) {
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
             }
@@ -350,7 +352,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     }
                 } else {
                     tsaritsaSpearHoldTick[0] = 0;
-                    if (client.options.keyAttack.isDown() && !client.player.isUsingItem()) {
+                    boolean leftPhysDown = client.options.keyAttack.isDown()
+                            || org.lwjgl.glfw.GLFW.glfwGetMouseButton(client.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+                    if (leftPhysDown) {
                         ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
                     } else {
                         int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
@@ -375,6 +379,38 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                             com.velorise.staves.network.MavuikaActionPayload.ACTION_TSARITSA_NA);
                 }
+            }
+
+            boolean holdingDaybreak = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK);
+            if (holdingDaybreak && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
+                int daybreakFast = 0;
+                while (client.options.keyAttack.consumeClick()) {
+                    daybreakFast++;
+                }
+                boolean leftPhysDown = client.options.keyAttack.isDown()
+                        || org.lwjgl.glfw.GLFW.glfwGetMouseButton(client.getWindow().getWindow(), org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+                if (leftPhysDown) {
+                    ClientAuraTracker.localDaybreakBowPullTicks = Math.min(60, ClientAuraTracker.localDaybreakBowPullTicks + 1);
+                    ClientAuraTracker.ventiUltiHoldTicks = ClientAuraTracker.localDaybreakBowPullTicks;
+                } else {
+                    int pulled = ClientAuraTracker.localDaybreakBowPullTicks;
+                    ClientAuraTracker.localDaybreakBowPullTicks = 0;
+                    ClientAuraTracker.ventiUltiHoldTicks = 0;
+                    if (pulled >= 16) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_CA_FULL);
+                    } else if (pulled >= 6) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_CA);
+                    } else if (pulled > 0 || daybreakFast > 0) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_NA);
+                    }
+                }
+            } else {
+                ClientAuraTracker.localDaybreakBowPullTicks = 0;
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
             }
 
             if (ClientAuraTracker.isXilonenSkating(client.player.getId()) && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {

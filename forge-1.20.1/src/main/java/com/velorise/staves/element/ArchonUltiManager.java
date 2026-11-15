@@ -43,6 +43,12 @@ public final class ArchonUltiManager {
     private static final Map<UUID, Long> FURINA_BURST_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> LAYLA_BURST_CD_UNTIL = new ConcurrentHashMap<>();
 
+    public record BurstRootState(ServerLevel level, Vec3 pos, float yRot, float xRot, long untilTick) {}
+    public record PendingBurstAction(ServerLevel level, UUID casterId, long executeTick, Runnable action) {}
+
+    private static final Map<UUID, BurstRootState> BURST_ROOT_STATES = new ConcurrentHashMap<>();
+    private static final List<PendingBurstAction> PENDING_BURST_ACTIONS = new CopyOnWriteArrayList<>();
+
     private record PendingPlanetBefall(
             ServerLevel level,
             UUID casterId,
@@ -63,6 +69,36 @@ public final class ArchonUltiManager {
         long now = sl.getServer().overworld().getGameTime();
         ULTI_IFRAME_UNTIL.put(player.getUUID(), Math.max(ULTI_IFRAME_UNTIL.getOrDefault(player.getUUID(), 0L), now + ticks));
         player.invulnerableTime = Math.max(player.invulnerableTime, ticks);
+    }
+
+    /**
+     * Roots a player in place with full invulnerability frames for the duration of a 5-star Burst cast animation.
+     */
+    public static void applyBurstRoot(ServerPlayer player, int rootTicks) {
+        if (player == null || !(player.level() instanceof ServerLevel sl) || sl.getServer() == null) return;
+        long now = sl.getServer().overworld().getGameTime();
+        grantUltiIframe(player, rootTicks + 2);
+        player.setDeltaMovement(Vec3.ZERO);
+        player.hasImpulse = true;
+        player.fallDistance = 0.0F;
+        BURST_ROOT_STATES.put(player.getUUID(), new BurstRootState(
+                sl, player.position(), player.getYRot(), player.getXRot(), now + rootTicks));
+    }
+
+    public static boolean isBurstRooted(Player player) {
+        if (player == null) return false;
+        if (player.level().isClientSide()) {
+            return com.velorise.staves.client.ClientAuraTracker.isFiveStarBurstRootActive(player.getId());
+        }
+        if (!(player.level() instanceof ServerLevel sl) || sl.getServer() == null) return false;
+        BurstRootState root = BURST_ROOT_STATES.get(player.getUUID());
+        return root != null && sl.getServer().overworld().getGameTime() < root.untilTick();
+    }
+
+    public static void scheduleBurstAction(ServerPlayer player, int delayTicks, Runnable action) {
+        if (player == null || !(player.level() instanceof ServerLevel sl) || sl.getServer() == null || action == null) return;
+        long now = sl.getServer().overworld().getGameTime();
+        PENDING_BURST_ACTIONS.add(new PendingBurstAction(sl, player.getUUID(), now + delayTicks, action));
     }
 
     /** Dispatches the shared [R] burst keybind to whichever Genshin weapon the player is holding. */
@@ -95,7 +131,7 @@ public final class ArchonUltiManager {
         }
     }
 
-    /** Casts Venti's Wind's Grand Ode on pressing [R] (with 1.6s I-frames & Burst animation, supporting Omni Staff). */
+    /** Casts Venti's Wind's Grand Ode on pressing [R] (2.0s / 40-tick Burst animation & root, firing Stormeye at end of cast). */
     public static void triggerVentiUlti(ServerPlayer player) {
         if (player == null || !player.isAlive()) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
@@ -106,7 +142,7 @@ public final class ArchonUltiManager {
                     ? ArcaneStaffItem.getAbsorbedStaffForElement(main, Element.ANEMO)
                     : mainStaff;
             if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, main)) {
-                grantUltiIframe(player, 32);
+                applyBurstRoot(player, 40);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
             return;
@@ -118,7 +154,7 @@ public final class ArchonUltiManager {
                     ? ArcaneStaffItem.getAbsorbedStaffForElement(off, Element.ANEMO)
                     : offStaff;
             if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, off)) {
-                grantUltiIframe(player, 32);
+                applyBurstRoot(player, 40);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
         }
@@ -155,33 +191,37 @@ public final class ArchonUltiManager {
 
         long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO) ? 270L : 300L;
         FURINA_BURST_CD_UNTIL.put(id, now + cdTicks);
-        grantUltiIframe(player, 32);
+        applyBurstRoot(player, 36); // 1.8s (36t) stage fanfare pose + root
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_FURINA_BURST);
         final InteractionHand usedHand = hand;
         stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
-
-        double radius = isNeth ? 8.0D : 6.0D;
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.SPLENDOR, isNeth);
-        float burstDmg = (6.0F + player.getMaxHealth() * 0.12F) * scale;
-        float gaugeU = isNeth ? 2.5F : 2.0F;
-        AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
-        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
-            target.invulnerableTime = 0;
-            ElementalGaugeManager.applyElement(level, target, Element.HYDRO, gaugeU, player, burstDmg);
-        }
-
-        ElementalGaugeManager.activateFurinaUniversalRevelry(player, isNeth);
-        for (int i = 0; i < 28; i++) {
-            double ang = (Math.PI * 2.0D * i) / 28.0D;
-            double rx = player.getX() + Math.cos(ang) * (radius * 0.65D);
-            double rz = player.getZ() + Math.sin(ang) * (radius * 0.65D);
-            level.sendParticles(ParticleTypes.SPLASH, rx, player.getY() + 0.5D, rz, 5, 0.25D, 0.5D, 0.25D, 0.06D);
-            level.sendParticles(ParticleTypes.END_ROD, rx, player.getY() + 1.1D, rz, 1, 0.1D, 0.2D, 0.1D, 0.02D);
-        }
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
-        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.85F, 1.15F);
-        player.displayClientMessage(Component.literal("§b✦ Let the People Rejoice! (Universal Revelry Fanfare)"), true);
+
+        final boolean finalIsNeth = isNeth;
+        scheduleBurstAction(player, 34, () -> {
+            if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            double radius = finalIsNeth ? 8.0D : 6.0D;
+            float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.SPLENDOR, finalIsNeth);
+            float burstDmg = (6.0F + player.getMaxHealth() * 0.12F) * scale;
+            float gaugeU = finalIsNeth ? 2.5F : 2.0F;
+            AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
+            for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+                target.invulnerableTime = 0;
+                ElementalGaugeManager.applyElement(sl, target, Element.HYDRO, gaugeU, player, burstDmg);
+            }
+
+            ElementalGaugeManager.activateFurinaUniversalRevelry(player, finalIsNeth);
+            for (int i = 0; i < 28; i++) {
+                double ang = (Math.PI * 2.0D * i) / 28.0D;
+                double rx = player.getX() + Math.cos(ang) * (radius * 0.65D);
+                double rz = player.getZ() + Math.sin(ang) * (radius * 0.65D);
+                sl.sendParticles(ParticleTypes.SPLASH, rx, player.getY() + 0.5D, rz, 5, 0.25D, 0.5D, 0.25D, 0.06D);
+                sl.sendParticles(ParticleTypes.END_ROD, rx, player.getY() + 1.1D, rz, 1, 0.1D, 0.2D, 0.1D, 0.02D);
+            }
+            sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.85F, 1.15F);
+            player.displayClientMessage(Component.literal("§b✦ Let the People Rejoice! (Universal Revelry Fanfare)"), true);
+        });
     }
 
     /** Layla [R] Burst: Dream of the Star-Stream Shaker (12s CD, 1.6s I-frames, AoE Cryo Dreamsphere + 4 Night Stars). */
@@ -231,6 +271,7 @@ public final class ArchonUltiManager {
         }
 
         ElementalGaugeManager.activateNightsFocusBurstStars(player, isNeth);
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_LAYLA_DREAMSPHERE);
         for (int i = 0; i < 24; i++) {
             double ang = (Math.PI * 2.0D * i) / 24.0D;
             double rx = player.getX() + Math.cos(ang) * (radius * 0.6D);
@@ -279,7 +320,7 @@ public final class ArchonUltiManager {
                 ? 216L : 240L;
         ZHONGLI_BURST_CD_UNTIL.put(id, now + cdTicks);
         ZHONGLI_IFRAME_UNTIL.put(id, now + 52L);
-        grantUltiIframe(player, 52);
+        applyBurstRoot(player, 50);
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
         final InteractionHand usedHand = hand;
         stack.hurtAndBreak(isNetherite ? 3 : 2, player, p -> p.broadcastBreakEvent(usedHand));
@@ -354,6 +395,7 @@ public final class ArchonUltiManager {
         ModNetwork.sendStaffAnimation(player, 15);
         ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
         ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
+        com.velorise.staves.audio.CharacterVoiceManager.playZhongliBurstVoice(player);
 
         DustParticleOptions goldAura = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
         level.sendParticles(goldAura, player.getX(), player.getY() + 1.0D, player.getZ(), 14, 0.4D, 0.35D, 0.4D, 0.02D);
@@ -423,15 +465,50 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.55F, 0.55F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.95F, 0.52F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.35F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 1.35F, 0.55F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 1.25F, 0.55F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 1.50F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 1.45F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.45F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 1.50F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_PLACE, SoundSource.PLAYERS, 1.45F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.40F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.65F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.25F, 0.50F);
     }
 
-    /** Processes pending delayed Archon Burst impacts on the server tick. */
+    /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */
     public static void tick(MinecraftServer server, long serverNow) {
+        if (!BURST_ROOT_STATES.isEmpty()) {
+            for (Map.Entry<UUID, BurstRootState> entry : BURST_ROOT_STATES.entrySet()) {
+                BurstRootState root = entry.getValue();
+                if (serverNow >= root.untilTick()) {
+                    BURST_ROOT_STATES.remove(entry.getKey());
+                    continue;
+                }
+                if (server != null) {
+                    ServerPlayer sp = server.getPlayerList().getPlayer(entry.getKey());
+                    if (sp != null && sp.isAlive() && sp.level() == root.level()) {
+                        sp.setDeltaMovement(Vec3.ZERO);
+                        sp.fallDistance = 0.0F;
+                        if (sp.position().distanceToSqr(root.pos()) > 0.04D) {
+                            sp.teleportTo(root.pos().x, root.pos().y, root.pos().z);
+                        }
+                    } else {
+                        BURST_ROOT_STATES.remove(entry.getKey());
+                    }
+                }
+            }
+        }
+        if (!PENDING_BURST_ACTIONS.isEmpty()) {
+            for (PendingBurstAction pending : PENDING_BURST_ACTIONS) {
+                if (serverNow >= pending.executeTick()) {
+                    PENDING_BURST_ACTIONS.remove(pending);
+                    try {
+                        pending.action().run();
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
         if (ZHONGLI_PENDING_BEFALL.isEmpty()) return;
         for (PendingPlanetBefall pending : ZHONGLI_PENDING_BEFALL) {
             if (serverNow >= pending.impactTick()) {
@@ -461,6 +538,8 @@ public final class ArchonUltiManager {
         ULTI_IFRAME_UNTIL.remove(id);
         FURINA_BURST_CD_UNTIL.remove(id);
         LAYLA_BURST_CD_UNTIL.remove(id);
+        BURST_ROOT_STATES.remove(id);
+        PENDING_BURST_ACTIONS.removeIf(p -> p.casterId().equals(id));
     }
 
     /** Clears all transient Archon Burst timers and pending impacts on server stop. */
@@ -471,5 +550,7 @@ public final class ArchonUltiManager {
         FURINA_BURST_CD_UNTIL.clear();
         LAYLA_BURST_CD_UNTIL.clear();
         ZHONGLI_PENDING_BEFALL.clear();
+        BURST_ROOT_STATES.clear();
+        PENDING_BURST_ACTIONS.clear();
     }
 }

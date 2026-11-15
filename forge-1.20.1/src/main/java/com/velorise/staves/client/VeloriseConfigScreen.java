@@ -127,19 +127,38 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }));
 
-        // Row 6: Client Element Icon Resolution (16x16px Default vs 32x32px HD)
+        // Row 6: Client Element Icon Resolution & Wind Glider Texture Resolution (16x16px Default vs 32x32px HD)
         this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px" : "16x16px"))
                 .withValues(List.of(false, true))
                 .withInitialValue(StavesConfig.isUse32pxElementIcons())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.icon_32px.desc")))
-                .create(leftColX, startY + rowHeight * 5, colWidth * 2 + colGap, 20, Component.translatable("config.velorise_staves.icon_32px"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight * 5, colWidth, 20, Component.translatable("config.velorise_staves.icon_32px"), (btn, val) -> {
                     StavesConfig.USE_32PX_ELEMENT_ICONS.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px" : "16x16px"))
+                .withValues(List.of(false, true))
+                .withInitialValue(StavesConfig.isUse32pxGliderTexture())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.glider_32px.desc")))
+                .create(rightColX, startY + rowHeight * 5, colWidth, 20, Component.translatable("config.velorise_staves.glider_32px"), (btn, val) -> {
+                    StavesConfig.USE_32PX_GLIDER_TEXTURE.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        // Row 7: Character Voice Language
+        this.addRenderableWidget(CycleButton.<String>builder(val -> Component.translatable("config.velorise_staves.voice_language." + val))
+                .withValues(List.of("auto", "en_us", "zh_cn", "disabled"))
+                .withInitialValue(StavesConfig.getCharacterVoiceLanguage())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_language.desc")))
+                .create(leftColX, startY + rowHeight * 6, colWidth * 2 + 10, 20, Component.translatable("config.velorise_staves.voice_language", ""), (btn, val) -> {
+                    StavesConfig.CHARACTER_VOICE_LANGUAGE.set(val);
                     this.saveLocalConfig();
                 }));
 
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
         int btnW = 98;
-        int bottomY = startY + rowHeight * 6 + 6;
+        int bottomY = startY + rowHeight * 7 + 4;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
             this.saveLocalConfig();
@@ -151,6 +170,7 @@ public class VeloriseConfigScreen extends Screen {
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.reset"), btn -> {
             StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.set(true);
             StavesConfig.USE_32PX_ELEMENT_ICONS.set(false);
+            StavesConfig.USE_32PX_GLIDER_TEXTURE.set(false);
             StavesConfig.SHOW_REACTION_TEXT.set(true);
             StavesConfig.SHOW_DAMAGE_NUMBERS.set(true);
             StavesConfig.SHOW_ELEMENTAL_PARTICLES.set(true);

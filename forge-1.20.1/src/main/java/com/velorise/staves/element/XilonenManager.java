@@ -401,31 +401,38 @@ public final class XilonenManager {
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
-        st.iframeUntilTick = now + 32L;
-        player.invulnerableTime = Math.max(player.invulnerableTime, 32);
-        ArchonUltiManager.grantUltiIframe(player, 32);
+        st.iframeUntilTick = now + 38L; // 1.8s (36 ticks) Genshin Burst I-frame & root
+        player.invulnerableTime = Math.max(player.invulnerableTime, 38);
+        ArchonUltiManager.applyBurstRoot(player, 36);
 
         if (hasElectroC2) {
             ElementalGaugeManager.addMavuikaFightingSpiritFromExternalNightsoul(player, 30.0F);
         }
 
-        float burstDmg = 1.0F;
-        float gaugeU = isNetherite ? 1.5F : 1.0F;
-        triggerBurstGeoSoundwave(level, player, burstDmg, gaugeU);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_BURST);
+        final boolean fNeth = isNetherite;
+        final int fPhec = loadout.phecCount();
+        final boolean fHasNethXilo = loadout.hasNetheriteXilonen();
+        ArchonUltiManager.scheduleBurstAction(player, 34, () -> {
+            if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            long eruptNow = sl.getGameTime();
+            float burstDmg = 1.0F;
+            float gaugeU = fNeth ? 1.5F : 1.0F;
+            triggerBurstGeoSoundwave(sl, player, burstDmg, gaugeU);
 
-        if (loadout.phecCount() >= 2) {
-            st.burstHealUntilTick = now + 240L;
-            st.nextBurstHealTick = now + 30L;
-            st.burstNetherite = isNetherite || loadout.hasNetheriteXilonen();
-            float firstHeal = st.burstNetherite ? 4.0F : 3.0F;
-            player.heal(firstHeal);
-            level.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.2D, player.getZ(), 2, 0.25D, 0.25D, 0.25D, 0.02D);
-        } else {
-            st.extraGeoPulse1Tick = now + 15L;
-            st.extraGeoPulse2Tick = now + 30L;
-            st.burstNetherite = isNetherite || loadout.hasNetheriteXilonen();
-        }
+            if (fPhec >= 2) {
+                st.burstHealUntilTick = eruptNow + 240L;
+                st.nextBurstHealTick = eruptNow + 30L;
+                st.burstNetherite = fNeth || fHasNethXilo;
+                float firstHeal = st.burstNetherite ? 4.0F : 3.0F;
+                player.heal(firstHeal);
+                sl.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.2D, player.getZ(), 2, 0.25D, 0.25D, 0.25D, 0.02D);
+            } else {
+                st.extraGeoPulse1Tick = eruptNow + 15L;
+                st.extraGeoPulse2Tick = eruptNow + 30L;
+                st.burstNetherite = fNeth || fHasNethXilo;
+            }
+        });
 
         return true;
     }

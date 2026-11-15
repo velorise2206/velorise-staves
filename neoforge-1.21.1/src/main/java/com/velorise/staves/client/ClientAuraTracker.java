@@ -65,12 +65,14 @@ public final class ClientAuraTracker {
     public static final int ANIM_TSARITSA_PUNISHMENT = 59;
     public static final int ANIM_TSARITSA_UNSEAL = 60;
     public static final int ANIM_TSARITSA_CROWN_FLASH = 61;
+    public static final int ANIM_LAYLA_DREAMSPHERE = 62;
 
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
     public static volatile int localTsaritsaHoldETicks = 0;
     public static volatile boolean localTsaritsaHoldELocked = false;
     public static volatile int localTsaritsaBowPullTicks = 0;
+    public static volatile int localDaybreakBowPullTicks = 0;
     public static long localNextRaidenSwingMs = 0L;
     public static boolean localRaidenAttackHeld = false;
 
@@ -108,6 +110,7 @@ public final class ClientAuraTracker {
         public long frozenUntil = 0L;
         public long jadeShieldUntil = 0L;
         public long nightsFocusUntil = 0L;
+        public long laylaDreamsphereUntil = 0L;
         public int nightsFocusStars = 0;
         public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
@@ -516,6 +519,11 @@ public final class ClientAuraTracker {
             entry.tsaritsaCrownFlashUntil = now + 500L;
             return;
         }
+        if (animType == ANIM_LAYLA_DREAMSPHERE) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.laylaDreamsphereUntil = now + 12500L;
+            return;
+        }
         if (animType >= 10 && animType <= 14) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             if (entry.nightsFocusUntil <= now) {
@@ -573,27 +581,27 @@ public final class ClientAuraTracker {
             case ANIM_XILONEN_SKATE_DASH -> 480L;
             case ANIM_XILONEN_KICK_1 -> 380L;
             case ANIM_XILONEN_KICK_2 -> 460L;
-            case ANIM_XILONEN_BURST -> 1600L;
-            case ANIM_NEUVILLETTE_BURST -> 1700L;
+            case ANIM_XILONEN_BURST -> 1800L;
+            case ANIM_NEUVILLETTE_BURST -> 1800L;
             case ANIM_NEUVILLETTE_SKILL_E -> 550L;
             case ANIM_MAVUIKA_BURST -> 1700L;
-            case ANIM_VENTI_BURST -> 1600L;
-            case ANIM_FURINA_BURST -> 1600L;
+            case ANIM_VENTI_BURST -> 2000L;
+            case ANIM_FURINA_BURST -> 1800L;
             case ANIM_LAYLA_BURST -> 1600L;
             case ANIM_NAHIDA_NA_1, ANIM_NAHIDA_NA_2, ANIM_NAHIDA_NA_3 -> 380L;
             case ANIM_NAHIDA_NA_4 -> 520L;
             case ANIM_NAHIDA_CA -> 620L;
             case ANIM_NAHIDA_TAP_E -> 480L;
             case ANIM_NAHIDA_HOLD_E -> 520L;
-            case ANIM_NAHIDA_BURST -> 1700L;
+            case ANIM_NAHIDA_BURST -> 2000L;
             case ANIM_TSARITSA_BOW_NA -> 350L;
             case ANIM_TSARITSA_CA_SHOT -> 520L;
             case ANIM_TSARITSA_TAP_E -> 500L;
             case ANIM_TSARITSA_HOLD_E -> 680L;
             case ANIM_TSARITSA_SPEAR_NA_1, ANIM_TSARITSA_SPEAR_NA_2 -> 380L;
             case ANIM_TSARITSA_SPEAR_NA_3 -> 480L;
-            case ANIM_TSARITSA_BURST_SUPPORT -> 1600L;
-            case ANIM_TSARITSA_BURST_DPS -> 1600L;
+            case ANIM_TSARITSA_BURST_SUPPORT -> 2000L;
+            case ANIM_TSARITSA_BURST_DPS -> 2000L;
             case ANIM_TSARITSA_PUNISHMENT -> 520L;
             case ANIM_TSARITSA_UNSEAL -> 650L;
             default -> 600L;
@@ -1033,12 +1041,50 @@ public final class ClientAuraTracker {
 
     public static boolean isGliding(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && data.gliding;
+        if (data == null || !data.gliding) return false;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
+            if (le.onGround() || le.isInWater() || le.isInLava() || le.getVehicle() != null
+                    || (le instanceof net.minecraft.world.entity.player.Player p && p.getAbilities().flying)) {
+                data.gliding = false;
+                return false;
+            }
+        }
+        return true;
     }
 
     public static boolean isPlunging(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && data.plunging;
+        if (data == null || !data.plunging) return false;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
+            if (le.onGround() || le.isInWater() || le.isInLava() || le.getVehicle() != null
+                    || (le instanceof net.minecraft.world.entity.player.Player p && p.getAbilities().flying)) {
+                data.plunging = false;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean hasLaylaDreamsphere(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && System.currentTimeMillis() < data.laylaDreamsphereUntil;
+    }
+
+    public static boolean isFiveStarBurstRootActive(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data == null || System.currentTimeMillis() >= data.staffAnimUntil) return false;
+        int anim = data.staffAnimType;
+        return anim == ANIM_ZHONGLI_PLANET_BEFALL
+                || anim == ANIM_VENTI_BURST
+                || anim == ANIM_NAHIDA_BURST
+                || anim == ANIM_FURINA_BURST
+                || anim == ANIM_NEUVILLETTE_BURST
+                || anim == ANIM_RAIDEN_DRAW
+                || anim == ANIM_XILONEN_BURST
+                || anim == ANIM_TSARITSA_BURST_SUPPORT
+                || anim == ANIM_TSARITSA_BURST_DPS;
     }
 
     public static boolean isNeuvilletteChargingOrFiring(int entityId) {
@@ -1112,6 +1158,7 @@ public final class ClientAuraTracker {
         localTsaritsaHoldETicks = 0;
         localTsaritsaHoldELocked = false;
         localTsaritsaBowPullTicks = 0;
+        localDaybreakBowPullTicks = 0;
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

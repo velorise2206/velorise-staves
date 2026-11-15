@@ -48,7 +48,7 @@ public final class TsaritsaManager {
     public static final int HOLD_E_CHARGE_TICKS = 16; // 0.8s hold to transform into Spear Stance
     public static final int BOW_FULL_CHARGE_TICKS = 18; // 3 stages: 0..5 (_0), 6..17 (_1), 18+ (_2)
 
-    public static final int BURST_IFRAME_TICKS = 32; // 1.6s I-frame
+    public static final int BURST_IFRAME_TICKS = 40; // 2.0s (40t) Burst cast I-frame & root
     public static final int BURST_COOLDOWN_TICKS = 300; // 15.0s CD
     public static final int SUPPORT_BURST_DURATION_TICKS = 240; // 12.0s
     public static final int DPS_BURST_SEAL_TICKS = 200; // 10.0s
@@ -553,30 +553,40 @@ public final class TsaritsaManager {
             float primaryDmg = applyStellarAndCrownMultipliers(player, hitTarget, Element.CRYO, baseDmg);
             hitTarget.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(hitTarget, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
-
-            // Schedule 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart)
-            // in 3 distinct staggered waves (+3, +6, +9 ticks) to bypass Minecraft iframes!
-            double baseAngle = player.getYRot() * (Math.PI / 180.0D);
-            float arrowSubDmg = baseDmg * 0.55F;
-            for (int i = 0; i < 3; i++) {
-                double angle = baseAngle + (i * 2.0D * Math.PI / 3.0D);
-                Vec3 origin = impactPos.add(Math.cos(angle) * 4.2D, 2.4D, Math.sin(angle) * 4.2D);
-                PENDING_ARROWS.add(new PendingArrowStrike(
-                        level.getGameTime() + 3L + (i * 3L),
-                        player.getUUID(),
-                        hitTarget.getUUID(),
-                        origin,
-                        impactPos,
-                        arrowSubDmg,
-                        state.netherite
-                ));
+        } else {
+            AABB splashBox = new AABB(impactPos.x - 2.8D, impactPos.y - 1.8D, impactPos.z - 2.8D,
+                    impactPos.x + 2.8D, impactPos.y + 1.8D, impactPos.z + 2.8D);
+            for (LivingEntity splashVictim : level.getEntitiesOfClass(LivingEntity.class, splashBox,
+                    e -> e != player && e.isAlive() && isValidCombatTarget(player, e))) {
+                float primaryDmg = applyStellarAndCrownMultipliers(player, splashVictim, Element.CRYO, baseDmg);
+                splashVictim.invulnerableTime = 0;
+                ElementalGaugeManager.applyElement(splashVictim, Element.CRYO, player, primaryDmg, 2.0F);
             }
-
-            // Initial visual burst at impact
-            level.sendParticles(ParticleTypes.SNOWFLAKE, impactPos.x, impactPos.y, impactPos.z, 24, 1.2D, 0.6D, 1.2D, 0.05D);
-            level.sendParticles(ParticleTypes.FIREWORK, impactPos.x, impactPos.y, impactPos.z, 12, 0.8D, 0.4D, 0.8D, 0.04D);
-            level.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.45F);
         }
+
+        // Schedule 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart)
+        // in 3 distinct staggered waves (+3, +6, +9 ticks) to bypass Minecraft iframes!
+        double baseAngle = player.getYRot() * (Math.PI / 180.0D);
+        float arrowSubDmg = baseDmg * 0.55F;
+        UUID targetUuid = hitTarget != null ? hitTarget.getUUID() : player.getUUID();
+        for (int i = 0; i < 3; i++) {
+            double angle = baseAngle + (i * 2.0D * Math.PI / 3.0D);
+            Vec3 origin = impactPos.add(Math.cos(angle) * 4.2D, 2.4D, Math.sin(angle) * 4.2D);
+            PENDING_ARROWS.add(new PendingArrowStrike(
+                    level.getGameTime() + 3L + (i * 3L),
+                    player.getUUID(),
+                    targetUuid,
+                    origin,
+                    impactPos,
+                    arrowSubDmg,
+                    state.netherite
+            ));
+        }
+
+        // Initial visual burst at impact
+        level.sendParticles(ParticleTypes.SNOWFLAKE, impactPos.x, impactPos.y, impactPos.z, 24, 1.2D, 0.6D, 1.2D, 0.05D);
+        level.sendParticles(ParticleTypes.FIREWORK, impactPos.x, impactPos.y, impactPos.z, 12, 0.8D, 0.4D, 0.8D, 0.04D);
+        level.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.45F);
     }
 
     /**
@@ -670,20 +680,36 @@ public final class TsaritsaManager {
         state.burstCooldownUntilTick = now + BURST_COOLDOWN_TICKS;
         state.burstIframeUntilTick = now + BURST_IFRAME_TICKS;
         player.invulnerableTime = Math.max(player.invulnerableTime, BURST_IFRAME_TICKS);
-        ArchonUltiManager.grantUltiIframe(player, BURST_IFRAME_TICKS);
+        ArchonUltiManager.applyBurstRoot(player, BURST_IFRAME_TICKS);
 
         boolean spearMode = isSpearStanceActive(player);
         if (!spearMode) {
-            // Variant 1: Support Burst (Benevolent Blessing — Flat Ice Field + Central Polar Pillar)
-            state.azureCrownUntilTick = Math.max(state.azureCrownUntilTick, now + SUPPORT_BURST_DURATION_TICKS);
-            state.supportBurstUntilTick = now + SUPPORT_BURST_DURATION_TICKS;
-            state.supportDomeCenter = player.position();
-            state.supportSealUntilTick = now + 160L; // 8.0s Seal, shortened by Stellar Reactions
-            state.supportUnsealReady = true;
-
+            // Variant 1: Support Burst (Benevolent Blessing — Flat Ice Field + Central Polar Pillar after 38t cast)
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT);
-            ModNetwork.sendTsaritsaPolarField(level, state.supportDomeCenter, 10.0D, SUPPORT_BURST_DURATION_TICKS, 1);
-            syncStateToClients(player, state, now);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.3F, 1.25F);
+            ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
+                if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                long eruptNow = sl.getGameTime();
+                state.azureCrownUntilTick = Math.max(state.azureCrownUntilTick, eruptNow + SUPPORT_BURST_DURATION_TICKS);
+                state.supportBurstUntilTick = eruptNow + SUPPORT_BURST_DURATION_TICKS;
+                state.supportDomeCenter = player.position();
+                state.supportSealUntilTick = eruptNow + 160L; // 8.0s Seal, shortened by Stellar Reactions
+                state.supportUnsealReady = true;
+
+                ModNetwork.sendTsaritsaPolarField(sl, state.supportDomeCenter, 10.0D, SUPPORT_BURST_DURATION_TICKS, 1);
+                syncStateToClients(player, state, eruptNow);
+
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 2.0D, player.getZ(),
+                        65, 4.5D, 2.0D, 4.5D, 0.05D);
+                sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.5D, player.getZ(),
+                        40, 4.0D, 2.0D, 4.0D, 0.04D);
+
+                player.displayClientMessage(
+                        Component.translatable("message.velorise_staves.tsaritsa_burst_support").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+                        true
+                );
+            });
 
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.3F, 1.25F);
@@ -697,49 +723,52 @@ public final class TsaritsaManager {
                     true
             );
         } else {
-            // Variant 2: DPS Burst (Glorious Blessing / Spear Stance)
-            state.spearStanceUntilTick = Math.max(state.spearStanceUntilTick, now + DPS_BURST_SEAL_TICKS);
-            state.dpsSealUntilTick = now + DPS_BURST_SEAL_TICKS;
-            state.dpsIceFieldCenter = player.position();
-            state.punishmentCharges = 3;
-
+            // Variant 2: DPS Burst (Glorious Blessing / Spear Stance — erupts after 38t cast)
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
-            syncStateToClients(player, state, now);
+            ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
+                if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                long eruptNow = sl.getGameTime();
+                state.spearStanceUntilTick = Math.max(state.spearStanceUntilTick, eruptNow + DPS_BURST_SEAL_TICKS);
+                state.dpsSealUntilTick = eruptNow + DPS_BURST_SEAL_TICKS;
+                state.dpsIceFieldCenter = player.position();
+                state.punishmentCharges = 3;
+                syncStateToClients(player, state, eruptNow);
 
-            // Apply 10.0s cooldown lock onto all other ArcaneStaffItems in inventory (hotbar switching for food/blocks stays free!)
-            sealAllOtherStaves(player, DPS_BURST_SEAL_TICKS);
+                // Apply 10.0s cooldown lock onto all other ArcaneStaffItems in inventory (hotbar switching for food/blocks stays free!)
+                sealAllOtherStaves(player, DPS_BURST_SEAL_TICKS);
 
-            // Hurl Colossal Ice Spear impact -> Flat Ice Field + Central Polar Pillar at impact point
-            Vec3 eye = player.getEyePosition();
-            Vec3 look = player.getLookAngle().normalize();
-            BlockHitResult bhr = level.clip(new ClipContext(eye, eye.add(look.scale(14.0D)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-            Vec3 spearImpact = bhr.getType() != HitResult.Type.MISS ? bhr.getLocation() : player.position().add(look.scale(6.0D));
-            state.dpsIceFieldCenter = spearImpact;
+                // Hurl Colossal Ice Spear impact -> Flat Ice Field + Central Polar Pillar at impact point
+                Vec3 eye = player.getEyePosition();
+                Vec3 look = player.getLookAngle().normalize();
+                BlockHitResult bhr = sl.clip(new ClipContext(eye, eye.add(look.scale(14.0D)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+                Vec3 spearImpact = bhr.getType() != HitResult.Type.MISS ? bhr.getLocation() : player.position().add(look.scale(6.0D));
+                state.dpsIceFieldCenter = spearImpact;
 
-            ModNetwork.sendTsaritsaPolarField(level, spearImpact, 7.5D, DPS_BURST_SEAL_TICKS, 2);
-            ModNetwork.sendCryoArrow(level, player.position().add(0.0D, 3.2D, 0.0D), spearImpact, 22, 3);
-            level.sendParticles(ParticleTypes.SNOWFLAKE, spearImpact.x, spearImpact.y + 0.5D, spearImpact.z,
-                    70, 3.5D, 1.2D, 3.5D, 0.08D);
-            level.sendParticles(ParticleTypes.END_ROD, spearImpact.x, spearImpact.y + 1.0D, spearImpact.z,
-                    40, 3.0D, 1.5D, 3.0D, 0.05D);
-            level.playSound(null, spearImpact.x, spearImpact.y, spearImpact.z,
-                    SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 1.4F, 1.15F);
+                ModNetwork.sendTsaritsaPolarField(sl, spearImpact, 7.5D, DPS_BURST_SEAL_TICKS, 2);
+                ModNetwork.sendCryoArrow(sl, player.position().add(0.0D, 3.2D, 0.0D), spearImpact, 22, 3);
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, spearImpact.x, spearImpact.y + 0.5D, spearImpact.z,
+                        70, 3.5D, 1.2D, 3.5D, 0.08D);
+                sl.sendParticles(ParticleTypes.END_ROD, spearImpact.x, spearImpact.y + 1.0D, spearImpact.z,
+                        40, 3.0D, 1.5D, 3.0D, 0.05D);
+                sl.playSound(null, spearImpact.x, spearImpact.y, spearImpact.z,
+                        SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 1.4F, 1.15F);
 
-            float burstDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * (state.netherite ? 3.4F : 2.9F);
-            AABB box = new AABB(spearImpact.x - 7.5D, spearImpact.y - 3.0D, spearImpact.z - 7.5D,
-                    spearImpact.x + 7.5D, spearImpact.y + 4.0D, spearImpact.z + 7.5D);
-            List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e != player && e.isAlive() && isValidCombatTarget(player, e));
-            for (LivingEntity target : targets) {
-                float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, burstDmg);
-                target.invulnerableTime = 0;
-                ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 2.0F);
-            }
+                float burstDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * (state.netherite ? 3.4F : 2.9F);
+                AABB box = new AABB(spearImpact.x - 7.5D, spearImpact.y - 3.0D, spearImpact.z - 7.5D,
+                        spearImpact.x + 7.5D, spearImpact.y + 4.0D, spearImpact.z + 7.5D);
+                List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
+                        e -> e != player && e.isAlive() && isValidCombatTarget(player, e));
+                for (LivingEntity target : targets) {
+                    float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, burstDmg);
+                    target.invulnerableTime = 0;
+                    ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 2.0F);
+                }
 
-            player.displayClientMessage(
-                    Component.translatable("message.velorise_staves.tsaritsa_burst_dps").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
-                    true
-            );
+                player.displayClientMessage(
+                        Component.translatable("message.velorise_staves.tsaritsa_burst_dps").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+                        true
+                );
+            });
         }
         return true;
     }

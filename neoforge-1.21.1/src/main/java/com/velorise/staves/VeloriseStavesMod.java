@@ -82,6 +82,20 @@ public final class VeloriseStavesMod {
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_TAP_EN = SOUND_EVENTS.register("voice_zhongli_e_tap_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_tap_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_TAP_CN = SOUND_EVENTS.register("voice_zhongli_e_tap_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_tap_cn")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_HOLD_EN = SOUND_EVENTS.register("voice_zhongli_e_hold_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_hold_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_HOLD_CN = SOUND_EVENTS.register("voice_zhongli_e_hold_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_hold_cn")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_EN = SOUND_EVENTS.register("voice_zhongli_q_burst_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_cn")));
+    public static final Supplier<SoundEvent> VOICE_MAVUIKA_Q_BURST_EN = SOUND_EVENTS.register("voice_mavuika_q_burst_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_mavuika_q_burst_en")));
 
     // Basic Combat Staves
     public static final Supplier<Item> DRAGONFIRE_SCEPTER = ITEMS.register("dragonfire_scepter",
