@@ -3,7 +3,7 @@
   "category": "equipment",
   "pattern": [
     "PDP",
-    "FGF",
+    "FAF",
     "F F"
   ],
   "key": {
@@ -13,8 +13,8 @@
     "D": {
       "item": "minecraft:diamond"
     },
-    "G": {
-      "item": "minecraft:gold_ingot"
+    "A": {
+      "item": "velorise_staves:anemo_element"
     },
     "F": {
       "item": "minecraft:feather"

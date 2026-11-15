@@ -1261,6 +1261,16 @@ public final class ElementalGaugeManager {
         }
     }
 
+    public static void activateFurinaUniversalRevelry(ServerPlayer player, boolean isNetherite) {
+        if (player == null || player.level().isClientSide()) return;
+        UUID id = player.getUUID();
+        long now = player.level().getGameTime();
+        int cur = (now < FURINA_FANFARE_UNTIL.getOrDefault(id, 0L)) ? FURINA_FANFARE_POINTS.getOrDefault(id, 0) : 0;
+        FURINA_FANFARE_POINTS.put(id, Math.min(300, Math.max(cur + (isNetherite ? 240 : 160), isNetherite ? 300 : 180)));
+        FURINA_FANFARE_UNTIL.put(id, now + 360L); // 18.0s Universal Revelry duration
+        FURINA_FANFARE_NETHERITE.put(id, isNetherite);
+    }
+
     public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) {
         if (entity == null || entity.level().isClientSide()) return 1.0F;
         long now = entity.level().getGameTime();
@@ -1586,6 +1596,8 @@ public final class ElementalGaugeManager {
         if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
             summonAndMountFlamestrider(player, isNetherite, 0, false);
         }
+        ArchonUltiManager.grantUltiIframe(player, 34); // 1.7s Genshin Q I-frames
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
         MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
         MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
@@ -1829,6 +1841,17 @@ public final class ElementalGaugeManager {
         setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
         CrystallizeShardManager.onShieldApplied(player, Element.CRYO, 240);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
+    }
+
+    public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) {
+        if (player == null || player.level().isClientSide()) return;
+        UUID id = player.getUUID();
+        long now = player.level().getGameTime();
+        if (now >= NIGHTS_FOCUS_UNTIL.getOrDefault(id, 0L)) {
+            activateNightsFocusShield(player, isNetherite);
+        }
+        NIGHTS_FOCUS_STARS.put(id, 4);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 14);
     }
 
     private static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) {
@@ -2119,24 +2142,7 @@ public final class ElementalGaugeManager {
     }
 
     public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) {
-        if (attacker == null) return 1.0F;
-        ItemStack main = attacker.getMainHandItem();
-        ItemStack off = attacker.getOffhandItem();
-        com.velorise.staves.item.ArcaneStaffItem vortex = null;
-        if (!main.isEmpty() && main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s1
-                && s1.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
-            vortex = s1;
-        } else if (!off.isEmpty() && off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s2
-                && s2.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
-            vortex = s2;
-        }
-        if (vortex == null) return 1.0F;
-        boolean shielded = hasActiveJadeShield(attacker)
-                || attacker.getAbsorptionAmount() > 0.0F
-                || CrystallizeShardManager.getActiveShield(attacker, attacker.level().getGameTime()) != null;
-        float baseBonus = vortex.isNetherite() ? 0.15F : 0.10F;
-        // Golden Majesty: +100% bonus while protected by a shield (+20% Basic / +30% Netherite)
-        return 1.0F + (shielded ? baseBonus * 2.0F : baseBonus);
+        return 1.0F;
     }
 
     public static boolean isChannelingGuardianLens(Player player) {

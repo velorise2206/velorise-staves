@@ -340,10 +340,10 @@ public class OmniOrbEntity extends ThrowableProjectile {
             }
         }
 
-        double splashRadius = isNetheriteTier() ? 2.5D : 1.75D;
+        double splashRadius = isOmniMode ? (isNetheriteTier() ? 3.0D : 2.5D) : (isNetheriteTier() ? 2.5D : 1.75D);
         double splashRadiusSq = splashRadius * splashRadius;
-        float splashDmg = this.baseDamage * 0.45F;
-        float splashU = Math.max(1.0F, this.attackU * 0.5F);
+        float splashDmg = this.baseDamage * (isOmniMode ? 0.75F : 0.45F);
+        float splashU = Math.max(1.0F, this.attackU * (isOmniMode ? 0.75F : 0.5F));
         AABB box = new AABB(hitPos, hitPos).inflate(splashRadius);
         for (LivingEntity nearby : serverLevel.getEntitiesOfClass(LivingEntity.class, box,
                 e -> e.isAlive() && e != this.getOwner() && e != directTarget)) {
@@ -445,7 +445,24 @@ public class OmniOrbEntity extends ThrowableProjectile {
             }
         }
         if (wasOmniMode) {
-            level.sendParticles(ParticleTypes.END_ROD, hitPos.x, hitPos.y + 0.1D, hitPos.z, 10, 0.35D, 0.35D, 0.35D, 0.07D);
+            double ringR = isNetheriteTier() ? 3.0D : 2.5D;
+            level.sendParticles(ParticleTypes.EXPLOSION, hitPos.x, hitPos.y + 0.2D, hitPos.z, 2, 0.35D, 0.2D, 0.35D, 0.0D);
+            level.sendParticles(ParticleTypes.END_ROD, hitPos.x, hitPos.y + 0.2D, hitPos.z, 18, 0.55D, 0.45D, 0.55D, 0.09D);
+            level.sendParticles(ParticleTypes.FIREWORK, hitPos.x, hitPos.y + 0.25D, hitPos.z, 14, 0.45D, 0.35D, 0.45D, 0.08D);
+            Element[] elems = Element.values();
+            int pts = 28;
+            for (int i = 0; i < pts; i++) {
+                Element eColor = elems[i % elems.length];
+                int cRgb = getElementRgb(eColor);
+                DustParticleOptions rainbowDust = new DustParticleOptions(
+                        new Vector3f(((cRgb >> 16) & 0xFF) / 255.0F, ((cRgb >> 8) & 0xFF) / 255.0F, (cRgb & 0xFF) / 255.0F),
+                        isNetheriteTier() ? 1.65F : 1.45F);
+                double ang = (Math.PI * 2.0D * i) / pts;
+                double rx = hitPos.x + Math.cos(ang) * (ringR * 0.75D);
+                double rz = hitPos.z + Math.sin(ang) * (ringR * 0.75D);
+                level.sendParticles(rainbowDust, rx, hitPos.y + 0.25D, rz, 2, 0.18D, 0.22D, 0.18D, 0.03D);
+            }
+            level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.75F, 1.25F);
         }
         level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, wasOmniMode ? 1.35F : 1.1F);
         level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 0.55F, 1.4F);

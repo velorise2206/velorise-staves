@@ -34,12 +34,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Coordinates the shared [R] Elemental Burst keybind across Archon staves
- * and manages Zhongli's Planet Befall state, countdown, i-frames, and impact.
+ * Coordinates the shared [R] Elemental Burst keybind across all Genshin weapons (1.20.1 Forge).
  */
 public final class ArchonUltiManager {
     private static final Map<UUID, Long> ZHONGLI_BURST_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> ZHONGLI_IFRAME_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> ULTI_IFRAME_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> FURINA_BURST_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAYLA_BURST_CD_UNTIL = new ConcurrentHashMap<>();
 
     private record PendingPlanetBefall(
             ServerLevel level,
@@ -56,12 +58,22 @@ public final class ArchonUltiManager {
 
     private ArchonUltiManager() {}
 
-    /** Dispatches the shared [R] burst keybind to whichever Archon weapon the player is holding. */
+    public static void grantUltiIframe(ServerPlayer player, int ticks) {
+        if (player == null || !(player.level() instanceof ServerLevel sl) || sl.getServer() == null) return;
+        long now = sl.getServer().overworld().getGameTime();
+        ULTI_IFRAME_UNTIL.put(player.getUUID(), Math.max(ULTI_IFRAME_UNTIL.getOrDefault(player.getUUID(), 0L), now + ticks));
+        player.invulnerableTime = Math.max(player.invulnerableTime, ticks);
+    }
+
+    /** Dispatches the shared [R] burst keybind to whichever Genshin weapon the player is holding. */
     public static void triggerUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ElementalGaugeManager.triggerMavuikaUlti(player);
         ElementalGaugeManager.triggerRaidenUlti(player);
         triggerZhongliUlti(player);
+        triggerFurinaUlti(player);
+        triggerLaylaUlti(player);
         XilonenManager.triggerXilonenUlti(player);
         NeuvilletteManager.triggerNeuvilletteUlti(player);
     }
@@ -79,24 +91,149 @@ public final class ArchonUltiManager {
         }
     }
 
-    /** Casts Venti's Wind's Grand Ode after holding [R] to full charge. */
+    /** Casts Venti's Wind's Grand Ode after holding [R] to full charge (with 1.6s I-frames & Burst animation). */
     public static void triggerVentiUlti(ServerPlayer player) {
-        if (player == null || !player.isAlive()) return;
+        if (player == null || !player.isAlive() || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
         if (main.getItem() instanceof ArcaneStaffItem staff && staff.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-            staff.triggerDaybreakVortexFromKey(player, main);
+            if (staff.triggerDaybreakVortexFromKey(player, main)) {
+                grantUltiIframe(player, 32);
+                ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
+            }
             return;
         }
         ItemStack off = player.getOffhandItem();
         if (off.getItem() instanceof ArcaneStaffItem staff && staff.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
-            staff.triggerDaybreakVortexFromKey(player, off);
+            if (staff.triggerDaybreakVortexFromKey(player, off)) {
+                grantUltiIframe(player, 32);
+                ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
+            }
         }
+    }
+
+    /** Furina [R] Burst: Let the People Rejoice (15s CD, 1.6s I-frames, AoE Hydro stage burst + Universal Revelry Fanfare). */
+    public static void triggerFurinaUlti(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        InteractionHand hand = InteractionHand.MAIN_HAND;
+        ItemStack stack = player.getMainHandItem();
+        boolean isNeth;
+        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
+            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        } else {
+            hand = InteractionHand.OFF_HAND;
+            stack = player.getOffhandItem();
+            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
+                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+            } else {
+                return;
+            }
+        }
+
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        long cdUntil = FURINA_BURST_CD_UNTIL.getOrDefault(id, 0L);
+        if (now < cdUntil) {
+            double rem = (cdUntil - now) / 20.0D;
+            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§b✦ Let the People Rejoice CD: %.1fs", rem)), true);
+            return;
+        }
+
+        long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO) ? 270L : 300L;
+        FURINA_BURST_CD_UNTIL.put(id, now + cdTicks);
+        grantUltiIframe(player, 32);
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_FURINA_BURST);
+        final InteractionHand usedHand = hand;
+        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+
+        double radius = isNeth ? 8.0D : 6.0D;
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.SPLENDOR, isNeth);
+        float burstDmg = (6.0F + player.getMaxHealth() * 0.12F) * scale;
+        float gaugeU = isNeth ? 2.5F : 2.0F;
+        AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+            target.invulnerableTime = 0;
+            ElementalGaugeManager.applyElement(level, target, Element.HYDRO, gaugeU, player, burstDmg);
+        }
+
+        ElementalGaugeManager.activateFurinaUniversalRevelry(player, isNeth);
+        for (int i = 0; i < 28; i++) {
+            double ang = (Math.PI * 2.0D * i) / 28.0D;
+            double rx = player.getX() + Math.cos(ang) * (radius * 0.65D);
+            double rz = player.getZ() + Math.sin(ang) * (radius * 0.65D);
+            level.sendParticles(ParticleTypes.SPLASH, rx, player.getY() + 0.5D, rz, 5, 0.25D, 0.5D, 0.25D, 0.06D);
+            level.sendParticles(ParticleTypes.END_ROD, rx, player.getY() + 1.1D, rz, 1, 0.1D, 0.2D, 0.1D, 0.02D);
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.85F, 1.15F);
+        player.displayClientMessage(Component.literal("§b✦ Let the People Rejoice! (Universal Revelry Fanfare)"), true);
+    }
+
+    /** Layla [R] Burst: Dream of the Star-Stream Shaker (12s CD, 1.6s I-frames, AoE Cryo Dreamsphere + 4 Night Stars). */
+    public static void triggerLaylaUlti(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        InteractionHand hand = InteractionHand.MAIN_HAND;
+        ItemStack stack = player.getMainHandItem();
+        boolean isNeth;
+        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
+            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        } else {
+            hand = InteractionHand.OFF_HAND;
+            stack = player.getOffhandItem();
+            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
+                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+            } else {
+                return;
+            }
+        }
+
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        long cdUntil = LAYLA_BURST_CD_UNTIL.getOrDefault(id, 0L);
+        if (now < cdUntil) {
+            double rem = (cdUntil - now) / 20.0D;
+            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§b✦ Star-Stream Shaker CD: %.1fs", rem)), true);
+            return;
+        }
+
+        long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO) ? 216L : 240L;
+        LAYLA_BURST_CD_UNTIL.put(id, now + cdTicks);
+        grantUltiIframe(player, 32);
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_LAYLA_BURST);
+        final InteractionHand usedHand = hand;
+        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+
+        double radius = isNeth ? 7.5D : 6.0D;
+        float burstDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.NIGHTS_FOCUS, isNeth) * 1.5F;
+        float gaugeU = isNeth ? 2.0F : 1.5F;
+        AABB box = player.getBoundingBox().inflate(radius, 3.0D, radius);
+        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+            target.invulnerableTime = 0;
+            ElementalGaugeManager.applyElement(level, target, Element.CRYO, gaugeU, player, burstDmg);
+        }
+
+        ElementalGaugeManager.activateNightsFocusBurstStars(player, isNeth);
+        for (int i = 0; i < 24; i++) {
+            double ang = (Math.PI * 2.0D * i) / 24.0D;
+            double rx = player.getX() + Math.cos(ang) * (radius * 0.6D);
+            double rz = player.getZ() + Math.sin(ang) * (radius * 0.6D);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, rx, player.getY() + 1.8D, rz, 3, 0.2D, 0.3D, 0.2D, 0.03D);
+            level.sendParticles(ParticleTypes.END_ROD, rx, player.getY() + 2.2D, rz, 1, 0.1D, 0.1D, 0.1D, 0.02D);
+        }
+        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.50F);
+        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.75F, 1.45F);
+        player.displayClientMessage(Component.literal("§b✦ Dream of the Star-Stream Shaker! (+4 Night Stars)"), true);
     }
 
     /** Checks for an equipped Vortex Vanquisher and launches Planet Befall. */
     public static void triggerZhongliUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.isOverloaded(player)) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
         ArcaneStaffItem vortexStaff;
@@ -129,7 +266,7 @@ public final class ArchonUltiManager {
                 ? 216L : 240L;
         ZHONGLI_BURST_CD_UNTIL.put(id, now + cdTicks);
         ZHONGLI_IFRAME_UNTIL.put(id, now + 52L);
-        player.invulnerableTime = Math.max(player.invulnerableTime, 52);
+        grantUltiIframe(player, 52);
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
         final InteractionHand usedHand = hand;
         stack.hurtAndBreak(isNetherite ? 3 : 2, player, p -> p.broadcastBreakEvent(usedHand));
@@ -203,7 +340,6 @@ public final class ArchonUltiManager {
 
         ModNetwork.sendStaffAnimation(player, 15);
         ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
-        // Delay damage/petrify until the client meteor finishes its 2.5s (50t) descent from behind Steve head.
         ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
 
         DustParticleOptions goldAura = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
@@ -274,23 +410,33 @@ public final class ArchonUltiManager {
         }
     }
 
-    /** Returns true while Zhongli's Planet Befall cast animation i-frame is active. */
+    /** Returns true while any Genshin weapon's Burst [R] cast animation i-frame is active. */
     public static boolean isZhongliIframeActive(@Nullable Entity entity) {
-        if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl)) return false;
+        if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl) || sl.getServer() == null) return false;
         long now = sl.getServer().overworld().getGameTime();
-        return now < ZHONGLI_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L);
+        UUID id = sp.getUUID();
+        return now < ZHONGLI_IFRAME_UNTIL.getOrDefault(id, 0L)
+                || now < ULTI_IFRAME_UNTIL.getOrDefault(id, 0L)
+                || XilonenManager.isXilonenIframeActive(sp)
+                || NeuvilletteManager.isNeuvilletteIframeActive(sp);
     }
 
     /** Clears per-player Archon Burst state on death, disconnect, or dimension reset. */
     public static void clearEntityState(UUID id) {
         ZHONGLI_BURST_CD_UNTIL.remove(id);
         ZHONGLI_IFRAME_UNTIL.remove(id);
+        ULTI_IFRAME_UNTIL.remove(id);
+        FURINA_BURST_CD_UNTIL.remove(id);
+        LAYLA_BURST_CD_UNTIL.remove(id);
     }
 
     /** Clears all transient Archon Burst timers and pending impacts on server stop. */
     public static void clearAll() {
         ZHONGLI_BURST_CD_UNTIL.clear();
         ZHONGLI_IFRAME_UNTIL.clear();
+        ULTI_IFRAME_UNTIL.clear();
+        FURINA_BURST_CD_UNTIL.clear();
+        LAYLA_BURST_CD_UNTIL.clear();
         ZHONGLI_PENDING_BEFALL.clear();
     }
 }

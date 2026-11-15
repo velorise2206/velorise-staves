@@ -27,21 +27,14 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages Item 5:
- * 1. Universal Plunge Attack (Left-Click in mid-air while holding any SwordItem or ArcaneStaffItem):
- *    - Rapid downward dive (dy = -1.35D) with 3rd-person/1st-person forward weapon plunge pose.
- *    - Genshin Fall Damage Reduction: <= 15 blocks = 0 damage; > 15 blocks = 50% reduced and capped at 40% Max HP.
- *    - Ground Impact AoE (3.5m) applying melee/elemental plunge damage + shockwave particles.
- * 2. Permanent Wind Glider (Phong Chi Duc):
- *    - Unlocked permanently via WindGliderItem (stored in player persistent data "VeloriseWindGliderUnlocked").
- *    - Press Space in mid-air to deploy/fold wings (standing upright pose with 2 horizontal wings).
- *    - Smooth glide descent, 0 fall damage, and Updraft lift synergy when gliding over Venti's wind vortex.
+ * Manages Universal Plunge Attack and Permanent Wind Glider on Fabric 1.21.1.
  */
 public final class PlungeAndGliderManager {
     public static final String TAG_WIND_GLIDER_UNLOCKED = "VeloriseWindGliderUnlocked";
 
     public static final class AirState {
         public boolean gliding = false;
+        public long gliderOpenedTick = 0L;
         public boolean plunging = false;
         public float plungeStartFallDist = 0.0F;
         public double plungeStartY = 0.0D;
@@ -58,6 +51,15 @@ public final class PlungeAndGliderManager {
 
     public static void clearPlayerState(UUID playerId) {
         if (playerId != null) STATES.remove(playerId);
+    }
+
+    public static boolean isPlunging(Player player) {
+        if (player == null) return false;
+        if (player.level().isClientSide()) {
+            return com.velorise.staves.client.ClientAuraTracker.isPlunging(player.getId());
+        }
+        AirState st = STATES.get(player.getUUID());
+        return st != null && st.plunging;
     }
 
     public static boolean isWindGliderUnlocked(Player player) {
@@ -103,26 +105,54 @@ public final class PlungeAndGliderManager {
     }
 
     public static boolean canHoldPlungeWeapon(Player player) {
-        if (player == null) return false;
+        if (player == null || NeuvilletteManager.isHoldingGuardianLens(player)) return false;
         ItemStack main = player.getMainHandItem();
         return main.getItem() instanceof ArcaneStaffItem || main.getItem() instanceof SwordItem;
     }
 
     public static boolean hasClearAirBeneath(Player player, double minClearBlocks) {
-        if (player == null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {
+        if (player == null || player.onGround() || player.isInWater() || player.isInLava()) {
             return false;
         }
-        if (player.fallDistance >= 1.25F) return true;
+        if (player.fallDistance >= (float) minClearBlocks) return true;
         AABB check = player.getBoundingBox().expandTowards(0.0D, -minClearBlocks, 0.0D);
         return player.level().noCollision(player, check);
+    }
+
+    public static boolean canTriggerMidAirPlunge(Player player) {
+        if (player == null || !player.isAlive() || player.isSpectator()) return false;
+        if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {
+            return false;
+        }
+        if (!canHoldPlungeWeapon(player)) return false;
+        if (player.level().isClientSide()) {
+            if (com.velorise.staves.client.ClientAuraTracker.isPlunging(player.getId())) return false;
+            if (com.velorise.staves.client.ClientAuraTracker.isGliding(player.getId())) return true;
+            double minClear = com.velorise.staves.client.ClientAuraTracker.isXilonenSkating(player.getId()) ? 1.10D : 1.50D;
+            return player.fallDistance >= 1.50F || hasClearAirBeneath(player, minClear);
+        }
+        AirState st = STATES.get(player.getUUID());
+        if (st != null && st.plunging) return false;
+        if (st != null && st.gliding) return true;
+        double minClear = XilonenManager.isSkating(player) ? 1.10D : 1.50D;
+        return player.fallDistance >= 1.50F || hasClearAirBeneath(player, minClear);
     }
 
     public static void handleToggleGlider(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (!isWindGliderUnlocked(player)) return;
-        if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {
+        if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava()) {
             return;
         }
+        if (player.getAbilities().flying) {
+            if (player.isShiftKeyDown()) return;
+            player.getAbilities().flying = false;
+            player.onUpdateAbilities();
+        }
+        if (player.isFallFlying()) {
+            player.stopFallFlying();
+        }
+
         AirState st = STATES.computeIfAbsent(player.getUUID(), k -> new AirState());
         if (st.plunging) return;
 
@@ -130,8 +160,9 @@ public final class PlungeAndGliderManager {
             st.gliding = false;
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
             player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.ARMOR_EQUIP_ELYTRA.value(), SoundSource.PLAYERS, 0.65F, 0.90F);
-        } else if (hasClearAirBeneath(player, 1.35D)) {
+        } else if (hasClearAirBeneath(player, 0.35D)) {
             st.gliding = true;
+            st.gliderOpenedTick = player.level().getGameTime();
             player.fallDistance = 0.0F;
             Vec3 dv = player.getDeltaMovement();
             player.setDeltaMovement(dv.x, Math.max(dv.y, -0.14D), dv.z);
@@ -144,18 +175,22 @@ public final class PlungeAndGliderManager {
 
     public static void handleStartPlunge(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
-        if (player.getVehicle() instanceof FlamestriderBikeEntity) return; // Bike has its own plunge
+        if (player.getVehicle() instanceof FlamestriderBikeEntity) return;
         if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {
             return;
         }
         if (!canHoldPlungeWeapon(player)) return;
         AirState st = STATES.computeIfAbsent(player.getUUID(), k -> new AirState());
         if (st.plunging) return;
-        if (!st.gliding && !hasClearAirBeneath(player, 1.5D)) return;
+        double minClear = XilonenManager.isSkating(player) ? 1.10D : 1.50D;
+        if (!st.gliding && player.fallDistance < 1.50F && !hasClearAirBeneath(player, minClear)) return;
 
         if (st.gliding) {
             st.gliding = false;
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
+        }
+        if (player.isFallFlying()) {
+            player.stopFallFlying();
         }
         st.plunging = true;
         st.plungeStartFallDist = player.fallDistance;
@@ -184,10 +219,10 @@ public final class PlungeAndGliderManager {
         if (st.plunging || (player.level().getGameTime() - st.plungeStartedTick) <= 10L) {
             float effectiveFall = Math.max(player.fallDistance, (float) Math.max(0.0D, st.plungeStartY - player.getY()));
             if (effectiveFall <= 15.0F) {
-                return 0.0F; // Genshin Standard: 0 fall damage for plunges <= 15m
+                return 0.0F;
             }
             float reduced = (effectiveFall - 15.0F) * 0.5F;
-            float maxCap = player.getMaxHealth() * 0.40F; // Hard-capped at 40% Max HP (never fatal)
+            float maxCap = player.getMaxHealth() * 0.40F;
             return Math.min(reduced, maxCap);
         }
         return rawFallDamage;
@@ -202,7 +237,11 @@ public final class PlungeAndGliderManager {
             ServerLevel level = player.serverLevel();
 
             if (st.gliding) {
-                if (player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
+                if (player.isFallFlying()) {
+                    player.stopFallFlying();
+                }
+                boolean graceExpired = (now - st.gliderOpenedTick) > 4L;
+                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
                     st.gliding = false;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
                 } else {
@@ -212,7 +251,6 @@ public final class PlungeAndGliderManager {
                     Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
                     if (horiz.lengthSqr() > 1.0E-4D) horiz = horiz.normalize();
 
-                    // Updraft synergy with Venti's Wind Vortex or Wind Staff currents
                     boolean inUpdraft = ElementalGaugeManager.isInsideAnemoUpdraft(level, player.position());
                     double targetY = inUpdraft ? 0.38D : Math.max(dv.y, -0.14D);
                     double targetX = Mth.lerp(0.18D, dv.x, horiz.x * 0.48D);
@@ -254,7 +292,7 @@ public final class PlungeAndGliderManager {
         boolean isNeth = false;
         Element elem = null;
         if (held.getItem() instanceof ArcaneStaffItem staff) {
-            isNeth = staff.isNetherite();
+            isNeth = ArcaneStaffItem.getEffectiveNetherite(held);
             elem = staff.kind() == ArcaneStaffItem.Kind.OMNI
                     ? ArcaneStaffItem.getOmniActiveElement(held)
                     : staff.getElement();

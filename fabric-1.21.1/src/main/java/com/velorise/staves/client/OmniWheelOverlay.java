@@ -172,7 +172,7 @@ public final class OmniWheelOverlay {
 
         int currentMode = ArcaneStaffItem.getOmniModeIndex(omniStack);
         if (mc.screen == null) {
-            renderHotbarBadge(guiGraphics, mc, currentMode);
+            renderHotbarBadge(guiGraphics, mc, omniStack, currentMode);
         }
 
         if (!wheelActive || mc.screen != null) return;
@@ -265,12 +265,26 @@ public final class OmniWheelOverlay {
         Font font = mc.font;
         Element previewElem = OmniOrbEntity.modeToElement(previewSlot);
         int accentColor = 0xFF000000 | getSlotAccentRgb(previewSlot, timeMs);
-        Component titleComp = previewElem != null
-                ? Component.translatable(previewElem.translationKey())
-                : Component.translatable("element.velorise_staves.omni");
-        Component subComp = previewElem != null
-                ? Component.translatable("wheel.velorise_staves.omni.locked")
-                : Component.translatable("wheel.velorise_staves.omni.auto");
+        Component titleComp;
+        Component subComp;
+        if (previewElem != null) {
+            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
+            if (absorbed != null) {
+                titleComp = Component.translatable(previewElem.translationKey())
+                        .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
+                subComp = ArcaneStaffItem.getAbsorbedStaffWheelStats(absorbed);
+            } else {
+                titleComp = Component.translatable(previewElem.translationKey());
+                subComp = Component.translatable("wheel.velorise_staves.omni.locked");
+            }
+        } else {
+            boolean netheriteOmni = omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite();
+            titleComp = Component.translatable("element.velorise_staves.omni")
+                    .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                    .append(Component.translatable("wheel.velorise_staves.omni.prism_orb").withStyle(net.minecraft.ChatFormatting.WHITE));
+            subComp = Component.translatable(netheriteOmni ? "wheel.velorise_staves.omni.auto_netherite" : "wheel.velorise_staves.omni.auto");
+        }
 
         int titleW = font.width(titleComp);
         int subW = font.width(subComp);
@@ -287,12 +301,22 @@ public final class OmniWheelOverlay {
         guiGraphics.setColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
-    private static void renderHotbarBadge(GuiGraphics guiGraphics, Minecraft mc, int mode) {
+    private static void renderHotbarBadge(GuiGraphics guiGraphics, Minecraft mc, ItemStack omniStack, int mode) {
         Element el = OmniOrbEntity.modeToElement(mode);
         Font font = mc.font;
-        Component label = el != null
-                ? Component.translatable(el.translationKey())
-                : Component.translatable("element.velorise_staves.omni");
+        Component label;
+        if (el != null) {
+            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, el);
+            if (absorbed != null) {
+                label = Component.translatable(el.translationKey())
+                        .append(Component.literal(" · ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.GRAY));
+            } else {
+                label = Component.translatable(el.translationKey());
+            }
+        } else {
+            label = Component.translatable("element.velorise_staves.omni");
+        }
 
         int textW = font.width(label);
         int badgeW = 20 + textW + 5;

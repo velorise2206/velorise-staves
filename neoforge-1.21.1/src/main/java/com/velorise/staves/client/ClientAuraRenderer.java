@@ -680,6 +680,16 @@ public final class ClientAuraRenderer {
                 model.leftArm.xRot = -1.25F + climb * 0.45F;
                 return;
             }
+            if (!entity.onGround()) {
+                model.body.xRot = 0.30F;
+                model.rightLeg.xRot = -0.82F;
+                model.leftLeg.xRot = -0.82F;
+                model.rightArm.xRot = -1.05F;
+                model.leftArm.xRot = -1.05F;
+                model.rightArm.zRot = 0.22F;
+                model.leftArm.zRot = -0.22F;
+                return;
+            }
             float stride = Mth.sin(ageInTicks * 0.38F);
             model.body.xRot = 0.18F;
             model.body.yRot = stride * 0.14F;
@@ -1084,6 +1094,43 @@ public final class ClientAuraRenderer {
             model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.42F);
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.42F);
             model.head.xRot -= 0.16F * w;
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim == ClientAuraTracker.ANIM_MAVUIKA_BURST) {
+            float lift = smoothStep01(Math.min(1.0F, t / 0.38F));
+            float cleave = (t < 0.38F) ? 0.0F : smoothStep01(Math.min(1.0F, (t - 0.38F) / 0.32F));
+            float w = (t < 0.78F) ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F);
+            float armX = (t < 0.38F) ? Mth.lerp(lift, -1.20F, -2.80F) : Mth.lerp(cleave, -2.80F, -0.35F);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, armX);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, armX * 0.92F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.22F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.22F);
+            model.body.xRot = Mth.lerp(cleave, -0.14F, 0.24F) * w;
+        } else if (activeAnim == ClientAuraTracker.ANIM_VENTI_BURST) {
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
+            model.body.xRot = -0.12F * w;
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.15F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.95F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.28F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.35F);
+            model.head.xRot -= 0.18F * w;
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim == ClientAuraTracker.ANIM_FURINA_BURST) {
+            float w = (t < 0.18F) ? smoothStep01(t / 0.18F) : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
+            float bow = Mth.sin(Mth.clamp(t / 0.50F, 0.0F, 1.0F) * (float) Math.PI);
+            model.body.xRot = 0.22F * bow * w;
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.55F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.85F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.28F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.45F);
+            model.head.xRot -= 0.12F * w;
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim == ClientAuraTracker.ANIM_LAYLA_BURST) {
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.25F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -2.25F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.38F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.38F);
+            model.head.xRot -= 0.20F * w;
             model.hat.copyFrom(model.head);
         }
     }
@@ -1583,6 +1630,31 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 26.0F * pull));
                 poseStack.mulPose(Axis.YP.rotationDegrees(dir * 12.0F * pull));
                 poseStack.mulPose(Axis.XP.rotationDegrees(-6.0F * pull));
+                return;
+            }
+        }
+        if (data != null && (activeAnim == ClientAuraTracker.ANIM_XILONEN_BURST
+                || activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_BURST
+                || activeAnim == ClientAuraTracker.ANIM_MAVUIKA_BURST
+                || activeAnim == ClientAuraTracker.ANIM_VENTI_BURST
+                || activeAnim == ClientAuraTracker.ANIM_FURINA_BURST
+                || activeAnim == ClientAuraTracker.ANIM_LAYLA_BURST
+                || activeAnim == ClientAuraTracker.ANIM_XILONEN_KICK_1
+                || activeAnim == ClientAuraTracker.ANIM_XILONEN_KICK_2
+                || activeAnim == ClientAuraTracker.ANIM_XILONEN_SKATE_DASH
+                || activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_SKILL_E)) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float w = Mth.sin(t * (float) Math.PI);
+            if (activeAnim == ClientAuraTracker.ANIM_MAVUIKA_BURST) {
+                float slash = (t < 0.40F) ? -smoothStep01(t / 0.40F) : smoothStep01(Math.min(1.0F, (t - 0.40F) / 0.35F));
+                poseStack.translate(dir * 0.18F * slash, -0.22F * slash, -0.24F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-48.0F * slash));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 38.0F * slash));
+            } else {
+                poseStack.translate(-dir * 0.16F * w, 0.22F * w, -0.20F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 24.0F * w));
             }
         }
     }
@@ -1912,18 +1984,15 @@ public final class ClientAuraRenderer {
         if (entity instanceof net.minecraft.world.entity.monster.Slime slime) {
             entityScale *= 0.999F * (float) slime.getSize();
         }
-        float iceScale = entityScale * 1.025F;
+        ClientAuraTracker.AuraDisplayData auraData = ClientAuraTracker.get(entity.getId());
+        boolean isPetrified = auraData != null && System.currentTimeMillis() < auraData.petrifiedUntil;
+        float iceScale = entityScale * (isPetrified ? 1.012F : 1.025F);
         poseStack.scale(-iceScale, -iceScale, iceScale);
         poseStack.translate(0.0F, -1.501F, 0.0F);
 
-        ClientAuraTracker.AuraDisplayData auraData = ClientAuraTracker.get(entity.getId());
-        boolean isPetrified = auraData != null && System.currentTimeMillis() < auraData.petrifiedUntil;
         VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(isPetrified ? STONE_STATUE_TEXTURE : FROSTED_ICE_TEXTURE));
-        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, isPetrified ? 0xD8D4A448 : 0x7378E1FF);
+        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, isPetrified ? 0xEBFFF8EA : 0x7378E1FF);
         poseStack.popPose();
-        if (isPetrified) {
-            renderPetrifiedGoldVeins(entity, state.yBodyRot + shakeOffset, poseStack, buffer);
-        }
     }
 
 

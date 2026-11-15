@@ -3,7 +3,6 @@ package com.velorise.staves.element;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -31,14 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages Neuvillette's reworked Guardian Lens kit (Item 6):
- * - Hold Left-Click (Charged Attack: Equitable Judgment): No cooldown! Charges for 3.0s (60 ticks),
- *   absorbing up to 3 Sourcewater Droplets within 12m (-1.0s / 20 ticks charge time & +16% Max HP heal per droplet;
- *   3 droplets = 0.0s instant beam!). Once charged, channels the 3.0s (60 ticks) HP-scaled Hydro beam.
- * - Right-Click (Skill E: O Tears, I Shall Repay): 12.0s CD. Summons a surging Hydro waterfall blast in front of the player,
- *   spawning 3 Sourcewater Droplets ONLY when hitting at least 1 enemy.
- * - [R] Key (Burst Q: O Tides, I Have Returned): 18.0s CD. 1.7s (34 ticks) of I-frames + burst animation,
- *   unleashes massive AoE Hydro waves + 2 follow-up waterfall torrents, and ALWAYS spawns 6 Sourcewater Droplets immediately.
+ * Manages Neuvillette's reworked Guardian Lens kit (1.20.1 Forge).
  */
 public final class NeuvilletteManager {
     public static final class NeuvilletteState {
@@ -69,6 +61,12 @@ public final class NeuvilletteManager {
         if (playerId != null) STATES.remove(playerId);
     }
 
+    public static boolean isHoldingGuardianLens(@Nullable Player player) {
+        if (player == null) return false;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.GUARDIAN
+                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.GUARDIAN;
+    }
+
     public static boolean isChannelingOrFiring(Player player) {
         if (player == null) return false;
         if (player.level().isClientSide()) {
@@ -95,13 +93,13 @@ public final class NeuvilletteManager {
             }
             return;
         }
-        if (ElementalResonanceManager.isOverloaded(player)) return;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = getHeldGuardianLens(player);
-        if (stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff)) return;
+        if (stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem)) return;
 
         if (!st.leftClickHeld && !st.firingBeam) {
             st.leftClickHeld = true;
-            st.netherite = staff.isNetherite();
+            st.netherite = ArcaneStaffItem.getEffectiveNetherite(stack);
             st.chargeTicks = 0;
             st.absorbedDroplets = 0;
             st.firingBeam = false;
@@ -125,7 +123,7 @@ public final class NeuvilletteManager {
         if (player.getAbsorptionAmount() > 0.0F) return;
         NeuvilletteState st = STATES.get(player.getUUID());
         if (st == null || (!st.leftClickHeld && !st.firingBeam)) return;
-        if (st.netherite) return; // C1 Netherite: 100% interruption immunity while charging/firing!
+        if (st.netherite) return;
         stopChanneling(player, st);
         player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.PLAYERS, 0.55F, 1.25F);
     }
@@ -139,23 +137,19 @@ public final class NeuvilletteManager {
         syncStateToClients(player, st, true);
     }
 
-    private static ItemStack getHeldGuardianLens(Player player) {
+    public static ItemStack getHeldGuardianLens(Player player) {
+        if (player == null) return ItemStack.EMPTY;
         ItemStack main = player.getMainHandItem();
-        if (main.getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.GUARDIAN) {
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.GUARDIAN) {
             return main;
         }
         ItemStack off = player.getOffhandItem();
-        if (off.getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.GUARDIAN) {
+        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.GUARDIAN) {
             return off;
         }
         return ItemStack.EMPTY;
     }
 
-    /**
-     * Right-Click Skill E (O Tears, I Shall Repay): CD 12.0s.
-     * Summons a surging Hydro waterfall at the aimed enemy or point ahead (range 16m, AoE 3.5m / 4.5m).
-     * Spawns 3 Sourcewater Droplets ONLY if at least 1 enemy is hit!
-     */
     public static boolean castSkillE(ServerPlayer player, ItemStack stack, boolean isNetherite) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
         long now = level.getGameTime();
@@ -187,7 +181,6 @@ public final class NeuvilletteManager {
             targetCenter = hit.getLocation();
         }
 
-        // Waterfall particles
         for (int y = 0; y <= 5; y++) {
             double py = targetCenter.y + y * 0.75D;
             level.sendParticles(ParticleTypes.SPLASH, targetCenter.x, py, targetCenter.z, 14, aoeRadius * 0.35D, 0.25D, aoeRadius * 0.35D, 0.08D);
@@ -212,7 +205,6 @@ public final class NeuvilletteManager {
             ElementalGaugeManager.applyElement(level, enemy, Element.HYDRO, gaugeU, player, skillDmg);
         }
 
-        // Spawn 3 Sourcewater Droplets ONLY when hitting at least 1 enemy!
         if (!hitEnemies.isEmpty()) {
             for (int i = 0; i < 3; i++) {
                 ElementalGaugeManager.spawnSourcewaterDroplet(level, targetCenter, player.getUUID(), now);
@@ -223,16 +215,11 @@ public final class NeuvilletteManager {
         return true;
     }
 
-    /**
-     * [R] Key Burst Q (O Tides, I Have Returned): CD 18.0s.
-     * Grants 1.7s (34 ticks) of I-frames, triggers Burst animation, deals crashing AoE Hydro damage
-     * + 2 follow-up waterfall waves, and ALWAYS spawns 6 Sourcewater Droplets immediately.
-     */
     public static boolean triggerNeuvilletteUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
-        if (ElementalResonanceManager.isOverloaded(player)) return false;
+        if (ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         ItemStack stack = getHeldGuardianLens(player);
-        if (stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff)) return false;
+        if (stack.isEmpty()) return false;
 
         long now = level.getGameTime();
         NeuvilletteState st = STATES.computeIfAbsent(player.getUUID(), k -> new NeuvilletteState());
@@ -242,25 +229,25 @@ public final class NeuvilletteManager {
             return false;
         }
 
-        boolean isNeth = staff.isNetherite();
-        int baseCdTicks = 360; // 18.0s
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
+        int baseCdTicks = 360;
         int adjustedCd = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
-        st.iframeUntilTick = now + 34L; // 1.7s (34 ticks) invulnerability frames
+        st.iframeUntilTick = now + 34L;
+        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
+        ArchonUltiManager.grantUltiIframe(player, 34);
         st.burstCenter = player.position().add(player.getLookAngle().multiply(3.5D, 0.0D, 3.5D));
         st.burstNetherite = isNeth;
         st.followUpWave1Tick = now + 14L;
         st.followUpWave2Tick = now + 28L;
 
-        // Immediately spawn 6 Sourcewater Droplets around the caster (does NOT require hitting an enemy!)
         Vec3 dropCenter = player.position().add(player.getLookAngle().multiply(2.8D, 0.0D, 2.8D));
         for (int i = 0; i < 6; i++) {
             ElementalGaugeManager.spawnSourcewaterDroplet(level, dropCenter, player.getUUID(), now);
         }
 
-        // Initial crashing wave AoE
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, isNeth);
         float initialDmg = (6.0F + player.getMaxHealth() * 0.18F) * scale;
         float gaugeU = isNeth ? 3.0F : 2.0F;
@@ -274,6 +261,10 @@ public final class NeuvilletteManager {
 
     private static void triggerBurstHydroWave(ServerLevel level, ServerPlayer player, Vec3 center, double radius, float dmg, float gaugeU) {
         AABB box = new AABB(
+                center.x - radius, center.y - 2.0D, targetMaxY(center.y, -2.0D),
+                center.x + radius, center.y + 4.5D, center.z + radius
+        );
+        box = new AABB(
                 center.x - radius, center.y - 2.0D, center.z - radius,
                 center.x + radius, center.y + 4.5D, center.z + radius
         );
@@ -294,6 +285,10 @@ public final class NeuvilletteManager {
         level.playSound(null, BlockPos.containing(center), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.90F, 1.05F);
     }
 
+    private static double targetMaxY(double y, double off) {
+        return y + off;
+    }
+
     public static void tick(MinecraftServer server, long now) {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -302,7 +297,6 @@ public final class NeuvilletteManager {
             if (st == null) continue;
             ServerLevel level = player.serverLevel();
 
-            // Follow-up waterfall waves from Burst [R]
             if (st.followUpWave1Tick > 0L && now >= st.followUpWave1Tick) {
                 st.followUpWave1Tick = 0L;
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.GUARDIAN, st.burstNetherite);
@@ -316,14 +310,13 @@ public final class NeuvilletteManager {
                 triggerBurstHydroWave(level, player, st.burstCenter, st.burstNetherite ? 9.0D : 7.0D, waveDmg, st.burstNetherite ? 1.5F : 1.0F);
             }
 
-            // Left-Click Charged Attack (Equitable Judgment)
             if (st.leftClickHeld || st.firingBeam) {
                 ItemStack stack = getHeldGuardianLens(player);
-                if (stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff) || ElementalResonanceManager.isOverloaded(player)) {
+                if (stack.isEmpty() || ElementalResonanceManager.isOverloaded(player)) {
                     stopChanneling(player, st);
                     continue;
                 }
-                st.netherite = staff.isNetherite();
+                st.netherite = ArcaneStaffItem.getEffectiveNetherite(stack);
                 if (!player.isShiftKeyDown()) {
                     ElementalGaugeManager.applyFurinaWaterWalking(player);
                 }
@@ -349,7 +342,6 @@ public final class NeuvilletteManager {
                         stopChanneling(player, st);
                         continue;
                     }
-                    // Drain 8% Max HP every 0.5s (10 ticks) down to 50% Max HP
                     if (beamElapsed % 10 == 0 && !player.isCreative()) {
                         float maxHp = Math.max(1.0F, player.getMaxHealth());
                         float halfHp = maxHp * 0.50F;

@@ -25,6 +25,9 @@ public class MavuikaActionPacket {
     public static final byte ACTION_NEUVILLETTE_CA_START = 13;
     public static final byte ACTION_NEUVILLETTE_CA_STOP = 14;
     public static final byte ACTION_XILONEN_WALL_LEAP = 15;
+    public static final byte ACTION_XILONEN_DASH = 16;
+    public static final byte ACTION_XILONEN_JUMP = 17;
+    public static final byte ACTION_FURINA_CA_SWITCH = 18;
 
     private final byte action;
 
@@ -77,6 +80,12 @@ public class MavuikaActionPacket {
                 com.velorise.staves.element.NeuvilletteManager.handleLeftClickHold(player, packet.action == ACTION_NEUVILLETTE_CA_START);
             } else if (packet.action == ACTION_XILONEN_WALL_LEAP) {
                 com.velorise.staves.element.XilonenManager.handleWallLeap(player);
+            } else if (packet.action == ACTION_XILONEN_DASH) {
+                com.velorise.staves.element.XilonenManager.handleSkateDash(player);
+            } else if (packet.action == ACTION_XILONEN_JUMP) {
+                com.velorise.staves.element.XilonenManager.handleSkateJumpBoost(player);
+            } else if (packet.action == ACTION_FURINA_CA_SWITCH) {
+                com.velorise.staves.item.ArcaneStaffItem.handleFurinaLeftClickHoldSwitch(player);
             }
         });
         ctx.setPacketHandled(true);

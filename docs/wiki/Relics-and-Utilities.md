@@ -101,7 +101,7 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/omni_element.png" width="48" height="48" alt="Omni Element" />
 </div>
 
-* **Primary Function:** The ultimate catalyst used in Smithing Table transformations to synthesize the [Omni Staff](Staves-List#the-apex-weapon-omni-staff) or repair any elemental weapon.
+* **Primary Function:** The ultimate elemental catalyst dropped by Omni-Mutated mobs (25% fixed chance) or crafted from all 7 Elements, used to **repair any Arcane Staff** or **imbue Swords with Adaptive Omni** at an Anvil.
 * **Crafting Recipe:** Combine all **7 Elemental Essences** (Pyro, Hydro, Cryo, Electro, Dendro, Anemo, Geo) in any Crafting Table (shapeless recipe).
 
 <div align="center">
@@ -151,7 +151,7 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * **Genshin-Standard Fall Damage Reduction:** Plunges from **`<= 15` blocks deal `0` fall damage (100% immunity)**; plunges from **`> 15` blocks reduce fall damage by 50% and are hard-capped at `40%` Max HP** (never fatal).
   * **Ground Impact AoE:** Unleashes a **`3.5m` elemental/melee shockwave** upon touchdown (`3.25♥` Basic / `4.5♥` Netherite + active staff or imbued sword element).
 * **Crafting Recipe (Mid-Game):**
-  * Shaped (3x3): **2 Phantom Membranes** (top corners) + **1 Diamond** (top center) + **1 Gold Ingot** (center) + **4 Feathers** (sides & bottom corners).
+  * Shaped (3x3): **2 Phantom Membranes** (Slots 1 & 3) + **1 Diamond** (Slot 2) + **1 Anemo Element (`velorise_staves:anemo_element`)** (Slot 5, center) + **4 Feathers** (Slots 4, 6, 7 & 9).
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_wind_glider.png" width="400" alt="Wind Glider Crafting Recipe" />

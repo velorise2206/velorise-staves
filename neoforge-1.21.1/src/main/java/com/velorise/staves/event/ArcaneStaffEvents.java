@@ -127,7 +127,25 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onLeftClickBlock(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
+        if (com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(event.getEntity())
+                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())) {
+            event.setCanceled(true);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onItemCrafted(PlayerEvent.ItemCraftedEvent event) {
+        ArcaneStaffItem.onOmniStaffCrafted(event.getEntity(), event.getCrafting(), event.getInventory());
+    }
+
+    @SubscribeEvent
     public static void onAttackEntity(net.neoforged.neoforge.event.entity.player.AttackEntityEvent event) {
+        if (com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(event.getEntity())
+                || com.velorise.staves.element.PlungeAndGliderManager.isPlunging(event.getEntity())) {
+            event.setCanceled(true);
+            return;
+        }
         if (!event.getEntity().level().isClientSide()) {
             ElementalGaugeManager.recordPreAttackStrength(event.getEntity(), event.getEntity().getAttackStrengthScale(0.5F));
             if (event.getEntity() instanceof ServerPlayer sp && event.getTarget() instanceof LivingEntity) {

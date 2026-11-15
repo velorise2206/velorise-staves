@@ -1,6 +1,7 @@
 package com.velorise.staves.element;
 
 import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.entity.OmniOrbEntity;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
@@ -26,9 +27,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages Genshin Impact Elemental Resonance (8 types) and the 4-Staff Inventory Cap (Arcane Overload).
+ * Manages Genshin Impact Elemental Resonance (8 types), the 4-Staff Inventory Cap (Arcane Overload),
+ * the 1.0s (20 ticks) Local Swap Cooldown, and per-mode Omni Staff cooldowns (1.20.1 Forge).
  */
 public final class ElementalResonanceManager {
+    public static final int SWAP_COOLDOWN_TICKS = 20;
+
     private static final UUID PYRO_ATK_ID = UUID.fromString("a8d3c901-5b40-4d1c-8e7a-3f62a9b10001");
     private static final UUID HYDRO_HP_ID = UUID.fromString("a8d3c901-5b40-4d1c-8e7a-3f62a9b10002");
     private static final UUID ANEMO_SPD_ID = UUID.fromString("a8d3c901-5b40-4d1c-8e7a-3f62a9b10003");
@@ -100,10 +104,13 @@ public final class ElementalResonanceManager {
     private static final Map<UUID, Map<Item, CooldownTrack>> RECORDED_STAFF_COOLDOWNS = new ConcurrentHashMap<>();
     private static final Map<UUID, Float> LAST_EXHAUSTION = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> LAST_SELECTED_SLOT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_STAFF_SWAP_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, long[]> OMNI_MODE_CD_UNTIL = new ConcurrentHashMap<>();
 
     private static volatile int clientResonanceMask = 0;
     private static volatile boolean clientOverloaded = false;
     private static volatile int clientStaffCount = 0;
+    private static volatile long clientSwapCooldownUntilMs = 0L;
 
     private ElementalResonanceManager() {}
 
@@ -116,12 +123,31 @@ public final class ElementalResonanceManager {
         RECORDED_STAFF_COOLDOWNS.clear();
         LAST_EXHAUSTION.clear();
         LAST_SELECTED_SLOT.clear();
+        LAST_STAFF_SWAP_TICK.clear();
+        OMNI_MODE_CD_UNTIL.clear();
     }
 
     public static void clearClientState() {
         clientResonanceMask = 0;
         clientOverloaded = false;
         clientStaffCount = 0;
+        clientSwapCooldownUntilMs = 0L;
+    }
+
+    public static void notifyClientSlotSwitchedToStaff(Player clientPlayer, ItemStack staffStack) {
+        clientSwapCooldownUntilMs = System.currentTimeMillis() + 1000L;
+        if (clientPlayer != null && !staffStack.isEmpty() && !clientPlayer.getCooldowns().isOnCooldown(staffStack.getItem())) {
+            clientPlayer.getCooldowns().addCooldown(staffStack.getItem(), SWAP_COOLDOWN_TICKS);
+        }
+    }
+
+    public static boolean isOnSwapCooldown(@Nullable Player player) {
+        if (player == null) return false;
+        if (player.level().isClientSide()) {
+            return System.currentTimeMillis() < clientSwapCooldownUntilMs;
+        }
+        Long swapTick = LAST_STAFF_SWAP_TICK.get(player.getUUID());
+        return swapTick != null && (player.level().getGameTime() - swapTick) < SWAP_COOLDOWN_TICKS;
     }
 
     public static void setClientResonanceState(int mask, boolean overloaded, int staffCount) {
@@ -160,6 +186,8 @@ public final class ElementalResonanceManager {
         RECORDED_STAFF_COOLDOWNS.remove(playerId);
         LAST_EXHAUSTION.remove(playerId);
         LAST_SELECTED_SLOT.remove(playerId);
+        LAST_STAFF_SWAP_TICK.remove(playerId);
+        OMNI_MODE_CD_UNTIL.remove(playerId);
     }
 
     private static List<ItemStack> buildPrioritySlotOrder(Inventory inv) {
@@ -197,11 +225,6 @@ public final class ElementalResonanceManager {
         return null;
     }
 
-    /**
-     * Evaluates a player's main inventory (36 slots) + offhand (1 slot).
-     * Duplicate backup copies of the same staff type only count once toward the cap.
-     * Items stored inside backpacks, Shulker Boxes, or Ender Chests are NOT counted.
-     */
     public static PlayerResonanceState evaluatePlayerInventory(Player player) {
         if (!StavesConfig.isElementalResonanceEnabled()) {
             return new PlayerResonanceState(Collections.emptySet(), false, 0);
@@ -307,6 +330,18 @@ public final class ElementalResonanceManager {
         int selected = player.getInventory().selected;
         Integer prevSelected = LAST_SELECTED_SLOT.put(player.getUUID(), selected);
         boolean slotSwitched = prevSelected == null || prevSelected.intValue() != selected;
+
+        if (prevSelected != null && prevSelected.intValue() != selected) {
+            ItemStack main = player.getMainHandItem();
+            if (!main.isEmpty() && main.getItem() instanceof ArcaneStaffItem staff) {
+                LAST_STAFF_SWAP_TICK.put(player.getUUID(), now);
+                if (!player.getCooldowns().isOnCooldown(staff)) {
+                    player.getCooldowns().addCooldown(staff, SWAP_COOLDOWN_TICKS);
+                }
+            }
+        }
+
+        ArcaneStaffItem.tickCraftingMenuOmniPreview(player);
 
         if (slotSwitched || (now % 5L == 0L)) {
             PlayerResonanceState state = evaluatePlayerInventory(player);
@@ -422,6 +457,52 @@ public final class ElementalResonanceManager {
         }
     }
 
+    public static void applyOmniModeCooldown(Player player, ItemStack omniStack, int baseTicks) {
+        int finalTicks = hasResonance(player, ResonanceType.ANEMO)
+                ? Math.max(1, (int) Math.round(baseTicks * 0.90D))
+                : Math.max(1, baseTicks);
+        int mode = OmniOrbEntity.clampMode(ArcaneStaffItem.getOmniModeIndex(omniStack));
+        if (!player.level().isClientSide()) {
+            long now = player.level().getGameTime();
+            long[] cds = OMNI_MODE_CD_UNTIL.computeIfAbsent(player.getUUID(), k -> new long[8]);
+            cds[mode] = now + finalTicks;
+            Element el = OmniOrbEntity.modeToElement(mode);
+            if (el != null) {
+                ArcaneStaffItem absorbed = ArcaneStaffItem.getOmniAbsorbedStaff(omniStack, el);
+                if (absorbed != null) {
+                    player.getCooldowns().addCooldown(absorbed, finalTicks);
+                    RECORDED_STAFF_COOLDOWNS
+                            .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
+                            .put(absorbed, new CooldownTrack(finalTicks));
+                }
+            }
+        }
+        applyCooldown(player, omniStack.getItem(), baseTicks);
+    }
+
+    public static void syncOmniModeCooldown(ServerPlayer player, ItemStack omniStack, int newMode) {
+        if (player == null || omniStack.isEmpty()) return;
+        int mode = OmniOrbEntity.clampMode(newMode);
+        long now = player.level().getGameTime();
+        long[] cds = OMNI_MODE_CD_UNTIL.get(player.getUUID());
+        long until = cds != null ? cds[mode] : 0L;
+        int rem = (int) Math.max(0L, until - now);
+        if (isOnSwapCooldown(player)) {
+            long swapRem = SWAP_COOLDOWN_TICKS - (now - LAST_STAFF_SWAP_TICK.getOrDefault(player.getUUID(), 0L));
+            rem = Math.max(rem, (int) Math.max(0L, swapRem));
+        }
+        player.getCooldowns().removeCooldown(omniStack.getItem());
+        if (rem > 0) {
+            player.getCooldowns().addCooldown(omniStack.getItem(), rem);
+            RECORDED_STAFF_COOLDOWNS
+                    .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())
+                    .put(omniStack.getItem(), new CooldownTrack(rem));
+        } else {
+            Map<Item, CooldownTrack> tracks = RECORDED_STAFF_COOLDOWNS.get(player.getUUID());
+            if (tracks != null) tracks.remove(omniStack.getItem());
+        }
+    }
+
     public static int getClientAdjustedCooldownTicks(int baseTicks) {
         return hasClientResonance(ResonanceType.ANEMO)
                 ? Math.max(1, (int) Math.round(baseTicks * 0.90D))
@@ -440,6 +521,15 @@ public final class ElementalResonanceManager {
         }
         if (held.getItem() instanceof ArcaneStaffItem && held.isDamaged()) {
             held.setDamageValue(Math.max(0, held.getDamageValue() - 1));
+        }
+
+        long[] omniCds = OMNI_MODE_CD_UNTIL.get(attacker.getUUID());
+        if (omniCds != null) {
+            for (int i = 0; i < omniCds.length; i++) {
+                if (omniCds[i] > now) {
+                    omniCds[i] = Math.max(now, omniCds[i] - 20L);
+                }
+            }
         }
 
         Map<Item, CooldownTrack> tracks = RECORDED_STAFF_COOLDOWNS.get(attacker.getUUID());
@@ -547,7 +637,6 @@ public final class ElementalResonanceManager {
         if (damage <= 0.0F) return damage;
         if (attacker != null) {
             damage *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
-            damage *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
             damage *= XilonenManager.getXilonenDamageMultiplier(attacker, attackElement, level.getGameTime());
         }
         if (!StavesConfig.isElementalResonanceEnabled()) return damage;
@@ -573,7 +662,6 @@ public final class ElementalResonanceManager {
         if (!(src.getEntity() instanceof ServerPlayer attacker) || attacker == target) return amount;
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
         amount *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
-        amount *= ElementalGaugeManager.getVortexGoldenMajestyMultiplier(attacker);
         amount *= XilonenManager.getXilonenDamageMultiplier(attacker, Element.GEO, level.getGameTime());
         if (!StavesConfig.isElementalResonanceEnabled()) return amount;
 
@@ -588,7 +676,6 @@ public final class ElementalResonanceManager {
         return applyCryoCrit(level, attacker, target, amount);
     }
 
-    /** Hydro Resonance (Soothing Water): +25% Incoming Healing Effectiveness. */
     public static float modifyIncomingHeal(@Nullable LivingEntity entity, float amount) {
         if (amount <= 0.0F || entity == null) return amount;
         amount *= ElementalGaugeManager.getFanfareBonusMultiplier(entity);
@@ -603,7 +690,6 @@ public final class ElementalResonanceManager {
         if (amount <= 0.0F || src.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return amount;
         if (victim instanceof ServerPlayer sp) {
             if (ElementalGaugeManager.hasActiveJadeShield(sp)) {
-                // Jade Shield: 150% damage absorption efficiency against all Elemental & Physical damage
                 amount *= 0.67F;
             }
             if (hasResonance(sp, ResonanceType.PROTECTIVE_CANOPY)) {

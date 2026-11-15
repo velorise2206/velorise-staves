@@ -176,6 +176,233 @@ public final class ArcaneStaffItem extends Item {
         return OmniOrbEntity.modeToElement(getOmniModeIndex(stack));
     }
 
+    public static final String TAG_OMNI_STAVES = "OmniStaves";
+    public static final String TAG_OMNI_MAX_DUR = "OmniMaxDurability";
+    private static final Map<UUID, java.util.EnumMap<Element, String>> LAST_OMNI_CRAFT_SNAPSHOT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> LAST_OMNI_CRAFT_DURABILITY = new ConcurrentHashMap<>();
+
+    private static @Nullable CompoundTag readCustomTag(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return null;
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null ? data.copyTag() : null;
+    }
+
+    private static void updateCustomTag(ItemStack stack, java.util.function.Consumer<CompoundTag> updater) {
+        if (stack == null || stack.isEmpty()) return;
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, updater);
+    }
+
+    private static @Nullable Item lookupItemById(String id) {
+        if (id == null || id.isEmpty()) return null;
+        net.minecraft.resources.ResourceLocation rl = net.minecraft.resources.ResourceLocation.tryParse(id);
+        if (rl == null || !net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(rl)) return null;
+        return net.minecraft.core.registries.BuiltInRegistries.ITEM.get(rl);
+    }
+
+    private static String getItemIdString(Item item) {
+        net.minecraft.resources.ResourceLocation rl = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item);
+        return rl != null ? rl.toString() : "";
+    }
+
+    public static Item getDefaultOmniStaffForElement(Element element, boolean netherite) {
+        return switch (element) {
+            case PYRO -> netherite ? VeloriseStavesMod.NETHERITE_INFERNO_ROD.get() : VeloriseStavesMod.INFERNO_ROD.get();
+            case HYDRO -> netherite ? VeloriseStavesMod.NETHERITE_GUARDIAN_LENS.get() : VeloriseStavesMod.GUARDIAN_LENS.get();
+            case ANEMO -> netherite ? VeloriseStavesMod.NETHERITE_WIND_STAFF.get() : VeloriseStavesMod.WIND_STAFF.get();
+            case ELECTRO -> netherite ? VeloriseStavesMod.NETHERITE_ARC_CASTER.get() : VeloriseStavesMod.ARC_CASTER.get();
+            case DENDRO -> netherite ? VeloriseStavesMod.NETHERITE_WITHER_SCEPTER.get() : VeloriseStavesMod.WITHER_SCEPTER.get();
+            case CRYO -> netherite ? VeloriseStavesMod.NETHERITE_FROSTBOLT_WAND.get() : VeloriseStavesMod.FROSTBOLT_WAND.get();
+            case GEO -> netherite ? VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF.get() : VeloriseStavesMod.EVOKER_FANG_STAFF.get();
+        };
+    }
+
+    public static @Nullable ArcaneStaffItem getNetheriteCounterpart(ArcaneStaffItem base) {
+        if (base == null || base.isNetherite()) return base;
+        Item item = switch (base.kind()) {
+            case DRAGONFIRE -> VeloriseStavesMod.NETHERITE_DRAGONFIRE_SCEPTER.get();
+            case ECHO -> VeloriseStavesMod.NETHERITE_RESONANT_ECHO.get();
+            case INFERNO -> VeloriseStavesMod.NETHERITE_INFERNO_ROD.get();
+            case GHASTFIRE -> VeloriseStavesMod.NETHERITE_GHASTFIRE_STAFF.get();
+            case WITHER -> VeloriseStavesMod.NETHERITE_WITHER_SCEPTER.get();
+            case SHULKER -> VeloriseStavesMod.NETHERITE_SHULKER_SEEKER.get();
+            case GUARDIAN -> VeloriseStavesMod.NETHERITE_GUARDIAN_LENS.get();
+            case SPLENDOR -> VeloriseStavesMod.NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get();
+            case EVOKER -> VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF.get();
+            case VORTEX -> VeloriseStavesMod.NETHERITE_VORTEX_VANQUISHER.get();
+            case LIGHTNING -> VeloriseStavesMod.NETHERITE_ARC_CASTER.get();
+            case FROST -> VeloriseStavesMod.NETHERITE_FROSTBOLT_WAND.get();
+            case NIGHTS_FOCUS -> VeloriseStavesMod.NETHERITE_NIGHTS_FOCUS_STAFF.get();
+            case THOUSAND_BLAZING_SUNS -> VeloriseStavesMod.NETHERITE_THOUSAND_BLAZING_SUNS.get();
+            case PEAK_PATROL_SONG -> VeloriseStavesMod.NETHERITE_PEAK_PATROL_SONG.get();
+            case WEB -> VeloriseStavesMod.NETHERITE_WEBCASTER.get();
+            case WIND -> VeloriseStavesMod.NETHERITE_WIND_STAFF.get();
+            case DAYBREAK -> VeloriseStavesMod.NETHERITE_THE_DAYBREAK_CHRONICLES.get();
+            case ENGULFING_LIGHTNING -> VeloriseStavesMod.NETHERITE_ENGULFING_LIGHTNING.get();
+            case OMNI -> VeloriseStavesMod.NETHERITE_OMNI_STAFF.get();
+        };
+        return item instanceof ArcaneStaffItem neth ? neth : base;
+    }
+
+    public static boolean hasOmniAbsorbedData(ItemStack stack) {
+        CompoundTag tag = readCustomTag(stack);
+        return tag != null && tag.contains(TAG_OMNI_STAVES, 10);
+    }
+
+    public static @Nullable ArcaneStaffItem getOmniAbsorbedStaff(ItemStack omniStack, @Nullable Element element) {
+        if (!isOmniStaff(omniStack) || element == null) return null;
+        boolean omniNeth = ((ArcaneStaffItem) omniStack.getItem()).isNetherite();
+        CompoundTag tag = readCustomTag(omniStack);
+        if (tag != null && tag.contains(TAG_OMNI_STAVES, 10)) {
+            CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
+            String id = stavesTag.getString(element.name());
+            Item found = lookupItemById(id);
+            if (found instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+                return omniNeth ? getNetheriteCounterpart(staff) : staff;
+            }
+        }
+        Item def = getDefaultOmniStaffForElement(element, omniNeth);
+        return def instanceof ArcaneStaffItem s ? s : null;
+    }
+
+    public static @Nullable ArcaneStaffItem getAbsorbedStaffForElement(ItemStack omniStack, @Nullable Element element) {
+        return getOmniAbsorbedStaff(omniStack, element);
+    }
+
+    public static Component getAbsorbedStaffWheelStats(@Nullable ArcaneStaffItem absorbed) {
+        if (absorbed == null) return Component.empty();
+        double cdSec = absorbed.getCooldownTicks() / 20.0;
+        String cdText = cdSec == Math.rint(cdSec)
+                ? String.format(java.util.Locale.ROOT, "%.0fs", cdSec)
+                : String.format(java.util.Locale.ROOT, "%.1fs", cdSec);
+        return Component.literal((absorbed.isNetherite() ? "Netherite · " : "") + "CD: " + cdText)
+                .withStyle(ChatFormatting.GRAY);
+    }
+
+    public static @Nullable Kind getEffectiveKind(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff)) return null;
+        if (staff.kind == Kind.OMNI) {
+            Element el = getOmniActiveElement(stack);
+            if (el != null) {
+                ArcaneStaffItem absorbed = getOmniAbsorbedStaff(stack, el);
+                if (absorbed != null) return absorbed.kind();
+            }
+        }
+        return staff.kind;
+    }
+
+    public static boolean getEffectiveNetherite(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff)) return false;
+        if (staff.kind == Kind.OMNI) {
+            Element el = getOmniActiveElement(stack);
+            if (el != null) {
+                ArcaneStaffItem absorbed = getOmniAbsorbedStaff(stack, el);
+                if (absorbed != null) return staff.isNetherite || absorbed.isNetherite();
+            }
+        }
+        return staff.isNetherite;
+    }
+
+    public static int getEffectiveMaxDamage(ItemStack stack, Kind kind, boolean isNetherite) {
+        if (kind == Kind.OMNI && stack != null && !stack.isEmpty()) {
+            CompoundTag tag = readCustomTag(stack);
+            if (tag != null && tag.getInt(TAG_OMNI_MAX_DUR) > 0) {
+                return tag.getInt(TAG_OMNI_MAX_DUR);
+            }
+        }
+        return StavesConfig.getMaxDurability(kind, isNetherite);
+    }
+
+    public static void applyOmniCraftData(ItemStack omniStack, java.util.Map<Element, String> staffIds, int totalMaxDurability) {
+        if (!isOmniStaff(omniStack) || staffIds == null || staffIds.isEmpty()) return;
+        updateCustomTag(omniStack, tag -> {
+            CompoundTag staves = tag.contains(TAG_OMNI_STAVES, 10) ? tag.getCompound(TAG_OMNI_STAVES) : new CompoundTag();
+            for (java.util.Map.Entry<Element, String> e : staffIds.entrySet()) {
+                if (e.getKey() != null && e.getValue() != null && !e.getValue().isEmpty()) {
+                    staves.putString(e.getKey().name(), e.getValue());
+                }
+            }
+            tag.put(TAG_OMNI_STAVES, staves);
+            if (totalMaxDurability > 0) {
+                tag.putInt(TAG_OMNI_MAX_DUR, totalMaxDurability);
+            }
+        });
+    }
+
+    public static void tickCraftingMenuOmniPreview(Player player) {
+        if (player == null || !(player.containerMenu instanceof net.minecraft.world.inventory.CraftingMenu menu)) return;
+        java.util.EnumMap<Element, String> found = new java.util.EnumMap<>(Element.class);
+        int totalDur = 0;
+        for (int i = 1; i <= 9 && i < menu.slots.size(); i++) {
+            ItemStack s = menu.getSlot(i).getItem();
+            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+                Element el = staff.getElement();
+                if (el != null && !found.containsKey(el)) {
+                    found.put(el, getItemIdString(staff));
+                    totalDur += s.getMaxDamage();
+                }
+            }
+        }
+        if (found.size() == 7 && totalDur > 0) {
+            LAST_OMNI_CRAFT_SNAPSHOT.put(player.getUUID(), found);
+            LAST_OMNI_CRAFT_DURABILITY.put(player.getUUID(), totalDur);
+            if (!menu.slots.isEmpty()) {
+                ItemStack out = menu.getSlot(0).getItem();
+                if (isOmniStaff(out)) {
+                    applyOmniCraftData(out, found, totalDur);
+                }
+            }
+        }
+    }
+
+    public static void onOmniStaffCrafted(Player player, ItemStack crafted, @Nullable net.minecraft.world.Container matrix) {
+        if (!isOmniStaff(crafted)) return;
+        java.util.EnumMap<Element, String> found = new java.util.EnumMap<>(Element.class);
+        int totalDur = 0;
+        if (matrix != null) {
+            for (int i = 0; i < matrix.getContainerSize(); i++) {
+                ItemStack s = matrix.getItem(i);
+                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+                    Element el = staff.getElement();
+                    if (el != null && !found.containsKey(el)) {
+                        found.put(el, getItemIdString(staff));
+                        totalDur += s.getMaxDamage();
+                    }
+                }
+            }
+        }
+        if (found.size() < 7 && player != null) {
+            java.util.EnumMap<Element, String> snap = LAST_OMNI_CRAFT_SNAPSHOT.get(player.getUUID());
+            Integer snapDur = LAST_OMNI_CRAFT_DURABILITY.get(player.getUUID());
+            if (snap != null && !snap.isEmpty()) {
+                found = snap;
+                totalDur = snapDur != null ? snapDur : 0;
+            }
+        }
+        if (!found.isEmpty()) {
+            applyOmniCraftData(crafted, found, totalDur);
+        }
+    }
+
+    public static void handleFurinaLeftClickHoldSwitch(ServerPlayer player) {
+        if (player == null || !player.isAlive() || ElementalResonanceManager.isOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        ItemStack stack = player.getMainHandItem();
+        ArcaneStaffItem staff = (stack.getItem() instanceof ArcaneStaffItem s && s.kind() == Kind.SPLENDOR) ? s : null;
+        if (staff == null) {
+            stack = player.getOffhandItem();
+            if (!(stack.getItem() instanceof ArcaneStaffItem staffOff && staffOff.kind() == Kind.SPLENDOR)) return;
+            staff = staffOff;
+        }
+        if (player.getCooldowns().isOnCooldown(staff)) return;
+        long now = player.level().getGameTime();
+        long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
+        if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+            SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
+            staff.switchSplendorArkhe(player, stack);
+            player.getCooldowns().addCooldown(staff, 10);
+        }
+    }
+
+
     private final Kind kind;
     private final boolean isNetherite;
 
@@ -217,6 +444,18 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (ElementalResonanceManager.isOnSwapCooldown(player)) {
+            return InteractionResultHolder.fail(stack);
+        }
+        if (this.kind == Kind.OMNI) {
+            Element activeElem = getOmniActiveElement(stack);
+            if (activeElem != null) {
+                ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, activeElem);
+                if (delegated != null && delegated.kind() != Kind.OMNI) {
+                    return delegated.useDelegatedFromOmni(level, player, hand, stack, this);
+                }
+            }
+        }
         if (ElementalResonanceManager.isOverloaded(player)) {
             if (!level.isClientSide()) {
                 player.displayClientMessage(
@@ -365,8 +604,67 @@ public final class ArcaneStaffItem extends Item {
         return InteractionResultHolder.consume(stack);
     }
 
+    public InteractionResultHolder<ItemStack> useDelegatedFromOmni(
+            Level level, Player player, InteractionHand hand, ItemStack stack, ArcaneStaffItem omniOwner
+    ) {
+        if (player.getCooldowns().isOnCooldown(omniOwner) || player.getCooldowns().isOnCooldown(this)) {
+            return InteractionResultHolder.fail(stack);
+        }
+        if (isCharged()) {
+            player.startUsingItem(hand);
+            if (!level.isClientSide()) {
+                if (isChannelingKind()) {
+                    ACTIVE_CHANNELING.put(player.getUUID(), stack);
+                }
+                SoundEvent cueSound = switch (kind) {
+                    case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
+                    case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
+                    case GHASTFIRE -> SoundEvents.GHAST_WARN;
+                    default -> SoundEvents.GUARDIAN_AMBIENT;
+                };
+                level.playSound(null, player.blockPosition(), cueSound, SoundSource.PLAYERS, 0.8F, 1.0F);
+            }
+            return InteractionResultHolder.consume(stack);
+        }
+        if (level.isClientSide()) return InteractionResultHolder.sidedSuccess(stack, true);
+        if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
+
+        boolean activated = switch (kind) {
+            case DRAGONFIRE -> shootDragonfire(serverPlayer);
+            case INFERNO -> shootInferno(serverPlayer);
+            case GHASTFIRE -> shootGhastfire(serverPlayer);
+            case WITHER -> shootWither(serverPlayer);
+            case SHULKER -> shootShulker(serverPlayer);
+            case EVOKER -> castFangs(serverPlayer);
+            case FROST -> shootSnowball(serverPlayer, "frost", 1.45F);
+            case NIGHTS_FOCUS -> castNightsFocus(serverPlayer);
+            case WEB -> shootSnowball(serverPlayer, "web", 1.35F);
+            case WIND -> shootWind(serverPlayer);
+            case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, omniOwner.isNetherite() || this.isNetherite);
+            case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, omniOwner.isNetherite() || this.isNetherite);
+            default -> false;
+        };
+        if (!activated) return InteractionResultHolder.fail(stack);
+
+        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+        if (kind != Kind.PEAK_PATROL_SONG) {
+            int cdTicks = isBurstKind() ? Math.max(10, getCooldownTicks() / 3) : getCooldownTicks();
+            ElementalResonanceManager.applyOmniModeCooldown(player, stack, cdTicks);
+        }
+        player.awardStat(Stats.ITEM_USED.get(omniOwner));
+        player.swing(hand, true);
+        return InteractionResultHolder.consume(stack);
+    }
+
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
+        if (kind == Kind.OMNI && entity instanceof Player pl && !hasOmniAbsorbedData(stack)) {
+            java.util.EnumMap<Element, String> snap = LAST_OMNI_CRAFT_SNAPSHOT.remove(pl.getUUID());
+            Integer snapDur = LAST_OMNI_CRAFT_DURABILITY.remove(pl.getUUID());
+            if (snap != null && !snap.isEmpty()) {
+                applyOmniCraftData(stack, snap, snapDur != null ? snapDur : 0);
+            }
+        }
         if (entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
             if (kind == Kind.SPLENDOR) {
                 com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
@@ -498,7 +796,7 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public int getMaxDamage(ItemStack stack) {
-        return StavesConfig.getMaxDurability(kind, isNetherite);
+        return getEffectiveMaxDamage(stack, kind, isNetherite);
     }
 
     private boolean prepareBurst(ServerPlayer player, String tagShots, String tagLast, String tagSlot, int resetTicks) {
@@ -537,6 +835,10 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public int getUseDuration(ItemStack stack, LivingEntity entity) {
+        if (kind == Kind.OMNI) {
+            ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
+            if (delegated != null && delegated.kind() != Kind.OMNI) return delegated.getUseDuration(stack, entity);
+        }
         if (kind == Kind.LIGHTNING) return 60;
         if (kind == Kind.GUARDIAN) return 120; // 3.0s charge (instant with droplets) + 3.0s Hydro torrent
         if (kind == Kind.GHASTFIRE) return 40; // 2 seconds charge
@@ -547,6 +849,10 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public UseAnim getUseAnimation(ItemStack stack) {
+        if (kind == Kind.OMNI) {
+            ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
+            if (delegated != null && delegated.kind() != Kind.OMNI) return delegated.getUseAnimation(stack);
+        }
         if (kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.GHASTFIRE || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK) {
             return UseAnim.NONE;
         }
@@ -555,6 +861,13 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void onUseTick(Level level, LivingEntity entity, ItemStack stack, int count) {
+        if (kind == Kind.OMNI) {
+            ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
+            if (delegated != null && delegated.kind() != Kind.OMNI) {
+                delegated.onUseTick(level, entity, stack, count);
+                return;
+            }
+        }
         if (kind == Kind.THOUSAND_BLAZING_SUNS && level.isClientSide() && entity instanceof Player clientPlayer) {
             if (!(clientPlayer.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
                 int elapsed = getUseDuration(stack, entity) - count;
@@ -695,6 +1008,16 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity entity) {
+        if (kind == Kind.OMNI) {
+            ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
+            if (delegated != null && delegated.kind() != Kind.OMNI) {
+                ItemStack res = delegated.finishUsingItem(stack, level, entity);
+                if (!level.isClientSide() && entity instanceof ServerPlayer sp) {
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, delegated.getCooldownTicks());
+                }
+                return res;
+            }
+        }
         if (!isCharged() || level.isClientSide() || !(entity instanceof ServerPlayer player)) return stack;
         if (kind == Kind.LIGHTNING) {
             finishLightningStorm(player);
@@ -743,6 +1066,13 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
+        if (kind == Kind.OMNI) {
+            ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, getOmniActiveElement(stack));
+            if (delegated != null && delegated.kind() != Kind.OMNI) {
+                delegated.releaseUsing(stack, level, entity, timeLeft);
+                return;
+            }
+        }
         if (level.isClientSide()) {
             if (kind == Kind.SPLENDOR && entity instanceof Player clientPlayer) {
                 int elapsed = getStaffUseElapsedTicks(timeLeft);
@@ -1598,7 +1928,7 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> isNetherite ? "28m (4.5m AoE)" : "28m (3.5m AoE)";
             case DAYBREAK -> isNetherite ? "28m / 12m Vortex (8s)" : "28m / 8m Vortex (8s)";
             case ENGULFING_LIGHTNING -> isNetherite ? "4.5m Eye (15s) / 9m Burst (7s)" : "3.0m Eye (15s) / 6m Burst (7s)";
-            case OMNI -> isNetherite ? "48m (2.5m AoE)" : "36m (1.75m AoE)";
+            case OMNI -> isNetherite ? "48m (3.0m Prismatic AoE)" : "36m (2.5m Prismatic AoE)";
         };
     }
 
@@ -1830,7 +2160,9 @@ public final class ArcaneStaffItem extends Item {
         tooltip.add(Component.empty());
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         Element dispElem = kind == Kind.OMNI ? getOmniActiveElement(stack) : getElement();
-        tooltip.add(Component.literal("  " + getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
+        ArcaneStaffItem dispStaff = (kind == Kind.OMNI && dispElem != null && getOmniAbsorbedStaff(stack, dispElem) != null)
+                ? getOmniAbsorbedStaff(stack, dispElem) : this;
+        tooltip.add(Component.literal("  " + dispStaff.getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.GUARDIAN) {
             tooltip.add(Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.guardian_hp_scale.netherite"
@@ -1844,6 +2176,7 @@ public final class ArcaneStaffItem extends Item {
                     : "tooltip.velorise_staves.splendor.mode_ousia";
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_hp_scale").withStyle(ChatFormatting.AQUA));
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite ? "tooltip.velorise_staves.splendor_burst.netherite" : "tooltip.velorise_staves.splendor_burst"), ChatFormatting.GOLD, 42, "  ");
         } else if (kind == Kind.VORTEX) {
             tooltip.add(Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.vortex_jade_shield.netherite"
@@ -1859,6 +2192,7 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.nights_focus_stars.netherite"
                     : "tooltip.velorise_staves.nights_focus_stars").withStyle(ChatFormatting.BLUE));
+            appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.nights_focus_burst"), ChatFormatting.AQUA, 42, "  ");
         } else if (kind == Kind.THOUSAND_BLAZING_SUNS) {
             appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_aura"), ChatFormatting.GOLD, 44, "  ");
             appendWrappedTooltip(tooltip, Component.translatable("tooltip.velorise_staves.thousand_blazing_suns_bike"), ChatFormatting.YELLOW, 44, "  ");
@@ -1888,7 +2222,7 @@ public final class ArcaneStaffItem extends Item {
                     ? "tooltip.velorise_staves.peak_patrol_song_ulti.netherite"
                     : "tooltip.velorise_staves.peak_patrol_song_ulti"), ChatFormatting.AQUA, 44, "  ");
         }
-        tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.range", dispStaff.getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {
             float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(false)) / 20.0F;
             float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getVortexCooldownTicks(true)) / 20.0F;
@@ -1922,7 +2256,25 @@ public final class ArcaneStaffItem extends Item {
                     ChatFormatting.GOLD, 44, "    ");
         }
         if (kind == Kind.OMNI) {
+            Element activeEl = getOmniActiveElement(stack);
+            if (activeEl != null) {
+                ArcaneStaffItem absorbedActive = getOmniAbsorbedStaff(stack, activeEl);
+                if (absorbedActive != null) {
+                    tooltip.add(Component.translatable("tooltip.velorise_staves.omni_active_staff",
+                            Component.translatable(absorbedActive.getDescriptionId())).withStyle(activeEl.color()));
+                }
+            }
             tooltip.add(Component.translatable("tooltip.velorise_staves.omni_wheel_hint").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.omni_absorbed_header").withStyle(ChatFormatting.GOLD));
+            for (Element el : new Element[]{Element.CRYO, Element.HYDRO, Element.ANEMO, Element.PYRO, Element.GEO, Element.DENDRO, Element.ELECTRO}) {
+                ArcaneStaffItem abs = getOmniAbsorbedStaff(stack, el);
+                Component staffName = abs != null ? Component.translatable(abs.getDescriptionId()) : Component.literal("-");
+                Component line = Component.literal("  " + el.iconString() + " ")
+                        .append(Component.translatable(el.translationKey()).withStyle(el.color()))
+                        .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))
+                        .append(staffName.copy().withStyle(ChatFormatting.WHITE));
+                tooltip.add(line);
+            }
         }
 
         if (flag.isAdvanced()) {
@@ -2013,8 +2365,24 @@ public final class ArcaneStaffItem extends Item {
     }
 
     @Override
+    public boolean canAttackBlock(net.minecraft.world.level.block.state.BlockState state, Level level, BlockPos pos, Player player) {
+        if (player != null && getEffectiveKind(player.getMainHandItem()) == Kind.GUARDIAN) {
+            return false;
+        }
+        return super.canAttackBlock(state, level, pos, player);
+    }
+
+    @Override
+    public float getDestroySpeed(ItemStack stack, net.minecraft.world.level.block.state.BlockState state) {
+        if (getEffectiveKind(stack) == Kind.GUARDIAN) {
+            return 0.0F;
+        }
+        return super.getDestroySpeed(stack, state);
+    }
+
+    @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        if (kind == Kind.PEAK_PATROL_SONG) {
+        if (getEffectiveKind(stack) == Kind.PEAK_PATROL_SONG) {
             if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
                 com.velorise.staves.element.XilonenManager.onMeleeHit(sp, target, stack, isNetherite);
             }

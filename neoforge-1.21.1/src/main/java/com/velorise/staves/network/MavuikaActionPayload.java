@@ -28,6 +28,9 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_NEUVILLETTE_CA_START = 13;
     public static final byte ACTION_NEUVILLETTE_CA_STOP = 14;
     public static final byte ACTION_XILONEN_WALL_LEAP = 15;
+    public static final byte ACTION_XILONEN_DASH = 16;
+    public static final byte ACTION_XILONEN_JUMP = 17;
+    public static final byte ACTION_FURINA_CA_SWITCH = 18;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -78,6 +81,12 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
                 com.velorise.staves.element.NeuvilletteManager.handleLeftClickHold(player, payload.action() == ACTION_NEUVILLETTE_CA_START);
             } else if (payload.action() == ACTION_XILONEN_WALL_LEAP) {
                 com.velorise.staves.element.XilonenManager.handleWallLeap(player);
+            } else if (payload.action() == ACTION_XILONEN_DASH) {
+                com.velorise.staves.element.XilonenManager.handleSkateDash(player);
+            } else if (payload.action() == ACTION_XILONEN_JUMP) {
+                com.velorise.staves.element.XilonenManager.handleSkateJumpBoost(player);
+            } else if (payload.action() == ACTION_FURINA_CA_SWITCH) {
+                com.velorise.staves.item.ArcaneStaffItem.handleFurinaLeftClickHoldSwitch(player);
             }
         });
     }

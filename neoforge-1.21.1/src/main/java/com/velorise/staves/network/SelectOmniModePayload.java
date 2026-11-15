@@ -1,6 +1,7 @@
 package com.velorise.staves.network;
 
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.element.ElementalResonanceManager;
 import com.velorise.staves.entity.OmniOrbEntity;
 import com.velorise.staves.item.ArcaneStaffItem;
 import io.netty.buffer.ByteBuf;
@@ -39,11 +40,15 @@ public record SelectOmniModePayload(byte mode) implements CustomPacketPayload {
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.isOmniStaff(main)) {
             ArcaneStaffItem.setOmniModeIndex(main, clamped);
+            ElementalResonanceManager.syncOmniModeCooldown(player, main, clamped);
+            ElementalResonanceManager.syncPlayerImmediate(player);
             return;
         }
         ItemStack off = player.getOffhandItem();
         if (ArcaneStaffItem.isOmniStaff(off)) {
             ArcaneStaffItem.setOmniModeIndex(off, clamped);
+            ElementalResonanceManager.syncOmniModeCooldown(player, off, clamped);
+            ElementalResonanceManager.syncPlayerImmediate(player);
         }
     }
 }
