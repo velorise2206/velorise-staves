@@ -92,6 +92,15 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item PEAK_PATROL_SONG = registerItem("peak_patrol_song",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, false), false));
 
+    public static final Item THOUSAND_FLOATING_DREAMS = registerItem("thousand_floating_dreams",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, false), false));
+
+    public static final Item TSARITSA_BOW = registerItem("tsaritsa_bow",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_BOW, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.TSARITSA_BOW, false), false));
+
+    public static final Item TSARITSA_SPEAR = registerItem("tsaritsa_spear",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_SPEAR, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.TSARITSA_SPEAR, false), false));
+
     public static final Item FROST_ROD = registerItem("frost_rod",
         new Item(new Item.Properties()));
 
@@ -217,6 +226,15 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item NETHERITE_PEAK_PATROL_SONG = registerItem("netherite_peak_patrol_song",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, true), true));
 
+    public static final Item NETHERITE_THOUSAND_FLOATING_DREAMS = registerItem("netherite_thousand_floating_dreams",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, true), true));
+
+    public static final Item NETHERITE_TSARITSA_BOW = registerItem("netherite_tsaritsa_bow",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_BOW, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.TSARITSA_BOW, true), true));
+
+    public static final Item NETHERITE_TSARITSA_SPEAR = registerItem("netherite_tsaritsa_spear",
+        new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_SPEAR, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.TSARITSA_SPEAR, true), true));
+
     public static final Item NETHERITE_NIGHTS_FOCUS_STAFF = registerItem("netherite_nights_focus_staff",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.NIGHTS_FOCUS, true), true));
 
@@ -262,6 +280,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(GHASTFIRE_STAFF);
             output.accept(THOUSAND_BLAZING_SUNS);
             output.accept(PEAK_PATROL_SONG);
+            output.accept(THOUSAND_FLOATING_DREAMS);
+            output.accept(TSARITSA_BOW);
             output.accept(WITHER_SCEPTER);
             output.accept(SHULKER_SEEKER);
             output.accept(GUARDIAN_LENS);
@@ -287,6 +307,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(NETHERITE_GHASTFIRE_STAFF);
             output.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
             output.accept(NETHERITE_PEAK_PATROL_SONG);
+            output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS);
+            output.accept(NETHERITE_TSARITSA_BOW);
             output.accept(NETHERITE_WITHER_SCEPTER);
             output.accept(NETHERITE_SHULKER_SEEKER);
             output.accept(NETHERITE_GUARDIAN_LENS);
@@ -438,6 +460,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(GHASTFIRE_STAFF);
             entries.accept(THOUSAND_BLAZING_SUNS);
             entries.accept(PEAK_PATROL_SONG);
+            entries.accept(THOUSAND_FLOATING_DREAMS);
+            entries.accept(TSARITSA_BOW);
             entries.accept(WITHER_SCEPTER);
             entries.accept(SHULKER_SEEKER);
             entries.accept(GUARDIAN_LENS);
@@ -458,6 +482,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(NETHERITE_GHASTFIRE_STAFF);
             entries.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
             entries.accept(NETHERITE_PEAK_PATROL_SONG);
+            entries.accept(NETHERITE_THOUSAND_FLOATING_DREAMS);
+            entries.accept(NETHERITE_TSARITSA_BOW);
             entries.accept(NETHERITE_WITHER_SCEPTER);
             entries.accept(NETHERITE_SHULKER_SEEKER);
             entries.accept(NETHERITE_GUARDIAN_LENS);
@@ -590,6 +616,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             if (oldPlayer.getTags().contains("velorise_staves:received_codex")) {
                 newPlayer.addTag("velorise_staves:received_codex");
             }
+            com.velorise.staves.element.PlungeAndGliderManager.copyPersistentState(oldPlayer, newPlayer);
+            com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(newPlayer);
             ElementalGaugeManager.clearEntityState(oldPlayer);
             ElementalGaugeManager.clearEntityState(newPlayer);
             com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(newPlayer);
@@ -604,6 +632,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
             ElementalGaugeManager.syncEntityOnStartTracking(player, player);
             com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
+            com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(player);
             if (!player.getTags().contains("velorise_staves:received_codex")) {
                 player.addTag("velorise_staves:received_codex");
                 player.getInventory().add(new ItemStack(ELEMENTAL_CODEX));

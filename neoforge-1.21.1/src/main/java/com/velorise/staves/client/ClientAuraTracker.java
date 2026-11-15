@@ -40,8 +40,36 @@ public final class ClientAuraTracker {
     public static final int ANIM_VENTI_BURST = 33;
     public static final int ANIM_FURINA_BURST = 34;
     public static final int ANIM_LAYLA_BURST = 35;
+
+    // Nahida (Thousand Floating Dreams)
+    public static final int ANIM_NAHIDA_NA_1 = 40;
+    public static final int ANIM_NAHIDA_NA_2 = 41;
+    public static final int ANIM_NAHIDA_NA_3 = 42;
+    public static final int ANIM_NAHIDA_NA_4 = 43;
+    public static final int ANIM_NAHIDA_CA = 44;
+    public static final int ANIM_NAHIDA_TAP_E = 45;
+    public static final int ANIM_NAHIDA_HOLD_E = 46;
+    public static final int ANIM_NAHIDA_BURST = 47;
+
+    // Tsaritsa (Cryo Archon Bow & Spear)
+    public static final int ANIM_TSARITSA_BOW_NA = 50;
+    public static final int ANIM_TSARITSA_CA_SHOT = 51;
+    public static final int ANIM_TSARITSA_TAP_E = 52;
+    public static final int ANIM_TSARITSA_HOLD_E = 53;
+    public static final int ANIM_TSARITSA_SPEAR_NA_1 = 54;
+    public static final int ANIM_TSARITSA_SPEAR_NA_2 = 55;
+    public static final int ANIM_TSARITSA_SPEAR_NA_3 = 56;
+    public static final int ANIM_TSARITSA_BURST_SUPPORT = 57;
+    public static final int ANIM_TSARITSA_BURST_DPS = 58;
+    public static final int ANIM_TSARITSA_PUNISHMENT = 59;
+    public static final int ANIM_TSARITSA_UNSEAL = 60;
+    public static final int ANIM_TSARITSA_CROWN_FLASH = 61;
+
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
+    public static volatile int localTsaritsaHoldETicks = 0;
+    public static volatile boolean localTsaritsaHoldELocked = false;
+    public static volatile int localTsaritsaBowPullTicks = 0;
     public static long localNextRaidenSwingMs = 0L;
     public static boolean localRaidenAttackHeld = false;
 
@@ -55,6 +83,7 @@ public final class ClientAuraTracker {
         localNextRaidenSwingMs = now + (isCharged ? 550L : 400L);
         return true;
     }
+
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
@@ -110,6 +139,23 @@ public final class ClientAuraTracker {
         public boolean neuvilletteFiringBeam = false;
         public int neuvilletteChargeProgress = 0;
         public int neuvilletteBeamElapsed = 0;
+
+        // Nahida states
+        public boolean nahidaIdleSwing = false;
+        public boolean nahidaViewfinder = false;
+        public long skandhaMarkedUntil = 0L;
+        public int nahidaShrineMask = 0;
+        public long nahidaShrineUntil = 0L;
+
+        // Tsaritsa states
+        public boolean tsaritsaCrownActive = false;
+        public boolean tsaritsaSpearStance = false;
+        public boolean tsaritsaSupportBurst = false;
+        public boolean tsaritsaDpsSeal = false;
+        public boolean tsaritsaNetherite = false;
+        public int tsaritsaPunishmentCharges = 0;
+        public long tsaritsaSyncUntil = 0L;
+        public long tsaritsaCrownFlashUntil = 0L;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -418,6 +464,41 @@ public final class ClientAuraTracker {
             }
             return;
         }
+        if (animType >= 4000 && animType <= 4002) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.nahidaIdleSwing = (animType == 4001);
+            entry.nahidaViewfinder = (animType == 4002);
+            return;
+        }
+        if (animType >= 4100 && animType <= 4101) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.skandhaMarkedUntil = (animType == 4101) ? (now + 25000L) : 0L;
+            return;
+        }
+        if (animType >= 4200 && animType <= 4231) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            int mask = animType - 4200;
+            entry.nahidaShrineMask = mask;
+            entry.nahidaShrineUntil = mask > 0 ? (now + 23500L) : 0L;
+            return;
+        }
+        if (animType >= 5000 && animType <= 5255) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            int mask = animType - 5000;
+            entry.tsaritsaCrownActive = (mask & 1) != 0;
+            entry.tsaritsaSpearStance = (mask & 2) != 0;
+            entry.tsaritsaSupportBurst = (mask & 4) != 0;
+            entry.tsaritsaDpsSeal = (mask & 8) != 0;
+            entry.tsaritsaNetherite = (mask & 16) != 0;
+            entry.tsaritsaPunishmentCharges = (mask >> 5) & 3;
+            entry.tsaritsaSyncUntil = mask > 0 ? (now + 22000L) : 0L;
+            return;
+        }
+        if (animType == ANIM_TSARITSA_CROWN_FLASH) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.tsaritsaCrownFlashUntil = now + 500L;
+            return;
+        }
         if (animType >= 10 && animType <= 14) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             if (entry.nightsFocusUntil <= now) {
@@ -479,6 +560,22 @@ public final class ClientAuraTracker {
             case ANIM_VENTI_BURST -> 1600L;
             case ANIM_FURINA_BURST -> 1600L;
             case ANIM_LAYLA_BURST -> 1600L;
+            case ANIM_NAHIDA_NA_1, ANIM_NAHIDA_NA_2, ANIM_NAHIDA_NA_3 -> 380L;
+            case ANIM_NAHIDA_NA_4 -> 520L;
+            case ANIM_NAHIDA_CA -> 620L;
+            case ANIM_NAHIDA_TAP_E -> 480L;
+            case ANIM_NAHIDA_HOLD_E -> 520L;
+            case ANIM_NAHIDA_BURST -> 1700L;
+            case ANIM_TSARITSA_BOW_NA -> 350L;
+            case ANIM_TSARITSA_CA_SHOT -> 520L;
+            case ANIM_TSARITSA_TAP_E -> 500L;
+            case ANIM_TSARITSA_HOLD_E -> 680L;
+            case ANIM_TSARITSA_SPEAR_NA_1, ANIM_TSARITSA_SPEAR_NA_2 -> 380L;
+            case ANIM_TSARITSA_SPEAR_NA_3 -> 480L;
+            case ANIM_TSARITSA_BURST_SUPPORT -> 1600L;
+            case ANIM_TSARITSA_BURST_DPS -> 1600L;
+            case ANIM_TSARITSA_PUNISHMENT -> 520L;
+            case ANIM_TSARITSA_UNSEAL -> 650L;
             default -> 600L;
         };
         entry.staffAnimType = animType;
@@ -716,7 +813,7 @@ public final class ClientAuraTracker {
             entry.poseCaptured = false;
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && !entry.nahidaIdleSwing && !entry.nahidaViewfinder && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -927,6 +1024,46 @@ public final class ClientAuraTracker {
         return data != null && data.neuvilletteFiringBeam && System.currentTimeMillis() < data.neuvilletteActiveUntil;
     }
 
+    public static boolean isNahidaIdleSwing(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.nahidaIdleSwing;
+    }
+
+    public static boolean isNahidaViewfinder(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.nahidaViewfinder;
+    }
+
+    public static boolean hasSkandhaMark(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && System.currentTimeMillis() < data.skandhaMarkedUntil;
+    }
+
+    public static boolean hasNahidaShrine(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.nahidaShrineMask > 0 && System.currentTimeMillis() < data.nahidaShrineUntil;
+    }
+
+    public static boolean isTsaritsaCrownActive(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.tsaritsaCrownActive && System.currentTimeMillis() < data.tsaritsaSyncUntil;
+    }
+
+    public static boolean isTsaritsaSpearStance(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.tsaritsaSpearStance && System.currentTimeMillis() < data.tsaritsaSyncUntil;
+    }
+
+    public static boolean isTsaritsaSupportBurst(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.tsaritsaSupportBurst && System.currentTimeMillis() < data.tsaritsaSyncUntil;
+    }
+
+    public static boolean isTsaritsaDpsSeal(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.tsaritsaDpsSeal && System.currentTimeMillis() < data.tsaritsaSyncUntil;
+    }
+
     public static void remove(int entityId) {
         DATA.remove(entityId);
         MAVUIKA_STATES.remove(entityId);
@@ -945,6 +1082,9 @@ public final class ClientAuraTracker {
         localOverloaded = false;
         localStaffCount = 0;
         localWindGliderUnlocked = false;
+        localTsaritsaHoldETicks = 0;
+        localTsaritsaHoldELocked = false;
+        localTsaritsaBowPullTicks = 0;
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

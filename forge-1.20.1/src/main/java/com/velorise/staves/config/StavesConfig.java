@@ -624,6 +624,8 @@ public final class StavesConfig {
             case OMNI -> 10.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
             case PEAK_PATROL_SONG -> 4.0D;
+            case THOUSAND_FLOATING_DREAMS -> 4.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
         };
     }
 
@@ -633,6 +635,18 @@ public final class StavesConfig {
             return s.staffDamages[kind.ordinal()];
         }
         return getLocalStaffBasicDamage(kind);
+    }
+
+    public static double getDamage(ArcaneStaffItem.Kind kind) {
+        return getStaffBasicDamage(kind) * getDamageMultiplier();
+    }
+
+    public static double getRange(ArcaneStaffItem.Kind kind) {
+        return switch (kind) {
+            case THOUSAND_FLOATING_DREAMS -> 16.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 28.0D;
+            default -> 24.0D;
+        };
     }
 
     public static float getStaffBaseDamage(ArcaneStaffItem.Kind kind, boolean isNetherite) {
@@ -666,6 +680,8 @@ public final class StavesConfig {
             case OMNI -> OMNI_DAMAGE.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
+            case THOUSAND_FLOATING_DREAMS -> 4.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
         };
     }
 
@@ -698,6 +714,8 @@ public final class StavesConfig {
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
             case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
             case PEAK_PATROL_SONG -> isNetherite ? PEAK_PATROL_SONG_DURABILITY_NETHERITE.get() : PEAK_PATROL_SONG_DURABILITY_BASIC.get();
+            case THOUSAND_FLOATING_DREAMS -> isNetherite ? 500 : 150;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> isNetherite ? 520 : 160;
         };
     }
 
@@ -739,6 +757,8 @@ public final class StavesConfig {
             case OMNI -> OMNI_COOLDOWN.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_COOLDOWN.get();
+            case THOUSAND_FLOATING_DREAMS -> 5.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 6.0D;
         };
     }
 

@@ -96,6 +96,11 @@ public final class OmniWheelOverlay {
     private static boolean wasXilonenDashKeyDown = false;
     private static int furinaAttackHoldTicks = 0;
     private static boolean furinaCaTriggeredThisHold = false;
+    private static int nahidaAttackHoldTicks = 0;
+    private static boolean nahidaCaTriggeredThisHold = false;
+    private static int queuedNahidaFastClicks = 0;
+    private static int queuedTsaritsaFastClicks = 0;
+    private static int tsaritsaSpearHoldTick = 0;
     private static int lastSelectedHotbarSlot = -1;
 
     @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -120,6 +125,28 @@ public final class OmniWheelOverlay {
             event.setSwingHand(false);
             event.setCanceled(true);
             return;
+        }
+        if (mc.player != null && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem());
+            if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+                queuedNahidaFastClicks++;
+                event.setSwingHand(false);
+                event.setCanceled(true);
+                return;
+            }
+            if (effKind == ArcaneStaffItem.Kind.TSARITSA_BOW || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                queuedTsaritsaFastClicks++;
+                event.setSwingHand(false);
+                event.setCanceled(true);
+                return;
+            }
+            if (effKind != null && ClientAuraTracker.isTsaritsaDpsSeal(mc.player.getId())) {
+                event.setSwingHand(true);
+                event.setCanceled(true);
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_NA);
+                return;
+            }
         }
         if (mc.player != null
                 && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
@@ -174,6 +201,14 @@ public final class OmniWheelOverlay {
                 ventiUltiFiredThisHold = false;
                 furinaAttackHoldTicks = 0;
                 furinaCaTriggeredThisHold = false;
+                nahidaAttackHoldTicks = 0;
+                nahidaCaTriggeredThisHold = false;
+                queuedNahidaFastClicks = 0;
+                queuedTsaritsaFastClicks = 0;
+                tsaritsaSpearHoldTick = 0;
+                ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                ClientAuraTracker.localTsaritsaHoldETicks = 0;
+                ClientAuraTracker.localTsaritsaHoldELocked = false;
                 return;
             }
             ItemStack daybreakHeld = ItemStack.EMPTY;
@@ -250,6 +285,87 @@ public final class OmniWheelOverlay {
             furinaCaTriggeredThisHold = false;
         }
 
+        // Reset Tsaritsa Hold E lock once Right-Click is released
+        if (!mc.options.keyUse.isDown()) {
+            ClientAuraTracker.localTsaritsaHoldETicks = 0;
+            ClientAuraTracker.localTsaritsaHoldELocked = false;
+        }
+
+        // Nahida Left-Click (Tap = 4-step Hopscotch NA, Hold = Digital Square CA)
+        ArcaneStaffItem.Kind mainEffKind = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem());
+        boolean holdingNahida = (mainEffKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS);
+        int nahidaFast = queuedNahidaFastClicks;
+        queuedNahidaFastClicks = 0;
+        if (holdingNahida && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            while (mc.options.keyAttack.consumeClick()) {
+                nahidaFast++;
+            }
+            if (mc.options.keyAttack.isDown()) {
+                nahidaAttackHoldTicks++;
+                if (nahidaAttackHoldTicks >= 10 && !nahidaCaTriggeredThisHold) {
+                    nahidaCaTriggeredThisHold = true;
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NAHIDA_CA);
+                }
+            } else if (nahidaAttackHoldTicks > 0) {
+                if (!nahidaCaTriggeredThisHold) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NAHIDA_NA);
+                }
+                nahidaAttackHoldTicks = 0;
+                nahidaCaTriggeredThisHold = false;
+            } else if (nahidaFast > 0) {
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NAHIDA_NA);
+            }
+        } else {
+            nahidaAttackHoldTicks = 0;
+            nahidaCaTriggeredThisHold = false;
+        }
+
+        // Tsaritsa Left-Click (Bow: Tap = NA arrow, Hold = 3-stage CA _pulling_0/1/2 without HUD bar; Spear: melee NA, CA locked)
+        boolean holdingTsaritsa = (mainEffKind == ArcaneStaffItem.Kind.TSARITSA_BOW || mainEffKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR);
+        int tsaritsaFast = queuedTsaritsaFastClicks;
+        queuedTsaritsaFastClicks = 0;
+        if (holdingTsaritsa && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            while (mc.options.keyAttack.consumeClick()) {
+                tsaritsaFast++;
+            }
+            boolean spearStance = (mainEffKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR)
+                    || ClientAuraTracker.isTsaritsaSpearStance(mc.player.getId());
+            if (spearStance) {
+                ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                if (mc.options.keyAttack.isDown()) {
+                    if (tsaritsaSpearHoldTick % 7 == 0) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_NA);
+                    }
+                    tsaritsaSpearHoldTick++;
+                } else {
+                    if (tsaritsaFast > 0 && tsaritsaSpearHoldTick == 0) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_NA);
+                    }
+                    tsaritsaSpearHoldTick = 0;
+                }
+            } else {
+                tsaritsaSpearHoldTick = 0;
+                if (mc.options.keyAttack.isDown() && !mc.player.isUsingItem()) {
+                    ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
+                } else {
+                    int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
+                    ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+                    if (pulled >= 16) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_CA_FULL);
+                    } else if (pulled >= 6) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_CA);
+                    } else if (pulled > 0 || tsaritsaFast > 0) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TSARITSA_NA);
+                    }
+                }
+            }
+        } else {
+            ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+            tsaritsaSpearHoldTick = 0;
+        }
+
         // Item 1: Xilonen Roller-Skate Dash (release & re-press Sprint or Right-Click with 0.5s ICD)
         if (ClientAuraTracker.isXilonenSkating(mc.player.getId()) && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
             if (!wasXilonenSkateActive) {
@@ -277,12 +393,11 @@ public final class OmniWheelOverlay {
                     net.minecraft.world.phys.Vec3 v = mc.player.getDeltaMovement();
                     mc.player.setDeltaMovement(v.x, Math.max(v.y, 0.58D), v.z);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_XILONEN_JUMP);
-                } else if (ClientAuraTracker.localWindGliderUnlocked
+                } else if ((ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(mc.player))
                         && !mc.player.onGround() && !wasOnGround
                         && !mc.player.isInWater() && !mc.player.isInLava()
-                        && !wasCreativeFlying && mc.player.getVehicle() == null
-                        && (ClientAuraTracker.isGliding(mc.player.getId())
-                        || com.velorise.staves.element.PlungeAndGliderManager.hasClearAirBeneath(mc.player, 0.35D))) {
+                        && !mc.player.onClimbable() && mc.player.getVehicle() == null) {
+                    ClientAuraTracker.localWindGliderUnlocked = true;
                     if (mc.player.getAbilities().flying) {
                         mc.player.getAbilities().flying = false;
                         mc.player.onUpdateAbilities();
@@ -290,6 +405,9 @@ public final class OmniWheelOverlay {
                     if (mc.player.isFallFlying()) {
                         mc.player.stopFallFlying();
                     }
+                    boolean nextGlide = !ClientAuraTracker.isGliding(mc.player.getId());
+                    ClientAuraTracker.triggerStaffAnimation(mc.player.getId(),
+                            nextGlide ? ClientAuraTracker.ANIM_GLIDER_START : ClientAuraTracker.ANIM_GLIDER_STOP);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER);
                 }
             }

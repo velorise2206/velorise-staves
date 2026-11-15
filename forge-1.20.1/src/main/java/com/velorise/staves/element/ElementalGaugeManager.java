@@ -632,7 +632,7 @@ public final class ElementalGaugeManager {
         if (source != null && (isProjectileDamageSource(source) || source.is(DamageTypeTags.IS_EXPLOSION)) && isGeoInnateMob(target)) {
             res += 0.50F;
         }
-        if (hasSuperconductDebuff(target, now)) {
+        if (hasSuperconductDebuff(target, now) || TsaritsaManager.getActivePolestarFieldAt(target.level(), target.position()) != null) {
             res -= 0.40F;
         }
         if (isNearJadeShieldAura(target)) {
@@ -813,6 +813,8 @@ public final class ElementalGaugeManager {
         RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
         RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
         ArchonUltiManager.clearEntityState(id);
+        NahidaManager.clearPlayerState(id);
+        TsaritsaManager.clearPlayer(id);
         PETRIFIED_UNTIL.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
@@ -859,6 +861,8 @@ public final class ElementalGaugeManager {
     }
 
     public static void clearAll() {
+        NahidaManager.clearAll();
+        TsaritsaManager.clearAll();
         GAUGES.clear();
         FROZEN_GAUGES.clear();
         QUICKEN_GAUGES.clear();
@@ -2442,7 +2446,13 @@ public final class ElementalGaugeManager {
         if (attacker == null) return 0;
         int mainLvl = getElementalMasteryLevel(attacker.getMainHandItem());
         int base = mainLvl > 0 ? mainLvl : getElementalMasteryLevel(attacker.getOffhandItem());
-        return base + ElementalResonanceManager.getBonusElementalMasteryLevels(attacker);
+        int bonus = ElementalResonanceManager.getBonusElementalMasteryLevels(attacker)
+                + NahidaManager.getBonusEmLevels(attacker);
+        if (attacker instanceof Player p) {
+            Element heldElem = p.getMainHandItem().getItem() instanceof ArcaneStaffItem s ? s.getElement() : null;
+            bonus += TsaritsaManager.getBonusEmLevels(p, heldElem);
+        }
+        return base + bonus;
     }
 
     public static int getElementalProtectionLevel(ItemStack stack) {
@@ -3733,7 +3743,7 @@ public final class ElementalGaugeManager {
 
     public static int getReactionCooldownTicks(ElementalReaction reaction) {
         return switch (reaction) {
-            case OVERLOADED, SUPERCONDUCT, SHATTER, SWIRL -> 10; // 0.5s (10 ticks)
+            case OVERLOADED, SUPERCONDUCT, STELLAR_CONDUCT, SHATTER, SWIRL, STELLAR_SWIRL -> 10; // 0.5s (10 ticks)
             case ELECTRO_CHARGED -> 10; // 0.5s (10 ticks)
             case BLOOM, REVERSE_BLOOM, HYPERBLOOM, BURGEON -> 10; // 0.5s (10 ticks)
             case CRYSTALLIZE -> 20; // 1.0s (20 ticks - Genshin shard drop cooldown)
@@ -3768,6 +3778,18 @@ public final class ElementalGaugeManager {
             float baseDamage
     ) {
         applyElement(level, target, attackElement, attackU, attacker, baseDamage, true);
+    }
+
+    public static void applyElement(
+            LivingEntity target,
+            Element attackElement,
+            @Nullable Player attacker,
+            float baseDamage,
+            float attackU
+    ) {
+        if (target == null || !(target.level() instanceof ServerLevel level)) return;
+        ServerPlayer sp = attacker instanceof ServerPlayer s ? s : null;
+        applyElement(level, target, attackElement, attackU, sp, baseDamage, false, null);
     }
 
     public static void applyElement(
@@ -4045,6 +4067,9 @@ public final class ElementalGaugeManager {
         if (!physicalMelee) {
             effectiveDamage = ElementalResonanceManager.applyOffensiveElementalResonance(
                     level, target, attackElement, attacker, effectiveDamage);
+            if (attacker != null) {
+                effectiveDamage = TsaritsaManager.applyStellarAndCrownMultipliers(attacker, target, attackElement, effectiveDamage);
+            }
         }
 
         DamageSource elemDmgSource = getElementalDamageSource(level, attacker, null, attackElement);
@@ -4245,6 +4270,7 @@ public final class ElementalGaugeManager {
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.AGGRAVATE;
                     notifyResonanceReaction(ElementalReaction.AGGRAVATE, attacker, now);
+                    NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
                     if (attacker != null) com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
                     level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.8F, 1.6F);
@@ -4268,6 +4294,7 @@ public final class ElementalGaugeManager {
                     effectiveDamage += bonus;
                     catalyzeReaction = ElementalReaction.SPREAD;
                     notifyResonanceReaction(ElementalReaction.SPREAD, attacker, now);
+                    NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
                     if (attacker != null) com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
                     level.sendParticles(ParticleTypes.GLOW, target.getX(), target.getY() + 1.0D, target.getZ(), 20, 0.35D, 0.4D, 0.35D, 0.05D);
                     level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.CHORUS_FLOWER_GROW, SoundSource.PLAYERS, 0.9F, 1.4F);
@@ -4454,6 +4481,13 @@ public final class ElementalGaugeManager {
         Element auraElement = findPrimaryReactiveAura(targetGauges, attackElement);
         if (auraElement != null && auraElement != attackElement) {
             ElementalReaction reaction = determineReaction(auraElement, attackElement);
+            if (attacker != null && TsaritsaManager.hasTsaritsaInParty(attacker)) {
+                if (reaction == ElementalReaction.SUPERCONDUCT) {
+                    reaction = ElementalReaction.STELLAR_CONDUCT;
+                } else if (reaction == ElementalReaction.SWIRL && (auraElement == Element.CRYO || attackElement == Element.CRYO)) {
+                    reaction = ElementalReaction.STELLAR_SWIRL;
+                }
+            }
             if (reaction != ElementalReaction.NONE) {
                 boolean alreadyBurning = reaction == ElementalReaction.BURNING && BURNING_UNTIL.containsKey(targetId);
                 if (!alreadyBurning && !checkReactionIcd(target, reaction, now)) {
@@ -4667,6 +4701,12 @@ public final class ElementalGaugeManager {
                 if (reactionMult > 1.0F) {
                     reactionMult *= ampEmMult;
                 }
+                if ((reaction == ElementalReaction.STELLAR_CONDUCT || reaction == ElementalReaction.STELLAR_SWIRL) && attacker != null) {
+                    reactionMult *= TsaritsaManager.getStellarReactionMultiplier(attacker);
+                    if (reaction == ElementalReaction.STELLAR_SWIRL) {
+                        reactionMult *= 1.15F;
+                    }
+                }
                 float finalDmg = effectiveDamage * reactionMult;
                 ElementalReaction displayReaction = (catalyzeReaction != null && reaction == ElementalReaction.QUICKEN)
                         ? catalyzeReaction : reaction;
@@ -4813,6 +4853,9 @@ public final class ElementalGaugeManager {
             notifyResonanceReaction(reaction, attacker, level.getGameTime());
         }
         onHydroReactionTriggered(level, target.position(), reaction, auraElement, null, attacker);
+        if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
+            NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
+        }
         Vec3 pos = target.position();
         int emLevel = getElementalMasteryLevel(attacker);
         float transEmMult = getTransformativeMultiplier(emLevel);
@@ -4841,6 +4884,34 @@ public final class ElementalGaugeManager {
             case ELECTRO_CHARGED -> {
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
                 level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.7F);
+            }
+            case STELLAR_CONDUCT -> {
+                long debuffEnd = level.getGameTime() + 240L;
+                SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
+                float stellarMult = attacker != null ? TsaritsaManager.getStellarReactionMultiplier(attacker) : 1.0F;
+                float rawStellarDmg = (float) (2.5F * dmgMult) * transEmMult * stellarMult;
+                TsaritsaManager.onStellarConductTriggered(level, target, attacker, rawStellarDmg);
+                AABB box = target.getBoundingBox().inflate(4.5D);
+                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
+                    if (isOmniInnate(nearby)) {
+                        notifyOmniImmuneEnvironmental(level, nearby);
+                        continue;
+                    }
+                    float dmg = applyMobElementalResistance(nearby, Element.CRYO, rawStellarDmg);
+                    nearby.invulnerableTime = 0;
+                    LivingEntity scCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createTypedDamageSource(
+                            level.damageSources().freeze(), scCredit, ElementalReaction.STELLAR_CONDUCT, Element.CRYO), dmg);
+                    SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
+                    if (nearby != target && dmg > 0.0F) {
+                        syncAuras(nearby, getEntityElements(nearby.getUUID()), Element.CRYO, Element.ELECTRO, ElementalReaction.STELLAR_CONDUCT, dmg);
+                    }
+                }
+            }
+            case STELLAR_SWIRL -> {
+                float stellarMult = attacker != null ? TsaritsaManager.getStellarReactionMultiplier(attacker) : 1.0F;
+                float swirlAoeDmg = (float) (4.0F * 1.15F * dmgMult) * transEmMult * stellarMult;
+                TsaritsaManager.onStellarSwirlTriggered(level, target, attacker, swirlAoeDmg);
             }
             case SUPERCONDUCT -> {
                 level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 1.2D, 0.5D, 1.2D, 0.03D);
@@ -5037,6 +5108,10 @@ public final class ElementalGaugeManager {
         XilonenManager.tick(server, serverNow);
         PlungeAndGliderManager.tick(server, serverNow);
         NeuvilletteManager.tick(server, serverNow);
+        NahidaManager.tick(server, serverNow);
+        for (ServerLevel lvl : server.getAllLevels()) {
+            TsaritsaManager.tickServer(lvl);
+        }
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());

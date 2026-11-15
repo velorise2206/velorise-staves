@@ -768,6 +768,31 @@ public final class ClientAuraRenderer {
             }
         }
         Minecraft mcLocal = Minecraft.getInstance();
+        if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
+            float sway = Mth.sin(ageInTicks * 0.12F);
+            model.body.xRot = 0.06F * sway;
+            model.rightLeg.xRot = -1.25F + 0.18F * sway;
+            model.leftLeg.xRot = -1.25F - 0.18F * sway;
+            model.rightArm.xRot = -0.82F + 0.05F * sway;
+            model.leftArm.xRot = -0.82F + 0.05F * sway;
+            model.rightArm.zRot = 0.22F;
+            model.leftArm.zRot = -0.22F;
+            return;
+        }
+        if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
+            model.rightArm.xRot = -1.55F + model.head.xRot * 0.65F;
+            model.leftArm.xRot = -1.55F + model.head.xRot * 0.65F;
+            model.rightArm.yRot = -0.42F + model.head.yRot * 0.5F;
+            model.leftArm.yRot = 0.42F + model.head.yRot * 0.5F;
+            return;
+        }
+        if (mcLocal.player != null && entity.getId() == mcLocal.player.getId()
+                && ClientAuraTracker.localTsaritsaBowPullTicks > 0
+                && !ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) {
+            float pull01 = Mth.clamp(ClientAuraTracker.localTsaritsaBowPullTicks / 16.0F, 0.0F, 1.0F);
+            applyDaybreakBowHumanoidPose(model, entity.getMainArm(), pull01);
+            return;
+        }
         if (mcLocal.player != null && entity.getId() == mcLocal.player.getId()
                 && ClientAuraTracker.ventiUltiHoldTicks > 0 && hasDaybreakEquipped(entity)) {
             float pull01 = Mth.clamp(ClientAuraTracker.ventiUltiHoldTicks / 60.0F, 0.0F, 1.0F);
@@ -1132,6 +1157,87 @@ public final class ClientAuraRenderer {
             model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.38F);
             model.head.xRot -= 0.20F * w;
             model.hat.copyFrom(model.head);
+        } else if (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4) {
+            float hop = Mth.sin(t * (float) Math.PI);
+            float side = (activeAnim % 2 == 0) ? 1.0F : -1.0F;
+            model.body.yRot = side * 0.25F * hop;
+            model.rightArm.xRot = -0.95F * hop;
+            model.leftArm.xRot = -0.95F * hop;
+            model.rightArm.zRot = 0.48F * hop;
+            model.leftArm.zRot = -0.48F * hop;
+            if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_NA_4) {
+                model.rightArm.xRot = -1.65F * hop;
+                model.leftArm.xRot = -1.65F * hop;
+                model.rightArm.yRot = -0.35F * hop;
+                model.leftArm.yRot = 0.35F * hop;
+            } else if (side > 0) {
+                model.rightLeg.xRot = -0.75F * hop;
+            } else {
+                model.leftLeg.xRot = -0.75F * hop;
+            }
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA || activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
+            float w = Mth.sin(t * (float) Math.PI);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.55F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, Mth.cos(t * (float) Math.PI * 2.0F) * 0.45F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.95F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST) {
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
+            if (t < 0.55F) {
+                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.35F);
+                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.35F);
+                model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.68F);
+                model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.68F);
+                model.head.xRot += 0.18F * w;
+            } else {
+                float open = smoothStep01((t - 0.55F) / 0.30F);
+                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, Mth.lerp(open, -1.35F, -1.85F));
+                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, Mth.lerp(open, -1.35F, -1.85F));
+                model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.65F * open);
+                model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.65F * open);
+            }
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+            float w = Mth.sin(t * (float) Math.PI);
+            if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
+                model.body.yRot = -0.38F * w;
+                model.rightArm.xRot = -1.45F * w;
+                model.rightArm.yRot = Mth.lerp(t, 0.55F, -0.65F) * w;
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2) {
+                model.body.yRot = 0.38F * w;
+                model.rightArm.xRot = -1.55F * w;
+                model.rightArm.yRot = Mth.lerp(t, -0.65F, 0.55F) * w;
+            } else {
+                model.body.xRot = 0.24F * w;
+                model.rightArm.xRot = -1.75F * w;
+                model.rightArm.yRot = -0.12F * w;
+            }
+        } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_TAP_E || activeAnim == ClientAuraTracker.ANIM_TSARITSA_HOLD_E) {
+            float w = Mth.sin(t * (float) Math.PI);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.25F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.45F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT) {
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.15F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.15F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.82F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.82F);
+            model.head.xRot -= 0.16F * w;
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_DPS) {
+            float w = (t < 0.18F) ? smoothStep01(t / 0.18F) : (t < 0.82F ? 1.0F : 1.0F - smoothStep01((t - 0.82F) / 0.18F));
+            if (t < 0.52F) {
+                float prep = smoothStep01(t / 0.52F);
+                model.body.yRot = 0.38F * prep * w;
+                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, Mth.lerp(prep, -1.60F, -2.90F));
+                model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.22F * prep);
+                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.15F * prep);
+            } else {
+                float hurl = smoothStep01(Math.min(1.0F, (t - 0.52F) / 0.24F));
+                model.body.yRot = Mth.lerp(hurl, 0.38F, -0.34F) * w;
+                model.body.xRot = 0.22F * hurl * w;
+                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, Mth.lerp(hurl, -2.90F, -0.55F));
+                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, Mth.lerp(hurl, -1.15F, 0.35F));
+            }
         }
     }
 
@@ -1815,6 +1921,20 @@ public final class ClientAuraRenderer {
 
     public static float getDaybreakPullProgress(LivingEntity entity, ItemStack stack) {
         return isDaybreakPulling(entity, stack) ? getDaybreakPullProgress(entity, 0.0F) : 0.0F;
+    }
+
+    public static boolean isTsaritsaPulling(LivingEntity entity, ItemStack stack) {
+        if (entity == null || stack == null || stack.isEmpty()) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || entity.getId() != mc.player.getId()) return false;
+        if (ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) return false;
+        return ClientAuraTracker.localTsaritsaBowPullTicks > 0
+                && (entity.getMainHandItem() == stack || entity.getOffhandItem() == stack);
+    }
+
+    public static float getTsaritsaPullProgress(LivingEntity entity, ItemStack stack) {
+        if (!isTsaritsaPulling(entity, stack)) return 0.0F;
+        return Mth.clamp(ClientAuraTracker.localTsaritsaBowPullTicks / 16.0F, 0.0F, 1.0F);
     }
 
     private static void applyDaybreakBowHumanoidPose(net.minecraft.client.model.HumanoidModel<?> model, net.minecraft.world.entity.HumanoidArm bowArm, float pull01) {
@@ -2658,6 +2778,7 @@ public final class ClientAuraRenderer {
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
         renderMavuikaSunAuraRing(entity, poseStack, buffer);
         renderRaidenEyeRing(entity, poseStack, buffer);
+        renderNahidaAndTsaritsaEffects(entity, poseStack, buffer);
 
         boolean showIcons = true;
         try {
@@ -3290,6 +3411,56 @@ public final class ClientAuraRenderer {
 
     private static void renderChargeProgressHud(GuiGraphics guiGraphics, Minecraft mc) {
         if (mc.player == null) return;
+        if (ClientAuraTracker.isNahidaViewfinder(mc.player.getId())) {
+            int sw = guiGraphics.guiWidth();
+            int sh = guiGraphics.guiHeight();
+            int cx = sw / 2;
+            int cy = sh / 2;
+            int hw = 52;
+            int hh = 36;
+            int col = 0xDD48F56E;
+            int starCol = 0xFFB8FFCA;
+            guiGraphics.fill(cx - hw, cy - hh, cx - hw + 14, cy - hh + 2, col);
+            guiGraphics.fill(cx - hw, cy - hh, cx - hw + 2, cy - hh + 14, col);
+            guiGraphics.fill(cx + hw - 14, cy - hh, cx + hw, cy - hh + 2, col);
+            guiGraphics.fill(cx + hw - 2, cy - hh, cx + hw, cy - hh + 14, col);
+            guiGraphics.fill(cx - hw, cy + hh - 2, cx - hw + 14, cy + hh, col);
+            guiGraphics.fill(cx - hw, cy + hh - 14, cx - hw + 2, cy + hh, col);
+            guiGraphics.fill(cx + hw - 14, cy + hh - 2, cx + hw, cy + hh, col);
+            guiGraphics.fill(cx + hw - 2, cy + hh - 14, cx + hw, cy + hh, col);
+            for (int[] corner : new int[][]{{cx - hw - 3, cy - hh - 3}, {cx + hw + 1, cy - hh - 3}, {cx - hw - 3, cy + hh + 1}, {cx + hw + 1, cy + hh + 1}}) {
+                guiGraphics.fill(corner[0], corner[1] + 1, corner[0] + 3, corner[1] + 2, starCol);
+                guiGraphics.fill(corner[0] + 1, corner[1], corner[0] + 2, corner[1] + 3, starCol);
+            }
+            guiGraphics.fill(cx - 6, cy - 1, cx - 2, cy + 1, col);
+            guiGraphics.fill(cx + 2, cy - 1, cx + 6, cy + 1, col);
+            guiGraphics.fill(cx - 1, cy - 6, cx + 1, cy - 2, col);
+            guiGraphics.fill(cx - 1, cy + 2, cx + 1, cy + 6, col);
+            return;
+        }
+        if (ClientAuraTracker.localTsaritsaHoldETicks > 0 && !ClientAuraTracker.localTsaritsaHoldELocked) {
+            float pct = Mth.clamp(ClientAuraTracker.localTsaritsaHoldETicks / 16.0F, 0.0F, 1.0F);
+            int sw = guiGraphics.guiWidth();
+            int sh = guiGraphics.guiHeight();
+            int cx = sw / 2;
+            int cy = sh / 2;
+            int crownY = cy + 10;
+            int crownCol = 0xFF7DD3FC;
+            guiGraphics.fill(cx - 5, crownY + 3, cx + 5, crownY + 5, crownCol);
+            guiGraphics.fill(cx - 5, crownY + 1, cx - 3, crownY + 3, crownCol);
+            guiGraphics.fill(cx - 1, crownY, cx + 1, crownY + 3, 0xFFE0F2FE);
+            guiGraphics.fill(cx + 3, crownY + 1, cx + 5, crownY + 3, crownCol);
+            int barW = 40;
+            int barH = 3;
+            int bx = cx - barW / 2;
+            int by = cy + 17;
+            guiGraphics.fill(bx - 1, by - 1, bx + barW + 1, by + barH + 1, 0x90000000);
+            int fillW = Math.round(barW * pct);
+            if (fillW > 0) {
+                guiGraphics.fill(bx, by, bx + fillW, by + barH, pct >= 1.0F ? 0xFFE0F2FE : 0xFF38BDF8);
+            }
+            return;
+        }
         if (ClientAuraTracker.isNeuvilletteChargingOrFiring(mc.player.getId())) {
             ClientAuraTracker.AuraDisplayData nd = ClientAuraTracker.get(mc.player.getId());
             if (nd != null) {
@@ -3350,7 +3521,10 @@ public final class ClientAuraRenderer {
             guiGraphics.flush();
             return;
         }
-        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
+                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                || staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             return;
         }
         if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
@@ -4996,6 +5170,192 @@ public final class ClientAuraRenderer {
             String sampleText = "▲ -36% RES";
             int tw = mc.font.width(sampleText);
             guiGraphics.drawString(mc.font, sampleText, sw / 2 - tw / 2, by + (skating ? 7 : 0), 0xFF55F2E2, true);
+        }
+    }
+
+    private static void emitDoubleQuad(
+            VertexConsumer vc, Matrix4f mat,
+            float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float x3, float y3, float z3,
+            float x4, float y4, float z4,
+            int r, int g, int b, int a
+    ) {
+        emitCrystalQuad(vc, mat, x1, y1, z1, r, g, b, a, x2, y2, z2, r, g, b, a, x3, y3, z3, r, g, b, a, x4, y4, z4, r, g, b, a);
+        emitCrystalQuad(vc, mat, x4, y4, z4, r, g, b, a, x3, y3, z3, r, g, b, a, x2, y2, z2, r, g, b, a, x1, y1, z1, r, g, b, a);
+    }
+
+    private static void renderNahidaAndTsaritsaEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        long now = System.currentTimeMillis();
+        int activeAnim = (d != null && now < d.staffAnimUntil) ? d.staffAnimType : 0;
+        boolean idleSwing = ClientAuraTracker.isNahidaIdleSwing(id);
+        boolean skandha = ClientAuraTracker.hasSkandhaMark(id);
+        boolean shrine = ClientAuraTracker.hasNahidaShrine(id);
+        boolean crown = ClientAuraTracker.isTsaritsaCrownActive(id);
+        boolean supportBurst = ClientAuraTracker.isTsaritsaSupportBurst(id) || activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT;
+        boolean dpsSeal = ClientAuraTracker.isTsaritsaDpsSeal(id);
+
+        if (!idleSwing && !skandha && !shrine && !crown && !supportBurst && !dpsSeal && activeAnim < 40) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+
+        if (idleSwing && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            float sway = Mth.sin(time * 0.12F) * 0.10F;
+            poseStack.translate(0.0F, 0.0F, sway);
+            Matrix4f mat = poseStack.last().pose();
+            emitDoubleQuad(vc, mat, -0.40F, 0.48F, -0.03F, -0.35F, 0.48F, 0.03F, -0.35F, 2.35F, 0.03F, -0.40F, 2.35F, -0.03F, 72, 245, 110, 210);
+            emitDoubleQuad(vc, mat, 0.35F, 0.48F, -0.03F, 0.40F, 0.48F, 0.03F, 0.40F, 2.35F, 0.03F, 0.35F, 2.35F, -0.03F, 72, 245, 110, 210);
+            emitDoubleQuad(vc, mat, -0.46F, 2.32F, -0.05F, 0.46F, 2.32F, -0.05F, 0.46F, 2.38F, 0.05F, -0.46F, 2.38F, 0.05F, 120, 255, 140, 220);
+            emitDoubleQuad(vc, mat, -0.44F, 0.48F, -0.18F, 0.44F, 0.48F, -0.18F, 0.44F, 0.52F, 0.18F, -0.44F, 0.52F, 0.18F, 52, 215, 90, 225);
+            poseStack.popPose();
+        }
+
+        if (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            Matrix4f mat = poseStack.last().pose();
+            int step = activeAnim - ClientAuraTracker.ANIM_NAHIDA_NA_1 + 1;
+            float tileZ = -0.65F * step;
+            emitDoubleQuad(vc, mat, -0.45F, 0.04F, tileZ - 0.45F, 0.45F, 0.04F, tileZ - 0.45F, 0.45F, 0.04F, tileZ + 0.45F, -0.45F, 0.04F, tileZ + 0.45F, 72, 255, 115, 185);
+            if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_NA_4) {
+                emitDoubleQuad(vc, mat, -0.65F, 0.85F, -1.25F, 0.65F, 0.85F, -1.25F, 0.65F, 1.65F, -1.25F, -0.65F, 1.65F, -1.25F, 110, 255, 145, 210);
+            }
+            poseStack.popPose();
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            Matrix4f mat = poseStack.last().pose();
+            float z = -0.95F;
+            emitDoubleQuad(vc, mat, -0.55F, 0.75F, z, 0.55F, 0.75F, z, 0.55F, 0.81F, z, -0.55F, 0.81F, z, 80, 255, 120, 230);
+            emitDoubleQuad(vc, mat, -0.55F, 1.65F, z, 0.55F, 1.65F, z, 0.55F, 1.71F, z, -0.55F, 1.71F, z, 80, 255, 120, 230);
+            emitDoubleQuad(vc, mat, -0.55F, 0.75F, z, -0.49F, 0.75F, z, -0.49F, 1.71F, z, -0.55F, 1.71F, z, 80, 255, 120, 230);
+            emitDoubleQuad(vc, mat, 0.49F, 0.75F, z, 0.55F, 0.75F, z, 0.55F, 1.71F, z, 0.49F, 1.71F, z, 80, 255, 120, 230);
+            poseStack.popPose();
+        }
+
+        if (skandha) {
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.55F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 4.0F));
+            Matrix4f mat = poseStack.last().pose();
+            float r = Math.max(0.36F, entity.getBbWidth() * 0.62F);
+            for (int i = 0; i < 4; i++) {
+                float a0 = (float) (i * Math.PI * 0.5D);
+                float a1 = a0 + 0.45F;
+                emitDoubleQuad(vc, mat,
+                        Mth.cos(a0) * r, -0.10F, Mth.sin(a0) * r,
+                        Mth.cos(a1) * r, 0.0F, Mth.sin(a1) * r,
+                        Mth.cos(a0) * (r + 0.14F), 0.12F, Mth.sin(a0) * (r + 0.14F),
+                        Mth.cos(a0 - 0.45F) * r, 0.0F, Mth.sin(a0 - 0.45F) * r,
+                        72, 245, 110, 225);
+            }
+            poseStack.popPose();
+        }
+
+        if (shrine && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 1.5F));
+            Matrix4f mat = poseStack.last().pose();
+            int segs = 16;
+            float rIn = 1.35F, rOut = 1.52F;
+            for (int i = 0; i < segs; i++) {
+                float a0 = (float) (i * Math.PI * 2.0D / segs);
+                float a1 = (float) ((i + 1) * Math.PI * 2.0D / segs);
+                emitDoubleQuad(vc, mat,
+                        Mth.cos(a0) * rIn, 0.05F, Mth.sin(a0) * rIn,
+                        Mth.cos(a0) * rOut, 0.05F, Mth.sin(a0) * rOut,
+                        Mth.cos(a1) * rOut, 0.05F, Mth.sin(a1) * rOut,
+                        Mth.cos(a1) * rIn, 0.05F, Mth.sin(a1) * rIn,
+                        85, 255, 130, 175);
+            }
+            poseStack.popPose();
+        }
+
+        if (crown && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            float bob = Mth.sin(time * 0.15F) * 0.05F;
+            poseStack.translate(0.0F, entity.getBbHeight() + 0.42F + bob, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.2F));
+            Matrix4f mat = poseStack.last().pose();
+            float hs = 0.25F;
+            float baseH = 0.11F;
+            float peakH = 0.24F;
+            boolean flash = (entity.tickCount % 40) < 5;
+            int br = flash ? 210 : 65;
+            int bg = flash ? 250 : 185;
+            int bb = 255;
+            int pr = flash ? 255 : 165;
+            int pg = 250;
+            int pb = 255;
+            float[][] faces = new float[][]{
+                    {-hs, -hs,  hs, -hs},
+                    { hs,  hs, -hs,  hs},
+                    {-hs,  hs, -hs, -hs},
+                    { hs, -hs,  hs,  hs}
+            };
+            for (float[] f : faces) {
+                float x0 = f[0], z0 = f[1], x1 = f[2], z1 = f[3];
+                float mx = (x0 + x1) * 0.5F, mz = (z0 + z1) * 0.5F;
+                emitDoubleQuad(vc, mat, x0, 0.0F, z0, x1, 0.0F, z1, x1, baseH, z1, x0, baseH, z0, br, bg, bb, 235);
+                emitDoubleQuad(vc, mat, x0, baseH, z0, x1, baseH, z1, mx, peakH, mz, mx, peakH, mz, pr, pg, pb, 245);
+            }
+            poseStack.popPose();
+        }
+
+        if (supportBurst && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.68F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.translate(0.0F, 0.0F, 0.18F);
+            Matrix4f mat = poseStack.last().pose();
+            float flap = Mth.sin(time * 0.25F) * 0.12F;
+            for (int side = -1; side <= 1; side += 2) {
+                for (int b = 0; b < 3; b++) {
+                    float yOff = 0.25F - b * 0.22F;
+                    float xOut = side * (0.95F - b * 0.14F);
+                    float zOut = 0.28F + flap * side;
+                    emitDoubleQuad(vc, mat,
+                            side * 0.10F, yOff, 0.0F,
+                            xOut, yOff + 0.28F, zOut,
+                            xOut * 0.88F, yOff - 0.08F, zOut,
+                            side * 0.10F, yOff - 0.12F, 0.0F,
+                            145, 225, 255, 205);
+                }
+            }
+            poseStack.popPose();
+        }
+
+        if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_DPS && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() + 0.35F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-25.0F));
+            Matrix4f mat = poseStack.last().pose();
+            emitDoubleQuad(vc, mat, -0.08F, 0.0F, -1.2F, 0.08F, 0.0F, -1.2F, 0.02F, 0.0F, 1.4F, -0.02F, 0.0F, 1.4F, 155, 235, 255, 240);
+            emitDoubleQuad(vc, mat, 0.0F, -0.08F, -1.2F, 0.0F, 0.08F, -1.2F, 0.0F, 0.02F, 1.4F, 0.0F, -0.02F, 1.4F, 195, 245, 255, 240);
+            poseStack.popPose();
+        }
+        if (dpsSeal && !isFirstPersonSelf) {
+            poseStack.pushPose();
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.55F, 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-time * 3.5F));
+            Matrix4f mat = poseStack.last().pose();
+            for (int i = 0; i < 3; i++) {
+                float ang = (float) (i * Math.PI * 2.0D / 3.0D);
+                float sx = Mth.cos(ang) * 0.78F;
+                float sz = Mth.sin(ang) * 0.78F;
+                emitDoubleQuad(vc, mat, sx - 0.09F, -0.09F, sz, sx + 0.09F, -0.09F, sz, sx + 0.09F, 0.09F, sz, sx - 0.09F, 0.09F, sz, 175, 195, 255, 230);
+            }
+            poseStack.popPose();
         }
     }
 

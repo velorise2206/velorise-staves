@@ -578,6 +578,8 @@ public final class StavesConfig {
             case GHASTFIRE -> 6.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
             case PEAK_PATROL_SONG -> 4.0D;
+            case THOUSAND_FLOATING_DREAMS -> 4.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
             case WITHER -> 4.0D;
             case SHULKER -> 6.0D;
             case GUARDIAN -> 2.0D;
@@ -603,6 +605,18 @@ public final class StavesConfig {
         return getLocalStaffBasicDamage(kind);
     }
 
+    public static double getDamage(ArcaneStaffItem.Kind kind) {
+        return getStaffBasicDamage(kind) * getDamageMultiplier();
+    }
+
+    public static double getRange(ArcaneStaffItem.Kind kind) {
+        return switch (kind) {
+            case THOUSAND_FLOATING_DREAMS -> 16.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 28.0D;
+            default -> 24.0D;
+        };
+    }
+
     public static float getStaffBaseDamage(ArcaneStaffItem.Kind kind, boolean isNetherite) {
         return (float) (getStaffBasicDamage(kind) * (isNetherite ? 1.5D : 1.0D));
     }
@@ -620,6 +634,8 @@ public final class StavesConfig {
             case GHASTFIRE -> GHASTFIRE_DAMAGE.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
+            case THOUSAND_FLOATING_DREAMS -> 4.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
             case WITHER -> WITHER_DAMAGE.get();
             case SHULKER -> SHULKER_DAMAGE.get();
             case GUARDIAN -> GUARDIAN_DAMAGE.get();
@@ -653,6 +669,8 @@ public final class StavesConfig {
             case GHASTFIRE -> isNetherite ? GHASTFIRE_DURABILITY_NETHERITE.get() : GHASTFIRE_DURABILITY_BASIC.get();
             case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
             case PEAK_PATROL_SONG -> isNetherite ? PEAK_PATROL_SONG_DURABILITY_NETHERITE.get() : PEAK_PATROL_SONG_DURABILITY_BASIC.get();
+            case THOUSAND_FLOATING_DREAMS -> isNetherite ? 500 : 150;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> isNetherite ? 520 : 160;
             case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
@@ -693,6 +711,8 @@ public final class StavesConfig {
             case GHASTFIRE -> GHASTFIRE_COOLDOWN.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_COOLDOWN.get();
+            case THOUSAND_FLOATING_DREAMS -> 5.0D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 6.0D;
             case WITHER -> WITHER_COOLDOWN.get();
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();

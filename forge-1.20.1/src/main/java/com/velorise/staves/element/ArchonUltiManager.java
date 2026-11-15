@@ -76,6 +76,8 @@ public final class ArchonUltiManager {
         triggerLaylaUlti(player);
         XilonenManager.triggerXilonenUlti(player);
         NeuvilletteManager.triggerNeuvilletteUlti(player);
+        NahidaManager.triggerNahidaUlti(player);
+        TsaritsaManager.triggerTsaritsaUlti(player);
     }
 
     /** Plays Venti hold-[R] wind-charge cadence feedback while charging Skyward Harp. */
@@ -418,7 +420,9 @@ public final class ArchonUltiManager {
         return now < ZHONGLI_IFRAME_UNTIL.getOrDefault(id, 0L)
                 || now < ULTI_IFRAME_UNTIL.getOrDefault(id, 0L)
                 || XilonenManager.isXilonenIframeActive(sp)
-                || NeuvilletteManager.isNeuvilletteIframeActive(sp);
+                || NeuvilletteManager.isNeuvilletteIframeActive(sp)
+                || NahidaManager.isNahidaIframeActive(sp)
+                || TsaritsaManager.isTsaritsaIframeActive(sp);
     }
 
     /** Clears per-player Archon Burst state on death, disconnect, or dimension reset. */
