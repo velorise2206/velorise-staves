@@ -238,6 +238,31 @@ public final class ArcaneStaffItem extends Item {
         return item instanceof ArcaneStaffItem neth ? neth : base;
     }
 
+    public boolean isArchon() {
+        return isArchonKind(this.kind);
+    }
+
+    public static boolean isArchonKind(@Nullable Kind k) {
+        return k == Kind.THOUSAND_BLAZING_SUNS
+                || k == Kind.SPLENDOR
+                || k == Kind.DAYBREAK
+                || k == Kind.ENGULFING_LIGHTNING
+                || k == Kind.THOUSAND_FLOATING_DREAMS
+                || k == Kind.TSARITSA_BOW
+                || k == Kind.TSARITSA_SPEAR
+                || k == Kind.VORTEX;
+    }
+
+    public static boolean isOmniTridentAbsorbed(ItemStack omniStack) {
+        if (!isOmniStaff(omniStack)) return false;
+        CompoundTag tag = readCustomTag(omniStack);
+        if (tag != null && tag.contains(TAG_OMNI_STAVES, 10)) {
+            CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
+            return "minecraft:trident".equals(stavesTag.getString(Element.HYDRO.name()));
+        }
+        return false;
+    }
+
     public static boolean hasOmniAbsorbedData(ItemStack stack) {
         CompoundTag tag = readCustomTag(stack);
         return tag != null && tag.contains(TAG_OMNI_STAVES, 10);
@@ -250,8 +275,11 @@ public final class ArcaneStaffItem extends Item {
         if (tag != null && tag.contains(TAG_OMNI_STAVES, 10)) {
             CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
             String id = stavesTag.getString(element.name());
+            if ("minecraft:trident".equals(id) && element == Element.HYDRO) {
+                return null;
+            }
             Item found = lookupItemById(id);
-            if (found instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+            if (found instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI && !staff.isArchon()) {
                 return omniNeth ? getNetheriteCounterpart(staff) : staff;
             }
         }
@@ -264,7 +292,16 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public static void recordAbsorbedStaff(ItemStack omniStack, ItemStack staffStack) {
-        if (!isOmniStaff(omniStack) || !(staffStack.getItem() instanceof ArcaneStaffItem staff) || staff.kind() == Kind.OMNI) return;
+        if (!isOmniStaff(omniStack) || staffStack == null || staffStack.isEmpty()) return;
+        if (staffStack.is(Items.TRIDENT)) {
+            updateCustomTag(omniStack, tag -> {
+                CompoundTag staves = tag.contains(TAG_OMNI_STAVES, 10) ? tag.getCompound(TAG_OMNI_STAVES) : new CompoundTag();
+                staves.putString(Element.HYDRO.name(), "minecraft:trident");
+                tag.put(TAG_OMNI_STAVES, staves);
+            });
+            return;
+        }
+        if (!(staffStack.getItem() instanceof ArcaneStaffItem staff) || staff.kind() == Kind.OMNI || staff.isArchon()) return;
         Element elem = staff.getElement();
         if (elem == null) return;
         String idStr = getItemIdString(staff);
@@ -342,7 +379,10 @@ public final class ArcaneStaffItem extends Item {
         int totalDur = 0;
         for (int i = 1; i <= 9 && i < menu.slots.size(); i++) {
             ItemStack s = menu.getSlot(i).getItem();
-            if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+            if (!s.isEmpty() && s.is(Items.TRIDENT) && !found.containsKey(Element.HYDRO)) {
+                found.put(Element.HYDRO, "minecraft:trident");
+                totalDur += s.getMaxDamage();
+            } else if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI && !staff.isArchon()) {
                 Element el = staff.getElement();
                 if (el != null && !found.containsKey(el)) {
                     found.put(el, getItemIdString(staff));
@@ -369,7 +409,10 @@ public final class ArcaneStaffItem extends Item {
         if (matrix != null) {
             for (int i = 0; i < matrix.getContainerSize(); i++) {
                 ItemStack s = matrix.getItem(i);
-                if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI) {
+                if (!s.isEmpty() && s.is(Items.TRIDENT) && !found.containsKey(Element.HYDRO)) {
+                    found.put(Element.HYDRO, "minecraft:trident");
+                    totalDur += s.getMaxDamage();
+                } else if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI && !staff.isArchon()) {
                     Element el = staff.getElement();
                     if (el != null && !found.containsKey(el)) {
                         found.put(el, getItemIdString(staff));
@@ -451,6 +494,19 @@ public final class ArcaneStaffItem extends Item {
         }
         if (this.kind == Kind.OMNI) {
             Element activeElem = getOmniActiveElement(stack);
+            if (activeElem == Element.HYDRO && isOmniTridentAbsorbed(stack)) {
+                if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+                if (level.isClientSide()) return InteractionResultHolder.sidedSuccess(stack, true);
+                if (player instanceof ServerPlayer sp && shootOmniTrident(sp, stack, this.isNetherite)) {
+                    stack.hurtAndBreak(1, sp, p -> p.broadcastBreakEvent(hand));
+                    int cdTicks = Math.max(10, (int) Math.round(2.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, cdTicks);
+                    sp.awardStat(Stats.ITEM_USED.get(this));
+                    sp.swing(hand, true);
+                    return InteractionResultHolder.consume(stack);
+                }
+                return InteractionResultHolder.fail(stack);
+            }
             if (activeElem != null) {
                 ArcaneStaffItem delegated = getOmniAbsorbedStaff(stack, activeElem);
                 if (delegated != null && delegated.kind() != Kind.OMNI) {
@@ -572,7 +628,8 @@ public final class ArcaneStaffItem extends Item {
             case OMNI -> shootOmni(serverPlayer, stack);
             case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, isNetherite);
             case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, isNetherite);
-            case ECHO, LIGHTNING, THOUSAND_BLAZING_SUNS, DAYBREAK, ENGULFING_LIGHTNING, THOUSAND_FLOATING_DREAMS, TSARITSA_BOW, TSARITSA_SPEAR -> false;
+            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F);
+            case ECHO, LIGHTNING, THOUSAND_BLAZING_SUNS, ENGULFING_LIGHTNING, THOUSAND_FLOATING_DREAMS, TSARITSA_BOW, TSARITSA_SPEAR -> false;
         };
 
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -687,6 +744,7 @@ public final class ArcaneStaffItem extends Item {
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
             case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, effNeth);
             case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, effNeth);
+            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F);
             default -> false;
         };
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -813,7 +871,7 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR;
+        return kind == Kind.ECHO || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR;
     }
 
     private boolean isChannelingKind() {
@@ -1422,11 +1480,42 @@ public final class ArcaneStaffItem extends Item {
         return true;
     }
 
+    public static void performDaybreakLeftClickShot(ServerPlayer player, float charge01) {
+        if (player == null || !player.isAlive() || ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        ItemStack stack = player.getMainHandItem();
+        if (getEffectiveKind(stack) != Kind.DAYBREAK) {
+            stack = player.getOffhandItem();
+            if (getEffectiveKind(stack) != Kind.DAYBREAK) return;
+        }
+        if (!(stack.getItem() instanceof ArcaneStaffItem heldStaff)) return;
+        ArcaneStaffItem daybreakStaff = heldStaff.kind() == Kind.OMNI
+                ? getOmniAbsorbedStaff(stack, Element.ANEMO)
+                : heldStaff;
+        if (daybreakStaff == null) return;
+        if (daybreakStaff.shootDaybreakBreeze(player, charge01)) {
+            InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
+            stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
+            player.awardStat(Stats.ITEM_USED.get(heldStaff));
+        }
+    }
+
+    private boolean shootOmniTrident(ServerPlayer player, ItemStack omniStack, boolean isNetherite) {
+        ServerLevel level = (ServerLevel) player.level();
+        net.minecraft.world.entity.projectile.ThrownTrident trident =
+                new net.minecraft.world.entity.projectile.ThrownTrident(level, player, new ItemStack(Items.TRIDENT));
+        trident.pickup = net.minecraft.world.entity.projectile.AbstractArrow.Pickup.CREATIVE_ONLY;
+        String tag = isNetherite ? "netherite_omni_trident" : "omni_trident";
+        trident.getPersistentData().putString(ArcaneStaffEvents.TAG_KIND, tag);
+        Vec3 dir = player.getLookAngle().normalize();
+        trident.shoot(dir.x, dir.y, dir.z, 2.5F, 0.0F);
+        ArcaneStaffEvents.markRange(trident, player.position(), 32.0D);
+        level.addFreshEntity(trident);
+        level.playSound(null, player.blockPosition(), SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 1.0F, 1.0F);
+        return true;
+    }
+
     public boolean triggerDaybreakVortexFromKey(ServerPlayer player, ItemStack stack) {
         if (kind != Kind.DAYBREAK || ElementalResonanceManager.isOverloaded(player) || player.getCooldowns().isOnCooldown(this)) {
-            return false;
-        }
-        if (!castDaybreakVortex(player)) {
             return false;
         }
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
@@ -1434,6 +1523,11 @@ public final class ArcaneStaffItem extends Item {
         stack.hurtAndBreak(2, player, p -> p.broadcastBreakEvent(hand));
         ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
         player.awardStat(Stats.ITEM_USED.get(this));
+        com.velorise.staves.element.ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
+            if (player.isAlive()) {
+                castDaybreakVortex(player);
+            }
+        });
         return true;
     }
 
@@ -1651,6 +1745,7 @@ public final class ArcaneStaffItem extends Item {
         }
 
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
+        com.velorise.staves.audio.CharacterVoiceManager.playZhongliVoice(player, holdJadeShield);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
             level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);
@@ -2222,7 +2317,7 @@ public final class ArcaneStaffItem extends Item {
             return true;
         }
         Kind effKind = getEffectiveKind(stack);
-        if (effKind == Kind.THOUSAND_FLOATING_DREAMS || effKind == Kind.TSARITSA_BOW || effKind == Kind.TSARITSA_SPEAR) {
+        if (effKind == Kind.DAYBREAK || effKind == Kind.THOUSAND_FLOATING_DREAMS || effKind == Kind.TSARITSA_BOW || effKind == Kind.TSARITSA_SPEAR) {
             return true;
         }
         if (effKind == Kind.ENGULFING_LIGHTNING && entity.level().isClientSide()
@@ -2272,12 +2367,8 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.literal("  Right-Click: Summon Hydro Droplets").withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.literal("  Press [R]: Hydro Burst & Spawn Droplets").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.SPLENDOR) {
-            String modeKey = isSplendorPneuma(stack)
-                    ? "tooltip.velorise_staves.splendor.mode_pneuma"
-                    : "tooltip.velorise_staves.splendor.mode_ousia";
-            tooltip.add(Component.translatable("tooltip.velorise_staves.splendor_arkhe", Component.translatable(modeKey)).withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.literal("  ").append(Component.translatable("tooltip.velorise_staves.splendor_arkhe")).withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.literal("  Right-Click: Summon Salon Members / Singer").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Charged Attack (Hold Left-Click): Switch Ousia / Pneuma").withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.literal("  Press [R]: Universal Revelry (Fanfare Aura)").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.VORTEX) {
             tooltip.add(Component.literal("  Tap Right-Click: Summon Stone Stele").withStyle(ChatFormatting.GOLD));
@@ -2292,7 +2383,8 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.literal("  Hold / Double-Tap Right-Click: Ride Flamestrider").withStyle(ChatFormatting.YELLOW));
             tooltip.add(Component.literal("  Press [R]: Sunfell Meteor (Fighting Spirit)").withStyle(ChatFormatting.RED));
         } else if (kind == Kind.DAYBREAK) {
-            tooltip.add(Component.literal("  Hold Right-Click: Anemo Charged Arrow").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.literal("  Left-Click (Hold): Anemo Charged Arrow").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.literal("  Right-Click: Skyward Sonnet (Updraft)").withStyle(ChatFormatting.GREEN));
             tooltip.add(Component.literal("  Press [R]: Wind's Grand Ode (Vortex)").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.ENGULFING_LIGHTNING) {
             tooltip.add(Component.literal("  Right-Click: Eye of Stormy Judgment").withStyle(ChatFormatting.LIGHT_PURPLE));
@@ -2484,7 +2576,7 @@ public final class ArcaneStaffItem extends Item {
     public boolean canAttackBlock(net.minecraft.world.level.block.state.BlockState state, Level level, BlockPos pos, Player player) {
         if (player != null) {
             Kind k = getEffectiveKind(player.getMainHandItem());
-            if (k == Kind.GUARDIAN || k == Kind.SPLENDOR || k == Kind.THOUSAND_FLOATING_DREAMS || k == Kind.TSARITSA_BOW || k == Kind.TSARITSA_SPEAR) {
+            if (k == Kind.DAYBREAK || k == Kind.GUARDIAN || k == Kind.SPLENDOR || k == Kind.THOUSAND_FLOATING_DREAMS || k == Kind.TSARITSA_BOW || k == Kind.TSARITSA_SPEAR) {
                 return false;
             }
         }

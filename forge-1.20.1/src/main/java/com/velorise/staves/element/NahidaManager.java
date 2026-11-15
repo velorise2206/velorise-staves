@@ -615,11 +615,12 @@ public final class NahidaManager {
                 ? Math.max(20, (int) Math.round(baseCdTicks * 0.90D))
                 : baseCdTicks;
         st.ultiCooldownUntilTick = now + adjustedCd;
-        st.iframeUntilTick = now + 34L;
-        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
-        ArchonUltiManager.grantUltiIframe(player, 34);
+        st.iframeUntilTick = now + 42L; // 2.0s (40 ticks) Burst cast animation + root
+        player.invulnerableTime = Math.max(player.invulnerableTime, 42);
+        ArchonUltiManager.applyBurstRoot(player, 40);
         markActiveAction(player, now);
 
+        // Count Pyro / Electro / Hydro staves in player's inventory + nearby allies
         int pyro = 0;
         int electro = 0;
         int hydro = 0;
@@ -632,44 +633,54 @@ public final class NahidaManager {
             else if (el == Element.ELECTRO) electro++;
             else if (el == Element.HYDRO) hydro++;
         }
+        // Netherite C1 (The Seed of Stored Knowledge): +1 bonus count to Pyro, Electro, and Hydro simultaneously!
         if (isNeth) {
             pyro++;
             electro++;
             hydro++;
         }
 
-        long bonusHydroTicks = hydro >= 2 ? 160L : (hydro == 1 ? 100L : 0L);
-        long totalDurationTicks = 300L + bonusHydroTicks;
-        st.shrineUntilTick = now + totalDurationTicks;
-        st.shrineCenter = player.position();
-        st.shrineRadius = isNeth ? 15.0D : 12.0D;
-        st.shrineNetherite = isNeth;
-        st.shrinePyroCount = Math.min(2, pyro);
-        st.shrineElectroCount = Math.min(2, electro);
-        st.shrineHydroCount = Math.min(2, hydro);
+        long bonusHydroTicks = hydro >= 2 ? 160L : (hydro == 1 ? 100L : 0L); // +5s / +8s duration
+        long totalDurationTicks = 300L + bonusHydroTicks; // 15s base -> up to 23s
+        final int fPyro = Math.min(2, pyro);
+        final int fElectro = Math.min(2, electro);
+        final int fHydro = Math.min(2, hydro);
 
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
 
-        int shrineMask = 1 | (st.shrinePyroCount > 0 ? 2 : 0) | (st.shrineElectroCount > 0 ? 4 : 0)
-                | (st.shrineHydroCount > 0 ? 8 : 0) | (st.shrineNetherite ? 16 : 0);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
-        ModNetwork.sendNahidaShrine(level, st.shrineCenter, st.shrineRadius, (int) totalDurationTicks, shrineMask);
-        syncPlayerStateToClients(player, st, now, true);
-
-        for (int i = 0; i < 36; i++) {
-            double ang = (Math.PI * 2.0D * i) / 36.0D;
-            double rx = st.shrineCenter.x + Math.cos(ang) * (st.shrineRadius * 0.75D);
-            double rz = st.shrineCenter.z + Math.sin(ang) * (st.shrineRadius * 0.75D);
-            level.sendParticles(DENDRO_GLOW_DUST, rx, st.shrineCenter.y + 0.5D, rz, 3, 0.25D, 0.6D, 0.25D, 0.03D);
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, rx, st.shrineCenter.y + 2.5D, rz, 2, 0.3D, 0.5D, 0.3D, 0.02D);
-        }
-        level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.25F);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
-        player.displayClientMessage(
-                Component.translatable("message.velorise_staves.nahida_shrine_activated").withStyle(ChatFormatting.GREEN),
-                true
-        );
+
+        ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
+            if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            long eruptNow = sl.getGameTime();
+            st.shrineUntilTick = eruptNow + totalDurationTicks;
+            st.shrineCenter = player.position();
+            st.shrineRadius = isNeth ? 15.0D : 12.0D;
+            st.shrineNetherite = isNeth;
+            st.shrinePyroCount = fPyro;
+            st.shrineElectroCount = fElectro;
+            st.shrineHydroCount = fHydro;
+
+            int shrineMask = 1 | (st.shrinePyroCount > 0 ? 2 : 0) | (st.shrineElectroCount > 0 ? 4 : 0)
+                    | (st.shrineHydroCount > 0 ? 8 : 0) | (st.shrineNetherite ? 16 : 0);
+            ModNetwork.sendNahidaShrine(sl, st.shrineCenter, st.shrineRadius, (int) totalDurationTicks, shrineMask);
+            syncPlayerStateToClients(player, st, eruptNow, true);
+
+            for (int i = 0; i < 36; i++) {
+                double ang = (Math.PI * 2.0D * i) / 36.0D;
+                double rx = st.shrineCenter.x + Math.cos(ang) * (st.shrineRadius * 0.75D);
+                double rz = st.shrineCenter.z + Math.sin(ang) * (st.shrineRadius * 0.75D);
+                sl.sendParticles(DENDRO_GLOW_DUST, rx, st.shrineCenter.y + 0.5D, rz, 3, 0.25D, 0.6D, 0.25D, 0.03D);
+                sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, rx, st.shrineCenter.y + 2.5D, rz, 2, 0.3D, 0.5D, 0.3D, 0.02D);
+            }
+            sl.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.25F);
+            player.displayClientMessage(
+                    Component.translatable("message.velorise_staves.nahida_shrine_activated").withStyle(ChatFormatting.GREEN),
+                    true
+            );
+        });
         return true;
     }
 

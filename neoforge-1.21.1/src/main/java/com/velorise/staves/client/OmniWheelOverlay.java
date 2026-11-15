@@ -102,6 +102,7 @@ public final class OmniWheelOverlay {
     private static boolean nahidaCaTriggeredThisHold = false;
     private static int queuedNahidaFastClicks = 0;
     private static int queuedTsaritsaFastClicks = 0;
+    private static int queuedDaybreakFastClicks = 0;
     private static int tsaritsaSpearHoldTick = 0;
     private static int lastSelectedHotbarSlot = -1;
 
@@ -136,6 +137,12 @@ public final class OmniWheelOverlay {
             ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem());
             if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
                 queuedNahidaFastClicks++;
+                event.setSwingHand(false);
+                event.setCanceled(true);
+                return;
+            }
+            if (effKind == ArcaneStaffItem.Kind.DAYBREAK) {
+                queuedDaybreakFastClicks++;
                 event.setSwingHand(false);
                 event.setCanceled(true);
                 return;
@@ -224,6 +231,8 @@ public final class OmniWheelOverlay {
             queuedTsaritsaFastClicks = 0;
             tsaritsaSpearHoldTick = 0;
             ClientAuraTracker.localTsaritsaBowPullTicks = 0;
+            ClientAuraTracker.localDaybreakBowPullTicks = 0;
+            queuedDaybreakFastClicks = 0;
             ClientAuraTracker.localTsaritsaHoldETicks = 0;
             ClientAuraTracker.localTsaritsaHoldELocked = false;
             return;
@@ -234,8 +243,9 @@ public final class OmniWheelOverlay {
             mc.player.attackAnim = 0.0F;
             mc.player.oAttackAnim = 0.0F;
         }
-        ClientAuraTracker.ventiUltiHoldTicks = 0;
-        ventiUltiFiredThisHold = false;
+        if (ClientAuraTracker.isFiveStarBurstRootActive(mc.player.getId())) {
+            mc.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+        }
         while (MAVUIKA_ULTI_KEY.consumeClick()) {
             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
         }
@@ -341,7 +351,9 @@ public final class OmniWheelOverlay {
                 }
             } else {
                 tsaritsaSpearHoldTick = 0;
-                if (mc.options.keyAttack.isDown() && !mc.player.isUsingItem()) {
+                boolean leftPhysDown = mc.options.keyAttack.isDown()
+                        || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+                if (leftPhysDown) {
                     ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
                 } else {
                     int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
@@ -358,6 +370,37 @@ public final class OmniWheelOverlay {
         } else {
             ClientAuraTracker.localTsaritsaBowPullTicks = 0;
             tsaritsaSpearHoldTick = 0;
+        }
+
+        // Venti / Daybreak Chronicles Left-Click (Tap = Quick Wind Shot, Hold = 3-stage Charged Aim Shot _pulling_0/1/2)
+        boolean holdingDaybreak = (mainEffKind == ArcaneStaffItem.Kind.DAYBREAK);
+        int daybreakFast = queuedDaybreakFastClicks;
+        queuedDaybreakFastClicks = 0;
+        if (holdingDaybreak && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            while (mc.options.keyAttack.consumeClick()) {
+                daybreakFast++;
+            }
+            boolean leftPhysDown = mc.options.keyAttack.isDown()
+                    || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+            if (leftPhysDown) {
+                ClientAuraTracker.localDaybreakBowPullTicks = Math.min(60, ClientAuraTracker.localDaybreakBowPullTicks + 1);
+                ClientAuraTracker.ventiUltiHoldTicks = ClientAuraTracker.localDaybreakBowPullTicks;
+            } else {
+                int pulled = ClientAuraTracker.localDaybreakBowPullTicks;
+                ClientAuraTracker.localDaybreakBowPullTicks = 0;
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
+                if (pulled >= 16) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_CA_FULL);
+                } else if (pulled >= 6) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_CA);
+                } else if (pulled > 0 || daybreakFast > 0) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_NA);
+                }
+            }
+        } else {
+            ClientAuraTracker.localDaybreakBowPullTicks = 0;
+            ClientAuraTracker.ventiUltiHoldTicks = 0;
         }
 
         // Item 1: Xilonen Roller-Skate Dash (release & re-press Sprint or Right-Click with 0.5s ICD)
@@ -769,15 +812,23 @@ public final class OmniWheelOverlay {
         Component titleComp;
         Component subComp;
         if (previewElem != null) {
-            ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
-            if (absorbed != null) {
+            if (previewElem == Element.HYDRO && ArcaneStaffItem.isOmniTridentAbsorbed(omniStack)) {
+                boolean nethOmni = omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite();
                 titleComp = Component.translatable(previewElem.translationKey())
                         .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
-                        .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
-                subComp = ArcaneStaffItem.getAbsorbedStaffWheelStats(absorbed);
+                        .append(Component.translatable(net.minecraft.world.item.Items.TRIDENT.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
+                subComp = Component.literal((nethOmni ? "Netherite · " : "") + "CD: 2s").withStyle(net.minecraft.ChatFormatting.GRAY);
             } else {
-                titleComp = Component.translatable(previewElem.translationKey());
-                subComp = Component.translatable("wheel.velorise_staves.omni.locked");
+                ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
+                if (absorbed != null) {
+                    titleComp = Component.translatable(previewElem.translationKey())
+                            .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                            .append(Component.translatable(absorbed.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
+                    subComp = ArcaneStaffItem.getAbsorbedStaffWheelStats(absorbed);
+                } else {
+                    titleComp = Component.translatable(previewElem.translationKey());
+                    subComp = Component.translatable("wheel.velorise_staves.omni.locked");
+                }
             }
         } else {
             boolean netheriteOmni = omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite();

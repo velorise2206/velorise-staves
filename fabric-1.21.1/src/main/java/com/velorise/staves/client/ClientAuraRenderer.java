@@ -473,7 +473,7 @@ public final class ClientAuraRenderer {
 
         // 3. 3D Wind Glider (Genshin-accurate horizontal glide canopy with subtle articulated feather motion)
         if (gliding) {
-            ResourceLocation gliderTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/entity/wind_glider.png");
+            ResourceLocation gliderTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, StavesConfig.isUse32pxGliderTexture() ? "textures/entity/wind_glider_32px.png" : "textures/entity/wind_glider.png");
             VertexConsumer vc = buffer.getBuffer(RenderType.entityCutoutNoCull(gliderTex));
             poseStack.pushPose();
             poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
@@ -1070,7 +1070,8 @@ public final class ClientAuraRenderer {
                 model.leftArm.xRot = -1.25F + climb * 0.45F;
                 return;
             }
-            if (!entity.onGround()) {
+            double dy = entity.getDeltaMovement().y;
+            if (!entity.onGround() && (dy < -0.45D || dy > 0.15D)) {
                 model.body.xRot = 0.30F;
                 model.rightLeg.xRot = -0.82F;
                 model.leftLeg.xRot = -0.82F;
@@ -1177,6 +1178,13 @@ public final class ClientAuraRenderer {
             applyDaybreakBowHumanoidPose(model, entity.getMainArm(), pull01);
             return;
         }
+        if (mcLocal.player != null && entity.getId() == mcLocal.player.getId()
+                && ClientAuraTracker.localDaybreakBowPullTicks > 0
+                && hasDaybreakEquipped(entity)) {
+            float pull01 = Mth.clamp(ClientAuraTracker.localDaybreakBowPullTicks / 16.0F, 0.0F, 1.0F);
+            applyDaybreakBowHumanoidPose(model, entity.getMainArm(), pull01);
+            return;
+        }
 
 
         if (activeAnim <= 0 || data == null) return;
@@ -1209,46 +1217,39 @@ public final class ClientAuraRenderer {
             model.rightLeg.xRot = Mth.lerp(stanceW, model.rightLeg.xRot, -0.18F);
             model.leftLeg.zRot = Mth.lerp(stanceW, model.leftLeg.zRot, -0.08F);
             model.rightLeg.zRot = Mth.lerp(stanceW, model.rightLeg.zRot, 0.08F);
-            if (t < 0.22F) {
-                // Phase 1: reach inward to chest/heart, grip inverted blade straight down
-                float reach = smoothStep01(t / 0.22F);
-                mainPart.xRot = Mth.lerp(reach, mainPart.xRot, -1.25F);
-                mainPart.yRot = Mth.lerp(reach, mainPart.yRot, castDir * -0.92F);
-                mainPart.zRot = Mth.lerp(reach, mainPart.zRot, castDir * 0.25F);
-                offPart.xRot = Mth.lerp(reach, offPart.xRot, -0.95F);
-                offPart.yRot = Mth.lerp(reach, offPart.yRot, offDir * -0.45F);
+            if (t < 0.625F) {
+                // Phase 1 (0.0s - 1.0s): Reach inward to chest/heart, grip Musou Isshin hilt
+                float reach = smoothStep01(Math.min(1.0F, t / 0.35F));
+                model.body.xRot = Mth.lerp(reach, model.body.xRot, -0.15F);
+                mainPart.xRot = Mth.lerp(reach, mainPart.xRot, -1.1F);
+                mainPart.yRot = Mth.lerp(reach, mainPart.yRot, castDir * -0.6F);
+                mainPart.zRot = Mth.lerp(reach, mainPart.zRot, castDir * 0.4F);
+                offPart.xRot = Mth.lerp(reach, offPart.xRot, -0.85F);
+                offPart.yRot = Mth.lerp(reach, offPart.yRot, offDir * -0.35F);
                 offPart.zRot = Mth.lerp(reach, offPart.zRot, offDir * 0.20F);
-                model.head.xRot += 0.16F * reach;
+                model.head.xRot = Mth.lerp(reach, model.head.xRot, 0.2F);
                 model.hat.copyFrom(model.head);
-            } else if (t < 0.62F) {
-                // Phase 2: draw Musou Isshin blade straight vertically UP out of chest
-                float pull = smoothStep01((t - 0.22F) / 0.40F);
+            } else if (t < 0.8125F) {
+                // Phase 2 (1.0s - 1.3s): Draw Musou Isshin blade out of chest with torso twist
+                float pull = smoothStep01((t - 0.625F) / 0.1875F);
                 float tremor = Mth.sin(ageInTicks * 2.4F) * 0.02F * pull;
-                mainPart.xRot = Mth.lerp(pull, -1.25F, -2.45F) + tremor;
-                mainPart.yRot = castDir * Mth.lerp(pull, -0.92F, -0.58F);
-                mainPart.zRot = castDir * Mth.lerp(pull, 0.25F, 0.08F);
-                offPart.xRot = Mth.lerp(pull, -0.95F, -0.55F);
-                offPart.yRot = offDir * Mth.lerp(pull, -0.45F, -0.22F);
-                offPart.zRot = offDir * Mth.lerp(pull, 0.20F, 0.30F);
-                model.head.xRot += Mth.lerp(pull, 0.16F, -0.10F);
+                model.body.xRot = Mth.lerp(pull, -0.15F, 0.0F);
+                model.body.yRot = castDir * Mth.lerp(pull, 0.0F, -0.4F);
+                mainPart.xRot = Mth.lerp(pull, -1.1F, -2.2F) + tremor;
+                mainPart.yRot = castDir * Mth.lerp(pull, -0.6F, 0.2F);
+                mainPart.zRot = castDir * Mth.lerp(pull, 0.4F, 0.1F);
+                offPart.xRot = Mth.lerp(pull, -0.85F, -0.35F);
+                model.head.xRot = Mth.lerp(pull, 0.2F, 0.0F);
                 model.hat.copyFrom(model.head);
-            } else if (t < 0.72F) {
-                // Phase 3a: flip sword level to opposite shoulder (-castDir)
-                float prep = smoothStep01((t - 0.62F) / 0.10F);
-                mainPart.xRot = Mth.lerp(prep, -2.45F, -1.42F);
-                mainPart.yRot = castDir * Mth.lerp(prep, -0.58F, -1.05F);
-                mainPart.zRot = castDir * Mth.lerp(prep, 0.08F, -0.45F);
-                offPart.xRot = Mth.lerp(prep, -0.55F, 0.10F);
-                model.body.yRot = castDir * 0.32F * prep;
             } else {
-                // Phase 3b: straight horizontal cleave from opposite side (-castDir) to sword-hand side (+castDir)
-                float slash = smoothStep01((t - 0.72F) / 0.16F);
-                float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.42F);
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -1.05F, 1.25F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.45F, 0.35F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(slash, 0.10F, 0.42F));
-                model.body.yRot = castDir * Mth.lerp(slash, 0.32F, -0.42F) * w;
+                // Phase 3 (1.3s - 1.6s): Decisive Musou Shinsetsu forward-diagonal cleave
+                float slash = smoothStep01((t - 0.8125F) / 0.1875F);
+                model.body.xRot = Mth.lerp(slash, 0.0F, 0.2F);
+                model.body.yRot = castDir * Mth.lerp(slash, -0.4F, 0.25F);
+                mainPart.xRot = Mth.lerp(slash, -2.2F, -0.3F);
+                mainPart.yRot = castDir * Mth.lerp(slash, 0.2F, 1.2F);
+                mainPart.zRot = castDir * Mth.lerp(slash, 0.1F, -0.5F);
+                offPart.xRot = Mth.lerp(slash, -0.35F, 0.30F);
             }
             return;
         }
@@ -1559,14 +1560,15 @@ public final class ClientAuraRenderer {
             model.head.xRot -= 0.18F * w;
             model.hat.copyFrom(model.head);
         } else if (activeAnim == ClientAuraTracker.ANIM_FURINA_BURST) {
-            float w = (t < 0.18F) ? smoothStep01(t / 0.18F) : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
-            float bow = Mth.sin(Mth.clamp(t / 0.50F, 0.0F, 1.0F) * (float) Math.PI);
-            model.body.xRot = 0.22F * bow * w;
-            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.55F);
-            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.85F);
-            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.28F);
-            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.45F);
-            model.head.xRot -= 0.12F * w;
+            float w = (t < 0.18F) ? smoothStep01(t / 0.18F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
+            model.body.xRot = Mth.lerp(w, model.body.xRot, -0.06F);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.35F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, 0.55F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.85F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.35F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.55F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.85F);
+            model.head.xRot = Mth.lerp(w, model.head.xRot, -0.18F);
             model.hat.copyFrom(model.head);
         } else if (activeAnim == ClientAuraTracker.ANIM_LAYLA_BURST) {
             float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
@@ -2497,9 +2499,11 @@ public final class ClientAuraRenderer {
             }
         }
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && entity.getId() == mc.player.getId()
-                && ClientAuraTracker.ventiUltiHoldTicks > 0 && hasDaybreakEquipped(entity)) {
-            return Mth.clamp((ClientAuraTracker.ventiUltiHoldTicks + partialTick) / 60.0F, 0.0F, 1.0F);
+        if (mc.player != null && entity.getId() == mc.player.getId() && hasDaybreakEquipped(entity)) {
+            int ticks = Math.max(ClientAuraTracker.localDaybreakBowPullTicks, ClientAuraTracker.ventiUltiHoldTicks);
+            if (ticks > 0) {
+                return Mth.clamp((ticks + partialTick) / 16.0F, 0.0F, 1.0F);
+            }
         }
         return 0.0F;
     }
@@ -2510,7 +2514,7 @@ public final class ClientAuraRenderer {
         if (entity.isUsingItem() && entity.getUseItem() == stack) return true;
         Minecraft mc = Minecraft.getInstance();
         return mc.player != null && entity.getId() == mc.player.getId()
-                && ClientAuraTracker.ventiUltiHoldTicks > 0
+                && (ClientAuraTracker.localDaybreakBowPullTicks > 0 || ClientAuraTracker.ventiUltiHoldTicks > 0)
                 && (entity.getMainHandItem() == stack || entity.getOffhandItem() == stack);
     }
 
@@ -2555,9 +2559,7 @@ public final class ClientAuraRenderer {
             PoseStack poseStack,
             MultiBufferSource bufferSource
     ) {
-        if (true) return;
-        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)
-                || staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) return;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(stack) != com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) return;
         boolean isFirst = displayContext == net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND
                 || displayContext == net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_LEFT_HAND;
         boolean isThird = displayContext == net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_RIGHT_HAND
@@ -2743,9 +2745,52 @@ public final class ClientAuraRenderer {
         );
     }
 
+    private static void renderLaylaOverheadDreamsphere(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        Minecraft mc = Minecraft.getInstance();
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+        float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float h = entity.getBbHeight();
+
+        poseStack.pushPose();
+        poseStack.translate(0.0F, h + 1.15F + 0.04F * Mth.sin(time * 0.12F), 0.0F);
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 2.4F));
+        Matrix4f sphereMat = poseStack.last().pose();
+        float rOrb = 0.34F;
+        int stacks = 6;
+        int slices = 12;
+        for (int i = 0; i < stacks; i++) {
+            float phi0 = (float) (-Math.PI * 0.5D + Math.PI * i / stacks);
+            float phi1 = (float) (-Math.PI * 0.5D + Math.PI * (i + 1) / stacks);
+            float y0 = Mth.sin(phi0) * rOrb, y1 = Mth.sin(phi1) * rOrb;
+            float rr0 = Mth.cos(phi0) * rOrb, rr1 = Mth.cos(phi1) * rOrb;
+            for (int j = 0; j < slices; j++) {
+                float th0 = (float) (j * 2.0D * Math.PI / slices);
+                float th1 = (float) ((j + 1) * 2.0D * Math.PI / slices);
+                emitCrystalQuad(vc, sphereMat,
+                        Mth.cos(th0) * rr0, y0, Mth.sin(th0) * rr0, 95, 165, 255, 95,
+                        Mth.cos(th1) * rr0, y0, Mth.sin(th1) * rr0, 95, 165, 255, 95,
+                        Mth.cos(th1) * rr1, y1, Mth.sin(th1) * rr1, 160, 225, 255, 125,
+                        Mth.cos(th0) * rr1, y1, Mth.sin(th0) * rr1, 160, 225, 255, 125);
+            }
+        }
+        renderFourPointStar3D(vc, sphereMat, 0.18F, 0.06F, 245, 252, 255, 255, 135, 210, 255, 185);
+        poseStack.popPose();
+
+        renderCelestialOrbitRing(poseStack, vc, 0.46F, 0.020F, 22.0F, -14.0F, time * 3.2F, 255, 228, 120, 210);
+        renderCelestialOrbitRing(poseStack, vc, 0.52F, 0.016F, -28.0F, 18.0F, -time * 2.5F, 155, 225, 255, 185);
+        poseStack.popPose();
+    }
+
     public static void renderNightsFocusBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
-        if (!ClientAuraTracker.hasNightsFocusShield(entity)) return;
+        boolean hasShield = ClientAuraTracker.hasNightsFocusShield(entity);
+        boolean hasDreamsphere = ClientAuraTracker.hasLaylaDreamsphere(entity.getId());
+        if (!hasShield && !hasDreamsphere) return;
+        if (hasDreamsphere) {
+            renderLaylaOverheadDreamsphere(entity, poseStack, buffer);
+        }
+        if (!hasShield) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
@@ -3087,7 +3132,11 @@ public final class ClientAuraRenderer {
                 data.lastDamage = 0.0F;
             }
             if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now
-                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
+                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && data.laylaDreamsphereUntil <= now
+                    && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now
+                    && !data.tsaritsaCrownActive && data.tsaritsaSyncUntil <= now
+                    && !data.nahidaIdleSwing && !data.nahidaViewfinder && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now
+                    && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -3317,7 +3366,7 @@ public final class ClientAuraRenderer {
 
         if (data.expireTime > 0 && now >= data.expireTime) {
             data.elements.clear();
-            ClientAuraTracker.remove(mc.player.getId());
+            data.expireTime = 0L;
             return;
         }
 
@@ -3446,7 +3495,7 @@ public final class ClientAuraRenderer {
 
         if (data.expireTime > 0 && now >= data.expireTime) {
             data.elements.clear();
-            ClientAuraTracker.remove(mc.player.getId());
+            data.expireTime = 0L;
             return;
         }
 
@@ -6117,7 +6166,7 @@ public final class ClientAuraRenderer {
                 float rCoreOut = rMid + half * 0.028F;
                 float maxTheta = (float) Math.PI * resolveFrac;
                 int segs = 24;
-                boolean burstReady = resolveFrac >= 0.5F || musouTicks > 0.0F;
+                boolean burstReady = true;
                 int outerR = burstReady ? 195 : 145;
                 int outerG = burstReady ? 105 : 70;
                 int outerB = 255;

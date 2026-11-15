@@ -1,26 +1,24 @@
 {
   "type": "minecraft:crafting_shaped",
-  "category": "equipment",
+  "category": "combat",
   "pattern": [
-    " D ",
-    "DWD",
-    " D "
+    "DDD",
+    "WGD",
+    " E "
   ],
   "key": {
     "D": {
       "item": "velorise_staves:dendro_element"
     },
-    "W": [
-      {
-        "item": "velorise_staves:nights_focus_staff"
-      },
-      {
-        "item": "velorise_staves:wither_scepter"
-      },
-      {
-        "item": "velorise_staves:webcaster"
-      }
-    ]
+    "W": {
+      "item": "velorise_staves:wither_scepter"
+    },
+    "G": {
+      "item": "minecraft:glow_berries"
+    },
+    "E": {
+      "item": "minecraft:emerald"
+    }
   },
   "result": {
     "item": "velorise_staves:thousand_floating_dreams",

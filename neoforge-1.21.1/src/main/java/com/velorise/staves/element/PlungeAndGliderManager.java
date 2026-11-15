@@ -288,12 +288,12 @@ public final class PlungeAndGliderManager {
                 if (player.isFallFlying()) {
                     player.stopFallFlying();
                 }
-                boolean graceExpired = (now - st.gliderOpenedTick) > 10L;
+                boolean graceExpired = (now - st.gliderOpenedTick) > 2L;
                 if (!graceExpired && player.getAbilities().flying) {
                     player.getAbilities().flying = false;
                     player.onUpdateAbilities();
                 }
-                if ((graceExpired && player.onGround()) || player.isInWater() || player.isInLava() || (graceExpired && player.getAbilities().flying) || player.getVehicle() != null) {
+                if (player.onGround() || player.isInWater() || player.isInLava() || (graceExpired && player.getAbilities().flying) || player.getVehicle() != null) {
                     st.gliding = false;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
                 } else {

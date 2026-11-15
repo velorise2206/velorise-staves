@@ -33,6 +33,9 @@ public class MavuikaActionPacket {
     public static final byte ACTION_TSARITSA_NA = 21;
     public static final byte ACTION_TSARITSA_CA = 22;
     public static final byte ACTION_TSARITSA_CA_FULL = 23;
+    public static final byte ACTION_DAYBREAK_NA = 24;
+    public static final byte ACTION_DAYBREAK_CA = 25;
+    public static final byte ACTION_DAYBREAK_CA_FULL = 26;
 
     private final byte action;
 
@@ -115,6 +118,12 @@ public class MavuikaActionPacket {
                 com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, false);
             } else if (packet.action == ACTION_TSARITSA_CA_FULL) {
                 com.velorise.staves.element.TsaritsaManager.performChargedBowShot(player, true);
+            } else if (packet.action == ACTION_DAYBREAK_NA) {
+                com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.25F);
+            } else if (packet.action == ACTION_DAYBREAK_CA) {
+                com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.65F);
+            } else if (packet.action == ACTION_DAYBREAK_CA_FULL) {
+                com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 1.0F);
             }
         });
         ctx.setPacketHandled(true);

@@ -189,7 +189,7 @@ public final class DendroCoreManager {
 
         ServerPlayer owner = core.ownerId != null ? core.level.getServer().getPlayerList().getPlayer(core.ownerId) : null;
         float rawDmg = 4.0F * core.damageMultiplier;
-        AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
+        AABB box = new AABB(pos.x - 1.5D, pos.y - 1.0D, pos.z - 1.5D, pos.x + 1.5D, pos.y + 1.0D, pos.z + 1.5D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
             if (canTakeBloomDamage(victim, ElementalReaction.BLOOM, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, owner);
@@ -283,7 +283,7 @@ public final class DendroCoreManager {
         EnvironmentalBlockManager.applyPyroEnvironmentEffects(core.level, pos, 3.0D);
         int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
         float burgeonDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
-        AABB box = new AABB(pos.x - 5.0D, pos.y - 3.0D, pos.z - 5.0D, pos.x + 5.0D, pos.y + 3.0D, pos.z + 5.0D);
+        AABB box = new AABB(pos.x - 1.5D, pos.y - 1.0D, pos.z - 1.5D, pos.x + 1.5D, pos.y + 1.0D, pos.z + 1.5D);
         for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
             if (canTakeBloomDamage(victim, ElementalReaction.BURGEON, core.level.getGameTime())) {
                 ElementalGaugeManager.triggerMobAggro(core.level, victim, attacker);

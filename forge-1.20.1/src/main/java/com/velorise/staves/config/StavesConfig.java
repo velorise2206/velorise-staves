@@ -59,6 +59,8 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ForgeConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
     public static final ForgeConfigSpec.BooleanValue USE_32PX_ELEMENT_ICONS;
+    public static final ForgeConfigSpec.BooleanValue USE_32PX_GLIDER_TEXTURE;
+    public static final ForgeConfigSpec.ConfigValue<String> CHARACTER_VOICE_LANGUAGE;
     public static final ForgeConfigSpec.BooleanValue SHOW_REACTION_TEXT;
     public static final ForgeConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
     public static final ForgeConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
@@ -227,6 +229,12 @@ public final class StavesConfig {
         USE_32PX_ELEMENT_ICONS = builder
             .comment("Client-side preference: use 32x32px textures for element icons instead of default 16x16px. Default: false")
             .define("use_32px_element_icons", false);
+        USE_32PX_GLIDER_TEXTURE = builder
+            .comment("Client-side preference: use 32x32px texture for Wind Glider instead of default 16x16px. Default: false")
+            .define("use_32px_glider_texture", false);
+        CHARACTER_VOICE_LANGUAGE = builder
+            .comment("Language for character voice lines ('auto', 'en_us', 'zh_cn', 'disabled'). Default: 'auto'")
+            .define("character_voice_language", "auto");
         SHOW_REACTION_TEXT = builder
             .comment("Render floating elemental reaction titles (MELT, VAPORIZE, OVERLOADED, etc.). Default: true")
             .define("show_reaction_text", true);
@@ -787,6 +795,22 @@ public final class StavesConfig {
             return USE_32PX_ELEMENT_ICONS.get();
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    public static boolean isUse32pxGliderTexture() {
+        try {
+            return USE_32PX_GLIDER_TEXTURE.get();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String getCharacterVoiceLanguage() {
+        try {
+            return CHARACTER_VOICE_LANGUAGE != null ? CHARACTER_VOICE_LANGUAGE.get() : "auto";
+        } catch (Exception e) {
+            return "auto";
         }
     }
 

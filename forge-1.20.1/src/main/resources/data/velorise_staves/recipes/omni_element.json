@@ -1,15 +1,34 @@
 {
-  "type": "minecraft:crafting_shapeless",
+  "type": "minecraft:crafting_shaped",
   "category": "misc",
-  "ingredients": [
-    { "item": "velorise_staves:pyro_element" },
-    { "item": "velorise_staves:hydro_element" },
-    { "item": "velorise_staves:anemo_element" },
-    { "item": "velorise_staves:electro_element" },
-    { "item": "velorise_staves:dendro_element" },
-    { "item": "velorise_staves:cryo_element" },
-    { "item": "velorise_staves:geo_element" }
+  "pattern": [
+    "CHA",
+    "PDG",
+    "  E"
   ],
+  "key": {
+    "C": {
+      "item": "velorise_staves:cryo_element"
+    },
+    "H": {
+      "item": "velorise_staves:hydro_element"
+    },
+    "A": {
+      "item": "velorise_staves:anemo_element"
+    },
+    "P": {
+      "item": "velorise_staves:pyro_element"
+    },
+    "D": {
+      "item": "velorise_staves:dendro_element"
+    },
+    "G": {
+      "item": "velorise_staves:geo_element"
+    },
+    "E": {
+      "item": "velorise_staves:electro_element"
+    }
+  },
   "result": {
     "item": "velorise_staves:omni_element",
     "count": 1
