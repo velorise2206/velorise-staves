@@ -19,8 +19,25 @@ public final class ClientAuraTracker {
     public static final int ANIM_VORTEX_HOLD_BURST = 3;
     public static final int ANIM_VORTEX_TAP = 4;
     public static final int ANIM_GHASTFIRE_SLAM = 5;
+    public static final int ANIM_RAIDEN_EYE = 6;
+    public static final int ANIM_RAIDEN_CA = 7;
     public static final int ANIM_RAIDEN_DRAW = 8;
     public static final int ANIM_RAIDEN_SLASH = 9;
+    public static final int ANIM_ZHONGLI_PLANET_BEFALL = 15;
+    public static long localNextRaidenSwingMs = 0L;
+    public static boolean localRaidenAttackHeld = false;
+    public static volatile int ventiUltiHoldTicks = 0;
+
+    public static boolean canLocalRaidenSwing() {
+        return System.currentTimeMillis() >= localNextRaidenSwingMs;
+    }
+
+    public static boolean tryConsumeLocalRaidenSwing(boolean isCharged) {
+        long now = System.currentTimeMillis();
+        if (now < localNextRaidenSwingMs) return false;
+        localNextRaidenSwingMs = now + (isCharged ? 550L : 400L);
+        return true;
+    }
     public static class AuraDisplayData {
         public final List<Element> elements = new ArrayList<>();
         public @Nullable Element permanentInnateElement = null;
@@ -42,6 +59,7 @@ public final class ClientAuraTracker {
         public long expireTime = 0; // ms timestamp when aura completely expires
         public boolean isFrozen = false;
         public long frozenUntil = 0L;
+        public long petrifiedUntil = 0L;
         public long jadeShieldUntil = 0L;
         public long nightsFocusUntil = 0L;
         public int nightsFocusStars = 0;
@@ -59,6 +77,9 @@ public final class ClientAuraTracker {
         public int staffAnimType = 0;
         public long staffAnimStartTime = 0L;
         public long staffAnimUntil = 0L;
+        public int raidenComboStep = 0;
+        public int raidenNextComboStep = 0;
+        public long raidenLastSlashTime = 0L;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -250,6 +271,17 @@ public final class ClientAuraTracker {
 
     public static void addArc(int fromId, net.minecraft.world.phys.Vec3 start, int toId, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
         long now = System.currentTimeMillis();
+        long nextExpire = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
+        if (fromId == -2 && start != null) {
+            for (ActiveArc existing : ACTIVE_ARCS) {
+                if (existing.fromEntityId == -2 && existing.start != null && existing.start.distanceToSqr(start) < 0.25D) {
+                    existing.color = color;
+                    existing.end = end;
+                    existing.expireTime = nextExpire;
+                    return;
+                }
+            }
+        }
         if (ACTIVE_ARCS.size() > 256) {
             ACTIVE_ARCS.removeIf(a -> now >= a.expireTime);
             if (ACTIVE_ARCS.size() > 256) {
@@ -262,7 +294,7 @@ public final class ClientAuraTracker {
         arc.toEntityId = toId;
         arc.end = end;
         arc.startTime = now;
-        arc.expireTime = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
+        arc.expireTime = nextExpire;
         arc.color = color;
         ACTIVE_ARCS.add(arc);
     }
@@ -288,6 +320,15 @@ public final class ClientAuraTracker {
             entry.nightsFocusStars = animType - 10;
             return;
         }
+        if (animType == 16 || animType == 17) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            long durMs = animType == 17 ? 5000L : 4000L;
+            entry.isFrozen = true;
+            entry.frozenUntil = Math.max(entry.frozenUntil, now + durMs);
+            entry.petrifiedUntil = Math.max(entry.petrifiedUntil, now + durMs);
+            entry.frozenTotalMs = Math.max(entry.frozenTotalMs, durMs);
+            return;
+        }
         if (animType == 19) {
             AuraDisplayData entry = DATA.get(entityId);
             if (entry != null) {
@@ -296,17 +337,33 @@ public final class ClientAuraTracker {
             }
             return;
         }
+        AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+        if (animType == ANIM_RAIDEN_SLASH) {
+            if (now - entry.raidenLastSlashTime > 1500L) {
+                entry.raidenNextComboStep = 0;
+            }
+            entry.raidenComboStep = entry.raidenNextComboStep;
+            entry.raidenNextComboStep = (entry.raidenNextComboStep + 1) % 5;
+            entry.raidenLastSlashTime = now;
+        } else if (animType == ANIM_RAIDEN_DRAW || animType == ANIM_RAIDEN_CA || animType == ANIM_RAIDEN_EYE) {
+            entry.raidenNextComboStep = 0;
+            if (animType == ANIM_RAIDEN_DRAW) {
+                localNextRaidenSwingMs = Math.max(localNextRaidenSwingMs, now + 1300L);
+            }
+        }
         long durationMs = switch (animType) {
             case ANIM_SPLENDOR_SUMMON -> 850L;
             case ANIM_SPLENDOR_SWITCH -> 650L;
             case ANIM_VORTEX_HOLD_BURST -> 750L;
             case ANIM_VORTEX_TAP -> 500L;
             case ANIM_GHASTFIRE_SLAM -> 450L;
+            case ANIM_RAIDEN_EYE -> 420L;
             case ANIM_RAIDEN_DRAW -> 1500L;
-            case ANIM_RAIDEN_SLASH -> 280L;
+            case ANIM_RAIDEN_SLASH -> (entry.raidenComboStep == 3 || entry.raidenComboStep == 4) ? 420L : 340L;
+            case ANIM_RAIDEN_CA -> 480L;
+            case ANIM_ZHONGLI_PLANET_BEFALL -> 1600L;
             default -> 600L;
         };
-        AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
         entry.staffAnimType = animType;
         entry.staffAnimStartTime = now;
         entry.staffAnimUntil = now + durationMs;
@@ -537,6 +594,7 @@ public final class ClientAuraTracker {
         } else {
             entry.isFrozen = false;
             entry.frozenUntil = 0L;
+            entry.petrifiedUntil = 0L;
             entry.frozenTotalMs = 0L;
             entry.poseCaptured = false;
         }

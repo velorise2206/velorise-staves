@@ -86,6 +86,7 @@ public final class OmniWheelOverlay {
     private static int bikeAttackHoldTicks = 0;
     private static boolean bikeSpinActive = false;
     private static boolean bikeDismountWaitAttackRelease = false;
+    private static boolean ventiUltiFiredThisHold = false;
 
     @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class ModBusEvents {
@@ -103,6 +104,21 @@ public final class OmniWheelOverlay {
         if (mc.player != null && (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease)) {
             event.setSwingHand(false);
             event.setCanceled(true);
+            return;
+        }
+        if (mc.player != null
+                && com.velorise.staves.client.ClientAuraTracker.isRaidenMusouActive(mc.player.getId())
+                && mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            event.setSwingHand(false);
+            event.setCanceled(true);
+            if (!com.velorise.staves.client.ClientAuraTracker.localRaidenAttackHeld
+                    && com.velorise.staves.client.ClientAuraTracker.tryConsumeLocalRaidenSwing(false)) {
+                com.velorise.staves.client.ClientAuraTracker.triggerStaffAnimation(
+                        mc.player.getId(), com.velorise.staves.client.ClientAuraTracker.ANIM_RAIDEN_SLASH);
+                com.velorise.staves.network.ModNetwork.CHANNEL.sendToServer(
+                        new com.velorise.staves.network.RaidenSlashPacket(false));
+            }
         }
     }
 
@@ -118,10 +134,46 @@ public final class OmniWheelOverlay {
                 wasRidingBike = false;
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
+                ventiUltiFiredThisHold = false;
                 return;
             }
-            while (MAVUIKA_ULTI_KEY.consumeClick()) {
-                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_ULTI);
+            ItemStack daybreakHeld = ItemStack.EMPTY;
+            if (mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem ms && ms.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
+                daybreakHeld = mc.player.getMainHandItem();
+            } else if (mc.player.getOffhandItem().getItem() instanceof ArcaneStaffItem os && os.getKind() == ArcaneStaffItem.Kind.DAYBREAK) {
+                daybreakHeld = mc.player.getOffhandItem();
+            }
+            if (!daybreakHeld.isEmpty()) {
+                while (MAVUIKA_ULTI_KEY.consumeClick()) {
+                    // Consume clicks so release doesn't spill into other staves
+                }
+                if (MAVUIKA_ULTI_KEY.isDown()) {
+                    if (!ventiUltiFiredThisHold && !mc.player.getCooldowns().isOnCooldown(daybreakHeld.getItem())) {
+                        int next = Math.min(60, ClientAuraTracker.ventiUltiHoldTicks + 1);
+                        ClientAuraTracker.ventiUltiHoldTicks = next;
+                        if (next == 1 || next % 5 == 0) {
+                            ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_VENTI_ULTI_CHARGE);
+                        }
+                        int pct = Math.min(100, (next * 100) / 60);
+                        float sec = next / 20.0F;
+                        mc.player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§b✦ Gathering Stormeye: %d%% (%.1fs / 3.0s)", pct, sec)), true);
+                        if (next >= 60) {
+                            ventiUltiFiredThisHold = true;
+                            ClientAuraTracker.ventiUltiHoldTicks = 0;
+                            ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_VENTI_ULTI_CAST);
+                        }
+                    }
+                } else {
+                    ClientAuraTracker.ventiUltiHoldTicks = 0;
+                    ventiUltiFiredThisHold = false;
+                }
+            } else {
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
+                ventiUltiFiredThisHold = false;
+                while (MAVUIKA_ULTI_KEY.consumeClick()) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_ULTI);
+                }
             }
             if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                 if (!wasRidingBike) {

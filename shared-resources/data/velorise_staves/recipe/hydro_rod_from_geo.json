@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "velorise_staves:hydro_element"
+    },
+    {
+      "item": "velorise_staves:geo_rod"
+    }
+  ],
+  "result": {
+    "id": "velorise_staves:hydro_rod",
+    "count": 1
+  }
+}

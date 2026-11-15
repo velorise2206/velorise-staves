@@ -67,6 +67,7 @@ public class FlamestriderBikeEntity extends Entity {
     private long lastSpinDamageTick = -100L;
     private long lastDashTick = -100L;
     private int serverDashTicks = 0;
+    private int serverDashIframeTicks = 0;
     private long lastNaTick = -100L;
     private int naComboStep = 0;
     private float pendingUltiDamage = 0.0F;
@@ -219,6 +220,10 @@ public class FlamestriderBikeEntity extends Entity {
         return serverDashTicks > 0;
     }
 
+    public boolean isDashIframeActive() {
+        return serverDashTicks > 0 || serverDashIframeTicks > 0;
+    }
+
     public void triggerUltiAnimation() {
         this.entityData.set(DATA_ULTI_TICKS, 30);
     }
@@ -226,6 +231,12 @@ public class FlamestriderBikeEntity extends Entity {
     public void startUltiSlam(float ultiDmg) {
         this.pendingUltiDamage = ultiDmg;
         this.entityData.set(DATA_ULTI_TICKS, 30);
+        Vec3 dm = this.getDeltaMovement();
+        this.setDeltaMovement(dm.x, Math.max(dm.y, 0.28D), dm.z);
+        this.hurtMarked = true;
+        if (this.getFirstPassenger() instanceof ServerPlayer sp) {
+            sp.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+        }
     }
 
     @Override
@@ -263,13 +274,8 @@ public class FlamestriderBikeEntity extends Entity {
     @Override
     protected void removePassenger(Entity passenger) {
         super.removePassenger(passenger);
-        if (passenger instanceof Player p) {
-            if (p.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                p.getCooldowns().addCooldown(sm, 12);
-            }
-            if (p.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                p.getCooldowns().addCooldown(so, 12);
-            }
+        if (!this.level().isClientSide() && passenger instanceof ServerPlayer sp) {
+            ElementalGaugeManager.applyMavuikaDismountOrRemainingCooldown(sp);
         }
     }
 
@@ -365,6 +371,13 @@ public class FlamestriderBikeEntity extends Entity {
             if (serverDashTicks > 0) {
                 serverDashTicks--;
             }
+            if (serverDashIframeTicks > 0) {
+                serverDashIframeTicks--;
+                this.invulnerableTime = Math.max(this.invulnerableTime, 6);
+                if (passenger instanceof LivingEntity le) {
+                    le.invulnerableTime = Math.max(le.invulnerableTime, 6);
+                }
+            }
             int ultiT = getUltiTicks();
             if (ultiT > 0) {
                 if (passenger instanceof LivingEntity le) {
@@ -372,13 +385,15 @@ public class FlamestriderBikeEntity extends Entity {
                 }
                 int nextUlti = ultiT - 1;
                 this.entityData.set(DATA_ULTI_TICKS, nextUlti);
+                if (nextUlti == 14) {
+                    sp.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+                }
                 if (nextUlti > 8) {
                     sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 2.0D, this.getZ(), 6, 0.55D, 0.35D, 0.55D, 0.05D);
                 } else if (nextUlti == 8 && pendingUltiDamage > 0.0F) {
                     float dmg = pendingUltiDamage;
                     pendingUltiDamage = 0.0F;
                     sl.sendParticles(ParticleTypes.FLASH, this.getX(), this.getY() + 1.0D, this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                    spawnFierySweep(sl, this.position().add(0.0D, 0.7D, 0.0D), sp.getYRot(), 4.2D);
                     ElementalGaugeManager.executeMavuikaUltiImpact(sl, sp, dmg);
                 }
             }
@@ -400,15 +415,18 @@ public class FlamestriderBikeEntity extends Entity {
                 }
                 sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.5D, this.getZ(), 5, 0.25D, 0.25D, 0.25D, 0.04D);
                 sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.3D, this.getZ(), 2, 0.18D, 0.15D, 0.18D, 0.01D);
-                boolean landed = this.onGround()
-                        || !sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.35D, 0.0D))
-                        || this.isInWater()
-                        || sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.30D, this.getZ())).getFluidState().is(FluidTags.WATER);
-                if ((windup <= 0 && landed && plungeTicks >= 6) || plungeTicks > 65) {
+                boolean hitSolid = !sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.35D, 0.0D))
+                        || (this.onGround() && !this.isInWater()
+                                && sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.15D, this.getZ())).blocksMotion());
+                if (windup <= 0 && hitSolid && plungeTicks >= 6) {
                     setPlunging(false);
                     this.entityData.set(DATA_PLUNGE_WINDUP, 0);
                     plungeTicks = 0;
                     executePlungeImpact(sl, sp);
+                } else if (plungeTicks > 70) {
+                    setPlunging(false);
+                    this.entityData.set(DATA_PLUNGE_WINDUP, 0);
+                    plungeTicks = 0;
                 }
             }
 
@@ -598,8 +616,16 @@ public class FlamestriderBikeEntity extends Entity {
                     14, 0.32D, 0.3D, 0.32D, 0.06D);
         }
 
-        spawnFierySweep(sl, hitCenter, sp.getYRot(), 2.8D);
-        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 26, 0.95D, 0.25D, 0.95D, 0.08D);
+        Vec3 finFwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
+        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize();
+        Vec3 arcMid = this.position().add(0.0D, 1.05D, 0.0D).add(finFwd.scale(2.35D));
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl,
+                arcMid.add(finRight.scale(-2.45D)).add(0.0D, -0.08D, 0.0D),
+                arcMid.add(finRight.scale(2.45D)).add(0.0D, 0.18D, 0.0D),
+                10,
+                0xFFFF7A18);
+        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 18, 0.85D, 0.20D, 0.85D, 0.06D);
         sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.15F);
         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.85F, 0.95F);
     }
@@ -681,9 +707,47 @@ public class FlamestriderBikeEntity extends Entity {
                     10, 0.25D, 0.25D, 0.25D, 0.05D);
         }
 
-        spawnFierySweep(sl, hitCenter, sp.getYRot(), naComboStep == 5 ? 2.6D : 2.1D);
+        Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);
+        if (horizFwd.lengthSqr() < 1.0E-4D) {
+            horizFwd = Vec3.directionFromRotation(0.0F, sp.getYRot());
+        }
+        horizFwd = horizFwd.normalize();
+        Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
+        Vec3 slashCenter = this.position().add(horizFwd.scale(2.15D)).add(0.0D, 1.05D, 0.0D);
+        Vec3 slashStart;
+        Vec3 slashEnd;
+        int arcColor;
+        switch (naComboStep) {
+            case 1 -> {
+                slashStart = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+            case 2 -> {
+                slashStart = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                arcColor = 0xFFFF8824;
+            }
+            case 3 -> {
+                slashStart = slashCenter.add(right.scale(1.90D)).add(0.0D, 0.25D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.90D)).add(0.0D, 0.25D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+            case 4 -> {
+                slashStart = slashCenter.add(right.scale(-1.85D)).add(0.0D, 0.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.85D)).add(0.0D, 0.60D, 0.0D);
+                arcColor = 0xFFFF8824;
+            }
+            default -> {
+                slashStart = slashCenter.add(right.scale(1.30D)).add(0.0D, 1.55D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.15D)).add(0.0D, -0.55D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+        }
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl, slashStart, slashEnd, naComboStep == 5 ? 9 : 7, arcColor);
         sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z,
-                naComboStep == 5 ? 28 : 14, 0.9D, 0.35D, 0.9D, 0.08D);
+                naComboStep == 5 ? 16 : 8, 0.65D, 0.25D, 0.65D, 0.05D);
         if (naComboStep == 5) {
             sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.1F);
         } else {
@@ -701,6 +765,9 @@ public class FlamestriderBikeEntity extends Entity {
         if (now - lastDashTick < 20L) return; // 1.0s Genshin-style dash cooldown
         lastDashTick = now;
         serverDashTicks = 5;
+        serverDashIframeTicks = 10;
+        sp.invulnerableTime = Math.max(sp.invulnerableTime, 10);
+        this.invulnerableTime = Math.max(this.invulnerableTime, 10);
         ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 10.0F);
         if (sp.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
                 && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
@@ -939,22 +1006,29 @@ public class FlamestriderBikeEntity extends Entity {
                 this.setOnGround(false);
             }
         } else if (ultiT > 8) {
-            vx *= 0.20D;
-            vz *= 0.20D;
-            if (ultiT > 20) {
-                vy = 0.44D; // Hour of Burning Skies: soar high into the air
-            } else if (ultiT > 14) {
-                vy = 0.02D; // Brief apex windup before Sunfell Slice
+            vx *= 0.18D;
+            vz *= 0.18D;
+            if (ultiT >= 19) {
+                // Half 1 (ticks 30 -> 19): steady upward climb while executing the 180-deg half-donut spin
+                vy = 0.28D;
             } else {
-                vy = -0.95D; // Sunfell Slice: high-speed downward leap slam
+                // Half 2 (ticks 19 -> 8): smooth downward dive back to ground, cleaving on touchdown at ultiT == 8
+                float diveProgress = (19 - ultiT) / 11.0F;
+                vy = -0.26D - diveProgress * 0.48D;
             }
             this.setOnGround(false);
         } else if (finNaT > 6) {
-            Vec3 fwdJump = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.14D);
-            vx = fwdJump.x;
-            vz = fwdJump.z;
-            vy = finNaT > 10 ? 0.34D : -0.48D; // Rider & bike jump up together then slam forward
-            this.setOnGround(false);
+            if (finNaT >= 11) {
+                Vec3 fwdJump = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.32D);
+                vx = Mth.lerp(0.55D, prev.x, fwdJump.x);
+                vz = Mth.lerp(0.55D, prev.z, fwdJump.z);
+                vy = 0.24D;
+                this.setOnGround(false);
+            } else {
+                vx = prev.x * 0.65D;
+                vz = prev.z * 0.65D;
+                vy = Math.min(prev.y - 0.14D, -0.34D);
+            }
         } else if (waterHere && canSkimWater) {
             vy = Math.max(vy, 0.14D); // Skim up to water surface
         } else if (waterBelow && canSkimWater && vy <= 0.0D && !glidingNow) {

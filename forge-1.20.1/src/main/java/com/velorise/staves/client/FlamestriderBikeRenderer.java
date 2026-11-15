@@ -40,6 +40,23 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         event.registerEntityRenderer(VeloriseStavesMod.FLAMESTRIDER_BIKE.get(), FlamestriderBikeRenderer::new);
     }
 
+    @SubscribeEvent
+    public static void onClientSetup(net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {
+        event.enqueueWork(() -> {
+            net.minecraft.resources.ResourceLocation pullId = new net.minecraft.resources.ResourceLocation("pull");
+            net.minecraft.resources.ResourceLocation pullingId = new net.minecraft.resources.ResourceLocation("pulling");
+            for (net.minecraft.world.item.Item item : new net.minecraft.world.item.Item[]{
+                    VeloriseStavesMod.THE_DAYBREAK_CHRONICLES.get(),
+                    VeloriseStavesMod.NETHERITE_THE_DAYBREAK_CHRONICLES.get()
+            }) {
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullId,
+                        (stack, level, entity, seed) -> ClientAuraRenderer.getDaybreakPullProgress(entity, stack));
+                net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
+                        (stack, level, entity, seed) -> ClientAuraRenderer.isDaybreakPulling(entity, stack) ? 1.0F : 0.0F);
+            }
+        });
+    }
+
     @Override
     public void render(
             FlamestriderBikeEntity entity,
@@ -58,7 +75,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         }
         int ultiT = entity.getUltiTicks();
         int naT = entity.getNaTicks();
-        applyActionTransforms(entity, ultiT, naT, poseStack);
+        applyActionTransforms(entity, ultiT, naT, partialTicks, poseStack);
 
         VertexConsumer vc = bufferSource.getBuffer(BIKE_RENDER_TYPE);
         boolean neth = entity.isNetherite();
@@ -213,7 +230,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         vc.vertex(mat, x, y, z).color(r, g, b, a).endVertex();
     }
 
-    private static void applyActionTransforms(FlamestriderBikeEntity entity, int ultiT, int naT, PoseStack poseStack) {
+    private static void applyActionTransforms(FlamestriderBikeEntity entity, int ultiT, int naT, float partialTicks, PoseStack poseStack) {
         if (entity.isGliding() && !entity.isPlunging() && ultiT <= 0 && naT <= 0) {
             poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F));
         }
@@ -228,22 +245,39 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             }
         }
         if (ultiT > 0) {
-            float pitch;
-            if (ultiT > 20) {
-                float soar = Mth.clamp((30.0F - ultiT) / 10.0F, 0.0F, 1.0F);
-                pitch = Mth.lerp(soar, 0.0F, -50.0F);
-            } else if (ultiT > 14) {
-                float apex = (20.0F - ultiT) / 6.0F;
-                pitch = Mth.lerp(apex, -50.0F, 16.0F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(14.0F * Mth.sin(apex * (float) Math.PI)));
-            } else if (ultiT > 8) {
-                float dive = (14.0F - ultiT) / 6.0F;
-                pitch = Mth.lerp(dive, 16.0F, 54.0F);
+            float u = Math.max(0.0F, (float) ultiT - partialTicks);
+            if (u > 8.0F) {
+                if (u >= 19.0F) {
+                    // Half 1 (u: 30.0 -> 19.0): steady climb + 180-deg half-donut spin behind/beside rider
+                    float p1 = Mth.clamp((30.0F - u) / 11.0F, 0.0F, 1.0F);
+                    float s1 = p1 * p1 * (3.0F - 2.0F * p1);
+                    float theta = s1 * (float) Math.PI;
+                    float sideX = Mth.sin(theta) * 1.15F;
+                    float backZ = -(1.0F - Mth.cos(theta)) * 0.55F;
+                    float arcY = p1 * 0.85F;
+                    poseStack.translate(sideX, arcY, backZ);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(-s1 * 180.0F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(-Mth.sin(theta) * 32.0F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-Mth.sin(theta) * 20.0F));
+                } else {
+                    // Half 2 (u: 19.0 -> 8.0): complete loop 180 -> 360 deg forward, descend, and cleave at touchdown (u == 8)
+                    float p2 = Mth.clamp((19.0F - u) / 11.0F, 0.0F, 1.0F);
+                    float s2 = p2 * p2 * (3.0F - 2.0F * p2);
+                    float theta = (float) Math.PI * (1.0F + s2);
+                    float sideX = Mth.sin(theta) * 1.15F;
+                    float backZ = -(1.0F - Mth.cos(theta)) * 0.55F;
+                    float arcY = (1.0F - p2 * p2) * 0.85F;
+                    poseStack.translate(sideX, arcY, backZ);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(-180.0F - s2 * 180.0F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(s2 * (float) Math.PI) * 28.0F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.sin(s2 * (float) Math.PI) * 22.0F));
+                }
             } else {
-                float rec = ultiT / 8.0F;
-                pitch = Mth.lerp(rec, 0.0F, 54.0F);
+                float rec = Mth.clamp(u / 8.0F, 0.0F, 1.0F);
+                poseStack.translate(0.0F, 0.0F, rec * 0.25F);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(rec * 14.0F));
+                poseStack.mulPose(Axis.XP.rotationDegrees(rec * 8.0F));
             }
-            poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
         }
 
         if (naT > 0) {
@@ -254,13 +288,15 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 poseStack.translate(0.0D, Math.sin(t * Math.PI) * 0.20D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
             } else if (step == 2) {
-                float t = naT / 10.0F;
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(t, 45.0F, -45.0F)));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-20.0F * Mth.sin(t * (float) Math.PI)));
+                float p = Mth.clamp(1.0F - (((float) naT - partialTicks) / 10.0F), 0.0F, 1.0F);
+                float swing = Mth.sin(p * (float) Math.PI);
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(p, -28.0F, 32.0F) * swing));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F * swing));
             } else if (step == 3) {
-                float t = naT / 10.0F;
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(t, -50.0F, 50.0F)));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(22.0F * Mth.sin(t * (float) Math.PI)));
+                float p = Mth.clamp(1.0F - (((float) naT - partialTicks) / 10.0F), 0.0F, 1.0F);
+                float swing = Mth.sin(p * (float) Math.PI);
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(p, 32.0F, -32.0F) * swing));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-20.0F * swing));
             } else if (step == 4) {
                 float t = naT / 10.0F;
                 float pitch = (t > 0.5F) ? Mth.lerp((t - 0.5F) * 2.0F, 20.0F, -32.0F) : Mth.lerp(t * 2.0F, 0.0F, 20.0F);
@@ -271,18 +307,33 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 poseStack.translate(0.0D, Math.sin(t * Math.PI) * 0.85D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees((1.0F - t) * 360.0F));
             } else if (step == 6) {
+                float naTf = Math.max(0.0F, naT - partialTicks);
+                float yawWhip;
                 float pitch;
-                if (naT > 6) {
-                    float w = (16.0F - naT) / 10.0F;
-                    pitch = Mth.lerp(w, 0.0F, -26.0F);
-                } else if (naT > 3) {
-                    float s = (6.0F - naT) / 3.0F;
-                    pitch = Mth.lerp(s, -26.0F, 28.0F);
+                float roll;
+                if (naTf > 7.0F) {
+                    float w = Mth.clamp((16.0F - naTf) / 9.0F, 0.0F, 1.0F);
+                    float jumpArc = (float) Math.sin(w * Math.PI * 0.85F) * 0.34F;
+                    yawWhip = Mth.lerp(w, 0.0F, -18.0F);
+                    pitch = Mth.lerp(w, 0.0F, -18.0F);
+                    roll = Mth.lerp(w, 0.0F, -12.0F);
+                    poseStack.translate(0.0D, jumpArc, Math.sin(w * Math.PI) * 0.14D);
+                } else if (naTf > 2.0F) {
+                    float s = Mth.clamp((7.0F - naTf) / 5.0F, 0.0F, 1.0F);
+                    float dropY = (1.0F - s) * 0.16F;
+                    yawWhip = Mth.lerp(s, -18.0F, 24.0F);
+                    pitch = Mth.lerp(s, -18.0F, 11.0F);
+                    roll = Mth.lerp(s, -12.0F, 14.0F);
+                    poseStack.translate(0.0D, dropY, 0.0D);
                 } else {
-                    float r = (3.0F - naT) / 3.0F;
-                    pitch = Mth.lerp(r, 28.0F, 0.0F);
+                    float r = Mth.clamp((2.0F - naTf) / 2.0F, 0.0F, 1.0F);
+                    yawWhip = Mth.lerp(r, 24.0F, 0.0F);
+                    pitch = Mth.lerp(r, 11.0F, 0.0F);
+                    roll = Mth.lerp(r, 14.0F, 0.0F);
                 }
+                poseStack.mulPose(Axis.YP.rotationDegrees(yawWhip));
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
             }
         }
     }
@@ -311,7 +362,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             poseStack.mulPose(Axis.ZP.rotationDegrees(22.0F));
         }
 
-        applyActionTransforms(bike, ultiT, naT, poseStack);
+        applyActionTransforms(bike, ultiT, naT, partialTicks, poseStack);
 
         float bodyYaw = Mth.lerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
         poseStack.mulPose(Axis.YP.rotationDegrees(bodyYaw));

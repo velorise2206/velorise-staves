@@ -147,6 +147,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final boolean[] wasRidingBike = {false};
         final int[] bikeAttackHoldTicks = {0};
         final boolean[] bikeSpinActive = {false};
+        final int[] raidenAttackHoldTicks = {0};
+        final boolean[] ventiUltiFiredThisHold = {false};
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             ClientAuraRenderer.tickFrozenPlayer();
             OmniWheelOverlay.tick(client);
@@ -158,10 +160,75 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 bikeAttackHoldTicks[0] = 0;
                 bikeSpinActive[0] = false;
                 queuedFastAttackClicks[0] = 0;
+                raidenAttackHoldTicks[0] = 0;
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
+                ventiUltiFiredThisHold[0] = false;
                 return;
             }
-            while (mavuikaUltiKey.consumeClick()) {
-                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
+            net.minecraft.world.item.ItemStack daybreakHeld = net.minecraft.world.item.ItemStack.EMPTY;
+            if (client.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem ms
+                    && ms.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                daybreakHeld = client.player.getMainHandItem();
+            } else if (client.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem os
+                    && os.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                daybreakHeld = client.player.getOffhandItem();
+            }
+            if (!daybreakHeld.isEmpty()) {
+                while (mavuikaUltiKey.consumeClick()) {
+                    // Consume clicks so release doesn't spill into other staves
+                }
+                if (mavuikaUltiKey.isDown()) {
+                    if (!ventiUltiFiredThisHold[0] && !client.player.getCooldowns().isOnCooldown(daybreakHeld.getItem())) {
+                        int next = Math.min(60, ClientAuraTracker.ventiUltiHoldTicks + 1);
+                        ClientAuraTracker.ventiUltiHoldTicks = next;
+                        if (next == 1 || next % 5 == 0) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_VENTI_ULTI_CHARGE);
+                        }
+                        int pct = Math.min(100, (next * 100) / 60);
+                        float sec = next / 20.0F;
+                        client.player.displayClientMessage(
+                                net.minecraft.network.chat.Component.literal(String.format(java.util.Locale.ROOT, "§b✦ Gathering Stormeye: %d%% (%.1fs / 3.0s)", pct, sec)),
+                                true);
+                        if (next >= 60) {
+                            ventiUltiFiredThisHold[0] = true;
+                            ClientAuraTracker.ventiUltiHoldTicks = 0;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_VENTI_ULTI_CAST);
+                        }
+                    }
+                } else {
+                    ClientAuraTracker.ventiUltiHoldTicks = 0;
+                    ventiUltiFiredThisHold[0] = false;
+                }
+            } else {
+                ClientAuraTracker.ventiUltiHoldTicks = 0;
+                ventiUltiFiredThisHold[0] = false;
+                while (mavuikaUltiKey.consumeClick()) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
+                }
+            }
+            if (ClientAuraTracker.isRaidenMusouActive(client.player.getId())
+                    && client.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                if (client.player.swinging && client.player.swingTime == 0 && raidenAttackHoldTicks[0] < 6
+                        && ClientAuraTracker.tryConsumeLocalRaidenSwing(false)) {
+                    ClientAuraTracker.triggerStaffAnimation(client.player.getId(), ClientAuraTracker.ANIM_RAIDEN_SLASH);
+                    net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                            new com.velorise.staves.network.RaidenSlashPayload(false));
+                }
+                if (client.options.keyAttack.isDown()) {
+                    raidenAttackHoldTicks[0]++;
+                    if (raidenAttackHoldTicks[0] >= 6 && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
+                        ClientAuraTracker.triggerStaffAnimation(client.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
+                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                                new com.velorise.staves.network.RaidenSlashPayload(true));
+                    }
+                } else {
+                    raidenAttackHoldTicks[0] = 0;
+                }
+            } else {
+                raidenAttackHoldTicks[0] = 0;
             }
             if (client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                 if (!wasRidingBike[0]) {
@@ -262,6 +329,18 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.VeloriseStavesMod.FLAMESTRIDER_BIKE,
                 FlamestriderBikeRenderer::new
         );
+
+        net.minecraft.resources.ResourceLocation pullId = net.minecraft.resources.ResourceLocation.withDefaultNamespace("pull");
+        net.minecraft.resources.ResourceLocation pullingId = net.minecraft.resources.ResourceLocation.withDefaultNamespace("pulling");
+        for (net.minecraft.world.item.Item item : new net.minecraft.world.item.Item[]{
+                com.velorise.staves.VeloriseStavesMod.THE_DAYBREAK_CHRONICLES,
+                com.velorise.staves.VeloriseStavesMod.NETHERITE_THE_DAYBREAK_CHRONICLES
+        }) {
+            net.minecraft.client.renderer.item.ItemProperties.register(item, pullId,
+                    (stack, level, entity, seed) -> ClientAuraRenderer.getDaybreakPullProgress(entity, stack));
+            net.minecraft.client.renderer.item.ItemProperties.register(item, pullingId,
+                    (stack, level, entity, seed) -> ClientAuraRenderer.isDaybreakPulling(entity, stack) ? 1.0F : 0.0F);
+        }
 
         net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             ClientAuraTracker.clear();

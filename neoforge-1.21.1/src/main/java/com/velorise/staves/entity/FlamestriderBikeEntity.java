@@ -69,6 +69,7 @@ public class FlamestriderBikeEntity extends Entity {
     private long serverDashCooldownUntil = -100L;
     private int serverDashChain = 0;
     private int serverDashTicks = 0;
+    private int serverDashIframeTicks = 0;
     private boolean spinInputHeld = false;
     private boolean sprintInputHeld = false;
     private int plungeTicks = 0;
@@ -227,6 +228,10 @@ public class FlamestriderBikeEntity extends Entity {
         return serverDashTicks > 0;
     }
 
+    public boolean isDashIframeActive() {
+        return serverDashTicks > 0 || serverDashIframeTicks > 0;
+    }
+
     public void startUltiSlam(float ultiDamage) {
         this.pendingUltiDamage = ultiDamage;
         this.spinInputHeld = false;
@@ -239,7 +244,11 @@ public class FlamestriderBikeEntity extends Entity {
         this.ultiVoiceMaxTicks = 30;
         this.ultiVoiceLine = this.random.nextInt(20) == 0 ? 3 : this.random.nextInt(3);
         this.entityData.set(DATA_ULTI_TICKS, 30);
+        Vec3 dm = this.getDeltaMovement();
+        this.setDeltaMovement(dm.x, Math.max(dm.y, 0.28D), dm.z);
+        this.hurtMarked = true;
         if (this.getFirstPassenger() instanceof ServerPlayer sp) {
+            sp.swing(InteractionHand.MAIN_HAND, true);
             sp.displayClientMessage(
                     net.minecraft.network.chat.Component.translatable("message.velorise_staves.mavuika_q_voice_" + this.ultiVoiceLine)
                             .withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD),
@@ -288,13 +297,8 @@ public class FlamestriderBikeEntity extends Entity {
     @Override
     protected void removePassenger(Entity passenger) {
         super.removePassenger(passenger);
-        if (passenger instanceof Player p) {
-            if (p.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                p.getCooldowns().addCooldown(sm, 12);
-            }
-            if (p.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                p.getCooldowns().addCooldown(so, 12);
-            }
+        if (!this.level().isClientSide() && passenger instanceof ServerPlayer sp) {
+            ElementalGaugeManager.applyMavuikaDismountOrRemainingCooldown(sp);
         }
     }
 
@@ -396,6 +400,13 @@ public class FlamestriderBikeEntity extends Entity {
             if (serverDashTicks > 0) {
                 serverDashTicks--;
             }
+            if (serverDashIframeTicks > 0) {
+                serverDashIframeTicks--;
+                this.invulnerableTime = Math.max(this.invulnerableTime, 6);
+                if (passenger instanceof LivingEntity le) {
+                    le.invulnerableTime = Math.max(le.invulnerableTime, 6);
+                }
+            }
             int ultiT = getUltiTicks();
             if (ultiT > 0) {
                 if (passenger instanceof LivingEntity le) {
@@ -404,13 +415,15 @@ public class FlamestriderBikeEntity extends Entity {
                 int nextUlti = ultiT - 1;
                 this.entityData.set(DATA_ULTI_TICKS, nextUlti);
                 playUltiVoiceBeat(sl, nextUlti);
+                if (nextUlti == 14) {
+                    sp.swing(InteractionHand.MAIN_HAND, true);
+                }
                 if (nextUlti > 8) {
                     sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 2.0D, this.getZ(), 6, 0.55D, 0.35D, 0.55D, 0.05D);
                 } else if (nextUlti == 8 && pendingUltiDamage > 0.0F) {
                     float dmg = pendingUltiDamage;
                     pendingUltiDamage = 0.0F;
                     sl.sendParticles(ParticleTypes.FLASH, this.getX(), this.getY() + 1.0D, this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                    spawnFierySweep(sl, this.position().add(0.0D, 0.7D, 0.0D), sp.getYRot(), 4.2D);
                     ElementalGaugeManager.executeMavuikaUltiImpact(sl, sp, dmg);
                 }
             }
@@ -432,15 +445,18 @@ public class FlamestriderBikeEntity extends Entity {
                 }
                 sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.5D, this.getZ(), 5, 0.25D, 0.25D, 0.25D, 0.04D);
                 sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.3D, this.getZ(), 2, 0.18D, 0.15D, 0.18D, 0.01D);
-                boolean landed = this.onGround()
-                        || !sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.35D, 0.0D))
-                        || this.isInWater()
-                        || sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.30D, this.getZ())).getFluidState().is(FluidTags.WATER);
-                if ((windup <= 0 && landed && plungeTicks >= 6) || plungeTicks > 65) {
+                boolean hitSolid = !sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.35D, 0.0D))
+                        || (this.onGround() && !this.isInWater()
+                                && sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.15D, this.getZ())).blocksMotion());
+                if (windup <= 0 && hitSolid && plungeTicks >= 6) {
                     setPlunging(false);
                     this.entityData.set(DATA_PLUNGE_WINDUP, 0);
                     plungeTicks = 0;
                     executePlungeImpact(sl, sp);
+                } else if (plungeTicks > 70) {
+                    setPlunging(false);
+                    this.entityData.set(DATA_PLUNGE_WINDUP, 0);
+                    plungeTicks = 0;
                 }
             }
 
@@ -648,12 +664,47 @@ public class FlamestriderBikeEntity extends Entity {
             ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
         }
 
-        Vec3 slashPos = origin.add(forward.scale(2.0D));
-        if (naComboStep == 1 || naComboStep == 3 || naComboStep == 5) {
-            spawnFierySweep(sl, slashPos, sp.getYRot(), naComboStep == 5 ? 2.6D : 2.0D);
+        Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);
+        if (horizFwd.lengthSqr() < 1.0E-4D) {
+            horizFwd = Vec3.directionFromRotation(0.0F, sp.getYRot());
         }
-        sl.sendParticles(ParticleTypes.FLAME, slashPos.x, slashPos.y + 0.3D, slashPos.z,
-                naComboStep == 5 ? 24 : 12, 0.7D, 0.35D, 0.7D, 0.06D);
+        horizFwd = horizFwd.normalize();
+        Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
+        Vec3 slashCenter = origin.add(horizFwd.scale(2.15D)).add(0.0D, 0.25D, 0.0D);
+        Vec3 slashStart;
+        Vec3 slashEnd;
+        int arcColor;
+        switch (naComboStep) {
+            case 1 -> { // High-Right -> Low-Left diagonal cleave
+                slashStart = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+            case 2 -> { // Low-Left -> High-Right upward backhand
+                slashStart = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                arcColor = 0xFFFF8824;
+            }
+            case 3 -> { // Wide Right -> Left horizontal sweep
+                slashStart = slashCenter.add(right.scale(1.90D)).add(0.0D, 0.25D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.90D)).add(0.0D, 0.25D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+            case 4 -> { // Low-Left -> Mid-Right rising cross sweep
+                slashStart = slashCenter.add(right.scale(-1.85D)).add(0.0D, 0.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.85D)).add(0.0D, 0.60D, 0.0D);
+                arcColor = 0xFFFF8824;
+            }
+            default -> { // Step 5: Heavy Top-Right -> Bottom-Left overhead cleave
+                slashStart = slashCenter.add(right.scale(1.30D)).add(0.0D, 1.55D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.15D)).add(0.0D, -0.55D, 0.0D);
+                arcColor = 0xFFFF8825;
+            }
+        }
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl, slashStart, slashEnd, naComboStep == 5 ? 9 : 7, arcColor);
+        sl.sendParticles(ParticleTypes.FLAME, slashCenter.x, slashCenter.y + 0.15D, slashCenter.z,
+                naComboStep == 5 ? 16 : 8, 0.55D, 0.25D, 0.55D, 0.04D);
         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS,
                 naComboStep == 5 ? 0.85F : 0.65F, 0.9F + naComboStep * 0.08F);
     }
@@ -686,7 +737,6 @@ public class FlamestriderBikeEntity extends Entity {
                 this.pendingFinisher = true;
                 sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.65F, 1.40F);
                 sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.75F, 1.20F);
-                sl.playSound(null, this.blockPosition(), SoundEvents.VILLAGER_YES, SoundSource.PLAYERS, 1.15F, 1.12F);
             }
         }
     }
@@ -721,13 +771,20 @@ public class FlamestriderBikeEntity extends Entity {
                     14, 0.32D, 0.3D, 0.32D, 0.06D);
         }
 
-        spawnFierySweep(sl, hitCenter, sp.getYRot(), 2.8D);
-        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 26, 0.95D, 0.25D, 0.95D, 0.08D);
+        Vec3 finFwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
+        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize();
+        Vec3 arcMid = this.position().add(0.0D, 1.05D, 0.0D).add(finFwd.scale(2.35D));
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl,
+                arcMid.add(finRight.scale(-2.45D)).add(0.0D, -0.08D, 0.0D),
+                arcMid.add(finRight.scale(2.45D)).add(0.0D, 0.18D, 0.0D),
+                10,
+                0xFFFF7A18);
+        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 18, 0.85D, 0.20D, 0.85D, 0.06D);
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.85F);
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.90F);
         sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.95F, 1.05F);
         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.85F, 0.85F);
-        sl.playSound(null, this.blockPosition(), SoundEvents.VILLAGER_CELEBRATE, SoundSource.PLAYERS, 1.25F, 0.94F);
     }
 
     /**
@@ -749,6 +806,9 @@ public class FlamestriderBikeEntity extends Entity {
         }
         serverDashCooldownUntil = now + dashCd;
         serverDashTicks = 5;
+        serverDashIframeTicks = 10;
+        sp.invulnerableTime = Math.max(sp.invulnerableTime, 10);
+        this.invulnerableTime = Math.max(this.invulnerableTime, 10);
         ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 10.0F);
         if (dashCd >= 16) {
             if (sp.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
@@ -775,47 +835,13 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     private void playUltiVoiceBeat(ServerLevel sl, int nextUlti) {
-        net.minecraft.sounds.SoundEvent voice = null;
-        float pitch = 1.0F;
-        boolean fieryAccent = false;
-
-        if (this.ultiVoiceMaxTicks < 28) {
-            // Compact 22-tick airborne Q cadence ending before tick 8 impact
-            if (nextUlti == 21) { voice = SoundEvents.VILLAGER_YES; pitch = 1.06F; }
-            else if (nextUlti == 16) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.15F; }
-            else if (nextUlti == 11) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 0.96F; fieryAccent = true; }
-        } else if (this.ultiVoiceLine == 0) {
-            // "Light of the blazing sun!" (spaced 5-6 ticks apart, adult pitch)
-            if (nextUlti == 29) { voice = SoundEvents.VILLAGER_YES; pitch = 1.04F; }
-            else if (nextUlti == 24) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.12F; }
-            else if (nextUlti == 19) { voice = SoundEvents.VILLAGER_YES; pitch = 1.18F; }
-            else if (nextUlti == 13) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 0.96F; fieryAccent = true; }
-        } else if (this.ultiVoiceLine == 1) {
-            // "Wrath from the skies!" (3 bold beats before slam)
-            if (nextUlti == 28) { voice = SoundEvents.VILLAGER_YES; pitch = 1.08F; }
-            else if (nextUlti == 21) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.16F; }
-            else if (nextUlti == 14) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 0.94F; fieryAccent = true; }
-        } else if (this.ultiVoiceLine == 2) {
-            // "Pyroclastic surge!" (4 crisp beats)
-            if (nextUlti == 29) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.02F; }
-            else if (nextUlti == 24) { voice = SoundEvents.VILLAGER_YES; pitch = 1.10F; }
-            else if (nextUlti == 18) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.18F; }
-            else if (nextUlti == 12) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 0.94F; fieryAccent = true; }
-        } else {
-            // Rare: "Rat from the sky!"
-            if (nextUlti == 28) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 1.12F; }
-            else if (nextUlti == 21) { voice = SoundEvents.VILLAGER_TRADE; pitch = 1.04F; }
-            else if (nextUlti == 14) { voice = SoundEvents.VILLAGER_CELEBRATE; pitch = 0.96F; fieryAccent = true; }
-        }
-
-        if (voice != null) {
-            double sx = this.getFirstPassenger() != null ? this.getFirstPassenger().getX() : this.getX();
-            double sy = this.getFirstPassenger() != null ? this.getFirstPassenger().getY() : this.getY();
-            double sz = this.getFirstPassenger() != null ? this.getFirstPassenger().getZ() : this.getZ();
-            sl.playSound(null, sx, sy, sz, voice, SoundSource.PLAYERS, 1.35F, pitch);
-            if (fieryAccent) {
-                sl.playSound(null, sx, sy, sz, SoundEvents.BLAZE_AMBIENT, SoundSource.PLAYERS, 0.45F, 1.35F);
-            }
+        double sx = this.getFirstPassenger() != null ? this.getFirstPassenger().getX() : this.getX();
+        double sy = this.getFirstPassenger() != null ? this.getFirstPassenger().getY() : this.getY();
+        double sz = this.getFirstPassenger() != null ? this.getFirstPassenger().getZ() : this.getZ();
+        if (nextUlti == 29) {
+            sl.playSound(null, sx, sy, sz, SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.75F, 1.18F);
+        } else if (nextUlti == 13) {
+            sl.playSound(null, sx, sy, sz, SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 0.95F);
         }
     }
 
@@ -1057,23 +1083,29 @@ public class FlamestriderBikeEntity extends Entity {
                 this.setOnGround(false);
             }
         } else if (ultiT > 8) {
-            vx *= 0.20D;
-            vz *= 0.20D;
-            if (ultiT > 20) {
-                vy = 0.44D; // Hour of Burning Skies: soar high into the air
-            } else if (ultiT > 14) {
-                vy = 0.02D; // Brief apex windup before Sunfell Slice
+            vx *= 0.18D;
+            vz *= 0.18D;
+            if (ultiT >= 19) {
+                // Half 1 (ticks 30 -> 19): steady upward climb while executing the 180-deg half-donut spin
+                vy = 0.28D;
             } else {
-                vy = -0.95D; // Sunfell Slice: high-speed downward leap slam
+                // Half 2 (ticks 19 -> 8): smooth downward dive back to ground, cleaving on touchdown at ultiT == 8
+                float diveProgress = (19 - ultiT) / 11.0F;
+                vy = -0.26D - diveProgress * 0.48D;
             }
             this.setOnGround(false);
         } else if (finNaT > 6) {
-            Vec3 fwdJump = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.22D);
-            double blend = finNaT > 12 ? 0.28D : 0.48D;
-            vx = Mth.lerp(blend, prev.x, fwdJump.x);
-            vz = Mth.lerp(blend, prev.z, fwdJump.z);
-            vy = finNaT > 10 ? 0.34D : -0.48D; // Rider & bike jump up together then slam forward
-            this.setOnGround(false);
+            if (finNaT >= 11) {
+                Vec3 fwdJump = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.32D);
+                vx = Mth.lerp(0.55D, prev.x, fwdJump.x);
+                vz = Mth.lerp(0.55D, prev.z, fwdJump.z);
+                vy = 0.24D;
+                this.setOnGround(false);
+            } else {
+                vx = prev.x * 0.65D;
+                vz = prev.z * 0.65D;
+                vy = Math.min(prev.y - 0.14D, -0.34D);
+            }
         } else if (waterHere && canSkimWater) {
             vy = Math.max(vy, 0.14D); // Skim up to water surface
         } else if (waterBelow && canSkimWater && vy <= 0.0D && !glidingNow) {

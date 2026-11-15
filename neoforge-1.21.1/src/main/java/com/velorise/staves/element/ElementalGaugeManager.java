@@ -20,6 +20,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -156,6 +157,12 @@ public final class ElementalGaugeManager {
     private static final Map<UUID, Long> RAIDEN_BURST_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> RAIDEN_IFRAME_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Integer> RAIDEN_NA_COMBO = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_LAST_MELEE_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_NEXT_SWING_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_PENDING_HITOTACHI_TICK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> RAIDEN_PENDING_HITOTACHI_MULT = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> PETRIFIED_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> RAIDEN_LAST_STAFF_RESOLVE_TICK = new ConcurrentHashMap<>();
     private static final ThreadLocal<Boolean> IS_PROCESSING_RAIDEN_PROC = ThreadLocal.withInitial(() -> Boolean.FALSE);
     private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
@@ -323,8 +330,13 @@ public final class ElementalGaugeManager {
             set.add(Element.DENDRO);
         }
         Long frozenEnd = FROZEN_UNTIL.get(id);
+        Long petrifiedEnd = PETRIFIED_UNTIL.get(id);
         GaugeState fg = FROZEN_GAUGES.get(id);
-        if ((frozenEnd != null && now < frozenEnd) || (fg != null && !fg.isExpired())) {
+        boolean petrified = petrifiedEnd != null && now < petrifiedEnd;
+        if (petrified) {
+            set.add(Element.GEO);
+        }
+        if ((fg != null && !fg.isExpired()) || (!petrified && frozenEnd != null && now < frozenEnd)) {
             set.add(Element.CRYO);
         }
         set.addAll(getInnateElements(target));
@@ -786,6 +798,12 @@ public final class ElementalGaugeManager {
         RAIDEN_BURST_CD_UNTIL.remove(id);
         RAIDEN_IFRAME_UNTIL.remove(id);
         RAIDEN_NA_COMBO.remove(id);
+        RAIDEN_LAST_MELEE_TICK.remove(id);
+        RAIDEN_NEXT_SWING_TICK.remove(id);
+        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
+        RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
+        ArchonUltiManager.clearEntityState(id);
+        PETRIFIED_UNTIL.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
         com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
@@ -885,6 +903,12 @@ public final class ElementalGaugeManager {
         RAIDEN_BURST_CD_UNTIL.clear();
         RAIDEN_IFRAME_UNTIL.clear();
         RAIDEN_NA_COMBO.clear();
+        RAIDEN_LAST_MELEE_TICK.clear();
+        RAIDEN_NEXT_SWING_TICK.clear();
+        RAIDEN_PENDING_HITOTACHI_TICK.clear();
+        RAIDEN_PENDING_HITOTACHI_MULT.clear();
+        ArchonUltiManager.clearAll();
+        PETRIFIED_UNTIL.clear();
         LAST_ELEMENTAL_ARMOR_WEAR.clear();
         SOURCEWATER_DROPLETS.clear();
         ICD_TRACKER.clear();
@@ -1022,6 +1046,7 @@ public final class ElementalGaugeManager {
     private static void clearFreezeState(LivingEntity target, UUID id) {
         boolean hadFreeze = FROZEN_GAUGES.remove(id) != null
                 || FROZEN_UNTIL.remove(id) != null
+                || PETRIFIED_UNTIL.remove(id) != null
                 || FROZEN_POSES.remove(id) != null;
         LAST_FREEZE_STRUGGLE.remove(id);
         target.setTicksFrozen(0);
@@ -1251,6 +1276,38 @@ public final class ElementalGaugeManager {
         return cdUntil != null && now < cdUntil;
     }
 
+    public static long getMavuikaSkillRemainingTicks(UUID id, long now) {
+        return Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - now);
+    }
+
+    public static void applyMavuikaDismountOrRemainingCooldown(ServerPlayer player) {
+        if (player == null) return;
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        long remCd = getMavuikaSkillRemainingTicks(player.getUUID(), now);
+        int clientCd;
+        if (isMavuikaAuraActive(player.getUUID(), now)) {
+            clientCd = 12;
+        } else {
+            long effectiveRem = Math.max(remCd, 100L);
+            MAVUIKA_SKILL_COOLDOWN_UNTIL.put(player.getUUID(), Math.max(
+                    MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(player.getUUID(), 0L),
+                    now + effectiveRem));
+            clientCd = (int) Math.min(Integer.MAX_VALUE, effectiveRem);
+        }
+        for (ItemStack invStack : player.getInventory().items) {
+            if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                player.getCooldowns().addCooldown(staff, clientCd);
+            }
+        }
+        ItemStack off = player.getOffhandItem();
+        if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            player.getCooldowns().addCooldown(staff, clientCd);
+        }
+    }
+
     public static void activateMavuikaSunAura(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
         if (player == null || player.level().isClientSide()) return;
         ServerLevel level = player.serverLevel();
@@ -1261,7 +1318,8 @@ public final class ElementalGaugeManager {
         MAVUIKA_NIGHTSOUL_FUEL.put(id, maxFuel);
         MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
         MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.put(id, now + 300L); // Genshin Mavuika E cooldown: 15.0s (300 ticks)
+        long cdTicks = Math.max(300L, cooldownTicks > 0 ? cooldownTicks : 300L);
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.put(id, now + cdTicks);
         float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
         com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, Math.round(maxFuel * 10.0F), pts, isNetherite);
         for (int a = 0; a < 12; a++) {
@@ -1457,10 +1515,10 @@ public final class ElementalGaugeManager {
             MAVUIKA_AURA_UNTIL.put(id, Math.max(MAVUIKA_AURA_UNTIL.getOrDefault(id, 0L), now + 140L));
         }
 
-        if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
-            summonAndMountFlamestrider(player, isNetherite, 300, false);
-        }
         MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F), 60.0F));
+        if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+            summonAndMountFlamestrider(player, isNetherite, 0, false);
+        }
         MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
         MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
@@ -1491,14 +1549,32 @@ public final class ElementalGaugeManager {
             applyElement(level, target, Element.PYRO, 2.0F, player, ultiDmg);
         }
 
-        Vec3 slamCenter = origin.add(forward.scale(2.5D));
+        Vec3 right = new Vec3(-forward.z, 0.0D, forward.x).normalize();
+        Vec3 slashStart = origin.add(forward.scale(2.1D)).subtract(right.scale(4.4D)).add(0.0D, 0.55D, 0.0D);
+        Vec3 slashEnd = origin.add(forward.scale(4.2D)).add(right.scale(4.6D)).add(0.0D, 2.35D, 0.0D);
+        com.velorise.staves.network.ModNetwork.sendElectricArc(level, slashStart, slashEnd, 14, 0xFFFF6A00);
+        for (int k = 0; k <= 12; k++) {
+            double frac = k / 12.0D;
+            double bow = Math.sin(frac * Math.PI) * 2.2D;
+            Vec3 slashPt = slashStart.lerp(slashEnd, frac).add(forward.scale(bow));
+            level.sendParticles(ParticleTypes.FLAME, slashPt.x, slashPt.y, slashPt.z, 3, 0.10D, 0.10D, 0.10D, 0.03D);
+            if (k % 2 == 0) {
+                level.sendParticles(ParticleTypes.LAVA, slashPt.x, slashPt.y, slashPt.z, 1, 0.06D, 0.06D, 0.06D, 0.01D);
+            }
+        }
+
+        Vec3 slamCenter = origin.add(forward.scale(2.8D));
         level.sendParticles(ParticleTypes.EXPLOSION, slamCenter.x, slamCenter.y + 0.8D, slamCenter.z, 2, 0.6D, 0.3D, 0.6D, 0.0D);
-        for (int a = -90; a <= 90; a += 15) {
+        for (int a = 0; a < 360; a += 15) {
             Vec3 dir = Vec3.directionFromRotation(0.0F, player.getYRot() + a);
-            for (double r = 1.5D; r <= 5.0D; r += 1.2D) {
-                Vec3 p = origin.add(dir.scale(r));
-                level.sendParticles(ParticleTypes.FLAME, p.x, origin.y + 0.4D, p.z, 3, 0.12D, 0.18D, 0.12D, 0.04D);
-                level.sendParticles(ParticleTypes.LAVA, p.x, origin.y + 0.5D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
+            Vec3 ringPos = origin.add(dir.scale(3.2D));
+            level.sendParticles(ParticleTypes.FLAME, ringPos.x, origin.y + 0.18D, ringPos.z, 2, 0.08D, 0.05D, 0.08D, 0.02D);
+            if (a >= -90 && a <= 90) {
+                for (double r = 1.8D; r <= 5.0D; r += 1.4D) {
+                    Vec3 p = origin.add(dir.scale(r));
+                    level.sendParticles(ParticleTypes.FLAME, p.x, origin.y + 0.4D, p.z, 2, 0.12D, 0.18D, 0.12D, 0.04D);
+                    level.sendParticles(ParticleTypes.LAVA, p.x, origin.y + 0.5D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
+                }
             }
         }
         level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.0F, 0.9F);
@@ -1520,20 +1596,7 @@ public final class ElementalGaugeManager {
                     }
                     float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                     com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
-                    int remCd = (int) Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - serverNow);
-                    if (remCd > 0) {
-                        for (ItemStack invStack : player.getInventory().items) {
-                            if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                                player.getCooldowns().addCooldown(staff, remCd);
-                            }
-                        }
-                        ItemStack off = player.getOffhandItem();
-                        if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                            player.getCooldowns().addCooldown(staff, remCd);
-                        }
-                    }
+                    applyMavuikaDismountOrRemainingCooldown(player);
                 }
                 continue;
             }
@@ -1586,20 +1649,7 @@ public final class ElementalGaugeManager {
                 }
                 float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                 com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
-                int remCd = (int) Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - serverNow);
-                if (remCd > 0) {
-                    for (ItemStack invStack : player.getInventory().items) {
-                        if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                            player.getCooldowns().addCooldown(staff, remCd);
-                        }
-                    }
-                    ItemStack off = player.getOffhandItem();
-                    if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                            && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                        player.getCooldowns().addCooldown(staff, remCd);
-                    }
-                }
+                applyMavuikaDismountOrRemainingCooldown(player);
                 continue;
             }
             long nextStrike = MAVUIKA_AURA_NEXT_STRIKE.getOrDefault(id, 0L);
@@ -1737,6 +1787,10 @@ public final class ElementalGaugeManager {
         RAIDEN_BURST_CD_UNTIL.remove(id);
         RAIDEN_IFRAME_UNTIL.remove(id);
         RAIDEN_NA_COMBO.remove(id);
+        RAIDEN_LAST_MELEE_TICK.remove(id);
+        RAIDEN_NEXT_SWING_TICK.remove(id);
+        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
+        RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
         long now = player.level().getGameTime();
         Element cryst = CrystallizeShardManager.getActiveShield(player, now);
         if (cryst == null) {
@@ -1774,13 +1828,37 @@ public final class ElementalGaugeManager {
     }
 
     public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) {
-        if (player == null || !hasActiveNightsFocusShield(player)) return;
+        if (player == null) return;
+        grantRaidenResolveOnStaffSkill(player);
+        if (!hasActiveNightsFocusShield(player)) return;
         UUID id = player.getUUID();
         long now = player.level().getGameTime();
         long lastSkill = NIGHTS_FOCUS_LAST_SKILL_STAR.getOrDefault(id, -100L);
         if (now - lastSkill < 6L) return; // 0.3s cooldown
         NIGHTS_FOCUS_LAST_SKILL_STAR.put(id, now);
         addNightsFocusStars(player, 2, now);
+    }
+
+    private static void grantRaidenResolveOnStaffSkill(ServerPlayer player) {
+        if (player.level().isClientSide()) return;
+        UUID id = player.getUUID();
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        long last = RAIDEN_LAST_STAFF_RESOLVE_TICK.getOrDefault(id, -100L);
+        if (now - last < 20L) return;
+        boolean hasRaiden = now < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)
+                || (player.getMainHandItem().getItem() instanceof ArcaneStaffItem sm && sm.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
+                || (player.getOffhandItem().getItem() instanceof ArcaneStaffItem so && so.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+        if (!hasRaiden) {
+            for (ItemStack invStack : player.getInventory().items) {
+                if (invStack.getItem() instanceof ArcaneStaffItem si && si.getKind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                    hasRaiden = true;
+                    break;
+                }
+            }
+        }
+        if (!hasRaiden) return;
+        RAIDEN_LAST_STAFF_RESOLVE_TICK.put(id, now);
+        addRaidenResolve(player, 6);
     }
 
     private static void addNightsFocusStars(ServerPlayer player, int amount, long now) {
@@ -2012,37 +2090,15 @@ public final class ElementalGaugeManager {
         return 1.0F + (shielded ? baseBonus * 2.0F : baseBonus);
     }
 
+    public static boolean isChannelingGuardianLens(Player player) {
+        if (player == null || !player.isUsingItem()) return false;
+        ItemStack active = player.getUseItem();
+        return active.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.GUARDIAN;
+    }
+
     public static void applyFurinaWaterWalking(Player player) {
         if (player == null || player.isShiftKeyDown() || player.isSpectator() || player.getAbilities().flying) return;
         if (player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
-        if (!player.level().getEntitiesOfClass(
-                com.velorise.staves.entity.GeoFangPillarEntity.class,
-                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
-                Entity::isAlive
-        ).isEmpty()) {
-            return;
-        }
-        if (!player.level().getEntitiesOfClass(
-                com.velorise.staves.entity.GeoFangPillarEntity.class,
-                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
-                Entity::isAlive
-        ).isEmpty()) {
-            return;
-        }
-        if (!player.level().getEntitiesOfClass(
-                com.velorise.staves.entity.GeoFangPillarEntity.class,
-                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
-                Entity::isAlive
-        ).isEmpty()) {
-            return;
-        }
-        if (!player.level().getEntitiesOfClass(
-                com.velorise.staves.entity.GeoFangPillarEntity.class,
-                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
-                Entity::isAlive
-        ).isEmpty()) {
-            return;
-        }
         if (!player.level().getEntitiesOfClass(
                 com.velorise.staves.entity.GeoFangPillarEntity.class,
                 player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
@@ -2098,7 +2154,8 @@ public final class ElementalGaugeManager {
         }
 
         // Catch player either when within the surface tolerance band OR about to cross below surfaceY on this tick
-        boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - 0.65D);
+        double minSurfaceOffset = isChannelingGuardianLens(player) ? 1.15D : 0.65D;
+        boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - minSurfaceOffset);
         boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.04D && py <= surfaceY + 0.85D);
         if (!atSurface && !crossingSurface) {
             return;
@@ -4995,6 +5052,7 @@ public final class ElementalGaugeManager {
             PLAYER_HP_CHANGE_BUFF_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue() || (e.getValue() - serverNow) > 400L);
             QUICKEN_UNTIL.entrySet().removeIf(e -> !QUICKEN_GAUGES.containsKey(e.getKey()) && (serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L));
             FROZEN_UNTIL.entrySet().removeIf(e -> !FROZEN_GAUGES.containsKey(e.getKey()) && (serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L));
+            PETRIFIED_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L);
             BURNING_UNTIL.entrySet().removeIf(e -> !GAUGES.containsKey(e.getKey()) && (serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L));
             BURNING_EM_LEVEL.keySet().removeIf(id -> !BURNING_UNTIL.containsKey(id));
             BURNING_ATTACKER_UUID.keySet().removeIf(id -> !BURNING_UNTIL.containsKey(id));
@@ -5023,6 +5081,7 @@ public final class ElementalGaugeManager {
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_UNTIL.keySet());
+        activeEntityIds.addAll(PETRIFIED_UNTIL.keySet());
 
         for (UUID id : activeEntityIds) {
             LivingEntity target = null;
@@ -5048,6 +5107,7 @@ public final class ElementalGaugeManager {
                 FROZEN_GAUGES.remove(id);
                 QUICKEN_GAUGES.remove(id);
                 FROZEN_UNTIL.remove(id);
+                PETRIFIED_UNTIL.remove(id);
                 FROZEN_POSES.remove(id);
                 LAST_FREEZE_STRUGGLE.remove(id);
                 QUICKEN_UNTIL.remove(id);
@@ -5156,16 +5216,28 @@ public final class ElementalGaugeManager {
             // Tick independent Freeze gauge (Genshin Statue Freeze: lock AI, position, and rotation)
             GaugeState fg = FROZEN_GAUGES.get(id);
             Long frozenEnd = FROZEN_UNTIL.get(id);
+            Long petrifiedEnd = PETRIFIED_UNTIL.get(id);
+            if (petrifiedEnd != null && now >= petrifiedEnd) {
+                PETRIFIED_UNTIL.remove(id);
+                petrifiedEnd = null;
+                changed = true;
+            }
             if (isBossEntity(target)) {
-                if (fg != null || frozenEnd != null) {
+                if (fg != null || frozenEnd != null || petrifiedEnd != null) {
                     clearFreezeState(target, id);
                     changed = true;
                 }
             } else if (fg != null) {
                 fg.tick();
                 if (fg.isExpired() || (frozenEnd != null && now >= frozenEnd)) {
-                    clearFreezeState(target, id);
-                    changed = true;
+                    if (petrifiedEnd != null && now < petrifiedEnd) {
+                        FROZEN_GAUGES.remove(id);
+                        changed = true;
+                        enforceFrozenPose(target, id);
+                    } else {
+                        clearFreezeState(target, id);
+                        changed = true;
+                    }
                 } else {
                     enforceFrozenPose(target, id);
                 }
@@ -5176,6 +5248,9 @@ public final class ElementalGaugeManager {
                 } else {
                     enforceFrozenPose(target, id);
                 }
+            } else if (petrifiedEnd != null) {
+                PETRIFIED_UNTIL.remove(id);
+                changed = true;
             }
 
             // 2B. Proximity Voltaic Arcing (ONLY when BOTH entities are physically submerged in water)
@@ -5361,6 +5436,7 @@ public final class ElementalGaugeManager {
         tickNightsFocusProjectiles();
         tickMavuikaSunAura(server, serverNow);
         tickRaidenState(server, serverNow);
+        ArchonUltiManager.tick(server, serverNow);
         Set<UUID> visitedNearby = new HashSet<>();
         Set<UUID> visitedClouds = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -5369,7 +5445,7 @@ public final class ElementalGaugeManager {
                 continue;
             }
             updatePlayerHpTracking(player, player.level().getGameTime());
-            if (!player.isShiftKeyDown() && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player)) {
+            if (!player.isShiftKeyDown() && (com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player) || isChannelingGuardianLens(player))) {
                 applyFurinaWaterWalking(player);
             }
             if (hasActiveJadeShield(player) && player.level() instanceof ServerLevel jsl && serverNow % 10 == 0) {
@@ -5754,12 +5830,11 @@ public final class ElementalGaugeManager {
         ServerLevel level = owner.serverLevel();
         long now = level.getServer().overworld().getGameTime();
         long duration = 160L; // 8.0s Genshin Wind's Grand Ode (same for Basic & Netherite)
-        double radius = isNetherite ? 12.0D : 8.0D; // 8m Basic, 12m Netherite (x1.5)
+        double radius = isNetherite ? 6.0D : 4.0D; // 8m Basic, 12m Netherite (x1.5)
         DAYBREAK_VORTICES.removeIf(v -> v.ownerId.equals(owner.getUUID()));
         DAYBREAK_VORTICES.add(new DaybreakVortexField(level, center, owner.getUUID(), isNetherite, now + duration, radius));
-        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, center.x, center.y + 0.9D, center.z, 2, 0.0D, 0.0D, 0.0D, 0.0D);
-        level.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, center.x, center.y + 0.9D, center.z, 3, 0.0D, 0.0D, 0.0D, 0.0D);
-        level.sendParticles(ParticleTypes.GUST, center.x, center.y + 0.9D, center.z, 4, 0.0D, 0.0D, 0.0D, 0.0D);
+        com.velorise.staves.network.ModNetwork.sendVortexSphere(level, center.add(0.0D, 1.0D, 0.0D), radius, (int) duration, 0xFF66FFD8);
+        level.sendParticles(ParticleTypes.GUST_EMITTER_LARGE, center.x, center.y + 0.9D, center.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
         level.playSound(null, center.x, center.y, center.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.2F, 0.85F);
     }
 
@@ -5774,40 +5849,6 @@ public final class ElementalGaugeManager {
             ServerPlayer owner = server.getPlayerList().getPlayer(vortex.ownerId);
 
             if (serverNow % 2L == 0L) {
-                double cx = center.x;
-                double cy = center.y + 1.0D;
-                double cz = center.z;
-                // Concentric Breeze rings around the exact Stormeye center (small -> medium -> outer Q range), no messy dust
-                if (serverNow % 4L == 0L) {
-                    level.sendParticles(ParticleTypes.GUST_EMITTER_SMALL, cx, cy, cz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                }
-                double[] ringRadii = { 1.25D, radius * 0.50D, radius * 0.92D };
-                double baseAngle = (serverNow * 0.14D);
-                for (int rIdx = 0; rIdx < ringRadii.length; rIdx++) {
-                    double r = ringRadii[rIdx];
-                    int points = rIdx == 0 ? 4 : (rIdx == 1 ? 6 : 8);
-                    double dirSign = (rIdx % 2 == 0) ? 1.0D : -1.0D;
-                    for (int p = 0; p < points; p++) {
-                        double angle = baseAngle * dirSign + (Math.PI * 2.0D * p) / points;
-                        double px = cx + Math.cos(angle) * r;
-                        double pz = cz + Math.sin(angle) * r;
-                        double py = cy + Math.sin(angle * 2.0D + serverNow * 0.1D) * (0.25D + rIdx * 0.15D);
-                        level.sendParticles(ParticleTypes.GUST, px, py, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                        if (vortex.absorbedElement != null) {
-                            var absorbedParticle = switch (vortex.absorbedElement) {
-                                case PYRO -> ParticleTypes.FLAME;
-                                case HYDRO -> ParticleTypes.SPLASH;
-                                case ELECTRO -> ParticleTypes.ELECTRIC_SPARK;
-                                case CRYO -> ParticleTypes.SNOWFLAKE;
-                                default -> ParticleTypes.GUST;
-                            };
-                            if (p % 2 == 0) {
-                                level.sendParticles(absorbedParticle, px, py, pz, 1, 0.0D, 0.0D, 0.0D, 0.01D);
-                            }
-                        }
-                    }
-                }
-
                 AABB pullBox = new AABB(center, center).inflate(radius);
                 Vec3 eyeTarget = center.add(0.0D, 0.85D, 0.0D);
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, pullBox, e -> e.isAlive() && !e.isRemoved())) {
@@ -5837,6 +5878,17 @@ public final class ElementalGaugeManager {
                         target.hurtMarked = true;
                     }
                 }
+                for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, pullBox, e -> e.isAlive() && !e.isRemoved())) {
+                    if (item.position().distanceToSqr(center) > radiusSqr) continue;
+                    Vec3 diff = eyeTarget.subtract(item.position());
+                    double dist = diff.length();
+                    if (dist > 0.35D) {
+                        Vec3 dir = diff.scale(1.0D / dist);
+                        double pull = Math.min(0.32D, 0.12D + (dist / radius) * 0.20D);
+                        Vec3 cur = item.getDeltaMovement();
+                        item.setDeltaMovement(cur.x * 0.72D + dir.x * pull, Math.max(-0.05D, Math.min(0.24D, cur.y * 0.65D + dir.y * 0.18D + 0.04D)), cur.z * 0.72D + dir.z * pull);
+                    }
+                }
             }
 
             if (serverNow % 10L == 0L) {
@@ -5852,6 +5904,16 @@ public final class ElementalGaugeManager {
                     Element absorbed = detectDaybreakAbsorption(level, center, targets);
                     if (absorbed != null) {
                         vortex.absorbedElement = absorbed;
+                        int absorbedColor = switch (absorbed) {
+                            case PYRO -> 0xFFFF5522;
+                            case HYDRO -> 0xFF18BFFF;
+                            case ELECTRO -> 0xFFC44DFF;
+                            case CRYO -> 0xFF7CF4FF;
+                            default -> 0xFF66FFD8;
+                        };
+                        int remainingTicks = (int) Math.max(5L, vortex.expireTick - serverNow);
+                        com.velorise.staves.network.ModNetwork.sendVortexSphere(
+                                level, center.add(0.0D, 1.0D, 0.0D), radius, remainingTicks, absorbedColor);
                         level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
                     }
                 }
@@ -5904,7 +5966,7 @@ public final class ElementalGaugeManager {
 
     // ==================== RAIDEN SHOGUN: ENGULFING LIGHTNING ====================
 
-    private static boolean isRaidenProtectedAlly(ServerPlayer owner, LivingEntity e) {
+    static boolean isRaidenProtectedAlly(ServerPlayer owner, LivingEntity e) {
         if (e instanceof net.minecraft.world.entity.TamableAnimal tame && owner.getUUID().equals(tame.getOwnerUUID())) {
             return true;
         }
@@ -5934,7 +5996,21 @@ public final class ElementalGaugeManager {
     public static boolean isRaidenIframeActive(@Nullable Entity entity) {
         if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl)) return false;
         long now = sl.getServer().overworld().getGameTime();
-        return now < RAIDEN_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L);
+        return now < RAIDEN_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L)
+                || ArchonUltiManager.isZhongliIframeActive(entity);
+    }
+
+    public static boolean isMavuikaBikeIframeActive(@Nullable Entity entity, @Nullable DamageSource source) {
+        if (entity == null || (source != null && source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))) {
+            return false;
+        }
+        com.velorise.staves.entity.FlamestriderBikeEntity bike = null;
+        if (entity instanceof com.velorise.staves.entity.FlamestriderBikeEntity b) {
+            bike = b;
+        } else if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity b) {
+            bike = b;
+        }
+        return bike != null && (bike.isDashIframeActive() || bike.getUltiTicks() > 0);
     }
 
     public static int getRaidenResolve(UUID id) {
@@ -5961,44 +6037,58 @@ public final class ElementalGaugeManager {
         int dur = isMusouBurst ? 10 : 6;
 
         if (isCharged) {
-            // Charged Attack: crisp X-crescent double straight Electro slash
-            Vec3 s1 = center.add(right.scale(-span)).add(up.scale(-span * 0.55D));
-            Vec3 e1 = center.add(right.scale(span)).add(up.scale(span * 0.65D));
-            Vec3 s2 = center.add(right.scale(span)).add(up.scale(-span * 0.55D));
-            Vec3 e2 = center.add(right.scale(-span)).add(up.scale(span * 0.65D));
+            // Charged Attack: two staggered upward-diagonal crescent arcs projecting forward
+            Vec3 s1 = center.add(right.scale(-span * 0.90D)).add(up.scale(-span * 0.48D));
+            Vec3 e1 = center.add(right.scale(span * 0.90D)).add(up.scale(span * 0.58D));
+            Vec3 c2 = center.add(fwd.scale(1.35D));
+            Vec3 s2 = c2.add(right.scale(span * 0.90D)).add(up.scale(-span * 0.45D));
+            Vec3 e2 = c2.add(right.scale(-span * 0.90D)).add(up.scale(span * 0.62D));
             com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
             com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
             return;
         }
         if (isMusouBurst) {
-            // Musou no Hitotachi: massive wide horizontal + diagonal space-rending slash
-            Vec3 s = center.add(right.scale(-span)).add(up.scale(-0.35D));
-            Vec3 e = center.add(right.scale(span)).add(up.scale(0.55D));
+            // Musou no Hitotachi: massive wide horizontal slash from opposite side to sword-hand side
+            Vec3 s = center.add(right.scale(-span)).add(up.scale(0.05D));
+            Vec3 e = center.add(right.scale(span)).add(up.scale(0.05D));
             com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, color);
             return;
         }
-        // N1..N4 Musou Isshin combo angles
+        // N1..N5 Musou Isshin combo angles matching 1st & 3rd person hand swings
+        int step = Math.floorMod(comboStep, 5);
+        if (step == 3) {
+            // N4: rapid 2-hit cross flurry
+            Vec3 s1 = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.42D));
+            Vec3 e1 = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.45D));
+            Vec3 s2 = center.add(right.scale(span * 0.85D)).add(up.scale(-span * 0.42D));
+            Vec3 e2 = center.add(right.scale(-span * 0.85D)).add(up.scale(span * 0.45D));
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
+            return;
+        }
         Vec3 s;
         Vec3 e;
-        switch (Math.floorMod(comboStep, 4)) {
-            case 0 -> { // N1: diagonal down-right -> up-left
-                s = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.45D));
-                e = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.50D));
+        int arcColor = color;
+        switch (step) {
+            case 0 -> { // N1: horizontal right -> left
+                s = center.add(right.scale(span)).add(up.scale(0.10D));
+                e = center.add(right.scale(-span)).add(up.scale(-0.08D));
             }
-            case 1 -> { // N2: diagonal up-right -> down-left
-                s = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.50D));
-                e = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.40D));
+            case 1 -> { // N2: diagonal lower-left -> upper-right
+                s = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.48D));
+                e = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
             }
-            case 2 -> { // N3: sweeping horizontal cross-slash
-                s = center.add(right.scale(-span)).add(up.scale(0.08D));
-                e = center.add(right.scale(span)).add(up.scale(-0.08D));
+            case 2 -> { // N3: diagonal upper-right -> lower-left
+                s = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
+                e = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.45D));
             }
-            default -> { // N4: upward crescent finisher
-                s = center.add(right.scale(-span * 0.65D)).add(up.scale(-span * 0.65D));
-                e = center.add(right.scale(span * 0.70D)).add(up.scale(span * 0.85D));
+            default -> { // N5: overhead vertical crescent finisher
+                s = center.add(up.scale(span * 1.15D));
+                e = center.add(up.scale(-span * 0.85D)).add(fwd.scale(0.35D));
+                arcColor = 0xFFE0B0FF;
             }
         }
-        com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, color);
+        com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, arcColor);
     }
 
     public static void addRaidenResolve(ServerPlayer player, int baseAmount) {
@@ -6028,10 +6118,10 @@ public final class ElementalGaugeManager {
         RAIDEN_EYE_NETHERITE.put(id, isNetherite);
         RAIDEN_EYE_NEXT_PROC.put(id, now + 18L); // Genshin coordinated strike ICD: 0.9s
         RAIDEN_SKILL_CD_UNTIL.put(id, now + 200L); // Genshin E cooldown: 10.0s
-        addRaidenResolve(player, 6);
+        addRaidenResolve(player, 10);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (3.0D * scale * StavesConfig.getDamageMultiplier());
+        float dmg = (float) (2.0D * scale * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 6.75D : 4.5D;
         Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
@@ -6041,7 +6131,6 @@ public final class ElementalGaugeManager {
             AABB box = player.getBoundingBox().inflate(radius, 2.5D, radius);
             for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                target.hurt(level.damageSources().indirectMagic(player, player), dmg);
                 applyElement(level, target, Element.ELECTRO, attackU, player, dmg);
             }
         } finally {
@@ -6056,10 +6145,13 @@ public final class ElementalGaugeManager {
             level.sendParticles(electroDust, px, center.y, pz, 1, 0.05D, 0.05D, 0.05D, 0.01D);
         }
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y, center.z, 18, 0.8D, 0.4D, 0.8D, 0.08D);
-        sendRaidenSlashArc(level, center.add(player.getLookAngle().scale(1.2D)), player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D);
+        Vec3 frontEyePos = center.add(player.getLookAngle().scale(1.2D));
+        level.sendParticles(ParticleTypes.END_ROD, frontEyePos.x, frontEyePos.y + 0.2D, frontEyePos.z, 10, 0.35D, 0.35D, 0.35D, 0.05D);
+        sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6F, 1.55F);
         player.displayClientMessage(Component.literal("§d⚡ Eye of Stormy Judgment (15s)"), true);
         syncRaidenState(player, now);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 6);
         return true;
     }
 
@@ -6073,17 +6165,38 @@ public final class ElementalGaugeManager {
             return false;
         }
         int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
+        if (resolve < 30) {
+            player.displayClientMessage(Component.literal("§d⚡ Requires at least 30/60 Resolve to cast Musou Shinsetsu! (" + resolve + "/60)"), true);
+            return false;
+        }
         RAIDEN_RESOLVE.put(id, 0);
         float resolveMult = 1.0F + (resolve / 60.0F) * 0.75F;
 
-        RAIDEN_MUSOU_UNTIL.put(id, now + 140L); // Genshin Q Musou Isshin stance: 7.0s
+        RAIDEN_MUSOU_UNTIL.put(id, now + 162L); // 22t draw windup + 7.0s (140t) Musou Isshin stance
         RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
         RAIDEN_BURST_CD_UNTIL.put(id, now + 360L); // Genshin Q cooldown: 18.0s
-        RAIDEN_IFRAME_UNTIL.put(id, now + 30L); // 1.5s Burst i-frame
-        player.invulnerableTime = Math.max(player.invulnerableTime, 30);
+        RAIDEN_IFRAME_UNTIL.put(id, now + 32L); // 1.6s Burst i-frame covering full draw animation
+        RAIDEN_NEXT_SWING_TICK.put(id, now + 26L); // Lock NA attacks until chest draw + slash finishes
+        player.invulnerableTime = Math.max(player.invulnerableTime, 32);
 
+        RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 22L);
+        RAIDEN_PENDING_HITOTACHI_MULT.put(id, resolveMult);
+
+        DustParticleOptions chargeGlow = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 1.5F : 1.25F);
+        level.sendParticles(chargeGlow, player.getX(), player.getY() + 1.15D, player.getZ(), 12, 0.28D, 0.25D, 0.28D, 0.02D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.15D, player.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.05D);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.35F);
+        player.displayClientMessage(Component.literal("§d⚡ Musou Shinsetsu... | Resolve: " + resolve), true);
+        syncRaidenState(player, now);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
+        return true;
+    }
+
+    private static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) {
+        ServerLevel level = player.serverLevel();
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float hitotachiDmg = (float) (8.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
+        float hitotachiDmg = (float) (6.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 3.0F : 2.0F;
         double reach = isNetherite ? 9.0D : 6.0D;
         double aoeRadius = isNetherite ? 5.25D : 3.5D;
@@ -6095,7 +6208,6 @@ public final class ElementalGaugeManager {
             AABB box = new AABB(slashCenter, slashCenter).inflate(aoeRadius, 3.0D, aoeRadius);
             for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                target.hurt(level.damageSources().indirectMagic(player, player), hitotachiDmg);
                 applyElement(level, target, Element.ELECTRO, attackU, player, hitotachiDmg);
             }
         } finally {
@@ -6115,10 +6227,32 @@ public final class ElementalGaugeManager {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
         sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius);
-        player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s) | Resolve: " + resolve), true);
-        syncRaidenState(player, now);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
-        return true;
+        player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s)"), true);
+    }
+
+    public static void triggerRaidenUlti(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.isOverloaded(player)) return;
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        ItemStack raidenStack = ItemStack.EMPTY;
+        boolean fromMain = false;
+        if (main.getItem() instanceof ArcaneStaffItem sm
+                && sm.kind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            raidenStack = main;
+            fromMain = true;
+        } else if (off.getItem() instanceof ArcaneStaffItem so
+                && so.kind() == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            raidenStack = off;
+        }
+        if (raidenStack.isEmpty()) return;
+        boolean isNetherite = ((ArcaneStaffItem) raidenStack.getItem()).isNetherite();
+        if (activateRaidenMusouBurst(player, isNetherite)) {
+            raidenStack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(
+                    fromMain ? net.minecraft.world.InteractionHand.MAIN_HAND : net.minecraft.world.InteractionHand.OFF_HAND));
+            player.awardStat(net.minecraft.stats.Stats.ITEM_USED.get(raidenStack.getItem()));
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 8);
+        }
     }
 
     public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) {
@@ -6136,21 +6270,20 @@ public final class ElementalGaugeManager {
 
         RAIDEN_EYE_NEXT_PROC.put(id, now + 18L); // 0.9s Genshin coordinated attack interval
         boolean isNetherite = RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
-        addRaidenResolve(attacker, 2);
+        addRaidenResolve(attacker, 4);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (2.5D * scale * StavesConfig.getDamageMultiplier());
+        float dmg = (float) (1.5D * scale * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 1.5F : 1.0F;
-        double aoe = isNetherite ? 4.5D : 3.0D;
+        double aoe = isNetherite ? 1.5D : 1.0D;
         Vec3 pos = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
 
         final ServerPlayer finalAttacker = attacker;
         IS_PROCESSING_RAIDEN_PROC.set(true);
         try {
-            AABB box = target.getBoundingBox().inflate(aoe, 2.0D, aoe);
+            AABB box = target.getBoundingBox().inflate(aoe, 1.0D, aoe);
             for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && !e.isSpectator() && e != finalAttacker && !isRaidenProtectedAlly(finalAttacker, e))) {
-                victim.hurt(level.damageSources().indirectMagic(finalAttacker, finalAttacker), dmg);
                 applyElement(level, victim, Element.ELECTRO, attackU, finalAttacker, dmg);
             }
         } finally {
@@ -6160,7 +6293,7 @@ public final class ElementalGaugeManager {
         DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
         level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.06D);
-        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.9D : 1.4D);
+        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
     }
 
@@ -6180,14 +6313,20 @@ public final class ElementalGaugeManager {
         }
 
         boolean isNetherite = staff.isNetherite();
-        boolean isCharged = attacker.isShiftKeyDown();
+        boolean isCharged = false;
+        if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) {
+            return 0.0F;
+        }
+        RAIDEN_LAST_MELEE_TICK.put(id, now);
+        RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
         int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
-        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 4));
+        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
         float atkStrength = Math.max(0.35F, getEffectiveAttackStrengthScale(attacker));
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float chargedMult = isCharged ? 1.35F : 1.0F;
-        float bonusDmg = (float) (4.0D * scale * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
-        float totalDmg = incomingDamage + bonusDmg;
+        float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
+        float chargedMult = isCharged ? 1.35F : finisherMult;
+        float bonusDmg = (float) (2.6D * scale * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
+        float totalDmg = bonusDmg;
         float attackU = isNetherite ? 1.5F : 1.0F;
         float[] outDamage = new float[] { totalDmg };
 
@@ -6198,7 +6337,6 @@ public final class ElementalGaugeManager {
             AABB sweepBox = target.getBoundingBox().inflate(sweepRadius, 1.75D, sweepRadius);
             for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
                     e -> e.isAlive() && !e.isSpectator() && e != attacker && e != target && !isRaidenProtectedAlly(attacker, e))) {
-                nearby.hurt(level.damageSources().indirectMagic(attacker, attacker), bonusDmg * 0.75F);
                 applyElement(level, nearby, Element.ELECTRO, attackU, attacker, bonusDmg * 0.75F);
             }
         } finally {
@@ -6214,6 +6352,70 @@ public final class ElementalGaugeManager {
         return outDamage[0];
     }
 
+    public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) {
+        if (player == null || !player.isAlive()) return;
+        if (!(player.level() instanceof ServerLevel level)) return;
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (!isRaidenMusouActive(id, now)) return;
+        ItemStack mainHand = player.getMainHandItem();
+        if (!(mainHand.getItem() instanceof ArcaneStaffItem staff) || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            return;
+        }
+        if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) return;
+        if (now - RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L) <= 1L) return;
+
+        RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
+        boolean isNetherite = staff.isNetherite();
+        int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
+        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
+
+        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
+        float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
+        float chargedMult = isCharged ? 1.35F : finisherMult;
+        float slashDmg = (float) (2.6D * scale * chargedMult * StavesConfig.getDamageMultiplier());
+        float attackU = isNetherite ? 1.5F : 1.0F;
+        Vec3 look = player.getLookAngle().normalize();
+        double reach = isCharged ? (isNetherite ? 9.5D : 7.5D) : ((isNetherite ? 5.25D : 3.75D) * finisherMult);
+        Vec3 slashPos = player.getEyePosition().add(look.scale(reach * 0.55D)).add(0.0D, -0.25D, 0.0D);
+
+        IS_PROCESSING_RAIDEN_PROC.set(true);
+        try {
+            if (isCharged) {
+                java.util.Set<UUID> hitIds = new java.util.HashSet<>();
+                for (double frac : new double[]{0.35D, 0.75D}) {
+                    Vec3 boxCenter = player.getEyePosition().add(look.scale(reach * frac)).add(0.0D, -0.25D, 0.0D);
+                    AABB sweepBox = new AABB(boxCenter, boxCenter).inflate(2.4D, 1.85D, 2.4D);
+                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                        if (hitIds.add(target.getUUID())) {
+                            applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                        }
+                    }
+                }
+            } else {
+                AABB sweepBox = new AABB(slashPos, slashPos).inflate(reach * 0.65D, 1.75D, reach * 0.65D);
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                        e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                    applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                }
+            }
+        } finally {
+            IS_PROCESSING_RAIDEN_PROC.set(false);
+        }
+
+        sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D));
+        if (isCharged) {
+            Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
+            sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, farSlashPos.x, farSlashPos.y, farSlashPos.z, 10, 0.55D, 0.3D, 0.55D, 0.08D);
+        }
+        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.55F : 1.25F);
+        level.sendParticles(slash, slashPos.x, slashPos.y, slashPos.z, 8, 0.45D, 0.25D, 0.45D, 0.03D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, slashPos.x, slashPos.y, slashPos.z, 8, 0.4D, 0.25D, 0.4D, 0.06D);
+        level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
+    }
+
     private static void tickRaidenState(MinecraftServer server, long serverNow) {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             UUID id = player.getUUID();
@@ -6225,14 +6427,32 @@ public final class ElementalGaugeManager {
                 if (!(mainHand.getItem() instanceof ArcaneStaffItem staff)
                         || staff.getKind() != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                     RAIDEN_MUSOU_UNTIL.remove(id);
+                    RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
+                    RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
                     musouActive = false;
-                } else if (serverNow % 3 == 0 && player.level() instanceof ServerLevel sl) {
-                    boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
-                    DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
-                    sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
-                    sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.05D, player.getZ(), 2, 0.3D, 0.35D, 0.3D, 0.02D);
+                    syncRaidenState(player, serverNow);
+                } else {
+                    Long pendingHitTick = RAIDEN_PENDING_HITOTACHI_TICK.get(id);
+                    if (pendingHitTick != null && serverNow >= pendingHitTick) {
+                        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
+                        Float pendingMult = RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
+                        if (player.isAlive() && pendingMult != null) {
+                            boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
+                            executeRaidenHitotachiImpact(player, neth, pendingMult);
+                        }
+                    }
+                    if (serverNow % 3 == 0 && player.level() instanceof ServerLevel sl) {
+                        boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
+                        DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
+                        sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
+                        sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
+                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.05D, player.getZ(), 2, 0.3D, 0.35D, 0.3D, 0.02D);
+                    }
                 }
+            }
+            if (!musouActive) {
+                RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
+                RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
             }
 
             if ((eyeActive || musouActive || RAIDEN_RESOLVE.getOrDefault(id, 0) > 0) && serverNow % 10 == 0) {
@@ -6243,5 +6463,38 @@ public final class ElementalGaugeManager {
                 syncRaidenState(player, serverNow);
             }
         }
+    }
+
+    static void applyPetrifyState(LivingEntity target, int petrifyTicks, long targetGameTime) {
+        if (target == null || !target.isAlive() || isBossEntity(target)) return;
+        UUID targetId = target.getUUID();
+        long until = targetGameTime + petrifyTicks;
+        Long prevFreezeUntil = FROZEN_UNTIL.get(targetId);
+        FROZEN_UNTIL.put(targetId, prevFreezeUntil == null ? until : Math.max(prevFreezeUntil, until));
+        Long prevPetrifyUntil = PETRIFIED_UNTIL.get(targetId);
+        PETRIFIED_UNTIL.put(targetId, prevPetrifyUntil == null ? until : Math.max(prevPetrifyUntil, until));
+
+        target.stopUsingItem();
+        target.releaseUsingItem();
+        target.setDeltaMovement(Vec3.ZERO);
+        target.hasImpulse = false;
+        target.hurtMarked = true;
+
+        FROZEN_POSES.computeIfAbsent(targetId, k -> new FrozenPoseState(
+                target.getX(), target.getY(), target.getZ(),
+                target.getYRot(), target.getXRot(), target.getYHeadRot(), target.yBodyRot
+        ));
+
+        if (target instanceof Mob mob) {
+            mob.getNavigation().stop();
+            mob.setAggressive(false);
+            mob.setNoAi(true);
+            mob.addTag(TAG_FROZEN_STATUE);
+        }
+        enforceFrozenPose(target, targetId);
+
+        Map<Element, GaugeState> entityGauges = GAUGES.get(targetId);
+        syncAuras(target, entityGauges != null ? entityGauges.keySet() : Collections.emptySet(), null, null, null);
+        com.velorise.staves.network.ModNetwork.sendStaffAnimation(target, petrifyTicks >= 95 ? 17 : 16);
     }
 }

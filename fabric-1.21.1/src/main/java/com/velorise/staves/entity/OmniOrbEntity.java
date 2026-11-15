@@ -21,6 +21,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -328,10 +329,15 @@ public class OmniOrbEntity extends ThrowableProjectile {
         LivingEntity directTarget = (hitResult instanceof EntityHitResult ehr && ehr.getEntity() instanceof LivingEntity living && living != this.getOwner())
                 ? living
                 : null;
+        boolean isOmniMode = (mode == 0);
 
         if (directTarget != null && directTarget.isAlive()) {
-            ElementalGaugeManager.applyElement(serverLevel, directTarget, chosen, this.attackU, attacker, this.baseDamage);
-            applyPostHitControl(chosen, directTarget, hitPos);
+            if (isOmniMode && isOmniResistantTarget(serverLevel, directTarget, chosen)) {
+                dealOmniPhysicalDamage(serverLevel, directTarget, attacker, this.getOwner(), this.baseDamage);
+            } else {
+                ElementalGaugeManager.applyElement(serverLevel, directTarget, chosen, this.attackU, attacker, this.baseDamage);
+                applyPostHitControl(chosen, directTarget, hitPos);
+            }
         }
 
         double splashRadius = isNetheriteTier() ? 2.5D : 1.75D;
@@ -342,8 +348,12 @@ public class OmniOrbEntity extends ThrowableProjectile {
         for (LivingEntity nearby : serverLevel.getEntitiesOfClass(LivingEntity.class, box,
                 e -> e.isAlive() && e != this.getOwner() && e != directTarget)) {
             if (nearby.position().distanceToSqr(hitPos) <= splashRadiusSq) {
-                ElementalGaugeManager.applyElement(serverLevel, nearby, chosen, splashU, attacker, splashDmg);
-                applyPostHitControl(chosen, nearby, hitPos);
+                if (isOmniMode && isOmniResistantTarget(serverLevel, nearby, chosen)) {
+                    dealOmniPhysicalDamage(serverLevel, nearby, attacker, this.getOwner(), splashDmg);
+                } else {
+                    ElementalGaugeManager.applyElement(serverLevel, nearby, chosen, splashU, attacker, splashDmg);
+                    applyPostHitControl(chosen, nearby, hitPos);
+                }
             }
         }
 
@@ -356,6 +366,29 @@ public class OmniOrbEntity extends ThrowableProjectile {
             serverLevel.sendParticles(ParticleTypes.EXPLOSION, hitPos.x, hitPos.y + 0.1D, hitPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
         }
         this.discard();
+    }
+
+    private static boolean isOmniResistantTarget(ServerLevel level, LivingEntity target, Element chosen) {
+        return ElementalGaugeManager.isOmniInnate(target)
+                || ElementalGaugeManager.getEffectiveElementalResistance(target, chosen, level.getGameTime()) >= 1.0F;
+    }
+
+    private void dealOmniPhysicalDamage(ServerLevel serverLevel, LivingEntity target, @Nullable ServerPlayer attacker, @Nullable Entity owner, float baseDmg) {
+        float effectiveDmg = (float) (baseDmg * StavesConfig.DAMAGE_MULTIPLIER.get());
+        DamageSource physSource;
+        if (attacker != null) {
+            physSource = serverLevel.damageSources().playerAttack(attacker);
+        } else if (owner instanceof LivingEntity le) {
+            physSource = serverLevel.damageSources().mobAttack(le);
+        } else {
+            physSource = serverLevel.damageSources().generic();
+        }
+        ElementalGaugeManager.triggerMobAggro(serverLevel, target, attacker != null ? attacker : (owner instanceof LivingEntity le ? le : null));
+        target.hurt(physSource, effectiveDmg);
+        serverLevel.sendParticles(ParticleTypes.CRIT, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                12, 0.3D, 0.3D, 0.3D, 0.15D);
+        serverLevel.playSound(null, target.getX(), target.getY(), target.getZ(),
+                SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 0.9F, 1.1F);
     }
 
     private void applyPostHitControl(Element element, LivingEntity target, Vec3 hitPos) {

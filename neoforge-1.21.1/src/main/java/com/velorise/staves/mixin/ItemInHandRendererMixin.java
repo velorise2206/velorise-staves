@@ -64,6 +64,7 @@ public abstract class ItemInHandRendererMixin {
             int seed,
             CallbackInfo ci
     ) {
+        com.velorise.staves.client.ClientAuraRenderer.renderDaybreakNockedWindCharge(entity, stack, displayContext, leftHand, poseStack, buffer);
         poseStack.popPose();
     }
 

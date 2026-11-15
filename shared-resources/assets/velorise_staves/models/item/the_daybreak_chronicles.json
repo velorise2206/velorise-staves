@@ -2,5 +2,27 @@
   "parent": "velorise_staves:item/arcane_staff_handheld",
   "textures": {
     "layer0": "velorise_staves:item/the_daybreak_chronicles"
-  }
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pulling": 1
+      },
+      "model": "velorise_staves:item/the_daybreak_chronicles_pulling_0"
+    },
+    {
+      "predicate": {
+        "pulling": 1,
+        "pull": 0.45
+      },
+      "model": "velorise_staves:item/the_daybreak_chronicles_pulling_1"
+    },
+    {
+      "predicate": {
+        "pulling": 1,
+        "pull": 0.85
+      },
+      "model": "velorise_staves:item/the_daybreak_chronicles_pulling_2"
+    }
+  ]
 }

@@ -270,7 +270,7 @@ public final class ArcaneStaffEvents {
     public static void onLivingAttack(net.minecraftforge.event.entity.living.LivingAttackEvent event) {
         LivingEntity entity = event.getEntity();
         DamageSource src = event.getSource();
-        if (!entity.level().isClientSide() && ElementalGaugeManager.isRaidenIframeActive(entity)) {
+        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity) || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, src))) {
             event.setCanceled(true);
             return;
         }
@@ -567,19 +567,30 @@ public final class ArcaneStaffEvents {
     private static void resolveShulker(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.SHULKER, isNetherite);
+        float attackU = isNetherite ? 1.5F : 1.0F;
         if (target != null && target != owner) {
-            float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.SHULKER, isNetherite);
-            float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
-                target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 90 : 60, 0));
+                target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 70 : 50, 0));
+            }
+        }
+        double radius = isNetherite ? 3.0D : 2.2D;
+        for (LivingEntity splashTarget : targets(level, hit, radius, owner)) {
+            if (splashTarget == target) continue;
+            ElementalGaugeManager.applyElement(level, splashTarget, Element.ELECTRO, 1.0F, player, baseDmg * 0.5F);
+            if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.ELECTRO
+                    && !ElementalGaugeManager.isBossEntity(splashTarget)
+                    && !ElementalGaugeManager.isEntityFrozen(splashTarget)) {
+                splashTarget.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 40, 0));
             }
         }
         DendroCoreManager.checkReactionsNear(level, hit, 3.5D, Element.ELECTRO, player);
-        level.sendParticles(ParticleTypes.END_ROD, hit.x, hit.y, hit.z, 16, 0.25D, 0.25D, 0.25D, 0.03D);
-        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SHULKER_BULLET_HIT, SoundSource.PLAYERS, 0.8F, 1.0F);
+        level.sendParticles(ParticleTypes.END_ROD, hit.x, hit.y, hit.z, 18, 0.55D, 0.35D, 0.55D, 0.06D);
+        level.sendParticles(ParticleTypes.PORTAL, hit.x, hit.y, hit.z, 20, 0.65D, 0.45D, 0.65D, 0.08D);
+        level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.SHULKER_BULLET_HIT, SoundSource.PLAYERS, 0.85F, 1.0F);
     }
 
     private static void resolveFrost(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
@@ -592,30 +603,31 @@ public final class ArcaneStaffEvents {
             if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
-                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 90 : 60, 1));
-                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 150 : 100));
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 100 : 70, 1));
+                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 200 : 140));
             }
             ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
         }
-        if (isNetherite) {
-            for (LivingEntity splashTarget : targets(level, hit, 2.0D, owner)) {
-                if (splashTarget != target) {
-                    ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, 1.0F, player, 2.5F);
-                    if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO
-                            && !ElementalGaugeManager.isBossEntity(splashTarget)
-                            && !ElementalGaugeManager.isEntityFrozen(splashTarget)) {
-                        splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 0));
-                        splashTarget.setTicksFrozen(100);
-                    }
-                    ElementalGaugeManager.enforceFrozenPoseIfFrozen(splashTarget);
+        double radius = isNetherite ? 3.2D : 2.2D;
+        float splashDmg = baseDmg * (isNetherite ? 0.75F : 0.6F);
+        for (LivingEntity splashTarget : targets(level, hit, radius, owner)) {
+            if (splashTarget != target) {
+                ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, 1.0F, player, splashDmg);
+                if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO
+                        && !ElementalGaugeManager.isBossEntity(splashTarget)
+                        && !ElementalGaugeManager.isEntityFrozen(splashTarget)) {
+                    splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 50, 1));
+                    splashTarget.setTicksFrozen(splashTarget.getTicksFrozen() + 100);
                 }
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(splashTarget);
             }
         }
 
         // Cryo ice bridging (Kaeya/Ayaka effect)
         freezeWaterNear(level, hit, isNetherite ? 2 : 1);
 
-        level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y, hit.z, isNetherite ? 30 : 20, 0.3D, 0.3D, 0.3D, 0.025D);
+        level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y, hit.z, 28, 0.55D, 0.35D, 0.55D, 0.05D);
+        level.sendParticles(ParticleTypes.ITEM_SNOWBALL, hit.x, hit.y, hit.z, 16, 0.45D, 0.30D, 0.45D, 0.08D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.65F, 1.6F);
     }
 
@@ -723,7 +735,12 @@ public final class ArcaneStaffEvents {
 
     private static void resolveDaybreak(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         boolean sideBolt = event.getProjectile().getPersistentData().getBoolean("VeloriseDaybreakSideBolt");
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.DAYBREAK, isNetherite) * (sideBolt ? 0.5F : 1.0F);
+        float charge01 = 1.0F;
+        if (event.getProjectile().getPersistentData().contains("VeloriseDaybreakCharge")) {
+            charge01 = net.minecraft.util.Mth.clamp(event.getProjectile().getPersistentData().getFloat("VeloriseDaybreakCharge"), 0.15F, 1.0F);
+        }
+        float chargeScale = 0.55F + 1.25F * charge01;
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.DAYBREAK, isNetherite) * (sideBolt ? 0.5F : 1.0F) * chargeScale;
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double boostScale = isNetherite ? 1.25D : 1.05D;

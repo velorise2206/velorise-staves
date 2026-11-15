@@ -534,6 +534,8 @@
     "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
     "tooltip.velorise_staves.trap_poison.netherite": "속박 + 맹독",
     "tooltip.velorise_staves.vortex_jade_shield.netherite": "  짧게: 암주 (최대 3) | 길게 (1.5s): 옥홀 방패 (150% 흡수 & +30% 피해)",
+    "tooltip.velorise_staves.vortex_burst": "  [R] Planet Befall: Drops a Geo Meteor (6.0m, 4.0U Geo) that Petrifies foes for 4.0s",
+    "tooltip.velorise_staves.vortex_burst.netherite": "  [R] Planet Befall: Drops a Geo Meteor (8.5m, 4.0U Geo, 5.0s Petrify) & grants Jade Shield",
     "item.velorise_staves.frost_rod": "서리 막대기",
     "item.velorise_staves.nights_focus_staff": "고요한 밤의 초점",
     "item.velorise_staves.netherite_nights_focus_staff": "네더라이트 고요한 밤의 초점",
