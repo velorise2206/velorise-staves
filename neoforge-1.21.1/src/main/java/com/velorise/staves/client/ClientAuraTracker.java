@@ -975,6 +975,7 @@ public final class ClientAuraTracker {
         public int musouRemainingTicks;
         public int resolve;
         public boolean netherite;
+        public int burstCooldownTicks;
         public long syncedAtMs;
 
         public float effectiveEyeTicks() {
@@ -986,12 +987,17 @@ public final class ClientAuraTracker {
             long elapsedMs = Math.max(0L, System.currentTimeMillis() - syncedAtMs);
             return Math.max(0.0F, musouRemainingTicks - (elapsedMs / 50.0F));
         }
+
+        public float effectiveBurstCooldownTicks() {
+            long elapsedMs = Math.max(0L, System.currentTimeMillis() - syncedAtMs);
+            return Math.max(0.0F, burstCooldownTicks - (elapsedMs / 50.0F));
+        }
     }
 
     private static final java.util.Map<Integer, RaidenDisplayState> RAIDEN_STATES = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public static void updateRaiden(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite) {
-        if (eyeRemainingTicks <= 0 && musouRemainingTicks <= 0 && resolve <= 0) {
+    public static void updateRaiden(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite, int burstCooldownTicks) {
+        if (eyeRemainingTicks <= 0 && musouRemainingTicks <= 0 && resolve <= 0 && burstCooldownTicks <= 0) {
             RAIDEN_STATES.remove(entityId);
             return;
         }
@@ -1000,13 +1006,14 @@ public final class ClientAuraTracker {
         state.musouRemainingTicks = Math.max(0, musouRemainingTicks);
         state.resolve = Math.max(0, Math.min(60, resolve));
         state.netherite = netherite;
+        state.burstCooldownTicks = Math.max(0, burstCooldownTicks);
         state.syncedAtMs = System.currentTimeMillis();
     }
 
     public static @Nullable RaidenDisplayState getRaiden(int entityId) {
         RaidenDisplayState state = RAIDEN_STATES.get(entityId);
         if (state == null) return null;
-        if (state.effectiveEyeTicks() <= 0.0F && state.effectiveMusouTicks() <= 0.0F && state.resolve <= 0) {
+        if (state.effectiveEyeTicks() <= 0.0F && state.effectiveMusouTicks() <= 0.0F && state.resolve <= 0 && state.effectiveBurstCooldownTicks() <= 0.0F) {
             RAIDEN_STATES.remove(entityId);
             return null;
         }

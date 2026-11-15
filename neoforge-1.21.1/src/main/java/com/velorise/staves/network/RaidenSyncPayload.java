@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-public record RaidenSyncPayload(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite)
+public record RaidenSyncPayload(int entityId, int eyeRemainingTicks, int musouRemainingTicks, int resolve, boolean netherite, int burstCooldownTicks)
         implements CustomPacketPayload {
     public static final Type<RaidenSyncPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "raiden_sync"));
@@ -25,6 +25,8 @@ public record RaidenSyncPayload(int entityId, int eyeRemainingTicks, int musouRe
             RaidenSyncPayload::resolve,
             ByteBufCodecs.BOOL,
             RaidenSyncPayload::netherite,
+            ByteBufCodecs.VAR_INT,
+            RaidenSyncPayload::burstCooldownTicks,
             RaidenSyncPayload::new
     );
 
@@ -35,7 +37,7 @@ public record RaidenSyncPayload(int entityId, int eyeRemainingTicks, int musouRe
 
     public static void handle(RaidenSyncPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> ClientAuraTracker.updateRaiden(
-                payload.entityId(), payload.eyeRemainingTicks(), payload.musouRemainingTicks(), payload.resolve(), payload.netherite()
+                payload.entityId(), payload.eyeRemainingTicks(), payload.musouRemainingTicks(), payload.resolve(), payload.netherite(), payload.burstCooldownTicks()
         ));
     }
 }

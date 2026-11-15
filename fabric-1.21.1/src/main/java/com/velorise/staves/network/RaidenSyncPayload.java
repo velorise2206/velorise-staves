@@ -12,7 +12,8 @@ public record RaidenSyncPayload(
         int eyeRemainingTicks,
         int musouRemainingTicks,
         int resolve,
-        boolean netherite
+        boolean netherite,
+        int burstCooldownTicks
 ) implements CustomPacketPayload {
     public static final Type<RaidenSyncPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "raiden_sync"));
@@ -27,6 +28,8 @@ public record RaidenSyncPayload(
             RaidenSyncPayload::resolve,
             ByteBufCodecs.BOOL,
             RaidenSyncPayload::netherite,
+            ByteBufCodecs.VAR_INT,
+            RaidenSyncPayload::burstCooldownTicks,
             RaidenSyncPayload::new
     );
 
