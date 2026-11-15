@@ -454,7 +454,7 @@ public final class ClientAuraRenderer {
         if (prevElapsed != null && prevKind != null) {
             ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
             long now = System.currentTimeMillis();
-            boolean alreadyTriggered = d != null && now < d.staffAnimUntil && (now - d.staffAnimStartTime) < 150L;
+            boolean alreadyTriggered = d != null && now < d.staffAnimUntil;
             if (!alreadyTriggered) {
                 if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
                     boolean heldFull = prevElapsed >= 26 || entity.isShiftKeyDown();
