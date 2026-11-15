@@ -1585,7 +1585,6 @@ public final class ElementalGaugeManager {
         long now = level.getServer().overworld().getGameTime();
         if (now < MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L)) return; // 18.0s Genshin Q cooldown
         MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
-        com.velorise.staves.audio.CharacterVoiceManager.playMavuikaBurstVoice(player);
         float clampedPts = Math.min(10.0F, pts);
         // Genshin Lv.10 Sunfell Slice: 800.64% + 2.9% * FS (1.0 mod pt = 20 FS; 1.0x baseDmg ~= 200% ATK -> 4.00x + 0.29x/pt)
         float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite);

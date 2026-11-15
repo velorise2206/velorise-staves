@@ -94,8 +94,6 @@ public final class VeloriseStavesMod {
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_en")));
     public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_cn",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_cn")));
-    public static final Supplier<SoundEvent> VOICE_MAVUIKA_Q_BURST_EN = SOUND_EVENTS.register("voice_mavuika_q_burst_en",
-        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_mavuika_q_burst_en")));
 
     // Basic Combat Staves
     public static final Supplier<Item> DRAGONFIRE_SCEPTER = ITEMS.register("dragonfire_scepter",

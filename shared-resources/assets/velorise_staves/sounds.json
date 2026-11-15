@@ -52,11 +52,5 @@
       "velorise_staves:voice/zhongli/q_burst_cn_2",
       "velorise_staves:voice/zhongli/q_burst_cn_3"
     ]
-  },
-  "voice_mavuika_q_burst_en": {
-    "subtitle": "subtitles.velorise_staves.voice_mavuika_q_burst",
-    "sounds": [
-      "velorise_staves:voice/mavuika/q_burst_en_1"
-    ]
   }
 }

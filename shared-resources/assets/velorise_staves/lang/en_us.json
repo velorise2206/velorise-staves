@@ -663,7 +663,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "Zhongli: Dominus Lapidis",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "Zhongli: Jade Shield",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "Zhongli: Planet Befall",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "Mavuika: Ancient Flame Eruption",
   "config.velorise_staves.voice_language": "Voice Language: %s",
   "config.velorise_staves.voice_language.auto": "Auto",
   "config.velorise_staves.voice_language.en_us": "English",

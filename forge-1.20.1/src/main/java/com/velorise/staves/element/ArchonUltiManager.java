@@ -395,7 +395,6 @@ public final class ArchonUltiManager {
         ModNetwork.sendStaffAnimation(player, 15);
         ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
         ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
-        com.velorise.staves.audio.CharacterVoiceManager.playZhongliBurstVoice(player);
 
         DustParticleOptions goldAura = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
         level.sendParticles(goldAura, player.getX(), player.getY() + 1.0D, player.getZ(), 14, 0.4D, 0.35D, 0.4D, 0.02D);

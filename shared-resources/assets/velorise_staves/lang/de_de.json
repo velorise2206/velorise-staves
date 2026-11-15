@@ -660,7 +660,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "Zhongli: Dominus Lapidis",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "Zhongli: Jadeschild",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "Zhongli: Einstürzender Himmel",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "Mavuika: Uralte Flammeneruption",
   "config.velorise_staves.voice_language": "Sprachausgabe: %s",
   "config.velorise_staves.voice_language.auto": "Automatisch",
   "config.velorise_staves.voice_language.en_us": "Englisch",
