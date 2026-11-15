@@ -609,6 +609,13 @@ public final class ClientAuraTracker {
         entry.staffAnimType = animType;
         entry.staffAnimStartTime = now;
         entry.staffAnimUntil = now + durationMs;
+        if (animType == ANIM_VORTEX_TAP) {
+            com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliVoice(entityId, false);
+        } else if (animType == ANIM_VORTEX_HOLD_BURST) {
+            com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliVoice(entityId, true);
+        } else if (animType == ANIM_ZHONGLI_PLANET_BEFALL) {
+            com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliBurstVoice(entityId);
+        }
     }
 
     private ClientAuraTracker() {}

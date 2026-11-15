@@ -51,7 +51,6 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final SoundEvent VOICE_ZHONGLI_E_HOLD_CN = registerSound("voice_zhongli_e_hold_cn");
     public static final SoundEvent VOICE_ZHONGLI_Q_BURST_EN = registerSound("voice_zhongli_q_burst_en");
     public static final SoundEvent VOICE_ZHONGLI_Q_BURST_CN = registerSound("voice_zhongli_q_burst_cn");
-    public static final SoundEvent VOICE_MAVUIKA_Q_BURST_EN = registerSound("voice_mavuika_q_burst_en");
 
     // Basic Combat Staves
     public static final Item DRAGONFIRE_SCEPTER = registerItem("dragonfire_scepter",

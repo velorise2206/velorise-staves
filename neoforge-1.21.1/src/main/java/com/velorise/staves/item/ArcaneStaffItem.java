@@ -1750,7 +1750,6 @@ public final class ArcaneStaffItem extends Item {
         }
 
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
-        com.velorise.staves.audio.CharacterVoiceManager.playZhongliVoice(player, holdJadeShield);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
             level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);

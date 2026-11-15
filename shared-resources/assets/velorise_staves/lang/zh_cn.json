@@ -660,7 +660,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "钟离：地心",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "钟离：玉璋护盾",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "钟离：天星",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "玛薇卡：古烈火轰鸣",
   "config.velorise_staves.voice_language": "角色语音语言：%s",
   "config.velorise_staves.voice_language.auto": "自动",
   "config.velorise_staves.voice_language.en_us": "英语",

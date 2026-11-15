@@ -660,7 +660,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "Чжун Ли: Власть над камнем",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "Чжун Ли: Яшмовый щит",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "Чжун Ли: Падение кометы",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "Мавуика: Извержение древнего пламени",
   "config.velorise_staves.voice_language": "Язык озвучки: %s",
   "config.velorise_staves.voice_language.auto": "Авто",
   "config.velorise_staves.voice_language.en_us": "Английский",

@@ -660,7 +660,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "鍾離：地心",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "鍾離：玉璋シールド",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "鍾離：天星",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "マーヴィカ：古の焔の爆裂",
   "config.velorise_staves.voice_language": "ボイス言語: %s",
   "config.velorise_staves.voice_language.auto": "自動",
   "config.velorise_staves.voice_language.en_us": "英語",

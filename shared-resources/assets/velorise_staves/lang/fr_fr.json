@@ -660,7 +660,6 @@
   "subtitles.velorise_staves.voice_zhongli_e_tap": "Zhongli : Dominus Lapidis",
   "subtitles.velorise_staves.voice_zhongli_e_hold": "Zhongli : Bouclier de jade",
   "subtitles.velorise_staves.voice_zhongli_q_burst": "Zhongli : Chute de météore",
-  "subtitles.velorise_staves.voice_mavuika_q_burst": "Mavuika : Éruption de flamme antique",
   "config.velorise_staves.voice_language": "Langue des voix : %s",
   "config.velorise_staves.voice_language.auto": "Auto",
   "config.velorise_staves.voice_language.en_us": "Anglais",

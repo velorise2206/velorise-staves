@@ -112,8 +112,6 @@ public final class VeloriseStavesMod {
         () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "voice_zhongli_q_burst_en")));
     public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_cn",
         () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "voice_zhongli_q_burst_cn")));
-    public static final Supplier<SoundEvent> VOICE_MAVUIKA_Q_BURST_EN = SOUND_EVENTS.register("voice_mavuika_q_burst_en",
-        () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "voice_mavuika_q_burst_en")));
     public static final Supplier<SoundEvent> WIND_CHARGE_THROW_SOUND = SOUND_EVENTS.register("wind_charge_throw",
         () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(MODID, "wind_charge_throw")));
     public static final Supplier<SoundEvent> WIND_CHARGE_BURST_SOUND = SOUND_EVENTS.register("wind_charge_burst",
