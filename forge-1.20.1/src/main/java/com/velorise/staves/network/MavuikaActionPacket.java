@@ -1,5 +1,6 @@
 package com.velorise.staves.network;
 
+import com.velorise.staves.element.ArchonUltiManager;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.entity.FlamestriderBikeEntity;
 import net.minecraft.network.FriendlyByteBuf;
@@ -17,6 +18,8 @@ public class MavuikaActionPacket {
     public static final byte ACTION_BIKE_NA = 6;
     public static final byte ACTION_SPRINT_START = 7;
     public static final byte ACTION_SPRINT_STOP = 8;
+    public static final byte ACTION_VENTI_ULTI_CHARGE = 9;
+    public static final byte ACTION_VENTI_ULTI_CAST = 10;
 
     private final byte action;
 
@@ -38,7 +41,7 @@ public class MavuikaActionPacket {
             ServerPlayer player = ctx.getSender();
             if (player == null) return;
             if (packet.action == ACTION_ULTI) {
-                ElementalGaugeManager.triggerMavuikaUlti(player);
+                ArchonUltiManager.triggerUlti(player);
             } else if (packet.action == ACTION_DASH_CANCEL) {
                 if (player.getVehicle() instanceof FlamestriderBikeEntity bike) {
                     bike.handleDashCancel(player);
@@ -57,6 +60,10 @@ public class MavuikaActionPacket {
                 if (player.getVehicle() instanceof FlamestriderBikeEntity bike) {
                     bike.setSprintInputHeld(packet.action == ACTION_SPRINT_START);
                 }
+            } else if (packet.action == ACTION_VENTI_ULTI_CHARGE) {
+                ArchonUltiManager.tickVentiUltiCharge(player);
+            } else if (packet.action == ACTION_VENTI_ULTI_CAST) {
+                ArchonUltiManager.triggerVentiUlti(player);
             }
         });
         ctx.setPacketHandled(true);

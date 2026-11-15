@@ -534,6 +534,8 @@
     "tooltip.velorise_staves.guardian_tap_orb.netherite": "  Tap: Hydro Orb (1♥, 1.5U) | Hold (3s): Hydro Beam (8 hits)",
     "tooltip.velorise_staves.trap_poison.netherite": "Trap + Strong Poison",
     "tooltip.velorise_staves.vortex_jade_shield.netherite": "  Tap: Stone Stele (Max 3) | Hold (1.5s): Jade Shield (150% Absorb & +30% DMG)",
+    "tooltip.velorise_staves.vortex_burst": "  [R] Planet Befall: Drops a Geo Meteor (6.0m, 4.0U Geo) that Petrifies foes for 4.0s",
+    "tooltip.velorise_staves.vortex_burst.netherite": "  [R] Planet Befall: Drops a Geo Meteor (8.5m, 4.0U Geo, 5.0s Petrify) & grants Jade Shield",
     "item.velorise_staves.frost_rod": "Frost Rod",
     "item.velorise_staves.nights_focus_staff": "Nights of Formal Focus",
     "item.velorise_staves.netherite_nights_focus_staff": "Netherite Nights of Formal Focus",

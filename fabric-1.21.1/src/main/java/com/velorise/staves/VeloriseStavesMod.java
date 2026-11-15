@@ -91,6 +91,12 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item FROST_ROD = registerItem("frost_rod",
         new Item(new Item.Properties()));
 
+    public static final Item HYDRO_ROD = registerItem("hydro_rod",
+        new Item(new Item.Properties()));
+
+    public static final Item GEO_ROD = registerItem("geo_rod",
+        new Item(new Item.Properties()));
+
     public static final Item WEBCASTER = registerItem("webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, false), false));
 
@@ -296,6 +302,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(GEO_ELEMENT);
             output.accept(OMNI_ELEMENT);
             output.accept(FROST_ROD);
+            output.accept(HYDRO_ROD);
+            output.accept(GEO_ROD);
 
             // Elemental Mastery I-III Enchanted Books
             parameters.holders().lookup(Registries.ENCHANTMENT)
@@ -470,6 +478,8 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(GEO_ELEMENT);
             entries.accept(OMNI_ELEMENT);
             entries.accept(FROST_ROD);
+            entries.accept(HYDRO_ROD);
+            entries.accept(GEO_ROD);
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {

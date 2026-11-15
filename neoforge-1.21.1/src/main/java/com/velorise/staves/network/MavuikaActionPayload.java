@@ -1,6 +1,7 @@
 package com.velorise.staves.network;
 
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.element.ArchonUltiManager;
 import com.velorise.staves.element.ElementalGaugeManager;
 import com.velorise.staves.entity.FlamestriderBikeEntity;
 import io.netty.buffer.ByteBuf;
@@ -20,6 +21,8 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_BIKE_NA = 6;
     public static final byte ACTION_SPRINT_START = 7;
     public static final byte ACTION_SPRINT_STOP = 8;
+    public static final byte ACTION_VENTI_ULTI_CHARGE = 9;
+    public static final byte ACTION_VENTI_ULTI_CAST = 10;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -39,7 +42,7 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
         context.enqueueWork(() -> {
             if (!(context.player() instanceof ServerPlayer player)) return;
             if (payload.action() == ACTION_ULTI) {
-                ElementalGaugeManager.triggerMavuikaUlti(player);
+                ArchonUltiManager.triggerUlti(player);
             } else if (payload.action() == ACTION_DASH_CANCEL) {
                 if (player.getVehicle() instanceof FlamestriderBikeEntity bike) {
                     bike.handleDashCancel(player);
@@ -58,6 +61,10 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
                 if (player.getVehicle() instanceof FlamestriderBikeEntity bike) {
                     bike.setSprintInputHeld(payload.action() == ACTION_SPRINT_START);
                 }
+            } else if (payload.action() == ACTION_VENTI_ULTI_CHARGE) {
+                ArchonUltiManager.tickVentiUltiCharge(player);
+            } else if (payload.action() == ACTION_VENTI_ULTI_CAST) {
+                ArchonUltiManager.triggerVentiUlti(player);
             }
         });
     }

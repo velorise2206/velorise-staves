@@ -33,11 +33,30 @@ public final class ModNetwork {
         ServerPlayNetworking.registerGlobalReceiver(MavuikaActionPayload.TYPE, (payload, context) -> {
             context.server().execute(() -> MavuikaActionPayload.handle(context.player(), payload.action()));
         });
+        PayloadTypeRegistry.playC2S().register(RaidenSlashPayload.TYPE, RaidenSlashPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(RaidenSlashPayload.TYPE, (payload, context) -> {
+            context.server().execute(() -> com.velorise.staves.element.ElementalGaugeManager.performRaidenMusouSwing(context.player(), payload.charged()));
+        });
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
         ElectricArcPayload payload = new ElectricArcPayload(-1, start.x, start.y, start.z, -1, end.x, end.y, end.z, durationTicks, color);
         for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendVortexSphere(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 center, double radius, int durationTicks, int color) {
+        ElectricArcPayload payload = new ElectricArcPayload(-2, center.x, center.y, center.z, -2, radius, 0.0D, 0.0D, durationTicks, color);
+        for (ServerPlayer player : PlayerLookup.around(level, center, 96.0D)) {
+            ServerPlayNetworking.send(player, payload);
+        }
+    }
+
+    public static void sendPlanetBefallMeteor(net.minecraft.server.level.ServerLevel level, int casterId, net.minecraft.world.phys.Vec3 skyStart, net.minecraft.world.phys.Vec3 impactPos, double aoeRadius, int durationTicks) {
+        int packedColorRadius = Math.max(10, (int) Math.round(aoeRadius * 10.0D));
+        ElectricArcPayload payload = new ElectricArcPayload(-3, skyStart.x, skyStart.y, skyStart.z, casterId, impactPos.x, impactPos.y, impactPos.z, durationTicks, packedColorRadius);
+        for (ServerPlayer player : PlayerLookup.around(level, impactPos, 96.0D)) {
             ServerPlayNetworking.send(player, payload);
         }
     }

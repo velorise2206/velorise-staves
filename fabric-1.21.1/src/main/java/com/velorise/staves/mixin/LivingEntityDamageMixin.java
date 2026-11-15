@@ -16,7 +16,7 @@ public abstract class LivingEntityDamageMixin {
     @Inject(method = "hurt", at = @At("HEAD"), cancellable = true)
     private void velorise$onLivingHurtHead(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         LivingEntity entity = (LivingEntity) (Object) this;
-        if (!entity.level().isClientSide() && ElementalGaugeManager.isRaidenIframeActive(entity)) {
+        if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity) || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, source))) {
             cir.setReturnValue(false);
         }
     }

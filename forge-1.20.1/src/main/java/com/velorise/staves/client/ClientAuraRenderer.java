@@ -63,6 +63,7 @@ public final class ClientAuraRenderer {
     private static final ResourceLocation INVENTORY_LOCATION = new ResourceLocation("textures/gui/container/inventory.png");
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
     private static final ResourceLocation FROSTED_ICE_TEXTURE = new ResourceLocation("textures/block/frosted_ice_0.png");
+    private static final ResourceLocation STONE_STATUE_TEXTURE = new ResourceLocation("textures/block/stone.png");
 
     private static final class FrozenRenderState {
         final float yBodyRot;
@@ -198,14 +199,32 @@ public final class ClientAuraRenderer {
         ElementalResonanceManager.clearClientState();
     }
 
+    private static int raidenAttackHoldTicks = 0;
+
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         syncAndLockFrozenPlayer(false);
         if (event.phase == TickEvent.Phase.END) {
             Minecraft mc = Minecraft.getInstance();
-            if (mc.level != null && mc.player != null && mc.player.tickCount % 100 == 0) {
-                ClientAuraTracker.pruneStale(mc.level);
-                FROZEN_RENDER_STATES.entrySet().removeIf(e -> mc.level.getEntity(e.getKey()) == null || !ClientAuraTracker.isFrozen(e.getKey()));
+            if (mc.level != null && mc.player != null) {
+                if (mc.screen == null && mc.options.keyAttack.isDown()
+                        && ClientAuraTracker.isRaidenMusouActive(mc.player.getId())
+                        && mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                        && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                    ClientAuraTracker.localRaidenAttackHeld = true;
+                    raidenAttackHoldTicks++;
+                    if (raidenAttackHoldTicks >= 6 && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
+                        ClientAuraTracker.triggerStaffAnimation(mc.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
+                        com.velorise.staves.network.ModNetwork.CHANNEL.sendToServer(new com.velorise.staves.network.RaidenSlashPacket(true));
+                    }
+                } else {
+                    ClientAuraTracker.localRaidenAttackHeld = false;
+                    raidenAttackHoldTicks = 0;
+                }
+                if (mc.player.tickCount % 100 == 0) {
+                    ClientAuraTracker.pruneStale(mc.level);
+                    FROZEN_RENDER_STATES.entrySet().removeIf(e -> mc.level.getEntity(e.getKey()) == null || !ClientAuraTracker.isFrozen(e.getKey()));
+                }
             }
         }
     }
@@ -416,8 +435,7 @@ public final class ClientAuraRenderer {
                 com.velorise.staves.item.ArcaneStaffItem.Kind k = staff.kind();
                 if (k == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX
                         || k == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
-                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE
-                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+                        || k == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE) {
                     int elapsed = Math.max(0, staff.getUseDuration(useStack) - entity.getUseItemRemainingTicks());
                     LAST_USE_TICKS.put(id, elapsed);
                     LAST_USE_KIND.put(id, k);
@@ -448,18 +466,16 @@ public final class ClientAuraRenderer {
                     );
                 } else if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.GHASTFIRE && prevElapsed >= 6) {
                     ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_GHASTFIRE_SLAM);
-                } else if (prevKind == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING && prevElapsed >= 10) {
-                    ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_RAIDEN_DRAW);
                 }
             }
         }
-        if (entity.swinging && entity.swingTime == 0 && ClientAuraTracker.isRaidenMusouActive(id)) {
+        if (entity != Minecraft.getInstance().player && entity.swinging && entity.swingTime == 0 && ClientAuraTracker.isRaidenMusouActive(id)) {
             ItemStack main = entity.getMainHandItem();
             if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
                     && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                 ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
                 long now = System.currentTimeMillis();
-                if (d == null || now >= d.staffAnimUntil || d.staffAnimType != ClientAuraTracker.ANIM_RAIDEN_DRAW) {
+                if (d == null || now >= d.staffAnimUntil) {
                     ClientAuraTracker.triggerStaffAnimation(id, ClientAuraTracker.ANIM_RAIDEN_SLASH);
                 }
             }
@@ -503,39 +519,114 @@ public final class ClientAuraRenderer {
         pollClientUseTransitions(entity);
 
         if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-            model.leftArm.xRot = -0.95F;
-            model.leftArm.yRot = 0.14F;
-            model.leftArm.zRot = -0.05F;
+            int ultiT = bike.getUltiTicks();
             int step = bike.getNaStep();
             int naT = bike.getNaTicks();
-            if (step == 6 && naT > 0) {
-                float armPitch;
-                if (naT > 6) {
-                    float w = (16.0F - naT) / 10.0F;
-                    armPitch = Mth.lerp(w, -0.95F, -2.75F);
-                } else if (naT > 3) {
-                    float s = (6.0F - naT) / 3.0F;
-                    armPitch = Mth.lerp(s, -2.75F, -0.35F);
+            if (ultiT > 0) {
+                model.leftArm.xRot = -1.15F;
+                model.leftArm.yRot = 0.16F;
+                model.leftArm.zRot = -0.05F;
+                if (ultiT >= 19) {
+                    // Half 1 (30 -> 19): left hand holds handlebar, right arm coils across to the left during half-donut ascent
+                    float p1 = smoothStep01((30.0F - ultiT) / 11.0F);
+                    model.body.xRot = Mth.lerp(p1, 0.22F, 0.04F);
+                    model.body.yRot = 0.28F * p1;
+                    model.rightArm.xRot = Mth.lerp(p1, -1.15F, -1.48F);
+                    model.rightArm.yRot = Mth.lerp(p1, -0.16F, -1.05F);
+                    model.rightArm.zRot = Mth.lerp(p1, 0.05F, -0.35F);
+                } else if (ultiT > 8) {
+                    // Half 2 (19 -> 8): hold coiled windup briefly then sweep wide L->R forward cleave right at touchdown (ultiT == 8)
+                    float p2 = (19.0F - ultiT) / 11.0F;
+                    if (p2 < 0.55F) {
+                        model.body.xRot = 0.04F;
+                        model.body.yRot = 0.28F;
+                        model.rightArm.xRot = -1.48F;
+                        model.rightArm.yRot = -1.05F;
+                        model.rightArm.zRot = -0.35F;
+                    } else {
+                        float slashP = smoothStep01((p2 - 0.55F) / 0.45F);
+                        model.body.xRot = Mth.lerp(slashP, 0.04F, 0.32F);
+                        model.body.yRot = Mth.lerp(slashP, 0.28F, -0.42F);
+                        model.rightArm.xRot = Mth.lerp(slashP, -1.48F, -1.28F);
+                        model.rightArm.yRot = Mth.lerp(slashP, -1.05F, 1.05F);
+                        model.rightArm.zRot = Mth.lerp(slashP, -0.35F, 0.72F);
+                    }
                 } else {
-                    float r = (3.0F - naT) / 3.0F;
-                    armPitch = Mth.lerp(r, -0.35F, -0.95F);
+                    float rec = smoothStep01((8.0F - ultiT) / 8.0F);
+                    model.body.xRot = Mth.lerp(rec, 0.32F, 0.22F);
+                    model.body.yRot = Mth.lerp(rec, -0.42F, 0.0F);
+                    model.rightArm.xRot = Mth.lerp(rec, -1.28F, -1.15F);
+                    model.rightArm.yRot = Mth.lerp(rec, 1.05F, -0.16F);
+                    model.rightArm.zRot = Mth.lerp(rec, 0.72F, 0.05F);
                 }
-                model.rightArm.xRot = armPitch;
-                model.rightArm.yRot = 0.0F;
-                model.rightArm.zRot = 0.08F;
+                return;
+            }
+            if (bike.isSpinning()) {
+                model.body.xRot = 0.22F;
+                model.body.yRot = -0.15F;
+                model.leftArm.xRot = -1.15F;
+                model.leftArm.yRot = 0.16F;
+                model.leftArm.zRot = -0.05F;
+                model.rightArm.xRot = -1.05F;
+                model.rightArm.yRot = -0.95F;
+                model.rightArm.zRot = 0.35F;
+                return;
+            }
+            model.body.xRot = 0.22F;
+            model.body.yRot = 0.0F;
+            model.leftArm.xRot = -1.15F;
+            model.leftArm.yRot = 0.16F;
+            model.leftArm.zRot = -0.05F;
+            if (step == 6 && naT > 0) {
+                if (naT > 12) {
+                    float w = (16.0F - naT) / 4.0F;
+                    model.rightArm.xRot = Mth.lerp(w, -1.15F, -2.75F);
+                    model.rightArm.yRot = Mth.lerp(w, -0.16F, -0.20F);
+                    model.rightArm.zRot = Mth.lerp(w, 0.05F, -0.22F);
+                } else if (naT > 8) {
+                    float c = (12.0F - naT) / 4.0F;
+                    model.rightArm.xRot = Mth.lerp(c, -2.75F, -1.55F);
+                    model.rightArm.yRot = Mth.lerp(c, -0.20F, -1.05F);
+                    model.rightArm.zRot = Mth.lerp(c, -0.22F, -0.18F);
+                } else if (naT > 2) {
+                    float s = (8.0F - naT) / 6.0F;
+                    model.rightArm.xRot = Mth.lerp(s, -1.55F, -0.78F);
+                    model.rightArm.yRot = Mth.lerp(s, -1.05F, 1.05F);
+                    model.rightArm.zRot = Mth.lerp(s, -0.18F, 0.72F);
+                } else {
+                    float r = (2.0F - naT) / 2.0F;
+                    model.rightArm.xRot = Mth.lerp(r, -0.78F, -1.15F);
+                    model.rightArm.yRot = Mth.lerp(r, 1.05F, -0.16F);
+                    model.rightArm.zRot = Mth.lerp(r, 0.72F, 0.05F);
+                }
             } else if (step == 1 && naT > 0) {
                 float t = 1.0F - (naT / 10.0F);
-                model.rightArm.xRot = Mth.lerp(t, -2.1F, -0.35F);
-                model.rightArm.yRot = -0.25F;
-                model.rightArm.zRot = 0.22F;
+                model.rightArm.xRot = Mth.lerp(t, -2.25F, -0.45F);
+                model.rightArm.yRot = Mth.lerp(t, 0.45F, -0.75F);
+                model.rightArm.zRot = Mth.lerp(t, 0.35F, -0.18F);
+            } else if (step == 2 && naT > 0) {
+                float t = 1.0F - (naT / 10.0F);
+                model.rightArm.xRot = Mth.lerp(t, -0.45F, -2.15F);
+                model.rightArm.yRot = Mth.lerp(t, -0.75F, 0.55F);
+                model.rightArm.zRot = Mth.lerp(t, -0.15F, 0.40F);
             } else if (step == 3 && naT > 0) {
                 float t = 1.0F - (naT / 10.0F);
-                model.rightArm.xRot = -1.25F;
-                model.rightArm.yRot = Mth.lerp(t, -0.85F, 0.75F);
-                model.rightArm.zRot = 0.45F;
+                model.rightArm.xRot = -1.35F;
+                model.rightArm.yRot = Mth.lerp(t, 0.78F, -0.88F);
+                model.rightArm.zRot = Mth.lerp(t, 0.55F, -0.20F);
+            } else if (step == 4 && naT > 0) {
+                float t = 1.0F - (naT / 10.0F);
+                model.rightArm.xRot = Mth.lerp(t, -0.95F, -1.65F);
+                model.rightArm.yRot = Mth.lerp(t, -0.82F, 0.75F);
+                model.rightArm.zRot = Mth.lerp(t, -0.25F, 0.50F);
+            } else if (step == 5 && naT > 0) {
+                float t = 1.0F - (naT / 10.0F);
+                model.rightArm.xRot = Mth.lerp(t, -2.65F, -0.30F);
+                model.rightArm.yRot = Mth.lerp(t, 0.28F, -0.60F);
+                model.rightArm.zRot = Mth.lerp(t, 0.25F, -0.10F);
             } else {
-                model.rightArm.xRot = -0.95F;
-                model.rightArm.yRot = -0.14F;
+                model.rightArm.xRot = -1.15F;
+                model.rightArm.yRot = -0.16F;
                 model.rightArm.zRot = 0.05F;
             }
             return;
@@ -562,16 +653,6 @@ public final class ClientAuraRenderer {
                     model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.18F);
                     model.head.xRot += 0.15F * w;
                     model.hat.copyFrom(model.head);
-                    return;
-                }
-                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-                    float w = smoothStep01(elapsed / 12.0F);
-                    net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
-                    net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
-                    float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.25F);
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.85F);
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.35F);
                     return;
                 }
                 if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR && elapsed >= 2 && activeAnim == 0) {
@@ -601,45 +682,173 @@ public final class ClientAuraRenderer {
                     mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.14F);
                     return;
                 }
+                if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                    float pull01 = Mth.clamp(elapsed / 20.0F, 0.0F, 1.0F);
+                    net.minecraft.world.entity.HumanoidArm bowArm = entity.getUsedItemHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+                            ? entity.getMainArm() : entity.getMainArm().getOpposite();
+                    applyDaybreakBowHumanoidPose(model, bowArm, pull01);
+                    return;
+                }
             }
+        }
+        Minecraft mcLocal = Minecraft.getInstance();
+        if (mcLocal.player != null && entity.getId() == mcLocal.player.getId()
+                && ClientAuraTracker.ventiUltiHoldTicks > 0 && hasDaybreakEquipped(entity)) {
+            float pull01 = Mth.clamp(ClientAuraTracker.ventiUltiHoldTicks / 60.0F, 0.0F, 1.0F);
+            net.minecraft.world.entity.HumanoidArm bowArm = (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
+                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK)
+                    ? entity.getMainArm() : entity.getMainArm().getOpposite();
+            applyDaybreakBowHumanoidPose(model, bowArm, pull01);
+            return;
         }
 
         if (activeAnim <= 0 || data == null) return;
         float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
         float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
 
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_EYE) {
+            net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
+            float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            float slash = smoothStep01(t / 0.48F);
+            float w = (t < 0.58F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.58F) / 0.42F) * (float) Math.PI));
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.35F, -1.55F));
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.55F, 0.65F));
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.35F, 0.45F));
+            offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * slash);
+            return;
+        }
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
             net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            float w = (t < 0.72F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
-            if (t < 0.45F) {
-                float draw = smoothStep01(t / 0.45F);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(draw, -1.15F, -1.42F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(draw, -0.75F, -1.08F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(draw, 0.28F, 0.48F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * draw);
-                model.head.xRot += 0.14F * draw;
+            float offDir = -castDir;
+            if (t < 0.22F) {
+                // Phase 1: reach inward to chest/heart, grip inverted blade straight down
+                float reach = smoothStep01(t / 0.22F);
+                mainPart.xRot = Mth.lerp(reach, mainPart.xRot, -1.25F);
+                mainPart.yRot = Mth.lerp(reach, mainPart.yRot, castDir * -0.92F);
+                mainPart.zRot = Mth.lerp(reach, mainPart.zRot, castDir * 0.25F);
+                offPart.xRot = Mth.lerp(reach, offPart.xRot, -0.95F);
+                offPart.yRot = Mth.lerp(reach, offPart.yRot, offDir * -0.45F);
+                offPart.zRot = Mth.lerp(reach, offPart.zRot, offDir * 0.20F);
+                model.head.xRot += 0.16F * reach;
                 model.hat.copyFrom(model.head);
+            } else if (t < 0.62F) {
+                // Phase 2: draw Musou Isshin blade straight vertically UP out of chest
+                float pull = smoothStep01((t - 0.22F) / 0.40F);
+                float tremor = Mth.sin(ageInTicks * 2.4F) * 0.02F * pull;
+                mainPart.xRot = Mth.lerp(pull, -1.25F, -2.45F) + tremor;
+                mainPart.yRot = castDir * Mth.lerp(pull, -0.92F, -0.58F);
+                mainPart.zRot = castDir * Mth.lerp(pull, 0.25F, 0.08F);
+                offPart.xRot = Mth.lerp(pull, -0.95F, -0.55F);
+                offPart.yRot = offDir * Mth.lerp(pull, -0.45F, -0.22F);
+                offPart.zRot = offDir * Mth.lerp(pull, 0.20F, 0.30F);
+                model.head.xRot += Mth.lerp(pull, 0.16F, -0.10F);
+                model.hat.copyFrom(model.head);
+            } else if (t < 0.72F) {
+                // Phase 3a: flip sword level to opposite shoulder (-castDir)
+                float prep = smoothStep01((t - 0.62F) / 0.10F);
+                mainPart.xRot = Mth.lerp(prep, -2.45F, -1.42F);
+                mainPart.yRot = castDir * Mth.lerp(prep, -0.58F, -1.05F);
+                mainPart.zRot = castDir * Mth.lerp(prep, 0.08F, -0.45F);
+                offPart.xRot = Mth.lerp(prep, -0.55F, 0.10F);
+                model.body.yRot = castDir * 0.32F * prep;
             } else {
-                float slash = smoothStep01((t - 0.45F) / 0.25F);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.42F, -0.78F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -1.08F, 1.15F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.48F, -0.62F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(slash, 0.25F, 0.42F));
+                // Phase 3b: straight horizontal cleave from opposite side (-castDir) to sword-hand side (+castDir)
+                float slash = smoothStep01((t - 0.72F) / 0.16F);
+                float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.42F);
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -1.05F, 1.25F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.45F, 0.35F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(slash, 0.10F, 0.42F));
+                model.body.yRot = castDir * Mth.lerp(slash, 0.32F, -0.42F) * w;
             }
             return;
         }
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
             net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
             net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            float slash = smoothStep01(t / 0.45F);
-            float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -1.95F, -0.35F));
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.55F, -0.65F));
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.25F);
+            int step = data != null ? Math.floorMod(data.raidenComboStep, 5) : 0;
+            float slash = smoothStep01(t / 0.48F);
+            float w = (t < 0.60F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.60F) / 0.40F) * (float) Math.PI));
+            switch (step) {
+                case 0 -> { // N1: Horizontal slash right -> left
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.30F);
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.85F, -0.95F));
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.45F, -0.35F));
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * slash);
+                    model.body.yRot = castDir * Mth.lerp(slash, -0.22F, 0.25F) * w;
+                }
+                case 1 -> { // N2: Diagonal upward slash lower-left -> upper-right
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -0.55F, -2.05F));
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.85F, 0.65F));
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.45F, 0.35F));
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.30F * slash);
+                    model.body.yRot = castDir * Mth.lerp(slash, 0.20F, -0.22F) * w;
+                }
+                case 2 -> { // N3: Diagonal downward slash upper-right -> lower-left
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -2.10F, -0.45F));
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.75F, -0.85F));
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.40F, -0.45F));
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F);
+                    model.body.yRot = castDir * Mth.lerp(slash, -0.22F, 0.26F) * w;
+                }
+                case 3 -> { // N4: Rapid 2-hit cross flurry
+                    if (t < 0.44F) {
+                        float f1 = smoothStep01(t / 0.44F);
+                        mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(f1, -0.95F, -1.65F));
+                        mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(f1, -0.85F, 0.90F));
+                        mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(f1, -0.48F, 0.48F));
+                        model.body.yRot = castDir * Mth.lerp(f1, 0.22F, -0.24F) * w;
+                    } else {
+                        float f2 = smoothStep01((t - 0.44F) / 0.40F);
+                        mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(f2, -1.65F, -1.05F));
+                        mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(f2, 0.90F, -0.95F));
+                        mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(f2, 0.48F, -0.52F));
+                        model.body.yRot = castDir * Mth.lerp(f2, -0.24F, 0.26F) * w;
+                    }
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, -0.35F);
+                }
+                default -> { // N5: Overhead two-handed vertical crescent finisher
+                    float lift = smoothStep01(t / 0.28F);
+                    float drop = smoothStep01((t - 0.28F) / 0.36F);
+                    float targetX = (t < 0.28F) ? Mth.lerp(lift, -1.45F, -2.75F) : Mth.lerp(drop, -2.75F, -0.25F);
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, targetX);
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, 0.0F);
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.08F);
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, targetX * 0.92F);
+                    offPart.yRot = Mth.lerp(w, offPart.yRot, -castDir * 0.35F);
+                    model.body.xRot = Mth.lerp(drop, -0.08F, 0.22F) * w;
+                }
+            }
+            return;
+        }
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA) {
+            net.minecraft.world.entity.HumanoidArm castArm = resolveStaffArm(entity, com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            net.minecraft.client.model.geom.ModelPart mainPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+            net.minecraft.client.model.geom.ModelPart offPart = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
+            float castDir = castArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+            float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
+            if (t < 0.28F) {
+                float wind = smoothStep01(t / 0.28F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(wind, -0.85F, -0.55F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(wind, -0.40F, -0.95F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(wind, -0.25F, -0.55F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.55F * wind);
+                model.body.yRot = castDir * 0.28F * wind * w;
+            } else {
+                float sweep = smoothStep01((t - 0.28F) / 0.46F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(sweep, -0.55F, -2.15F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(sweep, -0.95F, 0.95F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(sweep, -0.55F, 0.55F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(sweep, -0.55F, 0.35F));
+                model.body.yRot = castDir * Mth.lerp(sweep, 0.28F, -0.36F) * w;
+            }
             return;
         }
         if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM) {
@@ -746,6 +955,24 @@ public final class ClientAuraRenderer {
             mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.18F);
             offPart.xRot = Mth.lerp(w, offPart.xRot, 0.32F);
             offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.24F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL) {
+            // Zhongli Planet Befall: Calmly cross both arms across the chest while the geo meteor descends
+            float w;
+            if (t < 0.16F) {
+                w = smoothStep01(t / 0.16F);
+            } else if (t < 0.78F) {
+                w = 1.0F;
+            } else {
+                w = 1.0F - smoothStep01((t - 0.78F) / 0.22F);
+            }
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.28F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.22F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.78F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.78F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.22F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F);
+            model.head.xRot += 0.10F * w;
+            model.hat.copyFrom(model.head);
         }
     }
 
@@ -805,13 +1032,131 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.XP.rotationDegrees(targetPitchDeg * plantW));
             }
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
-            if (entity.isUsingItem() && entity.getUseItem() == stack) {
+            if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float w = (t < 0.12F) ? smoothStep01(t / 0.12F)
+                        : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
+                float s = Math.max(0.001F, 1.0F - w);
+                poseStack.scale(s, s, s);
+            } else if (entity.isUsingItem() && entity.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack) - entity.getUseItemRemainingTicks());
                 float w = smoothStep01(elapsed / 18.0F);
                 float side = leftHand ? -1.0F : 1.0F;
                 poseStack.translate(side * 0.06F * w, 0.05F * w, 0.04F * w);
                 poseStack.mulPose(Axis.ZP.rotationDegrees(side * 28.0F * w));
                 poseStack.mulPose(Axis.XP.rotationDegrees(-22.0F * w));
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+            float side = leftHand ? -1.0F : 1.0F;
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                if (t < 0.22F) {
+                    float reach = smoothStep01(t / 0.22F);
+                    poseStack.translate(-side * 0.12F * reach, -0.04F * reach, 0.04F * reach);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(side * 12.0F * reach));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-152.0F * reach));
+                } else if (t < 0.62F) {
+                    float pull = smoothStep01((t - 0.22F) / 0.40F);
+                    poseStack.translate(-side * Mth.lerp(pull, 0.12F, 0.08F), Mth.lerp(pull, -0.04F, 0.02F), 0.04F);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(pull, 12.0F, 4.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(pull, -152.0F, -210.0F)));
+                } else if (t < 0.72F) {
+                    float prep = smoothStep01((t - 0.62F) / 0.10F);
+                    poseStack.translate(-side * 0.08F, 0.02F, Mth.lerp(prep, 0.04F, -0.04F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(prep, 4.0F, 64.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(prep, -210.0F, -36.0F)));
+                } else {
+                    float slash = smoothStep01((t - 0.72F) / 0.16F);
+                    float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
+                    poseStack.translate(side * Mth.lerp(slash, -0.08F, 0.06F) * w, 0.02F * w, -0.06F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-36.0F * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(slash, 64.0F, -68.0F) * w));
+                }
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
+                && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            int ultiT = bike.getUltiTicks();
+            int naT = bike.getNaTicks();
+            boolean activeAttack = ultiT > 0 || naT > 0 || bike.isSpinning() || bike.isPlunging();
+            float sign = leftHand ? -1.0F : 1.0F;
+            if (!activeAttack) {
+                float pt = Minecraft.getInstance().getFrameTime();
+                float bob = Mth.sin(((float) entity.tickCount + pt) * 0.12F) * 0.04F;
+                // Undo vanilla ItemInHandLayer offset & handlebar arm pose to enter rider back space
+                poseStack.translate((leftHand ? 1.0F : -1.0F) / 16.0F, -0.125F, 0.625F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+                poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+                poseStack.mulPose(Axis.XP.rotation(1.15F));
+                poseStack.mulPose(Axis.YP.rotation(0.16F * sign));
+                poseStack.mulPose(Axis.ZP.rotation(-0.05F * sign));
+                // Float claymore flat & parallel to the rider's back (hilt upper-right, blade lower-left)
+                poseStack.translate(0.3125F * sign, -0.32F + bob, 0.30F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(10.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-55.0F * sign));
+                poseStack.mulPose(Axis.YP.rotationDegrees(90.0F * sign));
+                return;
+            }
+            if (ultiT <= 0 && naT > 0 && !bike.isSpinning() && !bike.isPlunging()) {
+                float pt = Minecraft.getInstance().getFrameTime();
+                int step = bike.getNaStep();
+                float total = (step == 6) ? 16.0F : 10.0F;
+                float nt = Mth.clamp(1.0F - ((naT - pt) / total), 0.0F, 1.0F);
+                if (step == 6) {
+                    if (nt < 0.28F) {
+                        float w = nt / 0.28F;
+                        poseStack.translate(0.0F, 0.14F * w, -0.06F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -8.0F, -38.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(48.0F * sign * w));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(-14.0F * sign * w));
+                    } else if (nt < 0.50F) {
+                        float u = (nt - 0.28F) / 0.22F;
+                        poseStack.translate(0.0F, Mth.lerp(u, 0.14F, 0.06F), Mth.lerp(u, -0.06F, -0.14F));
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(u, -38.0F, -25.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(u, 48.0F, 82.0F) * sign));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(u, -14.0F, -28.0F) * sign));
+                    } else {
+                        float s = Mth.clamp((nt - 0.50F) / 0.375F, 0.0F, 1.0F);
+                        poseStack.translate(0.0F, Mth.lerp(s, 0.06F, -0.04F), -0.16F);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -25.0F, -48.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(78.0F * sign));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -28.0F, 28.0F) * sign));
+                    }
+                } else if (step == 3 || step == 4) {
+                    float dirSign = (step == 3 ? -1.0F : 1.0F) * sign;
+                    poseStack.translate(0.0F, 0.04F, -0.12F);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(75.0F * dirSign));
+                } else {
+                    float w = Mth.sin(nt * (float) Math.PI);
+                    poseStack.translate(0.0F, 0.04F, -0.12F);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F * w - 12.0F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees((step == 2 ? 32.0F : -24.0F) * sign));
+                }
+                return;
+            }
+            if (ultiT > 0) {
+                if (ultiT >= 19) {
+                    float p1 = smoothStep01((30.0F - ultiT) / 11.0F);
+                    poseStack.translate(-sign * 0.10F * p1, 0.06F * p1, -0.08F * p1);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-32.0F * p1));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(sign * 72.0F * p1));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(-sign * 20.0F * p1));
+                } else if (ultiT > 8) {
+                    float p2 = (19.0F - ultiT) / 11.0F;
+                    float slashP = (p2 < 0.55F) ? 0.0F : smoothStep01((p2 - 0.55F) / 0.45F);
+                    poseStack.translate(sign * Mth.lerp(slashP, -0.10F, 0.12F), Mth.lerp(slashP, 0.06F, -0.04F), Mth.lerp(slashP, -0.08F, -0.18F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slashP, -32.0F, -44.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(sign * Mth.lerp(slashP, 72.0F, -76.0F)));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(sign * Mth.lerp(slashP, -20.0F, 26.0F)));
+                } else {
+                    float r = 1.0F - smoothStep01((8.0F - ultiT) / 8.0F);
+                    poseStack.translate(sign * 0.12F * r, -0.04F * r, -0.18F * r);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-44.0F * r));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(-sign * 76.0F * r));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(sign * 26.0F * r));
+                }
             }
         }
     }
@@ -849,6 +1194,16 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 14.0F * w));
                 poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F * w));
                 poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 12.0F * w));
+                return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float w = (t < 0.16F) ? smoothStep01(t / 0.16F)
+                        : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
+                poseStack.translate(0.0F, -0.85F * w, 0.0F);
+                float s = Math.max(0.01F, 1.0F - 0.85F * w);
+                poseStack.scale(s, s, s);
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
@@ -915,40 +1270,207 @@ public final class ClientAuraRenderer {
                 return;
             }
         } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            if (player.isUsingItem() && player.getUseItem() == stack) {
-                int elapsed = Math.max(0, staff.getUseDuration(stack) - player.getUseItemRemainingTicks());
-                float w = smoothStep01((elapsed + partialTicks) / 12.0F);
-                poseStack.translate(-dir * 0.24F * w, -0.05F * w, -0.14F * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 42.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 32.0F * w));
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_EYE && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float slash = smoothStep01(t / 0.48F);
+                float w = (t < 0.58F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.58F) / 0.42F) * (float) Math.PI));
+                poseStack.translate(dir * Mth.lerp(slash, 0.24F, -0.32F) * w, Mth.lerp(slash, -0.06F, 0.14F) * w, -0.26F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -28.0F, -52.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -55.0F, 62.0F) * w));
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                float w = (t < 0.72F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.72F) / 0.28F) * (float) Math.PI));
-                if (t < 0.45F) {
-                    float draw = smoothStep01(t / 0.45F);
-                    poseStack.translate(-dir * Mth.lerp(draw, 0.22F, 0.34F) * w, Mth.lerp(draw, -0.04F, -0.10F) * w, -0.16F * w);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(draw, 40.0F, 64.0F) * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(draw, 30.0F, 48.0F) * w));
+                if (t < 0.22F) {
+                    // Phase 1: move to chest with hilt on top, blade pointing straight down
+                    float reach = smoothStep01(t / 0.22F);
+                    poseStack.translate(-dir * 0.42F * reach, -0.24F * reach, -0.18F * reach);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F * reach));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F * reach));
+                } else if (t < 0.62F) {
+                    // Phase 2: draw inverted sword straight vertically UP (+Y) from chest
+                    float pull = smoothStep01((t - 0.22F) / 0.40F);
+                    float tremor = Mth.sin((player.tickCount + partialTicks) * 2.4F) * 0.006F * pull;
+                    poseStack.translate(-dir * 0.42F + tremor, Mth.lerp(pull, -0.24F, 0.30F), -0.18F);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F));
+                } else if (t < 0.72F) {
+                    // Phase 3a: flip sword level on opposite side (-dir) at shoulder height
+                    float prep = smoothStep01((t - 0.62F) / 0.10F);
+                    poseStack.translate(-dir * Mth.lerp(prep, 0.42F, 0.46F), Mth.lerp(prep, 0.30F, -0.02F), Mth.lerp(prep, -0.18F, -0.28F));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(prep, 0.0F, -24.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(prep, -10.0F, -58.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(prep, 172.0F, 82.0F)));
                 } else {
-                    float slash = smoothStep01((t - 0.45F) / 0.25F);
-                    poseStack.translate(dir * Mth.lerp(slash, -0.34F, 0.22F) * w, Mth.lerp(slash, -0.10F, 0.02F) * w, -0.20F * w);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 64.0F, -78.0F) * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 48.0F, -62.0F) * w));
+                    // Phase 3b: straight horizontal slash from opposite side (-dir) to sword-hand side (+dir)
+                    float slash = smoothStep01((t - 0.72F) / 0.16F);
+                    float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
+                    poseStack.translate(dir * Mth.lerp(slash, -0.46F, 0.34F) * w, -0.02F * w, -0.28F * w);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, -24.0F, 52.0F) * w));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-58.0F * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 82.0F, -76.0F) * w));
                 }
                 return;
             }
             if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                float slash = smoothStep01(t / 0.45F);
-                float w = (t < 0.55F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.55F) / 0.45F) * (float) Math.PI));
-                poseStack.translate(dir * Mth.lerp(slash, 0.12F, -0.22F) * w, Mth.lerp(slash, 0.12F, -0.16F) * w, -0.16F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, 12.0F, -48.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -35.0F, 42.0F) * w));
+                float slash = smoothStep01(t / 0.48F);
+                float w = (t < 0.60F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.60F) / 0.40F) * (float) Math.PI));
+                switch (Math.floorMod(data.raidenComboStep, 5)) {
+                    case 0 -> { // N1: Horizontal sweep right -> left
+                        poseStack.translate(dir * Mth.lerp(slash, 0.28F, -0.32F) * w, 0.02F * w, -0.24F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-34.0F * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -64.0F, 68.0F) * w));
+                    }
+                    case 1 -> { // N2: Diagonal upward lower-left -> upper-right
+                        poseStack.translate(dir * Mth.lerp(slash, -0.26F, 0.24F) * w, Mth.lerp(slash, -0.16F, 0.18F) * w, -0.24F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -16.0F, -58.0F) * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 58.0F, -50.0F) * w));
+                    }
+                    case 2 -> { // N3: Diagonal downward upper-right -> lower-left
+                        poseStack.translate(dir * Mth.lerp(slash, 0.24F, -0.28F) * w, Mth.lerp(slash, 0.18F, -0.18F) * w, -0.22F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -56.0F, -12.0F) * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -50.0F, 56.0F) * w));
+                    }
+                    case 3 -> { // N4: Rapid 2-hit cross flurry
+                        if (t < 0.44F) {
+                            float f1 = smoothStep01(t / 0.44F);
+                            poseStack.translate(dir * Mth.lerp(f1, -0.26F, 0.26F) * w, Mth.lerp(f1, -0.12F, 0.12F) * w, -0.26F * w);
+                            poseStack.mulPose(Axis.XP.rotationDegrees(-44.0F * w));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(f1, 64.0F, -58.0F) * w));
+                        } else {
+                            float f2 = smoothStep01((t - 0.44F) / 0.40F);
+                            poseStack.translate(dir * Mth.lerp(f2, 0.26F, -0.28F) * w, Mth.lerp(f2, 0.12F, -0.12F) * w, -0.26F * w);
+                            poseStack.mulPose(Axis.XP.rotationDegrees(-44.0F * w));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(f2, -58.0F, 64.0F) * w));
+                        }
+                    }
+                    default -> { // N5: Overhead vertical crescent finisher
+                        float lift = smoothStep01(t / 0.28F);
+                        float drop = smoothStep01((t - 0.28F) / 0.36F);
+                        float ty = (t < 0.28F) ? Mth.lerp(lift, 0.04F, 0.32F) : Mth.lerp(drop, 0.32F, -0.26F);
+                        float xp = (t < 0.28F) ? Mth.lerp(lift, -24.0F, 18.0F) : Mth.lerp(drop, 18.0F, -82.0F);
+                        poseStack.translate(-dir * 0.12F * w, ty * w, -0.28F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(xp * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 8.0F * w));
+                    }
+                }
                 return;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
+                if (t < 0.28F) {
+                    float wind = smoothStep01(t / 0.28F);
+                    poseStack.translate(-dir * Mth.lerp(wind, 0.10F, 0.32F) * w, -0.18F * wind * w, -0.18F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * wind * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 72.0F * wind * w));
+                } else {
+                    float sweep = smoothStep01((t - 0.28F) / 0.46F);
+                    poseStack.translate(dir * Mth.lerp(sweep, -0.32F, 0.30F) * w, Mth.lerp(sweep, -0.18F, 0.24F) * w, -0.30F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -18.0F, -68.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 72.0F, -64.0F) * w));
+                }
+                return;
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                int ultiT = bike.getUltiTicks();
+                if (ultiT > 0) {
+                    float ut = ultiT - partialTicks;
+                    if (ut >= 19.0F) {
+                        float p1 = smoothStep01((30.0F - ut) / 11.0F);
+                        poseStack.translate(-dir * 0.28F * p1, 0.06F * p1, -0.16F * p1);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F * p1));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 72.0F * p1));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * 16.0F * p1));
+                    } else if (ut > 8.0F) {
+                        float p2 = (19.0F - ut) / 11.0F;
+                        float slashP = (p2 < 0.55F) ? 0.0F : smoothStep01((p2 - 0.55F) / 0.45F);
+                        poseStack.translate(dir * Mth.lerp(slashP, -0.28F, 0.34F), Mth.lerp(slashP, 0.06F, -0.06F), Mth.lerp(slashP, -0.16F, -0.30F));
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slashP, -26.0F, -46.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slashP, 72.0F, -74.0F)));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slashP, 16.0F, -20.0F)));
+                    } else {
+                        float r = 1.0F - smoothStep01((8.0F - ut) / 8.0F);
+                        poseStack.translate(dir * 0.34F * r, -0.06F * r, -0.30F * r);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-46.0F * r));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 74.0F * r));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 20.0F * r));
+                    }
+                    return;
+                }
+                int naT = bike.getNaTicks();
+                if (naT <= 0 && !bike.isSpinning() && !bike.isPlunging()) {
+                    poseStack.scale(0.0F, 0.0F, 0.0F);
+                    return;
+                }
+                if (naT > 0) {
+                    int step = bike.getNaStep();
+                    float total = (step == 6) ? 16.0F : 10.0F;
+                    float nt = Mth.clamp(1.0F - ((naT - partialTicks) / total), 0.0F, 1.0F);
+                    float w = Mth.sin(nt * (float) Math.PI);
+                    if (step == 6) {
+                        if (nt < 0.25F) {
+                            float lift = smoothStep01(nt / 0.25F);
+                            poseStack.translate(dir * Mth.lerp(lift, 0.08F, 0.04F), Mth.lerp(lift, 0.16F, 0.42F), Mth.lerp(lift, -0.10F, -0.18F));
+                            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(lift, -14.0F, -8.0F)));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(lift, 18.0F, 28.0F)));
+                            poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(lift, 4.0F, 6.0F)));
+                        } else if (nt < 0.48F) {
+                            float u = smoothStep01((nt - 0.25F) / 0.23F);
+                            poseStack.translate(dir * Mth.lerp(u, 0.04F, -0.38F), Mth.lerp(u, 0.42F, 0.22F), Mth.lerp(u, -0.18F, -0.24F));
+                            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(u, -8.0F, -34.0F)));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(u, 28.0F, 72.0F)));
+                            poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(u, 6.0F, 18.0F)));
+                        } else if (nt < 0.84F) {
+                            float s = smoothStep01((nt - 0.48F) / 0.36F);
+                            poseStack.translate(dir * Mth.lerp(s, -0.38F, 0.42F), Mth.lerp(s, 0.22F, -0.18F), -0.24F - 0.12F * Mth.sin(s * (float) Math.PI));
+                            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -34.0F, -54.0F)));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s, 72.0F, -76.0F)));
+                            poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(s, 18.0F, -24.0F)));
+                        } else {
+                            float r = 1.0F - smoothStep01((nt - 0.84F) / 0.16F);
+                            poseStack.translate(dir * 0.42F * r, -0.18F * r, -0.24F * r);
+                            poseStack.mulPose(Axis.XP.rotationDegrees(-54.0F * r));
+                            poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 76.0F * r));
+                            poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 24.0F * r));
+                        }
+                    } else if (step == 1) {
+                        poseStack.translate(dir * Mth.lerp(nt, 0.34F, -0.34F), Mth.lerp(nt, 0.26F, -0.26F), -0.22F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-42.0F * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(nt, -18.0F, 48.0F)));
+                    } else if (step == 2) {
+                        poseStack.translate(dir * Mth.lerp(nt, -0.32F, 0.34F), Mth.lerp(nt, -0.24F, 0.24F), -0.22F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-36.0F * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(nt, 48.0F, -22.0F)));
+                    } else if (step == 3) {
+                        poseStack.translate(dir * Mth.lerp(nt, 0.38F, -0.38F), 0.0F, -0.24F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(nt, -52.0F, 58.0F)));
+                    } else if (step == 4) {
+                        poseStack.translate(dir * Mth.lerp(nt, -0.36F, 0.36F), Mth.lerp(nt, -0.06F, 0.14F), -0.24F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F * w));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(nt, 54.0F, -48.0F)));
+                    } else {
+                        poseStack.translate(dir * Mth.lerp(nt, 0.20F, -0.24F), Mth.lerp(nt, 0.34F, -0.34F), -0.26F * w);
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(nt, 22.0F, -72.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(nt, -10.0F, 32.0F)));
+                    }
+                }
+            }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+            float pull = getDaybreakPullProgress(player, partialTicks);
+            if (pull > 0.01F) {
+                float tremor = (pull >= 0.92F) ? Mth.sin((player.tickCount + partialTicks) * 1.9F) * 0.004F : 0.0F;
+                poseStack.translate(-dir * 0.20F * pull + tremor, 0.08F * pull + tremor * 0.5F, -0.10F * pull);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 26.0F * pull));
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 12.0F * pull));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-6.0F * pull));
             }
         }
     }
@@ -993,6 +1515,18 @@ public final class ClientAuraRenderer {
             poseStack.translate(armDir * 0.06F * w + armDir * tremor, -0.22F * (1.0F - w) + 0.02F * w, -0.10F * w);
             poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 38.0F * w));
             poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * w));
+            return true;
+        }
+        if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL && data != null) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float w = (t < 0.16F) ? smoothStep01(t / 0.16F)
+                    : (t < 0.78F ? 1.0F : 1.0F - smoothStep01((t - 0.78F) / 0.22F));
+            if (w <= 0.02F) return false;
+            poseStack.translate(-armDir * 0.22F * w, -0.06F * w + 0.03F * armDir * w, -0.14F * w);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 68.0F * w));
+            poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * w));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-armDir * 18.0F * w));
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST && data != null) {
@@ -1049,8 +1583,144 @@ public final class ClientAuraRenderer {
                 poseStack.mulPose(Axis.ZP.rotationDegrees(offDir * 18.0F * w));
                 return true;
             }
+        } else if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+            float pull = getDaybreakPullProgress(player, partialTicks);
+            if (pull <= 0.01F) return false;
+            poseStack.translate(-offDir * Mth.lerp(pull, 0.36F, 0.22F), Mth.lerp(pull, -0.20F, -0.06F), Mth.lerp(pull, -0.28F, -0.06F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(pull, 28.0F, 14.0F)));
+            poseStack.mulPose(Axis.YP.rotationDegrees(offDir * Mth.lerp(pull, 32.0F, 48.0F)));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(offDir * 16.0F));
+            return true;
         }
         return false;
+    }
+
+    private static boolean hasDaybreakEquipped(LivingEntity entity) {
+        return (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem ms
+                && ms.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK)
+                || (entity.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem os
+                && os.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK);
+    }
+
+    private static float getDaybreakPullProgress(LivingEntity entity, float partialTick) {
+        if (entity == null) return 0.0F;
+        if (entity.isUsingItem()) {
+            ItemStack useStack = entity.getUseItem();
+            if (useStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s
+                    && s.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                int elapsed = Math.max(0, s.getUseDuration(useStack) - entity.getUseItemRemainingTicks());
+                return Mth.clamp((elapsed + partialTick) / 20.0F, 0.0F, 1.0F);
+            }
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId()
+                && ClientAuraTracker.ventiUltiHoldTicks > 0 && hasDaybreakEquipped(entity)) {
+            return Mth.clamp((ClientAuraTracker.ventiUltiHoldTicks + partialTick) / 60.0F, 0.0F, 1.0F);
+        }
+        return 0.0F;
+    }
+
+    public static boolean isDaybreakPulling(LivingEntity entity, ItemStack stack) {
+        if (entity == null || stack == null || stack.isEmpty()) return false;
+        if (entity.isUsingItem() && entity.getUseItem() == stack) return true;
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && entity.getId() == mc.player.getId()
+                && ClientAuraTracker.ventiUltiHoldTicks > 0
+                && (entity.getMainHandItem() == stack || entity.getOffhandItem() == stack);
+    }
+
+    public static float getDaybreakPullProgress(LivingEntity entity, ItemStack stack) {
+        return isDaybreakPulling(entity, stack) ? getDaybreakPullProgress(entity, 0.0F) : 0.0F;
+    }
+
+    private static void applyDaybreakBowHumanoidPose(net.minecraft.client.model.HumanoidModel<?> model, net.minecraft.world.entity.HumanoidArm bowArm, float pull01) {
+        net.minecraft.client.model.geom.ModelPart bowPart = bowArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+        net.minecraft.client.model.geom.ModelPart drawPart = bowArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
+        float bowDir = bowArm == net.minecraft.world.entity.HumanoidArm.RIGHT ? 1.0F : -1.0F;
+
+        bowPart.yRot = -bowDir * 0.10F + model.head.yRot;
+        bowPart.xRot = -1.48F + model.head.xRot;
+        bowPart.zRot = 0.0F;
+
+        drawPart.yRot = bowDir * Mth.lerp(pull01, 0.55F, 0.72F) + model.head.yRot * 0.65F;
+        drawPart.xRot = -1.48F + model.head.xRot + 0.36F * pull01;
+        drawPart.zRot = -bowDir * 0.08F;
+    }
+
+    public static void renderDaybreakNockedWindCharge(
+            LivingEntity entity,
+            ItemStack stack,
+            net.minecraft.world.item.ItemDisplayContext displayContext,
+            boolean leftHand,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource
+    ) {
+        if (entity == null || stack == null || stack.isEmpty() || bufferSource == null) return;
+        if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)
+                || staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) return;
+        boolean isFirst = displayContext == net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND
+                || displayContext == net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_LEFT_HAND;
+        boolean isThird = displayContext == net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_RIGHT_HAND
+                || displayContext == net.minecraft.world.item.ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
+        if (!isFirst && !isThird) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        float pt = mc.getFrameTime();
+        float pull01 = getDaybreakPullProgress(entity, pt);
+        if (pull01 <= 0.01F) return;
+
+        poseStack.pushPose();
+        float side = leftHand ? -1.0F : 1.0F;
+        if (isFirst) {
+            poseStack.translate(side * (1.13F / 16.0F), 3.2F / 16.0F, 1.13F / 16.0F);
+            poseStack.mulPose(new org.joml.Quaternionf().rotationXYZ(
+                    0.0F,
+                    (float) Math.toRadians(-90.0F),
+                    (float) Math.toRadians(25.0F)
+            ));
+            poseStack.scale(0.68F, 0.68F, 0.68F);
+        } else {
+            poseStack.translate(0.0F, 2.5F / 16.0F, 0.0F);
+            poseStack.mulPose(new org.joml.Quaternionf().rotationXYZ(
+                    0.0F,
+                    (float) Math.toRadians(-90.0F),
+                    (float) Math.toRadians(55.0F)
+            ));
+            poseStack.scale(0.85F, 0.85F, 0.85F);
+        }
+
+        // Bow geometry in item model space matching the_daybreak_chronicles sprite:
+        Vec3 midStr = new Vec3(0.06D, 0.0D, 0.0D);
+        Vec3 nockPt = midStr.add(0.24D * pull01, -0.24D * pull01, 0.0D);
+
+        VertexConsumer lightVc = bufferSource.getBuffer(RenderType.lightning());
+        Matrix4f mat = poseStack.last().pose();
+
+        // Nocked glowing Wind Charge sitting in the bowstring at nockPt (bowstring itself is rendered by pulling_0/1/2 sprite)
+        float chargeR = 0.055F + 0.075F * pull01;
+        drawTranslucentSphere(lightVc, mat, (float) nockPt.x, (float) nockPt.y, (float) nockPt.z,
+                chargeR * 0.55F, 8, 12, 225, 255, 250, Math.round(170 + 75 * pull01));
+        drawTranslucentSphere(lightVc, mat, (float) nockPt.x, (float) nockPt.y, (float) nockPt.z,
+                chargeR, 8, 12, 70, 225, 205, Math.round(90 + 85 * pull01));
+
+        float time = (entity.tickCount + pt) * 0.16F;
+        poseStack.translate(nockPt.x, nockPt.y, nockPt.z);
+        for (int ring = 0; ring < 2; ring++) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.XP.rotationDegrees(ring == 0 ? 48.0F : -52.0F));
+            poseStack.mulPose(Axis.YP.rotationDegrees((time * 95.0F) * (ring == 0 ? 1.0F : -1.35F)));
+            Matrix4f rm = poseStack.last().pose();
+            float rr = chargeR * (1.25F + ring * 0.25F);
+            for (int seg = 0; seg < 10; seg++) {
+                float a0 = (float) (2.0 * Math.PI * seg / 10.0);
+                float a1 = (float) (2.0 * Math.PI * (seg + 1) / 10.0);
+                Vec3 p0 = new Vec3(Mth.cos(a0) * rr, Mth.sin(a0 * 2.0F) * rr * 0.18F, Mth.sin(a0) * rr);
+                Vec3 p1 = new Vec3(Mth.cos(a1) * rr, Mth.sin(a1 * 2.0F) * rr * 0.18F, Mth.sin(a1) * rr);
+                drawQuadRibbon(lightVc, rm, p0, p1, new Vec3(0.0D, 1.0D, 0.0D), 0.008D + 0.006D * pull01, 150, 255, 238, Math.round(130 + 95 * pull01));
+            }
+            poseStack.popPose();
+        }
+        poseStack.popPose();
     }
 
     public static void applyFrozenPoseLock(LivingEntity entity) {
@@ -1133,8 +1803,14 @@ public final class ClientAuraRenderer {
         poseStack.scale(-iceScale, -iceScale, iceScale);
         poseStack.translate(0.0F, -1.501F, 0.0F);
 
-        VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
-        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 0.47F, 0.88F, 1.0F, 0.45F);
+        ClientAuraTracker.AuraDisplayData auraData = ClientAuraTracker.get(entity.getId());
+        boolean isPetrified = auraData != null && System.currentTimeMillis() < auraData.petrifiedUntil;
+        VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(isPetrified ? STONE_STATUE_TEXTURE : FROSTED_ICE_TEXTURE));
+        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                isPetrified ? 0.83F : 0.47F,
+                isPetrified ? 0.64F : 0.88F,
+                isPetrified ? 0.28F : 1.0F,
+                isPetrified ? 0.85F : 0.45F);
         poseStack.popPose();
     }
 
@@ -1313,7 +1989,7 @@ public final class ClientAuraRenderer {
         emitCrystalQuad(vc, mat, x1, y0, z1, r, g, b, a, x1, y0, z0, r, g, b, a, x1, y1, z0, r, g, b, a, x1, y1, z1, r, g, b, a);
     }
 
-    private static final class ShieldRenderTypes extends net.minecraft.client.renderer.RenderStateShard {
+    static final class ShieldRenderTypes extends net.minecraft.client.renderer.RenderStateShard {
         private ShieldRenderTypes() { super("", () -> {}, () -> {}); }
         static final RenderType TRANSLUCENT_NO_DEPTH_WRITE = RenderType.create(
                 "velorise_shield_no_depth",
@@ -1326,6 +2002,21 @@ public final class ClientAuraRenderer {
                         .setShaderState(RENDERTYPE_LIGHTNING_SHADER)
                         .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                         .setWriteMaskState(COLOR_WRITE)
+                        .setCullState(NO_CULL)
+                        .createCompositeState(false)
+        );
+        static final RenderType METEOR_SOLID = RenderType.create(
+                "velorise_meteor_solid",
+                com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR,
+                com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+                2048,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                        .setShaderState(RENDERTYPE_LIGHTNING_SHADER)
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST)
+                        .setWriteMaskState(COLOR_DEPTH_WRITE)
                         .setCullState(NO_CULL)
                         .createCompositeState(false)
         );
@@ -2849,6 +3540,61 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static void renderVentiDebugHitboxes(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos) {
+        if (!Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes()) return;
+        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            if (arc.fromEntityId != -2 || arc.start == null || arc.end == null) continue;
+            float baseRadius = (float) Math.max(1.0D, arc.end.x);
+            float hcx = (float) (arc.start.x - camPos.x);
+            float hcy = (float) (arc.start.y - camPos.y) - 1.0F;
+            float hcz = (float) (arc.start.z - camPos.z);
+            int r = 175, g = 255, b = 232;
+            if (arc.color != 0 && arc.color != 0xFF66FFD8) {
+                r = (arc.color >> 16) & 0xFF;
+                g = (arc.color >> 8) & 0xFF;
+                b = arc.color & 0xFF;
+            }
+            VertexConsumer lineConsumer = bufferSource.getBuffer(RenderType.lines());
+            net.minecraft.client.renderer.LevelRenderer.renderLineBox(
+                    poseStack, lineConsumer,
+                    hcx - baseRadius, hcy - baseRadius, hcz - baseRadius,
+                    hcx + baseRadius, hcy + baseRadius, hcz + baseRadius,
+                    1.0F, 1.0F, 1.0F, 1.0F);
+            PoseStack.Pose pose = poseStack.last();
+            Matrix4f mat = pose.pose();
+            org.joml.Matrix3f normMat = pose.normal();
+            int segs = 36;
+            for (int plane = 0; plane < 3; plane++) {
+                for (int i = 0; i < segs; i++) {
+                    float a0 = (float) (2.0 * Math.PI * i / segs);
+                    float a1 = (float) (2.0 * Math.PI * (i + 1) / segs);
+                    float x0 = hcx, y0 = hcy, z0 = hcz;
+                    float x1 = hcx, y1 = hcy, z1 = hcz;
+                    if (plane == 0) {
+                        x0 += Mth.cos(a0) * baseRadius; z0 += Mth.sin(a0) * baseRadius;
+                        x1 += Mth.cos(a1) * baseRadius; z1 += Mth.sin(a1) * baseRadius;
+                    } else if (plane == 1) {
+                        x0 += Mth.cos(a0) * baseRadius; y0 += Mth.sin(a0) * baseRadius;
+                        x1 += Mth.cos(a1) * baseRadius; y1 += Mth.sin(a1) * baseRadius;
+                    } else {
+                        y0 += Mth.cos(a0) * baseRadius; z0 += Mth.sin(a0) * baseRadius;
+                        y1 += Mth.cos(a1) * baseRadius; z1 += Mth.sin(a1) * baseRadius;
+                    }
+                    float dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
+                    float len = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+                    if (len > 1.0E-5F) {
+                        dx /= len; dy /= len; dz /= len;
+                    }
+                    lineConsumer.vertex(mat, x0, y0, z0).color(r, g, b, 255).normal(normMat, dx, dy, dz).endVertex();
+                    lineConsumer.vertex(mat, x1, y1, z1).color(r, g, b, 255).normal(normMat, dx, dy, dz).endVertex();
+                }
+            }
+            if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
+                bs.endBatch(RenderType.lines());
+            }
+        }
+    }
+
     public static void renderActiveElectricArcs(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
         renderGuardianHydroBeams(poseStack, bufferSource, camera);
         if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
@@ -2860,10 +3606,13 @@ public final class ClientAuraRenderer {
         if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
 
         Vec3 camPos = camera.getPosition();
+        PlanetBefallMeteorRenderer.render(poseStack, bufferSource, camPos, now);
+        renderVentiDebugHitboxes(poseStack, bufferSource, camPos);
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
         Matrix4f matrix = poseStack.last().pose();
 
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            if (arc.fromEntityId == -3) continue;
             Vec3 startPos = null;
             if (arc.fromEntityId >= 0) {
                 net.minecraft.world.entity.Entity from = mc.level.getEntity(arc.fromEntityId);
@@ -2883,6 +3632,134 @@ public final class ClientAuraRenderer {
             if (endPos == null) endPos = arc.end;
 
             if (startPos == null || endPos == null) continue;
+            if (arc.fromEntityId == -2) {
+                float baseRadius = (float) Math.max(1.0D, endPos.x);
+                Vec3 centerCam = startPos.subtract(camPos);
+                float fadeIn = Mth.clamp((now - arc.startTime) / 220.0F, 0.0F, 1.0F);
+                float fadeOut = Mth.clamp((arc.expireTime - now) / 320.0F, 0.0F, 1.0F);
+                float fade = Math.min(fadeIn, fadeOut);
+                float timeSec = (now - arc.startTime) * 0.001F;
+                int streamAlpha = Math.max(20, Math.round(205.0F * fade));
+                int coreAlpha = Math.max(30, Math.round(240.0F * fade));
+                int sr = 95, sg = 240, sb = 215;
+                int cr = 225, cg = 255, cb = 248;
+                if (arc.color != 0 && arc.color != 0xFF66FFD8) {
+                    sr = (arc.color >> 16) & 0xFF;
+                    sg = (arc.color >> 8) & 0xFF;
+                    sb = arc.color & 0xFF;
+                    cr = (sr + 255) / 2;
+                    cg = (sg + 255) / 2;
+                    cb = (sb + 255) / 2;
+                }
+                for (int s = 0; s < 6; s++) {
+                    float yawTilt = s * 1.0472F + timeSec * (0.45F + s * 0.11F);
+                    float pitchTilt = -0.95F + (s % 3) * 0.65F + Mth.sin(timeSec * 1.3F + s) * 0.25F;
+                    float cy = Mth.cos(yawTilt), sy = Mth.sin(yawTilt);
+                    float cp = Mth.cos(pitchTilt), sp = Mth.sin(pitchTilt);
+                    Vec3 uAxis = new Vec3(cy, 0.0D, sy);
+                    Vec3 nAxis = new Vec3(-sy * sp, cp, cy * sp);
+                    Vec3 vAxis = nAxis.cross(uAxis).normalize();
+                    double rStream = baseRadius * (0.36D + 0.11D * s);
+                    float phaseStart = timeSec * (3.6F + s * 0.7F) * ((s % 2 == 0) ? 1.0F : -1.0F) + s * 1.9F;
+                    float sweepRad = 2.85F;
+                    Vec3 prev = null;
+                    for (int seg = 0; seg <= 9; seg++) {
+                        float f = seg / 9.0F;
+                        float ang = phaseStart + f * sweepRad;
+                        double waveR = rStream * (1.0D + 0.16D * Mth.sin(ang * 2.5F + timeSec * 5.0F + s));
+                        double waveH = baseRadius * 0.16D * Mth.cos(ang * 1.8F - timeSec * 4.2F);
+                        Vec3 pt = centerCam
+                                .add(uAxis.scale(Math.cos(ang) * waveR))
+                                .add(vAxis.scale(Math.sin(ang) * waveR))
+                                .add(nAxis.scale(waveH));
+                        if (prev != null) {
+                            drawQuadRibbon(consumer, matrix, prev, pt, nAxis, 0.045D + 0.020D * Math.sin(f * Math.PI), sr, sg, sb, streamAlpha);
+                            drawQuadRibbon(consumer, matrix, prev, pt, uAxis, 0.018D, cr, cg, cb, coreAlpha);
+                        }
+                        prev = pt;
+                    }
+                }
+                continue;
+            }
+            boolean isUlti = (arc.color == 0xFFFF6A00);
+            boolean isFinisher = (arc.color == 0xFFFF7A18);
+            boolean isNaRightToLeft = (arc.color == 0xFFFF8825);
+            boolean isNaLeftToRight = (arc.color == 0xFFFF8824);
+            if (isUlti || isFinisher || isNaLeftToRight || isNaRightToLeft) {
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                double headRaw = Mth.clamp(prog / (isUlti ? 0.28D : 0.40D), 0.0D, 1.0D);
+                double headT = 1.0D - (1.0D - headRaw) * (1.0D - headRaw);
+                double tailRaw = isUlti
+                        ? Mth.clamp((prog - 0.42D) / 0.58D, 0.0D, 1.0D)
+                        : Mth.clamp((prog - 0.24D) / 0.74D, 0.0D, 1.0D);
+                double tailT = tailRaw * tailRaw;
+                if (headT - tailT < 0.02D) continue;
+                float fade = isUlti
+                        ? ((prog < 0.22F) ? (prog / 0.22F) : (1.0F - (prog - 0.22F) / 0.78F))
+                        : ((prog < 0.18F) ? (prog / 0.18F) : (1.0F - (prog - 0.18F) / 0.82F));
+                int alpha = Mth.clamp((int) (255.0F * fade), 10, 255);
+                Vec3 sCam = startPos.subtract(camPos);
+                Vec3 eCam = endPos.subtract(camPos);
+                Vec3 chord = eCam.subtract(sCam);
+                double span = chord.length();
+                if (span > 1.0E-3D) {
+                    Vec3 horizChord = new Vec3(chord.x, 0.0D, chord.z);
+                    double bowSign = isNaRightToLeft ? -1.0D : 1.0D;
+                    Vec3 forwardBowDir = horizChord.lengthSqr() > 1.0E-4D
+                            ? new Vec3(0.0D, 1.0D, 0.0D).cross(horizChord).normalize().scale(bowSign)
+                            : new Vec3(0.0D, 0.0D, 1.0D);
+                    double arcScale = isUlti ? 1.0D : (isFinisher ? 0.66D : 0.42D);
+                    double fadeScale = (1.15D - prog * 0.35D) * arcScale;
+                    double bowOffset = isUlti ? 0.34D : (isFinisher ? 0.32D : 0.28D);
+                    int segs = 16;
+                    Vec3[] pts = new Vec3[segs + 1];
+                    for (int i = 0; i <= segs; i++) {
+                        double localT = i / (double) segs;
+                        double u = Mth.lerp(localT, tailT, headT);
+                        double bow = Math.sin(u * Math.PI);
+                        pts[i] = sCam.lerp(eCam, u)
+                                .add(forwardBowDir.scale(bow * span * bowOffset))
+                                .add(0.0D, bow * span * 0.08D, 0.0D);
+                    }
+                    double[] layerHalfWidths = {0.78D, 0.50D, 0.28D, 0.11D};
+                    int[][] layerColors = {
+                            {220, 25, 10, Math.max(10, alpha / 2)},
+                            {255, 80, 14, alpha},
+                            {255, 178, 35, alpha},
+                            {255, 250, 225, alpha}
+                    };
+                    Vec3[] prevOff = new Vec3[4];
+                    for (int i = 0; i <= segs; i++) {
+                        double t = i / (double) segs;
+                        double taper = Math.pow(Math.sin(t * Math.PI), 0.65D);
+                        Vec3 tangent = (i == 0 ? pts[1].subtract(pts[0])
+                                : (i == segs ? pts[segs].subtract(pts[segs - 1])
+                                : pts[i + 1].subtract(pts[i - 1]))).normalize();
+                        Vec3 toCam = pts[i].lengthSqr() > 1.0E-4D ? pts[i].scale(-1.0D).normalize() : new Vec3(0.0D, 1.0D, 0.0D);
+                        Vec3 perp = tangent.cross(toCam);
+                        if (perp.lengthSqr() < 1.0E-4D) perp = tangent.cross(new Vec3(1.0D, 0.0D, 0.0D));
+                        perp = perp.normalize();
+                        for (int l = 0; l < 4; l++) {
+                            Vec3 curOff = perp.scale(layerHalfWidths[l] * fadeScale * taper);
+                            if (i > 0) {
+                                Vec3 a0 = pts[i - 1].subtract(prevOff[l]);
+                                Vec3 b0 = pts[i - 1].add(prevOff[l]);
+                                Vec3 b1 = pts[i].add(curOff);
+                                Vec3 a1 = pts[i].subtract(curOff);
+                                int[] c = layerColors[l];
+                                emitCrystalQuad(consumer, matrix,
+                                        (float) a0.x, (float) a0.y, (float) a0.z, c[0], c[1], c[2], c[3],
+                                        (float) b0.x, (float) b0.y, (float) b0.z, c[0], c[1], c[2], c[3],
+                                        (float) b1.x, (float) b1.y, (float) b1.z, c[0], c[1], c[2], c[3],
+                                        (float) a1.x, (float) a1.y, (float) a1.z, c[0], c[1], c[2], c[3]);
+                            }
+                            prevOff[l] = curOff;
+                        }
+                    }
+                }
+                continue;
+            }
             if (arc.color == 0xFFB84DFF || arc.color == 0xFFE0B0FF) {
                 boolean isMusou = (arc.color == 0xFFE0B0FF);
                 float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
@@ -2899,7 +3776,7 @@ public final class ClientAuraRenderer {
                     if (perp.lengthSqr() < 1.0E-4D) perp = unit.cross(new Vec3(1.0D, 0.0D, 0.0D));
                     perp = perp.normalize();
                     double outerHalf = (isMusou ? 0.24D : 0.13D) * (1.05D - prog * 0.35D);
-                    double innerHalf = outerHalf * 0.34D;
+                    double innerHalf = outerHalf * 0.36D;
                     Vec3 midCam = sCam.lerp(eCam, 0.5D);
                     Vec3 pOut = perp.scale(outerHalf);
                     Vec3 pIn = perp.scale(innerHalf);
@@ -2910,9 +3787,9 @@ public final class ClientAuraRenderer {
                             (float) (midCam.x - pOut.x), (float) (midCam.y - pOut.y), (float) (midCam.z - pOut.z), 192, 92, 255, alpha);
                     emitCrystalQuad(consumer, matrix,
                             (float) sCam.x, (float) sCam.y, (float) sCam.z, 245, 225, 255, alpha,
-                            (float) (midCam.x + pIn.x), (float) (midCam.y + pIn.y), (float) (midCam.z + pIn.z), 255, 248, 255, alpha,
+                            (float) (midCam.x + pIn.x), (float) (midCam.y + pIn.y), (float) (midCam.z + pIn.z), 255, 250, 240, alpha,
                             (float) eCam.x, (float) eCam.y, (float) eCam.z, 245, 225, 255, alpha,
-                            (float) (midCam.x - pIn.x), (float) (midCam.y - pIn.y), (float) (midCam.z - pIn.z), 255, 248, 255, alpha);
+                            (float) (midCam.x - pIn.x), (float) (midCam.y - pIn.y), (float) (midCam.z - pIn.z), 255, 250, 240, alpha);
                 }
                 continue;
             }
@@ -3001,6 +3878,35 @@ public final class ClientAuraRenderer {
         }
         if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
             bs.endBatch(RenderType.lightning());
+        }
+    }
+
+    private static void drawTranslucentSphere(
+            VertexConsumer consumer, Matrix4f matrix,
+            float cx, float cy, float cz, float radius,
+            int latBands, int lonBands, int r, int g, int b, int a
+    ) {
+        for (int lat = 0; lat < latBands; lat++) {
+            float theta0 = (float) (Math.PI * lat / latBands);
+            float theta1 = (float) (Math.PI * (lat + 1) / latBands);
+            float sin0 = Mth.sin(theta0), cos0 = Mth.cos(theta0);
+            float sin1 = Mth.sin(theta1), cos1 = Mth.cos(theta1);
+            for (int lon = 0; lon < lonBands; lon++) {
+                float phi0 = (float) (2.0 * Math.PI * lon / lonBands);
+                float phi1 = (float) (2.0 * Math.PI * (lon + 1) / lonBands);
+                float cPhi0 = Mth.cos(phi0), sPhi0 = Mth.sin(phi0);
+                float cPhi1 = Mth.cos(phi1), sPhi1 = Mth.sin(phi1);
+
+                float x00 = cx + radius * sin0 * cPhi0, y00 = cy + radius * cos0, z00 = cz + radius * sin0 * sPhi0;
+                float x10 = cx + radius * sin1 * cPhi0, y10 = cy + radius * cos1, z10 = cz + radius * sin1 * sPhi0;
+                float x11 = cx + radius * sin1 * cPhi1, y11 = cy + radius * cos1, z11 = cz + radius * sin1 * sPhi1;
+                float x01 = cx + radius * sin0 * cPhi1, y01 = cy + radius * cos0, z01 = cz + radius * sin0 * sPhi1;
+
+                consumer.vertex(matrix, x00, y00, z00).color(r, g, b, a).endVertex();
+                consumer.vertex(matrix, x10, y10, z10).color(r, g, b, a).endVertex();
+                consumer.vertex(matrix, x11, y11, z11).color(r, g, b, a).endVertex();
+                consumer.vertex(matrix, x01, y01, z01).color(r, g, b, a).endVertex();
+            }
         }
     }
 
@@ -3312,11 +4218,11 @@ public final class ClientAuraRenderer {
         }
     }
 
-    private static int clampColor(int c) {
+    static int clampColor(int c) {
         return Math.max(0, Math.min(255, c));
     }
 
-    private static void emitCrystalQuad(
+    static void emitCrystalQuad(
             VertexConsumer consumer, Matrix4f matrix,
             float x1, float y1, float z1, int r1, int g1, int b1, int a1,
             float x2, float y2, float z2, int r2, int g2, int b2, int a2,
@@ -3480,7 +4386,11 @@ public final class ClientAuraRenderer {
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
 
-        if (state.resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F) {
+        boolean holdingRaiden = (entity.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
+                || (entity.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+        if (holdingRaiden && (state.resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F)) {
             float resolveFrac = musouTicks > 0.0F ? 1.0F : Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
             ResourceLocation ringTex = new ResourceLocation("velorise_staves", "textures/entity/raiden_chakra_ring.png");
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(ringTex));
@@ -3517,8 +4427,12 @@ public final class ClientAuraRenderer {
                 float rCoreOut = rMid + half * 0.028F;
                 float maxTheta = (float) Math.PI * resolveFrac;
                 int segs = 24;
-                int outerAlpha = musouTicks > 0.0F ? 220 : 175;
-                int coreAlpha = 245;
+                boolean burstReady = resolveFrac >= 0.5F || musouTicks > 0.0F;
+                int outerR = burstReady ? 195 : 145;
+                int outerG = burstReady ? 105 : 70;
+                int outerB = 255;
+                int outerAlpha = musouTicks > 0.0F ? 235 : (burstReady ? 195 : 120);
+                int coreAlpha = burstReady ? 250 : 165;
 
                 for (int side = -1; side <= 1; side += 2) {
                     for (int i = 0; i < segs; i++) {
@@ -3526,20 +4440,30 @@ public final class ClientAuraRenderer {
                         float t1 = (float) (i + 1) / (float) segs;
                         float a0 = -(float) (Math.PI * 0.5) + side * (maxTheta * t0);
                         float a1 = -(float) (Math.PI * 0.5) + side * (maxTheta * t1);
-                        float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
-                        float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                        float aLo = Math.min(a0, a1);
+                        float aHi = Math.max(a0, a1);
+                        float c0 = Mth.cos(aLo), s0 = Mth.sin(aLo);
+                        float c1 = Mth.cos(aHi), s1 = Mth.sin(aHi);
 
-                        for (float z : new float[]{0.003F, -0.003F}) {
-                            glowVc.vertex(mat, c0 * rIn,  s0 * rIn,  z).color(185, 95, 255, outerAlpha).endVertex();
-                            glowVc.vertex(mat, c0 * rOut, s0 * rOut, z).color(185, 95, 255, outerAlpha).endVertex();
-                            glowVc.vertex(mat, c1 * rOut, s1 * rOut, z).color(185, 95, 255, outerAlpha).endVertex();
-                            glowVc.vertex(mat, c1 * rIn,  s1 * rIn,  z).color(185, 95, 255, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c0 * rIn,  s0 * rIn,  0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c0 * rOut, s0 * rOut, 0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rOut, s1 * rOut, 0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rIn,  s1 * rIn,  0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
 
-                            glowVc.vertex(mat, c0 * rCoreIn,  s0 * rCoreIn,  z * 1.4F).color(245, 225, 255, coreAlpha).endVertex();
-                            glowVc.vertex(mat, c0 * rCoreOut, s0 * rCoreOut, z * 1.4F).color(245, 225, 255, coreAlpha).endVertex();
-                            glowVc.vertex(mat, c1 * rCoreOut, s1 * rCoreOut, z * 1.4F).color(245, 225, 255, coreAlpha).endVertex();
-                            glowVc.vertex(mat, c1 * rCoreIn,  s1 * rCoreIn,  z * 1.4F).color(245, 225, 255, coreAlpha).endVertex();
-                        }
+                        glowVc.vertex(mat, c0 * rIn,  s0 * rIn,  -0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rIn,  s1 * rIn,  -0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rOut, s1 * rOut, -0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+                        glowVc.vertex(mat, c0 * rOut, s0 * rOut, -0.004F).color(outerR, outerG, outerB, outerAlpha).endVertex();
+
+                        glowVc.vertex(mat, c0 * rCoreIn,  s0 * rCoreIn,  0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c0 * rCoreOut, s0 * rCoreOut, 0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rCoreOut, s1 * rCoreOut, 0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rCoreIn,  s1 * rCoreIn,  0.005F).color(245, 225, 255, coreAlpha).endVertex();
+
+                        glowVc.vertex(mat, c0 * rCoreIn,  s0 * rCoreIn,  -0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rCoreIn,  s1 * rCoreIn,  -0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c1 * rCoreOut, s1 * rCoreOut, -0.005F).color(245, 225, 255, coreAlpha).endVertex();
+                        glowVc.vertex(mat, c0 * rCoreOut, s0 * rCoreOut, -0.005F).color(245, 225, 255, coreAlpha).endVertex();
                     }
                 }
             }
@@ -3579,10 +4503,9 @@ public final class ClientAuraRenderer {
                 && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING)
                 || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
                 && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
-        if (state == null) return;
+        if (!holdingRaiden || state == null) return;
         float eyeTicks = state.effectiveEyeTicks();
         float musouTicks = state.effectiveMusouTicks();
-        if (!holdingRaiden && eyeTicks <= 0.0F && musouTicks <= 0.0F) return;
 
         int sw = guiGraphics.guiWidth();
         int sh = guiGraphics.guiHeight();
@@ -3596,12 +4519,19 @@ public final class ClientAuraRenderer {
         float endDeg = 52.0F;
         int segments = 20;
 
-        drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments, 28, 12, 42, 165);
+        boolean burstReady = state.resolve >= 30 || musouTicks > 0.0F;
+
+        drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments,
+                burstReady ? 28 : 22, burstReady ? 12 : 16, burstReady ? 42 : 28, burstReady ? 175 : 120);
         float resolveFrac = Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
         if (resolveFrac > 0.01F) {
             float fillEnd = Mth.lerp(resolveFrac, startDeg, endDeg);
-            drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * resolveFrac)), 195, 95, 255, 240);
+            drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * resolveFrac)),
+                    burstReady ? 205 : 110, burstReady ? 105 : 82, burstReady ? 255 : 138, burstReady ? 245 : 155);
         }
+        float midDeg = (startDeg + endDeg) * 0.5F;
+        drawHudArc(vc, mat, cx, cy, 28.0F, 36.0F, midDeg - 1.2F, midDeg + 1.2F, 1,
+                burstReady ? 255 : 165, burstReady ? 225 : 135, burstReady ? 255 : 195, burstReady ? 235 : 190);
 
         if (musouTicks > 0.0F) {
             float mFrac = Mth.clamp(musouTicks / 140.0F, 0.0F, 1.0F);
@@ -3621,7 +4551,8 @@ public final class ClientAuraRenderer {
             guiGraphics.drawString(font, eyeStr, labelX, labelY, 0xFFD99BFF, true);
             labelY += 10;
         }
-        guiGraphics.drawString(font, "Resolve " + state.resolve + "/60", labelX, labelY, 0xFFE6C2FF, true);
+        String resolveLabel = burstReady ? ("Resolve " + state.resolve + "/60 [R]") : ("Resolve " + state.resolve + "/60");
+        guiGraphics.drawString(font, resolveLabel, labelX, labelY, burstReady ? 0xFFE8CAFF : 0xAA7E6B8F, true);
         if (musouTicks > 0.0F) {
             String mStr = String.format(java.util.Locale.ROOT, "Musou %.1fs", musouTicks / 20.0F);
             guiGraphics.drawString(font, mStr, labelX, labelY + 10, 0xFFFFD6FF, true);

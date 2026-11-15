@@ -4,17 +4,21 @@
   "pattern": [
     " EE",
     "EA ",
-    "A  "
+    "M  "
   ],
   "key": {
     "E": {
       "item": "velorise_staves:electro_element"
     },
     "A": {
+      "item": "velorise_staves:arc_caster"
+    },
+    "M": {
       "item": "minecraft:amethyst_shard"
     }
   },
   "result": {
-    "item": "velorise_staves:engulfing_lightning"
+    "item": "velorise_staves:engulfing_lightning",
+    "count": 1
   }
 }
