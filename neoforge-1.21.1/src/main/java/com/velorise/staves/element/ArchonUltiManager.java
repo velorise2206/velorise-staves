@@ -398,7 +398,7 @@ public final class ArchonUltiManager {
         level.sendParticles(goldAura, player.getX(), player.getY() + 1.0D, player.getZ(), 14, 0.4D, 0.35D, 0.4D, 0.02D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.85F, 0.70F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.85F, 0.55F);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.80F, 0.55F);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.00F, 0.55F);
         player.displayClientMessage(Component.literal("§6✦ Planet Befall!"), true);
     }
 
@@ -429,14 +429,14 @@ public final class ArchonUltiManager {
         if (pending.isNetherite() && caster != null && caster.isAlive() && !caster.isSpectator()) {
             ElementalGaugeManager.activateJadeShield(caster, true);
             level.playSound(null, caster.getX(), caster.getY(), caster.getZ(),
-                    SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 0.90F);
+                    SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.10F, 0.60F);
             double shieldRadiusSq = 8.5D * 8.5D;
             for (ServerPlayer ally : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p != caster)) {
                 if (!ElementalGaugeManager.isRaidenProtectedAlly(caster, ally) && !caster.isAlliedTo(ally)) continue;
                 if (ally.position().distanceToSqr(impact) <= shieldRadiusSq || ally.distanceToSqr(caster) <= shieldRadiusSq) {
                     ElementalGaugeManager.activateJadeShield(ally, true);
                     level.playSound(null, ally.getX(), ally.getY(), ally.getZ(),
-                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.80F, 0.95F);
+                            SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.05F, 0.65F);
                 }
             }
         }
@@ -462,14 +462,15 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 1.50F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_PLACE, SoundSource.PLAYERS, 1.45F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.45F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 1.50F, 0.48F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_PLACE, SoundSource.PLAYERS, 1.45F, 0.48F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.40F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 0.65F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.25F, 0.50F);
+        // Massive geological impact: thạch nhũ (dripstone), deepslate, basalt & seismic rumble
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_FALL, SoundSource.PLAYERS, 1.80F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.85F, 0.40F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 1.70F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 1.85F, 0.40F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 1.65F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_FALL, SoundSource.PLAYERS, 1.70F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 1.75F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.45F, 0.38F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */
