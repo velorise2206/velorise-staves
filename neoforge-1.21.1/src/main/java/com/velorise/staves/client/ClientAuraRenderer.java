@@ -1198,21 +1198,41 @@ public final class ClientAuraRenderer {
             model.hat.copyFrom(model.head);
         } else if (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4) {
             float hop = Mth.sin(t * (float) Math.PI);
-            float side = (activeAnim % 2 == 0) ? 1.0F : -1.0F;
-            model.body.yRot = side * 0.25F * hop;
-            model.rightArm.xRot = -0.95F * hop;
-            model.leftArm.xRot = -0.95F * hop;
-            model.rightArm.zRot = 0.48F * hop;
-            model.leftArm.zRot = -0.48F * hop;
-            if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_NA_4) {
+            int step = activeAnim - ClientAuraTracker.ANIM_NAHIDA_NA_1 + 1;
+            if (step == 1) {
+                // Step 1: Hop on right foot with cute arm bounce
+                model.body.yRot = -0.22F * hop;
+                model.rightLeg.xRot = -0.75F * hop;
+                model.leftLeg.xRot = 0.20F * hop;
+                model.rightArm.xRot = -0.95F * hop;
+                model.leftArm.xRot = 0.45F * hop;
+                model.rightArm.zRot = 0.35F * hop;
+            } else if (step == 2) {
+                // Step 2: Hop on left foot with alternating arm bounce
+                model.body.yRot = 0.22F * hop;
+                model.leftLeg.xRot = -0.75F * hop;
+                model.rightLeg.xRot = 0.20F * hop;
+                model.leftArm.xRot = -0.95F * hop;
+                model.rightArm.xRot = 0.45F * hop;
+                model.leftArm.zRot = -0.35F * hop;
+            } else if (step == 3) {
+                // Step 3 (gần cuối): Light hop bounce & 360-degree pirouette spin
+                model.body.yRot = (float) Math.PI * 2.0F * t;
+                model.rightLeg.xRot = -0.45F * hop;
+                model.leftLeg.xRot = 0.35F * hop;
+                model.rightArm.xRot = -1.45F * hop;
+                model.leftArm.xRot = -1.45F * hop;
+                model.rightArm.zRot = 0.65F * hop;
+                model.leftArm.zRot = -0.65F * hop;
+            } else {
+                // Step 4 (cuối): Light hop bounce & 360-degree pirouette spin with finger snap finish
+                model.body.yRot = (float) Math.PI * 2.0F * t;
+                model.rightLeg.xRot = -0.55F * hop;
+                model.leftLeg.xRot = -0.55F * hop;
                 model.rightArm.xRot = -1.65F * hop;
                 model.leftArm.xRot = -1.65F * hop;
-                model.rightArm.yRot = -0.35F * hop;
-                model.leftArm.yRot = 0.35F * hop;
-            } else if (side > 0) {
-                model.rightLeg.xRot = -0.75F * hop;
-            } else {
-                model.leftLeg.xRot = -0.75F * hop;
+                model.rightArm.yRot = -0.42F * hop;
+                model.leftArm.yRot = 0.42F * hop;
             }
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_HOLD_E) {
             // Nahida Hold E: Floating with dangling legs & both hands raised framing Camera Viewfinder
@@ -1231,11 +1251,24 @@ public final class ClientAuraRenderer {
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.15F);
             model.head.xRot += 0.04F * w;
             model.hat.copyFrom(model.head);
-        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA || activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
-            float w = Mth.sin(t * (float) Math.PI);
-            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.55F);
-            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, Mth.cos(t * (float) Math.PI * 2.0F) * 0.45F);
-            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.95F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
+            // Nahida Tap E: 360-degree pirouette spin flourish
+            model.body.yRot = (float) Math.PI * 2.0F * t;
+            float sweep = Mth.sin(t * (float) Math.PI);
+            model.rightArm.xRot = -1.45F * sweep;
+            model.leftArm.xRot = -1.45F * sweep;
+            model.rightArm.zRot = 0.72F * sweep;
+            model.leftArm.zRot = -0.72F * sweep;
+        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA) {
+            // Nahida CA: Right arm sweeps upward diagonally across the screen
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.70F ? 1.0F : 1.0F - smoothStep01((t - 0.70F) / 0.30F));
+            model.body.xRot = Mth.lerp(t, 0.08F, -0.12F);
+            model.body.yRot = Mth.lerp(t, -0.22F, 0.25F);
+            model.rightArm.xRot = Mth.lerp(t, 0.20F, -1.85F);
+            model.rightArm.yRot = Mth.lerp(t, -0.65F, 0.45F);
+            model.rightArm.zRot = Mth.lerp(t, -0.45F, 0.35F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, 0.45F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.32F);
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST) {
             // Nahida Burst: Sacred Prayer with both hands clasped peacefully in front of heart
             float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
@@ -1918,6 +1951,16 @@ public final class ClientAuraRenderer {
                     poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(hurl, -68.0F, -18.0F) * w));
                     poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(hurl, 22.0F, -8.0F) * w));
                 }
+                return;
+            }
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+            if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && data != null) {
+                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                // First-person hand sweeps diagonally upward across screen (Image 9)
+                poseStack.translate(-dir * 0.35F * (1.0F - t) + dir * 0.22F * t, -0.38F + 0.65F * t, -0.22F - 0.25F * t);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F + 55.0F * t));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * (25.0F - 45.0F * t)));
                 return;
             }
         }
@@ -2977,6 +3020,107 @@ public final class ClientAuraRenderer {
         }
     }
 
+    private static void renderCloverCross2D(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float cy, float cz,
+            float size, int r, int g, int b, int a
+    ) {
+        float tip = size * 1.35F;
+        float w = size * 0.32F;
+        emitDoubleQuad(vc, mat,
+                cx - tip, cy - w, cz,
+                cx + tip, cy - w, cz,
+                cx + tip, cy + w, cz,
+                cx - tip, cy + w, cz,
+                r, g, b, a);
+        emitDoubleQuad(vc, mat,
+                cx - w, cy - tip, cz,
+                cx + w, cy - tip, cz,
+                cx + w, cy + tip, cz,
+                cx - w, cy + tip, cz,
+                r, g, b, a);
+        float d = size * 0.45F;
+        emitDoubleQuad(vc, mat,
+                cx, cy - d, cz + 0.005F,
+                cx + d, cy, cz + 0.005F,
+                cx, cy + d, cz + 0.005F,
+                cx - d, cy, cz + 0.005F,
+                255, 255, 220, Math.min(255, a + 30));
+    }
+
+    private static void renderFourLeafClover2D(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float cy, float cz,
+            float radius, int r, int g, int b, int a
+    ) {
+        float petalR = radius * 0.52F;
+        float offset = radius * 0.48F;
+        float[][] offsets = {{0, offset}, {0, -offset}, {offset, 0}, {-offset, 0}};
+        for (float[] off : offsets) {
+            float px = cx + off[0], py = cy + off[1];
+            emitDoubleQuad(vc, mat,
+                    px - petalR, py - petalR, cz,
+                    px + petalR, py - petalR, cz,
+                    px + petalR, py + petalR, cz,
+                    px - petalR, py + petalR, cz,
+                    r, g, b, a);
+        }
+        float coreR = radius * 0.35F;
+        emitDoubleQuad(vc, mat,
+                cx - coreR, cy - coreR, cz + 0.005F,
+                cx + coreR, cy - coreR, cz + 0.005F,
+                cx + coreR, cy + coreR, cz + 0.005F,
+                cx - coreR, cy + coreR, cz + 0.005F,
+                245, 255, 210, Math.min(255, a + 40));
+    }
+
+    private static void renderFourLeafCloverXZ(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float cy, float cz,
+            float radius, int r, int g, int b, int a
+    ) {
+        float petalR = radius * 0.52F;
+        float offset = radius * 0.48F;
+        float[][] offsets = {{0, offset}, {0, -offset}, {offset, 0}, {-offset, 0}};
+        for (float[] off : offsets) {
+            float px = cx + off[0], pz = cz + off[1];
+            emitDoubleQuad(vc, mat,
+                    px - petalR, cy, pz - petalR,
+                    px + petalR, cy, pz - petalR,
+                    px + petalR, cy, pz + petalR,
+                    px - petalR, cy, pz + petalR,
+                    r, g, b, a);
+        }
+        float coreR = radius * 0.35F;
+        emitDoubleQuad(vc, mat,
+                cx - coreR, cy + 0.005F, cz - coreR,
+                cx + coreR, cy + 0.005F, cz - coreR,
+                cx + coreR, cy + 0.005F, cz + coreR,
+                cx - coreR, cy + 0.005F, cz + coreR,
+                245, 255, 210, Math.min(255, a + 40));
+    }
+
+    private static void renderCloverCrossXZ(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float cy, float cz,
+            float size, int r, int g, int b, int a
+    ) {
+        float tip = size * 1.35F;
+        float w = size * 0.32F;
+        emitDoubleQuad(vc, mat,
+                cx - tip, cy, cz - w,
+                cx + tip, cy, cz - w,
+                cx + tip, cy, cz + w,
+                cx - tip, cy, cz + w,
+                r, g, b, a);
+        emitDoubleQuad(vc, mat,
+                cx - w, cy, cz - tip,
+                cx + w, cy, cz - tip,
+                cx + w, cy, cz + tip,
+                cx - w, cy, cz + tip,
+                r, g, b, a);
+    }
+
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (renderingScreen) return;
         if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
@@ -3620,26 +3764,54 @@ public final class ClientAuraRenderer {
             int sh = guiGraphics.guiHeight();
             int cx = sw / 2;
             int cy = sh / 2;
-            int hw = 52;
-            int hh = 36;
-            int col = 0xDD48F56E;
-            int starCol = 0xFFB8FFCA;
-            guiGraphics.fill(cx - hw, cy - hh, cx - hw + 14, cy - hh + 2, col);
-            guiGraphics.fill(cx - hw, cy - hh, cx - hw + 2, cy - hh + 14, col);
-            guiGraphics.fill(cx + hw - 14, cy - hh, cx + hw, cy - hh + 2, col);
-            guiGraphics.fill(cx + hw - 2, cy - hh, cx + hw, cy - hh + 14, col);
-            guiGraphics.fill(cx - hw, cy + hh - 2, cx - hw + 14, cy + hh, col);
-            guiGraphics.fill(cx - hw, cy + hh - 14, cx - hw + 2, cy + hh, col);
-            guiGraphics.fill(cx + hw - 14, cy + hh - 2, cx + hw, cy + hh, col);
-            guiGraphics.fill(cx + hw - 2, cy + hh - 14, cx + hw, cy + hh, col);
-            for (int[] corner : new int[][]{{cx - hw - 3, cy - hh - 3}, {cx + hw + 1, cy - hh - 3}, {cx - hw - 3, cy + hh + 1}, {cx + hw + 1, cy + hh + 1}}) {
-                guiGraphics.fill(corner[0], corner[1] + 1, corner[0] + 3, corner[1] + 2, starCol);
-                guiGraphics.fill(corner[0] + 1, corner[1], corner[0] + 2, corner[1] + 3, starCol);
+            int hw = 70;
+            int hh = 52;
+            int borderCol = 0xEE4AF072;
+            int starCol = 0xFFF0FFC8;
+            int dotCol = 0xCC74FF92;
+            int scanCol = 0x1440E060;
+
+            // Translucent inner scanline / camera tint (Image 5)
+            guiGraphics.fill(cx - hw, cy - hh, cx + hw, cy + hh, scanCol);
+
+            // 4 corner L-brackets
+            int arm = 16;
+            int thick = 2;
+            guiGraphics.fill(cx - hw, cy - hh, cx - hw + arm, cy - hh + thick, borderCol);
+            guiGraphics.fill(cx - hw, cy - hh, cx - hw + thick, cy - hh + arm, borderCol);
+            guiGraphics.fill(cx + hw - arm, cy - hh, cx + hw, cy - hh + thick, borderCol);
+            guiGraphics.fill(cx + hw - thick, cy - hh, cx + hw, cy - hh + arm, borderCol);
+            guiGraphics.fill(cx - hw, cy + hh - thick, cx - hw + arm, cy + hh, borderCol);
+            guiGraphics.fill(cx - hw, cy + hh - arm, cx - hw + thick, cy + hh, borderCol);
+            guiGraphics.fill(cx + hw - arm, cy + hh - thick, cx + hw, cy + hh, borderCol);
+            guiGraphics.fill(cx + hw - thick, cy + hh - arm, cx + hw, cy + hh, borderCol);
+
+            // 4 radiant golden-green 4-leaf clover cross stars at corners (Image 5)
+            for (int[] corner : new int[][]{{cx - hw, cy - hh}, {cx + hw, cy - hh}, {cx - hw, cy + hh}, {cx + hw, cy + hh}}) {
+                guiGraphics.fill(corner[0] - 2, corner[1] - 1, corner[0] + 3, corner[1] + 2, starCol);
+                guiGraphics.fill(corner[0] - 1, corner[1] - 2, corner[0] + 2, corner[1] + 3, starCol);
+                guiGraphics.fill(corner[0], corner[1], corner[0] + 1, corner[1] + 1, 0xFFFFFFFF);
             }
-            guiGraphics.fill(cx - 6, cy - 1, cx - 2, cy + 1, col);
-            guiGraphics.fill(cx + 2, cy - 1, cx + 6, cy + 1, col);
-            guiGraphics.fill(cx - 1, cy - 6, cx + 1, cy - 2, col);
-            guiGraphics.fill(cx - 1, cy + 2, cx + 1, cy + 6, col);
+
+            // Dotted guide marks along each of the 4 borders (Image 5)
+            for (int offset = -40; offset <= 40; offset += 20) {
+                if (offset != 0) {
+                    guiGraphics.fill(cx + offset - 1, cy - hh, cx + offset + 1, cy - hh + 2, dotCol);
+                    guiGraphics.fill(cx + offset - 1, cy + hh - 2, cx + offset + 1, cy + hh, dotCol);
+                }
+            }
+            for (int offset = -30; offset <= 30; offset += 20) {
+                if (offset != 0) {
+                    guiGraphics.fill(cx - hw, cy + offset - 1, cx - hw + 2, cy + offset + 1, dotCol);
+                    guiGraphics.fill(cx + hw - 2, cy + offset - 1, cx + hw, cy + offset + 1, dotCol);
+                }
+            }
+
+            // Center targeting crosshairs
+            guiGraphics.fill(cx - 5, cy - 1, cx - 2, cy + 1, borderCol);
+            guiGraphics.fill(cx + 2, cy - 1, cx + 5, cy + 1, borderCol);
+            guiGraphics.fill(cx - 1, cy - 5, cx + 1, cy - 2, borderCol);
+            guiGraphics.fill(cx - 1, cy + 2, cx + 1, cy + 5, borderCol);
             return;
         }
         if (ClientAuraTracker.localTsaritsaHoldETicks > 0 && !ClientAuraTracker.localTsaritsaHoldELocked) {
@@ -4763,7 +4935,7 @@ public final class ClientAuraRenderer {
                             235, 215, 95, aMain);
                 }
 
-                // 2. 8 Tall Sumeru Sanctuary Pillars + Octagonal Arch Ring + 3D Lotus Dome Roof
+                // 2. 8 Tall Sumeru Sanctuary Pillars + Moorish Trefoil Pointed Arches + Stained-Glass Lotus Dome
                 int pillars = 8;
                 float pRadius = radius * 0.86F;
                 float pillarH = 6.2F;
@@ -4771,23 +4943,45 @@ public final class ClientAuraRenderer {
                 for (int p = 0; p < pillars; p++) {
                     float ang = (float) (p * Math.PI * 2.0D / pillars);
                     float nextAng = (float) ((p + 1) * Math.PI * 2.0D / pillars);
+                    float midAng = (ang + nextAng) * 0.5F;
                     float px = Mth.cos(ang) * pRadius;
                     float pz = Mth.sin(ang) * pRadius;
                     float nx = Mth.cos(nextAng) * pRadius;
                     float nz = Mth.sin(nextAng) * pRadius;
+                    float mx = Mth.cos(midAng) * pRadius;
+                    float mz = Mth.sin(midAng) * pRadius;
 
                     // Golden pedestal base + Emerald-Jade pillar shaft + Lotus capital
                     drawJadeArmorBox(vc, mat, px - 0.36F, 0.02F, pz - 0.36F, px + 0.36F, 0.48F, pz + 0.36F, 240, 205, 85, aTrim);
                     drawJadeArmorBox(vc, mat, px - 0.22F, 0.48F, pz - 0.22F, px + 0.22F, pillarH - 0.42F, pz + 0.22F, 68, 235, 115, aMain);
                     drawJadeArmorBox(vc, mat, px - 0.38F, pillarH - 0.42F, pz - 0.38F, px + 0.38F, pillarH, pz + 0.38F, 245, 215, 95, aTrim);
 
-                    // Upper Sanctuary Arch Beam connecting pillar p -> p+1
+                    // Upper Pointed Trefoil Arch with cascading finial (Images 6 & 7)
+                    float archPeakY = pillarH + 1.35F;
                     emitDoubleQuad(vc, mat,
-                            px, pillarH - 0.25F, pz,
-                            nx, pillarH - 0.25F, nz,
-                            nx, pillarH + 0.18F, nz,
-                            px, pillarH + 0.18F, pz,
+                            px, pillarH, pz,
+                            mx, archPeakY, mz,
+                            mx, archPeakY + 0.22F, mz,
+                            px, pillarH + 0.22F, pz,
                             240, 212, 92, aTrim);
+                    emitDoubleQuad(vc, mat,
+                            mx, archPeakY, mz,
+                            nx, pillarH, nz,
+                            nx, pillarH + 0.22F, nz,
+                            mx, archPeakY + 0.22F, mz,
+                            240, 212, 92, aTrim);
+
+                    // Dangling teardrop lantern & cascading emerald pearls under arch apex
+                    emitDoubleQuad(vc, mat,
+                            mx - 0.12F, archPeakY - 0.45F, mz - 0.12F,
+                            mx + 0.12F, archPeakY - 0.45F, mz + 0.12F,
+                            mx + 0.02F, archPeakY, mz + 0.02F,
+                            mx - 0.02F, archPeakY, mz - 0.02F,
+                            95, 255, 145, aTrim);
+                    // 3 cascading emerald beads hanging down
+                    renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 0.65F, mz, 0.10F, 85, 255, 130, aTrim);
+                    renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 0.90F, mz, 0.08F, 120, 255, 160, aTrim);
+                    renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 1.15F, mz, 0.06F, 215, 255, 185, aTrim);
 
                     // 2-tier 3D Lotus Dome Ribs & Translucent Canopy Panels rising to apex
                     float midR = pRadius * 0.54F;
@@ -4821,7 +5015,23 @@ public final class ClientAuraRenderer {
                             250, 225, 110, aTrim);
                 }
 
-                // 3. Central Sanctuary Spire Finial at top of Dome
+                // 3. Central Heavenly Sunlight Godray Light Shaft (Image 6)
+                int raySegs = 16;
+                float rayRTop = 0.75F;
+                float rayRBot = 3.20F;
+                int aRay = Math.max(10, Math.round(52.0F * fade));
+                for (int s = 0; s < raySegs; s++) {
+                    float ra0 = (float) (s * Math.PI * 2.0D / raySegs) + timeSec * 0.15F;
+                    float ra1 = (float) ((s + 1) * Math.PI * 2.0D / raySegs) + timeSec * 0.15F;
+                    emitDoubleQuad(vc, mat,
+                            Mth.cos(ra0) * rayRBot, 0.06F, Mth.sin(ra0) * rayRBot,
+                            Mth.cos(ra1) * rayRBot, 0.06F, Mth.sin(ra1) * rayRBot,
+                            Mth.cos(ra1) * rayRTop, domeApexY - 0.20F, Mth.sin(ra1) * rayRTop,
+                            Mth.cos(ra0) * rayRTop, domeApexY - 0.20F, Mth.sin(ra0) * rayRTop,
+                            255, 252, 210, aRay);
+                }
+
+                // Central Sanctuary Spire Finial at top of Dome
                 drawJadeArmorBox(vc, mat, -0.24F, domeApexY - 0.15F, -0.24F, 0.24F, domeApexY + 1.45F, 0.24F, 245, 220, 95, aTrim);
                 drawJadeArmorBox(vc, mat, -0.12F, domeApexY + 1.45F, -0.12F, 0.12F, domeApexY + 2.35F, 0.12F, 120, 255, 155, aTrim);
                 poseStack.popPose();
@@ -4842,8 +5052,8 @@ public final class ClientAuraRenderer {
                 }
                 poseStack.popPose();
             } else if (arc.fromEntityId == -6) {
-                // Section 17: Tsaritsa Dedicated Burst — Flat Glacial Ice Field on Ground + Central 3D Polar Ice Pillar
-                float radius = (float) Math.max(3.5D, arc.end.x);
+                // Section 17: Tsaritsa Dedicated Burst — Wide Open Polar Star Frost Arena + Central Floating 8-Point Star
+                float radius = (float) Math.max(8.0D, arc.end.x);
                 float cx = (float) (arc.start.x - camPos.x);
                 float cy = (float) (arc.start.y - camPos.y);
                 float cz = (float) (arc.start.z - camPos.z);
@@ -4859,24 +5069,17 @@ public final class ClientAuraRenderer {
                 poseStack.translate(cx, cy, cz);
                 Matrix4f mat = poseStack.last().pose();
 
-                // 1. Flat Glacial Ice Field on Ground (concentric frost rings + 8 radial ice-lance snowflake spokes)
+                // 1. Wide Open Polar Star Glacial Field on Ground (open arena, NO solid ground disc)
                 int segs = 32;
                 float rOut = radius;
-                float rRimIn = radius * 0.90F;
-                float rMidOut = radius * 0.55F;
-                float rMidIn = radius * 0.47F;
+                float rRimIn = radius * 0.93F;
+                float rMidOut = radius * 0.54F;
+                float rMidIn = radius * 0.50F;
                 for (int i = 0; i < segs; i++) {
-                    float a0 = (float) (i * Math.PI * 2.0D / segs) - timeSec * 0.35F;
-                    float a1 = (float) ((i + 1) * Math.PI * 2.0D / segs) - timeSec * 0.35F;
+                    float a0 = (float) (i * Math.PI * 2.0D / segs) - timeSec * 0.25F;
+                    float a1 = (float) ((i + 1) * Math.PI * 2.0D / segs) - timeSec * 0.25F;
                     float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
                     float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
-                    // Translucent glacial ground disc
-                    emitDoubleQuad(vc, mat,
-                            0.0F, 0.04F, 0.0F,
-                            c0 * rRimIn, 0.04F, s0 * rRimIn,
-                            c1 * rRimIn, 0.04F, s1 * rRimIn,
-                            0.0F, 0.04F, 0.0F,
-                            125, 220, 255, Math.max(12, aField / 3));
                     // Outer frost rim
                     emitDoubleQuad(vc, mat,
                             c0 * rRimIn, 0.05F, s0 * rRimIn,
@@ -4884,60 +5087,39 @@ public final class ClientAuraRenderer {
                             c1 * rOut, 0.05F, s1 * rOut,
                             c1 * rRimIn, 0.05F, s1 * rRimIn,
                             185, 242, 255, aField);
-                    // Inner snowflake ring
+                    // Inner delicate snowflake rune ring
                     emitDoubleQuad(vc, mat,
                             c0 * rMidIn, 0.055F, s0 * rMidIn,
                             c0 * rMidOut, 0.055F, s0 * rMidOut,
                             c1 * rMidOut, 0.055F, s1 * rMidOut,
                             c1 * rMidIn, 0.055F, s1 * rMidIn,
-                            225, 250, 255, aField);
+                            220, 248, 255, Math.max(15, aField / 2));
                 }
                 for (int k = 0; k < 8; k++) {
-                    float ang = (float) (k * Math.PI * 0.25D) + timeSec * 0.20F;
+                    float ang = (float) (k * Math.PI * 0.25D) + timeSec * 0.15F;
                     float ca = Mth.cos(ang), sa = Mth.sin(ang);
-                    float px = -sa * 0.14F, pz = ca * 0.14F;
+                    float px = -sa * 0.08F, pz = ca * 0.08F;
                     emitDoubleQuad(vc, mat,
-                            ca * 0.65F - px, 0.06F, sa * 0.65F - pz,
-                            ca * 0.65F + px, 0.06F, sa * 0.65F + pz,
-                            ca * (rOut * 0.94F), 0.06F, sa * (rOut * 0.94F),
-                            ca * (rOut * 0.94F), 0.06F, sa * (rOut * 0.94F),
+                            ca * rMidIn - px, 0.06F, sa * rMidIn - pz,
+                            ca * rMidIn + px, 0.06F, sa * rMidIn + pz,
+                            ca * (rOut * 0.96F), 0.06F, sa * (rOut * 0.96F),
+                            ca * (rOut * 0.96F), 0.06F, sa * (rOut * 0.96F),
                             220, 248, 255, aPillar);
                 }
 
-                // 2. Central 3D Polar Ice Pillar / Obelisk rising from the center of the Ice Field
-                int pillarFaces = 6;
-                float baseR = 0.88F;
-                float topR = 0.34F;
-                float pillarH = 6.6F;
-                float tipH = 7.8F;
-                for (int f = 0; f < pillarFaces; f++) {
-                    float a0 = (float) (f * Math.PI * 2.0D / pillarFaces) + timeSec * 0.45F;
-                    float a1 = (float) ((f + 1) * Math.PI * 2.0D / pillarFaces) + timeSec * 0.45F;
-                    float bx0 = Mth.cos(a0) * baseR, bz0 = Mth.sin(a0) * baseR;
-                    float bx1 = Mth.cos(a1) * baseR, bz1 = Mth.sin(a1) * baseR;
-                    float tx0 = Mth.cos(a0) * topR, tz0 = Mth.sin(a0) * topR;
-                    float tx1 = Mth.cos(a1) * topR, tz1 = Mth.sin(a1) * topR;
-                    int shade = (f % 2 == 0) ? 245 : 210;
-                    emitDoubleQuad(vc, mat,
-                            bx0, 0.05F, bz0,
-                            bx1, 0.05F, bz1,
-                            tx1, pillarH, tz1,
-                            tx0, pillarH, tz0,
-                            145, shade, 255, aPillar);
-                    emitDoubleQuad(vc, mat,
-                            tx0, pillarH, tz0,
-                            tx1, pillarH, tz1,
-                            0.0F, tipH, 0.0F,
-                            0.0F, tipH, 0.0F,
-                            225, 250, 255, aPillar);
-                }
-
-                // Spinning 3D Cryo Star Finial atop the Polar Ice Pillar
+                // 2. Small Floating 8-Point Cryo Polar Star Crystal in Center (Image 1, no giant obelisk!)
+                float starHoverY = 1.25F + Mth.sin(timeSec * 2.0F) * 0.08F;
                 poseStack.pushPose();
-                poseStack.translate(0.0F, tipH + 0.55F + Mth.sin(timeSec * 2.5F) * 0.12F, 0.0F);
-                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * 90.0F));
-                renderFourPointStar3D(vc, poseStack.last().pose(), 0.72F, 0.22F, 240, 252, 255, aPillar, 110, 210, 255, aField);
+                poseStack.translate(0.0F, starHoverY, 0.0F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * 45.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(timeSec * 1.5F) * 8.0F));
+                renderFourPointStar3D(vc, poseStack.last().pose(), 0.36F, 0.09F, 240, 252, 255, aPillar, 140, 220, 255, aField);
+                poseStack.mulPose(Axis.YP.rotationDegrees(45.0F));
+                renderFourPointStar3D(vc, poseStack.last().pose(), 0.24F, 0.06F, 220, 248, 255, aPillar, 110, 200, 255, aField);
                 poseStack.popPose();
+
+                // Small delicate frost spangle on ground directly beneath center star
+                renderCloverCrossXZ(vc, mat, 0.0F, 0.055F, 0.0F, 0.55F, 215, 245, 255, Math.max(15, aField / 2));
 
                 poseStack.popPose();
             } else if (arc.fromEntityId == -7) {
@@ -5714,13 +5896,27 @@ public final class ClientAuraRenderer {
         if (idleSwing && !isFirstPersonSelf) {
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            float sway = Mth.sin(time * 0.12F) * 0.10F;
+            float sway = Mth.sin(time * 0.10F) * 0.08F;
             poseStack.translate(0.0F, 0.0F, sway);
             Matrix4f mat = poseStack.last().pose();
-            emitDoubleQuad(vc, mat, -0.40F, 0.48F, -0.03F, -0.35F, 0.48F, 0.03F, -0.35F, 2.35F, 0.03F, -0.40F, 2.35F, -0.03F, 72, 245, 110, 210);
-            emitDoubleQuad(vc, mat, 0.35F, 0.48F, -0.03F, 0.40F, 0.48F, 0.03F, 0.40F, 2.35F, 0.03F, 0.35F, 2.35F, -0.03F, 72, 245, 110, 210);
-            emitDoubleQuad(vc, mat, -0.46F, 2.32F, -0.05F, 0.46F, 2.32F, -0.05F, 0.46F, 2.38F, 0.05F, -0.46F, 2.38F, 0.05F, 120, 255, 140, 220);
-            emitDoubleQuad(vc, mat, -0.44F, 0.48F, -0.18F, 0.44F, 0.48F, -0.18F, 0.44F, 0.52F, 0.18F, -0.44F, 0.52F, 0.18F, 52, 215, 90, 225);
+            // Jade crystal rectangular seat bench under player hips (Image 3)
+            emitDoubleQuad(vc, mat, -0.46F, 0.46F, -0.16F, 0.46F, 0.46F, -0.16F, 0.46F, 0.52F, 0.16F, -0.46F, 0.52F, 0.16F, 60, 235, 120, 220);
+            // Golden leaf edge trims
+            emitDoubleQuad(vc, mat, -0.48F, 0.45F, -0.17F, 0.48F, 0.45F, -0.17F, 0.48F, 0.47F, 0.17F, -0.48F, 0.47F, 0.17F, 235, 215, 90, 240);
+            // Top suspension bar
+            emitDoubleQuad(vc, mat, -0.48F, 2.62F, -0.04F, 0.48F, 2.62F, -0.04F, 0.48F, 2.68F, 0.04F, -0.48F, 2.68F, 0.04F, 240, 220, 95, 230);
+            // Twin vine ropes: Left & Right
+            emitDoubleQuad(vc, mat, -0.43F, 0.48F, -0.02F, -0.39F, 0.48F, 0.02F, -0.39F, 2.65F, 0.02F, -0.43F, 2.65F, -0.02F, 85, 235, 115, 225);
+            emitDoubleQuad(vc, mat, 0.39F, 0.48F, -0.02F, 0.43F, 0.48F, 0.02F, 0.43F, 2.65F, 0.02F, 0.39F, 2.65F, -0.02F, 85, 235, 115, 225);
+            // 4 glowing 4-leaf clover cross stars on each rope (Image 3)
+            float[] yStars = {0.90F, 1.40F, 1.90F, 2.40F};
+            for (float yStar : yStars) {
+                renderCloverCross2D(vc, mat, -0.41F, yStar, 0.0F, 0.11F, 240, 255, 160, 245);
+                renderCloverCross2D(vc, mat,  0.41F, yStar, 0.0F, 0.11F, 240, 255, 160, 245);
+            }
+            // Bench end clover stars
+            renderCloverCross2D(vc, mat, -0.46F, 0.49F, 0.0F, 0.12F, 245, 255, 175, 250);
+            renderCloverCross2D(vc, mat,  0.46F, 0.49F, 0.0F, 0.12F, 245, 255, 175, 250);
             poseStack.popPose();
         }
 
@@ -5729,21 +5925,111 @@ public final class ClientAuraRenderer {
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             Matrix4f mat = poseStack.last().pose();
             int step = activeAnim - ClientAuraTracker.ANIM_NAHIDA_NA_1 + 1;
-            float tileZ = -0.65F * step;
-            emitDoubleQuad(vc, mat, -0.45F, 0.04F, tileZ - 0.45F, 0.45F, 0.04F, tileZ - 0.45F, 0.45F, 0.04F, tileZ + 0.45F, -0.45F, 0.04F, tileZ + 0.45F, 72, 255, 115, 185);
-            if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_NA_4) {
-                emitDoubleQuad(vc, mat, -0.65F, 0.85F, -1.25F, 0.65F, 0.85F, -1.25F, 0.65F, 1.65F, -1.25F, -0.65F, 1.65F, -1.25F, 110, 255, 145, 210);
+
+            // 1. Glowing Hopscotch Ground Tile under feet with 4 Clover Corners (Image 4)
+            float tileHalf = 0.45F;
+            renderCloverCrossXZ(vc, mat, -tileHalf, 0.045F, -tileHalf, 0.16F, 225, 255, 140, 230);
+            renderCloverCrossXZ(vc, mat,  tileHalf, 0.045F, -tileHalf, 0.16F, 225, 255, 140, 230);
+            renderCloverCrossXZ(vc, mat,  tileHalf, 0.045F,  tileHalf, 0.16F, 225, 255, 140, 230);
+            renderCloverCrossXZ(vc, mat, -tileHalf, 0.045F,  tileHalf, 0.16F, 225, 255, 140, 230);
+            // Border lines connecting corners
+            emitDoubleQuad(vc, mat, -tileHalf, 0.042F, -tileHalf,  tileHalf, 0.042F, -tileHalf,  tileHalf, 0.042F, -tileHalf + 0.03F, -tileHalf, 0.042F, -tileHalf + 0.03F, 95, 255, 140, 210);
+            emitDoubleQuad(vc, mat, -tileHalf, 0.042F,  tileHalf - 0.03F,  tileHalf, 0.042F,  tileHalf - 0.03F,  tileHalf, 0.042F,  tileHalf, -tileHalf, 0.042F,  tileHalf, 95, 255, 140, 210);
+            emitDoubleQuad(vc, mat, -tileHalf, 0.042F, -tileHalf, -tileHalf + 0.03F, 0.042F, -tileHalf, -tileHalf + 0.03F, 0.042F,  tileHalf, -tileHalf, 0.042F,  tileHalf, 95, 255, 140, 210);
+            emitDoubleQuad(vc, mat,  tileHalf - 0.03F, 0.042F, -tileHalf,  tileHalf, 0.042F, -tileHalf,  tileHalf, 0.042F,  tileHalf,  tileHalf - 0.03F, 0.042F,  tileHalf, 95, 255, 140, 210);
+            // Inner concentric circle ring
+            for (int s = 0; s < 12; s++) {
+                float sa0 = (float) (s * Math.PI * 2.0D / 12);
+                float sa1 = (float) ((s + 1) * Math.PI * 2.0D / 12);
+                emitDoubleQuad(vc, mat,
+                        Mth.cos(sa0) * 0.22F, 0.044F, Mth.sin(sa0) * 0.22F,
+                        Mth.cos(sa1) * 0.22F, 0.044F, Mth.sin(sa1) * 0.22F,
+                        Mth.cos(sa1) * 0.25F, 0.044F, Mth.sin(sa1) * 0.25F,
+                        Mth.cos(sa0) * 0.25F, 0.044F, Mth.sin(sa0) * 0.25F,
+                        235, 250, 160, 185);
+            }
+
+            // 2. Foreground Sprouting Vines Blooming 4-Leaf Clovers (Images 4 & 8)
+            // No vanilla particles — 100% custom quads
+            if (step == 1) {
+                // Step 1: 1 central sprouting vine blooming 1 clover
+                emitDoubleQuad(vc, mat, -0.03F, 0.04F, -0.85F, 0.03F, 0.04F, -0.85F, 0.03F, 0.68F, -0.85F, -0.03F, 0.68F, -0.85F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.0F, 0.72F, -0.85F, 0.22F, 120, 255, 150, 235);
+            } else if (step == 2) {
+                // Step 2: 2 sprouting curving vines (1 taller, 1 shorter)
+                emitDoubleQuad(vc, mat, -0.31F, 0.04F, -0.92F, -0.25F, 0.04F, -0.92F, -0.25F, 0.62F, -0.92F, -0.31F, 0.62F, -0.92F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, -0.28F, 0.66F, -0.92F, 0.20F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, 0.25F, 0.04F, -0.92F, 0.31F, 0.04F, -0.92F, 0.31F, 0.92F, -0.92F, 0.25F, 0.92F, -0.92F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.28F, 0.96F, -0.92F, 0.24F, 135, 255, 165, 240);
+            } else if (step == 3) {
+                // Step 3: 3 sprouting curving vines rising higher
+                emitDoubleQuad(vc, mat, -0.38F, 0.04F, -1.02F, -0.32F, 0.04F, -1.02F, -0.32F, 0.75F, -1.02F, -0.38F, 0.75F, -1.02F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, -0.35F, 0.79F, -1.02F, 0.22F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, -0.03F, 0.04F, -1.08F, 0.03F, 0.04F, -1.08F, 0.03F, 1.15F, -1.08F, -0.03F, 1.15F, -1.08F, 85, 245, 120, 230);
+                renderFourLeafClover2D(vc, mat, 0.0F, 1.20F, -1.08F, 0.28F, 140, 255, 175, 245);
+                emitDoubleQuad(vc, mat, 0.32F, 0.04F, -1.02F, 0.38F, 0.04F, -1.02F, 0.38F, 0.85F, -1.02F, 0.32F, 0.85F, -1.02F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.35F, 0.89F, -1.02F, 0.22F, 120, 255, 150, 235);
+            } else {
+                // Step 4 (Image 8): Twin curving leafy vines forming a radiant glowing HEART!
+                float zH = -1.15F;
+                // Left vine arching up and bending into heart lobe
+                emitDoubleQuad(vc, mat, -0.45F, 0.06F, zH, -0.39F, 0.06F, zH, -0.50F, 0.65F, zH, -0.56F, 0.65F, zH, 75, 240, 110, 225);
+                emitDoubleQuad(vc, mat, -0.56F, 0.65F, zH, -0.50F, 0.65F, zH, -0.42F, 1.15F, zH, -0.48F, 1.15F, zH, 85, 245, 120, 235);
+                emitDoubleQuad(vc, mat, -0.48F, 1.15F, zH, -0.42F, 1.15F, zH, -0.22F, 1.32F, zH, -0.25F, 1.38F, zH, 110, 255, 145, 240);
+                emitDoubleQuad(vc, mat, -0.25F, 1.38F, zH, -0.22F, 1.32F, zH, 0.0F, 0.95F, zH, 0.0F, 1.02F, zH, 130, 255, 160, 245);
+                // Right vine arching up and bending into symmetric heart lobe
+                emitDoubleQuad(vc, mat, 0.39F, 0.06F, zH, 0.45F, 0.06F, zH, 0.56F, 0.65F, zH, 0.50F, 0.65F, zH, 75, 240, 110, 225);
+                emitDoubleQuad(vc, mat, 0.50F, 0.65F, zH, 0.56F, 0.65F, zH, 0.48F, 1.15F, zH, 0.42F, 1.15F, zH, 85, 245, 120, 235);
+                emitDoubleQuad(vc, mat, 0.42F, 1.15F, zH, 0.48F, 1.15F, zH, 0.25F, 1.38F, zH, 0.22F, 1.32F, zH, 110, 255, 145, 240);
+                emitDoubleQuad(vc, mat, 0.22F, 1.32F, zH, 0.25F, 1.38F, zH, 0.0F, 1.02F, zH, 0.0F, 0.95F, zH, 130, 255, 160, 245);
+                // Blooming clovers at left lobe, right lobe, and center meeting cleft
+                renderFourLeafClover2D(vc, mat, -0.25F, 1.35F, zH, 0.24F, 140, 255, 175, 245);
+                renderFourLeafClover2D(vc, mat,  0.25F, 1.35F, zH, 0.24F, 140, 255, 175, 245);
+                renderFourLeafClover2D(vc, mat,  0.0F,  0.98F, zH, 0.26F, 220, 255, 190, 250);
             }
             poseStack.popPose();
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && !isFirstPersonSelf) {
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             Matrix4f mat = poseStack.last().pose();
-            float z = -0.95F;
-            emitDoubleQuad(vc, mat, -0.55F, 0.75F, z, 0.55F, 0.75F, z, 0.55F, 0.81F, z, -0.55F, 0.81F, z, 80, 255, 120, 230);
-            emitDoubleQuad(vc, mat, -0.55F, 1.65F, z, 0.55F, 1.65F, z, 0.55F, 1.71F, z, -0.55F, 1.71F, z, 80, 255, 120, 230);
-            emitDoubleQuad(vc, mat, -0.55F, 0.75F, z, -0.49F, 0.75F, z, -0.49F, 1.71F, z, -0.55F, 1.71F, z, 80, 255, 120, 230);
-            emitDoubleQuad(vc, mat, 0.49F, 0.75F, z, 0.55F, 0.75F, z, 0.55F, 1.71F, z, 0.49F, 1.71F, z, 80, 255, 120, 230);
+            float z = -1.10F;
+            float cy = 1.15F;
+            float caProg = Mth.clamp(1.0F - (d.staffAnimUntil - now) / 500.0F, 0.0F, 1.0F);
+
+            if (caProg < 0.52F) {
+                // Phase 1: Targeting Viewfinder Box with 4 Clover Cross Corners (Image 9)
+                float hw = 0.62F;
+                float hh = 0.44F;
+                // Border lines
+                emitDoubleQuad(vc, mat, -hw, cy - hh, z,  hw, cy - hh, z,  hw, cy - hh + 0.03F, z, -hw, cy - hh + 0.03F, z, 220, 255, 140, 225);
+                emitDoubleQuad(vc, mat, -hw, cy + hh - 0.03F, z,  hw, cy + hh - 0.03F, z,  hw, cy + hh, z, -hw, cy + hh, z, 220, 255, 140, 225);
+                emitDoubleQuad(vc, mat, -hw, cy - hh, z, -hw + 0.03F, cy - hh, z, -hw + 0.03F, cy + hh, z, -hw, cy + hh, z, 220, 255, 140, 225);
+                emitDoubleQuad(vc, mat,  hw - 0.03F, cy - hh, z,  hw, cy - hh, z,  hw, cy + hh, z,  hw - 0.03F, cy + hh, z, 220, 255, 140, 225);
+                // 4 glowing clover cross stars at corners
+                renderCloverCross2D(vc, mat, -hw, cy - hh, z, 0.14F, 245, 255, 150, 245);
+                renderCloverCross2D(vc, mat,  hw, cy - hh, z, 0.14F, 245, 255, 150, 245);
+                renderCloverCross2D(vc, mat,  hw, cy + hh, z, 0.14F, 245, 255, 150, 245);
+                renderCloverCross2D(vc, mat, -hw, cy + hh, z, 0.14F, 245, 255, 150, 245);
+            } else {
+                // Phase 2: Detonation blooming GIANT 4-LEAF CLOVER in center (Image 10)
+                float boom = (caProg - 0.52F) / 0.48F;
+                float cloverRad = 0.72F + boom * 0.55F;
+                int aBoom = Math.round(245.0F * (1.0F - boom * 0.35F));
+                renderFourLeafClover2D(vc, mat, 0.0F, cy, z, cloverRad, 95, 255, 140, aBoom);
+                renderCloverCross2D(vc, mat, 0.0F, cy, z - 0.01F, cloverRad * 0.45F, 250, 255, 200, aBoom);
+                // Expanding floral shockwave ring
+                float ringR = 0.45F + boom * 1.15F;
+                for (int s = 0; s < 16; s++) {
+                    float ra0 = (float) (s * Math.PI * 2.0D / 16);
+                    float ra1 = (float) ((s + 1) * Math.PI * 2.0D / 16);
+                    emitDoubleQuad(vc, mat,
+                            Mth.cos(ra0) * ringR, cy + Mth.sin(ra0) * ringR, z,
+                            Mth.cos(ra1) * ringR, cy + Mth.sin(ra1) * ringR, z,
+                            Mth.cos(ra1) * (ringR + 0.06F), cy + Mth.sin(ra1) * (ringR + 0.06F), z,
+                            Mth.cos(ra0) * (ringR + 0.06F), cy + Mth.sin(ra0) * (ringR + 0.06F), z,
+                            210, 255, 175, Math.max(15, Math.round(180.0F * (1.0F - boom))));
+                }
+            }
             poseStack.popPose();
         }
 
@@ -5794,13 +6080,9 @@ public final class ClientAuraRenderer {
             float hs = 0.25F;
             float baseH = 0.11F;
             float peakH = 0.24F;
-            boolean flash = (entity.tickCount % 40) < 5;
-            int br = flash ? 210 : 65;
-            int bg = flash ? 250 : 185;
-            int bb = 255;
-            int pr = flash ? 255 : 165;
-            int pg = 250;
-            int pb = 255;
+            // Rock-solid glowing Archon Crown (no artificial flashing/blinking that caused flickering bug)
+            int br = 180, bg = 238, bb = 255;
+            int pr = 235, pg = 252, pb = 255;
             float[][] faces = new float[][]{
                     {-hs, -hs,  hs, -hs},
                     { hs,  hs, -hs,  hs},
@@ -5812,6 +6094,8 @@ public final class ClientAuraRenderer {
                 float mx = (x0 + x1) * 0.5F, mz = (z0 + z1) * 0.5F;
                 emitDoubleQuad(vc, mat, x0, 0.0F, z0, x1, 0.0F, z1, x1, baseH, z1, x0, baseH, z0, br, bg, bb, 235);
                 emitDoubleQuad(vc, mat, x0, baseH, z0, x1, baseH, z1, mx, peakH, mz, mx, peakH, mz, pr, pg, pb, 245);
+                // Radiant cryo star gem hovering atop each crown peak
+                renderCloverCrossXZ(vc, mat, mx, peakH + 0.04F, mz, 0.08F, 245, 255, 255, 250);
             }
             poseStack.popPose();
         }

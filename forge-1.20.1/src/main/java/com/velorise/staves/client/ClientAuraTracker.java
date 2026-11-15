@@ -508,7 +508,7 @@ public final class ClientAuraTracker {
             entry.tsaritsaDpsSeal = (mask & 8) != 0;
             entry.tsaritsaNetherite = (mask & 16) != 0;
             entry.tsaritsaPunishmentCharges = (mask >> 5) & 3;
-            entry.tsaritsaSyncUntil = mask > 0 ? (now + 22000L) : 0L;
+            entry.tsaritsaSyncUntil = mask > 0 ? (now + 60000L) : 0L;
             return;
         }
         if (animType == ANIM_TSARITSA_CROWN_FLASH) {
