@@ -87,6 +87,9 @@ public final class OmniWheelOverlay {
     private static boolean bikeSpinActive = false;
     private static boolean bikeDismountWaitAttackRelease = false;
     private static boolean ventiUltiFiredThisHold = false;
+    private static boolean neuvilletteLeftHoldSent = false;
+    private static boolean wasAirJumpDown = false;
+    private static boolean wasAirAttackDown = false;
 
     @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class ModBusEvents {
@@ -155,9 +158,6 @@ public final class OmniWheelOverlay {
                         if (next == 1 || next % 5 == 0) {
                             ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_VENTI_ULTI_CHARGE);
                         }
-                        int pct = Math.min(100, (next * 100) / 60);
-                        float sec = next / 20.0F;
-                        mc.player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§b✦ Gathering Stormeye: %d%% (%.1fs / 3.0s)", pct, sec)), true);
                         if (next >= 60) {
                             ventiUltiFiredThisHold = true;
                             ClientAuraTracker.ventiUltiHoldTicks = 0;
@@ -175,7 +175,57 @@ public final class OmniWheelOverlay {
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_ULTI);
                 }
             }
-            if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+    
+        // Item 6: Neuvillette Hold Left-Click Charged Attack (Equitable Judgment)
+        boolean holdingGuardian = (mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem gm && gm.getKind() == ArcaneStaffItem.Kind.GUARDIAN)
+                || (mc.player.getOffhandItem().getItem() instanceof ArcaneStaffItem go && go.getKind() == ArcaneStaffItem.Kind.GUARDIAN);
+        if (holdingGuardian && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+            if (mc.options.keyAttack.isDown()) {
+                while (mc.options.keyAttack.consumeClick()) {
+                    // Suppress melee swing / block breaking while channeling Equitable Judgment
+                }
+                if (!neuvilletteLeftHoldSent) {
+                    neuvilletteLeftHoldSent = true;
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NEUVILLETTE_CA_START);
+                }
+            } else if (neuvilletteLeftHoldSent) {
+                neuvilletteLeftHoldSent = false;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NEUVILLETTE_CA_STOP);
+            }
+        } else if (neuvilletteLeftHoldSent) {
+            neuvilletteLeftHoldSent = false;
+            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NEUVILLETTE_CA_STOP);
+        }
+
+        // Item 4 & 5: Mid-Air Space (Xilonen Wall-Leap or Wind Glider Toggle) & Mid-Air Left-Click (Universal Plunge Attack)
+        if (!(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+            boolean jumpDown = mc.options.keyJump.isDown();
+            if (jumpDown && !wasAirJumpDown) {
+                if (ClientAuraTracker.isXilonenWallClimbing(mc.player.getId())) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_XILONEN_WALL_LEAP);
+                } else if (ClientAuraTracker.localWindGliderUnlocked
+                        && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
+                        && !mc.player.getAbilities().flying && mc.player.getVehicle() == null
+                        && (mc.player.fallDistance >= 1.2F || ClientAuraTracker.isGliding(mc.player.getId()))) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER);
+                }
+            }
+            wasAirJumpDown = jumpDown;
+
+            boolean atkDown = mc.options.keyAttack.isDown();
+            if (atkDown && !wasAirAttackDown && !holdingGuardian
+                    && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
+                    && !mc.player.getAbilities().flying && mc.player.getVehicle() == null
+                    && (mc.player.fallDistance >= 1.25F || ClientAuraTracker.isGliding(mc.player.getId()))
+                    && com.velorise.staves.element.PlungeAndGliderManager.canHoldPlungeWeapon(mc.player)) {
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_PLUNGE_ATTACK);
+            }
+            wasAirAttackDown = atkDown;
+        } else {
+            wasAirJumpDown = false;
+            wasAirAttackDown = false;
+        }
+        if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                 if (!wasRidingBike) {
                     wasRidingBike = true;
                     bikeMountWaitRelease = mc.options.keyUse.isDown();

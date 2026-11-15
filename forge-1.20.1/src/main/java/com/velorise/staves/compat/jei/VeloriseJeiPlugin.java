@@ -95,6 +95,7 @@ public final class VeloriseJeiPlugin implements IModPlugin {
                 {VeloriseStavesMod.RESONANT_ECHO.get(), VeloriseStavesMod.NETHERITE_RESONANT_ECHO.get(), VeloriseStavesMod.ANEMO_ELEMENT.get()},
                 {VeloriseStavesMod.EVOKER_FANG_STAFF.get(), VeloriseStavesMod.NETHERITE_EVOKER_FANG_STAFF.get(), VeloriseStavesMod.GEO_ELEMENT.get()},
                 {VeloriseStavesMod.VORTEX_VANQUISHER.get(), VeloriseStavesMod.NETHERITE_VORTEX_VANQUISHER.get(), VeloriseStavesMod.GEO_ELEMENT.get()},
+                {VeloriseStavesMod.PEAK_PATROL_SONG.get(), VeloriseStavesMod.NETHERITE_PEAK_PATROL_SONG.get(), VeloriseStavesMod.GEO_ELEMENT.get()},
                 {VeloriseStavesMod.OMNI_STAFF.get(), VeloriseStavesMod.NETHERITE_OMNI_STAFF.get(), VeloriseStavesMod.OMNI_ELEMENT.get()}
         };
         for (Item[] pair : staffRepairPairs) {

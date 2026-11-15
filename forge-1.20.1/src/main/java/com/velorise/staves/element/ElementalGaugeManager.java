@@ -649,6 +649,7 @@ public final class ElementalGaugeManager {
         if (isNearJadeShieldAura(target)) {
             res -= 0.20F; // Zhongli Jade Shield: -20% All Elemental RES within 4.5m
         }
+        res -= XilonenManager.getXilonenResShred(target, element, now);
         return res;
     }
 
@@ -691,6 +692,13 @@ public final class ElementalGaugeManager {
         if (isFallDamageImmunityApplicable(entity, source)) {
             entity.fallDistance = 0.0F;
             return 0.0F;
+        }
+        if (source.is(DamageTypeTags.IS_FALL) && !source.is(DamageTypes.STALAGMITE)) {
+            amount = PlungeAndGliderManager.modifyPlungeOrGliderFallDamage(entity, amount);
+            if (amount <= 0.0F) {
+                entity.fallDistance = 0.0F;
+                return 0.0F;
+            }
         }
         long now = entity.level().getGameTime();
         boolean isGeoProjOrExp = isGeoInnateMob(entity) && (source.is(DamageTypeTags.IS_EXPLOSION)
@@ -908,6 +916,9 @@ public final class ElementalGaugeManager {
         RAIDEN_PENDING_HITOTACHI_TICK.clear();
         RAIDEN_PENDING_HITOTACHI_MULT.clear();
         ArchonUltiManager.clearAll();
+        XilonenManager.clearAll();
+        PlungeAndGliderManager.clearAll();
+        NeuvilletteManager.clearAll();
         PETRIFIED_UNTIL.clear();
         LAST_ELEMENTAL_ARMOR_WEAR.clear();
         SOURCEWATER_DROPLETS.clear();
@@ -1657,7 +1668,7 @@ public final class ElementalGaugeManager {
         JADE_SHIELD_NETHERITE.put(player.getUUID(), isNetherite);
         float maxHp = Math.max(20.0F, player.getMaxHealth());
         // Base Jade Shield capacity + 20% Golden Majesty Shield Strength bonus
-        float shieldHp = ((isNetherite ? (maxHp * 0.30F + 6.0F) : (maxHp * 0.20F + 4.0F)) * 1.20F);
+        float shieldHp = ((isNetherite ? (maxHp * 0.25F + 5.4167F) : (maxHp * 0.18F + 3.9F)) * 1.20F); // 9.0 HP Basic / 12.5 HP Netherite at 20 MaxHP
         if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
             shieldHp *= 1.15F;
         }
@@ -2028,7 +2039,9 @@ public final class ElementalGaugeManager {
     }
 
     public static boolean isChannelingGuardianLens(Player player) {
-        if (player == null || !player.isUsingItem()) return false;
+        if (player == null) return false;
+        if (NeuvilletteManager.isChannelingOrFiring(player)) return true;
+        if (!player.isUsingItem()) return false;
         ItemStack active = player.getUseItem();
         return active.getItem() instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.GUARDIAN;
     }
@@ -2166,18 +2179,7 @@ public final class ElementalGaugeManager {
             stacks.put(stackKey, now + 600L); // 30s Past Draconic Glories stack
         }
 
-        ServerPlayer holder = (attacker != null && carriesGuardianLens(attacker)) ? attacker : null;
-        if (holder == null) {
-            for (ServerPlayer sp : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.position().distanceToSqr(targetPos) <= 256.0D)) {
-                if (carriesGuardianLens(sp)) {
-                    holder = sp;
-                    break;
-                }
-            }
-        }
-        if (holder != null) {
-            spawnSourcewaterDroplet(level, targetPos, holder.getUUID(), now);
-        }
+        // Item 6: Hydro reactions ONLY grant Past Draconic Glories stacks; Sourcewater Droplets spawn exclusively from Skill E & Burst [R].
     }
 
     private static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) {
@@ -2200,6 +2202,7 @@ public final class ElementalGaugeManager {
     }
 
     public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) {
+        NeuvilletteManager.tryInterruptChanneling(victim, damageDealt);
         if (damageDealt <= 0.0F || !(victim instanceof ServerPlayer sp)) return;
         if (sp.getAbsorptionAmount() > 0.0F) return;
         if (!sp.isUsingItem()) return;
@@ -2237,7 +2240,7 @@ public final class ElementalGaugeManager {
         long activeInLevel = SOURCEWATER_DROPLETS.stream()
                 .filter(d -> d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId))
                 .count();
-        if (activeInLevel >= 6) {
+        if (activeInLevel >= 9) {
             for (SourcewaterDroplet d : SOURCEWATER_DROPLETS) {
                 if (d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId)) {
                     SOURCEWATER_DROPLETS.remove(d);
@@ -4919,6 +4922,7 @@ public final class ElementalGaugeManager {
                 level.sendParticles(ParticleTypes.CRIT, target.getX(), popY, target.getZ(), 15, 0.35D, 0.35D, 0.35D, 0.05D);
                 level.playSound(null, target.getX(), popY, target.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
                 CrystallizeShardManager.spawn(level, target, auraElement, target.getUUID(), emLevel);
+                XilonenManager.onCrystallizeTriggered(attacker, auraElement, level.getGameTime());
             }
             default -> {}
         }
@@ -5024,6 +5028,9 @@ public final class ElementalGaugeManager {
 
         tickSourcewaterDroplets(server, serverNow);
         tickDaybreakVortices(server, serverNow);
+        XilonenManager.tick(server, serverNow);
+        PlungeAndGliderManager.tick(server, serverNow);
+        NeuvilletteManager.tick(server, serverNow);
         Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
         activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
         activeEntityIds.addAll(FROZEN_GAUGES.keySet());
@@ -5945,7 +5952,8 @@ public final class ElementalGaugeManager {
         if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl)) return false;
         long now = sl.getServer().overworld().getGameTime();
         return now < RAIDEN_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L)
-                || ArchonUltiManager.isZhongliIframeActive(entity);
+                || ArchonUltiManager.isZhongliIframeActive(entity)
+                || NeuvilletteManager.isNeuvilletteIframeActive(sp);
     }
 
     public static boolean isMavuikaBikeIframeActive(@Nullable Entity entity, @Nullable DamageSource source) {
@@ -6442,5 +6450,50 @@ public final class ElementalGaugeManager {
         Map<Element, GaugeState> entityGauges = GAUGES.get(targetId);
         syncAuras(target, entityGauges != null ? entityGauges.keySet() : Collections.emptySet(), null, null, null);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(target, petrifyTicks >= 95 ? 17 : 16);
+    }
+
+    public static void addMavuikaFightingSpiritFromExternalNightsoul(ServerPlayer player, float nightsoulConsumed) {
+        if (player == null || nightsoulConsumed <= 0.0F) return;
+        boolean hasSuns = false;
+        boolean nethSuns = false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                hasSuns = true;
+                if (staff.isNetherite()) nethSuns = true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && s.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                    && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                hasSuns = true;
+                if (staff.isNetherite()) nethSuns = true;
+            }
+        }
+        UUID id = player.getUUID();
+        if (!hasSuns && !MAVUIKA_NIGHTSOUL_POINTS.containsKey(id)) return;
+        boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, nethSuns);
+        float fsEfficiency = neth ? 1.25F : 1.0F;
+        float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        float updated = Math.min(10.0F, curPts + nightsoulConsumed * 0.05F * fsEfficiency);
+        if (updated != curPts) {
+            MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
+            int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
+            com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, updated, neth);
+        }
+    }
+
+    public static boolean isInsideAnemoUpdraft(ServerLevel level, Vec3 pos) {
+        if (level == null || pos == null || DAYBREAK_VORTICES.isEmpty()) return false;
+        for (DaybreakVortexField v : DAYBREAK_VORTICES) {
+            if (v.level != level) continue;
+            double dx = pos.x - v.center.x;
+            double dz = pos.z - v.center.z;
+            double r = v.radius + 1.5D;
+            if ((dx * dx + dz * dz) <= r * r && pos.y >= v.center.y - 3.0D && pos.y <= v.center.y + 14.0D) {
+                return true;
+            }
+        }
+        return false;
     }
 }

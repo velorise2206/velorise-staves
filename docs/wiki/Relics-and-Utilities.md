@@ -131,3 +131,53 @@ In addition to offensive combat staves, **Velorise's Staves & Elements** provide
   * 💧 **Hydro Shard:** Reduces incoming **[Hydro](Elements-and-Reactions#the-7-elements--omni)** spell/mob attacks, drowning damage (`IS_DROWNING`), and melee/thrown **[Vanilla Trident](Elements-and-Reactions#2-vanilla-trident-wind-burst-mace--thorns-armor)** strikes by **60%**.
   * ⚡ **Electro Shard:** Reduces incoming **[Electro](Elements-and-Reactions#the-7-elements--omni)** spell/mob attacks, [**Electro-Charged**](Elements-and-Reactions#electro-charged) shocks, lightning strikes (`IS_LIGHTNING`), and Dragon's Breath (`DRAGON_BREATH`) by **60%**. *(Walking within `1.6m` of a [**Dendro Core**](Elements-and-Reactions#dendro-reaction-system-bloom--catalyze) while protected by an Electro Shield also triggers [**Hyperbloom**](Elements-and-Reactions#hyperbloom)!)*
   * ❄️ **Cryo Shard:** Reduces incoming **[Cryo](Elements-and-Reactions#the-7-elements--omni)** spell/mob attacks, [**Superconduct**](Elements-and-Reactions#superconduct) AoE blasts, and freezing hazard damage (`IS_FREEZING` such as Powder Snow) by **60%**.
+
+---
+
+## Wind Glider (Wings of Companionship) & Universal Plunge Attack
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/wind_glider.png" width="48" height="48" alt="Wind Glider" />
+  <br/>
+  <b>Wind Glider (Permanent Account/Player Unlock — Zero Equipment Slot)</b>
+</div>
+
+* **Permanent Unlock (Zero Armor Slot Required):**
+  * **Right-Click** while holding the **Wind Glider** to consume it once and **permanently unlock gliding** on your character (persists across death and respawn, keeping your Chestplate slot 100% free for full armor!).
+  * **Mid-Air Deployment:** Press **`[Spacebar]` while falling in mid-air** to unfurl **2 symmetrical 3D Anemo feather wing planes (`64×32` transparent `wind_glider.png` compatible with vanilla `elytra.png` UV)** while keeping your character in a **standing upright gliding pose**. Press **`[Spacebar]`** again to fold the wings away.
+  * **Flight & Updraft Synergy:** Smoothly slows descent (`0` fall damage) and **ascends rapidly when gliding over Venti's *Wind's Grand Ode* stormeye updrafts**!
+* **Universal Plunge Attack (Sword / Polearm / Staff):**
+  * Press **Left-Click (Attack) while in mid-air** (or while gliding with the Wind Glider) with any **Sword** or **Arcane Staff** to fold your wings and dive straight down in a two-handed downward weapon plunge!
+  * **Genshin-Standard Fall Damage Reduction:** Plunges from **`<= 15` blocks deal `0` fall damage (100% immunity)**; plunges from **`> 15` blocks reduce fall damage by 50% and are hard-capped at `40%` Max HP** (never fatal).
+  * **Ground Impact AoE:** Unleashes a **`3.5m` elemental/melee shockwave** upon touchdown (`3.25♥` Basic / `4.5♥` Netherite + active staff or imbued sword element).
+* **Crafting Recipe (Mid-Game):**
+  * Shaped (3x3): **2 Phantom Membranes** (top corners) + **1 Diamond** (top center) + **1 Gold Ingot** (center) + **4 Feathers** (sides & bottom corners).
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_wind_glider.png" width="400" alt="Wind Glider Crafting Recipe" />
+</div>
+
+---
+
+## Elemental Crafting Rods (Frost Rod, Hydro Rod & Geo Rod)
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/frost_rod.png" width="36" height="36" alt="Frost Rod" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/hydro_rod.png" width="36" height="36" alt="Hydro Rod" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/item/geo_rod.png" width="36" height="36" alt="Geo Rod" />
+  <br/>
+  <b>Frost Rod &nbsp;|&nbsp; Hydro Rod &nbsp;|&nbsp; Geo Rod</b>
+</div>
+
+* **Obtaining & Shapeless Conversion:**
+  * **Mob Drops:** Dropped alongside Elemental Essences by **Strays** (`Frost Rod`), **Guardians / Elder Guardians / Drowned** (`Hydro Rod`), and **Geo-Innate / Mutated Mobs** (`Geo Rod`).
+  * **Shapeless Crafting Conversion:** Combine any elemental rod (`Blaze Rod`, `Breeze Rod`, `Frost Rod`, `Hydro Rod`, or `Geo Rod`) with **1 matching Elemental Essence** (`Pyro`, `Anemo`, `Cryo`, `Hydro`, or `Geo`) in a Crafting Table to transfigure it into the corresponding rod!
+  * **Used In:** Crafting & repairing **Frostbolt Wand**, **Key of Khaj-Nisut**, **Splendor of Tranquil Waters**, **Vortex Vanquisher**, and **Peak Patrol Song**.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_frost_rod.png" width="240" alt="Frost Rod Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_hydro_rod.png" width="240" alt="Hydro Rod Recipe" />
+  <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/main/docs/showcase/crafting/craft_geo_rod.png" width="240" alt="Geo Rod Recipe" />
+</div>

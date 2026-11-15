@@ -24,9 +24,22 @@ public final class ClientAuraTracker {
     public static final int ANIM_RAIDEN_DRAW = 8;
     public static final int ANIM_RAIDEN_SLASH = 9;
     public static final int ANIM_ZHONGLI_PLANET_BEFALL = 15;
+    public static final int ANIM_XILONEN_SKATE_DASH = 20;
+    public static final int ANIM_XILONEN_KICK_1 = 21;
+    public static final int ANIM_XILONEN_KICK_2 = 22;
+    public static final int ANIM_XILONEN_BURST = 23;
+    public static final int ANIM_NEUVILLETTE_BURST = 24;
+    public static final int ANIM_NEUVILLETTE_SKILL_E = 25;
+    public static final int ANIM_PLUNGE_START = 26;
+    public static final int ANIM_PLUNGE_END = 27;
+    public static final int ANIM_GLIDER_START = 28;
+    public static final int ANIM_GLIDER_STOP = 29;
+    public static final int ANIM_GLIDER_UNLOCKED = 30;
+    public static final int ANIM_GLIDER_LOCKED = 31;
+    public static volatile boolean localWindGliderUnlocked = false;
+    public static volatile int ventiUltiHoldTicks = 0;
     public static long localNextRaidenSwingMs = 0L;
     public static boolean localRaidenAttackHeld = false;
-    public static volatile int ventiUltiHoldTicks = 0;
 
     public static boolean canLocalRaidenSwing() {
         return System.currentTimeMillis() >= localNextRaidenSwingMs;
@@ -59,7 +72,6 @@ public final class ClientAuraTracker {
         public long expireTime = 0; // ms timestamp when aura completely expires
         public boolean isFrozen = false;
         public long frozenUntil = 0L;
-        public long petrifiedUntil = 0L;
         public long jadeShieldUntil = 0L;
         public long nightsFocusUntil = 0L;
         public int nightsFocusStars = 0;
@@ -80,6 +92,20 @@ public final class ClientAuraTracker {
         public int raidenComboStep = 0;
         public int raidenNextComboStep = 0;
         public long raidenLastSlashTime = 0L;
+        public long petrifiedUntil = 0L;
+        public boolean xilonenSkating = false;
+        public boolean xilonenWallClimbing = false;
+        public boolean xilonenNetherite = false;
+        public int xilonenNightsoulPoints = 0;
+        public long xilonenSkateSyncUntil = 0L;
+        public int xilonenSampleMask = 0;
+        public long xilonenSamplesUntil = 0L;
+        public boolean gliding = false;
+        public boolean plunging = false;
+        public long neuvilletteActiveUntil = 0L;
+        public boolean neuvilletteFiringBeam = false;
+        public int neuvilletteChargeProgress = 0;
+        public int neuvilletteBeamElapsed = 0;
     }
 
     private static final Map<Integer, AuraDisplayData> DATA = new ConcurrentHashMap<>();
@@ -311,6 +337,83 @@ public final class ClientAuraTracker {
     public static void triggerStaffAnimation(int entityId, int animType) {
         if (entityId <= 0 || animType <= 0) return;
         long now = System.currentTimeMillis();
+        if (animType == ANIM_GLIDER_UNLOCKED) {
+            localWindGliderUnlocked = true;
+            return;
+        }
+        if (animType == ANIM_GLIDER_LOCKED) {
+            localWindGliderUnlocked = false;
+            return;
+        }
+        if (animType == ANIM_GLIDER_START || animType == ANIM_GLIDER_STOP) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.gliding = (animType == ANIM_GLIDER_START);
+            if (entry.gliding) entry.plunging = false;
+            return;
+        }
+        if (animType == ANIM_PLUNGE_START) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.plunging = true;
+            entry.gliding = false;
+            entry.staffAnimType = ANIM_PLUNGE_START;
+            entry.staffAnimStartTime = now;
+            entry.staffAnimUntil = now + 3500L;
+            return;
+        }
+        if (animType == ANIM_PLUNGE_END) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.plunging = false;
+            entry.staffAnimType = ANIM_PLUNGE_END;
+            entry.staffAnimStartTime = now;
+            entry.staffAnimUntil = now + 360L;
+            return;
+        }
+        if (animType >= 1000 && animType <= 1999) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (animType == 1999) {
+                entry.xilonenSkating = false;
+                entry.xilonenWallClimbing = false;
+                entry.xilonenNightsoulPoints = 0;
+                entry.xilonenSkateSyncUntil = 0L;
+            } else {
+                int rem = animType - 1000;
+                entry.xilonenNetherite = rem >= 200;
+                if (entry.xilonenNetherite) rem -= 200;
+                entry.xilonenWallClimbing = rem >= 100;
+                if (entry.xilonenWallClimbing) rem -= 100;
+                entry.xilonenNightsoulPoints = Math.max(0, Math.min(90, rem));
+                entry.xilonenSkating = entry.xilonenNightsoulPoints > 0;
+                entry.xilonenSkateSyncUntil = now + 15000L;
+            }
+            return;
+        }
+        if (animType >= 2000 && animType <= 2099) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            int mask = animType - 2000;
+            entry.xilonenSampleMask = mask;
+            entry.xilonenSamplesUntil = mask > 0 ? (now + 15500L) : 0L;
+            return;
+        }
+        if (animType >= 3000 && animType <= 3199) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (animType == 3199) {
+                entry.neuvilletteActiveUntil = 0L;
+                entry.neuvilletteFiringBeam = false;
+                entry.neuvilletteChargeProgress = 0;
+                entry.neuvilletteBeamElapsed = 0;
+            } else if (animType >= 3100) {
+                entry.neuvilletteFiringBeam = true;
+                entry.neuvilletteChargeProgress = 60;
+                entry.neuvilletteBeamElapsed = animType - 3100;
+                entry.neuvilletteActiveUntil = now + 450L;
+            } else {
+                entry.neuvilletteFiringBeam = false;
+                entry.neuvilletteChargeProgress = animType - 3000;
+                entry.neuvilletteBeamElapsed = 0;
+                entry.neuvilletteActiveUntil = now + 450L;
+            }
+            return;
+        }
         if (animType >= 10 && animType <= 14) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             if (entry.nightsFocusUntil <= now) {
@@ -361,7 +464,13 @@ public final class ClientAuraTracker {
             case ANIM_RAIDEN_DRAW -> 1500L;
             case ANIM_RAIDEN_SLASH -> (entry.raidenComboStep == 3 || entry.raidenComboStep == 4) ? 420L : 340L;
             case ANIM_RAIDEN_CA -> 480L;
-            case ANIM_ZHONGLI_PLANET_BEFALL -> 1600L;
+            case ANIM_ZHONGLI_PLANET_BEFALL -> 2800L;
+            case ANIM_XILONEN_SKATE_DASH -> 480L;
+            case ANIM_XILONEN_KICK_1 -> 380L;
+            case ANIM_XILONEN_KICK_2 -> 460L;
+            case ANIM_XILONEN_BURST -> 950L;
+            case ANIM_NEUVILLETTE_BURST -> 1700L;
+            case ANIM_NEUVILLETTE_SKILL_E -> 550L;
             default -> 600L;
         };
         entry.staffAnimType = animType;
@@ -674,8 +783,12 @@ public final class ClientAuraTracker {
             return Math.max(0.0F, auraRemainingTicks);
         }
 
+        public float maxNightsoulFuel() {
+            return netherite ? 120.0F : 80.0F;
+        }
+
         public float nightsoulFuel() {
-            return Math.max(0.0F, Math.min(80.0F, auraRemainingTicks / 10.0F));
+            return Math.max(0.0F, Math.min(maxNightsoulFuel(), auraRemainingTicks / 10.0F));
         }
 
         public float effectiveUltiCooldownTicks() {
@@ -683,14 +796,14 @@ public final class ClientAuraTracker {
         }
 
         public boolean isUltiReady() {
-            return netherite && nightsoulPoints >= 5.0F && effectiveUltiCooldownTicks() <= 0.0F;
+            return nightsoulPoints >= 5.0F && effectiveUltiCooldownTicks() <= 0.0F;
         }
     }
 
     private static final java.util.Map<Integer, MavuikaDisplayState> MAVUIKA_STATES = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void updateMavuika(int entityId, int auraRemainingTicks, float nightsoulPoints, boolean netherite, int ultiCooldownTicks) {
-        if (auraRemainingTicks <= 0 && (!netherite || nightsoulPoints <= 0.001F) && ultiCooldownTicks <= 0) {
+        if (auraRemainingTicks <= 0 && nightsoulPoints <= 0.001F && ultiCooldownTicks <= 0) {
             MAVUIKA_STATES.remove(entityId);
             return;
         }
@@ -705,7 +818,7 @@ public final class ClientAuraTracker {
     public static @Nullable MavuikaDisplayState getMavuika(int entityId) {
         MavuikaDisplayState state = MAVUIKA_STATES.get(entityId);
         if (state == null) return null;
-        if (state.effectiveAuraTicks() <= 0.0F && (!state.netherite || state.nightsoulPoints <= 0.001F) && state.effectiveUltiCooldownTicks() <= 0.0F) {
+        if (state.effectiveAuraTicks() <= 0.0F && state.nightsoulPoints <= 0.001F && state.effectiveUltiCooldownTicks() <= 0.0F) {
             MAVUIKA_STATES.remove(entityId);
             return null;
         }
@@ -770,6 +883,42 @@ public final class ClientAuraTracker {
         return state != null && state.effectiveMusouTicks() > 0.0F;
     }
 
+
+    public static boolean isXilonenSkating(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.xilonenSkating && System.currentTimeMillis() < data.xilonenSkateSyncUntil;
+    }
+
+    public static boolean isXilonenWallClimbing(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.xilonenSkating && data.xilonenWallClimbing && System.currentTimeMillis() < data.xilonenSkateSyncUntil;
+    }
+
+    public static boolean hasXilonenSourceSamples(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.xilonenSampleMask > 0 && System.currentTimeMillis() < data.xilonenSamplesUntil;
+    }
+
+    public static boolean isGliding(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.gliding;
+    }
+
+    public static boolean isPlunging(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.plunging;
+    }
+
+    public static boolean isNeuvilletteChargingOrFiring(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && System.currentTimeMillis() < data.neuvilletteActiveUntil;
+    }
+
+    public static boolean isNeuvilletteFiringBeam(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.neuvilletteFiringBeam && System.currentTimeMillis() < data.neuvilletteActiveUntil;
+    }
+
     public static void remove(int entityId) {
         DATA.remove(entityId);
         MAVUIKA_STATES.remove(entityId);
@@ -787,6 +936,7 @@ public final class ClientAuraTracker {
         localResonanceMask = 0;
         localOverloaded = false;
         localStaffCount = 0;
+        localWindGliderUnlocked = false;
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

@@ -41,19 +41,19 @@ public final class PlanetBefallMeteorRenderer {
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
             long elapsedMs = Math.max(0L, now - arc.startTime);
-            if (elapsedMs > 1220L) continue;
+            if (elapsedMs > 2650L) continue;
 
-            float fallT = Mth.clamp(elapsedMs / 1100.0F, 0.0F, 1.0F);
+            float fallT = Mth.clamp(elapsedMs / 2500.0F, 0.0F, 1.0F);
             float eased = fallT * fallT * (0.35F + 0.65F * fallT);
             float appear = Mth.clamp(elapsedMs / 160.0F, 0.0F, 1.0F);
-            float crushFade = elapsedMs <= 1100L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 1100.0F) / 120.0F, 0.0F, 1.0F);
+            float crushFade = elapsedMs <= 2500L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 2500.0F) / 150.0F, 0.0F, 1.0F);
             int alpha = ClientAuraRenderer.clampColor((int) (255.0F * appear * crushFade));
             if (alpha <= 4) continue;
 
             float aoeRadius = Math.max(4.0F, arc.color / 10.0F);
             float s = (0.85F + 0.35F * Mth.clamp(aoeRadius / 8.5F, 0.7F, 1.15F)) * (0.35F + 0.65F * appear);
             Vec3 curPos = arc.start.lerp(arc.end, eased);
-            if (elapsedMs > 1100L) {
+            if (elapsedMs > 2500L) {
                 curPos = arc.end.add(0.0D, -0.35D * (1.0F - crushFade), 0.0D);
             }
 
@@ -90,19 +90,19 @@ public final class PlanetBefallMeteorRenderer {
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
             long elapsedMs = Math.max(0L, now - arc.startTime);
-            if (elapsedMs > 1220L) continue;
+            if (elapsedMs > 2650L) continue;
 
-            float fallT = Mth.clamp(elapsedMs / 1100.0F, 0.0F, 1.0F);
+            float fallT = Mth.clamp(elapsedMs / 2500.0F, 0.0F, 1.0F);
             float eased = fallT * fallT * (0.35F + 0.65F * fallT);
             float appear = Mth.clamp(elapsedMs / 160.0F, 0.0F, 1.0F);
-            float crushFade = elapsedMs <= 1100L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 1100.0F) / 120.0F, 0.0F, 1.0F);
+            float crushFade = elapsedMs <= 2500L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 2500.0F) / 150.0F, 0.0F, 1.0F);
             int alpha = ClientAuraRenderer.clampColor((int) (255.0F * appear * crushFade));
             if (alpha <= 4) continue;
 
             float aoeRadius = Math.max(4.0F, arc.color / 10.0F);
             float s = (0.85F + 0.35F * Mth.clamp(aoeRadius / 8.5F, 0.7F, 1.15F)) * (0.35F + 0.65F * appear);
             Vec3 curPos = arc.start.lerp(arc.end, eased);
-            if (elapsedMs > 1100L) {
+            if (elapsedMs > 2500L) {
                 curPos = arc.end.add(0.0D, -0.35D * (1.0F - crushFade), 0.0D);
             }
 
@@ -154,7 +154,7 @@ public final class PlanetBefallMeteorRenderer {
 
             // 2A. Swirling Dark-Obsidian & Amber Sky Rift at skyStart
             float portalOpen = Mth.clamp(elapsedMs / 200.0F, 0.0F, 1.0F);
-            float portalClose = elapsedMs < 950L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 950.0F) / 500.0F, 0.0F, 1.0F);
+            float portalClose = elapsedMs < 2300L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 2300.0F) / 500.0F, 0.0F, 1.0F);
             float portalVis = portalOpen * portalClose;
             if (portalVis > 0.01F) {
                 float pRad = 3.2F * (0.4F + 0.6F * portalOpen) * (0.5F + 0.5F * portalClose);
@@ -185,11 +185,11 @@ public final class PlanetBefallMeteorRenderer {
             }
 
             // 2B. Meteor descent ribbons & Ground Geo Seal
-            if (elapsedMs <= 1150L) {
-                float fallT = Mth.clamp(elapsedMs / 1100.0F, 0.0F, 1.0F);
+            if (elapsedMs <= 2550L) {
+                float fallT = Mth.clamp(elapsedMs / 2500.0F, 0.0F, 1.0F);
                 float eased = fallT * fallT * (0.35F + 0.65F * fallT);
                 Vec3 curCam = skyCam.lerp(impCam, eased);
-                float trailFade = elapsedMs <= 1100L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 1100.0F) / 50.0F, 0.0F, 1.0F);
+                float trailFade = elapsedMs <= 2500L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 2500.0F) / 50.0F, 0.0F, 1.0F);
                 double trailLen = Math.min(5.8D, eased * descLen * 0.65D);
                 if (trailLen > 0.2D && trailFade > 0.01F) {
                     Vec3 tailCam = curCam.subtract(fwd.scale(trailLen));
@@ -236,8 +236,8 @@ public final class PlanetBefallMeteorRenderer {
             }
 
             // 2C. Impact Shockwave Dome & Radial Geo Fissures
-            if (elapsedMs >= 1060L) {
-                float impT = Mth.clamp((elapsedMs - 1060.0F) / 720.0F, 0.0F, 1.0F);
+            if (elapsedMs >= 2460L) {
+                float impT = Mth.clamp((elapsedMs - 2460.0F) / 720.0F, 0.0F, 1.0F);
                 float wave = Mth.sin(impT * ((float) Math.PI * 0.5F));
                 float fade = 1.0F - impT;
                 float rWave = aoeRadius * (0.28F + 0.80F * wave);

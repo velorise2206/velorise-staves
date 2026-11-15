@@ -6,7 +6,9 @@ import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.LivingEntity;
+import com.velorise.staves.client.ClientAuraRenderer;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,6 +19,9 @@ import java.util.Deque;
 
 @Mixin(LivingEntityRenderer.class)
 public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extends EntityModel<T>> {
+    @Shadow
+    protected M model;
+
     @Unique
     private final Deque<Boolean> velorise$bikePoseStack = new ArrayDeque<>();
 
@@ -27,6 +32,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
 
     @Inject(method = "render", at = @At("RETURN"))
     private void velorise$onRenderPost(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
+        ClientAuraRenderer.renderMavuikaVirtualHelmet(livingEntity, this.model, partialTicks, poseStack, multiBufferSource);
         if (!velorise$bikePoseStack.isEmpty() && velorise$bikePoseStack.pop()) {
             poseStack.popPose();
         }

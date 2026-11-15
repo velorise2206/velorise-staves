@@ -105,7 +105,7 @@ public final class ArcaneStaffItem extends Item {
 
     public enum Kind {
         DRAGONFIRE, ECHO, INFERNO, GHASTFIRE, THOUSAND_BLAZING_SUNS,
-        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, NIGHTS_FOCUS, WEB, WIND, DAYBREAK, ENGULFING_LIGHTNING, OMNI
+        WITHER, SHULKER, GUARDIAN, SPLENDOR, EVOKER, VORTEX, LIGHTNING, FROST, NIGHTS_FOCUS, WEB, WIND, DAYBREAK, ENGULFING_LIGHTNING, PEAK_PATROL_SONG, OMNI
     }
 
     public static final String TAG_OMNI_MODE = "OmniMode";
@@ -348,7 +348,9 @@ public final class ArcaneStaffItem extends Item {
             case WIND -> shootWind(serverPlayer);
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
             case OMNI -> shootOmni(serverPlayer, stack);
-            case ECHO, GUARDIAN, LIGHTNING, THOUSAND_BLAZING_SUNS, DAYBREAK, ENGULFING_LIGHTNING -> false;
+            case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, isNetherite);
+            case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, isNetherite);
+            case ECHO, LIGHTNING, THOUSAND_BLAZING_SUNS, DAYBREAK, ENGULFING_LIGHTNING -> false;
         };
 
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -381,7 +383,7 @@ public final class ArcaneStaffItem extends Item {
                 && com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(p)) {
             com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
         } else if (kind == Kind.GUARDIAN && entity instanceof Player p && !p.isShiftKeyDown()
-                && p.isUsingItem() && p.getUseItem() == stack) {
+                && (com.velorise.staves.element.NeuvilletteManager.isChannelingOrFiring(p) || (p.isUsingItem() && p.getUseItem() == stack))) {
             com.velorise.staves.element.ElementalGaugeManager.applyFurinaWaterWalking(p);
         }
         if (level.isClientSide() || !(entity instanceof ServerPlayer player)) return;
@@ -449,11 +451,11 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public boolean isCharged() {
-        return kind == Kind.ECHO || kind == Kind.GUARDIAN || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK;
+        return kind == Kind.ECHO || kind == Kind.LIGHTNING || kind == Kind.GHASTFIRE || kind == Kind.VORTEX || kind == Kind.SPLENDOR || kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.DAYBREAK;
     }
 
     private boolean isChannelingKind() {
-        return kind == Kind.LIGHTNING || kind == Kind.GUARDIAN;
+        return kind == Kind.LIGHTNING;
     }
 
     public int getCooldownTicks() {
@@ -1537,7 +1539,7 @@ public final class ArcaneStaffItem extends Item {
             case EVOKER -> repair.is(VeloriseStavesMod.GEO_ROD) || repair.is(Items.EMERALD) || repair.is(Items.STICK);
             case FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
             case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.FROST_ROD) || repair.is(Items.SHIELD);
-            case VORTEX -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(VeloriseStavesMod.GEO_ROD);
+            case VORTEX, PEAK_PATROL_SONG -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(Items.DIAMOND) || repair.is(VeloriseStavesMod.GEO_ROD);
             case OMNI -> repair.is(Items.AMETHYST_SHARD) || repair.is(Items.DIAMOND) || repair.is(Items.NETHER_STAR);
         };
         return validBase || super.isValidRepairItem(toRepair, repair);
@@ -1549,7 +1551,7 @@ public final class ArcaneStaffItem extends Item {
             case ECHO, WIND, DAYBREAK -> Element.ANEMO;
             case INFERNO, GHASTFIRE, THOUSAND_BLAZING_SUNS -> Element.PYRO;
             case GUARDIAN, SPLENDOR -> Element.HYDRO;
-            case EVOKER, VORTEX -> Element.GEO;
+            case EVOKER, VORTEX, PEAK_PATROL_SONG -> Element.GEO;
             case FROST, NIGHTS_FOCUS -> Element.CRYO;
             case WEB, WITHER -> Element.DENDRO;
             case OMNI -> null;
@@ -1569,6 +1571,7 @@ public final class ArcaneStaffItem extends Item {
             case SPLENDOR -> isNetherite ? "16m Ousia / 8m Pneuma (15s)" : "16m Ousia / 6m Pneuma (15s)";
             case EVOKER -> isNetherite ? "19.5m (13 Fangs)" : "13.5m (9 Fangs)";
             case VORTEX -> "12m (Max 3 Constructs, 4m Pulse / Jade Shield)";
+            case PEAK_PATROL_SONG -> "3m Skate / 8m Samples (-36% RES) / 5m [R]";
             case LIGHTNING -> isNetherite ? "36m Arc (6.0m Chain)" : "30m Arc (Single Target)";
             case FROST -> isNetherite ? "28m (3.2m AoE)" : "28m (2.2m AoE)";
             case NIGHTS_FOCUS -> "3.5m AoE / 16m Stars";
@@ -1733,6 +1736,11 @@ public final class ArcaneStaffItem extends Item {
             case WEB -> trapPoison + " " + icon + (isNetherite ? "1.5U" : "1U");
             case WIND -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.WIND, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
             case DAYBREAK -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.DAYBREAK, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
+            case PEAK_PATROL_SONG -> {
+                float skateDmg = StavesConfig.getStaffBaseDamage(Kind.PEAK_PATROL_SONG, isNetherite);
+                float kickDmg = (isNetherite ? 5.25F : 3.5F);
+                yield fmtHearts(skateDmg) + heart + " (E) / " + fmtHearts(kickDmg) + heart + " (N2 Kick) / 0.5" + heart + " [R] " + icon + (isNetherite ? "1.5U" : "1U");
+            }
             case ENGULFING_LIGHTNING -> {
                 float baseDmg = StavesConfig.getStaffBaseDamage(Kind.ENGULFING_LIGHTNING, isNetherite);
                 yield fmtHearts(baseDmg * 0.375F) + heart + " / " + fmtHearts(baseDmg * 1.5F) + heart + " [R] " + icon + (isNetherite ? "1.5U" : "1U");
@@ -1839,6 +1847,16 @@ public final class ArcaneStaffItem extends Item {
             appendWrappedTooltip(tooltip, Component.translatable(isNetherite
                     ? "tooltip.velorise_staves.engulfing_lightning_hold.netherite"
                     : "tooltip.velorise_staves.engulfing_lightning_hold"), ChatFormatting.DARK_PURPLE, 44, "  ");
+        } else if (kind == Kind.PEAK_PATROL_SONG) {
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.peak_patrol_song_skate.netherite"
+                    : "tooltip.velorise_staves.peak_patrol_song_skate"), ChatFormatting.GOLD, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.peak_patrol_song_samples.netherite"
+                    : "tooltip.velorise_staves.peak_patrol_song_samples"), ChatFormatting.YELLOW, 44, "  ");
+            appendWrappedTooltip(tooltip, Component.translatable(isNetherite
+                    ? "tooltip.velorise_staves.peak_patrol_song_ulti.netherite"
+                    : "tooltip.velorise_staves.peak_patrol_song_ulti"), ChatFormatting.AQUA, 44, "  ");
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {
@@ -1854,10 +1872,15 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.ENGULFING_LIGHTNING) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", "10.0s / 18.0s [R]").withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.PEAK_PATROL_SONG) {
+            float eSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+            float qSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(300) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (E) / %.1fs [R]", eSec, qSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.GUARDIAN) {
-            float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(40) / 20.0F;
-            float holdSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
-            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Beam)", tapSec, holdSec);
+            float skillSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
+            float burstSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(360) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "0.0s (Hold L-Click) | %.1fs (E) / %.1fs [R]", skillSec, burstSec);
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
@@ -1961,6 +1984,12 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+        if (kind == Kind.PEAK_PATROL_SONG) {
+            if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
+                com.velorise.staves.element.XilonenManager.onMeleeHit(sp, target, stack, isNetherite);
+            }
+            return true;
+        }
         if (kind == Kind.THOUSAND_BLAZING_SUNS) {
             if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp && sp.level() instanceof ServerLevel sl) {
                 long now = sl.getServer().overworld().getGameTime();
@@ -1979,7 +2008,7 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public void postHurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
-        if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+        if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG) {
             stack.hurtAndBreak(1, attacker, EquipmentSlot.MAINHAND);
         }
         super.postHurtEnemy(stack, target, attacker);

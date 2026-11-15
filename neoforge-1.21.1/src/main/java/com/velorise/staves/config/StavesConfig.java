@@ -91,6 +91,7 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue ENGULFING_LIGHTNING_COOLDOWN;
     public static final ModConfigSpec.DoubleValue OMNI_COOLDOWN;
     public static final ModConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_COOLDOWN;
+    public static final ModConfigSpec.DoubleValue PEAK_PATROL_SONG_COOLDOWN;
 
     // Basic Staff Base Damages (HP, 2.0 = 1 heart; Netherite automatically scales x1.5)
     public static final ModConfigSpec.DoubleValue DRAGONFIRE_DAMAGE;
@@ -112,12 +113,15 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue ENGULFING_LIGHTNING_DAMAGE;
     public static final ModConfigSpec.DoubleValue OMNI_DAMAGE;
     public static final ModConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE;
+    public static final ModConfigSpec.DoubleValue PEAK_PATROL_SONG_DAMAGE;
 
     // Durabilities
     public static final ModConfigSpec.IntValue DRAGONFIRE_DURABILITY_BASIC;
     public static final ModConfigSpec.IntValue DRAGONFIRE_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue THOUSAND_BLAZING_SUNS_DURABILITY_BASIC;
     public static final ModConfigSpec.IntValue THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue PEAK_PATROL_SONG_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue PEAK_PATROL_SONG_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue ECHO_DURABILITY_BASIC;
     public static final ModConfigSpec.IntValue ECHO_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue INFERNO_DURABILITY_BASIC;
@@ -265,13 +269,14 @@ public final class StavesConfig {
         GHASTFIRE_COOLDOWN = builder.defineInRange("ghastfire_cooldown", 5.0D, 0.5D, 60.0D);
         WITHER_COOLDOWN = builder.defineInRange("wither_cooldown", 6.0D, 0.5D, 60.0D);
         SHULKER_COOLDOWN = builder.defineInRange("shulker_cooldown", 6.0D, 0.5D, 60.0D);
-        GUARDIAN_COOLDOWN = builder.defineInRange("guardian_cooldown", 6.0D, 0.5D, 60.0D);
+        GUARDIAN_COOLDOWN = builder.defineInRange("guardian_cooldown", 12.0D, 0.5D, 60.0D);
         SPLENDOR_COOLDOWN = builder.defineInRange("splendor_cooldown", 20.0D, 0.5D, 60.0D);
         EVOKER_COOLDOWN = builder.defineInRange("evoker_cooldown", 5.0D, 0.5D, 60.0D);
         VORTEX_COOLDOWN = builder.defineInRange("vortex_cooldown", 4.0D, 0.5D, 60.0D);
         ARC_CASTER_COOLDOWN = builder.defineInRange("arc_caster_cooldown", 6.0D, 0.5D, 60.0D);
         FROSTBOLT_COOLDOWN = builder.defineInRange("frostbolt_cooldown", 4.0D, 0.5D, 60.0D);
         THOUSAND_BLAZING_SUNS_COOLDOWN = builder.defineInRange("thousand_blazing_suns_cooldown", 15.0D, 0.5D, 60.0D);
+        PEAK_PATROL_SONG_COOLDOWN = builder.defineInRange("peak_patrol_song_cooldown", 7.0D, 0.5D, 60.0D);
         WEBCASTER_COOLDOWN = builder.defineInRange("webcaster_cooldown", 5.0D, 0.5D, 60.0D);
         WIND_COOLDOWN = builder.defineInRange("wind_cooldown", 1.5D, 0.2D, 60.0D);
         DAYBREAK_COOLDOWN = builder.defineInRange("daybreak_cooldown", 2.0D, 0.5D, 60.0D);
@@ -299,6 +304,7 @@ public final class StavesConfig {
         ENGULFING_LIGHTNING_DAMAGE = builder.defineInRange("engulfing_lightning_damage", 4.0D, 0.0D, 500.0D);
         OMNI_DAMAGE = builder.defineInRange("omni_damage", 10.0D, 0.0D, 500.0D);
         THOUSAND_BLAZING_SUNS_DAMAGE = builder.defineInRange("thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
+        PEAK_PATROL_SONG_DAMAGE = builder.defineInRange("peak_patrol_song_damage", 4.0D, 0.0D, 500.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
@@ -306,6 +312,8 @@ public final class StavesConfig {
         DRAGONFIRE_DURABILITY_NETHERITE = builder.defineInRange("dragonfire_netherite", 500, 10, 5000);
         THOUSAND_BLAZING_SUNS_DURABILITY_BASIC = builder.defineInRange("thousand_blazing_suns_basic", 160, 10, 5000);
         THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE = builder.defineInRange("thousand_blazing_suns_netherite", 520, 10, 5000);
+        PEAK_PATROL_SONG_DURABILITY_BASIC = builder.defineInRange("peak_patrol_song_basic", 150, 10, 5000);
+        PEAK_PATROL_SONG_DURABILITY_NETHERITE = builder.defineInRange("peak_patrol_song_netherite", 500, 10, 5000);
         ECHO_DURABILITY_BASIC = builder.defineInRange("echo_basic", 130, 10, 5000);
         ECHO_DURABILITY_NETHERITE = builder.defineInRange("echo_netherite", 500, 10, 5000);
         INFERNO_DURABILITY_BASIC = builder.defineInRange("inferno_basic", 150, 10, 5000);
@@ -615,6 +623,7 @@ public final class StavesConfig {
             case ENGULFING_LIGHTNING -> 4.0D;
             case OMNI -> 10.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
+            case PEAK_PATROL_SONG -> 4.0D;
         };
     }
 
@@ -656,6 +665,7 @@ public final class StavesConfig {
             case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_DAMAGE.get();
             case OMNI -> OMNI_DAMAGE.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
+            case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
         };
     }
 
@@ -687,6 +697,7 @@ public final class StavesConfig {
             case ENGULFING_LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
             case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
+            case PEAK_PATROL_SONG -> isNetherite ? PEAK_PATROL_SONG_DURABILITY_NETHERITE.get() : PEAK_PATROL_SONG_DURABILITY_BASIC.get();
         };
     }
 
@@ -727,6 +738,7 @@ public final class StavesConfig {
             case ENGULFING_LIGHTNING -> ENGULFING_LIGHTNING_COOLDOWN.get();
             case OMNI -> OMNI_COOLDOWN.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
+            case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_COOLDOWN.get();
         };
     }
 

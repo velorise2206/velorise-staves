@@ -22,6 +22,11 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_SPRINT_STOP = 7;
     public static final byte ACTION_VENTI_ULTI_CHARGE = 8;
     public static final byte ACTION_VENTI_ULTI_CAST = 9;
+    public static final byte ACTION_PLUNGE_ATTACK = 10;
+    public static final byte ACTION_TOGGLE_GLIDER = 11;
+    public static final byte ACTION_NEUVILLETTE_CA_START = 12;
+    public static final byte ACTION_NEUVILLETTE_CA_STOP = 13;
+    public static final byte ACTION_XILONEN_WALL_LEAP = 14;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));

@@ -156,8 +156,23 @@ public final class ArcaneStaffEvents {
     }
 
     @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event) {
+        if (!event.getEntity().level().isClientSide()) {
+            com.velorise.staves.element.PlungeAndGliderManager.copyPersistentState(event.getOriginal(), event.getEntity());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
+            com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(player);
+        }
+    }
+
+    @SubscribeEvent
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
+            com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(player);
             ElementalGaugeManager.clearEntityState(player);
             com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
         }
@@ -928,19 +943,6 @@ public final class ArcaneStaffEvents {
     public static void onStartTracking(PlayerEvent.StartTracking event) {
         if (event.getTarget() instanceof LivingEntity living && event.getEntity() instanceof ServerPlayer player) {
             ElementalGaugeManager.syncEntityOnStartTracking(player, living);
-        }
-    }
-
-    @SubscribeEvent
-    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
-            com.velorise.staves.network.ModNetwork.sendConfigSyncToPlayer(player);
-            ElementalGaugeManager.syncEntityOnStartTracking(player, player);
-            com.velorise.staves.element.ElementalResonanceManager.syncPlayerImmediate(player);
-            if (!player.getTags().contains("velorise_staves:received_codex")) {
-                player.addTag("velorise_staves:received_codex");
-                player.getInventory().add(new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get()));
-            }
         }
     }
 

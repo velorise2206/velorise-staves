@@ -7,6 +7,7 @@ import com.velorise.staves.item.ElementItem;
 import com.velorise.staves.item.ElementalCodexItem;
 import com.velorise.staves.item.MagicMirrorItem;
 import com.velorise.staves.item.VoidTranslocatorItem;
+import com.velorise.staves.item.WindGliderItem;
 import com.velorise.staves.item.WindChargeItem;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.registries.Registries;
@@ -147,6 +148,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> THOUSAND_BLAZING_SUNS = ITEMS.register("thousand_blazing_suns",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 160, false));
 
+    public static final Supplier<Item> PEAK_PATROL_SONG = ITEMS.register("peak_patrol_song",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, 150, false));
+
     public static final Supplier<Item> FROST_ROD = ITEMS.register("frost_rod",
         () -> new Item(new Item.Properties()));
 
@@ -176,6 +180,9 @@ public final class VeloriseStavesMod {
         ElementalCodexItem::new);
     public static final Supplier<Item> VOID_TRANSLOCATOR = ITEMS.register("void_translocator",
         () -> new VoidTranslocatorItem(80, 24.0D, false));
+
+    public static final Supplier<Item> WIND_GLIDER = ITEMS.register("wind_glider",
+        () -> new WindGliderItem(new Item.Properties().stacksTo(1)));
 
     public static final Supplier<Item> MAGIC_MIRROR = ITEMS.register("magic_mirror",
         () -> new MagicMirrorItem(40, false));
@@ -283,6 +290,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> NETHERITE_THOUSAND_BLAZING_SUNS = ITEMS.register("netherite_thousand_blazing_suns",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 520, true));
 
+    public static final Supplier<Item> NETHERITE_PEAK_PATROL_SONG = ITEMS.register("netherite_peak_patrol_song",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, 500, true));
+
     public static final Supplier<Item> NETHERITE_WEBCASTER = ITEMS.register("netherite_webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
 
@@ -329,6 +339,7 @@ public final class VeloriseStavesMod {
                 output.accept(FROSTBOLT_WAND.get());
                 output.accept(NIGHTS_FOCUS_STAFF.get());
                 output.accept(THOUSAND_BLAZING_SUNS.get());
+                output.accept(PEAK_PATROL_SONG.get());
                 output.accept(WEBCASTER.get());
                 output.accept(WIND_STAFF.get());
                 output.accept(THE_DAYBREAK_CHRONICLES.get());
@@ -336,6 +347,7 @@ public final class VeloriseStavesMod {
                 output.accept(OMNI_STAFF.get());
                 output.accept(VOID_TRANSLOCATOR.get());
                 output.accept(MAGIC_MIRROR.get());
+                output.accept(WIND_GLIDER.get());
 
                 // Netherite tier
                 output.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
@@ -352,6 +364,7 @@ public final class VeloriseStavesMod {
                 output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
                 output.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+                output.accept(NETHERITE_PEAK_PATROL_SONG.get());
                 output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(NETHERITE_WIND_STAFF.get());
                 output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
@@ -430,6 +443,7 @@ public final class VeloriseStavesMod {
             event.accept(FROSTBOLT_WAND.get());
             event.accept(NIGHTS_FOCUS_STAFF.get());
             event.accept(THOUSAND_BLAZING_SUNS.get());
+            event.accept(PEAK_PATROL_SONG.get());
             event.accept(WEBCASTER.get());
             event.accept(WIND_STAFF.get());
             event.accept(THE_DAYBREAK_CHRONICLES.get());
@@ -449,6 +463,7 @@ public final class VeloriseStavesMod {
             event.accept(NETHERITE_FROSTBOLT_WAND.get());
             event.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
             event.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+            event.accept(NETHERITE_PEAK_PATROL_SONG.get());
             event.accept(NETHERITE_WEBCASTER.get());
             event.accept(NETHERITE_WIND_STAFF.get());
             event.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
@@ -461,6 +476,7 @@ public final class VeloriseStavesMod {
             event.accept(MAGIC_MIRROR.get());
             event.accept(NETHERITE_VOID_TRANSLOCATOR.get());
             event.accept(NETHERITE_MAGIC_MIRROR.get());
+            event.accept(WIND_GLIDER.get());
         } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.INGREDIENTS) {
             event.accept(BREEZE_ROD.get());
             event.accept(WIND_CHARGE.get());

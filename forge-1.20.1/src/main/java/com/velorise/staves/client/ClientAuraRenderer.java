@@ -63,7 +63,7 @@ public final class ClientAuraRenderer {
     private static final ResourceLocation INVENTORY_LOCATION = new ResourceLocation("textures/gui/container/inventory.png");
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT; // 0xF000F0
     private static final ResourceLocation FROSTED_ICE_TEXTURE = new ResourceLocation("textures/block/frosted_ice_0.png");
-    private static final ResourceLocation STONE_STATUE_TEXTURE = new ResourceLocation("textures/block/stone.png");
+    private static final ResourceLocation STONE_STATUE_TEXTURE = new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/stone_stele.png");
 
     private static final class FrozenRenderState {
         final float yBodyRot;
@@ -636,6 +636,70 @@ public final class ClientAuraRenderer {
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
         int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
 
+
+        // Item 5: Universal Plunge Attack & Wind Glider 3rd-Person Poses
+        if (ClientAuraTracker.isPlunging(entity.getId())) {
+            model.body.xRot = 0.48F;
+            model.rightArm.xRot = -1.95F;
+            model.leftArm.xRot = -1.85F;
+            model.rightArm.yRot = -0.20F;
+            model.leftArm.yRot = 0.20F;
+            model.rightArm.zRot = -0.10F;
+            model.leftArm.zRot = 0.10F;
+            model.rightLeg.xRot = 0.35F;
+            model.leftLeg.xRot = 0.55F;
+            model.head.xRot = 0.35F;
+            model.hat.copyFrom(model.head);
+            return;
+        }
+        if (ClientAuraTracker.isGliding(entity.getId())) {
+            float breeze = Mth.sin(ageInTicks * 0.16F) * 0.05F;
+            model.body.xRot = 0.12F;
+            model.rightArm.xRot = -0.42F + breeze;
+            model.leftArm.xRot = -0.42F - breeze;
+            model.rightArm.zRot = 0.52F;
+            model.leftArm.zRot = -0.52F;
+            model.rightLeg.xRot = 0.18F + breeze;
+            model.leftLeg.xRot = 0.26F - breeze;
+            return;
+        }
+
+        // Item 4: Xilonen Roller Skate stride & Wall-Climbing pose
+        if (ClientAuraTracker.isXilonenSkating(entity.getId())
+                && activeAnim != ClientAuraTracker.ANIM_XILONEN_KICK_1
+                && activeAnim != ClientAuraTracker.ANIM_XILONEN_KICK_2
+                && activeAnim != ClientAuraTracker.ANIM_XILONEN_BURST) {
+            if (ClientAuraTracker.isXilonenWallClimbing(entity.getId())) {
+                float climb = Mth.sin(ageInTicks * 0.85F);
+                model.body.xRot = -0.18F;
+                model.rightLeg.xRot = -0.65F + climb * 0.55F;
+                model.leftLeg.xRot = -0.65F - climb * 0.55F;
+                model.rightArm.xRot = -1.25F - climb * 0.45F;
+                model.leftArm.xRot = -1.25F + climb * 0.45F;
+                return;
+            }
+            float stride = Mth.sin(ageInTicks * 0.38F);
+            model.body.xRot = 0.18F;
+            model.body.yRot = stride * 0.14F;
+            model.rightLeg.xRot = stride * 0.52F;
+            model.leftLeg.xRot = -stride * 0.52F;
+            model.rightLeg.zRot = 0.12F;
+            model.leftLeg.zRot = -0.12F;
+            model.rightArm.xRot = -stride * 0.42F - 0.15F;
+            model.leftArm.xRot = stride * 0.42F - 0.15F;
+            model.rightArm.zRot = 0.18F;
+            model.leftArm.zRot = -0.18F;
+        }
+
+        // Item 6: Neuvillette Hold Left-Click Equitable Judgment Channeling Pose
+        if (ClientAuraTracker.isNeuvilletteChargingOrFiring(entity.getId()) && activeAnim != ClientAuraTracker.ANIM_NEUVILLETTE_BURST) {
+            model.rightArm.xRot = -1.42F;
+            model.rightArm.yRot = -0.15F;
+            model.leftArm.xRot = -1.15F;
+            model.leftArm.yRot = 0.25F;
+            return;
+        }
+
         // 1. Check active holding state (Vortex Hold or Splendor Arkhe charge)
         if (entity.isUsingItem()) {
             ItemStack useStack = entity.getUseItem();
@@ -972,6 +1036,52 @@ public final class ClientAuraRenderer {
             model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.22F);
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F);
             model.head.xRot += 0.10F * w;
+            model.hat.copyFrom(model.head);
+        } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_SKATE_DASH) {
+            float dash = Mth.sin(t * (float) Math.PI);
+            model.body.xRot = 0.32F * dash;
+            model.rightLeg.xRot = -0.65F * dash;
+            model.leftLeg.xRot = 0.55F * dash;
+            model.rightArm.xRot = -0.85F * dash;
+            model.leftArm.xRot = 0.45F * dash;
+        } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_KICK_1) {
+            float k = Mth.sin(t * (float) Math.PI);
+            model.body.yRot = -0.45F * k;
+            model.body.xRot = -0.16F * k;
+            model.rightLeg.xRot = -1.42F * k;
+            model.rightLeg.yRot = -0.35F * k;
+            model.rightLeg.zRot = 0.28F * k;
+            model.rightArm.xRot = 0.55F * k;
+            model.leftArm.xRot = -0.95F * k;
+        } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_KICK_2) {
+            float k = Mth.sin(t * (float) Math.PI);
+            model.body.yRot = 0.48F * k;
+            model.body.xRot = 0.22F * k;
+            model.leftLeg.xRot = -1.58F * k;
+            model.leftLeg.yRot = 0.32F * k;
+            model.leftLeg.zRot = -0.26F * k;
+            model.rightArm.xRot = -1.15F * k;
+            model.leftArm.xRot = 0.60F * k;
+        } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_BURST) {
+            float drop = Mth.sin(t * (float) Math.PI);
+            model.body.xRot = 0.28F * drop;
+            model.rightArm.xRot = -1.45F * drop;
+            model.leftArm.xRot = -1.35F * drop;
+            model.rightArm.yRot = -0.35F * drop;
+            model.leftArm.yRot = 0.35F * drop;
+            model.rightLeg.xRot = -0.55F * Mth.sin(t * (float) Math.PI * 2.0F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_SKILL_E) {
+            float strike = Mth.sin(t * (float) Math.PI);
+            model.rightArm.xRot = Mth.lerp(strike, model.rightArm.xRot, -1.65F);
+            model.rightArm.yRot = Mth.lerp(strike, model.rightArm.yRot, -0.22F);
+        } else if (activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_BURST) {
+            float w = (t < 0.20F) ? smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - smoothStep01((t - 0.80F) / 0.20F));
+            model.body.xRot = -0.14F * w;
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.35F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -2.15F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.42F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.42F);
+            model.head.xRot -= 0.16F * w;
             model.hat.copyFrom(model.head);
         }
     }
@@ -1812,6 +1922,269 @@ public final class ClientAuraRenderer {
                 isPetrified ? 0.28F : 1.0F,
                 isPetrified ? 0.85F : 0.45F);
         poseStack.popPose();
+        if (isPetrified) {
+            renderPetrifiedGoldVeins(entity, state.yBodyRot + shakeOffset, poseStack, buffer);
+        }
+    }
+
+
+    private static void renderPetrifiedGoldVeins(LivingEntity entity, float lockedBodyYaw, PoseStack poseStack, MultiBufferSource buffer) {
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+        poseStack.pushPose();
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(-lockedBodyYaw));
+        Matrix4f mat = poseStack.last().pose();
+
+        float w = Math.max(0.32F, entity.getBbWidth() * 0.54F);
+        float h = Math.max(0.65F, entity.getBbHeight());
+        java.util.Random rng = new java.util.Random(entity.getUUID().getLeastSignificantBits() ^ ((long) entity.getId() * 341873128712L));
+
+        int veinCount = 7;
+        for (int i = 0; i < veinCount; i++) {
+            float baseAngle = (float) ((i * 2.0D * Math.PI / veinCount) + (rng.nextFloat() - 0.5F) * 0.45F);
+            float spanAngle = (0.55F + rng.nextFloat() * 0.55F) * (rng.nextBoolean() ? 1.0F : -1.0F);
+            float yStart = h * (0.12F + rng.nextFloat() * 0.32F);
+            float yEnd = Math.min(h * 0.92F, yStart + h * (0.28F + rng.nextFloat() * 0.34F));
+            int segs = 4;
+            for (int s = 0; s < segs; s++) {
+                float t0 = (float) s / segs;
+                float t1 = (float) (s + 1) / segs;
+                float a0 = baseAngle + spanAngle * t0 + (rng.nextFloat() - 0.5F) * 0.14F;
+                float a1 = baseAngle + spanAngle * t1 + (rng.nextFloat() - 0.5F) * 0.14F;
+                float y0 = Mth.lerp(t0, yStart, yEnd);
+                float y1 = Mth.lerp(t1, yStart, yEnd);
+                float rSurf = w * (1.015F + 0.015F * Mth.sin(t0 * (float) Math.PI));
+
+                float x0 = Mth.cos(a0) * rSurf;
+                float z0 = Mth.sin(a0) * rSurf;
+                float x1 = Mth.cos(a1) * rSurf;
+                float z1 = Mth.sin(a1) * rSurf;
+
+                float outerW = 0.022F;
+                float coreW = 0.009F;
+                emitCrystalQuad(vc, mat,
+                        x0 - outerW, y0, z0 - outerW, 245, 165, 30, 165,
+                        x0 + outerW, y0, z0 + outerW, 245, 165, 30, 165,
+                        x1 + outerW, y1, z1 + outerW, 245, 165, 30, 165,
+                        x1 - outerW, y1, z1 - outerW, 245, 165, 30, 165);
+                emitCrystalQuad(vc, mat,
+                        x0 - coreW, y0, z0 - coreW, 255, 232, 95, 245,
+                        x0 + coreW, y0, z0 + coreW, 255, 232, 95, 245,
+                        x1 + coreW, y1, z1 + coreW, 255, 232, 95, 245,
+                        x1 - coreW, y1, z1 - coreW, 255, 232, 95, 245);
+            }
+        }
+        poseStack.popPose();
+    }
+
+
+    private static void emitWingQuad(
+            VertexConsumer vc, PoseStack.Pose pose,
+            float x0, float y0, float z0, float u0, float v0,
+            float x1, float y1, float z1, float u1, float v1,
+            float x2, float y2, float z2, float u2, float v2,
+            float x3, float y3, float z3, float u3, float v3,
+            float nx, float ny, float nz
+    ) {
+        Matrix4f mat = pose.pose();
+        org.joml.Matrix3f normMat = pose.normal();
+        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        vc.vertex(mat, x0, y0, z0).color(255, 255, 255, 255).uv(u0, v0).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(normMat, nx, ny, nz).endVertex();
+        vc.vertex(mat, x1, y1, z1).color(255, 255, 255, 255).uv(u1, v1).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(normMat, nx, ny, nz).endVertex();
+        vc.vertex(mat, x2, y2, z2).color(255, 255, 255, 255).uv(u2, v2).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(normMat, nx, ny, nz).endVertex();
+        vc.vertex(mat, x3, y3, z3).color(255, 255, 255, 255).uv(u3, v3).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(normMat, nx, ny, nz).endVertex();
+    }
+
+    private static void renderXilonenAccessoriesAndGlider(
+            LivingEntity entity,
+            net.minecraft.client.model.EntityModel<?> model,
+            float partialTicks,
+            PoseStack poseStack,
+            MultiBufferSource buffer
+    ) {
+        if (!(model instanceof net.minecraft.client.model.HumanoidModel<?> humanoid)) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+
+        boolean skating = ClientAuraTracker.isXilonenSkating(entity.getId());
+        boolean hasSamples = ClientAuraTracker.hasXilonenSourceSamples(entity.getId());
+        boolean gliding = ClientAuraTracker.isGliding(entity.getId());
+        if (!skating && !hasSamples && !gliding) return;
+
+        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float entityScale = 1.0F;
+        float time = entity.tickCount + partialTicks;
+
+        // 1. 3D Geo Roller Skates on both legs when in Xilonen's Nightsoul state
+        if (skating) {
+            poseStack.pushPose();
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
+            poseStack.scale(-entityScale, -entityScale, entityScale);
+            poseStack.translate(0.0F, -1.501F, 0.0F);
+
+            VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.METEOR_SOLID);
+            net.minecraft.client.model.geom.ModelPart[] legs = {humanoid.rightLeg, humanoid.leftLeg};
+            for (net.minecraft.client.model.geom.ModelPart leg : legs) {
+                poseStack.pushPose();
+                leg.translateAndRotate(poseStack);
+                Matrix4f mat = poseStack.last().pose();
+                // Skate boot cuff & chassis around lower leg / foot (y: 0.52..0.77, x: -0.155..0.155, z: -0.22..0.17)
+                drawJadeArmorBox(vc, mat, -0.150F, 0.520F, -0.165F, 0.150F, 0.720F, 0.160F, 36, 28, 38, 255);
+                drawJadeArmorBox(vc, mat, -0.158F, 0.560F, -0.215F, 0.158F, 0.735F, 0.165F, 245, 192, 45, 255);
+                // Turquoise neon Natlan side stripes
+                drawJadeArmorBox(vc, mat, -0.166F, 0.590F, -0.150F, 0.166F, 0.650F, 0.120F, 65, 238, 224, 255);
+                // Front & Rear Glowing Geo Roller Wheels (y: 0.725..0.815)
+                drawJadeArmorBox(vc, mat, -0.135F, 0.720F, -0.210F, 0.135F, 0.815F, -0.075F, 255, 215, 55, 255);
+                drawJadeArmorBox(vc, mat, -0.135F, 0.720F,  0.035F, 0.135F, 0.815F,  0.165F, 255, 215, 55, 255);
+                poseStack.popPose();
+            }
+            poseStack.popPose();
+            if (buffer instanceof MultiBufferSource.BufferSource bs) {
+                bs.endBatch(ShieldRenderTypes.METEOR_SOLID);
+            }
+        }
+
+        // 2. Xilonen Source Samples Equalizer Ring & 3 Floating Element Triangles around waist/feet
+        if (hasSamples || skating) {
+            ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+            int mask = d != null ? d.xilonenSampleMask : 1;
+            if (mask == 0) mask = 1;
+            VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 0.18F, 0.0F);
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(time * 3.2F));
+            Matrix4f mat = poseStack.last().pose();
+
+            int segs = 24;
+            float rIn = 0.72F;
+            float rOut = 0.84F;
+            for (int i = 0; i < segs; i++) {
+                float a0 = (float) (i * 2.0D * Math.PI / segs);
+                float a1 = (float) ((i + 1) * 2.0D * Math.PI / segs);
+                float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                int alpha = (i % 2 == 0) ? 185 : 95;
+                emitCrystalQuad(vc, mat,
+                        c0 * rIn, 0.0F, s0 * rIn, 255, 210, 55, alpha,
+                        c1 * rIn, 0.0F, s1 * rIn, 255, 210, 55, alpha,
+                        c1 * rOut, 0.0F, s1 * rOut, 75, 238, 224, alpha,
+                        c0 * rOut, 0.0F, s0 * rOut, 75, 238, 224, alpha);
+            }
+            poseStack.popPose();
+        }
+
+        // 3. 3D Wind Glider (Phong Chi Duc): 2 symmetrical wing planes behind upright torso
+        if (gliding) {
+            ResourceLocation gliderTex = new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/wind_glider.png");
+            VertexConsumer vc = buffer.getBuffer(RenderType.entityCutoutNoCull(gliderTex));
+            poseStack.pushPose();
+            poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
+            poseStack.scale(-entityScale, -entityScale, entityScale);
+            poseStack.translate(0.0F, -1.501F, 0.0F);
+            humanoid.body.translateAndRotate(poseStack);
+
+            float flutter = Mth.sin(time * 0.22F) * 5.5F;
+            float u0 = 0.0F, u1 = 20.0F / 64.0F;
+            float v0 = 0.0F, v1 = 16.0F / 32.0F;
+            float wingW = 1.38F;
+            float wingH = 0.96F;
+
+            for (int side : new int[]{-1, 1}) {
+                poseStack.pushPose();
+                // Attach at upper shoulder blade on back of torso (+Z is back in HumanoidModel space)
+                poseStack.translate(side * 0.08F, 0.06F, 0.145F);
+                poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(side * (16.0F + flutter)));
+                poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(side * -8.0F));
+                PoseStack.Pose pose = poseStack.last();
+                if (side > 0) {
+                    emitWingQuad(vc, pose,
+                            0.0F, 0.0F, 0.0F, u0, v0,
+                            wingW, 0.0F, 0.0F, u1, v0,
+                            wingW, wingH, 0.0F, u1, v1,
+                            0.0F, wingH, 0.0F, u0, v1,
+                            0.0F, 0.0F, 1.0F);
+                } else {
+                    emitWingQuad(vc, pose,
+                            0.0F, 0.0F, 0.0F, u0, v0,
+                            -wingW, 0.0F, 0.0F, u1, v0,
+                            -wingW, wingH, 0.0F, u1, v1,
+                            0.0F, wingH, 0.0F, u0, v1,
+                            0.0F, 0.0F, 1.0F);
+                }
+                poseStack.popPose();
+            }
+            poseStack.popPose();
+        }
+    }
+
+    public static void renderMavuikaVirtualHelmet(
+            LivingEntity entity,
+            net.minecraft.client.model.EntityModel<?> model,
+            float partialTicks,
+            PoseStack poseStack,
+            MultiBufferSource buffer
+    ) {
+        if (renderingScreen || entity == null || model == null) return;
+        if (!entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        renderXilonenAccessoriesAndGlider(entity, model, partialTicks, poseStack, buffer);
+        if (!(entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike)) return;
+        if (!entity.getItemBySlot(net.minecraft.world.entity.EquipmentSlot.HEAD).isEmpty()) return;
+        if (!(model instanceof net.minecraft.client.model.HumanoidModel<?> humanoid)) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+
+        boolean neth = bike.isNetherite();
+        int crR = neth ? 220 : 195, crG = 36, crB = 26;
+        int obR = 28, obG = 22, obB = 28;
+        int gdR = 255, gdG = 198, gdB = 45;
+        int flR = 255, flG = 115, flB = 20;
+
+        poseStack.pushPose();
+        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        float entityScale = 1.0F;
+        poseStack.scale(-entityScale, -entityScale, entityScale);
+        poseStack.translate(0.0F, -1.501F, 0.0F);
+        humanoid.head.translateAndRotate(poseStack);
+
+        Matrix4f mat = poseStack.last().pose();
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.METEOR_SOLID);
+
+        // 1. Upper Crown & Forehead Shell (head local space: X[-0.25..0.25], Y[-0.50..0.0], Z[-0.25..0.25])
+        drawJadeArmorBox(vc, mat, -0.285F, -0.545F, -0.285F, 0.285F, -0.445F, 0.285F, crR, crG, crB, 255);
+        // Sculpted Central Golden Natlan Sun-Crest Ridge
+        drawJadeArmorBox(vc, mat, -0.065F, -0.585F, -0.305F, 0.065F, -0.445F, 0.265F, gdR, gdG, gdB, 255);
+        drawJadeArmorBox(vc, mat, -0.032F, -0.605F, -0.260F, 0.032F, -0.580F, 0.180F, flR, flG, flB, 255);
+
+        // 2. Back & Side Aero Shell Plates
+        drawJadeArmorBox(vc, mat, -0.285F, -0.445F, 0.220F, 0.285F, 0.015F, 0.290F, obR, obG, obB, 255);
+        drawJadeArmorBox(vc, mat, -0.295F, -0.445F, -0.245F, -0.242F, 0.015F, 0.285F, obR, obG, obB, 255);
+        drawJadeArmorBox(vc, mat, 0.242F, -0.445F, -0.245F, 0.295F, 0.015F, 0.285F, obR, obG, obB, 255);
+        // Crimson & Gold Natlan Side Wings
+        drawJadeArmorBox(vc, mat, -0.312F, -0.410F, -0.140F, -0.285F, -0.180F, 0.250F, crR, crG, crB, 255);
+        drawJadeArmorBox(vc, mat, 0.285F, -0.410F, -0.140F, 0.312F, -0.180F, 0.250F, crR, crG, crB, 255);
+        drawJadeArmorBox(vc, mat, -0.322F, -0.360F, -0.060F, -0.305F, -0.240F, 0.270F, gdR, gdG, gdB, 255);
+        drawJadeArmorBox(vc, mat, 0.305F, -0.360F, -0.060F, 0.322F, -0.240F, 0.270F, gdR, gdG, gdB, 255);
+
+        // 3. Sculpted Chin & Jaw Guard (-Z is front of face)
+        drawJadeArmorBox(vc, mat, -0.285F, -0.135F, -0.305F, 0.285F, 0.025F, -0.180F, obR, obG, obB, 255);
+        drawJadeArmorBox(vc, mat, -0.185F, -0.115F, -0.318F, 0.185F, 0.010F, -0.295F, crR, crG, crB, 255);
+        drawJadeArmorBox(vc, mat, -0.095F, -0.045F, -0.324F, 0.095F, 0.018F, -0.305F, gdR, gdG, gdB, 255);
+
+        // 4. Glowing Fiery Visor Across Eyes
+        drawJadeArmorBox(vc, mat, -0.275F, -0.435F, -0.302F, 0.275F, -0.135F, -0.245F, flR, flG, flB, 238);
+        drawJadeArmorBox(vc, mat, -0.235F, -0.335F, -0.310F, 0.235F, -0.215F, -0.295F, 255, 228, 88, 248);
+        // Golden Brow Guard Trim
+        drawJadeArmorBox(vc, mat, -0.290F, -0.455F, -0.312F, 0.290F, -0.415F, -0.240F, gdR, gdG, gdB, 255);
+
+        poseStack.popPose();
+        if (buffer instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(ShieldRenderTypes.METEOR_SOLID);
+        }
     }
 
     public static void renderJadeShieldBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
@@ -2264,7 +2637,7 @@ public final class ClientAuraRenderer {
                 data.lastDamage = 0.0F;
             }
             if (data.elements.isEmpty() && data.reaction == null && data.dualUntil <= now && data.damageUntil <= now
-                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
+                    && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }
@@ -2476,6 +2849,7 @@ public final class ClientAuraRenderer {
         renderFreezeStruggleHud(guiGraphics, mc);
         renderChargeProgressHud(guiGraphics, mc);
         renderMavuikaNightsoulHud(guiGraphics, mc);
+        renderXilonenNightsoulHud(guiGraphics, mc);
         renderRaidenHud(guiGraphics, mc);
 
         ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(mc.player.getId());
@@ -2852,7 +3226,34 @@ public final class ClientAuraRenderer {
     }
 
     private static void renderChargeProgressHud(GuiGraphics guiGraphics, Minecraft mc) {
-        if (mc.player == null || !mc.player.isUsingItem()) return;
+        if (mc.player == null) return;
+        if (ClientAuraTracker.isNeuvilletteChargingOrFiring(mc.player.getId())) {
+            ClientAuraTracker.AuraDisplayData nd = ClientAuraTracker.get(mc.player.getId());
+            if (nd != null) {
+                float pct = nd.neuvilletteFiringBeam
+                        ? Mth.clamp(1.0F - (nd.neuvilletteBeamElapsed / 60.0F), 0.05F, 1.0F)
+                        : Mth.clamp(nd.neuvilletteChargeProgress / 60.0F, 0.0F, 1.0F);
+                int sw = guiGraphics.guiWidth();
+                int sh = guiGraphics.guiHeight();
+                float cx = sw * 0.5F;
+                float cy = sh * 0.5F;
+                Matrix4f mat = guiGraphics.pose().last().pose();
+                VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
+                drawHudArc(vc, mat, cx, cy, 12.0F, 15.0F, 0.0F, 360.0F, 32, 10, 26, 48, 145);
+                if (pct > 0.005F) {
+                    float halfDeg = 180.0F * pct;
+                    int segs = Math.max(2, Math.round(16 * pct));
+                    int r = nd.neuvilletteFiringBeam ? 175 : 85;
+                    int g = nd.neuvilletteFiringBeam ? 250 : 225;
+                    int b = 255;
+                    drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F, 90.0F + halfDeg, segs, r, g, b, 240);
+                    drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F - halfDeg, 90.0F, segs, r, g, b, 240);
+                }
+                guiGraphics.flush();
+                return;
+            }
+        }
+        if (!mc.player.isUsingItem()) return;
         ItemStack stack = mc.player.getUseItem();
         if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff) || !staff.isCharged()) return;
         int elapsed = Math.max(0, staff.getUseDuration(stack) - mc.player.getUseItemRemainingTicks());
@@ -2884,6 +3285,25 @@ public final class ClientAuraRenderer {
                 drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F - halfDeg, 90.0F, segs, r, g, b, 240);
             }
             guiGraphics.flush();
+            return;
+        }
+        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+            return;
+        }
+        if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX) {
+            ResourceLocation meteorTex = new ResourceLocation(
+                    com.velorise.staves.VeloriseStavesMod.MODID,
+                    "textures/gui/planet_befall_charge.png"
+            );
+            int iconX = sw / 2 - 8;
+            int iconY = sh / 2 + 12;
+            RenderSystem.enableBlend();
+            RenderSystem.setShaderColor(0.35F, 0.35F, 0.35F, 0.65F);
+            guiGraphics.blit(meteorTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
+            int fillH = Math.max(1, Math.round(16 * pct));
+            int topY = iconY + (16 - fillH);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.blit(meteorTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
             return;
         }
         if (staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
@@ -3463,15 +3883,31 @@ public final class ClientAuraRenderer {
         double timeSec = System.currentTimeMillis() * 0.001D;
 
         for (net.minecraft.world.entity.player.Player player : mc.level.players()) {
-            if (!player.isUsingItem()) continue;
-            ItemStack stack = player.getUseItem();
-            if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff)) continue;
-            if (staff.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
-
-            int elapsed = staff.getUseDuration(stack) - player.getUseItemRemainingTicks();
-            boolean instant = com.velorise.staves.item.ArcaneStaffItem.isGuardianInstant(stack);
-            if (!instant && elapsed < 60) continue;
-            if (elapsed < 2) continue;
+            boolean firingLeftClick = ClientAuraTracker.isNeuvilletteFiringBeam(player.getId());
+            ItemStack stack = ItemStack.EMPTY;
+            com.velorise.staves.item.ArcaneStaffItem staff = null;
+            int elapsed = 15;
+            if (firingLeftClick) {
+                if (player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                        && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                    stack = player.getMainHandItem();
+                    staff = sm;
+                } else if (player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                        && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                    stack = player.getOffhandItem();
+                    staff = so;
+                }
+                if (staff == null) continue;
+                ClientAuraTracker.AuraDisplayData nd = ClientAuraTracker.get(player.getId());
+                elapsed = nd != null ? Math.max(10, nd.neuvilletteBeamElapsed + 10) : 15;
+            } else {
+                if (!player.isUsingItem()) continue;
+                stack = player.getUseItem();
+                if (!(stack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem s)) continue;
+                if (s.kind() != com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) continue;
+                staff = s;
+                elapsed = 20;
+            }
 
             if (consumer == null) {
                 consumer = bufferSource.getBuffer(RenderType.lightning());
@@ -4367,6 +4803,46 @@ public final class ClientAuraRenderer {
                 String cdText = String.format(java.util.Locale.ROOT, "%.0fs", Math.ceil(ultiCdTicks / 20.0F));
                 guiGraphics.drawString(font, cdText, labelX + 2, labelY + 5, 0xFFAA8877, true);
             }
+        }
+    }
+
+    private static void renderXilonenNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null) return;
+        boolean holdingXilo = (mc.player.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
+                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG)
+                || (mc.player.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
+                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.PEAK_PATROL_SONG);
+        boolean skating = ClientAuraTracker.isXilonenSkating(mc.player.getId());
+        boolean hasSamples = ClientAuraTracker.hasXilonenSourceSamples(mc.player.getId());
+        if (!holdingXilo && !skating && !hasSamples) return;
+
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(mc.player.getId());
+        int pts = (d != null && skating) ? d.xilonenNightsoulPoints : 0;
+        int sampleMask = (d != null && hasSamples) ? d.xilonenSampleMask : 0;
+        if (!skating && !hasSamples) return;
+
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        int barW = 54;
+        int barH = 4;
+        int bx = sw / 2 - barW / 2;
+        int by = sh / 2 + 20;
+
+        if (skating) {
+            float frac = Mth.clamp(pts / 90.0F, 0.0F, 1.0F);
+            guiGraphics.fill(bx - 1, by - 1, bx + barW + 1, by + barH + 1, 0xAA141018);
+            int fillW = Math.round(barW * frac);
+            if (fillW > 0) {
+                guiGraphics.fill(bx, by, bx + fillW, by + barH, 0xFFFFD644);
+                guiGraphics.fill(bx, by, bx + fillW, by + 1, 0xFF55F2E2);
+            }
+            String ptStr = pts + "/90";
+            guiGraphics.drawString(mc.font, ptStr, bx + barW + 4, by - 2, 0xFFFFE066, true);
+        }
+        if (hasSamples && sampleMask > 0) {
+            String sampleText = "▲ -36% RES";
+            int tw = mc.font.width(sampleText);
+            guiGraphics.drawString(mc.font, sampleText, sw / 2 - tw / 2, by + (skating ? 7 : 0), 0xFF55F2E2, true);
         }
     }
 

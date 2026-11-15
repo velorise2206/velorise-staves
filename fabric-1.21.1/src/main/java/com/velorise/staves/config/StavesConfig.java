@@ -88,9 +88,10 @@ public final class StavesConfig {
     public static final DoubleValue INFERNO_COOLDOWN = defineDouble("cooldowns", "inferno_cooldown", 4.0D, 0.5D, 60.0D);
     public static final DoubleValue GHASTFIRE_COOLDOWN = defineDouble("cooldowns", "ghastfire_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue THOUSAND_BLAZING_SUNS_COOLDOWN = defineDouble("cooldowns", "thousand_blazing_suns_cooldown", 15.0D, 0.5D, 60.0D);
+    public static final DoubleValue PEAK_PATROL_SONG_COOLDOWN = defineDouble("cooldowns", "peak_patrol_song_cooldown", 7.0D, 0.5D, 60.0D);
     public static final DoubleValue WITHER_COOLDOWN = defineDouble("cooldowns", "wither_cooldown", 6.0D, 0.5D, 60.0D);
     public static final DoubleValue SHULKER_COOLDOWN = defineDouble("cooldowns", "shulker_cooldown", 6.0D, 0.5D, 60.0D);
-    public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 6.0D, 0.5D, 60.0D);
+    public static final DoubleValue GUARDIAN_COOLDOWN = defineDouble("cooldowns", "guardian_cooldown", 12.0D, 0.5D, 60.0D);
     public static final DoubleValue SPLENDOR_COOLDOWN = defineDouble("cooldowns", "splendor_cooldown", 20.0D, 0.5D, 60.0D);
     public static final DoubleValue EVOKER_COOLDOWN = defineDouble("cooldowns", "evoker_cooldown", 5.0D, 0.5D, 60.0D);
     public static final DoubleValue VORTEX_COOLDOWN = defineDouble("cooldowns", "vortex_cooldown", 4.0D, 0.5D, 60.0D);
@@ -108,6 +109,7 @@ public final class StavesConfig {
     public static final DoubleValue INFERNO_DAMAGE = defineDouble("damage", "inferno_damage", 3.0D, 0.0D, 500.0D);
     public static final DoubleValue GHASTFIRE_DAMAGE = defineDouble("damage", "ghastfire_damage", 6.0D, 0.0D, 500.0D);
     public static final DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE = defineDouble("damage", "thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue PEAK_PATROL_SONG_DAMAGE = defineDouble("damage", "peak_patrol_song_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue WITHER_DAMAGE = defineDouble("damage", "wither_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue SHULKER_DAMAGE = defineDouble("damage", "shulker_damage", 6.0D, 0.0D, 500.0D);
     public static final DoubleValue GUARDIAN_DAMAGE = defineDouble("damage", "guardian_damage", 2.0D, 0.0D, 500.0D);
@@ -134,6 +136,8 @@ public final class StavesConfig {
     public static final IntValue GHASTFIRE_DURABILITY_NETHERITE = defineInt("durability", "ghastfire_netherite", 450, 10, 5000);
     public static final IntValue THOUSAND_BLAZING_SUNS_DURABILITY_BASIC = defineInt("durability", "thousand_blazing_suns_basic", 160, 10, 5000);
     public static final IntValue THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE = defineInt("durability", "thousand_blazing_suns_netherite", 520, 10, 5000);
+    public static final IntValue PEAK_PATROL_SONG_DURABILITY_BASIC = defineInt("durability", "peak_patrol_song_basic", 150, 10, 5000);
+    public static final IntValue PEAK_PATROL_SONG_DURABILITY_NETHERITE = defineInt("durability", "peak_patrol_song_netherite", 500, 10, 5000);
     public static final IntValue WITHER_DURABILITY_BASIC = defineInt("durability", "wither_basic", 140, 10, 5000);
     public static final IntValue WITHER_DURABILITY_NETHERITE = defineInt("durability", "wither_netherite", 500, 10, 5000);
     public static final IntValue SHULKER_DURABILITY_BASIC = defineInt("durability", "shulker_basic", 130, 10, 5000);
@@ -573,6 +577,7 @@ public final class StavesConfig {
             case INFERNO -> 3.0D;
             case GHASTFIRE -> 6.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
+            case PEAK_PATROL_SONG -> 4.0D;
             case WITHER -> 4.0D;
             case SHULKER -> 6.0D;
             case GUARDIAN -> 2.0D;
@@ -614,6 +619,7 @@ public final class StavesConfig {
             case INFERNO -> INFERNO_DAMAGE.get();
             case GHASTFIRE -> GHASTFIRE_DAMAGE.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
+            case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
             case WITHER -> WITHER_DAMAGE.get();
             case SHULKER -> SHULKER_DAMAGE.get();
             case GUARDIAN -> GUARDIAN_DAMAGE.get();
@@ -646,6 +652,7 @@ public final class StavesConfig {
             case INFERNO -> isNetherite ? INFERNO_DURABILITY_NETHERITE.get() : INFERNO_DURABILITY_BASIC.get();
             case GHASTFIRE -> isNetherite ? GHASTFIRE_DURABILITY_NETHERITE.get() : GHASTFIRE_DURABILITY_BASIC.get();
             case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
+            case PEAK_PATROL_SONG -> isNetherite ? PEAK_PATROL_SONG_DURABILITY_NETHERITE.get() : PEAK_PATROL_SONG_DURABILITY_BASIC.get();
             case WITHER -> isNetherite ? WITHER_DURABILITY_NETHERITE.get() : WITHER_DURABILITY_BASIC.get();
             case SHULKER -> isNetherite ? SHULKER_DURABILITY_NETHERITE.get() : SHULKER_DURABILITY_BASIC.get();
             case GUARDIAN -> isNetherite ? GUARDIAN_DURABILITY_NETHERITE.get() : GUARDIAN_DURABILITY_BASIC.get();
@@ -685,6 +692,7 @@ public final class StavesConfig {
             case INFERNO -> INFERNO_COOLDOWN.get();
             case GHASTFIRE -> GHASTFIRE_COOLDOWN.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
+            case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_COOLDOWN.get();
             case WITHER -> WITHER_COOLDOWN.get();
             case SHULKER -> SHULKER_COOLDOWN.get();
             case GUARDIAN -> GUARDIAN_COOLDOWN.get();
