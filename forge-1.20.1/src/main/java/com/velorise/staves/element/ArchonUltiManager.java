@@ -531,13 +531,16 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        // Curated deep sub-bass seismic rumble, heavy basalt/deepslate bedrock shatter, and resonant contract chime (NO TNT boom!)
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.40F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANCIENT_DEBRIS_BREAK, SoundSource.PLAYERS, 1.80F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.20F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.48F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.00F, 0.44F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BELL_RESONATE, SoundSource.PLAYERS, 1.00F, 0.50F);
+        // Curated deep sub-bass seismic rumble, heavy basalt, deepslate, tuff, stone, and dripstone shattering (NO anvil, NO bell, NO TNT boom!)
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.25F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.20F, 0.44F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.46F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 2.00F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.80F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.TUFF_BREAK, SoundSource.PLAYERS, 1.90F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANCIENT_DEBRIS_BREAK, SoundSource.PLAYERS, 1.60F, 0.46F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 1.70F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.PLAYERS, 1.60F, 0.50F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */
