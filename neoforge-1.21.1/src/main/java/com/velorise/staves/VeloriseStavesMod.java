@@ -92,6 +92,8 @@ public final class VeloriseStavesMod {
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_hold_cn")));
     public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_EN = SOUND_EVENTS.register("voice_zhongli_q_burst_en",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_ORDER_EN = SOUND_EVENTS.register("voice_zhongli_q_burst_order_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_order_en")));
     public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_cn",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_cn")));
 

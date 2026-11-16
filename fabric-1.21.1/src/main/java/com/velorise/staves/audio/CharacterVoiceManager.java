@@ -30,6 +30,7 @@ public final class CharacterVoiceManager {
         public String masterMode = "all"; // "all", "self_only", "disabled"
         public String globalLanguage = "auto"; // "auto", "en_us", "zh_cn", "ja_jp"
         public float volume = 1.0F;
+        public boolean firstZhongliOrderPlayed = false;
         public Map<String, Boolean> enabledCharacters = new ConcurrentHashMap<>();
         public Map<String, String> characterLanguages = new ConcurrentHashMap<>();
     }
@@ -221,6 +222,25 @@ public final class CharacterVoiceManager {
     }
 
     public static void playClientZhongliBurstVoice(int entityId) {
+        VoiceConfigData cfg = getConfig();
+        if (!cfg.firstZhongliOrderPlayed) {
+            cfg.firstZhongliOrderPlayed = true;
+            saveConfig();
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.level != null) {
+                Entity entity = mc.level.getEntity(entityId);
+                double x = entity != null ? entity.getX() : (mc.player != null ? mc.player.getX() : 0.0D);
+                double y = entity != null ? entity.getY() : (mc.player != null ? mc.player.getY() : 0.0D);
+                double z = entity != null ? entity.getZ() : (mc.player != null ? mc.player.getZ() : 0.0D);
+                SoundEvent se = getSound(VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_ORDER_EN);
+                if (se != null) {
+                    float vol = Math.max(0.85F, getVoiceVolume());
+                    mc.level.playLocalSound(x, y, z, se, SoundSource.PLAYERS, vol, 1.0F, false);
+                    LAST_VOICE_TIME.put(entityId, System.currentTimeMillis());
+                    return;
+                }
+            }
+        }
         playVoice(entityId, "zhongli", 2200L,
                 VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_EN,
                 VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_CN,
