@@ -1073,8 +1073,8 @@ public class FlamestriderBikeEntity extends Entity {
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
             float bikeYaw = (spinOrbitAngle + 195.0F) % 360.0F;
+            this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
-            this.yRotO = bikeYaw;
         } else {
             spinOrbitRadius = 0.0D;
             spinPivotXO = this.getX();

@@ -150,7 +150,52 @@ public final class MavuikaVisualRenderer {
         guiGraphics.blit(sunsTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
     }
 
+    public static void renderFirstPersonSunglassesHud(GuiGraphics guiGraphics, Minecraft mc) {
+        if (mc.player == null || !mc.options.getCameraType().isFirstPerson()) return;
+        if (mc.player.isUsingItem() || mc.player.swinging || mc.player.getVehicle() instanceof FlamestriderBikeEntity) return;
+        int id = mc.player.getId();
+        if (!ClientAuraTracker.isMavuikaIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.02F) return;
+
+        float elapsedSec = (d != null && d.mavuikaIdleStartMs > 0L)
+                ? Math.max(0.0F, (System.currentTimeMillis() - d.mavuikaIdleStartMs) / 1000.0F)
+                : 2.0F;
+        float putOn = WindGliderRenderer.smoothStep01((elapsedSec - 0.45F) / 0.65F);
+        float alphaFrac = fade * putOn;
+        if (alphaFrac <= 0.02F) return;
+
+        int sw = guiGraphics.guiWidth();
+        int sh = guiGraphics.guiHeight();
+        int slideY = Math.round(-(1.0F - putOn) * sh * 0.42F);
+
+        int lensA = Math.round(78.0F * alphaFrac);
+        int frameA = Math.round(215.0F * alphaFrac);
+        int lensCol = (lensA << 24) | 0x16101C;
+        int goldCol = (frameA << 24) | 0xFFC62D;
+        int orangeCol = (frameA << 24) | 0xFF7314;
+
+        int topY = Math.max(-sh, slideY + 10);
+        int botY = sh - 12 + slideY;
+        int leftX = 12;
+        int rightX = sw - 12;
+        int bridgeHalfW = Math.max(10, sw / 28);
+        int cx = sw / 2;
+
+        guiGraphics.fill(leftX, topY + 4, cx - bridgeHalfW, botY, lensCol);
+        guiGraphics.fill(cx + bridgeHalfW, topY + 4, rightX, botY, lensCol);
+        guiGraphics.fill(cx - bridgeHalfW, topY + 4, cx + bridgeHalfW, topY + 14, lensCol);
+        guiGraphics.fill(cx - bridgeHalfW, topY, cx + bridgeHalfW, topY + 5, goldCol);
+        guiGraphics.fill(leftX - 2, topY, rightX + 2, topY + 4, goldCol);
+        guiGraphics.fill(leftX - 3, topY, leftX, botY, orangeCol);
+        guiGraphics.fill(rightX, topY, rightX + 3, botY, orangeCol);
+        guiGraphics.fill(leftX - 3, botY, cx - bridgeHalfW, botY + 3, goldCol);
+        guiGraphics.fill(cx + bridgeHalfW, botY, rightX + 3, botY + 3, goldCol);
+    }
+
     public static void renderMavuikaNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {
+        renderFirstPersonSunglassesHud(guiGraphics, mc);
         if (mc.player == null) return;
         boolean holdingSuns = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
                 || ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
@@ -238,6 +283,9 @@ public final class MavuikaVisualRenderer {
 
     public static boolean applyBikeRidingHumanoidAnimation(LivingEntity entity, HumanoidModel<?> model) {
         if (!(entity.getVehicle() instanceof FlamestriderBikeEntity bike)) return false;
+        // Lock rider body yaw to motorcycle yaw so hands stay locked onto the handlebars during turns
+        entity.yBodyRot = bike.getYRot();
+        entity.yBodyRotO = bike.yRotO;
         HumanoidArm arm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS);
         float dir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
         ModelPart weaponArm = (arm == HumanoidArm.RIGHT) ? model.rightArm : model.leftArm;
@@ -298,9 +346,9 @@ public final class MavuikaVisualRenderer {
         }
         model.body.xRot = 0.28F;
         model.body.yRot = 0.0F;
-        handleArm.xRot = -1.32F;
-        handleArm.yRot = -0.14F * dir;
-        handleArm.zRot = 0.12F * dir;
+        handleArm.xRot = -1.34F;
+        handleArm.yRot = 0.08F * dir;
+        handleArm.zRot = -0.16F * dir;
         if (step == 6 && naT > 0) {
             if (naT > 12) {
                 float w = (16.0F - naT) / 4.0F;
@@ -349,9 +397,9 @@ public final class MavuikaVisualRenderer {
             weaponArm.yRot = Mth.lerp(t, 0.28F, -0.60F) * dir;
             weaponArm.zRot = Mth.lerp(t, 0.25F, -0.10F) * dir;
         } else {
-            weaponArm.xRot = -1.32F;
-            weaponArm.yRot = 0.14F * dir;
-            weaponArm.zRot = -0.12F * dir;
+            weaponArm.xRot = -1.34F;
+            weaponArm.yRot = -0.08F * dir;
+            weaponArm.zRot = 0.16F * dir;
         }
         smoothBikeWeaponArm(entity.getId(), weaponArm);
         return true;
@@ -467,6 +515,24 @@ public final class MavuikaVisualRenderer {
                 poseStack.mulPose(Axis.YP.rotationDegrees(sign * 26.0F * r));
             }
         }
+        return true;
+    }
+
+    public static boolean setupFirstPersonBikeArmPose(
+            AbstractClientPlayer player,
+            float partialTicks,
+            HumanoidArm arm,
+            PoseStack poseStack
+    ) {
+        if (player == null || !(player.getVehicle() instanceof FlamestriderBikeEntity bike)) return false;
+        if (bike.getNaTicks() > 0 || bike.isSpinning() || bike.isPlunging() || bike.getUltiTicks() > 0) return false;
+        float armDir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
+        float vib = Mth.sin((player.tickCount + partialTicks) * 1.4F) * 0.004F;
+        // Reach both hands forward-downward onto the left and right handlebar grips
+        poseStack.translate(-armDir * 0.12F, -0.14F + vib, -0.08F);
+        poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(armDir * 12.0F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(-armDir * 8.0F));
         return true;
     }
 
@@ -689,6 +755,15 @@ public final class MavuikaVisualRenderer {
         return WindGliderRenderer.smoothStep01(d.mavuikaIdleFade);
     }
 
+    public static float getIdleCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
+        if (!(entity instanceof LivingEntity le) || le.isUsingItem() || le.swinging || le.getVehicle() instanceof FlamestriderBikeEntity) return 0.0F;
+        if (!ClientAuraTracker.isMavuikaIdle(le.getId())) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return 0.0F;
+        return -0.24F * w;
+    }
+
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (!ClientAuraTracker.isMavuikaIdle(entity.getId()) || entity.getVehicle() instanceof FlamestriderBikeEntity) {
             ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
@@ -701,14 +776,7 @@ public final class MavuikaVisualRenderer {
             if (d != null && !d.mavuikaIdle) d.mavuikaIdleYawSet = false;
             return false;
         }
-        if (d != null) {
-            if (!d.mavuikaIdleYawSet) {
-                d.mavuikaIdleYaw = entity.yBodyRot;
-                d.mavuikaIdleYawSet = true;
-            }
-            entity.yBodyRot = d.mavuikaIdleYaw;
-            entity.yBodyRotO = d.mavuikaIdleYaw;
-        }
+
 
         // Sitting/leaning right in the middle of the tilted Flamestrider bike
         float leanBack = -0.12F * w;
@@ -819,6 +887,35 @@ public final class MavuikaVisualRenderer {
         if (buffer instanceof MultiBufferSource.BufferSource bs) {
             bs.endBatch(ClientAuraRenderer.getMeteorSolid());
         }
+    }
+
+    public static void renderFirstPersonIdleBike(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null || !mc.player.isAlive() || mc.player.isSpectator()) return;
+        if (!mc.options.getCameraType().isFirstPerson()) return;
+        if (mc.player.isUsingItem() || mc.player.swinging || mc.player.getVehicle() instanceof FlamestriderBikeEntity) return;
+        int id = mc.player.getId();
+        if (!ClientAuraTracker.isMavuikaIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.02F) return;
+
+        float pt = mc.getFrameTime();
+        float bodyYaw = (d != null && d.mavuikaIdleYawSet) ? d.mavuikaIdleYaw : Mth.rotLerp(pt, mc.player.yBodyRotO, mc.player.yBodyRot);
+        ClientAuraTracker.MavuikaDisplayState mState = ClientAuraTracker.getMavuika(id);
+        boolean neth = mState != null && mState.netherite;
+        Vec3 pPos = mc.player.getPosition(pt).subtract(camPos);
+
+        poseStack.pushPose();
+        poseStack.translate(pPos.x, pPos.y, pPos.z);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.16F, 0.0F, -0.22F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(72.0F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(15.0F));
+        poseStack.scale(fade, fade, fade);
+        com.velorise.staves.client.FlamestriderBikeRenderer.renderBikeMesh(
+                poseStack, bufferSource, mc.font, neth, 0.0F, 0.0F, 0.0F, false, false);
+        poseStack.popPose();
     }
 
     public static void renderIdleBike(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {

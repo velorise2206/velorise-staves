@@ -578,6 +578,9 @@ public final class ArcaneStaffEvents {
                 com.velorise.staves.advancement.ModAdvancements.trigger(
                         player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
             }
+            if (kind == ArcaneStaffItem.Kind.DAYBREAK) {
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, directHit.position(), directHit.position().add(0.0D, 2.4D, 0.0D), 12, 0xFF5CE6C8);
+            }
             if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
                 Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
                 Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);

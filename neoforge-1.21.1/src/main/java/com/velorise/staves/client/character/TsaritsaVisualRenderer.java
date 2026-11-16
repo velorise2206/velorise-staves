@@ -316,6 +316,29 @@ public final class TsaritsaVisualRenderer {
         }
     }
 
+    public static void renderFirstPersonIdleDesk(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) return;
+        if (!mc.options.getCameraType().isFirstPerson()) return;
+        if (mc.player.isUsingItem() || mc.player.swinging) return;
+        if (!ClientAuraTracker.isTsaritsaIdle(mc.player.getId())) return;
+        ClientAuraTracker.AuraDisplayData d1p = ClientAuraTracker.get(mc.player.getId());
+        float fade1p = stepIdleFade(d1p, System.currentTimeMillis());
+        if (fade1p <= 0.01F) return;
+        float pt1p = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time1p = mc.player.tickCount + pt1p;
+        float deskBob1p = Mth.sin(time1p * 0.10F) * 0.014F;
+        float bodyYaw1p = Mth.rotLerp(pt1p, mc.player.yBodyRotO, mc.player.yBodyRot);
+        Vec3 pPos = mc.player.getPosition(pt1p).subtract(camPos);
+        poseStack.pushPose();
+        poseStack.translate(pPos.x, pPos.y, pPos.z);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw1p));
+        poseStack.translate(0.0F, 0.0F, -0.08F);
+        poseStack.scale(fade1p, fade1p, fade1p);
+        renderFloatingDeskAndItems(poseStack, bufferSource, time1p, deskBob1p, false);
+        poseStack.popPose();
+    }
+
     public static void renderWorldArcs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
@@ -452,6 +475,15 @@ public final class TsaritsaVisualRenderer {
     }
 
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(entity.getId());
+            if (dAct != null) {
+                dAct.tsaritsaIdle = false;
+                dAct.tsaritsaIdleFade = 0.0F;
+                dAct.tsaritsaIdleYawSet = false;
+            }
+            return false;
+        }
         if (!ClientAuraTracker.isTsaritsaIdle(entity.getId())) {
             ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
             if (dOff != null) dOff.tsaritsaIdleYawSet = false;
@@ -463,14 +495,7 @@ public final class TsaritsaVisualRenderer {
             if (d != null && !d.tsaritsaIdle) d.tsaritsaIdleYawSet = false;
             return false;
         }
-        if (d != null) {
-            if (!d.tsaritsaIdleYawSet) {
-                d.tsaritsaIdleYaw = entity.yBodyRot;
-                d.tsaritsaIdleYawSet = true;
-            }
-            entity.yBodyRot = d.tsaritsaIdleYaw;
-            entity.yBodyRotO = d.tsaritsaIdleYaw;
-        }
+
 
         float sitDropY = 3.0F * w;
         model.body.y += sitDropY;
@@ -481,140 +506,199 @@ public final class TsaritsaVisualRenderer {
         model.rightLeg.y += sitDropY;
         model.leftLeg.y += sitDropY;
 
-        // Leaning slightly forward reviewing documents on the ice desk
+        // Leaning slightly forward reviewing documents on the floating ice desk; head gently sways side-to-side reading
+        float headSwayY = Mth.sin(ageInTicks * 0.06F) * 0.14F;
+        float headTiltZ = Mth.sin(ageInTicks * 0.045F) * 0.06F;
         model.body.xRot = Mth.lerp(w, model.body.xRot, 0.08F);
-        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.34F);
-        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), -0.08F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.36F + Mth.sin(ageInTicks * 0.09F) * 0.03F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), headSwayY);
+        model.head.zRot = Mth.lerp(w, model.head.zRot, headTiltZ);
+        model.hat.copyFrom(model.head);
         model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
         model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-        // Left hand resting thoughtfully near chin; right hand resting on open book/papers
-        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.24F);
-        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.34F);
-        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.14F);
-        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.78F);
-        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, 0.16F);
-        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.08F);
-        // Crossed/regal seated legs under the desk
-        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -1.32F);
-        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -1.14F);
-        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.14F);
-        model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, 0.14F);
+        // Right hand reaches inward onto the open book and moves in exact sync with the writing ice quill
+        float writeHoriz = Mth.sin(ageInTicks * 0.28F);
+        float writeDepth = Mth.cos(ageInTicks * 0.16F);
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.96F - writeDepth * 0.065F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.36F - writeHoriz * 0.11F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.10F + writeHoriz * 0.04F);
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -0.78F);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.24F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.12F);
+        // Crossed regal seated legs under the floating desk
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -1.42F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -1.24F);
+        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, 0.34F);
+        model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, -0.20F);
+        model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, -0.16F);
+        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, 0.08F);
         return true;
     }
 
-    public static void renderIdleThrone(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
-        int id = entity.getId();
-        if (!ClientAuraTracker.isTsaritsaIdle(id)) return;
-        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
-        float fade = stepIdleFade(d, System.currentTimeMillis());
-        if (fade <= 0.01F) return;
+    private static void drawIceSpire(
+            VertexConsumer vc, Matrix4f mat,
+            float baseRx, float baseRz, float midH, float tipH,
+            int r0, int g0, int b0,
+            int r1, int g1, int b1,
+            int rTip, int gTip, int bTip,
+            int alpha
+    ) {
+        float midRx = baseRx * 0.58F;
+        float midRz = baseRz * 0.58F;
+        // Bottom cap
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                -baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                 baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                 baseRx, 0.0F,  baseRz, r0, g0, b0, alpha,
+                -baseRx, 0.0F,  baseRz, r0, g0, b0, alpha);
+        // 4 tapered shaft faces (base -> mid)
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                -baseRx, 0.0F,  baseRz, r0, g0, b0, alpha,
+                 baseRx, 0.0F,  baseRz, r0, g0, b0, alpha,
+                 midRx,  midH,  midRz,  r1, g1, b1, alpha,
+                -midRx,  midH,  midRz,  r1, g1, b1, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                 baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                -baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                -midRx,  midH, -midRz,  r1, g1, b1, alpha,
+                 midRx,  midH, -midRz,  r1, g1, b1, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                -baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                -baseRx, 0.0F,  baseRz, r0, g0, b0, alpha,
+                -midRx,  midH,  midRz,  r1, g1, b1, alpha,
+                -midRx,  midH, -midRz,  r1, g1, b1, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                 baseRx, 0.0F,  baseRz, r0, g0, b0, alpha,
+                 baseRx, 0.0F, -baseRz, r0, g0, b0, alpha,
+                 midRx,  midH, -midRz,  r1, g1, b1, alpha,
+                 midRx,  midH,  midRz,  r1, g1, b1, alpha);
+        // 4 sharp pyramid faces converging to needle tip (0, tipH, 0)
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                -midRx, midH,  midRz, r1, g1, b1, alpha,
+                 midRx, midH,  midRz, r1, g1, b1, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                 midRx, midH, -midRz, r1, g1, b1, alpha,
+                -midRx, midH, -midRz, r1, g1, b1, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                -midRx, midH, -midRz, r1, g1, b1, alpha,
+                -midRx, midH,  midRz, r1, g1, b1, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                 midRx, midH,  midRz, r1, g1, b1, alpha,
+                 midRx, midH, -midRz, r1, g1, b1, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha,
+                 0.0F,  tipH,  0.0F,  rTip, gTip, bTip, alpha);
+    }
 
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) return;
+    private static void drawCrystalShard(
+            VertexConsumer vc, Matrix4f mat,
+            float rx, float rz, float halfH,
+            int rMid, int gMid, int bMid,
+            int rTip, int gTip, int bTip,
+            int alpha
+    ) {
+        // Upper pyramid
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, -rx, 0.0F, rz, rMid, gMid, bMid, alpha, rx, 0.0F, rz, rMid, gMid, bMid, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, rx, 0.0F, -rz, rMid, gMid, bMid, alpha, -rx, 0.0F, -rz, rMid, gMid, bMid, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, -rx, 0.0F, -rz, rMid, gMid, bMid, alpha, -rx, 0.0F, rz, rMid, gMid, bMid, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, rx, 0.0F, rz, rMid, gMid, bMid, alpha, rx, 0.0F, -rz, rMid, gMid, bMid, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, halfH, 0.0F, rTip, gTip, bTip, alpha);
+        // Lower inverted pyramid
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, rx, 0.0F, rz, rMid, gMid, bMid, alpha, -rx, 0.0F, rz, rMid, gMid, bMid, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, -rx, 0.0F, -rz, rMid, gMid, bMid, alpha, rx, 0.0F, -rz, rMid, gMid, bMid, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, -rx, 0.0F, rz, rMid, gMid, bMid, alpha, -rx, 0.0F, -rz, rMid, gMid, bMid, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha);
+        ClientAuraRenderer.emitCrystalQuad(vc, mat, rx, 0.0F, -rz, rMid, gMid, bMid, alpha, rx, 0.0F, rz, rMid, gMid, bMid, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha);
+    }
 
-        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
-        float time = entity.tickCount + pt;
-        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+    private static void drawPointedStar(
+            VertexConsumer vc, Matrix4f mat,
+            float armLen, float topLen, float thick, float depth,
+            int rOut, int gOut, int bOut,
+            int rCore, int gCore, int bCore,
+            int alpha
+    ) {
+        // Vertical & horizontal needle rays (4-point star with elongated upper spire)
+        float[][] rays = new float[][]{
+            {0.0F, topLen, -thick, 0.0F, thick, 0.0F},
+            {0.0F, -armLen, thick, 0.0F, -thick, 0.0F},
+            {armLen, 0.0F, 0.0F, thick, 0.0F, -thick},
+            {-armLen, 0.0F, 0.0F, -thick, 0.0F, thick}
+        };
+        for (float[] r : rays) {
+            float tx = r[0], ty = r[1], ax = r[2], ay = r[3], bx = r[4], by = r[5];
+            // Front & back diamond faces
+            ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                    ax, ay, 0.0F, rCore, gCore, bCore, alpha,
+                    0.0F, 0.0F, depth, rCore, gCore, bCore, alpha,
+                    bx, by, 0.0F, rCore, gCore, bCore, alpha,
+                    tx, ty, 0.0F, rOut, gOut, bOut, alpha);
+            ClientAuraRenderer.emitCrystalQuad(vc, mat,
+                    bx, by, 0.0F, rCore, gCore, bCore, alpha,
+                    0.0F, 0.0F, -depth, rCore, gCore, bCore, alpha,
+                    ax, ay, 0.0F, rCore, gCore, bCore, alpha,
+                    tx, ty, 0.0F, rOut, gOut, bOut, alpha);
+        }
+    }
 
-        poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-        poseStack.translate(0.0F, 0.0F, -0.08F);
-        poseStack.scale(fade, fade, fade);
-
+    private static void renderFloatingDeskAndItems(
+            PoseStack poseStack,
+            MultiBufferSource buffer,
+            float time,
+            float deskBob,
+            boolean firstPerson
+    ) {
         VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
-        Matrix4f mat = poseStack.last().pose();
+        poseStack.pushPose();
+        if (!firstPerson) {
+            poseStack.translate(0.0F, deskBob, 0.66F);
+        } else {
+            poseStack.translate(0.0F, deskBob, 0.0F);
+        }
+        Matrix4f dMat = poseStack.last().pose();
+        // Sleek thin floating ice slab (only 0.032F thick!) + crisp bright-cyan outer rim
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.76F, 0.836F, -0.26F, 0.76F, 0.864F, 0.26F, 72, 152, 224, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.785F, 0.844F, -0.282F, 0.785F, 0.868F, 0.282F, 195, 244, 255, 255);
 
-        // 1. Stepped Frosted Obsidian & Glacial-Blue Dais + Seat
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.68F, 0.0F, -0.58F, 0.68F, 0.08F, 0.50F, 35, 68, 118, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.56F, 0.08F, -0.50F, 0.56F, 0.16F, 0.38F, 55, 115, 185, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.44F, 0.16F, -0.44F, 0.44F, 0.58F, 0.28F, 68, 148, 218, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.40F, 0.58F, -0.40F, 0.40F, 0.65F, 0.26F, 175, 236, 255, 255);
-
-        // 2. Spiky Armrests & Lower Crystal Buttresses
-        for (int side : new int[]{-1, 1}) {
-            float ax0 = side < 0 ? -0.56F : 0.38F;
-            float ax1 = side < 0 ? -0.38F : 0.56F;
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0, 0.16F, -0.40F, ax1, 0.88F, 0.30F, 52, 118, 192, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0 - side * 0.02F, 0.84F, -0.38F, ax1 - side * 0.02F, 0.91F, 0.34F, 175, 236, 255, 255);
-            // Forward & outward spiky crystal claws on armrest
-            for (int cl = 0; cl < 2; cl++) {
+        // 4 sharp tiny crystal corner tips on the floating desk
+        for (int sx : new int[]{-1, 1}) {
+            for (int sz : new int[]{-1, 1}) {
                 poseStack.pushPose();
-                poseStack.translate(side * (0.48F + cl * 0.06F), 0.88F - cl * 0.12F, 0.30F - cl * 0.18F);
-                poseStack.mulPose(Axis.XP.rotationDegrees(32.0F - cl * 14.0F));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-side * (10.0F + cl * 18.0F)));
-                Matrix4f cMat = poseStack.last().pose();
-                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, cMat, -0.055F, 0.0F, -0.055F, 0.055F, 0.24F, 0.055F, 145, 224, 255, 255);
-                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, cMat, -0.03F, 0.24F, -0.03F, 0.03F, 0.38F, 0.03F, 238, 253, 255, 255);
+                poseStack.translate(sx * 0.785F, 0.856F, sz * 0.282F);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-sx * 90.0F));
+                drawIceSpire(solidVc, poseStack.last().pose(), 0.018F, 0.018F, 0.03F, 0.085F,
+                        155, 228, 255, 210, 248, 255, 250, 255, 255, 255);
                 poseStack.popPose();
             }
         }
 
-        // 3. Tall Ultra-Spiky Jagged Cryo Backrest (9 stepped crystalline spires + glowing apex star)
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.50F, 0.58F, -0.48F, 0.50F, 1.56F, -0.34F, 48, 112, 185, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.38F, 0.66F, -0.35F, 0.38F, 1.48F, -0.31F, 125, 205, 252, 255);
-        float[][] spires = new float[][]{
-            {0.0F, 1.54F, -0.41F, 0.0F, 0.0F, 0.14F, 1.12F},
-            {-0.25F, 1.50F, -0.41F, -10.0F, 8.0F, 0.10F, 0.86F},
-            {0.25F, 1.50F, -0.41F, -10.0F, -8.0F, 0.10F, 0.86F},
-            {-0.46F, 1.38F, -0.39F, -16.0F, 20.0F, 0.085F, 0.72F},
-            {0.46F, 1.38F, -0.39F, -16.0F, -20.0F, 0.085F, 0.72F},
-            {-0.58F, 1.14F, -0.36F, -14.0F, 34.0F, 0.075F, 0.58F},
-            {0.58F, 1.14F, -0.36F, -14.0F, -34.0F, 0.075F, 0.58F},
-            {-0.62F, 0.82F, -0.33F, -10.0F, 48.0F, 0.065F, 0.45F},
-            {0.62F, 0.82F, -0.33F, -10.0F, -48.0F, 0.065F, 0.45F}
-        };
-        for (float[] sp : spires) {
-            poseStack.pushPose();
-            poseStack.translate(sp[0], sp[1], sp[2]);
-            poseStack.mulPose(Axis.XP.rotationDegrees(sp[3]));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(sp[4]));
-            Matrix4f sMat = poseStack.last().pose();
-            float w = sp[5], h = sp[6];
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w, 0.0F, -w, w, h * 0.48F, w, 72, 162, 232, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w * 0.68F, h * 0.48F, -w * 0.68F, w * 0.68F, h * 0.78F, w * 0.68F, 155, 228, 255, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w * 0.34F, h * 0.78F, -w * 0.34F, w * 0.34F, h, w * 0.34F, 240, 253, 255, 255);
-            poseStack.popPose();
-        }
+        // Center: Open Royal Dossier / Book + Inkwell
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.18F, 0.868F, -0.12F, 0.18F, 0.888F, 0.12F, 42, 68, 122, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.165F, 0.888F, -0.105F, -0.01F, 0.911F, 0.105F, 244, 236, 218, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, 0.01F, 0.888F, -0.105F, 0.165F, 0.911F, 0.105F, 244, 236, 218, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.27F, 0.868F, -0.05F, -0.21F, 0.928F, 0.01F, 32, 42, 72, 255);
 
-        // Glowing 4-Pointed Cryo Star at throne apex
+        // Animated 3D Ice Quill writing smoothly across the open book
+        float qx = -0.06F + Mth.sin(time * 0.28F) * 0.06F;
+        float qz = -0.02F + Mth.cos(time * 0.16F) * 0.04F;
         poseStack.pushPose();
-        poseStack.translate(0.0F, 2.74F, -0.41F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(time * 0.08F) * 8.0F));
-        Matrix4f starMat = poseStack.last().pose();
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.045F, -0.18F, -0.035F, 0.045F, 0.18F, 0.035F, 215, 248, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.18F, -0.045F, -0.035F, 0.18F, 0.045F, 0.035F, 215, 248, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.075F, -0.075F, -0.045F, 0.075F, 0.075F, 0.045F, 255, 255, 255, 255);
+        poseStack.translate(qx, 0.914F, qz);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(26.0F + Mth.sin(time * 0.35F) * 5.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F));
+        Matrix4f qMat = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, qMat, -0.010F, 0.0F, -0.010F, 0.010F, 0.14F, 0.010F, 215, 248, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, qMat, -0.022F, 0.07F, -0.005F, 0.022F, 0.19F, 0.005F, 155, 228, 255, 255);
         poseStack.popPose();
-
-        // 4. Frosted-Ice Royal Desk in front of Tsaritsa + Stacks of Books & Documents
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 0.0F, 0.66F);
-        Matrix4f dMat = poseStack.last().pose();
-        // Desk tabletop & glowing cyan-ice edge trim
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.76F, 0.80F, -0.26F, 0.76F, 0.86F, 0.26F, 58, 132, 205, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.78F, 0.83F, -0.28F, 0.78F, 0.875F, 0.28F, 185, 240, 255, 255);
-        // Sculpted ice desk legs & under-brackets
-        for (int side : new int[]{-1, 1}) {
-            float lx0 = side < 0 ? -0.68F : 0.54F;
-            float lx1 = side < 0 ? -0.54F : 0.68F;
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, lx0, 0.0F, -0.14F, lx1, 0.80F, 0.14F, 48, 108, 178, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, lx0 - 0.02F, 0.0F, -0.18F, lx1 + 0.02F, 0.08F, 0.18F, 145, 224, 255, 255);
-        }
-
-        // Center: Open Royal Dossier / Book + Inkwell & Quill
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.18F, 0.875F, -0.12F, 0.18F, 0.895F, 0.12F, 42, 68, 122, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.165F, 0.895F, -0.105F, -0.01F, 0.918F, 0.105F, 244, 236, 218, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, 0.01F, 0.895F, -0.105F, 0.165F, 0.918F, 0.105F, 244, 236, 218, 255);
-        // Inkwell & tiny ice quill
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.27F, 0.875F, -0.05F, -0.21F, 0.935F, 0.01F, 32, 42, 72, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.245F, 0.935F, -0.025F, -0.225F, 1.04F, -0.005F, 215, 248, 255, 255);
 
         // Left side of desk (+X): Neat stack of 4 books & parchment
         for (int b = 0; b < 4; b++) {
-            float by = 0.875F + b * 0.048F;
+            float by = 0.868F + b * 0.048F;
             float rot = (b % 2 == 0) ? 4.0F : -6.0F;
             poseStack.pushPose();
-            poseStack.translate(0.46F, by, 0.02F);
+            poseStack.translate(-0.46F, by, 0.02F);
             poseStack.mulPose(Axis.YP.rotationDegrees(rot));
             Matrix4f bMat = poseStack.last().pose();
             int cr = (b % 2 == 0) ? 55 : 85;
@@ -625,13 +709,13 @@ public final class TsaritsaVisualRenderer {
             poseStack.popPose();
         }
 
-        // Right side of desk (-X): Tall stack of 8 documents/tomes (matching reference!)
+        // Right side of desk (-X): Tall stack of 8 documents/tomes
         for (int b = 0; b < 8; b++) {
-            float by = 0.875F + b * 0.046F;
+            float by = 0.868F + b * 0.046F;
             float rot = ((b * 11) % 17) - 8.0F;
             float ox = ((b % 3) - 1) * 0.012F;
             poseStack.pushPose();
-            poseStack.translate(-0.48F + ox, by, -0.02F);
+            poseStack.translate(0.48F + ox, by, -0.02F);
             poseStack.mulPose(Axis.YP.rotationDegrees(rot));
             Matrix4f bMat = poseStack.last().pose();
             boolean blueCover = (b % 3 == 0);
@@ -644,16 +728,194 @@ public final class TsaritsaVisualRenderer {
             }
             poseStack.popPose();
         }
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        ClientAuraRenderer.emitCrystalQuad(transVc, dMat,
+                -0.68F, 0.832F, -0.22F, 145, 228, 255, 130,
+                 0.68F, 0.832F, -0.22F, 145, 228, 255, 130,
+                 0.68F, 0.832F,  0.22F, 145, 228, 255, 130,
+                -0.68F, 0.832F,  0.22F, 145, 228, 255, 130);
+        poseStack.popPose();
+    }
+
+    public static void renderIdleThrone(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(id);
+            if (dAct != null) {
+                dAct.tsaritsaIdle = false;
+                dAct.tsaritsaIdleFade = 0.0F;
+                dAct.tsaritsaIdleYawSet = false;
+            }
+            return;
+        }
+        if (!ClientAuraTracker.isTsaritsaIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.01F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        float deskBob = Mth.sin(time * 0.10F) * 0.014F;
+
+        if (isFirstPersonSelf) {
+            return;
+        }
+
+        float bodyYaw = (d != null && d.tsaritsaIdleYawSet) ? d.tsaritsaIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.0F, 0.0F, -0.08F);
+        poseStack.scale(fade, fade, fade);
+
+        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        Matrix4f mat = poseStack.last().pose();
+
+        // 1. Stepped Frosted Obsidian & Glacial-Blue Dais + Seat + Corner Ice Spikes
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.70F, 0.0F, -0.60F, 0.70F, 0.07F, 0.50F, 28, 56, 102, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.58F, 0.07F, -0.52F, 0.58F, 0.14F, 0.40F, 48, 104, 175, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.45F, 0.14F, -0.44F, 0.45F, 0.56F, 0.28F, 62, 138, 212, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.42F, 0.56F, -0.41F, 0.42F, 0.63F, 0.27F, 175, 236, 255, 255);
+        // Front seat diamond frost crest
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.40F, 0.29F);
+        drawPointedStar(solidVc, poseStack.last().pose(), 0.13F, 0.16F, 0.045F, 0.025F, 220, 248, 255, 135, 215, 255, 255);
+        poseStack.popPose();
+        // 4 Sharp corner crystal spikes on the dais
+        for (int sx : new int[]{-1, 1}) {
+            for (int sz : new int[]{-1, 1}) {
+                poseStack.pushPose();
+                poseStack.translate(sx * 0.64F, 0.06F, sz < 0 ? -0.54F : 0.44F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(sz < 0 ? -18.0F : 16.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-sx * 20.0F));
+                drawIceSpire(solidVc, poseStack.last().pose(), 0.065F, 0.065F, 0.14F, 0.34F, 48, 112, 188, 135, 218, 255, 240, 253, 255, 255);
+                poseStack.popPose();
+            }
+        }
+
+        // 2. Spiky Armrests with Sharp Pointed Crystal Claws & Downward Icicles
+        for (int side : new int[]{-1, 1}) {
+            float ax0 = side < 0 ? -0.55F : 0.39F;
+            float ax1 = side < 0 ? -0.39F : 0.55F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0, 0.14F, -0.40F, ax1, 0.86F, 0.30F, 46, 108, 182, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0 - side * 0.02F, 0.83F, -0.38F, ax1 - side * 0.02F, 0.89F, 0.34F, 175, 236, 255, 255);
+            // 3 sharp pointed crystal claws per armrest
+            float[][] claws = new float[][]{
+                {side * 0.47F, 0.88F, 0.32F, 34.0F, -side * 12.0F, 0.055F, 0.36F},
+                {side * 0.53F, 0.82F, 0.14F, 18.0F, -side * 32.0F, 0.050F, 0.32F},
+                {side * 0.55F, 0.68F, -0.06F, 8.0F, -side * 46.0F, 0.045F, 0.28F}
+            };
+            for (float[] cl : claws) {
+                poseStack.pushPose();
+                poseStack.translate(cl[0], cl[1], cl[2]);
+                poseStack.mulPose(Axis.XP.rotationDegrees(cl[3]));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(cl[4]));
+                drawIceSpire(solidVc, poseStack.last().pose(), cl[5], cl[5], cl[6] * 0.45F, cl[6],
+                        72, 162, 232, 160, 230, 255, 245, 254, 255, 255);
+                poseStack.popPose();
+            }
+            // Downward icicle spike under front armrest corner
+            poseStack.pushPose();
+            poseStack.translate(side * 0.48F, 0.82F, 0.32F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
+            drawIceSpire(solidVc, poseStack.last().pose(), 0.042F, 0.042F, 0.10F, 0.26F,
+                    65, 148, 222, 155, 225, 255, 235, 252, 255, 255);
+            poseStack.popPose();
+        }
+
+        // 3. Tall Gothic Pointed Cryo Backrest (Sharp Faceted Spires + Translucent Arch + Lattice + Apex Star)
+        // Lower backrest frame
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.48F, 0.56F, -0.46F, 0.48F, 1.38F, -0.35F, 44, 102, 174, 255);
+        // Translucent glacial inner pane for the central gothic arch
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        ClientAuraRenderer.emitCrystalQuad(transVc, mat,
+                -0.34F, 0.64F, -0.345F, 130, 215, 255, 155,
+                 0.34F, 0.64F, -0.345F, 130, 215, 255, 155,
+                 0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
+                -0.26F, 1.56F, -0.345F, 185, 238, 255, 175);
+        ClientAuraRenderer.emitCrystalQuad(transVc, mat,
+                -0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
+                 0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
+                 0.0F,  2.54F, -0.345F, 240, 253, 255, 210,
+                 0.0F,  2.54F, -0.345F, 240, 253, 255, 210);
+        solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        // Frost filigree lattice ribs inside the central arch
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.25F, 1.48F, -0.34F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 16.0F));
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.025F, 0.0F, -0.025F, 0.025F, 1.06F, 0.025F, 195, 244, 255, 255);
+            poseStack.popPose();
+
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 1.15F, -0.34F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 34.0F));
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.018F, -0.36F, -0.018F, 0.018F, 0.36F, 0.018F, 175, 236, 255, 255);
+            poseStack.popPose();
+        }
+
+        // Tall central needle spire at the gothic apex
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 1.38F, -0.40F);
+        drawIceSpire(solidVc, poseStack.last().pose(), 0.15F, 0.095F, 0.56F, 1.30F,
+                58, 138, 218, 150, 226, 255, 245, 254, 255, 255);
         poseStack.popPose();
 
-        // 5. Orbiting Cryo Crystal Shards around the throne
+        // 2 Symmetrical flanking sharp-pointed crystal spires (forming 3-spire silhouette: 1 center + 2 side spires)
+        float[][] spires = new float[][]{
+            {-0.40F, 1.18F, -0.39F, -4.0F,  6.0F, 0.115F, 1.08F},
+            { 0.40F, 1.18F, -0.39F, -4.0F, -6.0F, 0.115F, 1.08F}
+        };
+        for (float[] sp : spires) {
+            poseStack.pushPose();
+            poseStack.translate(sp[0], sp[1], sp[2]);
+            poseStack.mulPose(Axis.XP.rotationDegrees(sp[3]));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(sp[4]));
+            drawIceSpire(solidVc, poseStack.last().pose(), sp[5], sp[5] * 0.85F, sp[6] * 0.44F, sp[6],
+                    54, 132, 212, 148, 224, 255, 242, 253, 255, 255);
+            poseStack.popPose();
+        }
+
+        // Rear-facing jagged crystal buttress spines (detailed back view)
+        float[][] rearSpines = new float[][]{
+            { 0.0F,  0.96F, -0.45F, -48.0F,  0.0F, 0.075F, 0.46F},
+            {-0.26F, 0.84F, -0.44F, -42.0F, 18.0F, 0.060F, 0.38F},
+            { 0.26F, 0.84F, -0.44F, -42.0F,-18.0F, 0.060F, 0.38F},
+            { 0.0F,  0.48F, -0.44F, -62.0F,  0.0F, 0.065F, 0.34F}
+        };
+        for (float[] rs : rearSpines) {
+            poseStack.pushPose();
+            poseStack.translate(rs[0], rs[1], rs[2]);
+            poseStack.mulPose(Axis.XP.rotationDegrees(rs[3]));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(rs[4]));
+            drawIceSpire(solidVc, poseStack.last().pose(), rs[5], rs[5], rs[6] * 0.42F, rs[6],
+                    42, 98, 172, 125, 208, 252, 232, 250, 255, 255);
+            poseStack.popPose();
+        }
+
+        // Glowing Pointed 8-Ray Cryo Star / Snowflake at Throne Apex
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 2.74F, -0.40F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(time * 0.08F) * 6.0F));
+        Matrix4f starMat = poseStack.last().pose();
+        drawPointedStar(solidVc, starMat, 0.20F, 0.28F, 0.048F, 0.042F, 235, 252, 255, 165, 232, 255, 255);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(45.0F));
+        drawPointedStar(solidVc, poseStack.last().pose(), 0.13F, 0.13F, 0.032F, 0.032F, 200, 245, 255, 255, 255, 255, 255);
+        poseStack.popPose();
+
+        // 4. Thin Floating Royal Ice Desk (NO support legs underneath, gently levitating!)
+        renderFloatingDeskAndItems(poseStack, buffer, time, deskBob, false);
+
+        // 5. Orbiting Pointed Cryo Crystal Shards around the throne
+        solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
         for (int i = 0; i < 4; i++) {
             float ang = (float) (time * 0.06D + i * Math.PI * 0.5D);
             poseStack.pushPose();
-            poseStack.translate(Mth.cos(ang) * 0.88F, 1.65F + Mth.sin(time * 0.12F + i) * 0.08F, -0.55F + Mth.sin(ang) * 0.18F);
+            poseStack.translate(Mth.cos(ang) * 0.90F, 1.65F + Mth.sin(time * 0.12F + i) * 0.08F, -0.55F + Mth.sin(ang) * 0.18F);
             poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.0F + i * 45.0F));
-            Matrix4f shMat = poseStack.last().pose();
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, shMat, -0.045F, -0.11F, -0.045F, 0.045F, 0.11F, 0.045F, 210, 248, 255, 255);
+            drawCrystalShard(solidVc, poseStack.last().pose(), 0.048F, 0.048F, 0.14F, 135, 222, 255, 245, 254, 255, 255);
             poseStack.popPose();
         }
 

@@ -157,6 +157,8 @@ public final class ClientAuraTracker {
         public boolean raidenIdle = false;
         public float raidenIdleFade = 0.0F;
         public long raidenIdleLastMs = 0L;
+        public float raidenIdleYaw = 0.0F;
+        public boolean raidenIdleYawSet = false;
         public boolean mavuikaIdle = false;
         public float mavuikaIdleFade = 0.0F;
         public long mavuikaIdleLastMs = 0L;
@@ -168,6 +170,8 @@ public final class ClientAuraTracker {
         public long furinaIdleLastMs = 0L;
         public int furinaIdleLastMode = 0;
         public boolean ventiIdle = false;
+        public int ventiIdleMode = 0;
+        public int ventiIdleLastMode = 1;
         public float ventiIdleFade = 0.0F;
         public long ventiIdleLastMs = 0L;
         public float ventiIdleYaw = 0.0F;
@@ -555,9 +559,13 @@ public final class ClientAuraTracker {
             }
             return;
         }
-        if (animType == 4050 || animType == 4051) {
+        if (animType >= 4050 && animType <= 4052) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
-            entry.ventiIdle = (animType == 4051);
+            entry.ventiIdle = (animType > 4050);
+            entry.ventiIdleMode = animType - 4050;
+            if (entry.ventiIdleMode > 0) {
+                entry.ventiIdleLastMode = entry.ventiIdleMode;
+            }
             return;
         }
         if (animType == 4060 || animType == 4061) {
@@ -681,6 +689,16 @@ public final class ClientAuraTracker {
             case ANIM_TSARITSA_UNSEAL -> 650L;
             default -> 600L;
         };
+        if (animType == ANIM_VENTI_BURST) {
+            entry.ventiIdle = false;
+            entry.ventiIdleFade = 0.0F;
+            entry.ventiIdleYawSet = false;
+        }
+        if (animType >= ANIM_TSARITSA_BOW_NA && animType <= ANIM_TSARITSA_UNSEAL) {
+            entry.tsaritsaIdle = false;
+            entry.tsaritsaIdleFade = 0.0F;
+            entry.tsaritsaIdleYawSet = false;
+        }
         entry.staffAnimType = animType;
         entry.staffAnimStartTime = now;
         entry.staffAnimUntil = now + durationMs;
@@ -1244,12 +1262,76 @@ public final class ClientAuraTracker {
 
     public static boolean isVentiIdle(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && (data.ventiIdle || data.ventiIdleFade > 0.01F);
+        if (data == null) return false;
+        long now = System.currentTimeMillis();
+        boolean activeBurst = data.staffAnimType == ANIM_VENTI_BURST && now < data.staffAnimUntil;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        boolean localPulling = mc.player != null && entityId == mc.player.getId()
+                && (localDaybreakBowPullTicks > 0 || ventiUltiHoldTicks > 0);
+        if (activeBurst || localPulling) {
+            data.ventiIdle = false;
+            data.ventiIdleMode = 0;
+            data.ventiIdleFade = 0.0F;
+            data.ventiIdleYawSet = false;
+            return false;
+        }
+        return data.ventiIdle || data.ventiIdleFade > 0.01F;
+    }
+
+    public static void syncIdleLockedYaw(net.minecraft.client.Minecraft mc) {
+        if (mc == null || mc.player == null || mc.level == null) return;
+        AuraDisplayData d = DATA.get(mc.player.getId());
+        if (d == null) return;
+        boolean isFirstPerson = mc.options.getCameraType().isFirstPerson();
+        if (isTsaritsaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.tsaritsaIdleYawSet) {
+                d.tsaritsaIdleYaw = mc.player.getYRot();
+                d.tsaritsaIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.tsaritsaIdleYaw;
+            mc.player.yBodyRotO = d.tsaritsaIdleYaw;
+        } else {
+            d.tsaritsaIdleYawSet = false;
+        }
+        if (isRaidenIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.raidenIdleYawSet) {
+                d.raidenIdleYaw = mc.player.getYRot();
+                d.raidenIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.raidenIdleYaw;
+            mc.player.yBodyRotO = d.raidenIdleYaw;
+        } else {
+            d.raidenIdleYawSet = false;
+        }
+        if (isMavuikaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.mavuikaIdleYawSet) {
+                d.mavuikaIdleYaw = mc.player.getYRot();
+                d.mavuikaIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.mavuikaIdleYaw;
+            mc.player.yBodyRotO = d.mavuikaIdleYaw;
+        } else {
+            d.mavuikaIdleYawSet = false;
+        }
     }
 
     public static boolean isTsaritsaIdle(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && (data.tsaritsaIdle || data.tsaritsaIdleFade > 0.01F);
+        if (data == null) return false;
+        long now = System.currentTimeMillis();
+        boolean activeAction = data.staffAnimType >= ANIM_TSARITSA_BOW_NA
+                && data.staffAnimType <= ANIM_TSARITSA_UNSEAL
+                && now < data.staffAnimUntil;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        boolean localCharging = mc.player != null && entityId == mc.player.getId()
+                && (localTsaritsaBowPullTicks > 0 || localTsaritsaHoldETicks > 0);
+        if (activeAction || localCharging) {
+            data.tsaritsaIdle = false;
+            data.tsaritsaIdleFade = 0.0F;
+            data.tsaritsaIdleYawSet = false;
+            return false;
+        }
+        return data.tsaritsaIdle || data.tsaritsaIdleFade > 0.01F;
     }
 
     public static boolean isNahidaViewfinder(int entityId) {

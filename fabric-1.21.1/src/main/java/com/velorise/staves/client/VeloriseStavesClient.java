@@ -194,6 +194,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final int[] tsaritsaSpearHoldTick = {0};
         final int[] lastSelectedHotbarSlot = {-1};
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ClientAuraTracker.syncIdleLockedYaw(client);
             ClientAuraRenderer.tickFrozenPlayer();
             OmniWheelOverlay.tick(client);
             if (client.player != null) {

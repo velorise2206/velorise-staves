@@ -198,6 +198,7 @@ public final class ArchonUltiManager {
 
     /** Casts Venti's Wind's Grand Ode on pressing [R] (2.0s / 40-tick Burst animation & root, firing Stormeye at end of cast). */
     public static void triggerVentiUlti(ServerPlayer player) {
+        VentiManager.cancelIdle(player);
         if (player == null || !player.isAlive()) return;
         if (!isPlayerGroundedForBurst(player)) {
             return;

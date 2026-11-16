@@ -1295,6 +1295,8 @@ public final class ArcaneStaffItem extends Item {
             return stack;
         }
         if (kind == Kind.DAYBREAK || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
+            if (kind == Kind.DAYBREAK) com.velorise.staves.element.VentiManager.cancelIdle(player);
+            if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) com.velorise.staves.element.TsaritsaManager.cancelIdle(player);
             return stack;
         }
         if (kind == Kind.GHASTFIRE) {
@@ -1570,6 +1572,7 @@ public final class ArcaneStaffItem extends Item {
     private static final java.util.Map<java.util.UUID, Long> LAST_DAYBREAK_SHOT = new java.util.concurrent.ConcurrentHashMap<>();
 
     public static void performDaybreakLeftClickShot(ServerPlayer player, float charge01) {
+        com.velorise.staves.element.VentiManager.cancelIdle(player);
         if (player == null || !player.isAlive() || ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         long now = player.level().getGameTime();
         long last = LAST_DAYBREAK_SHOT.getOrDefault(player.getUUID(), 0L);

@@ -56,5 +56,14 @@ public abstract class CameraMixin {
             }
             this.setPosition(targetPos.x, targetPos.y, targetPos.z);
         }
+        if (!detached && entity != null) {
+            float liftY = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick);
+            if (Math.abs(liftY) > 0.001F) {
+                net.minecraft.world.phys.Vec3 camPos = this.getPosition();
+                this.setPosition(camPos.x, camPos.y + liftY, camPos.z);
+            }
+        }
     }
 }

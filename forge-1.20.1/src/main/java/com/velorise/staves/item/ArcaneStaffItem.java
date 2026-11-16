@@ -1287,6 +1287,8 @@ public final class ArcaneStaffItem extends Item {
             return stack;
         }
         if (kind == Kind.DAYBREAK || kind == Kind.THOUSAND_FLOATING_DREAMS || kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
+            if (kind == Kind.DAYBREAK) com.velorise.staves.element.VentiManager.cancelIdle(player);
+            if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) com.velorise.staves.element.TsaritsaManager.cancelIdle(player);
             return stack;
         }
         if (kind == Kind.GHASTFIRE) {

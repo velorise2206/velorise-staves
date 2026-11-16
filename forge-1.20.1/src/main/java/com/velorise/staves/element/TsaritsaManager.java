@@ -418,6 +418,7 @@ public final class TsaritsaManager {
      */
     public static void performNormalAttack(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        cancelIdle(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         if (!isHoldingTsaritsaWeapon(player)) return;
 
@@ -582,6 +583,7 @@ public final class TsaritsaManager {
      */
     public static void performChargedBowShot(ServerPlayer player, boolean fullCharge) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        cancelIdle(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         if (!isHoldingTsaritsaWeapon(player)) return;
         if (isSpearStanceActive(player)) {
@@ -671,6 +673,7 @@ public final class TsaritsaManager {
      */
     public static void performTapE(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        cancelIdle(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         TsaritsaPlayerState state = getOrCreateState(player);
         state.netherite = isHoldingNetheriteTsaritsa(player);
@@ -697,6 +700,7 @@ public final class TsaritsaManager {
      */
     public static void performHoldE(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
+        cancelIdle(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         TsaritsaPlayerState state = getOrCreateState(player);
         state.netherite = isHoldingNetheriteTsaritsa(player);
@@ -712,6 +716,7 @@ public final class TsaritsaManager {
 
         state.azureCrownUntilTick = 0L;
         state.spearStanceUntilTick = now + SPEAR_STANCE_DURATION_TICKS;
+        freezeWaterAroundSpearPlayer(player, level, state.netherite ? 7 : 6);
         state.spearComboStep = 0;
 
         ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_HOLD_E);
@@ -732,6 +737,7 @@ public final class TsaritsaManager {
      */
     public static boolean triggerTsaritsaUlti(ServerPlayer player) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
+        cancelIdle(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return false;
         if (!isHoldingTsaritsaWeapon(player)) return false;
 
@@ -971,10 +977,13 @@ public final class TsaritsaManager {
             }
             state.wasHoldingTsaritsaLastTick = holding;
 
-            // Tick Azure Star Crown (fires 2-3 Cryo Star Projectiles every 2.0s from above the player's head, even off-field!)
-            if (now < state.azureCrownUntilTick && now % 2L == 0L) {
-                freezeWaterAroundCrownPlayer(player, level);
+            // Spear Stance: swift movement speed, rapid water-surface skating, and gradual trailing ice behind her back
+            if (now < state.spearStanceUntilTick && holding) {
+                player.addEffect(new net.minecraft.world.effect.MobEffectInstance(
+                        net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 15, 1, true, false, false));
+                tickSpearWaterSkating(player, level, now);
             }
+            // Crown form no longer freezes water
             if (now < state.azureCrownUntilTick && now >= state.nextCrownStarTick) {
                 state.nextCrownStarTick = now + AZURE_CROWN_FIRE_INTERVAL_TICKS;
                 fireAzureCrownStars(player, level, state, now < state.supportBurstUntilTick);
@@ -1191,16 +1200,62 @@ public final class TsaritsaManager {
         }
     }
 
-    private static void freezeWaterAroundCrownPlayer(ServerPlayer player, ServerLevel level) {
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        TsaritsaIdleState st = TSARITSA_IDLE_STATES.get(player.getUUID());
+        if (st != null && (st.idleActive || st.stillTicks > 0 || st.lastSyncedCode == 4061)) {
+            st.idleActive = false;
+            st.stillTicks = 0;
+            st.lastStillPos = player.position();
+            st.lastSyncedCode = 4060;
+            ModNetwork.sendStaffAnimation(player, 4060);
+        }
+    }
+
+    private static void tickSpearWaterSkating(ServerPlayer player, ServerLevel level, long now) {
         if (player == null || player.isSpectator() || player.isUnderWater()) return;
+        net.minecraft.core.BlockPos pos = player.blockPosition();
+        net.minecraft.core.BlockPos below = pos.below();
+        boolean inSurfaceWater = player.isInWater()
+                || level.getFluidState(pos).is(net.minecraft.tags.FluidTags.WATER)
+                || level.getFluidState(below).is(net.minecraft.tags.FluidTags.WATER);
+        if (inSurfaceWater) {
+            Vec3 vel = player.getDeltaMovement();
+            Vec3 horiz = new Vec3(vel.x, 0.0D, vel.z);
+            double speed = horiz.length();
+            double newVy = player.isInWater() ? Math.max(0.11D, vel.y) : Math.max(0.02D, vel.y);
+            if (speed > 0.02D) {
+                Vec3 dir = horiz.scale(1.0D / speed);
+                double boosted = Math.min(0.46D, Math.max(speed * 1.24D, 0.28D));
+                player.setDeltaMovement(dir.x * boosted, newVy, dir.z * boosted);
+                player.hurtMarked = true;
+            } else if (player.isInWater()) {
+                player.setDeltaMovement(vel.x, newVy, vel.z);
+                player.hurtMarked = true;
+            }
+            player.fallDistance = 0.0F;
+        }
+        if (now % 2L == 0L) {
+            TsaritsaPlayerState st = PLAYER_STATES.get(player.getUUID());
+            int rad = (st != null && st.netherite) ? 7 : 6;
+            freezeWaterAroundSpearPlayer(player, level, rad);
+        }
+    }
+
+    private static void freezeWaterAroundSpearPlayer(ServerPlayer player, ServerLevel level, int radius) {
+        if (player == null || player.isSpectator() || player.isUnderWater()
+                || player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)
+                || level.getFluidState(player.blockPosition().above()).is(net.minecraft.tags.FluidTags.WATER)) {
+            return;
+        }
         net.minecraft.core.BlockPos base = player.blockPosition();
-        int radius = 5;
         int rSq = radius * radius;
         net.minecraft.core.BlockPos.MutableBlockPos mpos = new net.minecraft.core.BlockPos.MutableBlockPos();
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 if (dx * dx + dz * dz > rSq) continue;
                 for (int dy = -1; dy <= 0; dy++) {
+                    if (base.getY() + dy > net.minecraft.util.Mth.floor(player.getY() + 0.15D)) continue;
                     mpos.set(base.getX() + dx, base.getY() + dy, base.getZ() + dz);
                     if (!level.isLoaded(mpos)) continue;
                     net.minecraft.world.level.block.state.BlockState bs = level.getBlockState(mpos);

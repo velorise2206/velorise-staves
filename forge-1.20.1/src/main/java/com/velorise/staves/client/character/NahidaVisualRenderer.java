@@ -103,6 +103,36 @@ public final class NahidaVisualRenderer {
         return WindGliderRenderer.smoothStep01(d.nahidaIdleSwingFade);
     }
 
+    public static float getSwingCameraPitchOffset(net.minecraft.world.entity.Entity entity, float partialTick) {
+        if (!(entity instanceof LivingEntity le) || !ClientAuraTracker.isNahidaIdleSwing(le.getId())) return 0.0F;
+        if (le.isUsingItem() || le.swinging) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        float w = stepIdleSwingFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return 0.0F;
+        float sway = Mth.sin((le.tickCount + partialTick) * 0.10F);
+        return sway * 4.2F * w;
+    }
+
+    public static void renderFirstPersonSwing(AbstractClientPlayer player, float partialTicks, PoseStack poseStack, MultiBufferSource buffer) {
+        if (player == null || !ClientAuraTracker.isNahidaIdleSwing(player.getId())) return;
+        if (player.isUsingItem() || player.swinging) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(player.getId());
+        float fade = stepIdleSwingFade(d, System.currentTimeMillis());
+        if (fade <= 0.02F) return;
+        float sway = Mth.sin((player.tickCount + partialTicks) * 0.10F);
+        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.34F, -0.08F + sway * 0.03F, -0.42F + sway * 0.04F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-sway * 8.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 4.0F));
+            Matrix4f mat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.014F, -0.45F, -0.014F, 0.014F, 0.55F, 0.014F, 120, 225, 110, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.022F, 0.02F, -0.022F, 0.022F, 0.09F, 0.022F, 225, 255, 185, 255);
+            poseStack.popPose();
+        }
+    }
+
     public static boolean applyIdleAndViewfinderHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
             ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());

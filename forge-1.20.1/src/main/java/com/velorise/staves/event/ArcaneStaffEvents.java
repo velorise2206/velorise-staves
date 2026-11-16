@@ -834,7 +834,7 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double boostScale = isNetherite ? 1.25D : 1.05D;
-        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale, pushScale);
+        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale, pushScale, ArcaneStaffItem.Kind.DAYBREAK);
     }
 
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
@@ -842,7 +842,7 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         double radius = isNetherite ? 4.5D : 3.5D;
         double boostScale = isNetherite ? 1.25D : 1.05D;
-        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale, 1.0F);
+        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale, 1.0F, ArcaneStaffItem.Kind.WIND);
     }
 
     public static void resolveWindBurst(
@@ -855,7 +855,7 @@ public final class ArcaneStaffEvents {
             double radius,
             double boostScale
     ) {
-        resolveWindBurst(level, hit, owner, directHit, baseDmg, attackU, radius, boostScale, 1.0F);
+        resolveWindBurst(level, hit, owner, directHit, baseDmg, attackU, radius, boostScale, 1.0F, ArcaneStaffItem.Kind.WIND);
     }
 
     public static void resolveWindBurst(
@@ -868,6 +868,21 @@ public final class ArcaneStaffEvents {
             double radius,
             double boostScale,
             float pushScale
+    ) {
+        resolveWindBurst(level, hit, owner, directHit, baseDmg, attackU, radius, boostScale, pushScale, ArcaneStaffItem.Kind.WIND);
+    }
+
+    public static void resolveWindBurst(
+            ServerLevel level,
+            Vec3 hit,
+            @org.jetbrains.annotations.Nullable Entity owner,
+            @org.jetbrains.annotations.Nullable LivingEntity directHit,
+            float baseDmg,
+            float attackU,
+            double radius,
+            double boostScale,
+            float pushScale,
+            ArcaneStaffItem.Kind kind
     ) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         double radiusSqr = radius * radius;
@@ -906,6 +921,9 @@ public final class ArcaneStaffEvents {
             if (player != null) {
                 com.velorise.staves.advancement.ModAdvancements.trigger(
                         player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
+            }
+            if (kind == ArcaneStaffItem.Kind.DAYBREAK) {
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, directHit.position(), directHit.position().add(0.0D, 2.4D, 0.0D), 12, 0xFF5CE6C8);
             }
             if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
                 Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);

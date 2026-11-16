@@ -56,7 +56,8 @@ public final class RaidenVisualRenderer {
         }
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
-        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float bodyYaw = (d != null && d.raidenIdleYawSet) ? d.raidenIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
 
         boolean holdingRaiden = ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
@@ -691,124 +692,355 @@ public final class RaidenVisualRenderer {
             float dt = Math.min(0.1F, (nowMs - d.raidenIdleLastMs) / 1000.0F);
             d.raidenIdleLastMs = nowMs;
             if (d.raidenIdle) {
-                d.raidenIdleFade = Math.min(1.0F, d.raidenIdleFade + dt / 0.45F);
+                d.raidenIdleFade = Math.min(1.0F, d.raidenIdleFade + dt / 1.60F);
             } else {
-                d.raidenIdleFade = Math.max(0.0F, d.raidenIdleFade - dt / 0.35F);
+                d.raidenIdleFade = Math.max(0.0F, d.raidenIdleFade - dt / 0.45F);
             }
         }
         return WindGliderRenderer.smoothStep01(d.raidenIdleFade);
     }
 
+    public static float getLevitationCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
+        if (!(entity instanceof LivingEntity le) || le.isUsingItem() || le.swinging) return 0.0F;
+        if (!ClientAuraTracker.isRaidenIdle(le.getId())) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        if (d == null) return 0.0F;
+        stepIdleFade(d, System.currentTimeMillis());
+        float liftProg = WindGliderRenderer.smoothStep01(d.raidenIdleFade / 0.55F);
+        if (liftProg <= 0.01F) return 0.0F;
+        float hover = Mth.sin((le.tickCount + partialTick) * 0.10F);
+        return (0.72F + hover * 0.053F) * liftProg;
+    }
+
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(entity.getId());
+            if (dAct != null) {
+                dAct.raidenIdle = false;
+                dAct.raidenIdleFade = 0.0F;
+            }
+            return false;
+        }
         if (!ClientAuraTracker.isRaidenIdle(entity.getId())) return false;
         ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
-        float w = stepIdleFade(d, System.currentTimeMillis());
+        stepIdleFade(d, System.currentTimeMillis());
+        float w = (d != null) ? WindGliderRenderer.smoothStep01(d.raidenIdleFade / 0.55F) : 0.0F;
         if (w <= 0.01F) return false;
-        float bob = Mth.sin(ageInTicks * 0.08F) * 0.025F;
+
+        // Levitating gently up and down above the giant Magatsu Mitake Narukami no Mikoto hands
+        float hover = Mth.sin(ageInTicks * 0.10F);
+        float liftY = -11.5F * w + hover * 0.85F * w;
+        model.head.y += liftY;
+        model.hat.y += liftY;
+        model.body.y += liftY;
+        model.rightArm.y += liftY;
+        model.leftArm.y += liftY;
+        model.rightLeg.y += liftY;
+        model.leftLeg.y += liftY;
+
         model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
         model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-        // Left arm extended forward-outward with open palm supporting the Electro Sphere
-        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.04F + bob);
-        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.14F);
-        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.16F);
-        // Right arm relaxed at side
-        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, 0.08F);
-        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, 0.0F);
-        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.08F);
-        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.16F);
-        model.head.yRot = Mth.lerp(w, model.head.yRot, 0.24F);
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.05F + hover * 0.04F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.36F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.28F);
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, 0.14F - hover * 0.03F);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.12F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.24F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.10F);
+        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.06F);
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.38F + hover * 0.05F);
+        model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.08F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.06F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), -0.10F);
+        model.hat.copyFrom(model.head);
         return true;
+    }
+
+    private static void drawGauntletHand(
+            VertexConsumer solidVc,
+            PoseStack poseStack,
+            float side,
+            float time
+    ) {
+        poseStack.pushPose();
+        poseStack.scale(1.38F, 1.38F, 1.38F);
+        Matrix4f mat = poseStack.last().pose();
+        // Forearm wrist cuff with gold/violet armor plates
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.15F, -0.055F, -0.26F, 0.15F, 0.055F, -0.13F, 118, 86, 156, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.16F, -0.048F, -0.15F, 0.16F, 0.048F, -0.12F, 215, 175, 118, 255);
+        // Sculpted ivory-bronze gauntlet palm
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.19F, -0.045F, -0.12F, 0.19F, 0.045F, 0.16F, 178, 152, 124, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.20F, -0.052F, 0.08F, 0.20F, 0.052F, 0.17F, 128, 82, 175, 255);
+        // Glowing Electro Eye core on the palm
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.075F, 0.042F, -0.045F, 0.075F, 0.058F, 0.065F, 205, 95, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.032F, 0.056F, -0.015F, 0.032F, 0.066F, 0.035F, 255, 240, 255, 255);
+
+        // 4 thicker articulated fingers curling upward
+        for (int f = 0; f < 4; f++) {
+            float fx = -0.138F + f * 0.092F;
+            float fLen = (f == 1 || f == 2) ? 0.16F : 0.13F;
+            poseStack.pushPose();
+            poseStack.translate(fx, 0.0F, 0.16F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F - Mth.sin(time * 0.08F + f) * 4.0F));
+            Matrix4f fMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, -0.032F, -0.030F, 0.0F, 0.032F, 0.030F, fLen, 185, 160, 132, 255);
+            poseStack.translate(0.0F, 0.0F, fLen);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F));
+            Matrix4f fMat2 = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat2, -0.026F, -0.024F, 0.0F, 0.026F, 0.024F, fLen * 0.80F, 212, 188, 162, 255);
+            poseStack.popPose();
+        }
+        // Thumb on inner side
+        poseStack.pushPose();
+        poseStack.translate(-side * 0.19F, 0.01F, 0.02F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(side * 38.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F));
+        Matrix4f tMat = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, tMat, -0.034F, -0.030F, 0.0F, 0.034F, 0.030F, 0.15F, 185, 160, 132, 255);
+        poseStack.popPose();
+        poseStack.popPose();
+    }
+
+    private static void drawPuppetArm(
+            VertexConsumer solidVc,
+            PoseStack poseStack,
+            float scale,
+            float elbowDeg,
+            boolean openHand
+    ) {
+        poseStack.pushPose();
+        poseStack.scale(scale, scale, scale);
+        Matrix4f m0 = poseStack.last().pose();
+        // Ornate shoulder pauldron + spiked horn + glowing Electro core
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m0, -0.11F, -0.09F, -0.11F, 0.11F, 0.11F, 0.11F, 148, 98, 212, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m0, -0.05F, 0.11F, -0.05F, 0.05F, 0.22F, 0.05F, 215, 165, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m0, -0.06F, -0.06F, -0.125F, 0.06F, 0.06F, 0.125F, 245, 195, 255, 255);
+        // Sculpted upper arm
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m0, -0.072F, -0.36F, -0.072F, 0.072F, -0.05F, 0.072F, 192, 164, 232, 255);
+        // Elbow joint orb
+        poseStack.translate(0.0F, -0.36F, 0.0F);
+        Matrix4f me = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, me, -0.075F, -0.055F, -0.075F, 0.075F, 0.055F, 0.075F, 225, 155, 255, 255);
+        // Forearm bent inward/forward
+        poseStack.mulPose(Axis.XP.rotationDegrees(elbowDeg));
+        Matrix4f m1 = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m1, -0.078F, -0.34F, -0.078F, 0.078F, 0.0F, 0.078F, 208, 182, 244, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, m1, -0.088F, -0.28F, -0.088F, 0.088F, -0.21F, 0.088F, 132, 68, 212, 255);
+        // Articulated hand
+        poseStack.translate(0.0F, -0.35F, 0.0F);
+        Matrix4f mh = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mh, -0.075F, -0.09F, -0.045F, 0.075F, 0.02F, 0.045F, 225, 202, 250, 255);
+        if (openHand) {
+            for (int f = -2; f <= 2; f++) {
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mh, f * 0.028F - 0.011F, -0.18F, -0.015F, f * 0.028F + 0.011F, -0.09F, 0.015F, 240, 225, 255, 255);
+            }
+        } else {
+            // Clenched fist fingers gripping the sword hilt
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mh, -0.078F, -0.11F, -0.065F, 0.078F, -0.03F, 0.065F, 238, 218, 255, 255);
+        }
+        poseStack.popPose();
     }
 
     public static void renderIdleEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         int id = entity.getId();
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(id);
+            if (dAct != null) {
+                dAct.raidenIdle = false;
+                dAct.raidenIdleFade = 0.0F;
+            }
+            return;
+        }
         if (!ClientAuraTracker.isRaidenIdle(id)) return;
         ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
         long nowMs = System.currentTimeMillis();
-        float fade = stepIdleFade(d, nowMs);
+        stepIdleFade(d, nowMs);
+        // Robot construct gradually materializes after Ei rises into the air
+        float fade = (d != null) ? WindGliderRenderer.smoothStep01((d.raidenIdleFade - 0.42F) / 0.58F) : 0.0F;
         if (fade <= 0.01F) return;
 
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
-            return;
-        }
+        boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
-        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+        float hover = Mth.sin(time * 0.10F) * 0.055F;
 
+        if (isFirstPersonSelf) {
+            // In 1st-person, hilt is on the RIGHT (+X) gripped by her right mech arm, blade sweeps down-left (-X)
+            VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+            poseStack.pushPose();
+            poseStack.translate(-0.05F, -0.44F + hover * 0.4F, -0.82F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-22.0F));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-12.0F));
+            poseStack.scale(fade * 0.62F, fade * 0.62F, fade * 0.62F);
+            Matrix4f bMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -1.15F, -0.038F, -0.038F, -0.58F, 0.038F, 0.038F, 95, 38, 145, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.60F, -0.11F, -0.045F, -0.52F, 0.11F, 0.045F, 215, 115, 255, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.52F, -0.048F, -0.018F, 1.10F, 0.048F, 0.018F, 175, 72, 245, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.50F, -0.022F, -0.024F, 1.18F, 0.022F, 0.024F, 255, 232, 255, 255);
+            // Robot mech forearm & clenched gauntlet fist gripping the hilt at x = -0.86F
+            poseStack.pushPose();
+            poseStack.translate(-0.86F, 0.02F, 0.0F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F));
+            Matrix4f fMat = poseStack.last().pose();
+            // Clenched fist & 4 wrapped fingers over the hilt
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, -0.11F, -0.075F, -0.070F, 0.11F, 0.095F, 0.070F, 212, 188, 245, 255);
+            for (int f = 0; f < 4; f++) {
+                float fx = -0.085F + f * 0.056F;
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, fx - 0.020F, -0.092F, -0.078F, fx + 0.020F, 0.035F, 0.078F, 235, 214, 255, 255);
+            }
+            // Violet wrist cuff & armored mech forearm extending up-right
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, -0.115F, 0.095F, -0.085F, 0.115F, 0.175F, 0.085F, 132, 68, 212, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, -0.105F, 0.175F, -0.080F, 0.105F, 0.56F, 0.080F, 198, 172, 238, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, fMat, -0.075F, 0.32F, -0.092F, 0.075F, 0.44F, 0.092F, 235, 165, 255, 255);
+            poseStack.popPose();
+            poseStack.popPose();
+            return;
+        }
+
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-        // Positioned cleanly above the extended LEFT palm
-        float bob = Mth.sin(time * 0.12F) * 0.025F;
-        poseStack.translate(0.38F, 1.18F + bob, 0.52F);
         poseStack.scale(fade, fade, fade);
 
-        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
-        float pulse = 1.0F + 0.06F * Mth.sin(time * 0.28F);
-        float haloR = 0.21F * pulse;
-        float shellR = 0.145F * pulse;
-        float midR = 0.095F * pulse;
-        float coreR = 0.042F * pulse;
+        // PASS 1: Solid 3D Magatsu Mitake Narukami no Mikoto armor, giant hands, puppet arms, and Odachi blade
+        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
 
-        int haloA = Math.max(10, Math.round(90.0F * fade));
-        int shellA = Math.max(16, Math.round(185.0F * fade));
-        int midA = Math.max(20, Math.round(225.0F * fade));
-        int coreA = Math.max(24, Math.round(255.0F * fade));
-
-        // 1. Multi-layered swirling Electro Sphere (outer halo -> deep purple shell -> bright violet -> white core)
-        for (int layer = 0; layer < 3; layer++) {
+        // 1A. Twin Giant Gauntlet Hands raised clearly above the ground beneath Raiden's hovering feet
+        for (int side : new int[]{-1, 1}) {
             poseStack.pushPose();
-            float dir = (layer % 2 == 0) ? 1.0F : -1.0F;
-            poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.4F * dir + layer * 48.0F));
-            poseStack.mulPose(Axis.XP.rotationDegrees(time * 2.5F * dir + layer * 35.0F));
-            Matrix4f mat = poseStack.last().pose();
-            WindGliderRenderer.emitDoubleQuad(vc, mat, -haloR, -haloR, 0.0F, haloR, -haloR, 0.0F, haloR, haloR, 0.0F, -haloR, haloR, 0.0F, 145, 45, 255, haloA);
-            WindGliderRenderer.emitDoubleQuad(vc, mat, -shellR, -shellR, 0.0F, shellR, -shellR, 0.0F, shellR, shellR, 0.0F, -shellR, shellR, 0.0F, 118, 35, 230, shellA);
-            WindGliderRenderer.emitDoubleQuad(vc, mat, 0.0F, -shellR, -shellR, 0.0F, -shellR, shellR, 0.0F, shellR, shellR, 0.0F, shellR, -shellR, 118, 35, 230, shellA);
-            WindGliderRenderer.emitDoubleQuad(vc, mat, -midR, -midR, 0.0F, midR, -midR, 0.0F, midR, midR, 0.0F, -midR, midR, 0.0F, 198, 115, 255, midA);
-            WindGliderRenderer.emitDoubleQuad(vc, mat, -coreR, -coreR, 0.0F, coreR, -coreR, 0.0F, coreR, coreR, 0.0F, -coreR, coreR, 0.0F, 255, 240, 255, coreA);
+            poseStack.translate(side * 0.56F, 0.44F + hover * 0.45F, 0.12F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(side * 24.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 10.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(-8.0F));
+            drawGauntletHand(solidVc, poseStack, side, time);
             poseStack.popPose();
         }
 
-        // 2. Three tilted orbiting Electro energy rings
-        for (int rIdx = 0; rIdx < 3; rIdx++) {
+        // 1B. Giant Right-Side Mech Arm (-X) whose fist grips directly onto the Odachi sword hilt
+        poseStack.pushPose();
+        poseStack.translate(-1.26F, 2.24F + hover * 0.7F, -0.08F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(14.0F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(18.0F));
+        drawPuppetArm(solidVc, poseStack, 1.65F, -42.0F, false);
+        poseStack.popPose();
+
+        // 1C. Giant Curved Electro Odachi Katana with hilt positioned inside the right mech fist
+        poseStack.pushPose();
+        poseStack.translate(-0.08F, 0.96F + hover * 0.65F, 0.34F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(-24.0F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(-6.0F));
+        Matrix4f swordMat = poseStack.last().pose();
+        // Hilt (tsuka) + pommel + diamond tsuka-ito accents
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -1.28F, -0.044F, -0.044F, -0.64F, 0.044F, 0.044F, 88, 32, 138, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -1.36F, -0.058F, -0.058F, -1.28F, 0.058F, 0.058F, 215, 145, 255, 255);
+        for (int w = 0; w < 4; w++) {
+            float wx = -1.18F + w * 0.14F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, wx, -0.048F, -0.048F, wx + 0.05F, 0.048F, 0.048F, 185, 90, 245, 255);
+        }
+        // Ornate Electro tsuba guard
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -0.66F, -0.14F, -0.058F, -0.56F, 0.14F, 0.058F, 195, 90, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -0.63F, -0.085F, -0.072F, -0.59F, 0.085F, 0.072F, 255, 232, 255, 255);
+        // Multi-segment curved glowing Odachi blade
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -0.56F, -0.054F, -0.018F, 0.36F, 0.054F, 0.018F, 168, 62, 245, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, swordMat, -0.54F, -0.024F, -0.024F, 0.38F, 0.024F, 0.024F, 255, 235, 255, 255);
+        poseStack.pushPose();
+        poseStack.translate(0.36F, 0.0F, 0.0F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(7.0F));
+        Matrix4f midMat = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, midMat, 0.0F, -0.048F, -0.017F, 0.56F, 0.048F, 0.017F, 178, 70, 248, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, midMat, 0.0F, -0.020F, -0.023F, 0.58F, 0.020F, 0.023F, 255, 240, 255, 255);
+        poseStack.translate(0.56F, 0.0F, 0.0F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(8.0F));
+        Matrix4f tipMat = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, tipMat, 0.0F, -0.036F, -0.014F, 0.44F, 0.036F, 0.014F, 195, 92, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, tipMat, 0.0F, -0.015F, -0.020F, 0.50F, 0.015F, 0.020F, 255, 248, 255, 255);
+        poseStack.popPose();
+        poseStack.popPose();
+
+        // 1D. Three Horizontal/Angled Left-Side Puppet Arms (+X) & 2 Sharp Electro Vajra Blades
+        float[][] leftArms = new float[][]{
+            {1.15F, 2.52F, -0.10F,  78.0F, -55.0F, 0.95F},
+            {1.28F, 1.92F, -0.14F,  96.0F, -48.0F, 0.92F},
+            {1.12F, 1.32F, -0.08F, 118.0F, -52.0F, 0.98F}
+        };
+        for (int i = 0; i < leftArms.length; i++) {
+            float[] la = leftArms[i];
+            float armBob = Mth.sin(time * 0.12F + i * 1.4F) * 0.045F;
             poseStack.pushPose();
-            poseStack.mulPose(Axis.ZP.rotationDegrees(rIdx == 0 ? 34.0F : (rIdx == 1 ? -42.0F : 78.0F)));
-            poseStack.mulPose(Axis.YP.rotationDegrees(time * (rIdx % 2 == 0 ? 5.2F : -4.6F) + rIdx * 55.0F));
-            Matrix4f rMat = poseStack.last().pose();
-            float rad = 0.175F + rIdx * 0.015F;
-            float thick = 0.010F;
-            int segs = 14;
-            for (int s = 0; s < segs; s++) {
-                float a0 = (float) (s * Math.PI * 2.0D / segs);
-                float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs);
-                float x0 = Mth.cos(a0) * rad, z0 = Mth.sin(a0) * rad;
-                float x1 = Mth.cos(a1) * rad, z1 = Mth.sin(a1) * rad;
-                WindGliderRenderer.emitDoubleQuad(vc, rMat, x0, -thick, z0, x1, -thick, z1, x1, thick, z1, x0, thick, z0, 225, 145, 255, shellA);
-            }
+            poseStack.translate(la[0], la[1] + hover * 0.6F + armBob, la[2]);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(la[3]));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-20.0F));
+            drawPuppetArm(solidVc, poseStack, la[5], la[4], true);
+            poseStack.popPose();
+        }
+        // Two floating Electro Vajra/Kunai spikes between the left puppet arms
+        for (int k = 0; k < 2; k++) {
+            float ky = (k == 0 ? 2.22F : 1.62F) + hover * 0.6F + Mth.cos(time * 0.14F + k * 2.0F) * 0.04F;
+            poseStack.pushPose();
+            poseStack.translate(1.36F, ky, 0.08F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(k == 0 ? -18.0F : 18.0F));
+            Matrix4f kMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, kMat, -0.032F, -0.22F, -0.032F, 0.032F, 0.22F, 0.032F, 175, 70, 245, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, kMat, -0.016F, -0.32F, -0.016F, 0.016F, 0.32F, 0.016F, 255, 232, 255, 255);
             poseStack.popPose();
         }
 
-        // 3. Crackling jagged lightning arcs snapping around the sphere
-        VertexConsumer lightVc = buffer.getBuffer(RenderType.lightning());
-        int arcPhase = (int) (time * 0.45F);
-        int boltAlpha = Math.max(25, Math.round(235.0F * fade));
-        for (int b = 0; b < 4; b++) {
-            float aStart = (float) ((b * 1.57D) + ((arcPhase * 0.73D + b * 1.9D) % 6.28D));
-            float aEnd = aStart + 1.15F;
-            float rArc = 0.19F;
-            Vec3 p0 = new Vec3(Mth.cos(aStart) * rArc, Mth.sin(aStart * 1.3F) * 0.11F, Mth.sin(aStart) * rArc);
-            Vec3 p3 = new Vec3(Mth.cos(aEnd) * rArc, Mth.sin(aEnd * 1.3F) * 0.11F, Mth.sin(aEnd) * rArc);
-            float jx = Mth.sin(arcPhase * 3.1F + b * 2.7F) * 0.055F;
-            float jy = Mth.cos(arcPhase * 2.4F + b * 1.9F) * 0.055F;
-            Vec3 p1 = p0.lerp(p3, 0.35D).add(jx, jy, -jx);
-            Vec3 p2 = p0.lerp(p3, 0.68D).add(-jy, -jx, jy);
-            Matrix4f lMat = poseStack.last().pose();
-            Vec3 camDir = new Vec3(0.0D, 0.0D, 1.0D);
-            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p0, p1, camDir, 0.009D, 195, 95, 255, boltAlpha);
-            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p1, p2, camDir, 0.008D, 235, 190, 255, boltAlpha);
-            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p2, p3, camDir, 0.007D, 255, 240, 255, boltAlpha);
+        // PASS 2: Translucent Giant Crescent Electro Halo Ring & Mitsudomoe Crest behind her back
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 2.16F + hover * 0.75F, -0.50F);
+        Matrix4f haloMat = poseStack.last().pose();
+        int aHalo = Math.max(20, Math.round(210.0F * fade));
+        int aCore = Math.max(25, Math.round(252.0F * fade));
+        float rIn = 0.88F, rOut = 1.05F;
+        int segs = 24;
+        for (int s = 0; s < segs; s++) {
+            float a0 = (float) (-Math.PI * 0.22D + s * (Math.PI * 1.44D) / segs);
+            float a1 = (float) (-Math.PI * 0.22D + (s + 1) * (Math.PI * 1.44D) / segs);
+            WindGliderRenderer.emitDoubleQuad(transVc, haloMat,
+                    Mth.cos(a0) * rIn,  Mth.sin(a0) * rIn,  0.0F,
+                    Mth.cos(a0) * rOut, Mth.sin(a0) * rOut, 0.0F,
+                    Mth.cos(a1) * rOut, Mth.sin(a1) * rOut, 0.0F,
+                    Mth.cos(a1) * rIn,  Mth.sin(a1) * rIn,  0.0F,
+                    158, 58, 245, aHalo);
         }
+        // Upward-pointing crescent horns at the top of the halo
+        for (int side : new int[]{-1, 1}) {
+            WindGliderRenderer.emitDoubleQuad(transVc, haloMat,
+                    side * 0.22F, 0.96F, 0.0F,
+                    side * 0.36F, 0.92F, 0.0F,
+                    side * 0.14F, 1.38F, 0.0F,
+                    side * 0.12F, 1.38F, 0.0F,
+                    215, 135, 255, aCore);
+        }
+        // 6 glowing Electro beads along the upper arc
+        for (int b = 0; b < 6; b++) {
+            float ang = (float) (Math.PI * 0.14D + b * (Math.PI * 0.72D) / 5.0D);
+            float bx = Mth.cos(ang) * 0.96F;
+            float by = Mth.sin(ang) * 0.96F;
+            WindGliderRenderer.emitDoubleQuad(transVc, haloMat,
+                    bx - 0.070F, by - 0.070F, 0.01F,
+                    bx + 0.070F, by - 0.070F, 0.01F,
+                    bx + 0.070F, by + 0.070F, 0.01F,
+                    bx - 0.070F, by + 0.070F, 0.01F,
+                    245, 205, 255, aCore);
+        }
+        // Mitsudomoe tri-crest above her head
+        for (int m = 0; m < 3; m++) {
+            float ang = (float) (time * 0.05D + m * Math.PI * 2.0D / 3.0D);
+            float mx = Mth.cos(ang) * 0.18F;
+            float my = 0.56F + Mth.sin(ang) * 0.18F;
+            WindGliderRenderer.emitDoubleQuad(transVc, haloMat,
+                    mx - 0.060F, my - 0.060F, 0.02F,
+                    mx + 0.060F, my - 0.060F, 0.02F,
+                    mx + 0.060F, my + 0.060F, 0.02F,
+                    mx - 0.060F, my + 0.060F, 0.02F,
+                    252, 228, 255, aCore);
+        }
+        poseStack.popPose();
 
         poseStack.popPose();
     }

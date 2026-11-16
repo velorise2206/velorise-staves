@@ -62,6 +62,15 @@ public abstract class CameraMixin {
             }
             this.setPosition(targetPos.x, targetPos.y, targetPos.z);
         }
+        if (!detached && entity != null) {
+            float liftY = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick);
+            if (Math.abs(liftY) > 0.001F) {
+                net.minecraft.world.phys.Vec3 camPos = this.getPosition();
+                this.setPosition(camPos.x, camPos.y + liftY, camPos.z);
+            }
+        }
     }
 
     @Inject(
@@ -83,8 +92,13 @@ public abstract class CameraMixin {
         }
         float yaw = ClientAuraRenderer.getFrozenCameraYaw(entity, this.yRot);
         float pitch = ClientAuraRenderer.getFrozenCameraPitch(entity, this.xRot);
-        if (yaw != this.yRot || pitch != this.xRot) {
-            this.setRotation(yaw, pitch);
+        if (!detached && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike
+                && bike.isSpinning()) {
+            yaw = net.minecraft.util.Mth.rotLerp(partialTick, bike.yRotO, bike.getYRot());
+        }
+        float swingPitch = !detached ? com.velorise.staves.client.character.NahidaVisualRenderer.getSwingCameraPitchOffset(entity, partialTick) : 0.0F;
+        if (yaw != this.yRot || pitch != this.xRot || Math.abs(swingPitch) > 0.001F) {
+            this.setRotation(yaw, pitch + swingPitch);
         }
     }
 }

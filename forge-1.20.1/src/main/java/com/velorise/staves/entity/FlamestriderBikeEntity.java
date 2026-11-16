@@ -99,6 +99,8 @@ public class FlamestriderBikeEntity extends Entity {
     private Vec3 clientDashVec = Vec3.ZERO;
     public float wheelSpinAngle = 0.0F;
     public float spinYawOffset = 0.0F;
+    public float spinLean = 0.0F;
+    public float prevSpinLean = 0.0F;
     private double distanceTraveledBlocks = 0.0D;
 
     public double getDistanceTraveledBlocks() {
@@ -844,10 +846,16 @@ public class FlamestriderBikeEntity extends Entity {
     private void tickClientVisuals() {
         double horizSpeed = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
         this.wheelSpinAngle += (float) (horizSpeed * 2.6F);
+        this.prevSpinLean = this.spinLean;
         if (isSpinning()) {
             this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
+            this.spinLean = Mth.lerp(0.35F, this.spinLean, 22.0F);
         } else {
             this.spinYawOffset = 0.0F;
+            this.spinLean = Mth.lerp(0.28F, this.spinLean, 0.0F);
+            if (Math.abs(this.spinLean) < 0.05F) {
+                this.spinLean = 0.0F;
+            }
         }
     }
 
@@ -999,8 +1007,8 @@ public class FlamestriderBikeEntity extends Entity {
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
             float bikeYaw = (spinOrbitAngle + 195.0F) % 360.0F;
+            this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
-            this.yRotO = bikeYaw;
         } else {
             spinOrbitRadius = 0.0D;
             spinPivotXO = this.getX();

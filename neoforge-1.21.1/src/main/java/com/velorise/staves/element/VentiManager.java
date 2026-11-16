@@ -1092,9 +1092,23 @@ public final class VentiManager {
         int stillTicks = 0;
         int activeCode = 0;
         int lastSyncedCode = -1;
+        int idleVariant = 0;
+        int songIndex = 0;
     }
 
     private static final java.util.Map<java.util.UUID, ArchonStillState> VENTI_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        ArchonStillState vst = VENTI_IDLE_STATES.get(player.getUUID());
+        if (vst != null && (vst.activeCode == 4051 || vst.stillTicks > 0)) {
+            vst.stillTicks = 0;
+            vst.lastStillPos = player.position();
+            vst.activeCode = 4050;
+            vst.lastSyncedCode = 4050;
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 4050);
+        }
+    }
 
     public static void tickIdle(MinecraftServer server, long now) {
         if (server == null) return;
@@ -1114,7 +1128,27 @@ public final class VentiManager {
             boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
             if (canVenti && vDistSq < 0.16D) {
                 vst.stillTicks++;
-                vst.activeCode = vst.stillTicks >= 60 ? 4051 : 4050;
+                if (vst.stillTicks == 60) {
+                    vst.idleVariant = (vst.idleVariant + 1) % 2;
+                    if (vst.idleVariant == 0) {
+                        vst.songIndex = (vst.songIndex + 1) % 4;
+                    }
+                }
+                if (vst.stillTicks >= 60) {
+                    if (vst.idleVariant == 1) {
+                        // Levitation idle hovers for ~5s (ticks 60..160) then gently descends
+                        if (vst.stillTicks <= 160) {
+                            vst.activeCode = 4052;
+                        } else {
+                            vst.activeCode = 4050;
+                            vst.stillTicks = 0;
+                        }
+                    } else {
+                        vst.activeCode = 4051;
+                    }
+                } else {
+                    vst.activeCode = 4050;
+                }
             } else {
                 vst.stillTicks = 0;
                 vst.lastStillPos = player.position();
@@ -1125,7 +1159,25 @@ public final class VentiManager {
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
             }
             if (vst.activeCode == 4051 && vst.stillTicks >= 60 && (vst.stillTicks - 60) % 4 == 0) {
-                int[] melody = {13, 17, 20, 22, 20, 17, 15, -1, 13, 15, 17, 20, 17, 15, 13, -1, 10, 13, 17, 20, 18, 17, 15, 13, -1, -1};
+                int[][] melodies = {
+                    // 1. Mondstadt Breeze (Gentle Anemo Arpeggio)
+                    {13, 17, 20, 22, 20, 17, 15, -1, 13, 15, 17, 20, 17, 15, 13, -1,
+                     10, 13, 17, 20, 18, 17, 15, 13, -1, 15, 17, 20, 22, 24, 22, 20,
+                     17, 15, 13, -1, 17, 20, 22, 20, 17, 15, 13, 10, 13, -1, -1, -1},
+                    // 2. Dawn Winery Ballad (Lyrical Pentatonic)
+                    {12, 14, 16, 19, 21, 19, 16, -1, 14, 16, 19, 16, 14, 12, -1, -1,
+                     9, 12, 14, 16, 19, 16, 14, 12, -1, 14, 16, 19, 21, 24, 21, 19,
+                     16, 14, 12, -1, 19, 21, 19, 16, 14, 12, 9, 12, -1, -1, -1, -1},
+                    // 3. Starfell Serenade (Uplifting Bard Melody)
+                    {15, 19, 22, 24, 22, 19, 17, -1, 15, 17, 19, 22, 19, 17, 15, -1,
+                     12, 15, 19, 22, 20, 19, 17, 15, -1, 17, 19, 22, 24, 27, 24, 22,
+                     19, 17, 15, -1, 22, 20, 19, 17, 15, 12, 15, -1, -1, -1, -1, -1},
+                    // 4. Windblume Waltz (Bright Spring Tune)
+                    {17, 21, 24, 21, 19, 17, -1, 14, 17, 21, 19, 17, 14, -1, 12, 14,
+                     17, 19, 21, 19, 17, 14, -1, 17, 19, 21, 24, 26, 24, 21, 19, 17,
+                     14, 12, 14, -1, 17, 21, 24, 21, 19, 17, 14, 17, -1, -1, -1, -1}
+                };
+                int[] melody = melodies[Math.floorMod(vst.songIndex, melodies.length)];
                 int noteIdx = ((vst.stillTicks - 60) / 4) % melody.length;
                 int note = melody[noteIdx];
                 if (note >= 0 && player.level() instanceof ServerLevel sl) {

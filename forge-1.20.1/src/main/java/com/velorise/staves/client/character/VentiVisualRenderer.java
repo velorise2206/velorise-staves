@@ -9,6 +9,7 @@ import com.velorise.staves.client.glider.WindGliderRenderer;
 import com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer;
 import com.velorise.staves.item.ArcaneStaffItem;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -405,7 +406,112 @@ public final class VentiVisualRenderer {
         return WindGliderRenderer.smoothStep01(d.ventiIdleFade);
     }
 
+    public static boolean renderUpdraftArc(
+            ClientAuraTracker.ActiveArc arc,
+            Vec3 startPos,
+            Vec3 endPos,
+            Vec3 camPos,
+            long now,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource
+    ) {
+        if (arc.color != 0xFF5CE6C8) return false;
+        float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+        float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+        float fade = (prog < 0.20F) ? (prog / 0.20F) : (1.0F - (prog - 0.20F) / 0.80F);
+        int alpha = Math.max(12, Math.round(220.0F * fade));
+
+        VertexConsumer vc = bufferSource.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        Vec3 base = startPos.subtract(camPos);
+        double height = Math.max(1.5D, endPos.y - startPos.y);
+        poseStack.pushPose();
+        poseStack.translate(base.x, base.y, base.z);
+        Matrix4f mat = poseStack.last().pose();
+
+        // 3 ascending expanding Anemo wind rings lifting the target upward
+        for (int r = 0; r < 3; r++) {
+            float rp = Mth.clamp(prog * 1.25F - r * 0.14F, 0.0F, 1.0F);
+            if (rp <= 0.01F) continue;
+            float ry = (float) (height * rp);
+            float rad = 0.45F + rp * 0.55F - r * 0.06F;
+            float spin = prog * 6.5F + r * 2.1F;
+            int segs = 16;
+            for (int s = 0; s < segs; s++) {
+                if ((s + r) % 4 == 3) continue;
+                float a0 = (float) (s * Math.PI * 2.0D / segs) + spin;
+                float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs) + spin;
+                WindGliderRenderer.emitDoubleQuad(vc, mat,
+                        Mth.cos(a0) * rad, ry - 0.035F, Mth.sin(a0) * rad,
+                        Mth.cos(a1) * rad, ry - 0.035F, Mth.sin(a1) * rad,
+                        Mth.cos(a1) * rad, ry + 0.035F, Mth.sin(a1) * rad,
+                        Mth.cos(a0) * rad, ry + 0.035F, Mth.sin(a0) * rad,
+                        120, 255, 222, alpha);
+            }
+        }
+        poseStack.popPose();
+        return true;
+    }
+
+    public static boolean setupFirstPersonLyreArmPose(
+            AbstractClientPlayer player,
+            float partialTicks,
+            HumanoidArm arm,
+            PoseStack poseStack
+    ) {
+        if (player == null || !ClientAuraTracker.isVentiIdle(player.getId())) return false;
+        if (player.isUsingItem() || player.swinging) return false;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(player.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return false;
+        int mode = (d != null) ? (d.ventiIdleMode > 0 ? d.ventiIdleMode : d.ventiIdleLastMode) : 1;
+        float age = player.tickCount + partialTicks;
+        if (mode == 2) {
+            if (arm == HumanoidArm.LEFT) {
+                poseStack.translate(0.08F * w, -0.02F * w + Mth.sin(age * 0.12F) * 0.015F * w, -0.16F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-18.0F * w));
+                return true;
+            }
+            return false;
+        }
+        if (arm == HumanoidArm.RIGHT) {
+            float strum = Mth.sin(age * 0.26F);
+            poseStack.translate(-0.26F * w, 0.11F * w + strum * 0.055F * w, -0.14F * w);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F * w));
+            poseStack.mulPose(Axis.YP.rotationDegrees(32.0F * w - strum * 8.0F * w));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(24.0F * w));
+        } else {
+            poseStack.translate(0.16F * w, 0.02F * w, -0.12F * w);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * w));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-24.0F * w));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-16.0F * w));
+        }
+        return true;
+    }
+
+    public static float getLevitationCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
+        if (!(entity instanceof LivingEntity le) || le.isUsingItem() || le.swinging) return 0.0F;
+        if (!ClientAuraTracker.isVentiIdle(le.getId())) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        if (d == null) return 0.0F;
+        int mode = d.ventiIdleMode > 0 ? d.ventiIdleMode : d.ventiIdleLastMode;
+        if (mode != 2) return 0.0F;
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return 0.0F;
+        float hover = Mth.sin((le.tickCount + partialTick) * 0.12F);
+        return (0.53F + hover * 0.047F) * w;
+    }
+
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(entity.getId());
+            if (dAct != null) {
+                dAct.ventiIdle = false;
+                dAct.ventiIdleFade = 0.0F;
+                dAct.ventiIdleYawSet = false;
+            }
+            return false;
+        }
         if (!ClientAuraTracker.isVentiIdle(entity.getId())) {
             ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
             if (dOff != null) dOff.ventiIdleYawSet = false;
@@ -417,32 +523,81 @@ public final class VentiVisualRenderer {
             if (d != null && !d.ventiIdle) d.ventiIdleYawSet = false;
             return false;
         }
-        if (d != null) {
-            if (!d.ventiIdleYawSet) {
-                d.ventiIdleYaw = entity.yBodyRot;
-                d.ventiIdleYawSet = true;
-            }
-            entity.yBodyRot = d.ventiIdleYaw;
-            entity.yBodyRotO = d.ventiIdleYaw;
-        }
 
-        float strum = Mth.sin(ageInTicks * 0.28F);
+
+        int mode = (d != null) ? (d.ventiIdleMode > 0 ? d.ventiIdleMode : d.ventiIdleLastMode) : 1;
         model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
         model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-        // Left hand cradles the Holy Lyre in front of chest
-        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.05F);
-        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.46F);
-        // Right hand strums across the strings
-        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.98F + strum * 0.14F);
-        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.35F - strum * 0.08F);
-        model.head.zRot = Mth.lerp(w, model.head.zRot, 0.12F);
-        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.14F);
-        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.0F);
+        if (mode == 2) {
+            // Levitating Anemo Breeze idle: floating upward, one knee bent, left hand holding Wind Orb
+            float hover = Mth.sin(ageInTicks * 0.12F);
+            float liftY = -8.5F * w + hover * 0.75F * w;
+            model.head.y += liftY;
+            model.hat.y += liftY;
+            model.body.y += liftY;
+            model.rightArm.y += liftY;
+            model.leftArm.y += liftY;
+            model.rightLeg.y += liftY;
+            model.leftLeg.y += liftY;
+
+            model.body.xRot = Mth.lerp(w, model.body.xRot, -0.06F);
+            model.body.zRot = Mth.lerp(w, model.body.zRot, 0.04F * hover);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.18F + hover * 0.05F);
+            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.22F);
+            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.58F);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.32F - hover * 0.04F);
+            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.18F);
+            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.52F);
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.14F);
+            model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.05F);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.58F + hover * 0.06F);
+            model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, 0.12F);
+            model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.08F);
+            model.head.zRot = Mth.lerp(w, model.head.zRot, -0.08F);
+            model.head.xRot = Mth.lerp(w, model.head.xRot, -0.05F);
+            model.hat.copyFrom(model.head);
+            return true;
+        }
+
+        float strum = Mth.sin(ageInTicks * 0.26F);
+        float sway = Mth.sin(ageInTicks * 0.08F);
+
+        // Graceful bard stance: weight on left leg, right leg relaxed/tucked slightly back, gentle torso & head tilt
+        model.body.zRot = Mth.lerp(w, model.body.zRot, -0.05F + sway * 0.02F);
+        model.body.yRot = Mth.lerp(w, model.body.yRot, 0.10F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.04F);
+        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.04F);
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.26F);
+        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.18F);
+        model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.08F);
+
+        // Left hand cradles the Holy Lyre against his left chest/shoulder
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.08F + sway * 0.03F);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.52F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.14F);
+        // Right hand raised delicately in front of chest plucking the strings
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.02F + strum * 0.12F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.42F - strum * 0.08F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.16F);
+
+        model.head.zRot = Mth.lerp(w, model.head.zRot, 0.14F + sway * 0.04F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.10F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), -0.08F);
+        model.hat.copyFrom(model.head);
         return true;
     }
 
     public static void renderIdleEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         int id = entity.getId();
+        if (entity.isUsingItem() || entity.swinging) {
+            ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(id);
+            if (dAct != null) {
+                dAct.ventiIdle = false;
+                dAct.ventiIdleFade = 0.0F;
+                dAct.ventiIdleYawSet = false;
+            }
+            return;
+        }
         if (!ClientAuraTracker.isVentiIdle(id)) return;
         ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
         float fade = stepIdleFade(d, System.currentTimeMillis());
@@ -453,40 +608,67 @@ public final class VentiVisualRenderer {
 
         float pt = mc.getFrameTime();
         float time = entity.tickCount + pt;
+        int mode = (d != null) ? (d.ventiIdleMode > 0 ? d.ventiIdleMode : d.ventiIdleLastMode) : 1;
+        if (mode == 2) {
+            renderLevitationWindIdle(entity, poseStack, buffer, time, pt, fade, isFirstPersonSelf);
+            return;
+        }
         poseStack.pushPose();
         if (isFirstPersonSelf) {
-            float camYaw = Mth.rotLerp(pt, entity.yRotO, entity.getYRot());
-            float camPitch = Mth.rotLerp(pt, entity.xRotO, entity.getXRot());
-            poseStack.translate(0.0F, entity.getEyeHeight(), 0.0F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(-camYaw));
-            poseStack.mulPose(Axis.XP.rotationDegrees(camPitch));
-            poseStack.translate(-0.16F, -0.20F + Mth.sin(time * 0.12F) * 0.012F, 0.44F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(16.0F));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(12.0F));
-            poseStack.scale(fade * 0.85F, fade * 0.85F, fade * 0.85F);
+            poseStack.translate(-0.16F, -0.16F + Mth.sin(time * 0.12F) * 0.010F, -0.46F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(20.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(10.0F));
+            poseStack.scale(fade * 0.78F, fade * 0.78F, fade * 0.78F);
         } else {
-            if (d != null && !d.ventiIdleYawSet) {
-                d.ventiIdleYaw = entity.yBodyRot;
-                d.ventiIdleYawSet = true;
-            }
-            float bodyYaw = (d != null && d.ventiIdleYawSet) ? d.ventiIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            poseStack.translate(0.06F, 1.08F + Mth.sin(time * 0.12F) * 0.02F, 0.38F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(12.0F));
+            poseStack.translate(0.14F, 1.12F + Mth.sin(time * 0.12F) * 0.018F, 0.34F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-18.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(14.0F));
             poseStack.scale(fade, fade, fade);
         }
 
         VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
         Matrix4f mat = poseStack.last().pose();
-        // Holy Lyre golden frame & teal soundbox
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.14F, -0.12F, -0.03F, 0.14F, -0.02F, 0.03F, 45, 195, 165, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.16F, -0.02F, -0.025F, -0.11F, 0.24F, 0.025F, 255, 212, 75, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, 0.11F, -0.02F, -0.025F, 0.16F, 0.24F, 0.025F, 255, 212, 75, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.14F, 0.21F, -0.02F, 0.14F, 0.26F, 0.02F, 255, 212, 75, 255);
-        // 5 glowing Anemo strings
-        for (int s = -2; s <= 2; s++) {
-            float sx = s * 0.042F;
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, sx - 0.005F, -0.02F, -0.006F, sx + 0.005F, 0.21F, 0.006F, 130, 255, 225, 255);
+
+        // Holy Lyre "Der Frühling": curved golden-bronze base & soundbox with glowing Anemo teal gem
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.11F, -0.13F, -0.028F, 0.11F, -0.05F, 0.028F, 198, 148, 74, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.13F, -0.06F, -0.024F, 0.13F, -0.01F, 0.024F, 232, 186, 98, 255);
+        // Glowing Anemo teal gem in center of base
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.036F, -0.10F, -0.034F, 0.036F, -0.025F, 0.034F, 65, 235, 195, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.020F, -0.085F, -0.038F, 0.020F, -0.040F, 0.038F, 185, 255, 238, 255);
+
+        // Two Anemo wing/leaf flourishes flaring at the base
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.12F, -0.06F, 0.0F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 34.0F));
+            Matrix4f wMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, wMat, -0.055F, -0.018F, -0.012F, 0.055F, 0.024F, 0.012F, 195, 248, 224, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, wMat, -0.035F, 0.024F, -0.010F, 0.035F, 0.060F, 0.010F, 130, 235, 198, 255);
+            poseStack.popPose();
+        }
+
+        // Angled curved golden-bronze lyre arms + pointed wing-tip finials
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.115F, -0.02F, 0.0F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 12.0F));
+            Matrix4f aMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.020F, 0.0F, -0.018F, 0.020F, 0.23F, 0.018F, 218, 172, 92, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.016F, 0.23F, -0.015F, 0.016F, 0.30F, 0.015F, 255, 224, 128, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.009F, 0.30F, -0.009F, 0.009F, 0.35F, 0.009F, 255, 245, 195, 255);
+            poseStack.popPose();
+        }
+
+        // Curved upper crossbar
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.155F, 0.215F, -0.014F, 0.155F, 0.245F, 0.014F, 245, 205, 108, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.085F, 0.245F, -0.014F, 0.085F, 0.262F, 0.014F, 255, 228, 140, 255);
+
+        // 6 shimmering Anemo-gold strings
+        for (int s = 0; s < 6; s++) {
+            float sx = -0.075F + s * 0.030F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, sx - 0.0035F, -0.015F, -0.004F, sx + 0.0035F, 0.225F, 0.004F, 165, 255, 232, 255);
         }
 
         // Swirling wind notes around Venti
@@ -494,17 +676,100 @@ public final class VentiVisualRenderer {
         int aNote = Math.max(15, Math.round(200.0F * fade));
         for (int n = 0; n < 3; n++) {
             float ang = (float) (time * 0.09D + n * Math.PI * 2.0D / 3.0D);
-            float nx = Mth.cos(ang) * 0.48F;
-            float nz = Mth.sin(ang) * 0.48F - 0.25F;
-            float ny = 0.05F + Mth.sin(time * 0.16F + n * 1.9F) * 0.14F;
+            float nx = Mth.cos(ang) * 0.44F;
+            float nz = Mth.sin(ang) * 0.44F - (isFirstPersonSelf ? 0.05F : 0.22F);
+            float ny = 0.05F + Mth.sin(time * 0.16F + n * 1.9F) * 0.12F;
             poseStack.pushPose();
             poseStack.translate(nx, ny, nz);
             poseStack.mulPose(Axis.YP.rotationDegrees(time * 4.0F));
             Matrix4f nMat = poseStack.last().pose();
-            WindGliderRenderer.emitDoubleQuad(transVc, nMat, -0.045F, -0.045F, 0.0F, 0.045F, -0.045F, 0.0F, 0.045F, 0.045F, 0.0F, -0.045F, 0.045F, 0.0F, 125, 255, 215, aNote);
+            WindGliderRenderer.emitDoubleQuad(transVc, nMat, -0.040F, -0.040F, 0.0F, 0.040F, -0.040F, 0.0F, 0.040F, 0.040F, 0.0F, -0.040F, 0.040F, 0.0F, 125, 255, 215, aNote);
             poseStack.popPose();
         }
 
         poseStack.popPose();
     }
+    private static void renderLevitationWindIdle(
+            LivingEntity entity,
+            PoseStack poseStack,
+            MultiBufferSource buffer,
+            float time,
+            float pt,
+            float fade,
+            boolean isFirstPersonSelf
+    ) {
+        float hover = Mth.sin(time * 0.12F) * 0.045F;
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+
+        // 1. Mini Wind's Grand Ode Ulti Vortex scaled to fit cleanly in Venti's left hand
+        poseStack.pushPose();
+        if (isFirstPersonSelf) {
+            poseStack.translate(-0.22F, -0.06F + hover * 0.5F, -0.46F);
+            poseStack.scale(fade * 0.78F, fade * 0.78F, fade * 0.78F);
+        } else {
+            float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.translate(0.46F, 1.78F + hover, 0.28F);
+            poseStack.scale(fade, fade, fade);
+        }
+        float timeSec = time * 0.05F;
+        float baseR = 0.22F;
+        float[] scales = { baseR * 0.88F, baseR * 0.72F, baseR * 0.56F, baseR * 0.42F };
+        float[] speedY = { 105.0F, -155.0F, 210.0F, -270.0F };
+        float[] tiltX = { 24.0F, -38.0F, 56.0F, -64.0F };
+        float[] tiltZ = { 12.0F, 28.0F, -22.0F, 42.0F };
+        int[] alphas = { Math.max(15, Math.round(135.0F * fade)), Math.max(18, Math.round(170.0F * fade)), Math.max(22, Math.round(205.0F * fade)), Math.max(25, Math.round(235.0F * fade)) };
+        for (int k = 0; k < 4; k++) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.XP.rotationDegrees(tiltX[k]));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(tiltZ[k]));
+            poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * speedY[k]));
+            Matrix4f rMat = poseStack.last().pose();
+            float rad = scales[k];
+            int segs = 14;
+            for (int s = 0; s < segs; s++) {
+                float a0 = (float) (s * Math.PI * 2.0D / segs);
+                float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs);
+                WindGliderRenderer.emitDoubleQuad(transVc, rMat,
+                        Mth.cos(a0) * rad, -0.018F, Mth.sin(a0) * rad,
+                        Mth.cos(a1) * rad, -0.018F, Mth.sin(a1) * rad,
+                        Mth.cos(a1) * rad,  0.018F, Mth.sin(a1) * rad,
+                        Mth.cos(a0) * rad,  0.018F, Mth.sin(a0) * rad,
+                        175, 255, 232, alphas[k]);
+            }
+            poseStack.popPose();
+        }
+        poseStack.popPose();
+
+        // 2. Swirling Anemo wind rings & breeze ribbons beneath & around feet (3rd person)
+        if (!isFirstPersonSelf) {
+            float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.scale(fade, fade, fade);
+            int aRing = Math.max(15, Math.round(185.0F * fade));
+            for (int ring = 0; ring < 3; ring++) {
+                float ry = 0.16F + ring * 0.24F + hover * 0.5F;
+                float rRad = 0.68F - ring * 0.10F;
+                float spin = time * (0.14F + ring * 0.04F);
+                int segs = 18;
+                Matrix4f fMat = poseStack.last().pose();
+                for (int s = 0; s < segs; s++) {
+                    if ((s + ring) % 4 == 3) continue; // Broken wispy wind-stream segments
+                    float a0 = (float) (s * Math.PI * 2.0D / segs) + spin;
+                    float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs) + spin;
+                    float y0 = ry + Mth.sin(a0 * 2.0F + time * 0.1F) * 0.04F;
+                    float y1 = ry + Mth.sin(a1 * 2.0F + time * 0.1F) * 0.04F;
+                    WindGliderRenderer.emitDoubleQuad(transVc, fMat,
+                            Mth.cos(a0) * rRad, y0 - 0.018F, Mth.sin(a0) * rRad,
+                            Mth.cos(a1) * rRad, y1 - 0.018F, Mth.sin(a1) * rRad,
+                            Mth.cos(a1) * rRad, y1 + 0.018F, Mth.sin(a1) * rRad,
+                            Mth.cos(a0) * rRad, y0 + 0.018F, Mth.sin(a0) * rRad,
+                            140, 255, 222, aRing);
+                }
+            }
+            poseStack.popPose();
+        }
+    }
+
 }

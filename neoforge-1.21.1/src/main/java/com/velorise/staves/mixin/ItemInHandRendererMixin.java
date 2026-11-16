@@ -111,6 +111,7 @@ public abstract class ItemInHandRendererMixin {
             CallbackInfo ci
     ) {
         if (hand == InteractionHand.MAIN_HAND && player != null && !player.isScoping()) {
+            ClientAuraRenderer.renderFirstPersonIdleEffects(player, partialTicks, poseStack, buffer);
             HumanoidArm mainArm = player.getMainArm();
             poseStack.pushPose();
             if (ClientAuraRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack)) {

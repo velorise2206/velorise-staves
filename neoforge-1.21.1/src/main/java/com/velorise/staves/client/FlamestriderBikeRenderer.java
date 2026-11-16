@@ -239,7 +239,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         // 4B. Illuminated Digital Cockpit Dashboard (y = 0.63F, z = -0.14F, angled ~35 deg toward rider)
         float rpmRatio = Mth.clamp(speedBps / 28.0F, 0.12F, 1.0F);
         poseStack.pushPose();
-        poseStack.translate(0.0F, 0.63F, -0.14F);
+        poseStack.translate(0.0F, 0.70F, -0.12F);
         poseStack.mulPose(Axis.XP.rotationDegrees(35.0F));
         drawBox(poseStack, vc, -0.16F, -0.02F, -0.02F, 0.16F, 0.11F, 0.025F, obR, obG, obB, 1.0F);
         drawBox(poseStack, vc, -0.17F, -0.025F, -0.015F, 0.17F, 0.115F, 0.015F, gdR, gdG, gdB, 1.0F);
@@ -307,9 +307,9 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             poseStack.pushPose();
             poseStack.translate(0.0F, 0.34F, 0.86F);
             poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F));
-            poseStack.translate(0.0F, 0.63F, -0.14F);
+            poseStack.translate(0.0F, 0.70F, -0.12F);
             poseStack.mulPose(Axis.XP.rotationDegrees(35.0F));
-            poseStack.translate(0.0F, 0.052F, -0.029F);
+            poseStack.translate(0.0F, 0.058F, -0.029F);
             poseStack.scale(-0.0032F, -0.0032F, 0.0032F);
             Matrix4f dashMat = poseStack.last().pose();
             font.drawInBatch(spdText, -font.width(spdText) / 2.0F, -2.0F, 0xFFFFCC44, false, dashMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
