@@ -17,7 +17,7 @@
   },
   "criteria": {
     "must_be_the_storm": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "must_be_the_storm"
       }

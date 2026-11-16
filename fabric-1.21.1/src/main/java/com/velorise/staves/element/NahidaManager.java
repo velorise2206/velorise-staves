@@ -173,6 +173,30 @@ public final class NahidaManager {
         }
     }
 
+    private static void forceGrowPlantsInBox(ServerLevel level, ServerPlayer player, AABB box) {
+        BlockPos min = BlockPos.containing(box.minX, box.minY, box.minZ);
+        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            BlockState state = level.getBlockState(pos);
+            if (state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock bonemealable) {
+                for (int attempts = 0; attempts < 15; attempts++) {
+                    if (!bonemealable.isValidBonemealTarget(level, pos, state)) break;
+                    bonemealable.performBonemeal(level, level.random, pos, state);
+                    state = level.getBlockState(pos);
+                    if (!(state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock b) || !b.isValidBonemealTarget(level, pos, state)) {
+                        break;
+                    }
+                }
+                level.levelEvent(1505, pos, 0);
+            } else if (state.getBlock() instanceof net.minecraft.world.level.block.CropBlock crop) {
+                if (!crop.isMaxAge(state)) {
+                    level.setBlock(pos, crop.getStateForAge(crop.getMaxAge()), 2);
+                    level.levelEvent(1505, pos, 0);
+                }
+            }
+        }
+    }
+
     public static void handleNormalAttack(ServerPlayer player) {
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
@@ -222,7 +246,7 @@ public final class NahidaManager {
         if (step <= 3) {
             double reach = 3.8D + step * 1.6D;
             double halfWidth = 1.1D + step * 0.35D;
-            float dmg = (2.6F + step * 0.45F) * baseScale;
+            float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 1.5F : 1.0F;
 
             for (int i = 1; i <= step + 1; i++) {
@@ -252,7 +276,7 @@ public final class NahidaManager {
             // Step 4 Finisher: Heart of Vines + 4-Petal Dendro Flower AoE Burst
             Vec3 burstCenter = player.position().add(horiz.scale(3.6D));
             double radius = isNeth ? 4.5D : 3.5D;
-            float dmg = 5.0F * baseScale;
+            float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 2.0F : 1.5F;
 
             // Heart curve particle outline + 4-petal flower burst
@@ -274,7 +298,7 @@ public final class NahidaManager {
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, dmg);
             }
-            fertilizeSaplingsInBox(level, player, aoeBox);
+            forceGrowPlantsInBox(level, player, aoeBox);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.55F);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.90F, 1.35F);
         }
@@ -736,10 +760,6 @@ public final class NahidaManager {
                 sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, rx, st.shrineCenter.y + 2.5D, rz, 2, 0.3D, 0.5D, 0.3D, 0.02D);
             }
             sl.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 1.0F, 1.25F);
-            player.displayClientMessage(
-                    Component.translatable("message.velorise_staves.nahida_shrine_activated").withStyle(ChatFormatting.GREEN),
-                    true
-            );
         });
         return true;
     }

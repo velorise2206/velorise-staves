@@ -492,6 +492,16 @@ public final class ClientAuraRenderer {
         return ElementalReactionBadgeRenderer.getInventoryExtraAreas(screen, screen.getGuiLeft(), screen.getGuiTop(), screen.getXSize());
     }
 
+    @SubscribeEvent
+    public static void onRenderLevelStage(net.neoforged.neoforge.client.event.RenderLevelStageEvent event) {
+        if (event.getStage() == net.neoforged.neoforge.client.event.RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
+            MultiBufferSource.BufferSource bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+            renderActiveElectricArcs(event.getPoseStack(), bufferSource, event.getCamera());
+            renderCrystallizeShards(event.getPoseStack(), bufferSource, event.getCamera());
+            renderFloatingCombatTexts(event.getPoseStack(), bufferSource, event.getCamera());
+        }
+    }
+
     public static void renderCrystallizeShards(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
         ElementalReactionBadgeRenderer.renderCrystallizeShards(poseStack, bufferSource, camera);
     }
@@ -502,19 +512,20 @@ public final class ClientAuraRenderer {
 
     public static void renderActiveElectricArcs(PoseStack poseStack, MultiBufferSource bufferSource, Camera camera) {
         NeuvilletteVisualRenderer.renderGuardianHydroBeams(poseStack, bufferSource, camera);
-        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
         long now = System.currentTimeMillis();
-        ClientAuraTracker.ACTIVE_ARCS.removeIf(arc -> now >= arc.expireTime);
-        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
-
         Vec3 camPos = camera.getPosition();
         ZhongliVisualRenderer.renderWorldMeteor(poseStack, bufferSource, camPos, now);
         VentiVisualRenderer.renderVentiWindChargeOrbs(poseStack, bufferSource, camPos, now);
+        XilonenVisualRenderer.renderFirstPersonXilonenDjBooth(poseStack, bufferSource, camPos, now);
+
+        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
+        ClientAuraTracker.ACTIVE_ARCS.removeIf(arc -> now >= arc.expireTime);
+        if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
+
         NahidaVisualRenderer.renderWorldArcs(poseStack, bufferSource, camPos, now);
         TsaritsaVisualRenderer.renderWorldArcs(poseStack, bufferSource, camPos, now);
-        XilonenVisualRenderer.renderFirstPersonXilonenDjBooth(poseStack, bufferSource, camPos, now);
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
         Matrix4f matrix = poseStack.last().pose();

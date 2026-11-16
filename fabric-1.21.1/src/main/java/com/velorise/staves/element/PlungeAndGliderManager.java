@@ -11,6 +11,7 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -347,16 +348,39 @@ public final class PlungeAndGliderManager {
 
             if (st.plunging) {
                 player.fallDistance = 0.0F;
-                if (player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
-                    st.plunging = false;
-                    st.plungeLandedTick = now;
-                    ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
-                } else if (player.onGround() || (now - st.plungeStartedTick) > 200L) {
+
+                boolean waterLanding = false;
+                ItemStack main = player.getMainHandItem();
+                ItemStack off = player.getOffhandItem();
+                boolean hasFurinaWaterWalk = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.SPLENDOR
+                        || ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.SPLENDOR
+                        || ElementalGaugeManager.isStandingOnWaterSurface(player);
+
+                if (hasFurinaWaterWalk) {
+                    BlockPos feet = BlockPos.containing(player.getX(), player.getY() - 0.20D, player.getZ());
+                    BlockPos below = BlockPos.containing(player.getX(), player.getY() - 0.75D, player.getZ());
+                    if (level.getFluidState(feet).is(FluidTags.WATER) || level.getFluidState(below).is(FluidTags.WATER)) {
+                        waterLanding = true;
+                        double surfY = Math.max(
+                                level.getFluidState(feet).is(FluidTags.WATER) ? feet.getY() + 1.0D : 0.0D,
+                                level.getFluidState(below).is(FluidTags.WATER) ? below.getY() + 1.0D : 0.0D
+                        );
+                        player.setPos(player.getX(), surfY, player.getZ());
+                        player.setDeltaMovement(player.getDeltaMovement().x, 0.0D, player.getDeltaMovement().z);
+                        player.setOnGround(true);
+                    }
+                }
+
+                if (waterLanding || player.onGround() || (now - st.plungeStartedTick) > 200L) {
                     st.plunging = false;
                     st.plungeLandedTick = now;
                     player.fallDistance = 0.0F;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
                     executePlungeImpact(level, player);
+                } else if (player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
+                    st.plunging = false;
+                    st.plungeLandedTick = now;
+                    ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
                 } else {
                     Vec3 dv = player.getDeltaMovement();
                     if (dv.y > -0.625D) {

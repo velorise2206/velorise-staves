@@ -17,7 +17,7 @@
   },
   "criteria": {
     "hidden_hydro": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "hidden_hydro"
       }

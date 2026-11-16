@@ -241,13 +241,45 @@ public final class ZhongliManager {
 
     public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) {
         if (!(target instanceof Mob)) return 0.0F;
-        if (element == Element.ANEMO && target instanceof Warden) return 0.70F;
+        if (element == null) return 0.10F;
+
+        if (element == Element.ANEMO) {
+            if (target instanceof Warden) return 0.70F;
+            if (target instanceof net.minecraft.world.entity.boss.wither.WitherBoss
+                    || target instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon
+                    || target instanceof net.minecraft.world.entity.animal.Parrot
+                    || target instanceof net.minecraft.world.entity.ambient.Bat
+                    || target instanceof net.minecraft.world.entity.animal.allay.Allay) {
+                return 0.50F;
+            }
+        }
+        if (element == Element.GEO) {
+            if (target instanceof IronGolem) return 0.50F;
+        }
+        if (element == Element.PYRO) {
+            if (target instanceof net.minecraft.world.entity.monster.Husk) return 0.30F;
+            if (target instanceof net.minecraft.world.entity.animal.camel.Camel
+                    || target instanceof net.minecraft.world.entity.monster.piglin.AbstractPiglin
+                    || target instanceof net.minecraft.world.entity.monster.hoglin.Hoglin) {
+                return 0.50F;
+            }
+        }
+        if (element == Element.CRYO) {
+            if (target instanceof net.minecraft.world.entity.animal.goat.Goat) return 0.50F;
+        }
+        if (element == Element.HYDRO) {
+            if (target instanceof net.minecraft.world.entity.animal.AbstractFish
+                    || target instanceof net.minecraft.world.entity.animal.Squid) {
+                return 0.50F;
+            }
+        }
         return 0.10F;
     }
 
     public static float getMobPhysicalResistance(@Nullable LivingEntity target) {
         if (!(target instanceof Mob)) return 0.0F;
         if (target instanceof IronGolem) return 0.50F;
+        if (target instanceof net.minecraft.world.entity.monster.Ravager) return 0.30F;
         return 0.10F;
     }
 

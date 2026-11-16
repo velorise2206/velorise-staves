@@ -474,13 +474,92 @@ public final class ElementalReactionBadgeRenderer {
         poseStack.scale(-iceScale, -iceScale, iceScale);
         poseStack.translate(0.0F, -1.501F, 0.0F);
 
-        VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(isPetrified ? STONE_STATUE_TEXTURE : FROSTED_ICE_TEXTURE));
+        VertexConsumer iceConsumer = buffer.getBuffer(isPetrified
+                ? RenderType.entityCutoutNoCull(STONE_STATUE_TEXTURE)
+                : RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
         model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
                 isPetrified ? 0.96F : 0.47F,
                 isPetrified ? 0.92F : 0.88F,
                 isPetrified ? 0.84F : 1.0F,
-                isPetrified ? 0.92F : 0.45F);
+                isPetrified ? 1.00F : 0.45F);
         poseStack.popPose();
+
+        if (isPetrified) {
+            renderPetrifiedFissureCracks(entity, poseStack, buffer);
+        }
+    }
+
+    private static void renderPetrifiedFissureCracks(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        float width = entity.getBbWidth();
+        float height = entity.getBbHeight();
+        long seed = (long) entity.getId() * 37L + 101L;
+        java.util.Random rng = new java.util.Random(seed);
+
+        int seedCount = 2 + rng.nextInt(2);
+        VertexConsumer consumer = buffer.getBuffer(RenderType.lightning());
+        org.joml.Matrix4f mat = poseStack.last().pose();
+
+        for (int s = 0; s < seedCount; s++) {
+            float rootY = height * (0.28F + rng.nextFloat() * 0.48F);
+            float rootAngle = rng.nextFloat() * ((float) Math.PI * 2.0F);
+            float radX = width * 0.52F;
+            float radZ = width * 0.52F;
+            float ox = (float) Math.cos(rootAngle) * radX;
+            float oz = (float) Math.sin(rootAngle) * radZ;
+
+            int branches = 3 + rng.nextInt(2);
+            for (int b = 0; b < branches; b++) {
+                float curX = ox;
+                float curY = rootY;
+                float curZ = oz;
+                float branchAngle = rootAngle + (b - (branches - 1) * 0.5F) * 0.65F + (rng.nextFloat() - 0.5F) * 0.3F;
+                int segments = 3 + rng.nextInt(3);
+
+                for (int seg = 0; seg < segments; seg++) {
+                    float t = seg / (float) segments;
+                    float nextT = (seg + 1) / (float) segments;
+
+                    float w1 = 0.028F * (1.0F - t * 0.82F);
+                    float w2 = 0.028F * (1.0F - nextT * 0.82F);
+
+                    float stepLen = 0.14F + rng.nextFloat() * 0.12F;
+                    float stepY = (rng.nextFloat() - 0.48F) * 0.22F;
+                    branchAngle += (rng.nextFloat() - 0.5F) * 0.45F;
+
+                    float nextX = curX + (float) Math.cos(branchAngle) * stepLen;
+                    float nextY = Mth.clamp(curY + stepY, 0.08F, height - 0.08F);
+                    float nextZ = curZ + (float) Math.sin(branchAngle) * stepLen;
+
+                    float dx = nextX - curX;
+                    float dy = nextY - curY;
+                    float dz = nextZ - curZ;
+                    float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    if (len < 1.0E-4F) len = 1.0F;
+
+                    float px = -dz / len;
+                    float pz = dx / len;
+                    float py = 0.0F;
+
+                    // Obsidian/basalt fissure core
+                    consumer.vertex(mat, curX - px * w1, curY - py * w1, curZ - pz * w1).color(28, 22, 16, 240).endVertex();
+                    consumer.vertex(mat, curX + px * w1, curY + py * w1, curZ + pz * w1).color(28, 22, 16, 240).endVertex();
+                    consumer.vertex(mat, nextX + px * w2, nextY + py * w2, nextZ + pz * w2).color(28, 22, 16, 240).endVertex();
+                    consumer.vertex(mat, nextX - px * w2, nextY - py * w2, nextZ - pz * w2).color(28, 22, 16, 240).endVertex();
+
+                    // Glowing Geo gold fissure edge highlight
+                    float hw1 = w1 * 1.55F;
+                    float hw2 = w2 * 1.55F;
+                    consumer.vertex(mat, curX - px * hw1, curY - py * hw1, curZ - pz * hw1).color(230, 160, 35, 180).endVertex();
+                    consumer.vertex(mat, curX + px * hw1, curY + py * hw1, curZ + pz * hw1).color(230, 160, 35, 180).endVertex();
+                    consumer.vertex(mat, nextX + px * hw2, nextY + py * hw2, nextZ + pz * hw2).color(230, 160, 35, 180).endVertex();
+                    consumer.vertex(mat, nextX - px * hw2, nextY - py * hw2, nextZ - pz * hw2).color(230, 160, 35, 180).endVertex();
+
+                    curX = nextX;
+                    curY = nextY;
+                    curZ = nextZ;
+                }
+            }
+        }
     }
     public static void renderReactionBadges(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         boolean showIcons = true;

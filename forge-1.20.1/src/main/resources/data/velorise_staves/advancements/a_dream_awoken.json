@@ -17,7 +17,7 @@
   },
   "criteria": {
     "a_dream_awoken": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "a_dream_awoken"
       }

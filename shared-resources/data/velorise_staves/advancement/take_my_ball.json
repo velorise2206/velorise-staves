@@ -17,7 +17,7 @@
   },
   "criteria": {
     "take_my_ball": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "take_my_ball"
       }

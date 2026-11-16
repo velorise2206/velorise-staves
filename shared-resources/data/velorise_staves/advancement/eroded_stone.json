@@ -17,7 +17,7 @@
   },
   "criteria": {
     "eroded_stone": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "eroded_stone"
       }

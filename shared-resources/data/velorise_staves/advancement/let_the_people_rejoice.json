@@ -17,7 +17,7 @@
   },
   "criteria": {
     "let_the_people_rejoice": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "let_the_people_rejoice"
       }

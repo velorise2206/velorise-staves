@@ -17,7 +17,7 @@
   },
   "criteria": {
     "the_wind_has_stilled": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "the_wind_has_stilled"
       }

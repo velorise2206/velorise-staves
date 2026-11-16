@@ -338,6 +338,9 @@ public class OmniOrbEntity extends ThrowableProjectile {
                 ElementalGaugeManager.applyElement(serverLevel, directTarget, chosen, this.attackU, attacker, this.baseDamage);
                 applyPostHitControl(chosen, directTarget, hitPos);
             }
+        } else if (hitResult instanceof EntityHitResult ehr && ehr.getEntity() instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
+            DamageSource ds = attacker != null ? serverLevel.damageSources().playerAttack(attacker) : serverLevel.damageSources().magic();
+            crystal.hurt(ds, this.baseDamage);
         }
 
         double splashRadius = isOmniMode ? (isNetheriteTier() ? 3.0D : 2.5D) : (isNetheriteTier() ? 2.5D : 1.75D);
@@ -355,6 +358,10 @@ public class OmniOrbEntity extends ThrowableProjectile {
                     applyPostHitControl(chosen, nearby, hitPos);
                 }
             }
+        }
+        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : serverLevel.getEntitiesOfClass(net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+            DamageSource ds = attacker != null ? serverLevel.damageSources().playerAttack(attacker) : serverLevel.damageSources().magic();
+            crystal.hurt(ds, splashDmg);
         }
 
         applyEnvironmentImpact(serverLevel, hitPos, chosen, attacker);

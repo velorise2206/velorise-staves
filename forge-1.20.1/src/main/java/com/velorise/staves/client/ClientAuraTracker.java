@@ -1104,7 +1104,7 @@ public final class ClientAuraTracker {
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
             if (le.onGround() || le.isInWater() || le.isInLava() || le.getVehicle() != null
-                    || (le instanceof net.minecraft.world.entity.player.Player p && p.getAbilities().flying)) {
+                    || (le instanceof net.minecraft.world.entity.player.Player p && (p.getAbilities().flying || com.velorise.staves.element.ElementalGaugeManager.isStandingOnWaterSurface(p)))) {
                 data.plunging = false;
                 return false;
             }

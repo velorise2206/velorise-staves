@@ -17,7 +17,7 @@
   },
   "criteria": {
     "nothing_lasts_forever": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "nothing_lasts_forever"
       }

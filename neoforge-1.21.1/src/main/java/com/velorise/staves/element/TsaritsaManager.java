@@ -517,17 +517,15 @@ public final class TsaritsaManager {
         }
         ModNetwork.sendElectricArc(level, arcStart, arcEnd, dur, arcColor);
 
-        for (int i = 0; i <= 12; i++) {
-            double t = i / 12.0D;
+        for (int i = 0; i <= 6; i++) {
+            double t = i / 6.0D;
             Vec3 p = arcStart.lerp(arcEnd, t);
-            level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 2, 0.06D, 0.06D, 0.06D, 0.01D);
-            level.sendParticles(ParticleTypes.END_ROD, p.x, p.y, p.z, 1, 0.03D, 0.03D, 0.03D, 0.0D);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 1, 0.04D, 0.04D, 0.04D, 0.005D);
         }
 
         if (step == 2) {
             // Ground impact frost crystal burst at slam endpoint
-            level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 24, 0.35D, 0.15D, 0.35D, 0.08D);
-            level.sendParticles(ParticleTypes.ITEM_SNOWBALL, arcEnd.x, arcEnd.y, arcEnd.z, 12, 0.25D, 0.10D, 0.25D, 0.05D);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 10, 0.25D, 0.10D, 0.25D, 0.04D);
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.4F);
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -669,11 +667,6 @@ public final class TsaritsaManager {
                 18, 0.5D, 0.25D, 0.5D, 0.03D);
         level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.2D, player.getZ(),
                 12, 0.4D, 0.2D, 0.4D, 0.02D);
-
-        player.displayClientMessage(
-                Component.translatable("message.velorise_staves.tsaritsa_tap_e").withStyle(ChatFormatting.AQUA),
-                true
-        );
     }
 
     /**
@@ -701,11 +694,6 @@ public final class TsaritsaManager {
                 30, 0.8D, 0.6D, 0.8D, 0.05D);
         level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.4D, player.getZ(),
                 18, 0.6D, 0.5D, 0.6D, 0.04D);
-
-        player.displayClientMessage(
-                Component.translatable("message.velorise_staves.tsaritsa_hold_e").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
-                true
-        );
     }
 
     /**
@@ -757,11 +745,6 @@ public final class TsaritsaManager {
                         65, 4.5D, 2.0D, 4.5D, 0.05D);
                 sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.5D, player.getZ(),
                         40, 4.0D, 2.0D, 4.0D, 0.04D);
-
-                player.displayClientMessage(
-                        Component.translatable("message.velorise_staves.tsaritsa_burst_support").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
-                        true
-                );
             });
 
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
@@ -770,11 +753,6 @@ public final class TsaritsaManager {
                     65, 4.5D, 2.0D, 4.5D, 0.05D);
             level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.5D, player.getZ(),
                     40, 4.0D, 2.0D, 4.0D, 0.04D);
-
-            player.displayClientMessage(
-                    Component.translatable("message.velorise_staves.tsaritsa_burst_support").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
-                    true
-            );
         } else {
             // Variant 2: DPS Burst (Glorious Blessing / Spear Stance — erupts after 38t cast)
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
@@ -816,11 +794,6 @@ public final class TsaritsaManager {
                     target.invulnerableTime = 0;
                     ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 2.0F);
                 }
-
-                player.displayClientMessage(
-                        Component.translatable("message.velorise_staves.tsaritsa_burst_dps").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
-                        true
-                );
             });
         }
         return true;
@@ -884,10 +857,6 @@ public final class TsaritsaManager {
             ElementalGaugeManager.applyElement(victim, Element.CRYO, player, finalDmg, 1.5F);
         }
 
-        player.displayClientMessage(
-                Component.translatable("message.velorise_staves.tsaritsa_punishment", state.punishmentCharges).withStyle(ChatFormatting.AQUA),
-                true
-        );
         return true;
     }
 

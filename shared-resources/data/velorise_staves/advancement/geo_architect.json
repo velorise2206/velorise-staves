@@ -17,7 +17,7 @@
   },
   "criteria": {
     "geo_architect": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "geo_architect"
       }

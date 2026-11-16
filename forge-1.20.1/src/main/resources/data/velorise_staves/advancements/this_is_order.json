@@ -17,7 +17,7 @@
   },
   "criteria": {
     "this_is_order": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "this_is_order"
       }

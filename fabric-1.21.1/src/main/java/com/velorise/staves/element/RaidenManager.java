@@ -731,7 +731,6 @@ public final class RaidenManager {
         level.sendParticles(ParticleTypes.END_ROD, frontEyePos.x, frontEyePos.y + 0.2D, frontEyePos.z, 10, 0.35D, 0.35D, 0.35D, 0.05D);
         sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6F, 1.55F);
-        player.displayClientMessage(Component.literal("§d⚡ Eye of Stormy Judgment (15s)"), true);
         syncRaidenState(player, now);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 6);
         return true;
@@ -765,7 +764,6 @@ public final class RaidenManager {
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.15D, player.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.05D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.35F);
-        player.displayClientMessage(Component.literal("§d⚡ Musou Shinsetsu... | Resolve: " + resolve), true);
         syncRaidenState(player, now);
         com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
         return true;
@@ -806,7 +804,6 @@ public final class RaidenManager {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
         sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s)"), true);
     }
 
     public static void triggerRaidenUlti(ServerPlayer player) {

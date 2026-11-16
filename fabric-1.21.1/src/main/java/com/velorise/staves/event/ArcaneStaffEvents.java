@@ -37,6 +37,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 /** Server-side impact and range resolution for Arcane Staves projectiles. */
 public final class ArcaneStaffEvents {
@@ -130,6 +131,11 @@ public final class ArcaneStaffEvents {
         }
 
         String kind = getKind(projectile);
+        if (hitResult instanceof net.minecraft.world.phys.EntityHitResult ehr && ehr.getEntity() instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
+            Entity owner = projectile.getOwner();
+            DamageSource ds = owner instanceof ServerPlayer sp ? level.damageSources().playerAttack(sp) : level.damageSources().magic();
+            crystal.hurt(ds, 5.0F);
+        }
         if (hitResult instanceof net.minecraft.world.phys.EntityHitResult ehr
                 && ehr.getEntity() instanceof com.velorise.staves.entity.GeoFangPillarEntity construct) {
             if (construct.handleProjectileBlocked(level, projectile, kind != null ? kind : "")) {
@@ -237,6 +243,7 @@ public final class ArcaneStaffEvents {
             com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, isNetherite ? 2 : 1);
+        checkEndCrystalsNear(level, hit, isNetherite ? 2.5D : 1.8D, owner);
         com.velorise.staves.element.DendroCoreManager.checkReactionsNear(level, hit, 3.0D, Element.PYRO, player);
         com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(level, hit, isNetherite ? 2.5D : 2.0D);
         level.sendParticles(ParticleTypes.FLAME, hit.x, hit.y, hit.z, isNetherite ? 35 : 25, 0.3D, 0.3D, 0.3D, 0.04D);
@@ -257,6 +264,7 @@ public final class ArcaneStaffEvents {
             }
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
         }
+        checkEndCrystalsNear(level, hit, radius, owner);
         if (affected.isEmpty() && hitResult instanceof BlockHitResult bhr) {
             com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
@@ -291,6 +299,14 @@ public final class ArcaneStaffEvents {
                 level.sendParticles(ParticleTypes.CLOUD, p.getX() + 0.5D, p.getY() + 0.5D, p.getZ() + 0.5D, 6, 0.2D, 0.2D, 0.2D, 0.02D);
                 level.playSound(null, p, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 1.4F);
             }
+        }
+    }
+
+    public static void checkEndCrystalsNear(ServerLevel level, Vec3 hit, double radius, @Nullable Entity owner) {
+        AABB box = new AABB(hit, hit).inflate(radius);
+        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+            DamageSource ds = owner instanceof ServerPlayer sp ? level.damageSources().playerAttack(sp) : level.damageSources().magic();
+            crystal.hurt(ds, 5.0F);
         }
     }
 
@@ -552,6 +568,7 @@ public final class ArcaneStaffEvents {
                 }
             }
         }
+        checkEndCrystalsNear(level, hit, radius, owner);
 
         // 2. Direct hit target
         LivingEntity directHit = hitEntity(hitResult);
@@ -592,6 +609,7 @@ public final class ArcaneStaffEvents {
                 }
             }
         }
+        checkEndCrystalsNear(level, hit, radius, owner);
     }
 
     public static void resolveLightning(ServerLevel level, Vec3 hit, ServerPlayer owner, boolean isNetherite) {

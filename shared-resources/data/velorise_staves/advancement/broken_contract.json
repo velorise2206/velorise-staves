@@ -17,7 +17,7 @@
   },
   "criteria": {
     "broken_contract": {
-      "trigger": "velorise_staves:custom",
+      "trigger": "velorise_staves:advancement_event",
       "conditions": {
         "event": "broken_contract"
       }

@@ -289,7 +289,6 @@ public final class ArchonUltiManager {
                 sl.sendParticles(ParticleTypes.END_ROD, rx, player.getY() + 1.1D, rz, 1, 0.1D, 0.2D, 0.1D, 0.02D);
             }
             sl.playSound(null, player.blockPosition(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, SoundSource.PLAYERS, 0.85F, 1.15F);
-            player.displayClientMessage(Component.literal("§b✦ Let the People Rejoice! (Universal Revelry Fanfare)"), true);
         });
     }
 
@@ -350,7 +349,6 @@ public final class ArchonUltiManager {
         }
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.50F);
         level.playSound(null, player.blockPosition(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.75F, 1.45F);
-        player.displayClientMessage(Component.literal("§b✦ Dream of the Star-Stream Shaker! (+4 Night Stars)"), true);
     }
 
     /** Checks for an equipped Vortex Vanquisher (or Omni Staff locked to Vortex) and launches Planet Befall. */
@@ -471,7 +469,6 @@ public final class ArchonUltiManager {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.85F, 0.70F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.85F, 0.55F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 1.00F, 0.55F);
-        player.displayClientMessage(Component.literal("§6✦ Planet Befall!"), true);
     }
 
     private static void executeZhongliPlanetBefallImpact(PendingPlanetBefall pending) {
@@ -534,12 +531,13 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        // Curated deep sub-bass seismic rumble, heavy basalt/deepslate bedrock shatter, and resonant contract chime
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.40F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.20F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.50F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.00F, 0.46F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BELL_RESONATE, SoundSource.PLAYERS, 1.00F, 0.55F);
+        // Curated deep sub-bass seismic rumble, heavy basalt/deepslate bedrock shatter, and resonant contract chime (NO TNT boom!)
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.40F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANCIENT_DEBRIS_BREAK, SoundSource.PLAYERS, 1.80F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.20F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.00F, 0.44F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BELL_RESONATE, SoundSource.PLAYERS, 1.00F, 0.50F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */

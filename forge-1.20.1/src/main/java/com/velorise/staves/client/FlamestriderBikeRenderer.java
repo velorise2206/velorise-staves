@@ -96,7 +96,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         float yaw = Mth.lerp(partialTicks, entity.yRotO, entity.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
         if (entity.isSpinning()) {
-            poseStack.mulPose(Axis.ZP.rotationDegrees(22.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-22.0F));
         }
         int ultiT = entity.getUltiTicks();
         int naT = entity.getNaTicks();
@@ -472,7 +472,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         float yaw = Mth.lerp(partialTicks, bike.yRotO, bike.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
         if (spinning) {
-            poseStack.mulPose(Axis.ZP.rotationDegrees(22.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-22.0F));
         }
 
         applyActionTransforms(bike, ultiT, naT, partialTicks, poseStack);
