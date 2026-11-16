@@ -544,8 +544,8 @@ public final class ArcaneStaffEvents {
         level.sendParticles(ParticleTypes.GUST, hit.x, hit.y + 0.3D, hit.z, 2, 0.25D, 0.15D, 0.25D, 0.0D);
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
-        // 1. Self Wind-Jump / Knockback on the caster when shooting near themselves or at the ground (vanilla Wind Charge behavior)
-        if (owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
+        // 1. Self Wind-Jump / Knockback on the caster when shooting near themselves or at the ground (only on charged shots / Wind Staff)
+        if (pushScale >= 0.80F && owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
             double distSqr = ownerLiving.position().distanceToSqr(hit);
             if (distSqr <= radiusSqr) {
                 double dist = Math.sqrt(distSqr);

@@ -7,9 +7,14 @@
     "AW "
   ],
   "key": {
-    "A": {
-      "item": "velorise_staves:anemo_element"
-    },
+    "A": [
+      {
+        "item": "velorise_staves:anemo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "W": {
       "item": "minecraft:breeze_rod"
     }

@@ -426,7 +426,7 @@ public final class TsaritsaManager {
     }
 
     private static void performBowNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
-        if (now - state.lastBowNaTick < 10L) return;
+        if (now >= state.lastBowNaTick && now - state.lastBowNaTick < 10L) return;
         state.lastBowNaTick = now;
 
         float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * 0.60F;
@@ -465,8 +465,8 @@ public final class TsaritsaManager {
     }
 
     private static void performSpearNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
-        if (now - state.lastSpearSlashTick < 8L) return;
-        if (now - state.lastSpearSlashTick > 28L) {
+        if (now >= state.lastSpearSlashTick && now - state.lastSpearSlashTick < 8L) return;
+        if (now < state.lastSpearSlashTick || now - state.lastSpearSlashTick > 28L) {
             state.spearComboStep = 0;
         }
         int step = state.spearComboStep;
@@ -519,6 +519,9 @@ public final class TsaritsaManager {
             }
         }
         ModNetwork.sendElectricArc(level, arcStart, arcEnd, dur, arcColor);
+        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, player.position(), state.netherite ? 2 : 1);
+        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(center.x, player.getY(), center.z), state.netherite ? 3 : 2);
+        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(arcEnd.x, player.getY(), arcEnd.z), state.netherite ? 2 : 1);
 
         for (int i = 0; i <= 6; i++) {
             double t = i / 6.0D;
@@ -840,7 +843,7 @@ public final class TsaritsaManager {
         if (state == null) return false;
         long now = level.getGameTime();
         if (now >= state.dpsSealUntilTick || state.punishmentCharges <= 0) return false;
-        if (now - state.lastPunishmentTick < 10L) return false;
+        if (now >= state.lastPunishmentTick && now - state.lastPunishmentTick < 10L) return false;
 
         state.punishmentCharges--;
         state.lastPunishmentTick = now;

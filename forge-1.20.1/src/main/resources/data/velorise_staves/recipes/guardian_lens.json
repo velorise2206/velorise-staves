@@ -10,9 +10,14 @@
     "P": {
       "item": "minecraft:prismarine_shard"
     },
-    "H": {
-      "item": "velorise_staves:hydro_element"
-    },
+    "H": [
+      {
+        "item": "velorise_staves:hydro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "R": {
       "item": "velorise_staves:hydro_rod"
     }

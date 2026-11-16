@@ -46,6 +46,7 @@ public final class ModAdvancements {
     public static final String EVENT_HIDDEN_GEO = "hidden_geo";
     public static final String EVENT_HIDDEN_DENDRO = "hidden_dendro";
     public static final String EVENT_HIDDEN_OMNI = "hidden_omni";
+    public static final String EVENT_WHERE_IS_HE_FROM = "where_is_he_from";
 
     private ModAdvancements() {}
 

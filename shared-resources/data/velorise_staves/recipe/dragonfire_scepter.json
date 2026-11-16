@@ -10,9 +10,14 @@
     "H": {
       "item": "minecraft:dragon_head"
     },
-    "E": {
-      "item": "velorise_staves:electro_element"
-    },
+    "E": [
+      {
+        "item": "velorise_staves:electro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "B": {
       "item": "minecraft:blaze_rod"
     }

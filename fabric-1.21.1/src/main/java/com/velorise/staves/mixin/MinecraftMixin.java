@@ -52,8 +52,10 @@ public class MinecraftMixin {
         }
         ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(this.player.getMainHandItem());
         if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+            com.velorise.staves.client.VeloriseStavesClient.recordFastAttackClick(effKind);
             cir.setReturnValue(false);
             return;
         }
@@ -78,6 +80,7 @@ public class MinecraftMixin {
                 || com.velorise.staves.client.ClientAuraTracker.isPlunging(this.player.getId())
                 || PlungeAndGliderManager.isPlunging(this.player)
                 || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             ci.cancel();

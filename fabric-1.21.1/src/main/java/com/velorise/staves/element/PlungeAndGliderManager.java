@@ -93,6 +93,9 @@ public final class PlungeAndGliderManager {
 
     public static void copyPersistentState(Player oldPlayer, Player newPlayer) {
         if (oldPlayer == null || newPlayer == null) return;
+        if (oldPlayer.getTags().contains("VeloriseFirstZhongliBurstDone")) {
+            newPlayer.addTag("VeloriseFirstZhongliBurstDone");
+        }
         if (oldPlayer.getTags().contains(TAG_WIND_GLIDER_UNLOCKED)) {
             newPlayer.addTag(TAG_WIND_GLIDER_UNLOCKED);
         }

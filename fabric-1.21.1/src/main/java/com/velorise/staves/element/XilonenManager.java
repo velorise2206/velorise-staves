@@ -215,7 +215,7 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.get(player.getUUID());
         if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) return;
-        if (now - st.lastDashTick < 10L) return; // Require release & repress + 0.5s ICD (prevents hold-drain)
+        if (now >= st.lastDashTick && now - st.lastDashTick < 10L) return; // Require release & repress + 0.5s ICD (prevents hold-drain)
         st.lastDashTick = now;
 
         float dashCost = 4.0F * (st.netherite ? 0.70F : 1.0F);
@@ -285,7 +285,7 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.get(player.getUUID());
         if (st == null || !st.skating || now >= st.skateUntilTick) return;
-        if (now - st.lastKickTick < 3L) return;
+        if (now >= st.lastKickTick && now - st.lastKickTick < 3L) return;
         st.lastKickTick = now;
 
         st.kickCombo = (st.kickCombo % 2) + 1;

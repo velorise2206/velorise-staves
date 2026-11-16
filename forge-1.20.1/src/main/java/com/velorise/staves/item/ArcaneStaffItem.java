@@ -305,6 +305,29 @@ public final class ArcaneStaffItem extends Item {
         return false;
     }
 
+    public static boolean isOmniVoidTranslocatorAbsorbed(ItemStack omniStack) {
+        if (!isOmniStaff(omniStack)) return false;
+        CompoundTag tag = readCustomTag(omniStack);
+        if (tag != null && tag.contains(TAG_OMNI_STAVES, 10)) {
+            CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
+            String id = stavesTag.getString(Element.ELECTRO.name());
+            return "velorise_staves:void_translocator".equals(id)
+                    || "velorise_staves:netherite_void_translocator".equals(id);
+        }
+        return false;
+    }
+
+    public static boolean isOmniNetheriteVoidTranslocatorAbsorbed(ItemStack omniStack) {
+        if (!isOmniStaff(omniStack)) return false;
+        if (omniStack.getItem() instanceof ArcaneStaffItem os && os.isNetherite()) return true;
+        CompoundTag tag = readCustomTag(omniStack);
+        if (tag != null && tag.contains(TAG_OMNI_STAVES, 10)) {
+            CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
+            return "velorise_staves:netherite_void_translocator".equals(stavesTag.getString(Element.ELECTRO.name()));
+        }
+        return false;
+    }
+
     public static boolean hasOmniAbsorbedData(ItemStack stack) {
         CompoundTag tag = readCustomTag(stack);
         return tag != null && tag.contains(TAG_OMNI_STAVES, 10);
@@ -318,6 +341,10 @@ public final class ArcaneStaffItem extends Item {
             CompoundTag stavesTag = tag.getCompound(TAG_OMNI_STAVES);
             String id = stavesTag.getString(element.name());
             if ("minecraft:trident".equals(id) && element == Element.HYDRO) {
+                return null;
+            }
+            if (("velorise_staves:void_translocator".equals(id) || "velorise_staves:netherite_void_translocator".equals(id))
+                    && element == Element.ELECTRO) {
                 return null;
             }
             Item found = lookupItemById(id);
@@ -339,6 +366,15 @@ public final class ArcaneStaffItem extends Item {
             updateCustomTag(omniStack, tag -> {
                 CompoundTag staves = tag.contains(TAG_OMNI_STAVES, 10) ? tag.getCompound(TAG_OMNI_STAVES) : new CompoundTag();
                 staves.putString(Element.HYDRO.name(), "minecraft:trident");
+                tag.put(TAG_OMNI_STAVES, staves);
+            });
+            return;
+        }
+        if (staffStack.getItem() instanceof VoidTranslocatorItem vt) {
+            String vtId = vt.isNetherite() ? "velorise_staves:netherite_void_translocator" : "velorise_staves:void_translocator";
+            updateCustomTag(omniStack, tag -> {
+                CompoundTag staves = tag.contains(TAG_OMNI_STAVES, 10) ? tag.getCompound(TAG_OMNI_STAVES) : new CompoundTag();
+                staves.putString(Element.ELECTRO.name(), vtId);
                 tag.put(TAG_OMNI_STAVES, staves);
             });
             return;
@@ -424,6 +460,9 @@ public final class ArcaneStaffItem extends Item {
             if (!s.isEmpty() && s.is(Items.TRIDENT) && !found.containsKey(Element.HYDRO)) {
                 found.put(Element.HYDRO, "minecraft:trident");
                 totalDur += s.getMaxDamage();
+            } else if (!s.isEmpty() && s.getItem() instanceof VoidTranslocatorItem vt && !found.containsKey(Element.ELECTRO)) {
+                found.put(Element.ELECTRO, vt.isNetherite() ? "velorise_staves:netherite_void_translocator" : "velorise_staves:void_translocator");
+                totalDur += s.getMaxDamage();
             } else if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI && !staff.isArchon()) {
                 Element el = staff.getElement();
                 if (el != null && !found.containsKey(el)) {
@@ -453,6 +492,9 @@ public final class ArcaneStaffItem extends Item {
                 ItemStack s = matrix.getItem(i);
                 if (!s.isEmpty() && s.is(Items.TRIDENT) && !found.containsKey(Element.HYDRO)) {
                     found.put(Element.HYDRO, "minecraft:trident");
+                    totalDur += s.getMaxDamage();
+                } else if (!s.isEmpty() && s.getItem() instanceof VoidTranslocatorItem vt && !found.containsKey(Element.ELECTRO)) {
+                    found.put(Element.ELECTRO, vt.isNetherite() ? "velorise_staves:netherite_void_translocator" : "velorise_staves:void_translocator");
                     totalDur += s.getMaxDamage();
                 } else if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff && staff.kind() != Kind.OMNI && !staff.isArchon()) {
                     Element el = staff.getElement();
@@ -491,7 +533,7 @@ public final class ArcaneStaffItem extends Item {
         if (staff == null) return;
         long now = player.level().getGameTime();
         long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
-        if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+        if (now < lastSwitch || now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
             SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
             staff.switchSplendorArkhe(player, stack);
         }
@@ -545,6 +587,20 @@ public final class ArcaneStaffItem extends Item {
                 if (player instanceof ServerPlayer sp && shootOmniTrident(sp, stack, this.isNetherite)) {
                     hurtStaffAndCheckBreak(stack, 1, sp, hand);
                     int cdTicks = Math.max(10, (int) Math.round(2.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, cdTicks);
+                    sp.awardStat(Stats.ITEM_USED.get(this));
+                    sp.swing(hand, true);
+                    return InteractionResultHolder.consume(stack);
+                }
+                return InteractionResultHolder.fail(stack);
+            }
+            if (activeElem == Element.ELECTRO && isOmniVoidTranslocatorAbsorbed(stack)) {
+                if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
+                if (level.isClientSide()) return InteractionResultHolder.sidedSuccess(stack, true);
+                boolean nethBlink = this.isNetherite || isOmniNetheriteVoidTranslocatorAbsorbed(stack);
+                if (player instanceof ServerPlayer sp && VoidTranslocatorItem.triggerTeleport(sp, nethBlink)) {
+                    hurtStaffAndCheckBreak(stack, 1, sp, hand);
+                    int cdTicks = Math.max(1, (int) Math.round(StavesConfig.getVoidTranslocatorCooldownSeconds() * 20.0D * StavesConfig.getCooldownMultiplier()));
                     ElementalResonanceManager.applyOmniModeCooldown(sp, stack, cdTicks);
                     sp.awardStat(Stats.ITEM_USED.get(this));
                     sp.swing(hand, true);
@@ -1304,7 +1360,7 @@ public final class ArcaneStaffItem extends Item {
                 } else if (elapsed >= 10 || player.isShiftKeyDown()) {
                     long now = level.getGameTime();
                     long lastSwitch = SPLENDOR_LAST_SWITCH_TIME.getOrDefault(player.getUUID(), -100L);
-                    if (now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
+                    if (now < lastSwitch || now - lastSwitch >= SPLENDOR_SWITCH_COOLDOWN_TICKS) {
                         SPLENDOR_LAST_SWITCH_TIME.put(player.getUUID(), now);
                         switchSplendorArkhe(player, stack);
                     }
@@ -1490,8 +1546,9 @@ public final class ArcaneStaffItem extends Item {
             spawnDaybreakWindCharge(level, player, tag, 14.0F, true, c);
         }
         level.playSound(null, player.blockPosition(), VeloriseStavesMod.WIND_CHARGE_THROW_SOUND.get(), SoundSource.PLAYERS, 0.95F, (isNetherite ? 1.12F : 1.0F) + 0.18F * c);
-        if (c >= 0.85F) {
-            level.playSound(null, player.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.45F, 1.35F);
+        level.playSound(null, player.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, c >= 0.85F ? 0.55F : 0.40F, c >= 0.85F ? 1.35F : 1.20F);
+        if (c < 0.50F) {
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_TSARITSA_BOW_NA);
         }
         return true;
     }
@@ -1536,7 +1593,7 @@ public final class ArcaneStaffItem extends Item {
         if (player == null || !player.isAlive() || ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         long now = player.level().getGameTime();
         long last = LAST_DAYBREAK_SHOT.getOrDefault(player.getUUID(), 0L);
-        if (now - last < 8L) return;
+        if (now >= last && now - last < 6L) return;
         LAST_DAYBREAK_SHOT.put(player.getUUID(), now);
         ItemStack stack = player.getMainHandItem();
         if (getEffectiveKind(stack) != Kind.DAYBREAK) {
@@ -1927,11 +1984,13 @@ public final class ArcaneStaffItem extends Item {
 
         // Draw horizontal primary arc from staff tip to target
         drawJaggedArc(level, start, strikePos, isNetherite ? 0.35D : 0.20D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, strikePos.x, strikePos.y, strikePos.z, 1, 0.1D, 0.1D, 0.1D, 0.02D);
 
-        // High-voltage electric crackle sound
-        level.playSound(null, strikePos.x, strikePos.y, strikePos.z,
-            SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.55F + level.random.nextFloat() * 0.45F);
+        // High-voltage electric crackle sound (throttled to every 10 ticks)
+        if (elapsed % 10 == 0) {
+            level.playSound(null, strikePos.x, strikePos.y, strikePos.z,
+                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.55F, 1.55F + level.random.nextFloat() * 0.45F);
+        }
         if (elapsed % 4 == 0) {
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.GUARDIAN_ATTACK, SoundSource.PLAYERS, 0.45F, 1.75F);
@@ -1987,9 +2046,11 @@ public final class ArcaneStaffItem extends Item {
         double aoeRadius = isNetherite ? 4.5D : 2.0D;
         DendroCoreManager.checkReactionsNear(level, strikePos, aoeRadius, Element.ELECTRO, player);
         EnvironmentalBlockManager.activateTeslaCoilsNear(level, strikePos, 1.5D);
-        // Electrify water if strikePos is in water
-        BlockPos strikeBlock = BlockPos.containing(strikePos);
-        ElectrifiedWaterManager.electrify(level, strikeBlock, aoeRadius, 70, player, damagePerTick);
+        // Electrify water once per second (every 20 ticks) instead of every 5 ticks to prevent electric arc & sound spam
+        if (elapsed % 20 == 0) {
+            BlockPos strikeBlock = BlockPos.containing(strikePos);
+            ElectrifiedWaterManager.electrify(level, strikeBlock, aoeRadius, 70, player, damagePerTick);
+        }
     }
 
     private static void drawJaggedArc(ServerLevel level, Vec3 start, Vec3 end, double jitter) {
@@ -2528,17 +2589,37 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.OMNI) {
             Element activeEl = getOmniActiveElement(stack);
             if (activeEl != null) {
-                ArcaneStaffItem absorbedActive = getOmniAbsorbedStaff(stack, activeEl);
-                if (absorbedActive != null) {
+                if (activeEl == Element.HYDRO && isOmniTridentAbsorbed(stack)) {
                     tooltip.add(Component.translatable("tooltip.velorise_staves.omni_active_staff",
-                            Component.translatable(absorbedActive.getDescriptionId())).withStyle(activeEl.color()));
+                            Component.translatable(Items.TRIDENT.getDescriptionId())).withStyle(activeEl.color()));
+                } else if (activeEl == Element.ELECTRO && isOmniVoidTranslocatorAbsorbed(stack)) {
+                    String vtKey = isOmniNetheriteVoidTranslocatorAbsorbed(stack)
+                            ? "item.velorise_staves.netherite_void_translocator"
+                            : "item.velorise_staves.void_translocator";
+                    tooltip.add(Component.translatable("tooltip.velorise_staves.omni_active_staff",
+                            Component.translatable(vtKey)).withStyle(activeEl.color()));
+                } else {
+                    ArcaneStaffItem absorbedActive = getOmniAbsorbedStaff(stack, activeEl);
+                    if (absorbedActive != null) {
+                        tooltip.add(Component.translatable("tooltip.velorise_staves.omni_active_staff",
+                                Component.translatable(absorbedActive.getDescriptionId())).withStyle(activeEl.color()));
+                    }
                 }
             }
             tooltip.add(Component.translatable("tooltip.velorise_staves.omni_wheel_hint").withStyle(ChatFormatting.YELLOW));
             tooltip.add(Component.translatable("tooltip.velorise_staves.omni_absorbed_header").withStyle(ChatFormatting.GOLD));
             for (Element el : new Element[]{Element.CRYO, Element.HYDRO, Element.ANEMO, Element.PYRO, Element.GEO, Element.DENDRO, Element.ELECTRO}) {
                 ArcaneStaffItem abs = getOmniAbsorbedStaff(stack, el);
-                Component staffName = abs != null ? Component.translatable(abs.getDescriptionId()) : Component.literal("-");
+                Component staffName;
+                if (el == Element.HYDRO && isOmniTridentAbsorbed(stack)) {
+                    staffName = Component.translatable(Items.TRIDENT.getDescriptionId());
+                } else if (el == Element.ELECTRO && isOmniVoidTranslocatorAbsorbed(stack)) {
+                    staffName = Component.translatable(isOmniNetheriteVoidTranslocatorAbsorbed(stack)
+                            ? "item.velorise_staves.netherite_void_translocator"
+                            : "item.velorise_staves.void_translocator");
+                } else {
+                    staffName = abs != null ? Component.translatable(abs.getDescriptionId()) : Component.literal("-");
+                }
                 Component line = Component.literal("  " + el.iconString() + " ")
                         .append(Component.translatable(el.translationKey()).withStyle(el.color()))
                         .append(Component.literal(": ").withStyle(ChatFormatting.GRAY))

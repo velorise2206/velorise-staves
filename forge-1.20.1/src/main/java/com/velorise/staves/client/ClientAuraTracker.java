@@ -24,6 +24,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_RAIDEN_DRAW = 8;
     public static final int ANIM_RAIDEN_SLASH = 9;
     public static final int ANIM_ZHONGLI_PLANET_BEFALL = 15;
+    public static final int ANIM_ZHONGLI_PLANET_BEFALL_FIRST = 61;
     public static final int ANIM_XILONEN_SKATE_DASH = 20;
     public static final int ANIM_XILONEN_KICK_1 = 21;
     public static final int ANIM_XILONEN_KICK_2 = 22;
@@ -371,9 +372,9 @@ public final class ClientAuraTracker {
             }
         }
         ActiveArc arc = new ActiveArc();
-        arc.fromEntityId = fromId;
+        arc.fromEntityId = ((color & 0xFFFF0000) == 0x4E410000) ? -8 : fromId;
         arc.start = start;
-        arc.toEntityId = toId;
+        arc.toEntityId = ((color & 0xFFFF0000) == 0x4E410000) ? -8 : toId;
         arc.end = end;
         arc.startTime = now;
         arc.expireTime = nextExpire;
@@ -392,6 +393,10 @@ public final class ClientAuraTracker {
 
     public static void triggerStaffAnimation(int entityId, int animType) {
         if (entityId <= 0 || animType <= 0) return;
+        boolean forceFirstZhongliOrder = (animType == ANIM_ZHONGLI_PLANET_BEFALL_FIRST);
+        if (forceFirstZhongliOrder) {
+            animType = ANIM_ZHONGLI_PLANET_BEFALL;
+        }
         long now = System.currentTimeMillis();
         if (animType == ANIM_GLIDER_UNLOCKED) {
             localWindGliderUnlocked = true;
@@ -614,7 +619,7 @@ public final class ClientAuraTracker {
         } else if (animType == ANIM_VORTEX_HOLD_BURST) {
             com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliVoice(entityId, true);
         } else if (animType == ANIM_ZHONGLI_PLANET_BEFALL) {
-            com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliBurstVoice(entityId);
+            com.velorise.staves.audio.CharacterVoiceManager.playClientZhongliBurstVoice(entityId, forceFirstZhongliOrder);
         }
     }
 
@@ -1189,6 +1194,7 @@ public final class ClientAuraTracker {
     }
 
     public static void clear() {
+        com.velorise.staves.audio.CharacterVoiceManager.resetWorldSession();
         DATA.clear();
         MAVUIKA_STATES.clear();
         RAIDEN_STATES.clear();

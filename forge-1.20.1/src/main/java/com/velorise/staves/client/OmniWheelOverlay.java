@@ -55,6 +55,29 @@ public final class OmniWheelOverlay {
     private static int hoveredSlot = -1;
     private static long lastDaybreakClientShotMs = 0L;
 
+    private static final java.lang.reflect.Field MISS_TIME_FIELD;
+    static {
+        java.lang.reflect.Field f = null;
+        try {
+            f = Minecraft.class.getDeclaredField("missTime");
+            f.setAccessible(true);
+        } catch (Throwable t1) {
+            try {
+                f = Minecraft.class.getDeclaredField("f_91084_");
+                f.setAccessible(true);
+            } catch (Throwable ignored) {}
+        }
+        MISS_TIME_FIELD = f;
+    }
+
+    private static void resetMissTime(Minecraft mc) {
+        if (mc != null && MISS_TIME_FIELD != null) {
+            try {
+                MISS_TIME_FIELD.setInt(mc, 0);
+            } catch (Throwable ignored) {}
+        }
+    }
+
     static {
         SLOT_TEXTURES[0] = new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/omni.png");
         for (int i = 1; i < 8; i++) {
@@ -383,6 +406,7 @@ public final class OmniWheelOverlay {
         queuedDaybreakFastClicks = 0;
         if (holdingDaybreak && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
                 && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            resetMissTime(mc);
             while (mc.options.keyAttack.consumeClick()) {
                 daybreakFast++;
             }
@@ -402,7 +426,7 @@ public final class OmniWheelOverlay {
                 } else if (pulled >= 6) {
                     lastDaybreakClientShotMs = nowMs;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DAYBREAK_CA);
-                } else if ((pulled > 0 || daybreakFast > 0) && nowMs - lastDaybreakClientShotMs >= 400L) {
+                } else if ((pulled > 0 || daybreakFast > 0) && nowMs - lastDaybreakClientShotMs >= 150L) {
                     lastDaybreakClientShotMs = nowMs;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DAYBREAK_NA);
                 }
@@ -608,6 +632,24 @@ public final class OmniWheelOverlay {
 
     @SubscribeEvent
     public static void onMouseButtonPre(InputEvent.MouseButton.Pre event) {
+        if (event.getAction() == GLFW.GLFW_PRESS && !wheelActive && event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && mc.screen == null
+                    && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+                ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem());
+                if (effKind == ArcaneStaffItem.Kind.DAYBREAK) {
+                    resetMissTime(mc);
+                    queuedDaybreakFastClicks++;
+                } else if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+                    resetMissTime(mc);
+                    queuedNahidaFastClicks++;
+                } else if (effKind == ArcaneStaffItem.Kind.TSARITSA_BOW || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                    resetMissTime(mc);
+                    queuedTsaritsaFastClicks++;
+                }
+            }
+        }
         if (!wheelActive || event.getAction() != GLFW.GLFW_PRESS) return;
         Minecraft mc = Minecraft.getInstance();
         if (event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT || event.getButton() == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
@@ -823,6 +865,17 @@ public final class OmniWheelOverlay {
                         .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
                         .append(Component.translatable(net.minecraft.world.item.Items.TRIDENT.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
                 subComp = Component.literal((nethOmni ? "Netherite · " : "") + "CD: 2s").withStyle(net.minecraft.ChatFormatting.GRAY);
+            } else if (previewElem == Element.ELECTRO && ArcaneStaffItem.isOmniVoidTranslocatorAbsorbed(omniStack)) {
+                boolean nethVt = ArcaneStaffItem.isOmniNetheriteVoidTranslocatorAbsorbed(omniStack);
+                String vtKey = nethVt ? "item.velorise_staves.netherite_void_translocator" : "item.velorise_staves.void_translocator";
+                titleComp = Component.translatable(previewElem.translationKey())
+                        .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                        .append(Component.translatable(vtKey).withStyle(net.minecraft.ChatFormatting.WHITE));
+                double cdSec = com.velorise.staves.config.StavesConfig.getVoidTranslocatorCooldownSeconds() * com.velorise.staves.config.StavesConfig.getCooldownMultiplier();
+                String cdStr = cdSec == Math.rint(cdSec)
+                        ? String.format(java.util.Locale.ROOT, "%.0fs", cdSec)
+                        : String.format(java.util.Locale.ROOT, "%.1fs", cdSec);
+                subComp = Component.literal((nethVt ? "Netherite · " : "") + "CD: " + cdStr).withStyle(net.minecraft.ChatFormatting.GRAY);
             } else {
                 ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
                 if (absorbed != null) {

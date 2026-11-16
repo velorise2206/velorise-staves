@@ -10,9 +10,14 @@
     "I": {
       "item": "minecraft:iron_ingot"
     },
-    "G": {
-      "item": "velorise_staves:geo_element"
-    },
+    "G": [
+      {
+        "item": "velorise_staves:geo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "B": {
       "item": "minecraft:stick"
     }

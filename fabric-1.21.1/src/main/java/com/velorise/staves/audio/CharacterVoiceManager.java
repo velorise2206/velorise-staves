@@ -26,9 +26,13 @@ public final class CharacterVoiceManager {
             "neuvillette", "mavuika", "xilonen", "tsaritsa", "layla"
     );
 
+    public static final List<String> VOICE_LANGUAGES = List.of(
+            "en_us", "zh_cn", "ja_jp", "ko_kr"
+    );
+
     public static final class VoiceConfigData {
         public String masterMode = "all"; // "all", "self_only", "disabled"
-        public String globalLanguage = "auto"; // "auto", "en_us", "zh_cn", "ja_jp"
+        public String globalLanguage = "auto"; // "auto", "en_us", "zh_cn", "ja_jp", "ko_kr"
         public float volume = 1.0F;
         public boolean firstZhongliOrderPlayed = false;
         public Map<String, Boolean> enabledCharacters = new ConcurrentHashMap<>();
@@ -38,6 +42,36 @@ public final class CharacterVoiceManager {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static VoiceConfigData configData = null;
     private static final java.util.Map<Integer, Long> LAST_VOICE_TIME = new ConcurrentHashMap<>();
+    private static boolean firstZhongliOrderPlayedInWorld = false;
+
+    public static void resetWorldSession() {
+        firstZhongliOrderPlayedInWorld = false;
+        LAST_VOICE_TIME.clear();
+    }
+
+    public static boolean hasVoiceForLanguage(String charId, String langCode) {
+        if (charId == null || langCode == null) return false;
+        String normChar = charId.toLowerCase(Locale.ROOT);
+        String normLang = langCode.toLowerCase(Locale.ROOT);
+        if ("zhongli".equals(normChar)) {
+            return "en_us".equals(normLang) || "zh_cn".equals(normLang);
+        }
+        return false;
+    }
+
+    public static int getCharacterElementColorRgb(String charId) {
+        if (charId == null) return 0xFFFFFF;
+        return switch (charId.toLowerCase(Locale.ROOT)) {
+            case "zhongli", "xilonen" -> 0xFFE070;
+            case "raiden" -> 0xBF5AF2;
+            case "venti" -> 0x55FFD0;
+            case "nahida" -> 0x7CFF00;
+            case "furina", "neuvillette" -> 0x38B6FF;
+            case "mavuika" -> 0xFF6A00;
+            case "tsaritsa", "layla" -> 0x99FFFF;
+            default -> 0xFFFFFF;
+        };
+    }
 
     private static synchronized VoiceConfigData getConfig() {
         if (configData == null) {
@@ -87,6 +121,7 @@ public final class CharacterVoiceManager {
 
     public static synchronized void resetDefaults() {
         configData = new VoiceConfigData();
+        firstZhongliOrderPlayedInWorld = false;
         saveConfig();
     }
 
@@ -189,7 +224,7 @@ public final class CharacterVoiceManager {
         if (!isVoiceAllowed(entityId, charId)) return;
         long now = System.currentTimeMillis();
         Long last = LAST_VOICE_TIME.get(entityId);
-        if (last != null && (now - last) < debounceMs) {
+        if (last != null && now >= last && (now - last) < debounceMs) {
             return;
         }
         LAST_VOICE_TIME.put(entityId, now);
@@ -222,10 +257,13 @@ public final class CharacterVoiceManager {
     }
 
     public static void playClientZhongliBurstVoice(int entityId) {
-        VoiceConfigData cfg = getConfig();
-        if (!cfg.firstZhongliOrderPlayed) {
-            cfg.firstZhongliOrderPlayed = true;
-            saveConfig();
+        playClientZhongliBurstVoice(entityId, false);
+    }
+
+    public static void playClientZhongliBurstVoice(int entityId, boolean forceFirstOrder) {
+        if (!isVoiceAllowed(entityId, "zhongli")) return;
+        if (forceFirstOrder || !firstZhongliOrderPlayedInWorld) {
+            firstZhongliOrderPlayedInWorld = true;
             Minecraft mc = Minecraft.getInstance();
             if (mc.level != null) {
                 Entity entity = mc.level.getEntity(entityId);

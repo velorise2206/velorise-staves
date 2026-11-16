@@ -7,9 +7,14 @@
     "S  "
   ],
   "key": {
-    "G": {
-      "item": "velorise_staves:geo_element"
-    },
+    "G": [
+      {
+        "item": "velorise_staves:geo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "R": {
       "item": "velorise_staves:geo_rod"
     },

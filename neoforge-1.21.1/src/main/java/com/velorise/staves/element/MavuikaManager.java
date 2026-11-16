@@ -324,7 +324,7 @@ public final class MavuikaManager {
         boolean holdingOff = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
         if (!holdingMain && !holdingOff && !isMavuikaAuraActive(id, now)) return;
         long lastNaFs = MAVUIKA_LAST_NA_FS_TICK.getOrDefault(id, -100L);
-        if (now - lastNaFs < 2L) return; // Genshin A1 passive: 0.1s ICD
+        if (now >= lastNaFs && now - lastNaFs < 2L) return; // Genshin A1 passive: 0.1s ICD
         MAVUIKA_LAST_NA_FS_TICK.put(id, now);
         boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id,
                 (holdingMain && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main))
@@ -875,8 +875,10 @@ public final class MavuikaManager {
                     INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
                     if (target.level() instanceof ServerLevel sl) {
                         DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
-                        sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
+                        if (canEmitReactionVisual(sl, target.position(), 2)) {
+                            sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.5D, 0.35D, 0.5D, 0.03D);
+                            sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.7F, 1.2F);
+                        }
                     }
                     syncAuras(target, innateSet, Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
                 }
@@ -906,12 +908,16 @@ public final class MavuikaManager {
                 if (lastEc == null || now >= lastEc) {
                     INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
                     if (target.level() instanceof ServerLevel sl) {
-                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+                        if (canEmitReactionVisual(sl, target.position(), 2)) {
+                            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                            sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.8F);
+                        }
                         if (isEntitySubmergedInWater(target)) {
                             AABB chainBox = target.getBoundingBox().inflate(1.0D);
+                            int chained = 0;
                             for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != target)) {
                                 if (isEntitySubmergedInWater(nearby) && !hasInnateElement(nearby, Element.ELECTRO)) {
+                                    if (chained++ >= 2) break;
                                     drawVoltaicArc(sl, target, nearby);
                                     applyElement(sl, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
                                 }
@@ -989,8 +995,10 @@ public final class MavuikaManager {
             }
             float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
             if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+                if (canEmitReactionVisual(sl, target.position(), 2)) {
+                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.8F);
+                }
                 hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
             }
             syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
@@ -1065,8 +1073,94 @@ public final class MavuikaManager {
         return entity instanceof Enemy || entity.getType().getCategory() == MobCategory.MONSTER;
     }
 
+
+    private static final Map<UUID, UUID> TRADER_LAST_CUSTOMER = new ConcurrentHashMap<>();
+
+    public static void tryPopulateWanderingTraderOffers(LivingEntity entity) {
+        if (!(entity instanceof net.minecraft.world.entity.npc.WanderingTrader trader) || entity.level().isClientSide()) return;
+        if (trader.getTags().contains("VeloriseTraderChecked")) return;
+        trader.addTag("VeloriseTraderChecked");
+
+        // 50% chance for a spawned Wandering Trader to offer 2 to 3 Elemental Essence slots
+        if (trader.getRandom().nextDouble() >= 0.50D) return;
+
+        net.minecraft.world.item.trading.MerchantOffers offers = trader.getOffers();
+        if (offers == null) return;
+
+        int slotCount = 2 + trader.getRandom().nextInt(2); // 2 to 3 slots
+        Element[] allElements = Element.values();
+        Set<net.minecraft.world.item.Item> addedItems = new HashSet<>();
+
+        for (int s = 0; s < slotCount; s++) {
+            // 7 parts Normal Element (87.5%) : 1 part Omni Element (12.5%)
+            boolean rollOmni = (trader.getRandom().nextInt(8) == 0);
+            net.minecraft.world.item.Item chosenItem = null;
+            int emeraldPrice;
+            int xpReward;
+
+            if (rollOmni && !addedItems.contains(VeloriseStavesMod.getElementItem(null))) {
+                chosenItem = VeloriseStavesMod.getElementItem(null);
+                emeraldPrice = 48 + trader.getRandom().nextInt(17); // 48 - 64 Emeralds
+                xpReward = 25;
+            } else {
+                for (int attempt = 0; attempt < 10; attempt++) {
+                    Element pick = allElements[trader.getRandom().nextInt(allElements.length)];
+                    net.minecraft.world.item.Item candidate = VeloriseStavesMod.getElementItem(pick);
+                    if (candidate != null && !addedItems.contains(candidate)) {
+                        chosenItem = candidate;
+                        break;
+                    }
+                }
+                if (chosenItem == null) {
+                    chosenItem = VeloriseStavesMod.getElementItem(allElements[s % allElements.length]);
+                }
+                emeraldPrice = 24 + trader.getRandom().nextInt(9); // 24 - 32 Emeralds
+                xpReward = 12;
+            }
+
+            if (chosenItem != null && addedItems.add(chosenItem)) {
+                offers.add(new net.minecraft.world.item.trading.MerchantOffer(new net.minecraft.world.item.trading.ItemCost(Items.EMERALD, emeraldPrice), new ItemStack(chosenItem, 1), 1, xpReward, 0.05F));
+            }
+        }
+    }
+
+    public static void checkWanderingTraderProgress(ServerLevel level, net.minecraft.world.entity.npc.WanderingTrader trader) {
+        if (level == null || trader == null || !trader.isAlive()) return;
+        tryPopulateWanderingTraderOffers(trader);
+        if (trader.getTradingPlayer() instanceof ServerPlayer activeCustomer) {
+            TRADER_LAST_CUSTOMER.put(trader.getUUID(), activeCustomer.getUUID());
+        }
+        net.minecraft.world.item.trading.MerchantOffers offers = trader.getOffers();
+        if (offers == null || offers.isEmpty()) return;
+        for (int i = 0; i < offers.size(); i++) {
+            net.minecraft.world.item.trading.MerchantOffer offer = offers.get(i);
+            if (offer != null && offer.getUses() > 0 && offer.getResult().getItem() instanceof com.velorise.staves.item.ElementItem) {
+                String grantTag = "VeloriseTraderSoldSlot:" + i;
+                if (!trader.getTags().contains(grantTag)) {
+                    trader.addTag(grantTag);
+                    ServerPlayer buyer = null;
+                    if (trader.getTradingPlayer() instanceof ServerPlayer sp) {
+                        buyer = sp;
+                    } else {
+                        UUID lastId = TRADER_LAST_CUSTOMER.get(trader.getUUID());
+                        if (lastId != null && level.getServer() != null) {
+                            buyer = level.getServer().getPlayerList().getPlayer(lastId);
+                        }
+                    }
+                    if (buyer != null) {
+                        com.velorise.staves.advancement.ModAdvancements.trigger(
+                                buyer, com.velorise.staves.advancement.ModAdvancements.EVENT_WHERE_IS_HE_FROM);
+                    }
+                }
+            }
+        }
+    }
+
     public static void checkInnateMutation(LivingEntity entity) {
         if (entity == null || entity instanceof Player || entity.level().isClientSide()) return;
+        if (entity instanceof net.minecraft.world.entity.npc.WanderingTrader) {
+            tryPopulateWanderingTraderOffers(entity);
+        }
         if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
             mob.setNoAi(false);
             mob.removeTag(TAG_FROZEN_STATUE);
@@ -1325,24 +1419,25 @@ public final class MavuikaManager {
     }
 
     public static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) {
+        if (!canEmitReactionVisual(level, target.position(), 6)) return;
         double x = target.getX();
         double y = target.getY() + target.getBbHeight() * 0.65D;
         double z = target.getZ();
 
         if (gauges.containsKey(Element.PYRO)) {
-            level.sendParticles(ParticleTypes.FLAME, x, y, z, 2, 0.2D, 0.25D, 0.2D, 0.01D);
+            level.sendParticles(ParticleTypes.FLAME, x, y, z, 1, 0.2D, 0.25D, 0.2D, 0.01D);
         }
         if (gauges.containsKey(Element.HYDRO)) {
-            level.sendParticles(ParticleTypes.FALLING_WATER, x, y, z, 3, 0.2D, 0.25D, 0.2D, 0.0D);
+            level.sendParticles(ParticleTypes.FALLING_WATER, x, y, z, 1, 0.2D, 0.25D, 0.2D, 0.0D);
         }
         if (gauges.containsKey(Element.CRYO) || FROZEN_GAUGES.containsKey(target.getUUID())) {
-            level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 2, 0.25D, 0.25D, 0.25D, 0.01D);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 1, 0.25D, 0.25D, 0.25D, 0.01D);
         }
         if (gauges.containsKey(Element.ELECTRO)) {
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 2, 0.2D, 0.2D, 0.2D, 0.02D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 1, 0.2D, 0.2D, 0.2D, 0.02D);
         }
         if (gauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(target.getUUID())) {
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y, z, 2, 0.2D, 0.25D, 0.2D, 0.01D);
+            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y, z, 1, 0.2D, 0.25D, 0.2D, 0.01D);
         }
     }
 
@@ -1455,6 +1550,9 @@ public final class MavuikaManager {
                     for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
                         if (!visitedNearby.add(nearby.getUUID())) {
                             continue;
+                        }
+                        if (nearby instanceof net.minecraft.world.entity.npc.WanderingTrader trader) {
+                            checkWanderingTraderProgress(sl, trader);
                         }
                         if (nearby instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
                             mob.setNoAi(false);
@@ -1679,6 +1777,7 @@ public final class MavuikaManager {
         ElementalDeathMessageHelper.clearAll();
         BURNING_ATTACKER_UUID.clear();
         SUPPRESSED_PHYSICAL_FLOAT_TICK.clear();
+        TRADER_LAST_CUSTOMER.clear();
         ZhongliManager.clearAll();
         VentiManager.clearAll();
     }
@@ -1862,7 +1961,7 @@ public final class MavuikaManager {
             }
 
             // 2B. Proximity Voltaic Arcing (ONLY when BOTH entities are physically submerged in water)
-            if (entityGauges.containsKey(Element.ELECTRO) && isEntitySubmergedInWater(target) && (now % 4 == 0)) {
+            if (entityGauges.containsKey(Element.ELECTRO) && isEntitySubmergedInWater(target) && (now % 10 == 0)) {
                 final LivingEntity srcTarget = target;
                 AABB arcBox = target.getBoundingBox().inflate(4.0D);
                 for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, arcBox, e -> e.isAlive() && !e.isRemoved() && e != srcTarget)) {
@@ -1912,8 +2011,10 @@ public final class MavuikaManager {
                     if (isEntitySubmergedInWater(target)) {
                         final LivingEntity srcTarget = target;
                         AABB chainBox = target.getBoundingBox().inflate(4.0D);
+                        int chained = 0;
                         for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
                             if (isEntitySubmergedInWater(nearby)) {
+                                if (chained++ >= 2) break;
                                 drawVoltaicArc(targetLevel, target, nearby);
                                 applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
                             }
@@ -2017,7 +2118,9 @@ public final class MavuikaManager {
                         LAST_BURN_PYRO_REFRESH.remove(id);
                         changed = true;
                     }
-                    targetLevel.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 4, 0.25D, 0.3D, 0.25D, 0.02D);
+                    if (now % 10 == 0 && canEmitReactionVisual(targetLevel, target.position(), 4)) {
+                        targetLevel.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.25D, 0.3D, 0.25D, 0.02D);
+                    }
                 }
             }
 

@@ -73,41 +73,50 @@ public class VoidTranslocatorItem extends Item {
         if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer) {
-            Vec3 start = player.getEyePosition();
-            Vec3 look = player.getViewVector(1.0F);
-            Vec3 end = start.add(look.scale(getEffectiveRange()));
-            BlockHitResult hitResult = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-            Vec3 destination = resolveDestination(level, look, end, hitResult);
-
-            if (destination == null) {
-                player.displayClientMessage(Component.translatable("message.velorise_staves.translocator_blocked"), true);
+            if (!triggerTeleport(serverPlayer, isNetherite)) {
                 return InteractionResultHolder.fail(stack);
             }
-
-            ServerLevel serverLevel = serverPlayer.serverLevel();
-            spawnPortalParticles(serverLevel, player.position().add(0, 1.0, 0));
-            level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.0F);
-
-            player.teleportTo(destination.x, destination.y, destination.z);
-            player.fallDistance = 0.0F;
-
-            // Self-inflict Electro aura upon blink activation (1.0U Basic / 1.5U Netherite)
-            float selfElectroU = isNetherite ? 1.5F : 1.0F;
-            ElementalGaugeManager.applyElementBypassIcd(serverLevel, serverPlayer, Element.ELECTRO, selfElectroU, null, 0.0F);
-
             stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
             com.velorise.staves.element.ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
-
-            spawnPortalParticles(serverLevel, destination.add(0, 1.0, 0));
-            level.playSound(null, destination.x, destination.y, destination.z,
-                SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.0F);
-
-            com.velorise.staves.advancement.ModAdvancements.trigger(
-                    serverPlayer, com.velorise.staves.advancement.ModAdvancements.EVENT_SPATIAL_TRAVELER);
             return InteractionResultHolder.success(stack);
         }
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide());
+    }
+
+
+    public static boolean triggerTeleport(ServerPlayer serverPlayer, boolean isNetherite) {
+        if (serverPlayer == null) return false;
+        ServerLevel serverLevel = serverPlayer.serverLevel();
+        double effectiveRange = StavesConfig.getVoidTranslocatorRange(isNetherite);
+        Vec3 start = serverPlayer.getEyePosition();
+        Vec3 look = serverPlayer.getViewVector(1.0F);
+        Vec3 end = start.add(look.scale(effectiveRange));
+        BlockHitResult hitResult = serverLevel.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, serverPlayer));
+        Vec3 destination = resolveDestination(serverLevel, look, end, hitResult);
+
+        if (destination == null) {
+            serverPlayer.displayClientMessage(Component.translatable("message.velorise_staves.translocator_blocked"), true);
+            return false;
+        }
+
+        spawnPortalParticles(serverLevel, serverPlayer.position().add(0, 1.0, 0));
+        serverLevel.playSound(null, serverPlayer.getX(), serverPlayer.getY(), serverPlayer.getZ(),
+            SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.0F);
+
+        serverPlayer.teleportTo(destination.x, destination.y, destination.z);
+        serverPlayer.fallDistance = 0.0F;
+
+        // Self-inflict Electro aura upon blink activation (1.0U Basic / 1.5U Netherite)
+        float selfElectroU = isNetherite ? 1.5F : 1.0F;
+        ElementalGaugeManager.applyElementBypassIcd(serverLevel, serverPlayer, Element.ELECTRO, selfElectroU, null, 0.0F);
+
+        spawnPortalParticles(serverLevel, destination.add(0, 1.0, 0));
+        serverLevel.playSound(null, destination.x, destination.y, destination.z,
+            SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.0F);
+
+        com.velorise.staves.advancement.ModAdvancements.trigger(
+                serverPlayer, com.velorise.staves.advancement.ModAdvancements.EVENT_SPATIAL_TRAVELER);
+        return true;
     }
 
     private static Vec3 resolveDestination(Level level, Vec3 look, Vec3 end, BlockHitResult hitResult) {
@@ -130,7 +139,7 @@ public class VoidTranslocatorItem extends Item {
     }
 
     private static void spawnPortalParticles(ServerLevel level, Vec3 pos) {
-        level.sendParticles(ParticleTypes.PORTAL, pos.x, pos.y, pos.z, 24, 0.4, 0.6, 0.4, 0.2);
+        level.sendParticles(ParticleTypes.PORTAL, pos.x, pos.y, pos.z, 16, 0.4, 0.6, 0.4, 0.2);
     }
 
     @Override

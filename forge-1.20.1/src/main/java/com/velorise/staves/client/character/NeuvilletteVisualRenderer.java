@@ -77,6 +77,18 @@ public final class NeuvilletteVisualRenderer {
 
     public static boolean applyChannelingHumanoidPose(LivingEntity entity, HumanoidModel<?> model, int activeAnim) {
         if (ClientAuraTracker.isNeuvilletteChargingOrFiring(entity.getId()) && activeAnim != ClientAuraTracker.ANIM_NEUVILLETTE_BURST) {
+            entity.yBodyRot = entity.getYRot();
+            entity.yBodyRotO = entity.yRotO;
+            entity.yHeadRot = entity.getYRot();
+            entity.yHeadRotO = entity.yRotO;
+            entity.walkAnimation.setSpeed(0.0F);
+            entity.walkAnimation.update(0.0F, 0.0F);
+            if (entity instanceof net.minecraft.world.entity.player.Player player) {
+                player.bob = 0.0F;
+                player.oBob = 0.0F;
+            }
+            model.head.yRot = 0.0F;
+            model.hat.yRot = 0.0F;
             model.body.xRot = 0.0F;
             model.body.yRot = 0.0F;
             model.body.zRot = 0.0F;
@@ -178,8 +190,20 @@ public final class NeuvilletteVisualRenderer {
             }
             double maxRange = isNeth ? 22.0D : 16.0D;
 
-            Vec3 eye = entity.getEyePosition(partialTicks);
-            Vec3 look = entity.getViewVector(partialTicks).normalize();
+            entity.yBodyRot = entity.getYRot();
+            entity.yBodyRotO = entity.yRotO;
+            entity.yHeadRot = entity.getYRot();
+            entity.yHeadRotO = entity.yRotO;
+            entity.walkAnimation.setSpeed(0.0F);
+            entity.walkAnimation.update(0.0F, 0.0F);
+            entity.bob = 0.0F;
+            entity.oBob = 0.0F;
+
+            boolean isLocalFirstPerson = (entity == mc.player && mc.options.getCameraType().isFirstPerson());
+            Vec3 eye = isLocalFirstPerson ? camPos : entity.getEyePosition(partialTicks);
+            Vec3 look = isLocalFirstPerson
+                    ? new Vec3(camera.getLookVector().x(), camera.getLookVector().y(), camera.getLookVector().z()).normalize()
+                    : entity.getViewVector(partialTicks).normalize();
             Vec3 worldUp = Math.abs(look.y) < 0.95D ? new Vec3(0.0D, 1.0D, 0.0D) : new Vec3(1.0D, 0.0D, 0.0D);
             Vec3 right = look.cross(worldUp).normalize();
             Vec3 up = right.cross(look).normalize();

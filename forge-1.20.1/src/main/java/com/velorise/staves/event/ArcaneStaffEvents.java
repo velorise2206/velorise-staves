@@ -877,7 +877,7 @@ public final class ArcaneStaffEvents {
         level.sendParticles(ParticleTypes.CLOUD, hit.x, hit.y + 0.28D, hit.z, 12, radius * 0.18D, 0.14D, radius * 0.18D, 0.09D);
         level.playSound(null, hit.x, hit.y, hit.z, com.velorise.staves.VeloriseStavesMod.WIND_CHARGE_BURST_SOUND.get(), SoundSource.PLAYERS, 1.0F, 1.0F);
 
-        if (owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
+        if (pushScale >= 0.80F && owner instanceof LivingEntity ownerLiving && ownerLiving.isAlive()) {
             double distSqr = ownerLiving.position().distanceToSqr(hit);
             if (distSqr <= radiusSqr) {
                 double dist = Math.sqrt(distSqr);

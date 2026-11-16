@@ -16,6 +16,20 @@ import java.util.List;
 
 public final class VeloriseStavesClient implements ClientModInitializer {
     private static long lastDaybreakClientShotMs = 0L;
+    private static int queuedNahidaFastClicks = 0;
+    private static int queuedTsaritsaFastClicks = 0;
+    private static int queuedDaybreakFastClicks = 0;
+
+    public static void recordFastAttackClick(com.velorise.staves.item.ArcaneStaffItem.Kind effKind) {
+        if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+            queuedDaybreakFastClicks++;
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+            queuedNahidaFastClicks++;
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+            queuedTsaritsaFastClicks++;
+        }
+    }
     @Override
     public void onInitializeClient() {
         ClientPlayNetworking.registerGlobalReceiver(AuraSyncPayload.TYPE, (payload, context) -> {
@@ -212,6 +226,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 nahidaAttackHoldTicks[0] = 0;
                 nahidaCaTriggeredThisHold[0] = false;
                 tsaritsaSpearHoldTick[0] = 0;
+                queuedNahidaFastClicks = 0;
+                queuedTsaritsaFastClicks = 0;
+                queuedDaybreakFastClicks = 0;
                 ClientAuraTracker.localTsaritsaBowPullTicks = 0;
                 ClientAuraTracker.localDaybreakBowPullTicks = 0;
                 ClientAuraTracker.localTsaritsaHoldETicks = 0;
@@ -236,26 +253,15 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 }
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
             }
+            com.velorise.staves.client.character.RaidenVisualRenderer.tickClientAttackHold(client);
             if (ClientAuraTracker.isRaidenMusouActive(client.player.getId())
                     && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-                if (client.player.swinging && client.player.swingTime == 0 && raidenAttackHoldTicks[0] < 6
+                if (client.player.swinging && client.player.swingTime == 0 && !ClientAuraTracker.localRaidenAttackHeld
                         && ClientAuraTracker.tryConsumeLocalRaidenSwing(false)) {
                     ClientAuraTracker.triggerStaffAnimation(client.player.getId(), ClientAuraTracker.ANIM_RAIDEN_SLASH);
                     net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
                             new com.velorise.staves.network.RaidenSlashPayload(false));
                 }
-                if (client.options.keyAttack.isDown()) {
-                    raidenAttackHoldTicks[0]++;
-                    if (raidenAttackHoldTicks[0] >= 6 && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
-                        ClientAuraTracker.triggerStaffAnimation(client.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
-                        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
-                                new com.velorise.staves.network.RaidenSlashPayload(true));
-                    }
-                } else {
-                    raidenAttackHoldTicks[0] = 0;
-                }
-            } else {
-                raidenAttackHoldTicks[0] = 0;
             }
 
             boolean holdingGuardian = com.velorise.staves.element.NeuvilletteManager.isHoldingGuardianLens(client.player);
@@ -308,9 +314,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             com.velorise.staves.item.ArcaneStaffItem.Kind mainEffKind =
                     com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem());
             boolean holdingNahida = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS);
+            int nahidaFast = queuedNahidaFastClicks;
+            queuedNahidaFastClicks = 0;
             if (holdingNahida && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
                     && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
-                int nahidaFast = 0;
                 while (client.options.keyAttack.consumeClick()) {
                     nahidaFast++;
                 }
@@ -339,9 +346,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
 
             boolean holdingTsaritsa = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
                     || mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR);
+            int tsaritsaFast = queuedTsaritsaFastClicks;
+            queuedTsaritsaFastClicks = 0;
             if (holdingTsaritsa && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
                     && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
-                int tsaritsaFast = 0;
                 while (client.options.keyAttack.consumeClick()) {
                     tsaritsaFast++;
                 }
@@ -399,9 +407,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
 
             boolean holdingDaybreak = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK);
+            int daybreakFast = queuedDaybreakFastClicks;
+            queuedDaybreakFastClicks = 0;
             if (holdingDaybreak && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
                     && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
-                int daybreakFast = 0;
+                client.missTime = 0;
                 while (client.options.keyAttack.consumeClick()) {
                     daybreakFast++;
                 }
@@ -428,7 +438,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         lastDaybreakClientShotMs = nowMs;
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_CA);
-                    } else if ((pulled > 0 || daybreakFast > 0) && nowMs - lastDaybreakClientShotMs >= 400L) {
+                    } else if ((pulled > 0 || daybreakFast > 0) && nowMs - lastDaybreakClientShotMs >= 150L) {
                         lastDaybreakClientShotMs = nowMs;
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_DAYBREAK_NA);

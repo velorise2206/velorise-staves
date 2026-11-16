@@ -10,9 +10,14 @@
     "B": {
       "item": "velorise_staves:breeze_rod"
     },
-    "E": {
-      "item": "velorise_staves:anemo_element"
-    },
+    "E": [
+      {
+        "item": "velorise_staves:anemo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "W": {
       "item": "velorise_staves:wind_charge"
     }

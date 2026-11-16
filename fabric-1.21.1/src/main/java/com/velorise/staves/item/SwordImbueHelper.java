@@ -116,13 +116,34 @@ public final class SwordImbueHelper {
                 }
                 return new AnvilResult(output, xpCost, 1);
             }
+            if (right.getItem() instanceof VoidTranslocatorItem vt) {
+                if (ArcaneStaffItem.isOmniVoidTranslocatorAbsorbed(left)
+                        && ArcaneStaffItem.isOmniNetheriteVoidTranslocatorAbsorbed(left) == vt.isNetherite()) {
+                    return null;
+                }
+                ItemStack output = left.copyWithCount(1);
+                ArcaneStaffItem.recordAbsorbedStaff(output, right);
+                int xpCost = vt.isNetherite() ? 6 : 4;
+                if (itemName != null && !StringUtil.isBlank(itemName)) {
+                    if (!itemName.equals(left.getHoverName().getString())) {
+                        output.set(DataComponents.CUSTOM_NAME, Component.literal(itemName));
+                        xpCost += 1;
+                    }
+                } else if (left.has(DataComponents.CUSTOM_NAME)) {
+                    output.remove(DataComponents.CUSTOM_NAME);
+                    xpCost += 1;
+                }
+                return new AnvilResult(output, xpCost, 1);
+            }
             if (right.getItem() instanceof ArcaneStaffItem rightStaff
                     && rightStaff.kind() != ArcaneStaffItem.Kind.OMNI
                     && !rightStaff.isArchon()) {
                 Element elem = rightStaff.getElement();
                 if (elem != null) {
                     ArcaneStaffItem currentAbsorbed = ArcaneStaffItem.getAbsorbedStaffForElement(left, elem);
-                    if (currentAbsorbed == rightStaff && !ArcaneStaffItem.isOmniTridentAbsorbed(left)) {
+                    if (currentAbsorbed == rightStaff
+                            && !ArcaneStaffItem.isOmniTridentAbsorbed(left)
+                            && !ArcaneStaffItem.isOmniVoidTranslocatorAbsorbed(left)) {
                         return null;
                     }
                     ItemStack output = left.copyWithCount(1);
@@ -183,6 +204,17 @@ public final class SwordImbueHelper {
             int insertAt = tooltip.isEmpty() ? 0 : 1;
             tooltip.add(insertAt, line);
             tooltip.addAll(insertAt + 1, wrappedHint);
+            return;
+        }
+        if (stack != null && !stack.isEmpty() && stack.getItem() instanceof VoidTranslocatorItem) {
+            Component icon = Component.literal(Element.ELECTRO.iconString()).withStyle(ChatFormatting.WHITE);
+            Component elemName = Component.translatable(Element.ELECTRO.translationKey());
+            Component line = Component.empty()
+                    .append(icon)
+                    .append(Component.literal(" "))
+                    .append(Component.translatable("tooltip.velorise_staves.trident_hydro", elemName).withStyle(ChatFormatting.LIGHT_PURPLE));
+            int insertAt = tooltip.isEmpty() ? 0 : 1;
+            tooltip.add(insertAt, line);
             return;
         }
         String key = getImbuedKey(stack);

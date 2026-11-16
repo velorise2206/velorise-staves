@@ -512,6 +512,31 @@ public final class ElementalGaugeManager {
      * Omni Mutated 25%, Regular Mutated 15%, Natural Innate 5%.
      */
 
+
+    private static long lastVisualBudgetTick = -1L;
+    private static final Map<Long, Integer> REACTION_VISUAL_CELL_BUDGET = new ConcurrentHashMap<>();
+
+    /**
+     * Spatial per-tick particle/sound budget per 8x8 block cell to prevent lag spikes when many mobs react simultaneously.
+     */
+    public static boolean canEmitReactionVisual(@Nullable ServerLevel level, @Nullable Vec3 pos, int maxPerCellPerTick) {
+        if (level == null || pos == null) return true;
+        long now = level.getGameTime();
+        if (now != lastVisualBudgetTick) {
+            lastVisualBudgetTick = now;
+            REACTION_VISUAL_CELL_BUDGET.clear();
+        }
+        int cx = ((int) Math.floor(pos.x)) >> 3;
+        int cz = ((int) Math.floor(pos.z)) >> 3;
+        long cellKey = (((long) cx) << 32) | (cz & 0xFFFFFFFFL);
+        int count = REACTION_VISUAL_CELL_BUDGET.getOrDefault(cellKey, 0);
+        if (count >= maxPerCellPerTick) {
+            return false;
+        }
+        REACTION_VISUAL_CELL_BUDGET.put(cellKey, count + 1);
+        return true;
+    }
+
     public static boolean checkStandardIcd(LivingEntity target, Element element, @Nullable ServerPlayer attacker, long now) {
         int attackerKey = attacker != null ? attacker.getId() : 0;
         long key = (((long) attackerKey) << 36) | (((long) target.getId()) << 4) | (element.ordinal() & 0xFL);

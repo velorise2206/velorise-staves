@@ -374,7 +374,7 @@ public final class ClientAuraRenderer {
         if (XilonenVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)) return;
         if (NeuvilletteVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)) return;
         if (MavuikaVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)) return;
-        if (VentiVisualRenderer.applyBurstHumanoidAnimation(model, activeAnim, t)) return;
+        if (VentiVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)) return;
         if (NahidaVisualRenderer.applyActionHumanoidAnimation(model, ageInTicks, activeAnim, t)) return;
         TsaritsaVisualRenderer.applyActionHumanoidAnimation(entity, model, activeAnim, t);
     }
@@ -413,6 +413,7 @@ public final class ClientAuraRenderer {
         if (TsaritsaVisualRenderer.applyFirstPersonTransform(player, dir, effKind, activeAnim, data, now, poseStack)) return;
         if (NahidaVisualRenderer.applyFirstPersonTransform(effKind, dir, poseStack, data, activeAnim, now)) return;
         if (XilonenVisualRenderer.applyFirstPersonTransform(dir, poseStack, data, activeAnim, now)) return;
+        if (VentiVisualRenderer.applyFirstPersonTransform(effKind, dir, poseStack, data, activeAnim, now)) return;
         if (NeuvilletteVisualRenderer.applyFirstPersonTransform(dir, poseStack, data, activeAnim, now)) return;
         WindGliderRenderer.applyAuxiliaryFirstPersonTransform(player, partialTicks, stack, staff, effKind, dir, poseStack, data, activeAnim, now);
     }

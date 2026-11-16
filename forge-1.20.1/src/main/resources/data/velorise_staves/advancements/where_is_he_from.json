@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:root",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:omni_element"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.where_is_he_from.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.where_is_he_from.desc"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "where_is_he_from": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "where_is_he_from"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "where_is_he_from"
+    ]
+  ]
+}

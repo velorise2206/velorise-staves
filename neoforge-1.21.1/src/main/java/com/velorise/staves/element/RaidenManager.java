@@ -181,7 +181,7 @@ public final class RaidenManager {
         UUID id = player.getUUID();
         long now = player.level().getGameTime();
         long lastSkill = NIGHTS_FOCUS_LAST_SKILL_STAR.getOrDefault(id, -100L);
-        if (now - lastSkill < 6L) return; // 0.3s cooldown
+        if (now >= lastSkill && now - lastSkill < 6L) return; // 0.3s cooldown
         NIGHTS_FOCUS_LAST_SKILL_STAR.put(id, now);
         addNightsFocusStars(player, 2, now);
     }
@@ -191,7 +191,7 @@ public final class RaidenManager {
         UUID id = player.getUUID();
         long now = player.serverLevel().getServer().overworld().getGameTime();
         long last = RAIDEN_LAST_STAFF_RESOLVE_TICK.getOrDefault(id, -100L);
-        if (now - last < 20L) return;
+        if (now >= last && now - last < 20L) return;
         boolean hasRaiden = now < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)
                 || ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
                 || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
@@ -380,9 +380,11 @@ public final class RaidenManager {
 
     public static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) {
         Vec3 pos = target.position();
-        level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.0D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 20, 0.6D, 0.6D, 0.6D, 0.06D);
-        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.1F);
+        if (canEmitReactionVisual(level, pos, 2)) {
+            level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 8, 0.5D, 0.5D, 0.5D, 0.05D);
+            level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.1F);
+        }
         EnvironmentalBlockManager.applyOverloadEnvironmentEffects(level, pos, 3.5D);
 
         AABB box = target.getBoundingBox().inflate(3.5D);
@@ -768,6 +770,25 @@ public final class RaidenManager {
         return true;
     }
 
+
+    private static void electrifyWaterAlongSlash(ServerLevel level, ServerPlayer player, Vec3 slashCenter, double radius, float damage) {
+        if (level == null || player == null || slashCenter == null) return;
+        Vec3 playerPos = player.position();
+        int steps = 3;
+        for (int i = 0; i <= steps; i++) {
+            double t = i / (double) steps;
+            Vec3 sample = playerPos.lerp(slashCenter, t);
+            BlockPos base = BlockPos.containing(sample);
+            for (int dy = 1; dy >= -3; dy--) {
+                BlockPos check = base.offset(0, dy, 0);
+                if (level.getFluidState(check).is(FluidTags.WATER)) {
+                    ElectrifiedWaterManager.electrify(level, check, radius, 80, player, damage);
+                    break;
+                }
+            }
+        }
+    }
+
     public static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) {
         ServerLevel level = player.serverLevel();
         com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
@@ -790,6 +811,7 @@ public final class RaidenManager {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
         EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, slashCenter, aoeRadius, player, hitotachiDmg);
+        electrifyWaterAlongSlash(level, player, slashCenter, aoeRadius, hitotachiDmg * 0.35F);
 
         DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
         Vec3 right = new Vec3(-look.z, 0.0D, look.x);
@@ -920,6 +942,7 @@ public final class RaidenManager {
         }
 
         Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
+        electrifyWaterAlongSlash(level, attacker, hitPos, isNetherite ? 4.5D : 3.5D, bonusDmg * 0.45F);
         sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
         level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
@@ -933,14 +956,16 @@ public final class RaidenManager {
         if (!(player.level() instanceof ServerLevel level)) return;
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
-        if (!isRaidenMusouActive(id, now)) return;
+        boolean musouActive = isRaidenMusouActive(id, now);
+        if (!musouActive && !isCharged) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack mainHand = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             return;
         }
         if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) return;
-        if (now - RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L) <= 1L) return;
+        long lastMelee = RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L);
+        if (now >= lastMelee && now - lastMelee <= 1L) return;
 
         RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
         boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
@@ -982,6 +1007,7 @@ public final class RaidenManager {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
 
+        electrifyWaterAlongSlash(level, player, slashPos, isNetherite ? 4.5D : 3.5D, slashDmg * 0.45F);
         sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         if (isCharged) {
             Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);

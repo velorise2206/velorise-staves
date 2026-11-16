@@ -284,6 +284,7 @@ public final class VentiManager {
             double cz = pz + off[1];
             BlockPos feet = BlockPos.containing(cx, py - 0.01D, cz);
             BlockPos below = BlockPos.containing(cx, py - 0.45D, cz);
+            BlockPos deepBelow = BlockPos.containing(cx, py + Math.min(-0.95D, player.getDeltaMovement().y - 0.25D), cz);
             if (level.getFluidState(feet).is(net.minecraft.tags.FluidTags.WATER)
                     && !level.getFluidState(feet.above()).is(net.minecraft.tags.FluidTags.WATER)
                     && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()) {
@@ -295,6 +296,12 @@ public final class VentiManager {
                     && level.getBlockState(below.above()).getCollisionShape(level, below.above()).isEmpty()) {
                 if (waterPos == null || below.getY() > waterPos.getY()) {
                     waterPos = below;
+                }
+            } else if (level.getFluidState(deepBelow).is(net.minecraft.tags.FluidTags.WATER)
+                    && !level.getFluidState(deepBelow.above()).is(net.minecraft.tags.FluidTags.WATER)
+                    && level.getBlockState(deepBelow.above()).getCollisionShape(level, deepBelow.above()).isEmpty()) {
+                if (waterPos == null || deepBelow.getY() > waterPos.getY()) {
+                    waterPos = deepBelow;
                 }
             }
         }
@@ -311,9 +318,9 @@ public final class VentiManager {
         }
 
         // Catch player either when within the surface tolerance band OR about to cross below surfaceY on this tick
-        double minSurfaceOffset = isChannelingGuardianLens(player) ? 1.15D : 0.65D;
+        double minSurfaceOffset = Math.max(isChannelingGuardianLens(player) ? 1.15D : 0.65D, -dv.y + 0.25D);
         boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - minSurfaceOffset);
-        boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.04D && py <= surfaceY + 0.85D);
+        boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.08D && py <= surfaceY + Math.max(0.85D, -dv.y + 0.35D));
         if (!atSurface && !crossingSurface) {
             return;
         }
@@ -323,6 +330,9 @@ public final class VentiManager {
         }
         if (dv.y < 0.0D) {
             player.setDeltaMovement(dv.x, 0.0D, dv.z);
+        }
+        if (player.fallDistance > 3.0F && !player.level().isClientSide() && !PlungeAndGliderManager.isPlungeFallImmune(player)) {
+            player.causeFallDamage(player.fallDistance, 1.0F, player.damageSources().fall());
         }
         player.setOnGround(true);
         player.fallDistance = 0.0F;
@@ -902,6 +912,7 @@ public final class VentiManager {
             NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
         }
         Vec3 pos = target.position();
+        boolean emitVisual = canEmitReactionVisual(level, pos, 3);
         int emLevel = getElementalMasteryLevel(attacker);
         float transEmMult = getTransformativeMultiplier(emLevel);
         switch (reaction) {
@@ -909,12 +920,16 @@ public final class VentiManager {
                 if (reaction == ElementalReaction.FORWARD_VAPORIZE) {
                     target.clearFire();
                 }
-                level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 0.8D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.05D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.3F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 0.8D, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.04D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
+                }
             }
             case FORWARD_MELT, REVERSE_MELT -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 20, 0.35D, 0.35D, 0.35D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 8, 0.35D, 0.35D, 0.35D, 0.04D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.7F, 1.5F);
+                }
             }
             case OVERLOADED -> {
                 BURNING_UNTIL.remove(target.getUUID());
@@ -927,8 +942,10 @@ public final class VentiManager {
                 triggerOverloadExplosion(level, target, attacker, dmgMult);
             }
             case ELECTRO_CHARGED -> {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.7F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.7F);
+                }
             }
             case STELLAR_CONDUCT -> {
                 long debuffEnd = level.getGameTime() + 240L;
@@ -959,9 +976,11 @@ public final class VentiManager {
                 TsaritsaManager.onStellarSwirlTriggered(level, target, attacker, swirlAoeDmg);
             }
             case SUPERCONDUCT -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 1.2D, 0.5D, 1.2D, 0.03D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 15, 0.8D, 0.5D, 0.8D, 0.06D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.9F, 1.2F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 10, 1.0D, 0.4D, 1.0D, 0.03D);
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 6, 0.7D, 0.4D, 0.7D, 0.05D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.8F, 1.2F);
+                }
                 long debuffEnd = level.getGameTime() + 240L; // 12 seconds Physical RES shred (-40% Physical RES)
                 SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
                 AABB box = target.getBoundingBox().inflate(3.5D);
@@ -987,15 +1006,19 @@ public final class VentiManager {
                 }
             }
             case FROZEN -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 0.4D, 0.6D, 0.4D, 0.02D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.9F, 1.4F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 10, 0.4D, 0.6D, 0.4D, 0.02D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.8F, 1.4F);
+                }
                 if (isEntitySubmergedInWater(target)) {
                     com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, target.position(), 1);
                 }
             }
             case QUICKEN -> {
-                level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y + 0.8D, pos.z, 20, 0.35D, 0.5D, 0.35D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.2F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y + 0.8D, pos.z, 8, 0.35D, 0.5D, 0.35D, 0.04D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.8F, 1.2F);
+                }
             }
             case BLOOM, REVERSE_BLOOM -> {
                 long now = level.getGameTime();
@@ -1004,8 +1027,10 @@ public final class VentiManager {
                     DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult * transEmMult);
                     LAST_BLOOM_SPAWN.put(target.getUUID(), now);
                 }
-                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 25, 0.8D, 0.5D, 0.8D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.1F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 10, 0.7D, 0.4D, 0.7D, 0.03D);
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.1F);
+                }
             }
             case BURNING -> {
                 if (getInnateElement(target) != Element.PYRO && !target.fireImmune() && !(target instanceof Warden)) {
@@ -1019,11 +1044,15 @@ public final class VentiManager {
                     }
                     EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
                     target.igniteForSeconds(5);
-                    level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
+                    if (emitVisual) {
+                        level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 6, 0.3D, 0.4D, 0.3D, 0.03D);
+                    }
                 }
             }
             case SWIRL -> {
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.9F, 1.1F);
+                if (emitVisual) {
+                    level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.8F, 1.1F);
+                }
                 AABB box = target.getBoundingBox().inflate(5.0D);
                 // Genshin Impact rule: Pyro, Electro, Cryo Swirls deal AoE damage + spread element; Hydro Swirl only spreads Wet aura!
                 // Spread gauge formula: U_Swirl = (U_removed - 0.04) * 1.25 + 1.5
@@ -1035,14 +1064,18 @@ public final class VentiManager {
                     DendroCoreManager.checkReactionsNear(level, pos, 5.0D, auraElement, attacker);
                 }
                 float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult) * transEmMult;
+                int swirledCount = 0;
                 for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != target && e != attacker)) {
+                    if (swirledCount++ >= 8) break;
                     applyElement(level, nearby, auraElement, swirlSpreadU, attacker, swirlAoeDmg);
                 }
             }
             case CRYSTALLIZE -> {
                 double popY = target.getY() + target.getBbHeight() * 0.80D;
-                level.sendParticles(ParticleTypes.CRIT, target.getX(), popY, target.getZ(), 15, 0.35D, 0.35D, 0.35D, 0.05D);
-                level.playSound(null, target.getX(), popY, target.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
+                if (emitVisual) {
+                    level.sendParticles(ParticleTypes.CRIT, target.getX(), popY, target.getZ(), 8, 0.35D, 0.35D, 0.35D, 0.05D);
+                    level.playSound(null, target.getX(), popY, target.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.8F, 1.4F);
+                }
                 CrystallizeShardManager.spawn(level, target, auraElement, target.getUUID(), emLevel);
                 XilonenManager.onCrystallizeTriggered(attacker, auraElement, level.getGameTime());
             }

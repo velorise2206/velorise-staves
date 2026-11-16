@@ -118,12 +118,16 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.ENVIRONMENT, "env_redstone", new String[]{}, new String[]{"tesla coil", "tesla coils"}),
             new ReactionLinkSpec(Tab.ENVIRONMENT, "env_amethyst", new String[]{}, new String[]{"amethyst cluster", "amethyst clusters"}),
             new ReactionLinkSpec(Tab.STAVES, "omni_staff", new String[]{}, new String[]{"omni staff", "netherite omni staff"}),
-            new ReactionLinkSpec(Tab.STAVES, "thousand_blazing_suns", new String[]{}, new String[]{"a thousand blazing suns", "thousand blazing suns", "flamestrider", "nightsoul"}),
-            new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "stone stele", "jade shield"}),
+            new ReactionLinkSpec(Tab.STAVES, "thousand_blazing_suns", new String[]{}, new String[]{"a thousand blazing suns", "thousand blazing suns", "flamestrider", "nightsoul", "sunfell slice", "ring of searing radiance", "fighting spirit", "mavuika"}),
+            new ReactionLinkSpec(Tab.STAVES, "vortex_vanquisher", new String[]{}, new String[]{"vortex vanquisher", "stone stele", "jade shield", "planet befall", "petrify", "petrified", "zhongli"}),
             new ReactionLinkSpec(Tab.STAVES, "peak_patrol_song", new String[]{}, new String[]{"peak patrol song", "source samples", "xilonen"}),
-            new ReactionLinkSpec(Tab.STAVES, "nights_focus_staff", new String[]{}, new String[]{"nights of formal focus", "night star", "night stars", "shooting star"}),
-            new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "salon solitaire", "singer of many waters"}),
-            new ReactionLinkSpec(Tab.STAVES, "guardian_lens", new String[]{}, new String[]{"guardian lens", "sourcewater droplets", "sourcewater", "draconic glories"}),
+            new ReactionLinkSpec(Tab.STAVES, "nights_focus_staff", new String[]{}, new String[]{"nights of formal focus", "night star", "night stars", "shooting star", "layla"}),
+            new ReactionLinkSpec(Tab.STAVES, "splendor_of_tranquil_waters", new String[]{}, new String[]{"splendor of tranquil waters", "salon solitaire", "singer of many waters", "universal revelry", "fanfare", "furina"}),
+            new ReactionLinkSpec(Tab.STAVES, "guardian_lens", new String[]{}, new String[]{"guardian lens", "sourcewater droplets", "sourcewater", "draconic glories", "equitable judgment", "neuvillette"}),
+            new ReactionLinkSpec(Tab.STAVES, "the_daybreak_chronicles", new String[]{}, new String[]{"the daybreak chronicles", "daybreak chronicles", "skyward sonnet", "wind's grand ode", "splitting gale", "stormeye", "venti"}),
+            new ReactionLinkSpec(Tab.STAVES, "engulfing_lightning", new String[]{}, new String[]{"engulfing lightning", "eye of stormy judgment", "chakra desiderata", "musou shinsetsu", "musou no hitotachi", "musou isshin", "raiden shogun", "raiden"}),
+            new ReactionLinkSpec(Tab.STAVES, "thousand_floating_dreams", new String[]{}, new String[]{"a thousand floating dreams", "thousand floating dreams", "all schemes to know", "seed of skandha", "seeds of skandha", "tri-karma purification", "shrine of maya", "illusory heart", "nahida"}),
+            new ReactionLinkSpec(Tab.STAVES, "tsaritsa_bow", new String[]{}, new String[]{"absolution of the rime-throne", "glacial verdict of the rime-throne", "rime-pillar", "stellar cryo", "stellar swirl", "stellar conduct", "stellar punishment", "tsaritsa"}),
             new ReactionLinkSpec(Tab.STAVES, "evoker_fang_staff", new String[]{}, new String[]{"evoker fang staff", "geo fang pillar"}),
             new ReactionLinkSpec(Tab.STAVES, "utility_relics", new String[]{}, new String[]{"void translocator", "magic mirror", "wind glider"})
     );
@@ -172,8 +176,8 @@ public class ElementalCodexScreen extends Screen {
         // Automatically register localized item names for all 17 Staves, Utility Relics, Dendro Core, Omni Element & Enchantments
         String[] allStaffIds = {
                 "inferno_rod", "ghastfire_staff", "thousand_blazing_suns", "guardian_lens", "splendor_of_tranquil_waters",
-                "frostbolt_wand", "nights_focus_staff", "arc_caster", "dragonfire_scepter", "shulker_seeker",
-                "wither_scepter", "webcaster", "wind_staff", "the_daybreak_chronicles", "engulfing_lightning", "resonant_echo",
+                "frostbolt_wand", "nights_focus_staff", "tsaritsa_bow", "arc_caster", "dragonfire_scepter", "shulker_seeker",
+                "wither_scepter", "webcaster", "thousand_floating_dreams", "wind_staff", "the_daybreak_chronicles", "engulfing_lightning", "resonant_echo",
                 "evoker_fang_staff", "vortex_vanquisher", "peak_patrol_song", "omni_staff"
         };
         for (String sId : allStaffIds) {
@@ -197,6 +201,11 @@ public class ElementalCodexScreen extends Screen {
         }
         if (I18n.exists("enchantment.velorise_staves.elemental_mastery")) {
             registerLinkWord(dedup, I18n.get("enchantment.velorise_staves.elemental_mastery"), Tab.MASTERY, "mastery_em");
+        }
+        for (String spId : new String[]{"tsaritsa_spear", "netherite_tsaritsa_spear"}) {
+            if (I18n.exists("item.velorise_staves." + spId)) {
+                registerLinkWord(dedup, I18n.get("item.velorise_staves." + spId), Tab.STAVES, "tsaritsa_bow");
+            }
         }
         if (I18n.exists("enchantment.velorise_staves.elemental_protection")) {
             registerLinkWord(dedup, I18n.get("enchantment.velorise_staves.elemental_protection"), Tab.MASTERY, "mastery_prot");
@@ -759,6 +768,8 @@ public class ElementalCodexScreen extends Screen {
                                 fmtHearts(4.5 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(6.75 * dmgMult) + "§f\uE008§6x3", "28m (AoE)", "codex.velorise_staves.staff.frostbolt"},
                         {"nights_focus_staff", ArcaneStaffItem.Kind.NIGHTS_FOCUS, Element.CRYO,
                                 fmtHearts(2.0 * dmgMult) + "§f\uE008§r + 4x" + fmtHearts(1.5 * dmgMult), "§6" + fmtHearts(3.0 * dmgMult) + "§f\uE008§6 + 4x" + fmtHearts(2.25 * dmgMult), "20m (AoE / 12s Shield)", "codex.velorise_staves.staff.nights_focus"},
+                        {"tsaritsa_bow", ArcaneStaffItem.Kind.TSARITSA_BOW, Element.CRYO,
+                                fmtHearts(3.5 * dmgMult) + "–" + fmtHearts(10.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(5.25 * dmgMult) + "–" + fmtHearts(15.0 * dmgMult) + "§f\uE008§6", "Bow 28m / Spear 4.5m / Q 10m", "codex.velorise_staves.staff.tsaritsa_bow"},
                         {"arc_caster", ArcaneStaffItem.Kind.LIGHTNING, Element.ELECTRO,
                                 fmtHearts(1.0 * dmgMult) + "§f\uE008§r" + perHit, "§6" + fmtHearts(1.5 * dmgMult) + "§f\uE008§6" + perHit, "30m➔36m", "codex.velorise_staves.staff.arc"},
                         {"dragonfire_scepter", ArcaneStaffItem.Kind.DRAGONFIRE, Element.ELECTRO,
@@ -769,12 +780,14 @@ public class ElementalCodexScreen extends Screen {
                                 fmtHearts(4.0 * dmgMult) + "§f\uE008§rx3", "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6x3", "32m (AoE)", "codex.velorise_staves.staff.wither"},
                         {"webcaster", ArcaneStaffItem.Kind.WEB, Element.DENDRO,
                                 trapPoison, trapPoison, "28m", "codex.velorise_staves.staff.webcaster"},
+                        {"thousand_floating_dreams", ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, Element.DENDRO,
+                                fmtHearts(2.0 * dmgMult) + "–" + fmtHearts(5.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.0 * dmgMult) + "–" + fmtHearts(7.5 * dmgMult) + "§f\uE008§6", "E 16m / Shrine 18m➔22.5m", "codex.velorise_staves.staff.thousand_floating_dreams"},
                         {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
                                 fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "28m (AoE)", "codex.velorise_staves.staff.wind"},
                         {"the_daybreak_chronicles", ArcaneStaffItem.Kind.DAYBREAK, Element.ANEMO,
-                                fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "8m➔12m Vortex", "codex.velorise_staves.staff.the_daybreak_chronicles"},
+                                fmtHearts(1.5 * dmgMult) + "–" + fmtHearts(2.7 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "–" + fmtHearts(4.0 * dmgMult) + "§f\uE008§6", "20m–36m / Vortex 8m➔12m", "codex.velorise_staves.staff.the_daybreak_chronicles"},
                         {"engulfing_lightning", ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, Element.ELECTRO,
-                                fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "3.0m➔4.5m Eye", "codex.velorise_staves.staff.engulfing_lightning"},
+                                fmtHearts(2.5 * dmgMult) + "–" + fmtHearts(12.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.75 * dmgMult) + "–" + fmtHearts(18.0 * dmgMult) + "§f\uE008§6", "Eye 3m➔4.5m / Q 6m➔9m", "codex.velorise_staves.staff.engulfing_lightning"},
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
                                 fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.5 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
@@ -802,7 +815,10 @@ public class ElementalCodexScreen extends Screen {
                     int nDur = StavesConfig.getMaxDurability(kind, true);
 
                     ItemStack basicStack = getModItemStack(baseId);
-                    String name = tr("item.velorise_staves." + baseId);
+                    ItemStack secondaryStack = "tsaritsa_bow".equals(baseId) ? getModItemStack("tsaritsa_spear") : ItemStack.EMPTY;
+                    String name = "tsaritsa_bow".equals(baseId)
+                            ? (tr("item.velorise_staves.tsaritsa_bow") + " / " + tr("item.velorise_staves.tsaritsa_spear"))
+                            : tr("item.velorise_staves." + baseId);
                     int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
                     String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f" + Element.omniIconString() + "§r " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
                     String cdDisplay = (kind == ArcaneStaffItem.Kind.VORTEX)
@@ -814,7 +830,7 @@ public class ElementalCodexScreen extends Screen {
                             String.valueOf(bDur), String.valueOf(nDur));
                     GuideCard staffCard = new GuideCard(
                             name, color,
-                            el, null, basicStack, ItemStack.EMPTY,
+                            el, null, basicStack, secondaryStack,
                             badge, color,
                             List.of(statsCombat, statsDur, tr(descKey))
                     ).withKey(baseId);

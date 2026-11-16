@@ -10,9 +10,14 @@
     "S": {
       "item": "minecraft:shulker_shell"
     },
-    "E": {
-      "item": "velorise_staves:electro_element"
-    },
+    "E": [
+      {
+        "item": "velorise_staves:electro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "R": {
       "item": "minecraft:end_rod"
     }

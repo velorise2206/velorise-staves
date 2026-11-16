@@ -13,9 +13,14 @@
     "I": {
       "item": "velorise_staves:inferno_rod"
     },
-    "P": {
-      "item": "velorise_staves:pyro_element"
-    }
+    "P": [
+      {
+        "item": "velorise_staves:pyro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ]
   },
   "result": {
     "count": 1,

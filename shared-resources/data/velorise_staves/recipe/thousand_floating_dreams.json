@@ -7,9 +7,14 @@
     " D "
   ],
   "key": {
-    "D": {
-      "item": "velorise_staves:dendro_element"
-    },
+    "D": [
+      {
+        "item": "velorise_staves:dendro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "S": {
       "tag": "minecraft:saplings"
     }

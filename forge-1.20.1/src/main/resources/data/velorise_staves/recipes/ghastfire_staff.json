@@ -7,9 +7,14 @@
     "B  "
   ],
   "key": {
-    "P": {
-      "item": "velorise_staves:pyro_element"
-    },
+    "P": [
+      {
+        "item": "velorise_staves:pyro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
     "T": {
       "item": "minecraft:ghast_tear"
     },

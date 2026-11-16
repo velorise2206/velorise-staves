@@ -421,7 +421,13 @@ public final class ArchonUltiManager {
         float meteorDmg = (float) (((isNetherite ? 7.5D : 5.5D) * scale + maxHpBonus) * StavesConfig.getDamageMultiplier());
         int petrifyTicks = isNetherite ? 100 : 80;
 
-        ModNetwork.sendStaffAnimation(player, 15);
+        boolean firstBurstInWorld = !player.getTags().contains("VeloriseFirstZhongliBurstDone");
+        if (firstBurstInWorld) {
+            player.addTag("VeloriseFirstZhongliBurstDone");
+        }
+        ModNetwork.sendStaffAnimation(player, firstBurstInWorld
+                ? com.velorise.staves.client.ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL_FIRST
+                : com.velorise.staves.client.ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL);
         ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
         ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
 

@@ -200,8 +200,8 @@ public final class NahidaManager {
 
         long now = level.getGameTime();
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
-        if (now - st.lastNaTick < 10L) return;
-        if (now - st.lastNaTick > 36L) {
+        if (now >= st.lastNaTick && now - st.lastNaTick < 10L) return;
+        if (now < st.lastNaTick || now - st.lastNaTick > 36L) {
             st.naComboStep = 0;
         }
         st.naComboStep = (st.naComboStep % 4) + 1;
@@ -244,15 +244,7 @@ public final class NahidaManager {
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 1.5F : 1.0F;
 
-            for (int i = 1; i <= step + 1; i++) {
-                double dist = i * 1.65D;
-                Vec3 tileCenter = player.position().add(horiz.scale(dist));
-                int pCount = 6 + step * 4;
-                level.sendParticles(DENDRO_GLOW_DUST, tileCenter.x, tileCenter.y + 0.15D, tileCenter.z,
-                        pCount, 0.35D + step * 0.12D, 0.12D, 0.35D + step * 0.12D, 0.02D);
-                level.sendParticles(ParticleTypes.COMPOSTER, tileCenter.x, tileCenter.y + 0.25D, tileCenter.z,
-                        4 + step * 2, 0.30D, 0.15D, 0.30D, 0.02D);
-            }
+            ModNetwork.sendElectricArc(level, player.position(), player.position().add(horiz.scale(3.6D)), 16, 0x4E410000 | step);
 
             AABB hitBox = player.getBoundingBox().expandTowards(horiz.scale(reach)).inflate(halfWidth, 1.2D, halfWidth);
             List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, hitBox,
@@ -274,18 +266,7 @@ public final class NahidaManager {
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 2.0F : 1.5F;
 
-            // Heart curve particle outline + 4-petal flower burst
-            for (int i = 0; i < 24; i++) {
-                double t = (Math.PI * 2.0D * i) / 24.0D;
-                double hx = 16.0D * Math.pow(Math.sin(t), 3) / 14.0D;
-                double hy = (13.0D * Math.cos(t) - 5.0D * Math.cos(2.0D * t) - 2.0D * Math.cos(3.0D * t) - Math.cos(4.0D * t)) / 14.0D;
-                Vec3 hp = burstCenter.add(right.scale(hx)).add(0.0D, 1.15D + hy * 0.65D, 0.0D);
-                level.sendParticles(DENDRO_HEART_DUST, hp.x, hp.y, hp.z, 2, 0.05D, 0.05D, 0.05D, 0.01D);
-            }
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, burstCenter.x, burstCenter.y + 0.8D, burstCenter.z,
-                    28, radius * 0.4D, 0.45D, radius * 0.4D, 0.05D);
-            level.sendParticles(ParticleTypes.HAPPY_VILLAGER, burstCenter.x, burstCenter.y + 0.6D, burstCenter.z,
-                    18, radius * 0.35D, 0.35D, radius * 0.35D, 0.04D);
+            ModNetwork.sendElectricArc(level, player.position(), burstCenter, 22, 0x4E410004);
 
             AABB aoeBox = new AABB(burstCenter, burstCenter).inflate(radius, 2.2D, radius);
             for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, aoeBox,
@@ -403,7 +384,7 @@ public final class NahidaManager {
         }
 
         // 2. Remote Harvest & Item Vacuum along the viewfinder ray (flowers, berries, mature crops, ItemEntities)
-        if (now - st.lastHarvestSweepTick >= 3L) {
+        if (now < st.lastHarvestSweepTick || now - st.lastHarvestSweepTick >= 3L) {
             st.lastHarvestSweepTick = now;
             performViewfinderHarvestAndVacuum(level, player, eye, look, maxRange);
         }
@@ -627,10 +608,10 @@ public final class NahidaManager {
         if (owner == null || !owner.isAlive() || owner.level() != level) return;
 
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(owner.getUUID(), k -> new NahidaPlayerState());
-        boolean shrineActive = now < st.shrineUntilTick;
+        boolean shrineActive = isEntityInsideShrine(owner, st, now);
         int electroCnt = shrineActive ? st.shrineElectroCount : 0;
         long icdTicks = electroCnt >= 2 ? 32L : (electroCnt == 1 ? 40L : 50L); // 2.5s base -> 2.0s / 1.6s with Electro Shrine buff
-        if (now - st.lastTriKarmaProcTick < icdTicks) return;
+        if (now >= st.lastTriKarmaProcTick && now - st.lastTriKarmaProcTick < icdTicks) return;
         st.lastTriKarmaProcTick = now;
 
         int pyroCnt = shrineActive ? st.shrinePyroCount : 0;
@@ -661,10 +642,12 @@ public final class NahidaManager {
         for (LivingEntity victim : linkedTargets) {
             victim.invulnerableTime = 0;
             ElementalGaugeManager.applyElementBypassIcd(level, victim, Element.DENDRO, gaugeU, owner, triKarmaDmg);
-            level.sendParticles(DENDRO_GLOW_DUST, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
-                    12, 0.32D, 0.32D, 0.32D, 0.04D);
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
-                    8, 0.28D, 0.28D, 0.28D, 0.03D);
+            if (ElementalGaugeManager.canEmitReactionVisual(level, victim.position(), 3)) {
+                level.sendParticles(DENDRO_GLOW_DUST, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
+                        5, 0.30D, 0.30D, 0.30D, 0.03D);
+                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, victim.getX(), victim.getY() + victim.getBbHeight() * 0.6D, victim.getZ(),
+                        3, 0.25D, 0.25D, 0.25D, 0.02D);
+            }
         }
         level.playSound(null, triggeredTarget.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.90F, 1.50F);
     }
@@ -736,7 +719,7 @@ public final class NahidaManager {
             long eruptNow = sl.getGameTime();
             st.shrineUntilTick = eruptNow + totalDurationTicks;
             st.shrineCenter = player.position();
-            st.shrineRadius = isNeth ? 15.0D : 12.0D;
+            st.shrineRadius = isNeth ? 22.5D : 18.0D; // 1.5x Shrine of Maya radius (18m Basic, 22.5m Netherite)
             st.shrineNetherite = isNeth;
             st.shrinePyroCount = fPyro;
             st.shrineElectroCount = fElectro;
@@ -759,20 +742,26 @@ public final class NahidaManager {
         return true;
     }
 
-    /** Returns bonus EM levels (Basic +1, Netherite +2) if the entity is standing inside an active Shrine of Maya. */
+    public static boolean isEntityInsideShrine(@Nullable LivingEntity entity, @Nullable NahidaPlayerState st, long now) {
+        if (entity == null || st == null || now >= st.shrineUntilTick || st.shrineCenter == null) return false;
+        double dx = entity.getX() - st.shrineCenter.x;
+        double dz = entity.getZ() - st.shrineCenter.z;
+        double dy = entity.getY() - st.shrineCenter.y;
+        return (dx * dx + dz * dz) <= (st.shrineRadius * st.shrineRadius) && dy >= -3.0D && dy <= 16.5D;
+    }
+
+    /** Returns bonus EM levels (Basic +1, Netherite +2) strictly while standing inside an active Shrine of Maya. */
     public static int getBonusEmLevels(@Nullable LivingEntity entity) {
         if (!(entity instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return 0;
         long now = level.getGameTime();
         int maxBonus = 0;
         for (ServerPlayer caster : level.players()) {
             NahidaPlayerState st = PLAYER_STATES.get(caster.getUUID());
-            if (st != null && now < st.shrineUntilTick) {
+            if (st != null && isEntityInsideShrine(player, st, now)) {
                 if (caster == player || caster.isAlliedTo(player) || ElementalGaugeManager.isRaidenProtectedAlly(caster, player)) {
-                    if (player.position().distanceToSqr(st.shrineCenter) <= (st.shrineRadius + 1.5D) * (st.shrineRadius + 1.5D)) {
-                        int bonus = st.shrineNetherite ? 2 : 1;
-                        if (bonus > maxBonus) {
-                            maxBonus = bonus;
-                        }
+                    int bonus = st.shrineNetherite ? 2 : 1;
+                    if (bonus > maxBonus) {
+                        maxBonus = bonus;
                     }
                 }
             }
@@ -874,16 +863,20 @@ public final class NahidaManager {
             ModNetwork.sendStaffAnimation(player, playerCode);
         }
 
-        int shrineCode;
-        if (now < st.shrineUntilTick) {
-            int mask = 1;
-            if (st.shrinePyroCount > 0) mask |= 2;
-            if (st.shrineElectroCount > 0) mask |= 4;
-            if (st.shrineHydroCount > 0) mask |= 8;
-            if (st.shrineNetherite) mask |= 16;
-            shrineCode = 4200 + mask;
-        } else {
-            shrineCode = 4200;
+        int shrineCode = 4200;
+        if (player.level() instanceof ServerLevel level) {
+            for (ServerPlayer caster : level.players()) {
+                NahidaPlayerState cst = PLAYER_STATES.get(caster.getUUID());
+                if (cst != null && isEntityInsideShrine(player, cst, now)
+                        && (caster == player || caster.isAlliedTo(player) || ElementalGaugeManager.isRaidenProtectedAlly(caster, player))) {
+                    int mask = 1;
+                    if (cst.shrinePyroCount > 0) mask |= 2;
+                    if (cst.shrineElectroCount > 0) mask |= 4;
+                    if (cst.shrineHydroCount > 0) mask |= 8;
+                    if (cst.shrineNetherite) mask |= 16;
+                    shrineCode = Math.max(shrineCode, 4200 + mask);
+                }
+            }
         }
         if (force || shrineCode != st.lastSyncedShrineCode) {
             st.lastSyncedShrineCode = shrineCode;

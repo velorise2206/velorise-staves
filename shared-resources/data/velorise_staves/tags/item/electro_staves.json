@@ -6,6 +6,8 @@
     "velorise_staves:shulker_seeker",
     "velorise_staves:netherite_shulker_seeker",
     "velorise_staves:arc_caster",
-    "velorise_staves:netherite_arc_caster"
+    "velorise_staves:netherite_arc_caster",
+    "velorise_staves:void_translocator",
+    "velorise_staves:netherite_void_translocator"
   ]
 }

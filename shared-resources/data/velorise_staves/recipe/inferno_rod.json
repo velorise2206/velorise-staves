@@ -1,24 +1,29 @@
 {
-    "type":  "minecraft:crafting_shaped",
-    "category":  "equipment",
-    "pattern":  [
-                    "  F",
-                    " E ",
-                    "B  "
-                ],
-    "key":  {
-                "F":  {
-                          "item":  "minecraft:fire_charge"
-                      },
-                "E":  {
-                          "item":  "velorise_staves:pyro_element"
-                      },
-                "B":  {
-                          "item":  "minecraft:blaze_rod"
-                      }
-            },
-    "result":  {
-                   "id":  "velorise_staves:inferno_rod",
-                   "count":  1
-               }
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  F",
+    " E ",
+    "B  "
+  ],
+  "key": {
+    "F": {
+      "item": "minecraft:fire_charge"
+    },
+    "E": [
+      {
+        "item": "velorise_staves:pyro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "B": {
+      "item": "minecraft:blaze_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:inferno_rod",
+    "count": 1
+  }
 }

@@ -71,6 +71,21 @@ public final class OmniWheelOverlay {
     }
 
     public static boolean handleMouseButtonPress(int button, int action) {
+        if (action == GLFW.GLFW_PRESS && !wheelActive && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && mc.screen == null
+                    && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+                ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem());
+                if (effKind == ArcaneStaffItem.Kind.DAYBREAK
+                        || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
+                        || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
+                        || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                    mc.missTime = 0;
+                    VeloriseStavesClient.recordFastAttackClick(effKind);
+                }
+            }
+        }
         if (!wheelActive || action != GLFW.GLFW_PRESS) return false;
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
         Minecraft mc = Minecraft.getInstance();
@@ -274,6 +289,17 @@ public final class OmniWheelOverlay {
                         .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
                         .append(Component.translatable(net.minecraft.world.item.Items.TRIDENT.getDescriptionId()).withStyle(net.minecraft.ChatFormatting.WHITE));
                 subComp = Component.literal((nethOmni ? "Netherite · " : "") + "CD: 2s").withStyle(net.minecraft.ChatFormatting.GRAY);
+            } else if (previewElem == Element.ELECTRO && ArcaneStaffItem.isOmniVoidTranslocatorAbsorbed(omniStack)) {
+                boolean nethVt = ArcaneStaffItem.isOmniNetheriteVoidTranslocatorAbsorbed(omniStack);
+                String vtKey = nethVt ? "item.velorise_staves.netherite_void_translocator" : "item.velorise_staves.void_translocator";
+                titleComp = Component.translatable(previewElem.translationKey())
+                        .append(Component.literal(" — ").withStyle(net.minecraft.ChatFormatting.DARK_GRAY))
+                        .append(Component.translatable(vtKey).withStyle(net.minecraft.ChatFormatting.WHITE));
+                double cdSec = com.velorise.staves.config.StavesConfig.getVoidTranslocatorCooldownSeconds() * com.velorise.staves.config.StavesConfig.getCooldownMultiplier();
+                String cdStr = cdSec == Math.rint(cdSec)
+                        ? String.format(java.util.Locale.ROOT, "%.0fs", cdSec)
+                        : String.format(java.util.Locale.ROOT, "%.1fs", cdSec);
+                subComp = Component.literal((nethVt ? "Netherite · " : "") + "CD: " + cdStr).withStyle(net.minecraft.ChatFormatting.GRAY);
             } else {
                 ArcaneStaffItem absorbed = ArcaneStaffItem.getAbsorbedStaffForElement(omniStack, previewElem);
                 if (absorbed != null) {

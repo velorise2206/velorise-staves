@@ -102,24 +102,30 @@ public final class ElectrifiedWaterManager {
             }
         }
 
+        while (ZONES.size() >= 8) {
+            ZONES.remove(0);
+        }
+
         long now = level.getGameTime();
         UUID attackerUuid = attacker != null ? attacker.getUUID() : null;
         float shockDmg = 1.0F; // Standardized 0.5 heart (1.0 damage) per electric shock
         ZONES.add(new WaterZone(level, pos, radius, now + durationTicks, attackerUuid, shockDmg));
 
-        // High voltage electric impact sizzle sound
-        level.playSound(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
-                SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.85F);
-        level.playSound(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
-                SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 1.6F);
-
-        // Burst of crawling electric arcs radiating outwards across water surface
         Vec3 centerPos = new Vec3(pos.getX() + 0.5D, pos.getY() + 0.85D, pos.getZ() + 0.5D);
-        for (int i = 0; i < 5; i++) {
-            double angle = (i * Math.PI * 0.4D) + (level.random.nextDouble() - 0.5D) * 0.4D;
-            double r = radius * (0.65D + level.random.nextDouble() * 0.35D);
-            Vec3 edge = centerPos.add(Math.cos(angle) * r, (level.random.nextDouble() - 0.5D) * 0.08D, Math.sin(angle) * r);
-            drawElectricArc(level, centerPos, edge, 0.3D, true);
+        if (ElementalGaugeManager.canEmitReactionVisual(level, centerPos, 2)) {
+            // High voltage electric impact sizzle sound
+            level.playSound(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
+                    SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.55F, 1.85F);
+            level.playSound(null, pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D,
+                    SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.45F, 1.6F);
+
+            // Capped burst of 2 electric arcs radiating outwards across water surface
+            for (int i = 0; i < 2; i++) {
+                double angle = (i * Math.PI) + (level.random.nextDouble() - 0.5D) * 0.5D;
+                double r = radius * (0.65D + level.random.nextDouble() * 0.35D);
+                Vec3 edge = centerPos.add(Math.cos(angle) * r, (level.random.nextDouble() - 0.5D) * 0.08D, Math.sin(angle) * r);
+                drawElectricArc(level, centerPos, edge, 0.25D, false);
+            }
         }
 
         // Immediate shock to anyone already in this water
@@ -160,9 +166,9 @@ public final class ElectrifiedWaterManager {
 
             boolean singleBlock = zone.radius <= 0.5D;
 
-            // Visual electric arcs crackling across the water surface
-            if (now % (singleBlock ? 4 : 2) == 0) {
-                int arcCount = singleBlock ? 1 : (1 + level.random.nextInt(2));
+            // Visual electric arcs crackling across the water surface (throttled to prevent packet/render lag)
+            if (now % (singleBlock ? 12 : 10) == 0) {
+                int arcCount = 1;
                 for (int a = 0; a < arcCount; a++) {
                     double r1 = level.random.nextDouble() * zone.radius;
                     double a1 = level.random.nextDouble() * Math.PI * 2.0D;
@@ -193,15 +199,16 @@ public final class ElectrifiedWaterManager {
             List<LivingEntity> inWaterMobs = level.getEntitiesOfClass(LivingEntity.class, zoneBox,
                     e -> e.isAlive() && ElementalGaugeManager.isEntityInWater(e));
 
-            if (inWaterMobs.size() >= 2 && now % 4 == 0) {
-                for (int i = 0; i < inWaterMobs.size() - 1; i++) {
+            if (inWaterMobs.size() >= 2 && now % 12 == 0) {
+                int maxLinks = Math.min(inWaterMobs.size() - 1, 2);
+                for (int i = 0; i < maxLinks; i++) {
                     LivingEntity m1 = inWaterMobs.get(i);
                     LivingEntity m2 = inWaterMobs.get(i + 1);
                     if (m1.position().distanceToSqr(m2.position()) <= 25.0D) {
                         drawElectricArc(level, m1, m2, 8);
                     }
                 }
-            } else if (!inWaterMobs.isEmpty() && now % 3 == 0) {
+            } else if (!inWaterMobs.isEmpty() && now % 10 == 0) {
                 LivingEntity mob = inWaterMobs.get(level.random.nextInt(inWaterMobs.size()));
                 double spread = singleBlock ? 0.45D : 1.6D;
                 Vec3 waterPt = new Vec3(mob.getX() + (level.random.nextDouble() - 0.5D) * spread,

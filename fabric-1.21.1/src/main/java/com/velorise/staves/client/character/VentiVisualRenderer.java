@@ -32,6 +32,18 @@ public final class VentiVisualRenderer {
 
     public static float getDaybreakPullProgress(LivingEntity entity, float partialTick) {
         if (entity == null) return 0.0F;
+        ClientAuraTracker.AuraDisplayData burstData = ClientAuraTracker.get(entity.getId());
+        long nowMs = System.currentTimeMillis();
+        if (burstData != null && nowMs < burstData.staffAnimUntil
+                && burstData.staffAnimType == ClientAuraTracker.ANIM_VENTI_BURST
+                && hasDaybreakEquipped(entity)) {
+            float totalMs = Math.max(1.0F, (float) (burstData.staffAnimUntil - burstData.staffAnimStartTime));
+            float t = Mth.clamp((nowMs - burstData.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            if (t < 0.78F) {
+                return WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.65F));
+            }
+            return Math.max(0.0F, 1.0F - WindGliderRenderer.smoothStep01((t - 0.78F) / 0.14F));
+        }
         if (entity.isUsingItem()) {
             ItemStack useStack = entity.getUseItem();
             if (useStack.getItem() instanceof ArcaneStaffItem s
@@ -53,6 +65,12 @@ public final class VentiVisualRenderer {
     public static boolean isDaybreakPulling(LivingEntity entity, ItemStack stack) {
         if (entity == null || stack == null || stack.isEmpty()) return false;
         if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.DAYBREAK) return false;
+        ClientAuraTracker.AuraDisplayData burstData = ClientAuraTracker.get(entity.getId());
+        if (burstData != null && System.currentTimeMillis() < burstData.staffAnimUntil
+                && burstData.staffAnimType == ClientAuraTracker.ANIM_VENTI_BURST
+                && (entity.getMainHandItem() == stack || entity.getOffhandItem() == stack)) {
+            return true;
+        }
         if (entity.isUsingItem() && entity.getUseItem() == stack) return true;
         Minecraft mc = Minecraft.getInstance();
         return mc.player != null && entity.getId() == mc.player.getId()
@@ -91,16 +109,94 @@ public final class VentiVisualRenderer {
     }
 
     public static boolean applyBurstHumanoidAnimation(HumanoidModel<?> model, int activeAnim, float t) {
+        return applyBurstHumanoidAnimation(null, model, activeAnim, t);
+    }
+
+    public static boolean applyBurstHumanoidAnimation(LivingEntity entity, HumanoidModel<?> model, int activeAnim, float t) {
         if (activeAnim != ClientAuraTracker.ANIM_VENTI_BURST) return false;
-        float w = (t < 0.20F) ? WindGliderRenderer.smoothStep01(t / 0.20F) : (t < 0.78F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.78F) / 0.22F));
-        model.body.xRot = -0.12F * w;
-        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.15F);
-        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.95F);
-        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.28F);
-        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.35F);
-        model.head.xRot -= 0.18F * w;
-        model.hat.copyFrom(model.head);
+        HumanoidArm bowArm = entity != null
+                ? WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.DAYBREAK)
+                : HumanoidArm.RIGHT;
+        ModelPart bowPart = bowArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
+        ModelPart drawPart = bowArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
+        float bowDir = bowArm == HumanoidArm.RIGHT ? 1.0F : -1.0F;
+
+        if (t < 0.78F) {
+            float stanceW = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.20F));
+            float pull01 = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.65F));
+            float tremor = Mth.sin(t * 52.0F) * 0.024F * pull01;
+
+            model.body.xRot = -0.10F * stanceW;
+            model.body.yRot = -bowDir * 0.32F * stanceW;
+            model.leftLeg.xRot = Mth.lerp(stanceW, model.leftLeg.xRot, 0.18F);
+            model.rightLeg.xRot = Mth.lerp(stanceW, model.rightLeg.xRot, -0.18F);
+            model.leftLeg.zRot = Mth.lerp(stanceW, model.leftLeg.zRot, -0.14F);
+            model.rightLeg.zRot = Mth.lerp(stanceW, model.rightLeg.zRot, 0.14F);
+
+            bowPart.yRot = -bowDir * 0.12F + model.head.yRot;
+            bowPart.xRot = Mth.lerp(stanceW, bowPart.xRot, -1.62F + model.head.xRot) + tremor;
+            bowPart.zRot = -bowDir * 0.06F * stanceW;
+
+            drawPart.yRot = bowDir * Mth.lerp(pull01, 0.42F, 0.78F) + model.head.yRot * 0.65F;
+            drawPart.xRot = Mth.lerp(stanceW, drawPart.xRot, -1.58F + model.head.xRot + 0.38F * pull01) - tremor;
+            drawPart.zRot = -bowDir * 0.10F * stanceW;
+
+            model.head.xRot -= 0.08F * pull01;
+            model.hat.copyFrom(model.head);
+        } else {
+            float rel = WindGliderRenderer.smoothStep01((t - 0.78F) / 0.22F);
+            float fade = 1.0F - rel;
+            model.body.xRot = -0.16F * fade;
+            model.body.yRot = -bowDir * 0.20F * fade;
+            model.leftLeg.xRot = Mth.lerp(fade, model.leftLeg.xRot, 0.18F);
+            model.rightLeg.xRot = Mth.lerp(fade, model.rightLeg.xRot, -0.18F);
+            model.leftLeg.zRot = Mth.lerp(fade, model.leftLeg.zRot, -0.14F);
+            model.rightLeg.zRot = Mth.lerp(fade, model.rightLeg.zRot, 0.14F);
+
+            bowPart.xRot = Mth.lerp(rel, -1.78F + model.head.xRot, -0.85F);
+            bowPart.yRot = -bowDir * 0.18F * fade + model.head.yRot * fade;
+            bowPart.zRot = -bowDir * 0.12F * fade;
+
+            drawPart.xRot = Mth.lerp(rel, -1.20F + model.head.xRot, -0.45F);
+            drawPart.yRot = bowDir * Mth.lerp(rel, 0.86F, 0.22F);
+            drawPart.zRot = -bowDir * 0.18F * fade;
+
+            model.head.xRot -= 0.12F * fade;
+            model.hat.copyFrom(model.head);
+        }
         return true;
+    }
+
+    public static boolean applyFirstPersonTransform(
+            ArcaneStaffItem.Kind effKind,
+            float dir,
+            PoseStack poseStack,
+            ClientAuraTracker.AuraDisplayData data,
+            int activeAnim,
+            long now
+    ) {
+        if (effKind != ArcaneStaffItem.Kind.DAYBREAK) return false;
+        if (activeAnim == ClientAuraTracker.ANIM_VENTI_BURST && data != null) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            if (t < 0.78F) {
+                float pull01 = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.65F));
+                float tremor = Mth.sin(t * 55.0F) * 0.005F * pull01;
+                poseStack.translate(-dir * 0.22F * pull01 + tremor, 0.10F * pull01, -0.18F * pull01);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-12.0F * pull01));
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 14.0F * pull01));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 8.0F * pull01));
+            } else {
+                float rel = WindGliderRenderer.smoothStep01((t - 0.78F) / 0.22F);
+                float w = 1.0F - rel;
+                poseStack.translate(-dir * 0.22F * w, (0.10F + 0.14F * Mth.sin(rel * (float) Math.PI)) * w, (-0.18F + 0.12F * rel) * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees((-12.0F + 26.0F * Mth.sin(rel * (float) Math.PI)) * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 14.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 8.0F * w));
+            }
+            return true;
+        }
+        return false;
     }
 
     public static void renderDaybreakNockedWindCharge(

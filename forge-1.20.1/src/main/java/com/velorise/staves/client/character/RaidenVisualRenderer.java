@@ -41,7 +41,8 @@ public final class RaidenVisualRenderer {
     public static void tickClientAttackHold(Minecraft mc) {
         if (mc.level != null && mc.player != null) {
             if (mc.screen == null && mc.options.keyAttack.isDown()
-                    && ClientAuraTracker.isRaidenMusouActive(mc.player.getId())
+                    && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)
                     && mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem
                     && ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
                 ClientAuraTracker.localRaidenAttackHeld = true;
@@ -104,53 +105,52 @@ public final class RaidenVisualRenderer {
             vc.vertex(mat, -half, -half, 0.0F).color(baseCr, baseCg, baseCb, baseCa).uv(0.0F, 1.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, 0.0F, -1.0F).endVertex();
 
             if (resolveFrac > 0.001F) {
+                // Task 6: Illuminate only individual Chakra Desiderata Resolve beads/dots along the ring circumference (no neon arc ribbon)
                 VertexConsumer glowVc = buffer.getBuffer(RenderType.lightning());
-                float rMid = half * 0.74F;
-                float rIn = rMid - half * 0.065F;
-                float rOut = rMid + half * 0.065F;
-                float rCoreIn = rMid - half * 0.028F;
-                float rCoreOut = rMid + half * 0.028F;
-                float maxTheta = (float) Math.PI * resolveFrac;
-                int segs = 24;
-                boolean burstReady = true;
-                int outerR = burstReady ? 195 : 145;
-                int outerG = burstReady ? 105 : 70;
-                int outerB = 255;
-                int outerAlpha = musouTicks > 0.0F ? 235 : (burstReady ? 195 : 120);
-                int coreAlpha = burstReady ? 250 : 165;
+                float rBeadRing = half * 0.742F;
+                int beadsPerSide = 9; // 18 beads total symmetrically distributed from bottom (-90 deg) to top (+90 deg)
+                float litProgress = resolveFrac * beadsPerSide;
+                int haloR = state.netherite ? 215 : 191;
+                int haloG = state.netherite ? 130 : 90;
+                int haloB = 255;
 
                 for (int side = -1; side <= 1; side += 2) {
-                    for (int i = 0; i < segs; i++) {
-                        float t0 = (float) i / (float) segs;
-                        float t1 = (float) (i + 1) / (float) segs;
-                        float a0 = -(float) (Math.PI * 0.5) + side * (maxTheta * t0);
-                        float a1 = -(float) (Math.PI * 0.5) + side * (maxTheta * t1);
-                        float aLo = Math.min(a0, a1);
-                        float aHi = Math.max(a0, a1);
-                        float c0 = Mth.cos(aLo), s0 = Mth.sin(aLo);
-                        float c1 = Mth.cos(aHi), s1 = Mth.sin(aHi);
+                    for (int bIdx = 0; bIdx < beadsPerSide; bIdx++) {
+                        float beadFill = Mth.clamp(litProgress - bIdx, 0.0F, 1.0F);
+                        if (beadFill <= 0.02F) continue;
+                        float fracAngle = (bIdx + 0.5F) / (float) beadsPerSide;
+                        float theta = -(float) (Math.PI * 0.5D) + side * ((float) Math.PI * fracAngle);
+                        float bx = Mth.cos(theta) * rBeadRing;
+                        float by = Mth.sin(theta) * rBeadRing;
+
+                        float beadPulse = 1.0F + 0.10F * Mth.sin(time * 0.28F + bIdx * 0.7F);
+                        float outerRad = half * 0.036F * (0.65F + 0.35F * beadFill) * beadPulse;
+                        float coreRad = outerRad * 0.52F;
+                        int haloAlpha = Math.round((musouTicks > 0.0F ? 235.0F : 205.0F) * beadFill);
+                        int coreAlpha = Math.round(252.0F * beadFill);
+
+                        // Diamond/circular bead glow (front & back faces)
+                        ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
+                                bx, by - outerRad, 0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx + outerRad, by, 0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx, by + outerRad, 0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx - outerRad, by, 0.004F, haloR, haloG, haloB, haloAlpha);
+                        ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
+                                bx, by - outerRad, -0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx - outerRad, by, -0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx, by + outerRad, -0.004F, haloR, haloG, haloB, haloAlpha,
+                                bx + outerRad, by, -0.004F, haloR, haloG, haloB, haloAlpha);
 
                         ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
-                                c0 * rIn,  s0 * rIn,  0.004F, outerR, outerG, outerB, outerAlpha,
-                                c0 * rOut, s0 * rOut, 0.004F, outerR, outerG, outerB, outerAlpha,
-                                c1 * rOut, s1 * rOut, 0.004F, outerR, outerG, outerB, outerAlpha,
-                                c1 * rIn,  s1 * rIn,  0.004F, outerR, outerG, outerB, outerAlpha);
+                                bx, by - coreRad, 0.005F, 252, 238, 255, coreAlpha,
+                                bx + coreRad, by, 0.005F, 252, 238, 255, coreAlpha,
+                                bx, by + coreRad, 0.005F, 252, 238, 255, coreAlpha,
+                                bx - coreRad, by, 0.005F, 252, 238, 255, coreAlpha);
                         ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
-                                c0 * rIn,  s0 * rIn,  -0.004F, outerR, outerG, outerB, outerAlpha,
-                                c1 * rIn,  s1 * rIn,  -0.004F, outerR, outerG, outerB, outerAlpha,
-                                c1 * rOut, s1 * rOut, -0.004F, outerR, outerG, outerB, outerAlpha,
-                                c0 * rOut, s0 * rOut, -0.004F, outerR, outerG, outerB, outerAlpha);
-
-                        ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
-                                c0 * rCoreIn,  s0 * rCoreIn,  0.005F, 245, 225, 255, coreAlpha,
-                                c0 * rCoreOut, s0 * rCoreOut, 0.005F, 245, 225, 255, coreAlpha,
-                                c1 * rCoreOut, s1 * rCoreOut, 0.005F, 245, 225, 255, coreAlpha,
-                                c1 * rCoreIn,  s1 * rCoreIn,  0.005F, 245, 225, 255, coreAlpha);
-                        ClientAuraRenderer.emitCrystalQuad(glowVc, mat,
-                                c0 * rCoreIn,  s0 * rCoreIn,  -0.005F, 245, 225, 255, coreAlpha,
-                                c1 * rCoreIn,  s1 * rCoreIn,  -0.005F, 245, 225, 255, coreAlpha,
-                                c1 * rCoreOut, s1 * rCoreOut, -0.005F, 245, 225, 255, coreAlpha,
-                                c0 * rCoreOut, s0 * rCoreOut, -0.005F, 245, 225, 255, coreAlpha);
+                                bx, by - coreRad, -0.005F, 252, 238, 255, coreAlpha,
+                                bx - coreRad, by, -0.005F, 252, 238, 255, coreAlpha,
+                                bx, by + coreRad, -0.005F, 252, 238, 255, coreAlpha,
+                                bx + coreRad, by, -0.005F, 252, 238, 255, coreAlpha);
                     }
                 }
             }
@@ -259,38 +259,85 @@ public final class RaidenVisualRenderer {
             Matrix4f matrix
     ) {
         if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF) return false;
-        boolean isMusou = (arc.color == 0xFFE0B0FF);
+        boolean isMusouOrCa = (arc.color == 0xFFE0B0FF);
         float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
         float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
-        float fade = (prog < 0.25F) ? (prog / 0.25F) : (1.0F - (prog - 0.25F) / 0.75F);
+        float fade = (prog < 0.22F) ? (prog / 0.22F) : (1.0F - (prog - 0.22F) / 0.78F);
         int alpha = Mth.clamp((int) (255.0F * fade), 10, 255);
         Vec3 sCam = startPos.subtract(camPos);
         Vec3 eCam = endPos.subtract(camPos);
         Vec3 slashDir = eCam.subtract(sCam);
-        if (slashDir.lengthSqr() > 1.0E-5D) {
-            Vec3 unit = slashDir.normalize();
-            Vec3 toCam = sCam.add(eCam).scale(-0.5D);
+        double chordLen = slashDir.length();
+        if (chordLen > 1.0E-4D) {
+            Vec3 unit = slashDir.scale(1.0D / chordLen);
+            Vec3 midChord = sCam.lerp(eCam, 0.5D);
+            Vec3 toCam = midChord.scale(-1.0D);
             Vec3 perp = unit.cross(toCam.lengthSqr() > 1.0E-4D ? toCam.normalize() : new Vec3(0.0D, 1.0D, 0.0D));
             if (perp.lengthSqr() < 1.0E-4D) perp = unit.cross(new Vec3(1.0D, 0.0D, 0.0D));
             perp = perp.normalize();
-            double outerHalf = (isMusou ? 0.24D : 0.13D) * (1.05D - prog * 0.35D);
-            double innerHalf = outerHalf * 0.36D;
-            Vec3 midCam = sCam.lerp(eCam, 0.5D);
-            Vec3 pOut = perp.scale(outerHalf);
-            Vec3 pIn = perp.scale(innerHalf);
-            int outR = 178, outG = 72, outB = 255;
-            int midR = 192, midG = 92, midB = 255;
-            int inR = 245, inG = 225, inB = 255;
-            ClientAuraRenderer.emitCrystalQuad(consumer, matrix,
-                    (float) sCam.x, (float) sCam.y, (float) sCam.z, outR, outG, outB, alpha / 2,
-                    (float) (midCam.x + pOut.x), (float) (midCam.y + pOut.y), (float) (midCam.z + pOut.z), midR, midG, midB, alpha,
-                    (float) eCam.x, (float) eCam.y, (float) eCam.z, outR, outG, outB, alpha / 2,
-                    (float) (midCam.x - pOut.x), (float) (midCam.y - pOut.y), (float) (midCam.z - pOut.z), midR, midG, midB, alpha);
-            ClientAuraRenderer.emitCrystalQuad(consumer, matrix,
-                    (float) sCam.x, (float) sCam.y, (float) sCam.z, inR, inG, inB, alpha,
-                    (float) (midCam.x + pIn.x), (float) (midCam.y + pIn.y), (float) (midCam.z + pIn.z), 255, 250, 240, alpha,
-                    (float) eCam.x, (float) eCam.y, (float) eCam.z, inR, inG, inB, alpha,
-                    (float) (midCam.x - pIn.x), (float) (midCam.y - pIn.y), (float) (midCam.z - pIn.z), 255, 250, 240, alpha);
+            Vec3 curveOut = perp.cross(unit).normalize();
+            if (curveOut.dot(toCam) > 0.0D) {
+                curveOut = curveOut.scale(-1.0D);
+            }
+
+            // Smooth 12-segment crescent moon spline with 3-tier Electro gradient (0x7828C8 -> 0xBF5AF2 -> 0xFFFFFF)
+            int segs = 12;
+            double archDepth = chordLen * (isMusouOrCa ? 0.28D : 0.20D) * (0.92D + prog * 0.16D);
+            double maxHalfWidth = (isMusouOrCa ? 0.30D : 0.16D) * (1.08D - prog * 0.32D);
+
+            for (int i = 0; i < segs; i++) {
+                double u0 = (double) i / (double) segs;
+                double u1 = (double) (i + 1) / (double) segs;
+                double s0 = Math.sin(u0 * Math.PI);
+                double s1 = Math.sin(u1 * Math.PI);
+
+                Vec3 c0 = sCam.lerp(eCam, u0).add(curveOut.scale(archDepth * s0));
+                Vec3 c1 = sCam.lerp(eCam, u1).add(curveOut.scale(archDepth * s1));
+
+                double w0 = maxHalfWidth * Math.pow(s0, 0.75D);
+                double w1 = maxHalfWidth * Math.pow(s1, 0.75D);
+
+                Vec3 outA0 = c0.add(perp.scale(w0)).add(curveOut.scale(w0 * 0.35D));
+                Vec3 outB0 = c0.subtract(perp.scale(w0)).subtract(curveOut.scale(w0 * 0.25D));
+                Vec3 outA1 = c1.add(perp.scale(w1)).add(curveOut.scale(w1 * 0.35D));
+                Vec3 outB1 = c1.subtract(perp.scale(w1)).subtract(curveOut.scale(w1 * 0.25D));
+
+                int aOuter0 = Math.max(8, (int) (alpha * 0.55F * s0));
+                int aOuter1 = Math.max(8, (int) (alpha * 0.55F * s1));
+                int aMid0 = Math.max(12, (int) (alpha * 0.88F * s0));
+                int aMid1 = Math.max(12, (int) (alpha * 0.88F * s1));
+                int aCore0 = Math.max(16, (int) (alpha * s0));
+                int aCore1 = Math.max(16, (int) (alpha * s1));
+
+                // Layer 1: Deep Inazuma Electro-Violet outer crescent aura (0x7828C8)
+                ClientAuraRenderer.emitCrystalQuad(consumer, matrix,
+                        (float) outA0.x, (float) outA0.y, (float) outA0.z, 120, 40, 200, aOuter0,
+                        (float) outA1.x, (float) outA1.y, (float) outA1.z, 120, 40, 200, aOuter1,
+                        (float) outB1.x, (float) outB1.y, (float) outB1.z, 120, 40, 200, aOuter1,
+                        (float) outB0.x, (float) outB0.y, (float) outB0.z, 120, 40, 200, aOuter0);
+
+                // Layer 2: Vibrant Raiden Amethyst mid blade (0xBF5AF2)
+                Vec3 midA0 = c0.add(perp.scale(w0 * 0.62D)).add(curveOut.scale(w0 * 0.22D));
+                Vec3 midB0 = c0.subtract(perp.scale(w0 * 0.52D));
+                Vec3 midA1 = c1.add(perp.scale(w1 * 0.62D)).add(curveOut.scale(w1 * 0.22D));
+                Vec3 midB1 = c1.subtract(perp.scale(w1 * 0.52D));
+                ClientAuraRenderer.emitCrystalQuad(consumer, matrix,
+                        (float) midA0.x, (float) midA0.y, (float) midA0.z, 191, 90, 242, aMid0,
+                        (float) midA1.x, (float) midA1.y, (float) midA1.z, 191, 90, 242, aMid1,
+                        (float) midB1.x, (float) midB1.y, (float) midB1.z, 191, 90, 242, aMid1,
+                        (float) midB0.x, (float) midB0.y, (float) midB0.z, 191, 90, 242, aMid0);
+
+                // Layer 3: Incandescent White-Violet lightning core (0xFFFFFF)
+                Vec3 coreA0 = c0.add(perp.scale(w0 * 0.25D)).add(curveOut.scale(w0 * 0.12D));
+                Vec3 coreB0 = c0.subtract(perp.scale(w0 * 0.20D));
+                Vec3 coreA1 = c1.add(perp.scale(w1 * 0.25D)).add(curveOut.scale(w1 * 0.12D));
+                Vec3 coreB1 = c1.subtract(perp.scale(w1 * 0.20D));
+                ClientAuraRenderer.emitCrystalQuad(consumer, matrix,
+                        (float) coreA0.x, (float) coreA0.y, (float) coreA0.z, 255, 245, 255, aCore0,
+                        (float) coreA1.x, (float) coreA1.y, (float) coreA1.z, 255, 245, 255, aCore1,
+                        (float) coreB1.x, (float) coreB1.y, (float) coreB1.z, 255, 245, 255, aCore1,
+                        (float) coreB0.x, (float) coreB0.y, (float) coreB0.z, 255, 245, 255, aCore0);
+            }
         }
         return true;
     }
@@ -422,38 +469,50 @@ public final class RaidenVisualRenderer {
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA) {
+            // Task 14: Authentic Inazuma Upward Crescent Moon Slash / Spatial Fan Sweep
             HumanoidArm castArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
             var mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
             var offPart = castArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
             float castDir = castArm == HumanoidArm.RIGHT ? 1.0F : -1.0F;
             float offDir = -castDir;
-            float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
-            if (t < 0.28F) {
-                float wind = WindGliderRenderer.smoothStep01(t / 0.28F);
-                model.body.xRot = Mth.lerp(w, model.body.xRot, 0.22F * wind);
-                model.body.yRot = Mth.lerp(w, model.body.yRot, -castDir * 0.32F * wind);
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.38F * wind);
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.32F * wind);
-                model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.12F * wind);
+            float w = (t < 0.76F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.76F) / 0.24F) * (float) Math.PI));
+            if (t < 0.24F) {
+                float wind = WindGliderRenderer.smoothStep01(t / 0.24F);
+                model.body.xRot = Mth.lerp(w, model.body.xRot, 0.26F * wind);
+                model.body.yRot = Mth.lerp(w, model.body.yRot, -castDir * 0.48F * wind);
+                model.body.zRot = Mth.lerp(w, model.body.zRot, -castDir * 0.08F * wind);
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.42F * wind);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.36F * wind);
+                model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.14F * wind);
+                model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.12F * wind);
 
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.45F);
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * -0.92F);
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * -0.55F);
-                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.52F);
-                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.45F);
-                model.head.xRot += 0.08F * wind * w;
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.18F * wind);
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * -1.05F * wind);
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * -0.62F * wind);
+                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.58F * wind);
+                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.52F * wind);
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * -0.22F * wind);
+                model.head.xRot += 0.12F * wind * w;
+                model.hat.copyFrom(model.head);
             } else {
-                float sweep = WindGliderRenderer.smoothStep01((t - 0.28F) / 0.46F);
-                model.body.xRot = Mth.lerp(w, model.body.xRot, Mth.lerp(sweep, 0.22F, 0.28F));
-                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(sweep, -0.32F, 0.42F));
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, Mth.lerp(sweep, 0.38F, -0.25F));
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, Mth.lerp(sweep, -0.32F, 0.45F));
+                float rawSweep = Mth.clamp((t - 0.24F) / 0.52F, 0.0F, 1.0F);
+                float sweep = 1.0F - (1.0F - rawSweep) * (1.0F - rawSweep) * (1.0F - rawSweep); // Cubic ease-out crescent launch
+                model.body.xRot = Mth.lerp(w, model.body.xRot, Mth.lerp(sweep, 0.26F, -0.14F));
+                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(sweep, -0.48F, 0.54F));
+                model.body.zRot = Mth.lerp(w, model.body.zRot, castDir * Mth.lerp(sweep, -0.08F, 0.10F));
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, Mth.lerp(sweep, 0.42F, -0.28F));
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, Mth.lerp(sweep, -0.36F, 0.46F));
+                model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.14F * (1.0F - sweep * 0.5F));
+                model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.12F * (1.0F - sweep * 0.5F));
 
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(sweep, -0.45F, -1.85F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(sweep, -0.92F, 0.65F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(sweep, -0.55F, 0.45F));
-                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(sweep, -0.52F, 0.48F));
-                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * -0.35F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(sweep, -0.18F, -2.42F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(sweep, -1.05F, 0.58F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(sweep, -0.62F, 0.42F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(sweep, -0.58F, 0.55F));
+                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * Mth.lerp(sweep, 0.52F, -0.42F));
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * Mth.lerp(sweep, -0.22F, 0.32F));
+                model.head.xRot += Mth.lerp(sweep, 0.12F, -0.16F) * w;
+                model.hat.copyFrom(model.head);
             }
             return true;
         }
@@ -494,6 +553,23 @@ public final class RaidenVisualRenderer {
                 poseStack.translate(side * Mth.lerp(slash, -0.08F, 0.06F) * w, 0.02F * w, -0.06F * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(-36.0F * w));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(slash, 64.0F, -68.0F) * w));
+            }
+        }
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float w = (t < 0.76F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.76F) / 0.24F) * (float) Math.PI));
+            if (t < 0.24F) {
+                float wind = WindGliderRenderer.smoothStep01(t / 0.24F);
+                poseStack.translate(side * 0.08F * wind * w, -0.06F * wind * w, 0.04F * wind * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * wind * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(side * 34.0F * wind * w));
+            } else {
+                float rawSweep = Mth.clamp((t - 0.24F) / 0.52F, 0.0F, 1.0F);
+                float sweep = 1.0F - (1.0F - rawSweep) * (1.0F - rawSweep) * (1.0F - rawSweep);
+                poseStack.translate(side * Mth.lerp(sweep, 0.08F, -0.06F) * w, Mth.lerp(sweep, -0.06F, 0.08F) * w, -0.06F * sweep * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, 28.0F, -48.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(side * Mth.lerp(sweep, 34.0F, -38.0F) * w));
             }
         }
         return true;
@@ -599,18 +675,22 @@ public final class RaidenVisualRenderer {
         if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float w = (t < 0.74F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.74F) / 0.26F) * (float) Math.PI));
-            if (t < 0.28F) {
-                float wind = WindGliderRenderer.smoothStep01(t / 0.28F);
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 2.8F) * 0.006F * wind;
-                poseStack.translate(dir * 0.18F * wind * w + tremor, -0.22F * wind * w, -0.15F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F * wind * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 85.0F * wind * w));
+            float w = (t < 0.76F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.76F) / 0.24F) * (float) Math.PI));
+            if (t < 0.24F) {
+                float wind = WindGliderRenderer.smoothStep01(t / 0.24F);
+                float tremor = Mth.sin((player.tickCount + partialTicks) * 3.2F) * 0.006F * wind;
+                poseStack.translate(dir * 0.26F * wind * w + tremor, -0.30F * wind * w, -0.16F * wind * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 18.0F * wind * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * wind * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 96.0F * wind * w));
             } else {
-                float sweep = WindGliderRenderer.smoothStep01((t - 0.28F) / 0.46F);
-                poseStack.translate(dir * Mth.lerp(sweep, 0.18F, -0.36F) * w, Mth.lerp(sweep, -0.22F, 0.28F) * w, -0.32F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -24.0F, -68.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 85.0F, -78.0F) * w));
+                float rawSweep = Mth.clamp((t - 0.24F) / 0.52F, 0.0F, 1.0F);
+                float sweep = 1.0F - (1.0F - rawSweep) * (1.0F - rawSweep) * (1.0F - rawSweep); // Cubic ease-out upward crescent whip
+                float arcLift = Mth.sin(sweep * (float) Math.PI) * 0.10F;
+                poseStack.translate(dir * Mth.lerp(sweep, 0.26F, -0.42F) * w, (Mth.lerp(sweep, -0.30F, 0.34F) + arcLift) * w, Mth.lerp(sweep, -0.16F, -0.34F) * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(sweep, -18.0F, 28.0F) * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -18.0F, -76.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 96.0F, -84.0F) * w));
             }
             return true;
         }
