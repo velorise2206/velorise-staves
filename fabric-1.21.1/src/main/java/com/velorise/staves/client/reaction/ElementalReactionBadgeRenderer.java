@@ -647,7 +647,7 @@ public final class ElementalReactionBadgeRenderer {
 
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
                 ? entity.getBbHeight() + 0.18D
-                : entity.getBbHeight() + 0.15D;
+                : entity.getBbHeight() + 0.28D + Math.min(0.5D, entity.getBbHeight() * 0.10D);
         float iconSize = 16.0F;
         float gap = 3.0F;
 

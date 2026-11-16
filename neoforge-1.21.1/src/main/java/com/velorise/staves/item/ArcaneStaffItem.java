@@ -961,6 +961,12 @@ public final class ArcaneStaffItem extends Item {
         return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
     }
 
+    public int getTsaritsaCooldownTicks(boolean spearStance) {
+        double seconds = spearStance ? 8.0D : StavesConfig.getStaffCooldownSeconds(Kind.TSARITSA_BOW); // Tap = 6.0s, Hold Spear = 8.0s
+        double mult = StavesConfig.getCooldownMultiplier();
+        return Math.max(1, (int) Math.round(seconds * 20.0D * mult));
+    }
+
     @Override
     public int getMaxDamage(ItemStack stack) {
         return getEffectiveMaxDamage(stack, kind, isNetherite);
@@ -1178,7 +1184,7 @@ public final class ArcaneStaffItem extends Item {
                 if (!player.getCooldowns().isOnCooldown(this)) {
                     com.velorise.staves.element.TsaritsaManager.performHoldE(player);
                     hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
-                    ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                    ElementalResonanceManager.applyCooldown(player, this, getTsaritsaCooldownTicks(true));
                     player.awardStat(Stats.ITEM_USED.get(this));
                 }
                 player.stopUsingItem();
@@ -1263,6 +1269,7 @@ public final class ArcaneStaffItem extends Item {
                     int rem = switch (delegated.kind()) {
                         case VORTEX -> delegated.getVortexCooldownTicks((delegated.getUseDuration(stack, entity) - timeLeft) >= 28 || sp.isShiftKeyDown());
                         case DAYBREAK -> delegated.getDaybreakCooldownTicks(false);
+                        case TSARITSA_BOW, TSARITSA_SPEAR -> delegated.getTsaritsaCooldownTicks(false);
                         default -> delegated.getCooldownTicks();
                     };
                     ElementalResonanceManager.applyOmniModeCooldown(sp, stack, rem);
@@ -1353,7 +1360,7 @@ public final class ArcaneStaffItem extends Item {
                 if (elapsed < 16 && !ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     com.velorise.staves.element.TsaritsaManager.performTapE(player);
                     hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
-                    ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
+                    ElementalResonanceManager.applyCooldown(player, this, getTsaritsaCooldownTicks(false));
                     player.awardStat(Stats.ITEM_USED.get(this));
                 }
             }
@@ -1571,7 +1578,6 @@ public final class ArcaneStaffItem extends Item {
         orb.shoot(look.x, look.y, look.z, isNetherite ? 2.1F : 1.85F, 0.0F);
         level.addFreshEntity(orb);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, isNetherite ? 1.35F : 1.15F);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_OMNI);
         return true;
     }
 
@@ -2241,7 +2247,6 @@ public final class ArcaneStaffItem extends Item {
         boolean pneuma = isSplendorPneuma(stack);
         com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(serverLevel, player, isNetherite, pneuma);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 1);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_HYDRO);
         return true;
     }
 
@@ -2334,7 +2339,7 @@ public final class ArcaneStaffItem extends Item {
                 yield fmtHearts(baseDmg * 0.375F) + heart + " / " + fmtHearts(baseDmg * 1.5F) + heart + " [R] " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case THOUSAND_FLOATING_DREAMS -> fmtHearts(isNetherite ? 10.5F : 7.0F) + heart + " (Tri-Karma) " + icon + (isNetherite ? "1.5U" : "1U");
-            case TSARITSA_BOW, TSARITSA_SPEAR -> fmtHearts(isNetherite ? 15.0F : 10.0F) + heart + " (CA) / " + fmtHearts(isNetherite ? 6.0F : 4.0F) + heart + " (Crown) " + icon + "2U";
+            case TSARITSA_BOW, TSARITSA_SPEAR -> fmtHearts(isNetherite ? 9.0F : 6.0F) + heart + " (CA) / " + fmtHearts(isNetherite ? 3.6F : 2.4F) + heart + " (Crown) " + icon + "2U";
             case OMNI -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.OMNI, isNetherite)) + heart + " " + icon + (isNetherite ? "3U" : "2U");
         };
     }
@@ -2484,7 +2489,11 @@ public final class ArcaneStaffItem extends Item {
             String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (E) | %.1fs [R]", eSec, qSec);
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
-            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", "6.0s (E) | 15.0s [R]").withStyle(ChatFormatting.BLUE));
+            float tapSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getTsaritsaCooldownTicks(false)) / 20.0F;
+            float spearSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getTsaritsaCooldownTicks(true)) / 20.0F;
+            float burstSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(300) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (Tap) / %.1fs (Spear) | %.1fs [R]", tapSec, spearSec, burstSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else {
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F)).withStyle(ChatFormatting.BLUE));
         }

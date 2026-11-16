@@ -45,7 +45,7 @@ public final class TsaritsaManager {
 
     public static final int AZURE_CROWN_DURATION_TICKS = 400; // 20.0s
     public static final int AZURE_CROWN_FIRE_INTERVAL_TICKS = 40; // 2.0s
-    public static final int SPEAR_STANCE_DURATION_TICKS = 240; // 12.0s
+    public static final int SPEAR_STANCE_DURATION_TICKS = 120; // 6.0s
     public static final int HOLD_E_CHARGE_TICKS = 16; // 0.8s hold to transform into Spear Stance
     public static final int BOW_FULL_CHARGE_TICKS = 18; // 3 stages: 0..5 (_0), 6..17 (_1), 18+ (_2)
 
@@ -680,6 +680,14 @@ public final class TsaritsaManager {
         TsaritsaPlayerState state = getOrCreateState(player);
         state.netherite = isHoldingNetheriteTsaritsa(player);
         long now = level.getGameTime();
+
+        if (isSpearStanceActive(player)) {
+            state.spearStanceUntilTick = 0L;
+            syncStateToClients(player, state, now);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.9F, 1.2F);
+            return;
+        }
 
         state.azureCrownUntilTick = 0L;
         state.spearStanceUntilTick = now + SPEAR_STANCE_DURATION_TICKS;

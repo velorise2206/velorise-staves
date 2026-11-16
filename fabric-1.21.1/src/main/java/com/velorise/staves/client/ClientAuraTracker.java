@@ -742,7 +742,7 @@ public final class ClientAuraTracker {
                     net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
                     if (e != null) {
                         bx = e.getX();
-                        by = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
+                        by = e.getY() + e.getBbHeight() + 0.35D + Math.min(0.6D, e.getBbHeight() * 0.12D);
                         bz = e.getZ();
                     } else {
                         bx = Double.NaN;
@@ -794,7 +794,7 @@ public final class ClientAuraTracker {
             net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
             if (e != null) {
                 resolvedX = e.getX();
-                resolvedY = e.getY() + Math.max(0.65D, e.getBbHeight() * 0.65D);
+                resolvedY = e.getY() + e.getBbHeight() + 0.35D + Math.min(0.6D, e.getBbHeight() * 0.12D);
                 resolvedZ = e.getZ();
             } else {
                 resolvedX = Double.NaN;

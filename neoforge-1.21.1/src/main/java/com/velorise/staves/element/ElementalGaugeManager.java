@@ -465,6 +465,15 @@ public final class ElementalGaugeManager {
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ANEMO);
             default -> {}
         }
+        switch (reaction) {
+            case FORWARD_VAPORIZE, REVERSE_VAPORIZE, ELECTRO_CHARGED, FROZEN, BLOOM, REVERSE_BLOOM, OVERVAPE ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_HYDRO);
+            default -> {}
+        }
+        if (attacker.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.OMNI) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_OMNI);
+        }
     }
 
     public static float getCatalyzeMultiplier(int emLevel) {

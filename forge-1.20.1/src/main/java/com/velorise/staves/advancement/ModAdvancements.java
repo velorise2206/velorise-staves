@@ -78,14 +78,6 @@ public final class ModAdvancements {
                     trigger(player, EVENT_BROKEN_CONTRACT);
                 }
             }
-        } else if (entity instanceof OwnableEntity ownable) {
-            UUID ownerUuid = ownable.getOwnerUUID();
-            if (ownerUuid != null && entity.level() instanceof ServerLevel sl) {
-                ServerPlayer owner = sl.getServer().getPlayerList().getPlayer(ownerUuid);
-                if (owner != null) {
-                    trigger(owner, EVENT_HIDDEN_ANEMO);
-                }
-            }
         }
     }
 }

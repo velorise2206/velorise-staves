@@ -290,28 +290,7 @@ public final class TsaritsaVisualRenderer {
             poseStack.popPose();
         }
 
-        if (supportBurst) {
-            poseStack.pushPose();
-            poseStack.translate(0.0F, entity.getBbHeight() * 0.68F, 0.0F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            poseStack.translate(0.0F, 0.0F, 0.18F);
-            Matrix4f mat = poseStack.last().pose();
-            float flap = Mth.sin(time * 0.25F) * 0.12F;
-            for (int side = -1; side <= 1; side += 2) {
-                for (int b = 0; b < 3; b++) {
-                    float yOff = 0.25F - b * 0.22F;
-                    float xOut = side * (0.95F - b * 0.14F);
-                    float zOut = 0.28F + flap * side;
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            side * 0.10F, yOff, 0.0F,
-                            xOut, yOff + 0.28F, zOut,
-                            xOut * 0.88F, yOff - 0.08F, zOut,
-                            side * 0.10F, yOff - 0.12F, 0.0F,
-                            145, 225, 255, 205);
-                }
-            }
-            poseStack.popPose();
-        }
+
 
         if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_DPS) {
             poseStack.pushPose();

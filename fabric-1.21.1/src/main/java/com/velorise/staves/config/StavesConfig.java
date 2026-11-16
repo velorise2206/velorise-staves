@@ -598,7 +598,7 @@ public final class StavesConfig {
             case THOUSAND_BLAZING_SUNS -> 4.0D;
             case PEAK_PATROL_SONG -> 1.0D;
             case THOUSAND_FLOATING_DREAMS -> 4.0D;
-            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 2.7D;
             case WITHER -> 4.0D;
             case SHULKER -> 6.0D;
             case GUARDIAN -> 2.0D;
@@ -654,7 +654,7 @@ public final class StavesConfig {
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
             case THOUSAND_FLOATING_DREAMS -> 4.0D;
-            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
+            case TSARITSA_BOW, TSARITSA_SPEAR -> 2.7D;
             case WITHER -> WITHER_DAMAGE.get();
             case SHULKER -> SHULKER_DAMAGE.get();
             case GUARDIAN -> GUARDIAN_DAMAGE.get();

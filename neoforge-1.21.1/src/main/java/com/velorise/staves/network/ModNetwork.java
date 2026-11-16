@@ -106,7 +106,7 @@ public final class ModNetwork {
         if (target.level().isClientSide()) return;
         boolean hasPos = (reaction != null && reaction != ElementalReaction.NONE) || damage > 0.0F;
         double px = target.getX();
-        double py = target.getY() + Math.max(0.65D, target.getBbHeight() * 0.65D);
+        double py = target.getY() + target.getBbHeight() + 0.35D + Math.min(0.6D, target.getBbHeight() * 0.12D);
         double pz = target.getZ();
         AuraSyncPayload payload = new AuraSyncPayload(
                 target.getId(), elements, reactedAura, trigger, reaction, damage, durationTicks,
@@ -139,7 +139,7 @@ public final class ModNetwork {
     public static void sendPhysicalDamage(Entity target, float damage) {
         if (target == null || target.level().isClientSide() || damage <= 0.0F) return;
         double px = target.getX();
-        double py = target.getY() + Math.max(0.65D, target.getBbHeight() * 0.65D);
+        double py = target.getY() + target.getBbHeight() + 0.35D + Math.min(0.6D, target.getBbHeight() * 0.12D);
         double pz = target.getZ();
         AuraSyncPayload payload = new AuraSyncPayload(
                 target.getId(), java.util.Collections.emptyList(), null, null, null, damage, -3,

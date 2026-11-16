@@ -1,5 +1,6 @@
 package com.velorise.staves.client.glider;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -1077,6 +1078,23 @@ public final class WindGliderRenderer {
             com.velorise.staves.client.character.MavuikaVisualRenderer.renderChargeHud(guiGraphics, sw, sh, pct);
             return;
         }
+        if (hudKind == ArcaneStaffItem.Kind.ECHO) {
+            renderEchoChargeHud(guiGraphics, sw, sh, pct);
+            return;
+        }
         renderGenericChargeBar(guiGraphics, staff, pct);
+    }
+
+    public static void renderEchoChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
+        ResourceLocation echoTex = new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/echo_charge.png");
+        int iconX = sw / 2 - 8;
+        int iconY = sh / 2 + 12;
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderColor(0.25F, 0.35F, 0.40F, 0.65F);
+        guiGraphics.blit(echoTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
+        int fillH = Math.max(1, Math.round(16 * pct));
+        int topY = iconY + (16 - fillH);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        guiGraphics.blit(echoTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
     }
 }
