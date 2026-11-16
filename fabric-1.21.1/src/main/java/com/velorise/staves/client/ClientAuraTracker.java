@@ -154,6 +154,8 @@ public final class ClientAuraTracker {
         public boolean zhongliIdleMeteor = false;
         public float zhongliIdleFade = 0.0F;
         public long zhongliIdleLastMs = 0L;
+        public float zhongliIdleYaw = 0.0F;
+        public boolean zhongliIdleYawSet = false;
         public boolean raidenIdle = false;
         public float raidenIdleFade = 0.0F;
         public long raidenIdleLastMs = 0L;
@@ -169,6 +171,9 @@ public final class ClientAuraTracker {
         public float furinaIdleFade = 0.0F;
         public long furinaIdleLastMs = 0L;
         public int furinaIdleLastMode = 0;
+        public float furinaIdleYaw = 0.0F;
+        public boolean furinaIdleYawSet = false;
+        public long furinaIdleStartMs = 0L;
         public boolean ventiIdle = false;
         public int ventiIdleMode = 0;
         public int ventiIdleLastMode = 1;
@@ -535,11 +540,17 @@ public final class ClientAuraTracker {
         if (animType == 4010 || animType == 4011) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.zhongliIdleMeteor = (animType == 4011);
+            if (!entry.zhongliIdleMeteor) {
+                entry.zhongliIdleYawSet = false;
+            }
             return;
         }
         if (animType == 4020 || animType == 4021) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.raidenIdle = (animType == 4021);
+            if (!entry.raidenIdle) {
+                entry.raidenIdleYawSet = false;
+            }
             return;
         }
         if (animType == 4030 || animType == 4031) {
@@ -548,14 +559,23 @@ public final class ClientAuraTracker {
             entry.mavuikaIdle = (animType == 4031);
             if (entry.mavuikaIdle && !was) {
                 entry.mavuikaIdleStartMs = now;
+            } else if (!entry.mavuikaIdle) {
+                entry.mavuikaIdleYawSet = false;
             }
             return;
         }
         if (animType >= 4040 && animType <= 4042) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            int prevMode = entry.furinaIdleMode;
             entry.furinaIdleMode = animType - 4040;
             if (entry.furinaIdleMode > 0) {
                 entry.furinaIdleLastMode = entry.furinaIdleMode;
+                if (prevMode == 0) {
+                    entry.furinaIdleStartMs = now;
+                }
+            } else {
+                entry.furinaIdleStartMs = 0L;
+                entry.furinaIdleYawSet = false;
             }
             return;
         }
@@ -565,6 +585,8 @@ public final class ClientAuraTracker {
             entry.ventiIdleMode = animType - 4050;
             if (entry.ventiIdleMode > 0) {
                 entry.ventiIdleLastMode = entry.ventiIdleMode;
+            } else {
+                entry.ventiIdleYawSet = false;
             }
             return;
         }
@@ -1312,6 +1334,36 @@ public final class ClientAuraTracker {
             mc.player.yBodyRotO = d.mavuikaIdleYaw;
         } else {
             d.mavuikaIdleYawSet = false;
+        }
+        if (isVentiIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.ventiIdleYawSet) {
+                d.ventiIdleYaw = mc.player.getYRot();
+                d.ventiIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.ventiIdleYaw;
+            mc.player.yBodyRotO = d.ventiIdleYaw;
+        } else {
+            d.ventiIdleYawSet = false;
+        }
+        if (isZhongliIdleMeteor(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.zhongliIdleYawSet) {
+                d.zhongliIdleYaw = mc.player.getYRot();
+                d.zhongliIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.zhongliIdleYaw;
+            mc.player.yBodyRotO = d.zhongliIdleYaw;
+        } else {
+            d.zhongliIdleYawSet = false;
+        }
+        if (isFurinaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.furinaIdleYawSet) {
+                d.furinaIdleYaw = mc.player.getYRot();
+                d.furinaIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.furinaIdleYaw;
+            mc.player.yBodyRotO = d.furinaIdleYaw;
+        } else {
+            d.furinaIdleYawSet = false;
         }
     }
 

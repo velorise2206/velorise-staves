@@ -535,6 +535,38 @@ public final class TsaritsaVisualRenderer {
         return true;
     }
 
+    public static boolean setupFirstPersonQuillArmPose(
+            net.minecraft.client.player.AbstractClientPlayer player,
+            float partialTicks,
+            net.minecraft.world.entity.HumanoidArm arm,
+            PoseStack poseStack
+    ) {
+        if (player == null || !ClientAuraTracker.isTsaritsaIdle(player.getId())) return false;
+        if (player.isUsingItem() || player.swinging) return false;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(player.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return false;
+        float age = player.tickCount + partialTicks;
+        float writeHoriz = Mth.sin(age * 0.28F);
+        float writeDepth = Mth.cos(age * 0.16F);
+
+        if (arm == net.minecraft.world.entity.HumanoidArm.RIGHT) {
+            // Right arm reaching forward and slightly down over desk, writing
+            poseStack.translate(-0.16F * w + writeHoriz * 0.045F * w, -0.06F * w - writeDepth * 0.035F * w, -0.22F * w);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-42.0F * w - writeDepth * 6.0F * w));
+            poseStack.mulPose(Axis.YP.rotationDegrees(28.0F * w - writeHoriz * 8.0F * w));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(14.0F * w));
+            return true;
+        } else {
+            // Left arm resting slightly forward on the desk
+            poseStack.translate(0.12F * w, -0.04F * w, -0.16F * w);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F * w));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-16.0F * w));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(-10.0F * w));
+            return true;
+        }
+    }
+
     private static void drawIceSpire(
             VertexConsumer vc, Matrix4f mat,
             float baseRx, float baseRz, float midH, float tipH,

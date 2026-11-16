@@ -52,7 +52,14 @@ public final class FurinaManager {
             if (canIdle && distSq < 0.16D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60) {
-                    st.activeCode = ArcaneStaffItem.isSplendorPneuma(furinaStack) ? 4042 : 4041;
+                    if (st.activeCode == 4040) {
+                        boolean pneuma = ArcaneStaffItem.isSplendorPneuma(furinaStack);
+                        st.activeCode = pneuma ? 4042 : 4041;
+                        if (player.serverLevel() != null && !com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player)) {
+                            boolean isNetherite = furinaStack.getItem() instanceof ArcaneStaffItem staff && staff.isNetherite();
+                            com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(player.serverLevel(), player, isNetherite, pneuma);
+                        }
+                    }
                 } else {
                     st.activeCode = 4040;
                 }
@@ -64,6 +71,19 @@ public final class FurinaManager {
             if (st.activeCode != st.lastSyncedCode || (st.activeCode > 4040 && now % 20L == 0L)) {
                 st.lastSyncedCode = st.activeCode;
                 ModNetwork.sendStaffAnimation(player, st.activeCode);
+            }
+        }
+    }
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        FurinaIdleState st = FURINA_IDLE_STATES.get(player.getUUID());
+        if (st != null && st.activeCode != 4040) {
+            st.activeCode = 4040;
+            st.stillTicks = 0;
+            if (st.lastSyncedCode != 4040) {
+                st.lastSyncedCode = 4040;
+                ModNetwork.sendStaffAnimation(player, 4040);
             }
         }
     }

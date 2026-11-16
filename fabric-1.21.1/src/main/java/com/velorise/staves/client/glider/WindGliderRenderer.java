@@ -458,11 +458,14 @@ public final class WindGliderRenderer {
     private static void renderLaylaOverheadDreamsphere(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         Minecraft mc = Minecraft.getInstance();
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
-        float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
         float h = entity.getBbHeight();
+        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
+                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
 
         poseStack.pushPose();
-        poseStack.translate(0.0F, h + 1.15F + 0.04F * Mth.sin(time * 0.12F), 0.0F);
+        poseStack.translate(0.0F, h + 1.15F + idleLift + 0.04F * Mth.sin(time * 0.12F), 0.0F);
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.4F));
         Matrix4f sphereMat = poseStack.last().pose();
@@ -508,10 +511,13 @@ public final class WindGliderRenderer {
         }
 
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
-        float time = entity.tickCount + mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
         float h = entity.getBbHeight();
         float radius = Math.max(0.95F, h * 0.62F);
-        float centerY = h * 0.50F;
+        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
+                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
+        float centerY = h * 0.50F + idleLift;
         float pulse = 1.0F + 0.025F * Mth.sin(time * 0.14F);
         float rSphere = radius * pulse;
 

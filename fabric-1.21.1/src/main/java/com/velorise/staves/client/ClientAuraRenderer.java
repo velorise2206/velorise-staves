@@ -333,7 +333,8 @@ public final class ClientAuraRenderer {
         boolean fpTsaritsaIdle = ClientAuraTracker.isTsaritsaIdle(player.getId()) && !player.isUsingItem() && !player.swinging;
         boolean fpZhongliIdle = fpIdle != null && (fpIdle.zhongliIdleMeteor || fpIdle.zhongliIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging;
         boolean fpMavuikaIdle = fpIdle != null && (fpIdle.mavuikaIdle || fpIdle.mavuikaIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging && !(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
-        if (fpIdle != null && (fpVentiIdle || fpIdle.raidenIdle || fpIdle.raidenIdleFade > 0.05F || fpTsaritsaIdle || fpIdle.nahidaIdleSwing || fpIdle.nahidaIdleSwingFade > 0.05F || fpZhongliIdle || fpMavuikaIdle)) {
+        boolean fpFurinaIdle = fpIdle != null && (fpIdle.furinaIdleMode > 0 || fpIdle.furinaIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging;
+        if (fpIdle != null && (fpVentiIdle || fpIdle.raidenIdle || fpIdle.raidenIdleFade > 0.05F || fpTsaritsaIdle || fpIdle.nahidaIdleSwing || fpIdle.nahidaIdleSwingFade > 0.05F || fpZhongliIdle || fpMavuikaIdle || fpFurinaIdle)) {
             poseStack.scale(0.0F, 0.0F, 0.0F);
             return;
         }
@@ -366,6 +367,7 @@ public final class ClientAuraRenderer {
         if (MavuikaVisualRenderer.setupFirstPersonBikeArmPose(player, partialTicks, mainArm, poseStack)) return true;
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, mainArm, poseStack)) return true;
         if (NahidaVisualRenderer.setupFirstPersonCameraArmPose(player, mainArm, poseStack)) return true;
+        if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, mainArm, poseStack)) return true;
         return ZhongliVisualRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack);
     }
 
@@ -373,6 +375,7 @@ public final class ClientAuraRenderer {
         if (player == null) return false;
         if (MavuikaVisualRenderer.setupFirstPersonBikeArmPose(player, partialTicks, offArm, poseStack)) return true;
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, offArm, poseStack)) return true;
+        if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, offArm, poseStack)) return true;
         ItemStack mainStack = player.getMainHandItem();
         if (!(mainStack.getItem() instanceof ArcaneStaffItem staff)) return false;
         ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(mainStack);

@@ -85,9 +85,14 @@ public final class ZhongliVisualRenderer {
         }
 
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
-        float time = entity.tickCount + mc.getFrameTime();
+        float pt = mc.getFrameTime();
+        float time = entity.tickCount + pt;
+        float idleLift = VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt) + RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
 
         poseStack.pushPose();
+        if (idleLift > 0.001F) {
+            poseStack.translate(0.0F, idleLift, 0.0F);
+        }
         poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.2F));
         Matrix4f mat = poseStack.last().pose();
 
@@ -226,7 +231,10 @@ public final class ZhongliVisualRenderer {
         float rotX = time * 1.60F + Mth.cos(time * 0.05F) * 40.0F;
         float rotZ = time * 1.15F;
 
+        float bodyYaw = (d != null && d.zhongliIdleYawSet) ? d.zhongliIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
         poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
         poseStack.translate(ox, oy, oz);
         poseStack.mulPose(Axis.YP.rotationDegrees(rotY));
         poseStack.mulPose(Axis.XP.rotationDegrees(rotX));

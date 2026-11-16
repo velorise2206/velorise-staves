@@ -392,15 +392,15 @@ public final class VentiVisualRenderer {
         if (d.ventiIdleLastMs <= 0L) {
             d.ventiIdleLastMs = nowMs;
             if (d.ventiIdle) {
-                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + 0.016F / 0.45F);
+                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + 0.016F / 1.35F);
             }
         } else if (nowMs > d.ventiIdleLastMs) {
             float dt = Math.min(0.1F, (nowMs - d.ventiIdleLastMs) / 1000.0F);
             d.ventiIdleLastMs = nowMs;
             if (d.ventiIdle) {
-                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + dt / 0.45F);
+                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + dt / 1.35F);
             } else {
-                d.ventiIdleFade = Math.max(0.0F, d.ventiIdleFade - dt / 0.35F);
+                d.ventiIdleFade = Math.max(0.0F, d.ventiIdleFade - dt / 0.55F);
             }
         }
         return WindGliderRenderer.smoothStep01(d.ventiIdleFade);
@@ -741,33 +741,76 @@ public final class VentiVisualRenderer {
         }
         poseStack.popPose();
 
-        // 2. Swirling Anemo wind rings & breeze ribbons beneath & around feet (3rd person)
+        // 2. Multi-tier swirling Anemo whirlwind cyclone & spiral wind ribbons beneath & around feet
         if (!isFirstPersonSelf) {
-            float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+            float bodyYaw = (d != null && d.ventiIdleYawSet) ? d.ventiIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             poseStack.scale(fade, fade, fade);
-            int aRing = Math.max(15, Math.round(185.0F * fade));
-            for (int ring = 0; ring < 3; ring++) {
-                float ry = 0.16F + ring * 0.24F + hover * 0.5F;
-                float rRad = 0.68F - ring * 0.10F;
-                float spin = time * (0.14F + ring * 0.04F);
-                int segs = 18;
+
+            int aRing = Math.max(15, Math.round(180.0F * fade));
+            int aCore = Math.min(255, aRing + 45);
+
+            // 5 ascending vortex tiers from ground up to thighs/knees
+            int tierCount = 5;
+            for (int ring = 0; ring < tierCount; ring++) {
+                float ringFrac = ring / (float) (tierCount - 1);
+                float ry = 0.06F + ringFrac * 0.96F + hover * (0.3F + ringFrac * 0.4F);
+                // Funnel geometry: wider base (0.78F), narrows at waist (0.50F), slightly flares top (0.62F)
+                float rRad = 0.78F - 0.38F * Mth.sin(ringFrac * (float) Math.PI * 0.85F);
+                float dir = (ring % 2 == 0) ? 1.0F : -1.0F;
+                float spin = time * (0.16F + ring * 0.04F) * dir;
+                int segs = 20;
                 Matrix4f fMat = poseStack.last().pose();
+
                 for (int s = 0; s < segs; s++) {
-                    if ((s + ring) % 4 == 3) continue; // Broken wispy wind-stream segments
+                    if ((s + ring) % 5 == 4) continue; // Wispy broken ribbon gaps
                     float a0 = (float) (s * Math.PI * 2.0D / segs) + spin;
                     float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs) + spin;
-                    float y0 = ry + Mth.sin(a0 * 2.0F + time * 0.1F) * 0.04F;
-                    float y1 = ry + Mth.sin(a1 * 2.0F + time * 0.1F) * 0.04F;
+                    float wPhase = a0 * 2.5F + time * (0.12F * dir) + ring * 0.8F;
+                    float y0 = ry + Mth.sin(wPhase) * 0.035F;
+                    float y1 = ry + Mth.sin(wPhase + 0.35F) * 0.035F;
+
+                    // Outer turquoise wind stream
                     WindGliderRenderer.emitDoubleQuad(transVc, fMat,
-                            Mth.cos(a0) * rRad, y0 - 0.018F, Mth.sin(a0) * rRad,
-                            Mth.cos(a1) * rRad, y1 - 0.018F, Mth.sin(a1) * rRad,
-                            Mth.cos(a1) * rRad, y1 + 0.018F, Mth.sin(a1) * rRad,
-                            Mth.cos(a0) * rRad, y0 + 0.018F, Mth.sin(a0) * rRad,
-                            140, 255, 222, aRing);
+                            Mth.cos(a0) * rRad, y0 - 0.022F, Mth.sin(a0) * rRad,
+                            Mth.cos(a1) * rRad, y1 - 0.022F, Mth.sin(a1) * rRad,
+                            Mth.cos(a1) * rRad, y1 + 0.022F, Mth.sin(a1) * rRad,
+                            Mth.cos(a0) * rRad, y0 + 0.022F, Mth.sin(a0) * rRad,
+                            110, 245, 218, aRing);
+
+                    // Inner bright luminous core ribbon
+                    float coreRad = rRad * 0.94F;
+                    WindGliderRenderer.emitDoubleQuad(transVc, fMat,
+                            Mth.cos(a0) * coreRad, y0 - 0.009F, Mth.sin(a0) * coreRad,
+                            Mth.cos(a1) * coreRad, y1 - 0.009F, Mth.sin(a1) * coreRad,
+                            Mth.cos(a1) * coreRad, y1 + 0.009F, Mth.sin(a1) * coreRad,
+                            Mth.cos(a0) * coreRad, y0 + 0.009F, Mth.sin(a0) * coreRad,
+                            225, 255, 245, aCore);
                 }
             }
+
+            // Ascending spiral wind wisps / breeze particles drifting upward around the cyclone
+            Matrix4f fMat = poseStack.last().pose();
+            int pCount = 8;
+            for (int p = 0; p < pCount; p++) {
+                float pProg = ((time * 0.032F + p * (1.0F / pCount)) % 1.0F);
+                float py = 0.05F + pProg * 1.30F + hover * 0.4F;
+                float pr = 0.68F - 0.22F * Mth.sin(pProg * (float) Math.PI);
+                float pAng = time * 0.18F + p * ((float) Math.PI * 2.0F / pCount);
+                float px = Mth.cos(pAng) * pr;
+                float pz = Mth.sin(pAng) * pr;
+                float pSize = 0.030F * (0.6F + 0.4F * Mth.sin(pProg * (float) Math.PI));
+                int pAlpha = Math.max(10, Math.round(200.0F * fade * Mth.sin(pProg * (float) Math.PI)));
+
+                ClientAuraRenderer.emitCrystalQuad(transVc, fMat,
+                        px - pSize, py, pz - pSize, 180, 255, 235, pAlpha,
+                        px + pSize, py, pz - pSize, 180, 255, 235, pAlpha,
+                        px + pSize, py + pSize * 1.5F, pz + pSize, 235, 255, 250, pAlpha,
+                        px - pSize, py + pSize * 1.5F, pz + pSize, 235, 255, 250, pAlpha);
+            }
+
             poseStack.popPose();
         }
     }

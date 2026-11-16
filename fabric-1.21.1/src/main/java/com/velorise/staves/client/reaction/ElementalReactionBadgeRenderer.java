@@ -586,9 +586,12 @@ public final class ElementalReactionBadgeRenderer {
 
         if (display.isEmpty() && !omniInnate) return;
 
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
+                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
-                ? entity.getBbHeight() + 0.18D
-                : entity.getBbHeight() + 0.28D + Math.min(0.5D, entity.getBbHeight() * 0.10D);
+                ? entity.getBbHeight() + 0.18D + idleLift
+                : entity.getBbHeight() + 0.28D + Math.min(0.5D, entity.getBbHeight() * 0.10D) + idleLift;
         float iconSize = 16.0F;
         float gap = 3.0F;
 

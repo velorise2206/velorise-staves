@@ -167,30 +167,11 @@ public final class MavuikaVisualRenderer {
 
         int sw = guiGraphics.guiWidth();
         int sh = guiGraphics.guiHeight();
-        int slideY = Math.round(-(1.0F - putOn) * sh * 0.42F);
 
-        int lensA = Math.round(78.0F * alphaFrac);
-        int frameA = Math.round(215.0F * alphaFrac);
-        int lensCol = (lensA << 24) | 0x16101C;
-        int goldCol = (frameA << 24) | 0xFFC62D;
-        int orangeCol = (frameA << 24) | 0xFF7314;
-
-        int topY = Math.max(-sh, slideY + 10);
-        int botY = sh - 12 + slideY;
-        int leftX = 12;
-        int rightX = sw - 12;
-        int bridgeHalfW = Math.max(10, sw / 28);
-        int cx = sw / 2;
-
-        guiGraphics.fill(leftX, topY + 4, cx - bridgeHalfW, botY, lensCol);
-        guiGraphics.fill(cx + bridgeHalfW, topY + 4, rightX, botY, lensCol);
-        guiGraphics.fill(cx - bridgeHalfW, topY + 4, cx + bridgeHalfW, topY + 14, lensCol);
-        guiGraphics.fill(cx - bridgeHalfW, topY, cx + bridgeHalfW, topY + 5, goldCol);
-        guiGraphics.fill(leftX - 2, topY, rightX + 2, topY + 4, goldCol);
-        guiGraphics.fill(leftX - 3, topY, leftX, botY, orangeCol);
-        guiGraphics.fill(rightX, topY, rightX + 3, botY, orangeCol);
-        guiGraphics.fill(leftX - 3, botY, cx - bridgeHalfW, botY + 3, goldCol);
-        guiGraphics.fill(cx + bridgeHalfW, botY, rightX + 3, botY + 3, goldCol);
+        // Subtle sunglasses screen tint/darkening without obstructive frame geometry
+        int dimA = Math.round(52.0F * alphaFrac);
+        int tintCol = (dimA << 24) | 0x140e18;
+        guiGraphics.fill(0, 0, sw, sh, tintCol);
     }
 
     public static void renderMavuikaNightsoulHud(GuiGraphics guiGraphics, Minecraft mc) {

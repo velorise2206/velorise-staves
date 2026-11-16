@@ -45,10 +45,13 @@ public final class RaidenVisualRenderer {
 
     public static void renderRaidenEyeRing(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         ClientAuraTracker.RaidenDisplayState state = ClientAuraTracker.getRaiden(entity.getId());
-        if (state == null) return;
-        float eyeTicks = state.effectiveEyeTicks();
-        float musouTicks = state.effectiveMusouTicks();
-        if (eyeTicks <= 0.0F && musouTicks <= 0.0F && state.resolve <= 0) return;
+        boolean isIdle = ClientAuraTracker.isRaidenIdle(entity.getId());
+        if (state == null && !isIdle) return;
+        float eyeTicks = (state != null) ? state.effectiveEyeTicks() : 0.0F;
+        float musouTicks = (state != null) ? state.effectiveMusouTicks() : 0.0F;
+        int resolve = (state != null) ? state.resolve : 0;
+        boolean netherite = (state != null) && state.netherite;
+        if (eyeTicks <= 0.0F && musouTicks <= 0.0F && resolve <= 0 && !isIdle) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
@@ -56,18 +59,19 @@ public final class RaidenVisualRenderer {
         }
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
+        float liftOffset = getLevitationCameraOffsetY(entity, pt);
         ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
         float bodyYaw = (d != null && d.raidenIdleYawSet) ? d.raidenIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
 
         boolean holdingRaiden = ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
                 || ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
-        if (holdingRaiden && (state.resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F)) {
-            float resolveFrac = musouTicks > 0.0F ? 1.0F : Mth.clamp(state.resolve / 60.0F, 0.0F, 1.0F);
+        if (holdingRaiden && (resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F || isIdle)) {
+            float resolveFrac = (musouTicks > 0.0F || isIdle) ? 1.0F : Mth.clamp(resolve / 60.0F, 0.0F, 1.0F);
             ResourceLocation ringTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_chakra_ring.png");
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(ringTex));
             poseStack.pushPose();
-            poseStack.translate(0.0F, entity.getBbHeight() * 0.76F, 0.0F);
+            poseStack.translate(0.0F, entity.getBbHeight() * 0.76F + liftOffset, 0.0F);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             poseStack.translate(0.0F, 0.0F, -0.44F);
 
@@ -142,11 +146,11 @@ public final class RaidenVisualRenderer {
             poseStack.popPose();
         }
 
-        if (eyeTicks > 0.0F) {
+        if (eyeTicks > 0.0F || isIdle) {
             ResourceLocation eyeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_eye_aura.png");
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(eyeTex));
             poseStack.pushPose();
-            poseStack.translate(0.0F, entity.getBbHeight() + 0.36F + 0.04F * Mth.sin(time * 0.14F), 0.0F);
+            poseStack.translate(0.0F, entity.getBbHeight() + 0.36F + liftOffset + 0.04F * Mth.sin(time * 0.14F), 0.0F);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             poseStack.translate(0.0F, 0.0F, -0.22F);
 
