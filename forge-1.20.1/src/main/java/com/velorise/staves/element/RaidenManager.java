@@ -732,8 +732,7 @@ public final class RaidenManager {
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
         if (isRaidenBurstOnCooldown(id, now)) {
-            double rem = getRaidenBurstRemainingTicks(id, now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§dMusou Shinsetsu CD: %.1fs", rem)), true);
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.ELECTRO, getRaidenBurstRemainingTicks(id, now));
             return false;
         }
         int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
@@ -810,16 +809,14 @@ public final class RaidenManager {
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             raidenStack = main;
             fromMain = true;
-        } else if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
+        } else if (!ArcaneStaffItem.isGenshinCharacterWeapon(main) && ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
             raidenStack = off;
         }
         if (raidenStack.isEmpty()) return;
         boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(raidenStack);
         if (activateRaidenMusouBurst(player, isNetherite)) {
-            final net.minecraft.world.InteractionHand breakHand = fromMain
-                    ? net.minecraft.world.InteractionHand.MAIN_HAND
-                    : net.minecraft.world.InteractionHand.OFF_HAND;
-            raidenStack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(breakHand));
+            ArcaneStaffItem.hurtStaffAndCheckBreak(raidenStack, 1, player,
+                    fromMain ? net.minecraft.world.InteractionHand.MAIN_HAND : net.minecraft.world.InteractionHand.OFF_HAND);
             player.awardStat(net.minecraft.stats.Stats.ITEM_USED.get(raidenStack.getItem()));
             com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 8);
         }

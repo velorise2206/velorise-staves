@@ -683,7 +683,7 @@ public class GeoFangPillarEntity extends Entity {
         for (LivingEntity living : onTop) {
             Vec3 dv = living.getDeltaMovement();
             if (dv.y > 0.12D) continue;
-            if (living.getY() >= topY - 0.55D && living.getY() <= topY + 0.12D) {
+            if (living.getY() >= topY - 0.55D && living.getY() <= topY + 0.25D) {
                 if (living.isInWater() || living.getY() < topY - 0.01D) {
                     living.setPos(living.getX(), topY, living.getZ());
                 }

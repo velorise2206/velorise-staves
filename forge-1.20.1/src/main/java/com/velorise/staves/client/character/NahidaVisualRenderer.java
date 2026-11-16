@@ -127,8 +127,8 @@ public final class NahidaVisualRenderer {
                 model.rightArm.xRot = 0.45F * hop;
                 model.leftArm.zRot = -0.35F * hop;
             } else if (step == 3) {
-                // Step 3 (Penultimate): Light hop bounce & 360-degree pirouette spin
-                model.body.yRot = (float) Math.PI * 2.0F * t;
+                // Step 3 (Penultimate): Light hop bounce & forward cast (NO body spin)
+                model.body.yRot = -0.15F * hop;
                 model.rightLeg.xRot = -0.45F * hop;
                 model.leftLeg.xRot = 0.35F * hop;
                 model.rightArm.xRot = -1.45F * hop;
@@ -136,8 +136,8 @@ public final class NahidaVisualRenderer {
                 model.rightArm.zRot = 0.65F * hop;
                 model.leftArm.zRot = -0.65F * hop;
             } else {
-                // Step 4 (Finisher): Light hop bounce & 360-degree pirouette spin with finger snap finish
-                model.body.yRot = (float) Math.PI * 2.0F * t;
+                // Step 4 (Finisher): Light hop bounce & finger snap finish (NO body spin)
+                model.body.yRot = 0.15F * hop;
                 model.rightLeg.xRot = -0.55F * hop;
                 model.leftLeg.xRot = -0.55F * hop;
                 model.rightArm.xRot = -1.65F * hop;
@@ -165,45 +165,31 @@ public final class NahidaVisualRenderer {
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
-            float spinAngle = (float) Math.PI * 2.0F * t;
-            float cosS = Mth.cos(spinAngle);
-            float sinS = Mth.sin(spinAngle);
             float sweep = Mth.sin(t * (float) Math.PI);
-
             float hopY = -2.5F * sweep;
             model.body.y += hopY;
             model.head.y += hopY;
             model.hat.y += hopY;
 
-            model.body.yRot = spinAngle;
-            model.head.yRot = spinAngle;
+            model.body.yRot = 0.0F;
+            model.head.yRot = 0.0F;
             model.hat.copyFrom(model.head);
 
-            model.rightArm.x = -5.0F * cosS;
-            model.rightArm.z = -5.0F * sinS;
             model.rightArm.y = 2.0F + hopY;
-            model.rightArm.xRot = -0.55F * sweep;
-            model.rightArm.yRot = spinAngle - 0.20F * sweep;
-            model.rightArm.zRot = 0.72F * sweep;
+            model.rightArm.xRot = -1.25F * sweep;
+            model.rightArm.yRot = -0.20F * sweep;
+            model.rightArm.zRot = 0.45F * sweep;
 
-            model.leftArm.x = 5.0F * cosS;
-            model.leftArm.z = 5.0F * sinS;
             model.leftArm.y = 2.0F + hopY;
-            model.leftArm.xRot = -0.55F * sweep;
-            model.leftArm.yRot = spinAngle + 0.20F * sweep;
-            model.leftArm.zRot = -0.72F * sweep;
+            model.leftArm.xRot = -1.25F * sweep;
+            model.leftArm.yRot = 0.20F * sweep;
+            model.leftArm.zRot = -0.45F * sweep;
 
-            model.rightLeg.x = -1.9F * cosS;
-            model.rightLeg.z = -1.9F * sinS;
             model.rightLeg.y = 12.0F + hopY;
-            model.rightLeg.yRot = spinAngle;
-            model.rightLeg.xRot = 0.22F * sweep;
+            model.rightLeg.xRot = -0.35F * sweep;
 
-            model.leftLeg.x = 1.9F * cosS;
-            model.leftLeg.z = 1.9F * sinS;
             model.leftLeg.y = 12.0F + hopY;
-            model.leftLeg.yRot = spinAngle;
-            model.leftLeg.xRot = -0.15F * sweep;
+            model.leftLeg.xRot = 0.25F * sweep;
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA) {
@@ -243,6 +229,15 @@ public final class NahidaVisualRenderer {
             long now
     ) {
         if (effKind != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
+        if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST && data != null) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float raise = WindGliderRenderer.smoothStep01(Math.min(1.0F, t * 3.5F));
+            float floatBob = Mth.sin(t * (float) Math.PI * 3.0F) * 0.025F;
+            poseStack.translate(0.0F, -0.18F * raise + floatBob, -0.38F * raise);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-15.0F * raise));
+            return true;
+        }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -549,21 +544,6 @@ public final class NahidaVisualRenderer {
                             0.04F, domeApexY, 0.04F,
                             -0.04F, domeApexY, -0.04F,
                             250, 225, 110, aTrim);
-                }
-
-                int raySegs = 16;
-                float rayRTop = 0.75F;
-                float rayRBot = 3.20F;
-                int aRay = Math.max(10, Math.round(52.0F * fade));
-                for (int s = 0; s < raySegs; s++) {
-                    float ra0 = (float) (s * Math.PI * 2.0D / raySegs) + timeSec * 0.15F;
-                    float ra1 = (float) ((s + 1) * Math.PI * 2.0D / raySegs) + timeSec * 0.15F;
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            Mth.cos(ra0) * rayRBot, 0.06F, Mth.sin(ra0) * rayRBot,
-                            Mth.cos(ra1) * rayRBot, 0.06F, Mth.sin(ra1) * rayRBot,
-                            Mth.cos(ra1) * rayRTop, domeApexY - 0.20F, Mth.sin(ra1) * rayRTop,
-                            Mth.cos(ra0) * rayRTop, domeApexY - 0.20F, Mth.sin(ra0) * rayRTop,
-                            255, 252, 210, aRay);
                 }
 
                 ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.24F, domeApexY - 0.15F, -0.24F, 0.24F, domeApexY + 1.45F, 0.24F, 245, 220, 95, aTrim);

@@ -186,6 +186,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 int curSlot = client.player.getInventory().selected;
                 if (lastSelectedHotbarSlot[0] != -1 && curSlot != lastSelectedHotbarSlot[0]) {
                     net.minecraft.world.item.ItemStack main = client.player.getMainHandItem();
+                    ClientAuraTracker.interruptActiveAnimations(client.player.getId());
                     if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem) {
                         com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(client.player, main);
                     }
@@ -227,7 +228,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
             while (mavuikaUltiKey.consumeClick()) {
                 if (client.player != null) {
-                    boolean grounded = client.player.onGround() || (client.player.getVehicle() != null && client.player.getVehicle().onGround());
+                    boolean grounded = com.velorise.staves.element.ArchonUltiManager.isPlayerGroundedForBurst(client.player);
                     if (!grounded) {
                         continue;
                     }
@@ -279,7 +280,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
 
             boolean holdingFurina = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
-                    || com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR;
+                    || (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(client.player.getMainHandItem())
+                            && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
             if (holdingFurina && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && client.player.onGround()) {
                 if (client.options.keyAttack.isDown()) {
                     furinaAttackHoldTicks[0]++;
@@ -500,20 +502,25 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (ClientAuraTracker.isGliding(client.player.getId())
                         && !client.player.onGround() && !client.player.isInWater() && !client.player.isInLava()
                         && !client.player.getAbilities().flying) {
+                    boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(client.player);
+                    double maxFallSpeed = hasVenti ? -0.055D : -0.11D;
+                    double maxSpeed = hasVenti ? 0.84D : 0.42D;
+                    double accel = hasVenti ? 0.11D : 0.055D;
+
                     net.minecraft.world.phys.Vec3 vel = client.player.getDeltaMovement();
-                    double dy = vel.y < -0.11D ? Math.max(-0.11D, vel.y * 0.65D) : vel.y;
+                    double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
                     net.minecraft.world.phys.Vec3 look = client.player.getLookAngle();
                     net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
                     double vx = vel.x;
                     double vz = vel.z;
                     if (horiz.lengthSqr() > 1.0E-4D && (client.player.zza > 0.01F || Math.hypot(vx, vz) > 0.08D)) {
                         horiz = horiz.normalize();
-                        vx = vx * 0.86D + horiz.x * 0.055D;
-                        vz = vz * 0.86D + horiz.z * 0.055D;
+                        vx = vx * 0.86D + horiz.x * accel;
+                        vz = vz * 0.86D + horiz.z * accel;
                         double hs = Math.hypot(vx, vz);
-                        if (hs > 0.42D) {
-                            vx = vx / hs * 0.42D;
-                            vz = vz / hs * 0.42D;
+                        if (hs > maxSpeed) {
+                            vx = vx / hs * maxSpeed;
+                            vz = vz / hs * maxSpeed;
                         }
                     }
                     client.player.setDeltaMovement(vx, dy, vz);

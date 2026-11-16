@@ -151,6 +151,9 @@ public final class NeuvilletteManager {
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.GUARDIAN) {
             return main;
         }
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) {
+            return ItemStack.EMPTY;
+        }
         ItemStack off = player.getOffhandItem();
         if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.GUARDIAN) {
             return off;
@@ -250,8 +253,7 @@ public final class NeuvilletteManager {
             stopChanneling(player, st);
         }
         if (now < st.ultiCooldownUntilTick) {
-            double rem = (st.ultiCooldownUntilTick - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§b🌊 O Tides, I Have Returned CD: %.1fs", rem)), true);
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.HYDRO, st.ultiCooldownUntilTick - now);
             return false;
         }
 

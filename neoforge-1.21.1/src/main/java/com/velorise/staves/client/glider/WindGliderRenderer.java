@@ -51,7 +51,8 @@ public final class WindGliderRenderer {
             if (ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == targetKind) {
                 return main;
             }
-            if (ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == targetKind) {
+            if (!ArcaneStaffItem.isGenshinCharacterWeapon(entity.getMainHandItem())
+                    && ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == targetKind) {
                 return main.getOpposite();
             }
         }
@@ -105,15 +106,15 @@ public final class WindGliderRenderer {
         float pitchBreath = Mth.cos(time * 0.18F) * 1.5F;
         float u0 = 0.0F, uMid = 11.0F / 64.0F, u1 = 20.0F / 64.0F;
         float v0 = 0.0F, v1 = 16.0F / 32.0F;
-        float innerW = 0.72F;
-        float outerW = 0.62F;
-        float wingH = 1.02F;
+        float innerW = 0.95F;
+        float outerW = 0.85F;
+        float wingH = 1.25F;
 
         for (int side : new int[]{-1, 1}) {
             poseStack.pushPose();
-            poseStack.translate(side * 0.07F, 0.035F, 0.145F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(68.0F + pitchBreath));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * (24.0F + waveInner)));
+            poseStack.translate(side * 0.065F, 0.015F, 0.068F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(62.0F + pitchBreath));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * (14.0F + waveInner)));
             poseStack.mulPose(Axis.YP.rotationDegrees(side * -13.0F));
             PoseStack.Pose innerPose = poseStack.last();
             if (side > 0) {
@@ -124,7 +125,7 @@ public final class WindGliderRenderer {
                         0.0F, wingH, 0.0F, u0, v1,
                         0.0F, 1.0F, 0.0F);
                 poseStack.translate(innerW, 0.0F, 0.0F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(13.0F + waveOuter));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(8.0F + waveOuter));
                 poseStack.mulPose(Axis.YP.rotationDegrees(20.0F));
                 poseStack.mulPose(Axis.XP.rotationDegrees(5.0F));
                 PoseStack.Pose outerPose = poseStack.last();
@@ -142,7 +143,7 @@ public final class WindGliderRenderer {
                         0.0F, wingH, 0.0F, u0, v1,
                         0.0F, 1.0F, 0.0F);
                 poseStack.translate(-innerW, 0.0F, 0.0F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-13.0F - waveOuter));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-8.0F - waveOuter));
                 poseStack.mulPose(Axis.YP.rotationDegrees(-20.0F));
                 poseStack.mulPose(Axis.XP.rotationDegrees(5.0F));
                 PoseStack.Pose outerPose = poseStack.last();

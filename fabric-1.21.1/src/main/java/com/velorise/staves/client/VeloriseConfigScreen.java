@@ -218,7 +218,6 @@ public class VeloriseConfigScreen extends Screen {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         guiGraphics.drawCenteredString(this.font, this.title, this.width / 2, 14, 0xFFFFFF);
-        guiGraphics.drawCenteredString(this.font, Component.translatable("config.velorise_staves.subtitle"), this.width / 2, 26, 0x88CCFF);
     }
 
     @Override

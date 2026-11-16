@@ -20,9 +20,19 @@ public final class ModAdvancements {
     public static final String EVENT_SPATIAL_TRAVELER = "spatial_traveler";
     public static final String EVENT_TAME_OMNI_PET = "tame_omni_pet";
     public static final String EVENT_BEHEADED = "beheaded";
-    public static final String EVENT_NO_ORDER = "i_dont_have_order";
+    public static final String EVENT_NO_ORDER = "this_is_order";
+    public static final String EVENT_THIS_IS_ORDER = "this_is_order";
+    public static final String EVENT_MUST_BE_THE_STORM = "must_be_the_storm";
+    public static final String EVENT_ILLUSORY_HEART = "illusory_heart";
+    public static final String EVENT_LET_THE_PEOPLE_REJOICE = "let_the_people_rejoice";
     public static final String EVENT_RAT_FROM_THE_SKY = "rat_from_the_sky";
     public static final String EVENT_INAZUMA_SHINES_ETERNAL = "inazuma_shines_eternal";
+    public static final String EVENT_NO_LOVE_LEFT = "no_love_left";
+    public static final String EVENT_THE_WIND_HAS_STILLED = "the_wind_has_stilled";
+    public static final String EVENT_ERODED_STONE = "eroded_stone";
+    public static final String EVENT_NOTHING_LASTS_FOREVER = "nothing_lasts_forever";
+    public static final String EVENT_A_DREAM_AWOKEN = "a_dream_awoken";
+    public static final String EVENT_SHATTERED_REGALIA = "shattered_regalia";
     public static final String EVENT_STARRY_NIGHT = "starry_night";
     public static final String EVENT_BROKEN_CONTRACT = "broken_contract";
     public static final String EVENT_WEB_DEVELOPER = "web_developer";
@@ -38,6 +48,19 @@ public final class ModAdvancements {
     public static final String EVENT_HIDDEN_OMNI = "hidden_omni";
 
     private ModAdvancements() {}
+
+    public static void onSignatureWeaponShattered(@Nullable ServerPlayer player, @Nullable ArcaneStaffItem.Kind kind) {
+        if (player == null || kind == null || player.level().isClientSide()) return;
+        switch (kind) {
+            case ENGULFING_LIGHTNING -> trigger(player, EVENT_NOTHING_LASTS_FOREVER);
+            case DAYBREAK -> trigger(player, EVENT_THE_WIND_HAS_STILLED);
+            case VORTEX -> trigger(player, EVENT_ERODED_STONE);
+            case THOUSAND_FLOATING_DREAMS -> trigger(player, EVENT_A_DREAM_AWOKEN);
+            case SPLENDOR -> trigger(player, EVENT_BEHEADED);
+            case TSARITSA_BOW, TSARITSA_SPEAR -> trigger(player, EVENT_SHATTERED_REGALIA);
+            default -> {}
+        }
+    }
 
     public static void trigger(@Nullable ServerPlayer player, String event) {
         if (player == null || player.level().isClientSide()) return;

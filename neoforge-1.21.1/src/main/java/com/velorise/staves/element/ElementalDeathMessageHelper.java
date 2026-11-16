@@ -306,6 +306,10 @@ public final class ElementalDeathMessageHelper {
             return reaction;
         }
 
+        public @Nullable ElementalReaction reaction() {
+            return reaction;
+        }
+
         public @Nullable Element getElement() {
             return element;
         }

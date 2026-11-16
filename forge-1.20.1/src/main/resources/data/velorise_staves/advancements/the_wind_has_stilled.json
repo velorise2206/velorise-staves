@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:the_daybreak_chronicles"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.the_wind_has_stilled.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.the_wind_has_stilled.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "the_wind_has_stilled": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "the_wind_has_stilled"
+      }
+    }
+  }
+}

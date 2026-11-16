@@ -292,9 +292,33 @@ public class HydroSalonSummonEntity extends Entity {
     }
 
     @Override
+    public boolean fireImmune() {
+        return true;
+    }
+
+    @Override
+    public boolean displayFireAnimation() {
+        return false;
+    }
+
+    @Override
+    public boolean isOnFire() {
+        return false;
+    }
+
+    @Override
     public void tick() {
         super.tick();
+        this.clearFire();
         this.ageTicks++;
+        if (!this.level().isClientSide() && this.level() instanceof ServerLevel fireCheckLevel
+                && (this.isInLava() || this.level().getBlockStatesIfLoaded(this.getBoundingBox()).anyMatch(
+                        bs -> bs.is(net.minecraft.tags.BlockTags.FIRE) || bs.is(net.minecraft.tags.BlockTags.CAMPFIRES)))) {
+            if (this.ageTicks % 5 == 0) {
+                fireCheckLevel.sendParticles(ParticleTypes.SPLASH, this.getX(), this.getY() + 0.3D, this.getZ(), 4, 0.2D, 0.15D, 0.2D, 0.04D);
+                fireCheckLevel.sendParticles(ParticleTypes.BUBBLE_POP, this.getX(), this.getY() + 0.3D, this.getZ(), 3, 0.2D, 0.15D, 0.2D, 0.02D);
+            }
+        }
 
         if (this.level().isClientSide()) {
             if (!this.clientPosInit) {

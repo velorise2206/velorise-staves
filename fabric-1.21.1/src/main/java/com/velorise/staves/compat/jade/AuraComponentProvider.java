@@ -29,11 +29,14 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
     INSTANCE;
 
     private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "elemental_aura");
-    private static final Map<Element, ResourceLocation> TEXTURES = new EnumMap<>(Element.class);
+    private static final Map<Element, ResourceLocation> TEXTURES_16 = new EnumMap<>(Element.class);
+    private static final Map<Element, ResourceLocation> TEXTURES_32 = new EnumMap<>(Element.class);
 
     static {
         for (Element e : Element.values()) {
-            TEXTURES.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + e.name().toLowerCase(Locale.ROOT) + ".png"));
+            String base = e.name().toLowerCase(Locale.ROOT);
+            TEXTURES_16.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + base + ".png"));
+            TEXTURES_32.put(e, ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/" + base + "_32.png"));
         }
     }
 
@@ -161,9 +164,10 @@ public enum AuraComponentProvider implements IEntityComponentProvider {
         CompoundTag gaugesTag = (serverData != null && serverData.contains("vs_gauges")) ? serverData.getCompound("vs_gauges") : null;
 
         IElementHelper helper = IElementHelper.get();
+        boolean use32 = com.velorise.staves.config.StavesConfig.isUse32pxElementIcons();
         for (int i = 0; i < Math.min(3, display.size()); i++) {
             Element elem = display.get(i);
-            ResourceLocation tex = TEXTURES.get(elem);
+            ResourceLocation tex = use32 ? TEXTURES_32.get(elem) : TEXTURES_16.get(elem);
             if (tex == null) continue;
 
             if (i == 0) {

@@ -325,7 +325,8 @@ public final class MavuikaManager {
         ItemStack matched = ItemStack.EMPTY;
         if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
             matched = main;
-        } else if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+        } else if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(main)
+                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
             matched = off;
         }
         if (matched.isEmpty()) return;
@@ -344,19 +345,25 @@ public final class MavuikaManager {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         ItemStack main = player.getMainHandItem();
         ItemStack off = player.getOffhandItem();
-        boolean hasNethSuns = (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS && sm.isNetherite())
-                || (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS && so.isNetherite());
-        if (!hasNethSuns) return;
+        ItemStack sunsStack = ItemStack.EMPTY;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            sunsStack = main;
+        } else if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(main)
+                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            sunsStack = off;
+        }
+        if (sunsStack.isEmpty()) return;
 
         UUID id = player.getUUID();
-        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
-        if (pts < 5.0F) return;
-
         ServerLevel level = player.serverLevel();
         long now = level.getServer().overworld().getGameTime();
-        if (now < MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L)) return; // 18.0s Genshin Q cooldown
+        long cdUntil = MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L);
+        if (now < cdUntil) {
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.PYRO, cdUntil - now);
+            return;
+        }
+        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        if (pts < 5.0F) return;
         MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
         float clampedPts = Math.min(10.0F, pts);
         float baseScale = (float) (StavesConfig.getStaffBasicDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)

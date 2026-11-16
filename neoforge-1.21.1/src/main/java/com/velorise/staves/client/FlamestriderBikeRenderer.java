@@ -155,17 +155,56 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         drawBox(poseStack, vc, -0.44F, 0.62F, -0.18F, 0.44F, 0.67F, -0.10F, obR, obG, obB, 1.0F);
         drawBox(poseStack, vc, -0.48F, 0.61F, -0.19F, -0.34F, 0.68F, -0.09F, gdR, gdG, gdB, 1.0F);
         drawBox(poseStack, vc, 0.34F, 0.61F, -0.19F, 0.48F, 0.68F, -0.09F, gdR, gdG, gdB, 1.0F);
+
+        // 4B. Illuminated Digital Cockpit Dashboard (y = 0.63F, z = -0.14F, angled ~35 deg toward rider)
+        float speedBps = (float) entity.getCurrentSpeedBlocksPerSec();
+        float rpmRatio = Mth.clamp(speedBps / 28.0F, 0.12F, 1.0F);
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.63F, -0.14F);
+        poseStack.mulPose(Axis.XP.rotationDegrees(35.0F));
+        // Console housing & golden bezel
+        drawBox(poseStack, vc, -0.16F, -0.02F, -0.02F, 0.16F, 0.11F, 0.025F, obR, obG, obB, 1.0F);
+        drawBox(poseStack, vc, -0.17F, -0.025F, -0.015F, 0.17F, 0.115F, 0.015F, gdR, gdG, gdB, 1.0F);
+        // Illuminated digital display screen backing
+        drawBox(poseStack, vc, -0.145F, -0.005F, -0.024F, 0.145F, 0.095F, -0.018F, 0.06F, 0.08F, 0.12F, 1.0F);
+        // Nightsoul RPM LED bar gauge (Amber Gold -> Fiery Orange -> Blazing Crimson)
+        int totalBars = 8;
+        int litBars = Math.max(1, Math.round(rpmRatio * totalBars));
+        for (int b = 0; b < litBars; b++) {
+            float bx0 = -0.132F + b * 0.033F;
+            float bx1 = bx0 + 0.025F;
+            float frac = b / (float) (totalBars - 1);
+            float br = 1.0F;
+            float bg = frac < 0.5F ? Mth.lerp(frac * 2.0F, 0.78F, 0.46F) : Mth.lerp((frac - 0.5F) * 2.0F, 0.46F, 0.14F);
+            float bb = frac < 0.5F ? Mth.lerp(frac * 2.0F, 0.16F, 0.08F) : 0.10F;
+            drawBox(poseStack, vc, bx0, 0.068F, -0.027F, bx1, 0.086F, -0.022F, br, bg, bb, 1.0F);
+        }
+        poseStack.popPose();
         poseStack.popPose();
 
-        // 5. Twin Rear Exhausts + Flame Cores
+        // 5. Twin Rear Exhausts + Dynamic Velocity Flame Cores + Rear Natlan License Plate
+        float exhaustBoost = Mth.clamp(speedBps / 24.0F, 0.0F, 1.25F);
         for (float sx : new float[]{-0.22F, 0.22F}) {
             poseStack.pushPose();
             poseStack.translate(sx, 0.48F, -0.84F);
             poseStack.mulPose(Axis.XP.rotationDegrees(18.0F));
             drawBox(poseStack, vc, -0.065F, -0.065F, -0.26F, 0.065F, 0.065F, 0.18F, obR, obG, obB, 1.0F);
-            drawBox(poseStack, vc, -0.042F, -0.042F, -0.32F, 0.042F, 0.042F, -0.24F, flR, flG, flB, 1.0F);
+            float coreHalf = 0.042F + 0.016F * exhaustBoost;
+            float coreLen = -0.32F - 0.14F * exhaustBoost;
+            drawBox(poseStack, vc, -coreHalf, -coreHalf, coreLen, coreHalf, coreHalf, -0.24F, flR, Mth.clamp(flG + 0.22F * exhaustBoost, 0.0F, 1.0F), flB, 1.0F);
             poseStack.popPose();
         }
+
+        // 5B. Rear Natlan License Plate Frame (z = -0.92F, y = 0.42F)
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.42F, -0.92F);
+        poseStack.mulPose(Axis.XP.rotationDegrees(14.0F));
+        drawBox(poseStack, vc, -0.15F, -0.055F, -0.015F, 0.15F, 0.055F, 0.015F, gdR, gdG, gdB, 1.0F);
+        drawBox(poseStack, vc, -0.138F, -0.045F, -0.020F, 0.138F, 0.045F, 0.010F, obR, obG, obB, 1.0F);
+        // Illuminated Natlan Saurian & Pyro rune emblem strips on plate
+        drawBox(poseStack, vc, -0.115F, 0.015F, -0.023F, 0.115F, 0.030F, -0.018F, flR, flG, flB, 1.0F);
+        drawBox(poseStack, vc, -0.085F, -0.025F, -0.023F, 0.085F, -0.008F, -0.018F, gdR, gdG, gdB, 1.0F);
+        poseStack.popPose();
 
         // 6. Deployable Side Jet-Wings (folded flush when grounded, flared wide open when gliding)
         boolean gliding = entity.isGliding();
@@ -182,6 +221,39 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             float tx0 = side < 0 ? -0.68F : 0.46F;
             float tx1 = side < 0 ? -0.46F : 0.68F;
             drawBox(poseStack, vc, tx0, -0.02F, -0.26F, tx1, 0.03F, 0.06F, gdR, gdG, gdB, 0.95F);
+            poseStack.popPose();
+        }
+
+        // Render digital cockpit text (Speedometer B/s, Odometer ODO, Drive State) & License Plate text
+        net.minecraft.client.gui.Font font = this.getFont();
+        if (font != null) {
+            int odoMeters = (int) Math.round(entity.getDistanceTraveledBlocks());
+            String driveState = entity.isGliding() ? "[AIR]"
+                    : ((entity.isBikeSprinting() || entity.isSpinning()) ? "[S]" : (speedBps > 0.5F ? "[D]" : "[N]"));
+            String spdText = String.format(java.util.Locale.ROOT, "%.1f B/s %s", speedBps, driveState);
+            String odoText = String.format(java.util.Locale.ROOT, "ODO: %d m", odoMeters);
+
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 0.34F, 0.86F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F));
+            poseStack.translate(0.0F, 0.63F, -0.14F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(35.0F));
+            poseStack.translate(0.0F, 0.052F, -0.029F);
+            poseStack.scale(-0.0032F, -0.0032F, 0.0032F);
+            Matrix4f dashMat = poseStack.last().pose();
+            font.drawInBatch(spdText, -font.width(spdText) / 2.0F, -2.0F, 0xFFFFCC44, false, dashMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            font.drawInBatch(odoText, -font.width(odoText) / 2.0F, 7.0F, 0xFF66EEFF, false, dashMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            poseStack.popPose();
+
+            // Rear license plate text: NATLAN • 500
+            String plateText = "NATLAN • 500";
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 0.42F, -0.92F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(14.0F));
+            poseStack.translate(0.0F, 0.006F, -0.025F);
+            poseStack.scale(-0.0034F, -0.0034F, 0.0034F);
+            Matrix4f plateMat = poseStack.last().pose();
+            font.drawInBatch(plateText, -font.width(plateText) / 2.0F, -3.0F, 0xFFFFB833, false, plateMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
             poseStack.popPose();
         }
 

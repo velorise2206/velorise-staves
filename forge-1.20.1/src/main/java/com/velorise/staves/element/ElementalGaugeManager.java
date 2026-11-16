@@ -1644,6 +1644,7 @@ public static void tick(MinecraftServer server) {
     public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) { return ZhongliManager.getVortexGoldenMajestyMultiplier(attacker); }
     public static boolean isChannelingGuardianLens(Player player) { return VentiManager.isChannelingGuardianLens(player); }
     public static void applyFurinaWaterWalking(Player player) { VentiManager.applyFurinaWaterWalking(player); }
+    public static boolean isStandingOnWaterSurface(Player player) { return VentiManager.isStandingOnWaterSurface(player); }
     public static boolean hasRecentHpChangeBuff(ServerPlayer player) { return VentiManager.hasRecentHpChangeBuff(player); }
     public static boolean carriesGuardianLens(Player player) { return VentiManager.carriesGuardianLens(player); }
     public static void onHydroReactionTriggered( ServerLevel level, Vec3 targetPos, ElementalReaction reaction, @Nullable Element reactedAura, @Nullable Element triggerElem, @Nullable ServerPlayer attacker ) { VentiManager.onHydroReactionTriggered(level, targetPos, reaction, reactedAura, triggerElem, attacker); }

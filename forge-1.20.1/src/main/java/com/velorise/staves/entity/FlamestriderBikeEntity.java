@@ -99,6 +99,15 @@ public class FlamestriderBikeEntity extends Entity {
     private Vec3 clientDashVec = Vec3.ZERO;
     public float wheelSpinAngle = 0.0F;
     public float spinYawOffset = 0.0F;
+    private double distanceTraveledBlocks = 0.0D;
+
+    public double getDistanceTraveledBlocks() {
+        return this.distanceTraveledBlocks;
+    }
+
+    public double getCurrentSpeedBlocksPerSec() {
+        return Math.hypot(this.getX() - this.xo, this.getZ() - this.zo) * 20.0D;
+    }
 
     public FlamestriderBikeEntity(EntityType<? extends FlamestriderBikeEntity> type, Level level) {
         super(type, level);
@@ -305,6 +314,10 @@ public class FlamestriderBikeEntity extends Entity {
     public void tick() {
         super.tick();
         this.fallDistance = 0.0F;
+        double stepDist = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
+        if (stepDist > 0.001D && stepDist < 8.0D) {
+            this.distanceTraveledBlocks += stepDist;
+        }
         if (this.clientDashCooldownTicks > 0) {
             this.clientDashCooldownTicks--;
         }
@@ -452,12 +465,22 @@ public class FlamestriderBikeEntity extends Entity {
                 }
             }
 
-            // Exhaust flame trail particles
+            // Exhaust flame trail particles & high-speed (> 20 B/s) scorch/spark trails
             if (this.tickCount % 2 == 0) {
                 Vec3 back = Vec3.directionFromRotation(0.0F, this.getYRot()).scale(-0.95D);
+                double speedBps = getCurrentSpeedBlocksPerSec();
+                int flameCount = speedBps >= 20.0D || isBikeSprinting() ? 5 : 2;
                 sl.sendParticles(ParticleTypes.FLAME,
                         this.getX() + back.x, this.getY() + 0.35D, this.getZ() + back.z,
-                        2, 0.12D, 0.08D, 0.12D, 0.02D);
+                        flameCount, 0.14D, 0.08D, 0.14D, 0.03D);
+                if (speedBps >= 20.0D || isBikeSprinting() || serverDashTicks > 0) {
+                    sl.sendParticles(ParticleTypes.LAVA,
+                            this.getX() + back.x, this.getY() + 0.25D, this.getZ() + back.z,
+                            2, 0.18D, 0.05D, 0.18D, 0.02D);
+                    sl.sendParticles(ParticleTypes.LARGE_SMOKE,
+                            this.getX() + back.x, this.getY() + 0.08D, this.getZ() + back.z,
+                            2, 0.15D, 0.03D, 0.15D, 0.01D);
+                }
                 if (isGliding()) {
                     sl.sendParticles(ParticleTypes.LAVA,
                             this.getX() + back.x, this.getY() + 0.45D, this.getZ() + back.z,

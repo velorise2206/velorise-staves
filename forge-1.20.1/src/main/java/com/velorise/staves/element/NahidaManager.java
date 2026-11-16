@@ -109,9 +109,7 @@ public final class NahidaManager {
     }
 
     public static boolean isHoldingNahida(@Nullable Player player) {
-        if (player == null) return false;
-        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
-                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS;
+        return !getHeldNahidaStack(player).isEmpty();
     }
 
     public static ItemStack getHeldNahidaStack(@Nullable Player player) {
@@ -119,6 +117,9 @@ public final class NahidaManager {
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
             return main;
+        }
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) {
+            return ItemStack.EMPTY;
         }
         ItemStack off = player.getOffhandItem();
         if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
@@ -140,6 +141,16 @@ public final class NahidaManager {
         if (st.idleSwingActive) {
             st.idleSwingActive = false;
             syncPlayerStateToClients(player, st, now, true);
+        }
+    }
+
+    private static void fertilizeSaplingsInBox(ServerLevel level, ServerPlayer player, AABB box) {
+        BlockPos min = BlockPos.containing(box.minX, box.minY, box.minZ);
+        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+        for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
+            if (level.getBlockState(pos).is(net.minecraft.tags.BlockTags.SAPLINGS)) {
+                net.minecraft.world.item.BoneMealItem.growCrop(new ItemStack(net.minecraft.world.item.Items.BONE_MEAL), level, pos);
+            }
         }
     }
 
@@ -214,6 +225,7 @@ public final class NahidaManager {
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, dmg);
             }
+            fertilizeSaplingsInBox(level, player, hitBox);
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, 1.25F + step * 0.12F);
             level.playSound(null, player.blockPosition(), SoundEvents.AZALEA_LEAVES_PLACE, SoundSource.PLAYERS, 0.85F, 1.15F + step * 0.10F);
         } else {
@@ -240,6 +252,7 @@ public final class NahidaManager {
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, dmg);
             }
+            fertilizeSaplingsInBox(level, player, aoeBox);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.55F);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.90F, 1.35F);
         }
@@ -287,7 +300,7 @@ public final class NahidaManager {
         }
 
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
+        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
         level.playSound(null, BlockPos.containing(center), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.40F);
         level.playSound(null, BlockPos.containing(center), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.70F, 1.55F);
     }
@@ -604,8 +617,7 @@ public final class NahidaManager {
         long now = level.getGameTime();
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
         if (now < st.ultiCooldownUntilTick) {
-            double rem = (st.ultiCooldownUntilTick - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§a✦ Illusory Heart CD: %.1fs", rem)), true);
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.DENDRO, st.ultiCooldownUntilTick - now);
             return false;
         }
 
@@ -647,8 +659,9 @@ public final class NahidaManager {
         final int fHydro = Math.min(2, hydro);
 
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(hand));
+        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
 
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_ILLUSORY_HEART);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
 

@@ -2,14 +2,11 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "  C",
-    " A ",
+    "  A",
+    " E ",
     "E  "
   ],
   "key": {
-    "C": {
-      "item": "minecraft:calibrated_sculk_sensor"
-    },
     "A": {
       "item": "velorise_staves:anemo_element"
     },

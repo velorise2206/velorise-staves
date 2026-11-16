@@ -205,6 +205,7 @@ public final class OmniWheelOverlay {
             int curSlot = mc.player.getInventory().selected;
             if (lastSelectedHotbarSlot != -1 && curSlot != lastSelectedHotbarSlot) {
                 ItemStack main = mc.player.getMainHandItem();
+                ClientAuraTracker.interruptActiveAnimations(mc.player.getId());
                 if (main.getItem() instanceof ArcaneStaffItem) {
                     com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(mc.player, main);
                 }
@@ -248,7 +249,7 @@ public final class OmniWheelOverlay {
         }
         while (MAVUIKA_ULTI_KEY.consumeClick()) {
             if (mc.player != null) {
-                boolean grounded = mc.player.onGround() || (mc.player.getVehicle() != null && mc.player.getVehicle().onGround());
+                boolean grounded = com.velorise.staves.element.ArchonUltiManager.isPlayerGroundedForBurst(mc.player);
                 if (!grounded) {
                     continue;
                 }
@@ -278,7 +279,8 @@ public final class OmniWheelOverlay {
 
         // Furina Hold Left-Click Charged Attack (Arkhe Pneuma / Ousia Switch)
         boolean holdingFurina = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.SPLENDOR
-                || ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == ArcaneStaffItem.Kind.SPLENDOR;
+                || (!ArcaneStaffItem.isGenshinCharacterWeapon(mc.player.getMainHandItem())
+                        && ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == ArcaneStaffItem.Kind.SPLENDOR);
         if (holdingFurina && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && mc.player.onGround()) {
             if (mc.options.keyAttack.isDown()) {
                 furinaAttackHoldTicks++;
@@ -475,20 +477,25 @@ public final class OmniWheelOverlay {
             if (ClientAuraTracker.isGliding(mc.player.getId())
                     && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
                     && !mc.player.getAbilities().flying) {
+                boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(mc.player);
+                double maxFallSpeed = hasVenti ? -0.055D : -0.11D;
+                double maxSpeed = hasVenti ? 0.84D : 0.42D;
+                double accel = hasVenti ? 0.11D : 0.055D;
+
                 net.minecraft.world.phys.Vec3 vel = mc.player.getDeltaMovement();
-                double dy = vel.y < -0.11D ? Math.max(-0.11D, vel.y * 0.65D) : vel.y;
+                double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
                 net.minecraft.world.phys.Vec3 look = mc.player.getLookAngle();
                 net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
                 double vx = vel.x;
                 double vz = vel.z;
                 if (horiz.lengthSqr() > 1.0E-4D && (mc.player.zza > 0.01F || Math.hypot(vx, vz) > 0.08D)) {
                     horiz = horiz.normalize();
-                    vx = vx * 0.86D + horiz.x * 0.055D;
-                    vz = vz * 0.86D + horiz.z * 0.055D;
+                    vx = vx * 0.86D + horiz.x * accel;
+                    vz = vz * 0.86D + horiz.z * accel;
                     double hs = Math.hypot(vx, vz);
-                    if (hs > 0.42D) {
-                        vx = vx / hs * 0.42D;
-                        vz = vz / hs * 0.42D;
+                    if (hs > maxSpeed) {
+                        vx = vx / hs * maxSpeed;
+                        vz = vz / hs * maxSpeed;
                     }
                 }
                 mc.player.setDeltaMovement(vx, dy, vz);

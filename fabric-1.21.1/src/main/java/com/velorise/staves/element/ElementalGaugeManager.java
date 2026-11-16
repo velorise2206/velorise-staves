@@ -412,7 +412,6 @@ public final class ElementalGaugeManager {
      * without triggering any hurt sound, red hurt flash, camera tilt, or knockback impulse.
      */
 
-
     public static GaugeState createAuraGauge(LivingEntity target, Element elem, float appliedUnits) {
         float scale = ElementalResonanceManager.getPlayerIncomingAuraDurationScale(target, elem);
         return GaugeState.createWithDurationScale(elem, appliedUnits, scale);
@@ -1645,6 +1644,7 @@ public static void tick(MinecraftServer server) {
     public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) { return ZhongliManager.getVortexGoldenMajestyMultiplier(attacker); }
     public static boolean isChannelingGuardianLens(Player player) { return VentiManager.isChannelingGuardianLens(player); }
     public static void applyFurinaWaterWalking(Player player) { VentiManager.applyFurinaWaterWalking(player); }
+    public static boolean isStandingOnWaterSurface(Player player) { return VentiManager.isStandingOnWaterSurface(player); }
     public static boolean hasRecentHpChangeBuff(ServerPlayer player) { return VentiManager.hasRecentHpChangeBuff(player); }
     public static boolean carriesGuardianLens(Player player) { return VentiManager.carriesGuardianLens(player); }
     public static void onHydroReactionTriggered( ServerLevel level, Vec3 targetPos, ElementalReaction reaction, @Nullable Element reactedAura, @Nullable Element triggerElem, @Nullable ServerPlayer attacker ) { VentiManager.onHydroReactionTriggered(level, targetPos, reaction, reactedAura, triggerElem, attacker); }
@@ -1697,7 +1697,6 @@ public static void tick(MinecraftServer server) {
     public static @Nullable Element getNaturalInnateElement(LivingEntity target) { return MavuikaManager.getNaturalInnateElement(target); }
     public static boolean isBossEntity(LivingEntity entity) { return MavuikaManager.isBossEntity(entity); }
     public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) { return MavuikaManager.isPassiveAquaticOrAmbient(entity); }
-    public static Element pickDefenderAuraForThorns(LivingEntity defender) { return RaidenManager.pickDefenderAuraForThorns(defender); }
     public static void recordPreAttackStrength(@Nullable Player player, float scale) { RaidenManager.recordPreAttackStrength(player, scale); }
     public static void clearPreAttackStrength(@Nullable Player player) { RaidenManager.clearPreAttackStrength(player); }
     public static float getEffectiveAttackStrengthScale(Player attacker) { return RaidenManager.getEffectiveAttackStrengthScale(attacker); }
@@ -1706,6 +1705,7 @@ public static void tick(MinecraftServer server) {
     public static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) { RaidenManager.triggerOverloadExplosion(level, target, attacker, dmgMult); }
     public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) { RaidenManager.drawVoltaicArc(level, start, end); }
     public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) { RaidenManager.drawVoltaicArc(level, from, to); }
+    public static Element pickDefenderAuraForThorns(LivingEntity defender) { return RaidenManager.pickDefenderAuraForThorns(defender); }
     public static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) { MavuikaManager.updateCryoDebuff(target, id, hasCryo, innate); }
     public static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) { MavuikaManager.spawnAmbientParticles(level, target, gauges, now); }
     public static void spawnExpandingSquareParticles( ServerLevel level, Vec3 center, double halfExtent, double yOffset, ParticleOptions primary, @Nullable ParticleOptions accent, int accentStride ) { MavuikaManager.spawnExpandingSquareParticles(level, center, halfExtent, yOffset, primary, accent, accentStride); }

@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:tsaritsa_bow"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.no_love_left.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.no_love_left.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "no_love_left": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "no_love_left"
+      }
+    }
+  }
+}

@@ -310,12 +310,43 @@ public final class VentiManager {
         player.setSwimming(false);
     }
 
+    public static boolean isStandingOnWaterSurface(Player player) {
+        if (player == null || player.isShiftKeyDown() || player.isSpectator()) return false;
+        BlockPos feet = BlockPos.containing(player.getX(), player.getY() - 0.05D, player.getZ());
+        BlockPos below = BlockPos.containing(player.getX(), player.getY() - 0.50D, player.getZ());
+        var level = player.level();
+        if (level.getFluidState(feet).is(net.minecraft.tags.FluidTags.WATER)) {
+            double surfaceY = feet.getY() + 1.0D;
+            return Math.abs(player.getY() - surfaceY) <= 0.35D;
+        }
+        if (level.getFluidState(below).is(net.minecraft.tags.FluidTags.WATER)) {
+            double surfaceY = below.getY() + 1.0D;
+            return Math.abs(player.getY() - surfaceY) <= 0.35D;
+        }
+        return false;
+    }
+
     public static boolean hasRecentHpChangeBuff(ServerPlayer player) {
         if (player == null || player.level().isClientSide()) return false;
         long now = player.level().getGameTime();
         updatePlayerHpTracking(player, now);
         Long until = PLAYER_HP_CHANGE_BUFF_UNTIL.get(player.getUUID());
         return until != null && now < until;
+    }
+
+    public static boolean hasVentiWeapon(@Nullable Player player) {
+        if (player == null) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean carriesGuardianLens(Player player) {

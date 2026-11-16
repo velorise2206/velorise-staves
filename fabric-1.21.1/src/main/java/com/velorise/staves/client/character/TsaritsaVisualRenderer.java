@@ -248,7 +248,7 @@ public final class TsaritsaVisualRenderer {
         ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
         long now = System.currentTimeMillis();
         int activeAnim = (d != null && now < d.staffAnimUntil) ? d.staffAnimType : 0;
-        boolean crown = ClientAuraTracker.isTsaritsaCrownActive(id);
+        boolean crown = ClientAuraTracker.isTsaritsaCrownActive(id) && !ClientAuraTracker.isTsaritsaSpearStance(id);
         boolean supportBurst = ClientAuraTracker.isTsaritsaSupportBurst(id) || activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT;
         boolean dpsSeal = ClientAuraTracker.isTsaritsaDpsSeal(id);
 

@@ -841,11 +841,13 @@ public final class ClientAuraTracker {
                 entry.frozenTotalMs = Math.max(500L, remMs);
             }
         } else {
-            entry.isFrozen = false;
-            entry.frozenUntil = 0L;
-            entry.petrifiedUntil = 0L;
-            entry.frozenTotalMs = 0L;
-            entry.poseCaptured = false;
+            if (now >= entry.petrifiedUntil) {
+                entry.isFrozen = false;
+                entry.frozenUntil = 0L;
+                entry.petrifiedUntil = 0L;
+                entry.frozenTotalMs = 0L;
+                entry.poseCaptured = false;
+            }
         }
 
         if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && !entry.nahidaIdleSwing && !entry.nahidaViewfinder && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
@@ -1053,6 +1055,35 @@ public final class ClientAuraTracker {
         return data != null && data.xilonenSampleMask > 0 && System.currentTimeMillis() < data.xilonenSamplesUntil;
     }
 
+    public static void stopGliding(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data != null) {
+            data.gliding = false;
+        }
+    }
+
+    public static void stopPlunging(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data != null) {
+            data.plunging = false;
+            if (data.staffAnimType == ANIM_PLUNGE_START) {
+                data.staffAnimUntil = 0L;
+                data.staffAnimType = 0;
+            }
+        }
+    }
+
+    public static void interruptActiveAnimations(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data != null) {
+            data.staffAnimUntil = 0L;
+            data.staffAnimType = 0;
+            data.gliding = false;
+            data.plunging = false;
+            data.xilonenJumpFlipUntil = 0L;
+        }
+    }
+
     public static boolean isGliding(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         if (data == null || !data.gliding) return false;
@@ -1133,7 +1164,7 @@ public final class ClientAuraTracker {
 
     public static boolean isTsaritsaCrownActive(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && data.tsaritsaCrownActive && System.currentTimeMillis() < data.tsaritsaSyncUntil;
+        return data != null && data.tsaritsaCrownActive && !data.tsaritsaSpearStance && System.currentTimeMillis() < data.tsaritsaSyncUntil;
     }
 
     public static boolean isTsaritsaSpearStance(int entityId) {

@@ -156,6 +156,21 @@ public final class PlungeAndGliderManager {
         if (player == null || player.onGround() || player.isInWater() || player.isInLava()) {
             return false;
         }
+        BlockPos basePos = player.blockPosition();
+        for (int dy = 0; dy <= 3; dy++) {
+            BlockPos checkPos = basePos.below(dy);
+            if (player.level().getFluidState(checkPos).is(net.minecraft.tags.FluidTags.WATER)) {
+                double waterSurfaceY = checkPos.getY() + 1.0D;
+                double distToWater = player.getY() - waterSurfaceY;
+                if (distToWater < 1.80D) {
+                    return false;
+                }
+                break;
+            }
+            if (!player.level().getBlockState(checkPos).getCollisionShape(player.level(), checkPos).isEmpty()) {
+                break;
+            }
+        }
         if (player.fallDistance >= (float) minClearBlocks) return true;
         AABB check = player.getBoundingBox().expandTowards(0.0D, -minClearBlocks, 0.0D);
         return player.level().noCollision(player, check);
@@ -318,7 +333,9 @@ public final class PlungeAndGliderManager {
                         player.connection.send(new ClientboundSetEntityMotionPacket(player));
                     }
                     if (now % 6L == 0L) {
-                        level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.9D, player.getZ(),
+                        boolean hasVenti = VentiManager.hasVentiWeapon(player);
+                        level.sendParticles(hasVenti ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.CLOUD,
+                                player.getX(), player.getY() + 0.9D, player.getZ(),
                                 1, 0.25D, 0.1D, 0.25D, 0.01D);
                     }
                 }

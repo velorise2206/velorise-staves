@@ -101,15 +101,55 @@ public final class ArchonUltiManager {
         PENDING_BURST_ACTIONS.add(new PendingBurstAction(sl, player.getUUID(), now + delayTicks, action));
     }
 
-    public static boolean isPlayerGroundedForBurst(Player player) {
-        if (player == null) return false;
-        if (player.getVehicle() != null) {
-            return player.getVehicle().onGround();
-        }
-        return player.onGround();
+    public static boolean isGenshinCharacterWeapon(ItemStack stack) {
+        return ArcaneStaffItem.isGenshinCharacterWeapon(stack);
     }
 
-    /** Dispatches the shared [R] burst keybind to whichever Genshin weapon the player is holding. */
+    public static void sendMinimalistBurstCooldownAlert(ServerPlayer player, Element element, long remainingTicks) {
+        if (player == null || remainingTicks <= 0L) return;
+        int sec = Math.max(1, (int) Math.ceil(remainingTicks / 20.0D));
+        String color = switch (element != null ? element : Element.ANEMO) {
+            case DENDRO -> "§a";
+            case GEO -> "§6";
+            case HYDRO -> "§b";
+            case CRYO -> "§b";
+            case PYRO -> "§c";
+            case ELECTRO -> "§d";
+            case ANEMO -> "§3";
+        };
+        player.displayClientMessage(Component.literal(color + sec + "s"), true);
+    }
+
+    public static boolean isStandingOnGeoConstruct(Entity entity) {
+        if (entity == null || entity.level() == null) return false;
+        AABB probe = entity.getBoundingBox().inflate(0.12D, 0.35D, 0.12D).move(0.0D, -0.20D, 0.0D);
+        List<com.velorise.staves.entity.GeoFangPillarEntity> pillars = entity.level().getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class,
+                probe,
+                e -> e.isAlive() && !e.isRemoved()
+        );
+        for (com.velorise.staves.entity.GeoFangPillarEntity pillar : pillars) {
+            double topY = pillar.getBoundingBox().maxY;
+            if (entity.getY() >= topY - 0.40D && entity.getY() <= topY + 0.25D) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isPlayerGroundedForBurst(Player player) {
+        if (player == null) return false;
+        if (player.onGround()) return true;
+        if (player.getVehicle() != null) {
+            Entity vehicle = player.getVehicle();
+            if (vehicle.onGround() || isStandingOnGeoConstruct(vehicle)) return true;
+        }
+        if (isStandingOnGeoConstruct(player)) return true;
+        if (ElementalGaugeManager.isStandingOnWaterSurface(player)) return true;
+        return false;
+    }
+
+    /** Dispatches the shared [R] burst keybind exclusively to the active Genshin weapon (main-hand priority, off-hand fallback only if main-hand is non-Genshin). */
     public static void triggerUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (!isPlayerGroundedForBurst(player)) {
@@ -117,16 +157,28 @@ public final class ArchonUltiManager {
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
-        ElementalGaugeManager.triggerMavuikaUlti(player);
-        ElementalGaugeManager.triggerRaidenUlti(player);
-        triggerZhongliUlti(player);
-        triggerVentiUlti(player);
-        triggerFurinaUlti(player);
-        triggerLaylaUlti(player);
-        XilonenManager.triggerXilonenUlti(player);
-        NeuvilletteManager.triggerNeuvilletteUlti(player);
-        NahidaManager.triggerNahidaUlti(player);
-        TsaritsaManager.triggerTsaritsaUlti(player);
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        boolean mainIsGenshin = isGenshinCharacterWeapon(main);
+        InteractionHand activeHand = mainIsGenshin ? InteractionHand.MAIN_HAND : (isGenshinCharacterWeapon(off) ? InteractionHand.OFF_HAND : null);
+        if (activeHand == null) return;
+
+        ItemStack activeStack = player.getItemInHand(activeHand);
+        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(activeStack);
+        if (effKind == null) return;
+        switch (effKind) {
+            case THOUSAND_BLAZING_SUNS -> ElementalGaugeManager.triggerMavuikaUlti(player);
+            case ENGULFING_LIGHTNING -> ElementalGaugeManager.triggerRaidenUlti(player);
+            case VORTEX -> triggerZhongliUlti(player);
+            case DAYBREAK -> triggerVentiUlti(player);
+            case SPLENDOR -> triggerFurinaUlti(player);
+            case NIGHTS_FOCUS -> triggerLaylaUlti(player);
+            case PEAK_PATROL_SONG -> XilonenManager.triggerXilonenUlti(player);
+            case GUARDIAN -> NeuvilletteManager.triggerNeuvilletteUlti(player);
+            case THOUSAND_FLOATING_DREAMS -> NahidaManager.triggerNahidaUlti(player);
+            case TSARITSA_BOW, TSARITSA_SPEAR -> TsaritsaManager.triggerTsaritsaUlti(player);
+            default -> {}
+        }
     }
 
     /** Plays Venti hold-[R] wind-charge cadence feedback while charging Skyward Harp. */
@@ -162,6 +214,7 @@ public final class ArchonUltiManager {
             }
             return;
         }
+        if (isGenshinCharacterWeapon(main)) return;
         ItemStack off = player.getOffhandItem();
         if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.DAYBREAK
                 && off.getItem() instanceof ArcaneStaffItem offStaff) {
@@ -184,7 +237,7 @@ public final class ArchonUltiManager {
         boolean isNeth;
         if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
             isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else {
+        } else if (!isGenshinCharacterWeapon(stack)) {
             hand = InteractionHand.OFF_HAND;
             stack = player.getOffhandItem();
             if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
@@ -192,6 +245,8 @@ public final class ArchonUltiManager {
             } else {
                 return;
             }
+        } else {
+            return;
         }
 
         ServerLevel level = player.serverLevel();
@@ -199,8 +254,7 @@ public final class ArchonUltiManager {
         UUID id = player.getUUID();
         long cdUntil = FURINA_BURST_CD_UNTIL.getOrDefault(id, 0L);
         if (now < cdUntil) {
-            double rem = (cdUntil - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§b✦ Let the People Rejoice CD: %.1fs", rem)), true);
+            sendMinimalistBurstCooldownAlert(player, Element.HYDRO, cdUntil - now);
             return;
         }
 
@@ -208,8 +262,8 @@ public final class ArchonUltiManager {
         FURINA_BURST_CD_UNTIL.put(id, now + cdTicks);
         applyBurstRoot(player, 36); // 1.8s (36t) stage fanfare pose + root
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_FURINA_BURST);
-        final InteractionHand usedHand = hand;
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_LET_THE_PEOPLE_REJOICE);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
 
         final boolean finalIsNeth = isNeth;
@@ -248,7 +302,7 @@ public final class ArchonUltiManager {
         boolean isNeth;
         if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
             isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else {
+        } else if (!isGenshinCharacterWeapon(stack)) {
             hand = InteractionHand.OFF_HAND;
             stack = player.getOffhandItem();
             if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
@@ -256,6 +310,8 @@ public final class ArchonUltiManager {
             } else {
                 return;
             }
+        } else {
+            return;
         }
 
         ServerLevel level = player.serverLevel();
@@ -263,8 +319,7 @@ public final class ArchonUltiManager {
         UUID id = player.getUUID();
         long cdUntil = LAYLA_BURST_CD_UNTIL.getOrDefault(id, 0L);
         if (now < cdUntil) {
-            double rem = (cdUntil - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§b✦ Star-Stream Shaker CD: %.1fs", rem)), true);
+            sendMinimalistBurstCooldownAlert(player, Element.CRYO, cdUntil - now);
             return;
         }
 
@@ -272,8 +327,7 @@ public final class ArchonUltiManager {
         LAYLA_BURST_CD_UNTIL.put(id, now + cdTicks);
         grantUltiIframe(player, 32);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_LAYLA_BURST);
-        final InteractionHand usedHand = hand;
-        stack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(usedHand));
+        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
 
         double radius = isNeth ? 7.5D : 6.0D;
         float burstDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.NIGHTS_FOCUS, isNeth) * 1.5F;
@@ -308,7 +362,7 @@ public final class ArchonUltiManager {
         boolean isNeth;
         if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
             isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else {
+        } else if (!isGenshinCharacterWeapon(stack)) {
             hand = InteractionHand.OFF_HAND;
             stack = player.getOffhandItem();
             if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
@@ -316,6 +370,8 @@ public final class ArchonUltiManager {
             } else {
                 return;
             }
+        } else {
+            return;
         }
         activateZhongliPlanetBefall(player, stack, hand, isNeth);
     }
@@ -326,8 +382,7 @@ public final class ArchonUltiManager {
         UUID id = player.getUUID();
         long cdUntil = ZHONGLI_BURST_CD_UNTIL.getOrDefault(id, 0L);
         if (now < cdUntil) {
-            double rem = (cdUntil - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(Locale.ROOT, "§6✦ Planet Befall CD: %.1fs", rem)), true);
+            sendMinimalistBurstCooldownAlert(player, Element.GEO, cdUntil - now);
             return;
         }
 
@@ -337,8 +392,8 @@ public final class ArchonUltiManager {
         ZHONGLI_IFRAME_UNTIL.put(id, now + 52L);
         applyBurstRoot(player, 50);
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
-        final InteractionHand usedHand = hand;
-        stack.hurtAndBreak(isNetherite ? 3 : 2, player, p -> p.broadcastBreakEvent(usedHand));
+        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, isNetherite ? 3 : 2, player, hand);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_THIS_IS_ORDER);
 
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
@@ -479,20 +534,12 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        // Massive geological impact: booming stalactite/rock shatter & muted deep seismic rumble (no explosion sound)
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 3.20F, 0.48F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 2.80F, 0.68F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 3.00F, 0.44F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.60F, 0.62F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 3.00F, 0.46F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.60F, 0.70F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 2.80F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.TUFF_BREAK, SoundSource.PLAYERS, 2.60F, 0.40F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 3.00F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_FALL, SoundSource.PLAYERS, 2.60F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 2.60F, 0.38F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 2.40F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.20F, 0.32F);
+        // Curated deep sub-bass seismic rumble, heavy basalt/deepslate bedrock shatter, and resonant contract chime
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.40F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.20F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.00F, 0.46F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BELL_RESONATE, SoundSource.PLAYERS, 1.00F, 0.55F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */

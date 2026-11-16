@@ -11,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
@@ -124,7 +125,15 @@ public final class TsaritsaManager {
 
     public static boolean isHoldingTsaritsaWeapon(Player player) {
         if (player == null) return false;
-        return isTsaritsaItem(player.getMainHandItem()) || isTsaritsaItem(player.getOffhandItem());
+        ItemStack main = player.getMainHandItem();
+        if (isTsaritsaItem(main)) return true;
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
+        return isTsaritsaItem(player.getOffhandItem());
+    }
+
+    public static InteractionHand getActiveTsaritsaHand(Player player) {
+        if (player != null && isTsaritsaItem(player.getMainHandItem())) return InteractionHand.MAIN_HAND;
+        return InteractionHand.OFF_HAND;
     }
 
     public static boolean isTsaritsaItem(ItemStack stack) {
@@ -403,7 +412,6 @@ public final class TsaritsaManager {
         if (player == null || !(player.level() instanceof ServerLevel level)) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         if (!isHoldingTsaritsaWeapon(player)) return;
-        if (player.getCooldowns().isOnCooldown(player.getMainHandItem().getItem())) return;
 
         // If another staff is clicked during DPS Seal, trigger Stellar Punishment
         TsaritsaPlayerState state = getOrCreateState(player);
@@ -680,7 +688,7 @@ public final class TsaritsaManager {
         state.netherite = isHoldingNetheriteTsaritsa(player);
         long now = level.getGameTime();
 
-        state.azureCrownUntilTick = now + SPEAR_STANCE_DURATION_TICKS;
+        state.azureCrownUntilTick = 0L;
         state.spearStanceUntilTick = now + SPEAR_STANCE_DURATION_TICKS;
         state.spearComboStep = 0;
 
@@ -715,11 +723,7 @@ public final class TsaritsaManager {
         long now = level.getGameTime();
 
         if (now < state.burstCooldownUntilTick) {
-            int remSec = (int) Math.ceil((state.burstCooldownUntilTick - now) / 20.0D);
-            player.displayClientMessage(
-                    Component.translatable("message.velorise_staves.tsaritsa_burst_cd", remSec).withStyle(ChatFormatting.RED),
-                    true
-            );
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.CRYO, state.burstCooldownUntilTick - now);
             return false;
         }
 
@@ -727,6 +731,9 @@ public final class TsaritsaManager {
         state.burstIframeUntilTick = now + BURST_IFRAME_TICKS;
         player.invulnerableTime = Math.max(player.invulnerableTime, BURST_IFRAME_TICKS);
         ArchonUltiManager.applyBurstRoot(player, BURST_IFRAME_TICKS);
+        InteractionHand tsHand = getActiveTsaritsaHand(player);
+        ArcaneStaffItem.hurtStaffAndCheckBreak(player.getItemInHand(tsHand), 1, player, tsHand);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_LOVE_LEFT);
 
         boolean spearMode = isSpearStanceActive(player);
         if (!spearMode) {

@@ -509,14 +509,15 @@ public final class ArcaneStaffEvents {
             }
         }
         float chargeScale = 0.55F + 1.25F * charge01;
-        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.DAYBREAK, (sideBolt ? 0.5F : 1.0F) * chargeScale);
+        float pushScale = (charge01 >= 0.85F) ? 1.45F : (charge01 >= 0.45F ? 0.85F : 0.45F);
+        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.DAYBREAK, (sideBolt ? 0.5F : 1.0F) * chargeScale, pushScale);
     }
 
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite) {
-        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.WIND, 1.0F);
+        resolveWindInternal(level, hit, owner, hitResult, isNetherite, ArcaneStaffItem.Kind.WIND, 1.0F, 1.0F);
     }
 
-    private static void resolveWindInternal(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite, ArcaneStaffItem.Kind kind, float dmgScale) {
+    private static void resolveWindInternal(ServerLevel level, Vec3 hit, Entity owner, HitResult hitResult, boolean isNetherite, ArcaneStaffItem.Kind kind, float dmgScale, float pushScale) {
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         float baseDmg = StavesConfig.getStaffBaseDamage(kind, isNetherite) * dmgScale;
         float attackU = isNetherite ? 1.5F : 1.0F;
@@ -539,9 +540,9 @@ public final class ArcaneStaffEvents {
                     horizDir = horizDir.normalize();
                 }
                 double boostScale = isNetherite ? 1.25D : 1.05D;
-                double vx = horizDir.x * 0.55D * falloff * boostScale;
-                double vz = horizDir.z * 0.55D * falloff * boostScale;
-                double vy = Math.max(0.78D, (0.95D * falloff + 0.20D) * boostScale);
+                double vx = horizDir.x * 0.55D * falloff * boostScale * pushScale;
+                double vz = horizDir.z * 0.55D * falloff * boostScale * pushScale;
+                double vy = Math.max(0.45D * pushScale, (0.95D * falloff + 0.20D) * boostScale * pushScale);
                 Vec3 cur = ownerLiving.getDeltaMovement();
                 ownerLiving.setDeltaMovement(cur.x * 0.35D + vx, Math.max(cur.y, vy), cur.z * 0.35D + vz);
                 ownerLiving.fallDistance = 0.0F;
@@ -560,18 +561,10 @@ public final class ArcaneStaffEvents {
                 com.velorise.staves.advancement.ModAdvancements.trigger(
                         player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
             }
-            if (player != null) {
-                com.velorise.staves.advancement.ModAdvancements.trigger(
-                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
-            }
-            if (player != null) {
-                com.velorise.staves.advancement.ModAdvancements.trigger(
-                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
-            }
             if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
                 Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
                 Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * 0.65D, 0.45D, knock.z * 0.65D));
+                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * 0.65D * pushScale, 0.45D * pushScale, knock.z * 0.65D * pushScale));
                 directHit.hurtMarked = true;
                 if (directHit instanceof ServerPlayer sp) {
                     sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
@@ -588,18 +581,10 @@ public final class ArcaneStaffEvents {
                     com.velorise.staves.advancement.ModAdvancements.trigger(
                             player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
                 }
-                if (player != null) {
-                    com.velorise.staves.advancement.ModAdvancements.trigger(
-                            player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
-                }
-                if (player != null) {
-                    com.velorise.staves.advancement.ModAdvancements.trigger(
-                            player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
-                }
                 if (!ElementalGaugeManager.isEntityFrozen(nearby)) {
                     Vec3 diff = nearby.position().subtract(hit);
                     Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.65D, 0.42D, knock.z * 0.65D));
+                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.65D * pushScale, 0.42D * pushScale, knock.z * 0.65D * pushScale));
                     nearby.hurtMarked = true;
                     if (nearby instanceof ServerPlayer sp) {
                         sp.connection.send(new ClientboundSetEntityMotionPacket(sp));

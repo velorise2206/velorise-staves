@@ -414,6 +414,33 @@ public final class ElementalReactionBadgeRenderer {
         entity.attackAnim = state.attackAnim;
         entity.oAttackAnim = state.attackAnim;
         entity.walkAnimation.setSpeed(0.0F);
+        entity.walkAnimation.update(0.0F, 0.0F);
+        if (entity instanceof net.minecraft.world.entity.animal.IronGolem golem) {
+            golem.offerFlower(false);
+            try {
+                java.lang.reflect.Field f = net.minecraft.world.entity.animal.IronGolem.class.getDeclaredField("attackAnimationTick");
+                f.setAccessible(true);
+                f.setInt(golem, 0);
+            } catch (Throwable ignored) {
+                try {
+                    java.lang.reflect.Field f = net.minecraft.world.entity.animal.IronGolem.class.getDeclaredField("field_7050");
+                    f.setAccessible(true);
+                    f.setInt(golem, 0);
+                } catch (Throwable ignored2) {}
+            }
+        }
+        if (entity instanceof net.minecraft.world.entity.animal.Squid squid) {
+            squid.tentacleAngle = squid.oldTentacleAngle;
+            squid.tentacleMovement = 0.0F;
+            squid.xBodyRot = squid.xBodyRotO;
+            squid.zBodyRot = squid.zBodyRotO;
+        } else if (entity instanceof net.minecraft.world.entity.animal.horse.AbstractHorse horse) {
+            horse.tailCounter = 0;
+            horse.setStanding(false);
+        } else if (entity instanceof net.minecraft.world.entity.monster.Guardian) {
+            entity.yBodyRot = state.yBodyRot;
+            entity.yBodyRotO = state.yBodyRot;
+        }
     }
 
     public static void renderFrozenIceOverlay(

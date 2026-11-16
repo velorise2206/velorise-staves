@@ -2,22 +2,16 @@
   "type": "minecraft:crafting_shaped",
   "category": "combat",
   "pattern": [
-    "DDD",
-    "WGD",
-    " E "
+    " D ",
+    "DSD",
+    " D "
   ],
   "key": {
     "D": {
       "item": "velorise_staves:dendro_element"
     },
-    "W": {
-      "item": "velorise_staves:wither_scepter"
-    },
-    "G": {
-      "item": "minecraft:glow_berries"
-    },
-    "E": {
-      "item": "minecraft:emerald"
+    "S": {
+      "tag": "minecraft:saplings"
     }
   },
   "result": {

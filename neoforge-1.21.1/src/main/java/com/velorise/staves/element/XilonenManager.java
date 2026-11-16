@@ -98,8 +98,10 @@ public final class XilonenManager {
 
     public static boolean isHoldingXilonen(Player player) {
         if (player == null) return false;
-        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG
-                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
+        ItemStack main = player.getMainHandItem();
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) return true;
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
+        return ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
     }
 
     private static boolean isEffectiveNetheriteHeld(Player player) {
@@ -107,6 +109,7 @@ public final class XilonenManager {
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
             return ArcaneStaffItem.getEffectiveNetherite(main);
         }
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
         ItemStack off = player.getOffhandItem();
         if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
             return ArcaneStaffItem.getEffectiveNetherite(off);
@@ -406,8 +409,7 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.computeIfAbsent(player.getUUID(), k -> new XilonenPlayerState());
         if (now < st.ultiCooldownUntilTick) {
-            double rem = (st.ultiCooldownUntilTick - now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§6✦ Ocelotlicue Point! CD: %.1fs", rem)), true);
+            ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.GEO, st.ultiCooldownUntilTick - now);
             return false;
         }
 

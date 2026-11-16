@@ -313,8 +313,42 @@ public final class ClientAuraRenderer {
         }
     }
 
+    public static void resetHumanoidPoseDefaults(HumanoidModel<?> model) {
+        if (model == null) return;
+        model.rightLeg.setPos(-1.9F, 12.0F, 0.0F);
+        model.leftLeg.setPos(1.9F, 12.0F, 0.0F);
+        model.rightArm.setPos(-5.0F, 2.0F, 0.0F);
+        model.leftArm.setPos(5.0F, 2.0F, 0.0F);
+        model.body.setPos(0.0F, 0.0F, 0.0F);
+        model.head.setPos(0.0F, 0.0F, 0.0F);
+        model.hat.setPos(0.0F, 0.0F, 0.0F);
+
+        model.rightLeg.zRot = 0.005F;
+        model.leftLeg.zRot = -0.005F;
+        model.rightLeg.yRot = 0.005F;
+        model.leftLeg.yRot = -0.005F;
+        model.body.zRot = 0.0F;
+        model.body.yRot = 0.0F;
+        model.hat.zRot = 0.0F;
+        model.hat.yRot = 0.0F;
+    }
+
+    public static void renderTsaritsaCrown(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (entity == null || ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) return;
+        TsaritsaVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
+    }
+
     public static void applyStaffHumanoidAnimation(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (entity == null || model == null || ClientAuraTracker.isFrozen(entity.getId())) return;
+        resetHumanoidPoseDefaults(model);
+        if (entity.onGround() || entity.isInWater() || entity.isInLava() || entity.getVehicle() != null) {
+            if (ClientAuraTracker.isGliding(entity.getId())) {
+                ClientAuraTracker.stopGliding(entity.getId());
+            }
+            if (ClientAuraTracker.isPlunging(entity.getId())) {
+                ClientAuraTracker.stopPlunging(entity.getId());
+            }
+        }
         WindGliderRenderer.pollClientUseTransitions(entity);
         if (MavuikaVisualRenderer.applyBikeRidingHumanoidAnimation(entity, model)) return;
 

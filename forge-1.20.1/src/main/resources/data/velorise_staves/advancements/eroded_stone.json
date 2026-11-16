@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:first_staff",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:vortex_vanquisher"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.eroded_stone.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.eroded_stone.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "eroded_stone": {
+      "trigger": "velorise_staves:custom",
+      "conditions": {
+        "event": "eroded_stone"
+      }
+    }
+  }
+}

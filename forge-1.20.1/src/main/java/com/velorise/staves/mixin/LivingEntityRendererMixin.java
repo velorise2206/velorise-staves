@@ -25,6 +25,13 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
     @Unique
     private final Deque<Boolean> velorise$bikePoseStack = new ArrayDeque<>();
 
+    @Inject(method = "getBob(Lnet/minecraft/world/entity/LivingEntity;F)F", at = @At("HEAD"), cancellable = true)
+    private void velorise$freezeBobOnPetrifyOrFreeze(T livingEntity, float partialTicks, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Float> cir) {
+        if (livingEntity != null && com.velorise.staves.client.ClientAuraTracker.isFrozen(livingEntity.getId())) {
+            cir.setReturnValue(0.0F);
+        }
+    }
+
     @Inject(method = "render", at = @At("HEAD"))
     private void velorise$onRenderPre(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
         velorise$bikePoseStack.push(FlamestriderBikeRenderer.pushRiderBikeTransform(livingEntity, partialTicks, poseStack));

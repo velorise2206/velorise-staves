@@ -261,6 +261,48 @@ public final class ArcaneStaffItem extends Item {
                 || k == Kind.VORTEX;
     }
 
+    public static boolean isGenshinCharacterKind(@Nullable Kind k) {
+        return isArchonKind(k)
+                || k == Kind.NIGHTS_FOCUS
+                || k == Kind.PEAK_PATROL_SONG
+                || k == Kind.GUARDIAN
+                || k == Kind.OMNI;
+    }
+
+    public static boolean isGenshinCharacterWeapon(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem staff)) return false;
+        return isGenshinCharacterKind(staff.kind()) || isGenshinCharacterKind(getEffectiveKind(stack));
+    }
+
+    public static @Nullable InteractionHand getActiveGenshinHand(Player player) {
+        if (player == null) return null;
+        if (isGenshinCharacterWeapon(player.getMainHandItem())) {
+            return InteractionHand.MAIN_HAND;
+        }
+        if (isGenshinCharacterWeapon(player.getOffhandItem())) {
+            return InteractionHand.OFF_HAND;
+        }
+        return null;
+    }
+
+    public static ItemStack getActiveGenshinWeapon(Player player) {
+        InteractionHand hand = getActiveGenshinHand(player);
+        return hand != null ? player.getItemInHand(hand) : ItemStack.EMPTY;
+    }
+
+    public static void hurtStaffAndCheckBreak(ItemStack stack, int amount, LivingEntity user, InteractionHand hand) {
+        if (stack == null || stack.isEmpty() || user == null) return;
+        Kind preKind = getEffectiveKind(stack);
+        if (preKind == null && stack.getItem() instanceof ArcaneStaffItem s) {
+            preKind = s.kind();
+        }
+        InteractionHand usedHand = hand != null ? hand : InteractionHand.MAIN_HAND;
+        stack.hurtAndBreak(amount, user, LivingEntity.getSlotForHand(usedHand));
+        if ((stack.isEmpty() || stack.getDamageValue() >= stack.getMaxDamage()) && user instanceof ServerPlayer sp && preKind != null) {
+            com.velorise.staves.advancement.ModAdvancements.onSignatureWeaponShattered(sp, preKind);
+        }
+    }
+
     public static boolean isOmniTridentAbsorbed(ItemStack omniStack) {
         if (!isOmniStaff(omniStack)) return false;
         CompoundTag tag = readCustomTag(omniStack);
@@ -448,7 +490,7 @@ public final class ArcaneStaffItem extends Item {
         ArcaneStaffItem staff = null;
         if (stack.getItem() instanceof ArcaneStaffItem s && getEffectiveKind(stack) == Kind.SPLENDOR) {
             staff = (s.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : s;
-        } else {
+        } else if (!isGenshinCharacterWeapon(stack)) {
             stack = player.getOffhandItem();
             if (stack.getItem() instanceof ArcaneStaffItem so && getEffectiveKind(stack) == Kind.SPLENDOR) {
                 staff = (so.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : so;
@@ -505,6 +547,9 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (hand == InteractionHand.OFF_HAND && isGenshinCharacterWeapon(stack) && isGenshinCharacterWeapon(player.getMainHandItem())) {
+            return InteractionResultHolder.fail(stack);
+        }
         if (ElementalResonanceManager.isOnSwapCooldown(player)) {
             return InteractionResultHolder.fail(stack);
         }
@@ -517,7 +562,7 @@ public final class ArcaneStaffItem extends Item {
                 if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
                 if (level.isClientSide()) return InteractionResultHolder.sidedSuccess(stack, true);
                 if (player instanceof ServerPlayer sp && shootOmniTrident(sp, stack, this.isNetherite)) {
-                    stack.hurtAndBreak(1, sp, LivingEntity.getSlotForHand(hand));
+                    hurtStaffAndCheckBreak(stack, 1, sp, hand);
                     int cdTicks = Math.max(10, (int) Math.round(2.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
                     ElementalResonanceManager.applyOmniModeCooldown(sp, stack, cdTicks);
                     sp.awardStat(Stats.ITEM_USED.get(this));
@@ -573,7 +618,7 @@ public final class ArcaneStaffItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, true);
             }
             if (player instanceof ServerPlayer sp && ElementalGaugeManager.activateRaidenEye(sp, isNetherite)) {
-                stack.hurtAndBreak(1, sp, LivingEntity.getSlotForHand(hand));
+                hurtStaffAndCheckBreak(stack, 1, sp, hand);
                 sp.awardStat(Stats.ITEM_USED.get(this));
                 return InteractionResultHolder.sidedSuccess(stack, false);
             }
@@ -655,7 +700,7 @@ public final class ArcaneStaffItem extends Item {
         if (!activated) return InteractionResultHolder.fail(stack);
 
         if (shouldConsumeDurability) {
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            hurtStaffAndCheckBreak(stack, 1, player, hand);
         }
 
         if (isBurstKind()) {
@@ -714,7 +759,7 @@ public final class ArcaneStaffItem extends Item {
                 return InteractionResultHolder.sidedSuccess(stack, true);
             }
             if (player instanceof ServerPlayer sp && ElementalGaugeManager.activateRaidenEye(sp, effNeth)) {
-                stack.hurtAndBreak(1, sp, LivingEntity.getSlotForHand(hand));
+                hurtStaffAndCheckBreak(stack, 1, sp, hand);
                 ElementalResonanceManager.applyOmniModeCooldown(sp, stack, getCooldownTicks());
                 sp.awardStat(Stats.ITEM_USED.get(omniOwner));
                 return InteractionResultHolder.sidedSuccess(stack, false);
@@ -769,7 +814,7 @@ public final class ArcaneStaffItem extends Item {
         };
         if (!activated) return InteractionResultHolder.fail(stack);
 
-        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+        hurtStaffAndCheckBreak(stack, 1, player, hand);
         if (kind != Kind.PEAK_PATROL_SONG) {
             int cdTicks = isBurstKind() ? Math.max(10, getCooldownTicks() / 3) : getCooldownTicks();
             ElementalResonanceManager.applyOmniModeCooldown(player, stack, cdTicks);
@@ -789,9 +834,7 @@ public final class ArcaneStaffItem extends Item {
             }
         }
         if (entity instanceof ServerPlayer sp && sp.tickCount % 20 == 0) {
-            if (kind == Kind.SPLENDOR) {
-                com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-            } else if (kind == Kind.NIGHTS_FOCUS) {
+            if (kind == Kind.NIGHTS_FOCUS) {
                 com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_STARRY_NIGHT);
             }
         }
@@ -1031,7 +1074,7 @@ public final class ArcaneStaffItem extends Item {
                     long now = serverLevel.getServer().overworld().getGameTime();
                     if (!ElementalGaugeManager.isMavuikaOnCooldown(player.getUUID(), now)) {
                         ElementalGaugeManager.summonAndMountFlamestrider(player, isNetherite, getCooldownTicks());
-                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
                     player.stopUsingItem();
@@ -1046,7 +1089,7 @@ public final class ArcaneStaffItem extends Item {
             if (elapsed < 0 || elapsed % 5 != 0) return;
             fireChanneledLightning(serverLevel, player, elapsed);
             if (elapsed % 20 == 0) {
-                stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
             }
             return;
         }
@@ -1088,7 +1131,7 @@ public final class ArcaneStaffItem extends Item {
                 fireGuardian(player);
             }
             if (beamElapsed == 0 || beamElapsed == 24 || beamElapsed == 48) {
-                stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
             }
             return;
         }
@@ -1134,7 +1177,7 @@ public final class ArcaneStaffItem extends Item {
             if (elapsed == 16) {
                 if (!player.getCooldowns().isOnCooldown(this)) {
                     com.velorise.staves.element.TsaritsaManager.performHoldE(player);
-                    stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                    hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                     ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
                     player.awardStat(Stats.ITEM_USED.get(this));
                 }
@@ -1183,7 +1226,7 @@ public final class ArcaneStaffItem extends Item {
         }
         if (kind == Kind.VORTEX) {
             if (!player.getCooldowns().isOnCooldown(this) && castVortexVanquisher(player, true)) {
-                stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                 ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(true));
                 player.awardStat(Stats.ITEM_USED.get(this));
             }
@@ -1194,13 +1237,13 @@ public final class ArcaneStaffItem extends Item {
         }
         if (kind == Kind.GHASTFIRE) {
             shootGhastfire(player);
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+            hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
             ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
             player.awardStat(Stats.ITEM_USED.get(this));
             return stack;
         }
         fireEcho(player);
-        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
         ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         player.awardStat(Stats.ITEM_USED.get(this));
         return stack;
@@ -1244,7 +1287,7 @@ public final class ArcaneStaffItem extends Item {
                     player.getPersistentData().remove("VeloriseGuardianInstant");
                     setGuardianInstant(stack, false);
                     shootGuardianOrb(player);
-                    stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                    hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                     int tapCd = Math.max(1, (int) Math.round(2.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
                     ElementalResonanceManager.applyCooldown(player, this, tapCd);
                     player.awardStat(Stats.ITEM_USED.get(this));
@@ -1265,7 +1308,7 @@ public final class ArcaneStaffItem extends Item {
                     }
                 } else if (!ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     if (castSplendorSummon(player, stack)) {
-                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                         ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
@@ -1278,7 +1321,7 @@ public final class ArcaneStaffItem extends Item {
                         ElementalGaugeManager.summonAndMountFlamestrider(player, isNetherite, getCooldownTicks());
                     } else if (!ElementalGaugeManager.isMavuikaOnCooldown(player.getUUID(), now)) {
                         ElementalGaugeManager.activateMavuikaSunAura(player, isNetherite, getCooldownTicks());
-                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
                 }
@@ -1287,7 +1330,7 @@ public final class ArcaneStaffItem extends Item {
                     int elapsed = this.getUseDuration(stack, entity) - timeLeft;
                     boolean holdShield = elapsed >= 28 || player.isShiftKeyDown();
                     if (castVortexVanquisher(player, holdShield)) {
-                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                         ElementalResonanceManager.applyCooldown(player, this, getVortexCooldownTicks(holdShield));
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
@@ -1297,7 +1340,7 @@ public final class ArcaneStaffItem extends Item {
                     int elapsed = Math.max(0, this.getUseDuration(stack, entity) - timeLeft);
                     float charge01 = net.minecraft.util.Mth.clamp(elapsed / 20.0F, 0.15F, 1.0F);
                     if (shootDaybreakBreeze(player, charge01)) {
-                        stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                        hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                         ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(false));
                         player.awardStat(Stats.ITEM_USED.get(this));
                     }
@@ -1309,7 +1352,7 @@ public final class ArcaneStaffItem extends Item {
                 int elapsed = Math.max(0, 72000 - timeLeft);
                 if (elapsed < 16 && !ElementalResonanceManager.isOverloaded(player) && !player.getCooldowns().isOnCooldown(this)) {
                     com.velorise.staves.element.TsaritsaManager.performTapE(player);
-                    stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                    hurtStaffAndCheckBreak(stack, 1, player, player.getUsedItemHand());
                     ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
                     player.awardStat(Stats.ITEM_USED.get(this));
                 }
@@ -1464,6 +1507,7 @@ public final class ArcaneStaffItem extends Item {
         if (player == null || !player.isAlive() || ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack stack = player.getMainHandItem();
         if (getEffectiveKind(stack) != Kind.DAYBREAK) {
+            if (isGenshinCharacterWeapon(stack)) return;
             stack = player.getOffhandItem();
             if (getEffectiveKind(stack) != Kind.DAYBREAK) return;
         }
@@ -1474,7 +1518,7 @@ public final class ArcaneStaffItem extends Item {
         if (daybreakStaff == null) return;
         if (daybreakStaff.shootDaybreakBreeze(player, charge01)) {
             InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            hurtStaffAndCheckBreak(stack, 1, player, hand);
             player.awardStat(Stats.ITEM_USED.get(heldStaff));
         }
     }
@@ -1495,14 +1539,20 @@ public final class ArcaneStaffItem extends Item {
     }
 
     public boolean triggerDaybreakVortexFromKey(ServerPlayer player, ItemStack stack) {
-        if (kind != Kind.DAYBREAK || ElementalResonanceManager.isOverloaded(player) || player.getCooldowns().isOnCooldown(this)) {
+        if (kind != Kind.DAYBREAK || ElementalResonanceManager.isOverloaded(player)) {
+            return false;
+        }
+        if (player.getCooldowns().isOnCooldown(this)) {
+            long remTicks = Math.max(20L, Math.round(player.getCooldowns().getCooldownPercent(this, 0.0F) * getDaybreakCooldownTicks(true)));
+            com.velorise.staves.element.ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.ANEMO, remTicks);
             return false;
         }
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         player.swing(hand, true);
-        stack.hurtAndBreak(2, player, LivingEntity.getSlotForHand(hand));
+        hurtStaffAndCheckBreak(stack, 2, player, hand);
         ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
         player.awardStat(Stats.ITEM_USED.get(this));
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_MUST_BE_THE_STORM);
         com.velorise.staves.element.ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
             if (player.isAlive()) {
                 castDaybreakVortex(player);
@@ -1764,8 +1814,6 @@ public final class ArcaneStaffItem extends Item {
         }
         com.velorise.staves.advancement.ModAdvancements.trigger(
                 player, com.velorise.staves.advancement.ModAdvancements.EVENT_GEO_FANG_PILLAR);
-        com.velorise.staves.advancement.ModAdvancements.trigger(
-                player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_ORDER);
         return true;
     }
 
@@ -2192,11 +2240,6 @@ public final class ArcaneStaffItem extends Item {
         if (!(player.level() instanceof ServerLevel serverLevel)) return false;
         boolean pneuma = isSplendorPneuma(stack);
         com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(serverLevel, player, isNetherite, pneuma);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_BEHEADED);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 1);
         com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_HYDRO);
         return true;

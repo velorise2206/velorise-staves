@@ -1056,6 +1056,9 @@ public final class EnvironmentalBlockManager {
             );
 
             for (LivingEntity victim : inWaterEntities) {
+                if (victim instanceof ServerPlayer sp && RaidenManager.isRaidenMusouActive(sp.getUUID(), level.getGameTime())) {
+                    continue;
+                }
                 float shockDmg = Math.max(1.5F, baseDamage * 0.40F);
                 victim.hurt(ElementalDeathMessageHelper.createDamageSource(level, attacker, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), shockDmg);
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 1.0F, attacker instanceof ServerPlayer sp ? sp : null, shockDmg);
