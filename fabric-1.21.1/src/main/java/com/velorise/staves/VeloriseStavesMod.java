@@ -647,6 +647,11 @@ public final class VeloriseStavesMod implements ModInitializer {
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ElementalGaugeManager.clearEntityState(handler.getPlayer());
         });
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
+            if (!world.isClientSide() && (!entity.isAlive() || entity.isRemoved())) {
+                com.velorise.staves.element.PlayerGenshinState.onEntityRemoved(entity);
+            }
+        });
     }
 
     private static Item registerItem(String path, Item item) {
@@ -656,5 +661,13 @@ public final class VeloriseStavesMod implements ModInitializer {
     private static SoundEvent registerSound(String path) {
         ResourceLocation id = ResourceLocation.fromNamespaceAndPath(MODID, path);
         return Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(id));
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity> getGeoFangPillarType() {
+        return GEO_FANG_PILLAR;
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
+        return FLAMESTRIDER_BIKE;
     }
 }

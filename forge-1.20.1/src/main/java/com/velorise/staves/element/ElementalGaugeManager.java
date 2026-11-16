@@ -1,5 +1,7 @@
 package com.velorise.staves.element;
 
+import static com.velorise.staves.element.PlayerGenshinState.*;
+
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
@@ -112,130 +114,49 @@ public final class ElementalGaugeManager {
     public static final TagKey<EntityType<?>> GEO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(VeloriseStavesMod.MODID, "geo_creatures"));
     public static final TagKey<Block> MUSHROOM_BLOCKS = TagKey.create(Registries.BLOCK, new ResourceLocation(VeloriseStavesMod.MODID, "mushroom_blocks"));
 
-    private static final Map<UUID, Map<Element, GaugeState>> GAUGES = new ConcurrentHashMap<>();
-    private static final Map<UUID, GaugeState> FROZEN_GAUGES = new ConcurrentHashMap<>();
-    private static final Map<UUID, GaugeState> QUICKEN_GAUGES = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> FROZEN_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> QUICKEN_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> BURNING_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> BURNING_EM_LEVEL = new ConcurrentHashMap<>();
-    private static final Map<UUID, UUID> BURNING_ATTACKER_UUID = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> FURINA_FANFARE_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> FURINA_FANFARE_POINTS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> FURINA_FANFARE_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> JADE_SHIELD_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> JADE_SHIELD_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> NIGHTS_FOCUS_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> NIGHTS_FOCUS_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> NIGHTS_FOCUS_STARS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_AUTO_STAR = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> NIGHTS_FOCUS_LAST_SKILL_STAR = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> NIGHTS_FOCUS_BASE_HP = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> NIGHTS_FOCUS_PENDING_SHOTS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAYLA_DREAMSPHERE_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> LAYLA_DREAMSPHERE_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAYLA_DREAMSPHERE_NEXT_SHOT = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_AURA_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> MAVUIKA_AURA_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_AURA_NEXT_STRIKE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> MAVUIKA_NIGHTSOUL_POINTS = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> MAVUIKA_NIGHTSOUL_FUEL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_CRUCIBLE_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_LAST_NIGHTSOUL_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_SKILL_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> MAVUIKA_ULTI_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_EYE_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> RAIDEN_EYE_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_EYE_NEXT_PROC = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> RAIDEN_RESOLVE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_MUSOU_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Boolean> RAIDEN_MUSOU_NETHERITE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_SKILL_CD_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_BURST_CD_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_IFRAME_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> RAIDEN_NA_COMBO = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_LAST_MELEE_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_NEXT_SWING_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_PENDING_HITOTACHI_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> RAIDEN_PENDING_HITOTACHI_MULT = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> PETRIFIED_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> RAIDEN_LAST_STAFF_RESOLVE_TICK = new ConcurrentHashMap<>();
-    private static final ThreadLocal<Boolean> IS_PROCESSING_RAIDEN_PROC = ThreadLocal.withInitial(() -> Boolean.FALSE);
-    private static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
-    private static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> SUPERCONDUCT_UNTIL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Map<Element, GaugeState>> GAUGES = new ConcurrentHashMap<>();
+    public static final Map<UUID, GaugeState> FROZEN_GAUGES = new ConcurrentHashMap<>();
+    public static final Map<UUID, GaugeState> QUICKEN_GAUGES = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> FROZEN_UNTIL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> QUICKEN_UNTIL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> BURNING_UNTIL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Integer> BURNING_EM_LEVEL = new ConcurrentHashMap<>();
+    public static final Map<UUID, UUID> BURNING_ATTACKER_UUID = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> MAVUIKA_LAST_NIGHTSOUL_TICK = new ConcurrentHashMap<>();
+    public static final ThreadLocal<Boolean> IS_PROCESSING_RAIDEN_PROC = ThreadLocal.withInitial(() -> Boolean.FALSE);
+    public static final Map<UUID, Integer> ELECTRO_CHARGE_EM_LEVEL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> SUPPRESSED_PHYSICAL_FLOAT_TICK = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> LAST_BURN_PYRO_REFRESH = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> INNATE_COOLDOWN_UNTIL = new ConcurrentHashMap<>();
+    public static final Map<UUID, Integer> ELECTRO_CHARGE_TICK = new ConcurrentHashMap<>();
+    public static final Map<Long, Long> LAST_PROXIMITY_SHOCK = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> LAST_BLOOM_SPAWN = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> SUPERCONDUCT_UNTIL = new ConcurrentHashMap<>();
     public static final String TAG_FROZEN_STATUE = "velorise_staves:frozen_statue";
     public static final String TAG_INNATE_OMNI = "velorise_staves:innate_omni";
-    private static final Set<UUID> OMNI_INNATE_ENTITIES = Collections.newSetFromMap(new ConcurrentHashMap<>());
-    private static final Map<UUID, Long> LAST_OMNI_ENV_IMMUNE = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_MUSHROOM_CONTACT = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> PLAYER_LAST_HP = new ConcurrentHashMap<>();
-    private static final Map<UUID, Float> PRE_ATTACK_STRENGTH = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> PLAYER_HP_CHANGE_BUFF_UNTIL = new ConcurrentHashMap<>();
-    private static final Map<UUID, Map<String, Long>> DRACONIC_GLORIES_STACKS = new ConcurrentHashMap<>();
-    public record SourcewaterDroplet(ServerLevel level, Vec3 pos, long spawnTick, @Nullable UUID ownerId) {}
-    private static final java.util.List<SourcewaterDroplet> SOURCEWATER_DROPLETS = new java.util.concurrent.CopyOnWriteArrayList<>();
-    private static final class DaybreakVortexField {
-        final ServerLevel level;
-        final Vec3 center;
-        final UUID ownerId;
-        final boolean isNetherite;
-        final long expireTick;
-        final double radius;
-        @Nullable Element absorbedElement;
+    public static final Set<UUID> OMNI_INNATE_ENTITIES = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    public static final Map<UUID, Long> LAST_OMNI_ENV_IMMUNE = new ConcurrentHashMap<>();
+    public static final Map<UUID, Long> LAST_MUSHROOM_CONTACT = new ConcurrentHashMap<>();
+    public static final long HP_CHANGE_BUFF_TICKS = 200L;
 
-        DaybreakVortexField(ServerLevel level, Vec3 center, UUID ownerId, boolean isNetherite, long expireTick, double radius) {
-            this.level = level;
-            this.center = center;
-            this.ownerId = ownerId;
-            this.isNetherite = isNetherite;
-            this.expireTick = expireTick;
-            this.radius = radius;
-        }
-    }
-    private static final java.util.List<DaybreakVortexField> DAYBREAK_VORTICES = new java.util.concurrent.CopyOnWriteArrayList<>();
-    private static final long HP_CHANGE_BUFF_TICKS = 200L;
-
-    public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
-
-    private static final Map<UUID, FrozenPoseState> FROZEN_POSES = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_FREEZE_STRUGGLE = new ConcurrentHashMap<>();
-    private static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
+    public static final Map<UUID, FrozenPoseState> FROZEN_POSES = new ConcurrentHashMap<>();
+    public static final ThreadLocal<Boolean> IS_PROCESSING_DAMAGE = ThreadLocal.withInitial(() -> false);
     public static final ThreadLocal<Boolean> IS_PROCESSING_REACTION = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> IS_PROCESSING_THORNS = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> IS_PROCESSING_SWORD_IMBUE = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> IS_MODIFYING_ENV_DAMAGE = ThreadLocal.withInitial(() -> false);
-    private static final ThreadLocal<Boolean> ELEMENTAL_RES_APPLIED = ThreadLocal.withInitial(() -> Boolean.FALSE);
-    private static final ThreadLocal<Integer> REACTION_DEPTH = ThreadLocal.withInitial(() -> 0);
-    private static final int MAX_REACTION_DEPTH = 4;
-    private static final ThreadLocal<Element> THORNS_CONTEXT_ELEMENT = new ThreadLocal<>();
-    private static final ThreadLocal<@Nullable LivingEntity> CURRENT_REACTION_ATTACKER = new ThreadLocal<>();
-    private static final Map<Long, Long> LAST_THORNS_REFLECT = new ConcurrentHashMap<>();
-    private static final Map<UUID, Long> LAST_ELEMENTAL_ARMOR_WEAR = new ConcurrentHashMap<>();
-    private static final UUID COOP_HP_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20011");
-    private static final UUID COOP_ATK_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20012");
-    private static final Map<UUID, Long> EXPLODED_CREEPERS = new ConcurrentHashMap<>();
-
-    private record PendingEvokerConstruct(
-            ServerLevel level,
-            UUID evokerId,
-            long tick,
-            double x,
-            double y,
-            double z,
-            float yawDeg,
-            int maxWarmup
-    ) {}
-
-    private static final Map<UUID, PendingEvokerConstruct> PENDING_EVOKER_CONSTRUCTS = new ConcurrentHashMap<>();
+    public static final ThreadLocal<Boolean> IS_PROCESSING_THORNS = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> IS_PROCESSING_SWORD_IMBUE = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> IS_MODIFYING_ENV_DAMAGE = ThreadLocal.withInitial(() -> false);
+    public static final ThreadLocal<Boolean> ELEMENTAL_RES_APPLIED = ThreadLocal.withInitial(() -> Boolean.FALSE);
+    public static final ThreadLocal<Integer> REACTION_DEPTH = ThreadLocal.withInitial(() -> 0);
+    public static final int MAX_REACTION_DEPTH = 4;
+    public static final ThreadLocal<Element> THORNS_CONTEXT_ELEMENT = new ThreadLocal<>();
+    public static final ThreadLocal<@Nullable LivingEntity> CURRENT_REACTION_ATTACKER = new ThreadLocal<>();
+    public static final Map<Long, Long> LAST_THORNS_REFLECT = new ConcurrentHashMap<>();
+    public static final UUID COOP_HP_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20011");
+    public static final UUID COOP_ATK_MOD_ID = UUID.fromString("b9e4d812-6c51-4e2d-9f8b-4a73b0c20012");
+    public static final Map<UUID, Long> EXPLODED_CREEPERS = new ConcurrentHashMap<>();
 
     // Genshin Impact Simultaneous Reaction Priority order for coexisting auras
-    private static final Element[] REACTION_PRIORITY_ORDER = {
+    public static final Element[] REACTION_PRIORITY_ORDER = {
         Element.ELECTRO,
         Element.PYRO,
         Element.HYDRO,
@@ -243,7 +164,7 @@ public final class ElementalGaugeManager {
         Element.DENDRO
     };
 
-    private static class IcdEntry {
+    public static class IcdEntry {
         int hitCount;
         long firstHitTime;
 
@@ -253,8 +174,8 @@ public final class ElementalGaugeManager {
         }
     }
 
-    private static final Map<Long, IcdEntry> ICD_TRACKER = new ConcurrentHashMap<>();
-    private static final Map<Long, Long> REACTION_ICD_TRACKER = new ConcurrentHashMap<>();
+    public static final Map<Long, IcdEntry> ICD_TRACKER = new ConcurrentHashMap<>();
+    public static final Map<Long, Long> REACTION_ICD_TRACKER = new ConcurrentHashMap<>();
 
     private ElementalGaugeManager() {}
 
@@ -420,125 +341,6 @@ public final class ElementalGaugeManager {
         return until != null && now < until;
     }
 
-    public static boolean isPhysicalDamage(DamageSource source) {
-        String msgId = source.type().msgId();
-        if ("wind_charge".equals(msgId) || "sonic_boom".equals(msgId) || "velorise_elemental".equals(msgId)) return false;
-        if (source.is(DamageTypeTags.BYPASSES_ARMOR)) return false;
-        if (source.is(DamageTypeTags.IS_FIRE)) return false;
-        if (source.is(DamageTypeTags.IS_FREEZING)) return false;
-        if (source.is(DamageTypeTags.IS_LIGHTNING)) return false;
-        if (source.is(DamageTypeTags.WITCH_RESISTANT_TO)) return false;
-        if (source.is(DamageTypes.MAGIC) || source.is(DamageTypes.INDIRECT_MAGIC) || source.is(DamageTypes.GENERIC)) return false;
-        if (source.is(DamageTypes.PLAYER_ATTACK) || source.is(DamageTypes.MOB_ATTACK) || source.is(DamageTypes.ARROW) || source.is(DamageTypes.TRIDENT)
-                || "mob_attack_no_aggro".equals(msgId) || "sting".equals(msgId) || "mace_smash".equals(msgId)) {
-            return true;
-        }
-        if (source.is(DamageTypeTags.IS_PROJECTILE)) return true;
-        return source.getDirectEntity() instanceof net.minecraft.world.entity.player.Player
-                || source.getEntity() instanceof net.minecraft.world.entity.player.Player;
-    }
-
-    public static boolean isElementalOrMagicDamage(DamageSource source) {
-        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return false;
-        if (isPhysicalDamage(source)) return false;
-        if (source.is(DamageTypeTags.IS_FIRE)
-                || source.is(DamageTypeTags.IS_FREEZING)
-                || source.is(DamageTypeTags.IS_LIGHTNING)
-                || source.is(DamageTypeTags.IS_DROWNING)
-                || source.is(DamageTypeTags.WITCH_RESISTANT_TO)
-                || source.is(DamageTypes.MAGIC)
-                || source.is(DamageTypes.INDIRECT_MAGIC)
-                || source.is(DamageTypes.DRAGON_BREATH)
-                || source.is(DamageTypes.WITHER)
-                || source.is(DamageTypes.WITHER_SKULL)
-                || source.is(DamageTypes.SONIC_BOOM)
-                || source.is(DamageTypes.CACTUS)
-                || source.is(DamageTypes.SWEET_BERRY_BUSH)
-                || source.is(DamageTypes.FIREWORKS)
-                || source.is(DamageTypes.THORNS)) {
-            return true;
-        }
-        return "wind_charge".equals(source.type().msgId()) || "sonic_boom".equals(source.type().msgId());
-    }
-
-    public static void notifyOmniImmuneEnvironmental(ServerLevel level, LivingEntity target) {
-        if (level == null || target == null || !target.isAlive()) return;
-        extinguishPyroInnate(target);
-        long now = level.getGameTime();
-        Long last = LAST_OMNI_ENV_IMMUNE.get(target.getUUID());
-        if (last == null || now < last || (now - last) >= 20L) {
-            LAST_OMNI_ENV_IMMUNE.put(target.getUUID(), now);
-            level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
-            com.velorise.staves.network.ModNetwork.sendAuraSync(target, Collections.emptyList(), null, null, ElementalReaction.IMMUNE, 0.0F, -2);
-        }
-    }
-
-    public static Element chooseOmniMutatedAttackElement(LivingEntity target, LivingEntity attacker) {
-        EnumSet<Element> innates = getInnateElements(target);
-        Collection<Element> active = getEntityElements(target.getUUID());
-        boolean frozen = isEntityFrozen(target);
-        boolean quickened = isEntityQuickened(target);
-        boolean avoidPyroDamage = target.fireImmune() && !innates.contains(Element.CRYO);
-
-        // 1. Cryo / Frozen target -> Forward Melt 2.0x with Pyro (or Superconduct if fire-immune)
-        if (frozen || active.contains(Element.CRYO) || innates.contains(Element.CRYO)) {
-            if (!innates.contains(Element.PYRO) && !target.fireImmune()) return Element.PYRO;
-            if (!innates.contains(Element.ELECTRO)) return Element.ELECTRO;
-        }
-        // 2. Pyro aura / innate -> Forward Vaporize 2.0x with Hydro
-        if (active.contains(Element.PYRO) || innates.contains(Element.PYRO)) {
-            if (!innates.contains(Element.HYDRO)) return Element.HYDRO;
-            if (!innates.contains(Element.CRYO)) return Element.CRYO;
-            if (!innates.contains(Element.ELECTRO)) return Element.ELECTRO;
-        }
-        // 3. Hydro aura / innate -> Reverse Vaporize 1.5x / Overvape with Pyro (or Dendro Bloom)
-        if (active.contains(Element.HYDRO) || innates.contains(Element.HYDRO)) {
-            if (!avoidPyroDamage && !innates.contains(Element.PYRO)) return Element.PYRO;
-            if (!innates.contains(Element.DENDRO)) return Element.DENDRO;
-            if (!innates.contains(Element.ELECTRO)) return Element.ELECTRO;
-        }
-        // 4. Quicken or Dendro aura / innate -> Aggravate / Burning / Quicken
-        if (quickened) {
-            if (!innates.contains(Element.ELECTRO)) return Element.ELECTRO;
-            if (!innates.contains(Element.DENDRO)) return Element.DENDRO;
-        }
-        if (active.contains(Element.DENDRO) || innates.contains(Element.DENDRO)) {
-            if (!avoidPyroDamage && !innates.contains(Element.PYRO)) return Element.PYRO;
-            if (!innates.contains(Element.ELECTRO)) return Element.ELECTRO;
-        }
-        // 5. Electro aura / innate -> Overloaded / Quicken / Superconduct
-        if (active.contains(Element.ELECTRO) || innates.contains(Element.ELECTRO)) {
-            if (!avoidPyroDamage && !innates.contains(Element.PYRO)) return Element.PYRO;
-            if (!innates.contains(Element.DENDRO)) return Element.DENDRO;
-            if (!innates.contains(Element.CRYO)) return Element.CRYO;
-        }
-        // 6. Anemo or Geo innate -> Swirl / Crystallize
-        if (innates.contains(Element.ANEMO) || innates.contains(Element.GEO)) {
-            return avoidPyroDamage ? Element.HYDRO : Element.PYRO;
-        }
-        // 7. No active aura on target -> pick a random element from all 7 elements
-        Element[] all = Element.values();
-        return all[attacker.getRandom().nextInt(all.length)];
-    }
-
-    public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) {
-        return getElementalDamageSource(level, attacker, null, null);
-    }
-
-    public static DamageSource getElementalDamageSource(
-            ServerLevel level,
-            @Nullable LivingEntity attacker,
-            @Nullable ElementalReaction reaction,
-            @Nullable Element element
-    ) {
-        LivingEntity credit = (attacker != null && !Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get()))
-                ? attacker
-                : (!Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get())
-                    ? CURRENT_REACTION_ATTACKER.get()
-                    : null);
-        return ElementalDeathMessageHelper.createDamageSource(level, credit, reaction, element);
-    }
-
     public static boolean hasBurning(@Nullable UUID id) {
         return id != null && BURNING_UNTIL.containsKey(id);
     }
@@ -547,297 +349,12 @@ public final class ElementalGaugeManager {
         return id != null ? BURNING_ATTACKER_UUID.get(id) : null;
     }
 
-    public static boolean isGeoInnateMob(@Nullable Entity entity) {
-        return entity instanceof Mob mob && hasInnateElement(mob, Element.GEO);
-    }
-
-    public static boolean isAnemoInnateMob(@Nullable Entity entity) {
-        return entity instanceof Mob mob && hasInnateElement(mob, Element.ANEMO);
-    }
-
-    public static boolean isProjectileDamageSource(@Nullable DamageSource source) {
-        return source != null && (source.is(DamageTypeTags.IS_PROJECTILE)
-                || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.Projectile);
-    }
-
-    public static boolean isFallDamageImmunityApplicable(@Nullable LivingEntity entity, @Nullable DamageSource source) {
-        return entity != null && source != null
-                && source.is(DamageTypeTags.IS_FALL)
-                && !source.is(DamageTypes.STALAGMITE)
-                && isAnemoInnateMob(entity);
-    }
-
-    public static void beginDamageFloatTracking(@Nullable LivingEntity entity) {
-        if (entity != null && !entity.level().isClientSide()) {
-            SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(entity.getUUID());
-        }
-    }
-
-    public static void trySendPhysicalDamageFloat(@Nullable LivingEntity target, @Nullable DamageSource source, float finalDamage) {
-        if (target == null || source == null || target.level().isClientSide()) return;
-        Long suppressed = SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(target.getUUID());
-        if (finalDamage <= 0.05F) return;
-        try {
-            if (!StavesConfig.SHOW_DAMAGE_NUMBERS.get()) return;
-        } catch (Exception ignored) {}
-        if (suppressed != null && suppressed == target.level().getGameTime()) return;
-        if (Boolean.TRUE.equals(IS_PROCESSING_REACTION.get()) || Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get())) return;
-        if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource) return;
-        if (isVanillaPhysicalDisplayDamage(source)) {
-            com.velorise.staves.network.ModNetwork.sendPhysicalDamage(target, finalDamage);
-        }
-    }
-
-    public static boolean isVanillaPhysicalDisplayDamage(DamageSource source) {
-        return isPhysicalDamage(source)
-                || source.is(DamageTypeTags.IS_EXPLOSION)
-                || source.is(DamageTypeTags.IS_FALL)
-                || source.is(DamageTypes.FALLING_ANVIL)
-                || source.is(DamageTypes.FALLING_BLOCK)
-                || source.is(DamageTypes.FALLING_STALACTITE)
-                || source.is(DamageTypes.STALAGMITE);
-    }
-
-    public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) {
-        if (!(target instanceof Mob)) return 0.0F;
-        if (element == Element.ANEMO && target instanceof Warden) return 0.70F;
-        return 0.10F;
-    }
-
-    public static float getMobPhysicalResistance(@Nullable LivingEntity target) {
-        if (!(target instanceof Mob)) return 0.0F;
-        if (target instanceof IronGolem) return 0.50F;
-        return 0.10F;
-    }
-
     /**
      * Authentic Genshin Impact 3-Tier Piecewise Resistance Formula:
      * - Negative RES (RES < 0): 1.0 - (RES / 2.0)
      * - Standard RES (0 <= RES <= 0.75): 1.0 - RES
      * - Extreme High RES (RES > 0.75): 1.0 / (4.0 * RES + 1.0)
      */
-    public static float computeResistanceMultiplier(float res) {
-        if (res < 0.0F) {
-            return 1.0F - (res / 2.0F);
-        }
-        if (res <= 0.75F) {
-            return 1.0F - res;
-        }
-        return 1.0F / (4.0F * res + 1.0F);
-    }
-
-    public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) {
-        return getEffectivePhysicalMultiplier(target, null, now);
-    }
-
-    public static float getEffectivePhysicalMultiplier(LivingEntity target, @Nullable DamageSource source, long now) {
-        float res = getMobPhysicalResistance(target);
-        if (source != null && (isProjectileDamageSource(source) || source.is(DamageTypeTags.IS_EXPLOSION)) && isGeoInnateMob(target)) {
-            res += 0.50F;
-        }
-        if (hasSuperconductDebuff(target, now) || TsaritsaManager.getActivePolestarFieldAt(target.level(), target.position()) != null) {
-            res -= 0.40F;
-        }
-        if (isNearJadeShieldAura(target)) {
-            res -= 0.20F; // Zhongli Jade Shield: -20% Physical RES within 4.5m
-        }
-        return computeResistanceMultiplier(res);
-    }
-
-    public static float getEffectiveElementalResistance(@Nullable LivingEntity target, @Nullable Element element, long now) {
-        float res = getMobElementalResistance(target, element);
-        if (target != null && element == Element.GEO && ElementalResonanceManager.hasGeoResShred(target, now)) {
-            res -= 0.20F;
-        }
-        if (isNearJadeShieldAura(target)) {
-            res -= 0.20F; // Zhongli Jade Shield: -20% All Elemental RES within 4.5m
-        }
-        res -= XilonenManager.getXilonenResShred(target, element, now);
-        return res;
-    }
-
-    public static float applyMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element, float damage) {
-        if (damage <= 0.0F || !(target instanceof Mob)) return damage;
-        long now = target.level().getGameTime();
-        float res = getEffectiveElementalResistance(target, element, now);
-        return damage * computeResistanceMultiplier(res);
-    }
-
-    public static @Nullable Element inferElementFromDamageSource(DamageSource source) {
-        String msgId = source.type().msgId();
-        if ("sonic_boom".equals(msgId) || "wind_charge".equals(msgId) || source.is(DamageTypes.SONIC_BOOM)) {
-            return Element.ANEMO;
-        }
-        if (source.is(DamageTypeTags.IS_FIRE)) return Element.PYRO;
-        if (source.is(DamageTypeTags.IS_FREEZING)) return Element.CRYO;
-        if (source.is(DamageTypeTags.IS_LIGHTNING)) return Element.ELECTRO;
-        if (source.is(DamageTypes.FALLING_STALACTITE) || source.is(DamageTypes.STALAGMITE) || source.is(DamageTypes.FALLING_ANVIL)) {
-            return Element.GEO;
-        }
-        return null;
-    }
-
-    public static boolean hurtWithPreAppliedElementalRes(LivingEntity target, DamageSource source, float amount) {
-        if (amount <= 0.0F || target == null) return false;
-        boolean prev = Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get());
-        ELEMENTAL_RES_APPLIED.set(Boolean.TRUE);
-        try {
-            return target.hurt(source, amount);
-        } finally {
-            ELEMENTAL_RES_APPLIED.set(prev);
-        }
-    }
-
-    public static float applyMobDamageResistances(LivingEntity entity, DamageSource source, float amount) {
-        if (amount <= 0.0F || entity == null || !entity.isAlive() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-            return amount;
-        }
-        if (isFallDamageImmunityApplicable(entity, source)) {
-            entity.fallDistance = 0.0F;
-            return 0.0F;
-        }
-        if (source.is(DamageTypeTags.IS_FALL) && !source.is(DamageTypes.STALAGMITE)) {
-            amount = PlungeAndGliderManager.modifyPlungeOrGliderFallDamage(entity, amount);
-            if (amount <= 0.0F) {
-                entity.fallDistance = 0.0F;
-                return 0.0F;
-            }
-        }
-        long now = entity.level().getGameTime();
-        boolean isGeoProjOrExp = isGeoInnateMob(entity) && (source.is(DamageTypeTags.IS_EXPLOSION)
-                || isProjectileDamageSource(source)
-                || (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.isExplosionReaction()));
-        if (isPhysicalDamage(source)) {
-            float mult = getEffectivePhysicalMultiplier(entity, source, now);
-            if (hasSuperconductDebuff(entity, now) && entity.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.CRIT, entity.getX(), entity.getY() + entity.getBbHeight() * 0.5D, entity.getZ(),
-                        8, 0.25D, 0.25D, 0.25D, 0.05D);
-            }
-            return amount * mult;
-        }
-        if (!Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get()) && isElementalOrMagicDamage(source)) {
-            Element elem = (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.getElement() != null)
-                    ? erds.getElement()
-                    : inferElementFromDamageSource(source);
-            float elemRes = getEffectiveElementalResistance(entity, elem, now);
-            if (isGeoProjOrExp) {
-                elemRes += 0.50F;
-            }
-            float afterMobRes = entity instanceof Mob ? amount * computeResistanceMultiplier(elemRes) : amount;
-            return applyElementalProtectionAndArmorWear(entity, source, afterMobRes);
-        }
-        if (isGeoProjOrExp) {
-            amount *= 0.50F;
-        }
-        return applyElementalProtectionAndArmorWear(entity, source, amount);
-    }
-
-    public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) {
-        if (attacker == null || target == attacker || !target.isAlive()) return;
-        if (attacker instanceof Player p && (p.isCreative() || p.isSpectator())) {
-            return;
-        }
-        target.setLastHurtByMob(attacker);
-        if (attacker instanceof Player player) {
-            target.setLastHurtByPlayer(player);
-        }
-        if (target instanceof IronGolem golem && golem.isPlayerCreated() && attacker instanceof Player) {
-            golem.setPlayerCreated(false);
-        }
-        if (target instanceof NeutralMob neutral) {
-            neutral.setPersistentAngerTarget(attacker.getUUID());
-            neutral.startPersistentAngerTimer();
-        }
-        if (target instanceof Mob mob && !isEntityFrozen(mob)) {
-            mob.setTarget(attacker);
-        }
-    }
-
-    public static void clearEntityState(LivingEntity entity) {
-        if (entity == null) return;
-        UUID id = entity.getUUID();
-        GAUGES.remove(id);
-        FROZEN_GAUGES.remove(id);
-        QUICKEN_GAUGES.remove(id);
-        FROZEN_UNTIL.remove(id);
-        FROZEN_POSES.remove(id);
-        LAST_FREEZE_STRUGGLE.remove(id);
-        QUICKEN_UNTIL.remove(id);
-        BURNING_UNTIL.remove(id);
-        BURNING_EM_LEVEL.remove(id);
-        BURNING_ATTACKER_UUID.remove(id);
-        ELECTRO_CHARGE_EM_LEVEL.remove(id);
-        SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(id);
-        ElementalDeathMessageHelper.clearEntityState(entity);
-        LAST_BURN_PYRO_REFRESH.remove(id);
-        INNATE_COOLDOWN_UNTIL.remove(id);
-        ELECTRO_CHARGE_TICK.remove(id);
-        LAST_BLOOM_SPAWN.remove(id);
-        SUPERCONDUCT_UNTIL.remove(id);
-        OMNI_INNATE_ENTITIES.remove(id);
-        LAST_OMNI_ENV_IMMUNE.remove(id);
-        LAST_MUSHROOM_CONTACT.remove(id);
-        EXPLODED_CREEPERS.remove(id);
-        PENDING_EVOKER_CONSTRUCTS.remove(id);
-        PLAYER_LAST_HP.remove(id);
-        PRE_ATTACK_STRENGTH.remove(id);
-        PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
-        DRACONIC_GLORIES_STACKS.remove(id);
-        FURINA_FANFARE_UNTIL.remove(id);
-        FURINA_FANFARE_POINTS.remove(id);
-        FURINA_FANFARE_NETHERITE.remove(id);
-        JADE_SHIELD_UNTIL.remove(id);
-        JADE_SHIELD_NETHERITE.remove(id);
-        NIGHTS_FOCUS_UNTIL.remove(id);
-        NIGHTS_FOCUS_NETHERITE.remove(id);
-        NIGHTS_FOCUS_STARS.remove(id);
-        NIGHTS_FOCUS_LAST_AUTO_STAR.remove(id);
-        NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
-        NIGHTS_FOCUS_BASE_HP.remove(id);
-        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
-        LAYLA_DREAMSPHERE_UNTIL.remove(id);
-        LAYLA_DREAMSPHERE_NETHERITE.remove(id);
-        LAYLA_DREAMSPHERE_NEXT_SHOT.remove(id);
-        MAVUIKA_AURA_UNTIL.remove(id);
-        MAVUIKA_AURA_NETHERITE.remove(id);
-        MAVUIKA_AURA_NEXT_STRIKE.remove(id);
-        MAVUIKA_NIGHTSOUL_POINTS.remove(id);
-        MAVUIKA_LAST_NIGHTSOUL_TICK.remove(id);
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(id);
-        RAIDEN_EYE_UNTIL.remove(id);
-        RAIDEN_EYE_NETHERITE.remove(id);
-        RAIDEN_EYE_NEXT_PROC.remove(id);
-        RAIDEN_RESOLVE.remove(id);
-        RAIDEN_MUSOU_UNTIL.remove(id);
-        RAIDEN_MUSOU_NETHERITE.remove(id);
-        RAIDEN_SKILL_CD_UNTIL.remove(id);
-        RAIDEN_BURST_CD_UNTIL.remove(id);
-        RAIDEN_IFRAME_UNTIL.remove(id);
-        RAIDEN_NA_COMBO.remove(id);
-        RAIDEN_LAST_MELEE_TICK.remove(id);
-        RAIDEN_NEXT_SWING_TICK.remove(id);
-        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-        RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
-        ArchonUltiManager.clearEntityState(id);
-        NahidaManager.clearPlayerState(id);
-        TsaritsaManager.clearPlayer(id);
-        PETRIFIED_UNTIL.remove(id);
-        LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
-        com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
-        com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
-        MobHazardAvoidanceManager.clearEntityState(entity);
-        if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
-            mob.setNoAi(false);
-            mob.removeTag(TAG_FROZEN_STATUE);
-        }
-        if (!entity.level().isClientSide()) {
-            if (entity instanceof ServerPlayer sp) {
-                CrystallizeShardManager.clearPlayerShield(sp);
-                ElementalResonanceManager.clearPlayerState(sp.getUUID());
-            }
-            com.velorise.staves.network.ModNetwork.sendAuraSync(entity, Collections.emptyList(), null, null, null, 0.0F, 0);
-        }
-    }
 
     public static void syncEntityOnStartTracking(ServerPlayer player, LivingEntity living) {
         if (player == null || living == null || living.level().isClientSide()) return;
@@ -860,280 +377,11 @@ public final class ElementalGaugeManager {
         }
     }
 
-    public static void enforceFrozenPoseIfFrozen(LivingEntity target) {
-        if (target != null && isEntityFrozen(target)) {
-            enforceFrozenPose(target, target.getUUID());
-        }
-    }
-
-    public static void clearAll() {
-        NahidaManager.clearAll();
-        TsaritsaManager.clearAll();
-        GAUGES.clear();
-        FROZEN_GAUGES.clear();
-        QUICKEN_GAUGES.clear();
-        FROZEN_UNTIL.clear();
-        FROZEN_POSES.clear();
-        LAST_FREEZE_STRUGGLE.clear();
-        QUICKEN_UNTIL.clear();
-        BURNING_UNTIL.clear();
-        BURNING_EM_LEVEL.clear();
-        ELECTRO_CHARGE_EM_LEVEL.clear();
-        LAST_BURN_PYRO_REFRESH.clear();
-        INNATE_COOLDOWN_UNTIL.clear();
-        ELECTRO_CHARGE_TICK.clear();
-        LAST_PROXIMITY_SHOCK.clear();
-        LAST_BLOOM_SPAWN.clear();
-        SUPERCONDUCT_UNTIL.clear();
-        OMNI_INNATE_ENTITIES.clear();
-        LAST_OMNI_ENV_IMMUNE.clear();
-        LAST_MUSHROOM_CONTACT.clear();
-        PLAYER_LAST_HP.clear();
-        PRE_ATTACK_STRENGTH.clear();
-        PLAYER_HP_CHANGE_BUFF_UNTIL.clear();
-        DRACONIC_GLORIES_STACKS.clear();
-        FURINA_FANFARE_UNTIL.clear();
-        FURINA_FANFARE_POINTS.clear();
-        FURINA_FANFARE_NETHERITE.clear();
-        JADE_SHIELD_UNTIL.clear();
-        JADE_SHIELD_NETHERITE.clear();
-        NIGHTS_FOCUS_UNTIL.clear();
-        NIGHTS_FOCUS_NETHERITE.clear();
-        NIGHTS_FOCUS_STARS.clear();
-        NIGHTS_FOCUS_LAST_AUTO_STAR.clear();
-        NIGHTS_FOCUS_LAST_SKILL_STAR.clear();
-        NIGHTS_FOCUS_BASE_HP.clear();
-        NIGHTS_FOCUS_PENDING_SHOTS.clear();
-        LAYLA_DREAMSPHERE_UNTIL.clear();
-        LAYLA_DREAMSPHERE_NETHERITE.clear();
-        LAYLA_DREAMSPHERE_NEXT_SHOT.clear();
-        NIGHTS_FOCUS_PROJECTILES.clear();
-        MAVUIKA_AURA_UNTIL.clear();
-        MAVUIKA_AURA_NETHERITE.clear();
-        MAVUIKA_AURA_NEXT_STRIKE.clear();
-        MAVUIKA_NIGHTSOUL_POINTS.clear();
-        MAVUIKA_LAST_NIGHTSOUL_TICK.clear();
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.clear();
-        RAIDEN_EYE_UNTIL.clear();
-        RAIDEN_EYE_NETHERITE.clear();
-        RAIDEN_EYE_NEXT_PROC.clear();
-        RAIDEN_RESOLVE.clear();
-        RAIDEN_MUSOU_UNTIL.clear();
-        RAIDEN_MUSOU_NETHERITE.clear();
-        RAIDEN_SKILL_CD_UNTIL.clear();
-        RAIDEN_BURST_CD_UNTIL.clear();
-        RAIDEN_IFRAME_UNTIL.clear();
-        RAIDEN_NA_COMBO.clear();
-        RAIDEN_LAST_MELEE_TICK.clear();
-        RAIDEN_NEXT_SWING_TICK.clear();
-        RAIDEN_PENDING_HITOTACHI_TICK.clear();
-        RAIDEN_PENDING_HITOTACHI_MULT.clear();
-        ArchonUltiManager.clearAll();
-        XilonenManager.clearAll();
-        PlungeAndGliderManager.clearAll();
-        NeuvilletteManager.clearAll();
-        PETRIFIED_UNTIL.clear();
-        LAST_ELEMENTAL_ARMOR_WEAR.clear();
-        SOURCEWATER_DROPLETS.clear();
-        ICD_TRACKER.clear();
-        REACTION_ICD_TRACKER.clear();
-        LAST_THORNS_REFLECT.clear();
-        DendroCoreManager.clearAll();
-        CrystallizeShardManager.clearAll();
-        ElectrifiedWaterManager.clearAll();
-        DragonfireCloudManager.clearAll();
-        GhastfireFieldManager.clearAll();
-        EnvironmentalBlockManager.clearAll();
-        ElementalResonanceManager.clearAll();
-        MobHazardAvoidanceManager.clearAll();
-        ElementalDeathMessageHelper.clearAll();
-        BURNING_ATTACKER_UUID.clear();
-        SUPPRESSED_PHYSICAL_FLOAT_TICK.clear();
-        EXPLODED_CREEPERS.clear();
-        PENDING_EVOKER_CONSTRUCTS.clear();
-    }
-
-    private static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) {
-        FROZEN_GAUGES.put(targetId, newFreeze);
-        FROZEN_UNTIL.put(targetId, now + freezeTicks);
-        target.setTicksFrozen(0);
-        MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
-        if (slow != null) {
-            target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-        }
-        target.stopUsingItem();
-        target.releaseUsingItem();
-        target.setDeltaMovement(Vec3.ZERO);
-        target.hasImpulse = false;
-        target.hurtMarked = true;
-
-        FROZEN_POSES.computeIfAbsent(targetId, k -> new FrozenPoseState(
-                target.getX(), target.getY(), target.getZ(),
-                target.getYRot(), target.getXRot(), target.getYHeadRot(), target.yBodyRot
-        ));
-
-        if (target instanceof Mob mob) {
-            mob.getNavigation().stop();
-            mob.setAggressive(false);
-            mob.setZza(0.0F);
-            mob.setXxa(0.0F);
-            mob.setYya(0.0F);
-            mob.setSpeed(0.0F);
-            mob.setJumping(false);
-            if (mob instanceof Creeper creeper) {
-                creeper.setSwellDir(-1);
-            }
-            if (!mob.isNoAi()) {
-                mob.setNoAi(true);
-            }
-            if (!mob.getTags().contains(TAG_FROZEN_STATUE)) {
-                mob.addTag(TAG_FROZEN_STATUE);
-            }
-        }
-    }
-
-    private static void enforceFrozenPose(LivingEntity target, UUID id) {
-        target.setTicksFrozen(0);
-        if (target.isUsingItem()) {
-            target.stopUsingItem();
-            target.releaseUsingItem();
-        }
-        if (target instanceof net.minecraft.world.entity.npc.AbstractVillager villager && villager.getUnhappyCounter() > 0) {
-            villager.setUnhappyCounter(0);
-        }
-        FrozenPoseState pose = FROZEN_POSES.get(id);
-        if (pose != null) {
-            double dy = target.onGround() ? 0.0D : Math.max(-0.08D, target.getDeltaMovement().y);
-            target.setDeltaMovement(0.0D, dy, 0.0D);
-            target.hasImpulse = false;
-            target.hurtMarked = true;
-            if (target.distanceToSqr(pose.x(), target.getY(), pose.z()) > 0.0001D) {
-                target.teleportTo(pose.x(), target.getY(), pose.z());
-            }
-            target.setYRot(pose.yRot());
-            target.setXRot(pose.xRot());
-            target.setYHeadRot(pose.yHeadRot());
-            target.setYBodyRot(pose.yBodyRot());
-            target.yRotO = pose.yRot();
-            target.xRotO = pose.xRot();
-            target.yHeadRotO = pose.yHeadRot();
-            target.yBodyRotO = pose.yBodyRot();
-        } else {
-            target.setDeltaMovement(0.0D, target.getDeltaMovement().y < 0 ? -0.05D : 0.0D, 0.0D);
-            target.hasImpulse = false;
-            target.hurtMarked = true;
-        }
-
-        if (target instanceof Mob mob) {
-            mob.getNavigation().stop();
-            mob.setTarget(null);
-            mob.setAggressive(false);
-            mob.setZza(0.0F);
-            mob.setXxa(0.0F);
-            mob.setYya(0.0F);
-            mob.setSpeed(0.0F);
-            mob.setJumping(false);
-            if (mob instanceof Creeper creeper) {
-                creeper.setSwellDir(-1);
-            }
-            if (!mob.isNoAi()) {
-                mob.setNoAi(true);
-            }
-            if (!mob.getTags().contains(TAG_FROZEN_STATUE)) {
-                mob.addTag(TAG_FROZEN_STATUE);
-            }
-        }
-    }
-
-    public static int getFrozenRemainingTicks(UUID id, long now) {
-        int rem = 0;
-        GaugeState fg = FROZEN_GAUGES.get(id);
-        if (fg != null && !fg.isExpired()) {
-            rem = fg.getRemainingTicks();
-        }
-        Long frozenEnd = FROZEN_UNTIL.get(id);
-        if (frozenEnd != null && now < frozenEnd) {
-            int endRem = (int) (frozenEnd - now);
-            rem = rem > 0 ? Math.min(rem, endRem) : endRem;
-        }
-        return Math.max(0, rem);
-    }
-
-    public static void tickEntityFreezeGuard(LivingEntity entity) {
-        if (entity == null || entity.level().isClientSide()) return;
-        UUID id = entity.getUUID();
-        if (isEntityFrozen(entity)) {
-            enforceFrozenPose(entity, id);
-        } else if (entity instanceof Mob mob && (mob.getTags().contains(TAG_FROZEN_STATUE) || FROZEN_POSES.containsKey(id))) {
-            clearFreezeState(entity, id);
-        }
-    }
-
-    private static void clearFreezeState(LivingEntity target, UUID id) {
-        boolean hadFreeze = FROZEN_GAUGES.remove(id) != null
-                || FROZEN_UNTIL.remove(id) != null
-                || PETRIFIED_UNTIL.remove(id) != null
-                || FROZEN_POSES.remove(id) != null;
-        LAST_FREEZE_STRUGGLE.remove(id);
-        target.setTicksFrozen(0);
-        MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
-        if (slow != null && slow.getAmplifier() >= 6) {
-            target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-        }
-        boolean hadTag = false;
-        if (target instanceof net.minecraft.world.entity.Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE)) {
-            mob.setNoAi(false);
-            mob.removeTag(TAG_FROZEN_STATUE);
-            hadTag = true;
-        }
-        if ((hadFreeze || hadTag) && !target.level().isClientSide() && target.isAlive()) {
-            syncAuras(target, getEntityElements(id), null, null, null, 0.0F);
-        }
-    }
-
     /**
      * Genshin Impact Spacebar Struggle: allows a Frozen player to mash Space to shave off freeze duration faster.
      */
-    public static void handlePlayerFreezeStruggle(ServerPlayer player) {
-        if (player == null || !player.isAlive() || player.level().isClientSide()) return;
-        UUID id = player.getUUID();
-        GaugeState fg = FROZEN_GAUGES.get(id);
-        Long frozenEnd = FROZEN_UNTIL.get(id);
-        long now = player.level().getGameTime();
-        if (fg == null && (frozenEnd == null || now >= frozenEnd)) return;
 
-        Long lastStruggle = LAST_FREEZE_STRUGGLE.get(id);
-        if (lastStruggle != null && now >= lastStruggle && (now - lastStruggle) < 2L) {
-            return; // Rate limit: max 1 struggle every 2 ticks (10 presses/sec)
-        }
-        LAST_FREEZE_STRUGGLE.put(id, now);
-
-        if (fg != null) {
-            fg.consume(0.35F);
-        }
-        long newEnd = (frozenEnd != null ? frozenEnd - 8L : now);
-        if (fg != null && !fg.isExpired()) {
-            newEnd = Math.min(newEnd, now + fg.getRemainingTicks());
-        }
-        FROZEN_UNTIL.put(id, newEnd);
-
-        ServerLevel level = (ServerLevel) player.level();
-        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 0.9D, player.getZ(), 5, 0.25D, 0.35D, 0.25D, 0.03D);
-        level.sendParticles(ParticleTypes.ITEM_SNOWBALL, player.getX(), player.getY() + 0.9D, player.getZ(), 4, 0.2D, 0.3D, 0.2D, 0.04D);
-
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-        if ((fg != null && fg.isExpired()) || now >= newEnd) {
-            clearFreezeState(player, id);
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.85F, 1.35F);
-            level.sendParticles(ParticleTypes.ITEM_SNOWBALL, player.getX(), player.getY() + 0.9D, player.getZ(), 18, 0.35D, 0.45D, 0.35D, 0.06D);
-            syncAuras(player, targetGauges.keySet(), null, null, null);
-        } else {
-            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.GLASS_HIT, SoundSource.PLAYERS, 0.65F, 1.55F + player.getRandom().nextFloat() * 0.3F);
-            syncAuras(player, targetGauges.keySet(), null, null, null);
-        }
-    }
-
-    private static void clearQuickenState(UUID id) {
+    public static void clearQuickenState(UUID id) {
         QUICKEN_GAUGES.remove(id);
         QUICKEN_UNTIL.remove(id);
     }
@@ -1142,1489 +390,33 @@ public final class ElementalGaugeManager {
      * Checks if the entity is physically submerged in water blocks/fluid (excluding rain on dry land).
      * Used for water surface freezing, electrified water zones, and underwater voltaic arcing.
      */
-    public static boolean isEntitySubmergedInWater(LivingEntity target) {
-        if (target.isInWater()) return true;
-        BlockPos feet = target.blockPosition();
-        if (target.level().getBlockState(feet).is(Blocks.WATER) || target.level().getFluidState(feet).is(FluidTags.WATER)) {
-            return true;
-        }
-        if (target.level().getFluidState(feet.below()).is(FluidTags.WATER)) {
-            return true;
-        }
-        BlockPos eye = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
-        return target.level().getBlockState(eye).is(Blocks.WATER) || target.level().getFluidState(eye).is(FluidTags.WATER);
-    }
 
     /**
      * Checks if the entity is exposed to environmental Hydro (submerged in water, bubble column, or standing in rain).
      */
-    public static boolean isEntityInWater(LivingEntity target) {
-        return isEntitySubmergedInWater(target) || target.isInWaterRainOrBubble() || target.isInWaterOrRain();
-    }
-
-    public static boolean isTouchingSoulCampfire(LivingEntity target) {
-        if (target == null || target.level().isClientSide()) return false;
-        AABB box = target.getBoundingBox().inflate(0.10D, 0.20D, 0.10D);
-        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.15D, box.minZ);
-        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
-        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-            if (!target.level().hasChunkAt(p)) continue;
-            BlockState st = target.level().getBlockState(p);
-            if (st.is(Blocks.SOUL_CAMPFIRE) && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * Checks whether the entity is physically standing in or touching an environmental fire source
      * (Lava, Fire/Soul Fire block, lit Campfire/Soul Campfire, or Magma Block) rather than merely
      * having residual Vanilla afterburn ticks from a weapon or staff hit.
      */
-    public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) {
-        if (target == null || target.level().isClientSide()) return false;
-        if (target.isInLava()) return true;
-        AABB box = target.getBoundingBox().inflate(0.06D, 0.12D, 0.06D);
-        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.12D, box.minZ);
-        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
-        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-            if (!target.level().hasChunkAt(p)) continue;
-            BlockState st = target.level().getBlockState(p);
-            if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.MAGMA_BLOCK)) {
-                return true;
-            }
-            if ((st.is(Blocks.CAMPFIRE) || st.is(Blocks.SOUL_CAMPFIRE))
-                    && (!st.hasProperty(CampfireBlock.LIT) || st.getValue(CampfireBlock.LIT))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static boolean isTouchingMushroomBlock(LivingEntity target) {
-        if (target == null || target.level().isClientSide()) return false;
-        AABB box = target.getBoundingBox().inflate(0.08D, 0.08D, 0.08D);
-        BlockPos min = BlockPos.containing(box.minX, box.minY - 0.12D, box.minZ);
-        BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
-        for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-            if (!target.level().hasChunkAt(p)) continue;
-            BlockState st = target.level().getBlockState(p);
-            if (st.is(MUSHROOM_BLOCKS)
-                    || st.getBlock() instanceof HugeMushroomBlock
-                    || st.is(Blocks.BROWN_MUSHROOM_BLOCK)
-                    || st.is(Blocks.RED_MUSHROOM_BLOCK)
-                    || st.is(Blocks.MUSHROOM_STEM)
-                    || st.is(Blocks.BROWN_MUSHROOM)
-                    || st.is(Blocks.RED_MUSHROOM)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) {
-        if (target == null || !target.isAlive() || target.isSpectator()) return;
-        if (isOmniInnate(target) || hasInnateElement(target, Element.DENDRO)) return;
-        UUID id = target.getUUID();
-        Long last = LAST_MUSHROOM_CONTACT.get(id);
-        if (last != null && now >= last && (now - last) < 20L) return;
-        if (!isTouchingMushroomBlock(target)) return;
-        LAST_MUSHROOM_CONTACT.put(id, now);
-        applyElementBypassIcd(level, target, Element.DENDRO, 1.25F, null, 0.0F);
-    }
-
-    public static void updatePlayerHpTracking(ServerPlayer player, long now) {
-        if (player == null || !player.isAlive()) return;
-        UUID id = player.getUUID();
-        float curHp = player.getHealth();
-        Float prevHp = PLAYER_LAST_HP.put(id, curHp);
-        if (prevHp != null && Math.abs(curHp - prevHp) > 0.01F) {
-            PLAYER_HP_CHANGE_BUFF_UNTIL.put(id, now + HP_CHANGE_BUFF_TICKS);
-            if (player.level() instanceof ServerLevel sl) {
-                float deltaFraction = Math.abs(curHp - prevHp) / Math.max(1.0F, player.getMaxHealth());
-                recordFurinaHpFluctuation(sl, player, deltaFraction);
-            }
-        }
-    }
-
-    public static void recordFurinaHpFluctuation(ServerLevel level, LivingEntity changedEntity, float hpFractionDelta) {
-        if (level == null || changedEntity == null || hpFractionDelta <= 0.001F) return;
-        long now = level.getGameTime();
-        int gainPoints = Math.max(1, Math.round(hpFractionDelta * 100.0F * 4.0F));
-        for (ServerPlayer sp : level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(changedEntity) <= 256.0D)) {
-            if (com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(sp)) {
-                boolean neth = com.velorise.staves.entity.HydroSalonSummonEntity.hasNetheriteSummon(sp);
-                UUID spId = sp.getUUID();
-                Long until = FURINA_FANFARE_UNTIL.get(spId);
-                int current = (until != null && now < until) ? FURINA_FANFARE_POINTS.getOrDefault(spId, 0) : 0;
-                int updated = Math.min(300, current + gainPoints);
-                FURINA_FANFARE_POINTS.put(spId, updated);
-                FURINA_FANFARE_UNTIL.put(spId, now + 360L); // 18s Fanfare duration
-                FURINA_FANFARE_NETHERITE.put(spId, neth);
-            }
-        }
-    }
-
-    public static void activateFurinaUniversalRevelry(ServerPlayer player, boolean isNetherite) {
-        if (player == null || player.level().isClientSide()) return;
-        UUID id = player.getUUID();
-        long now = player.level().getGameTime();
-        int cur = (now < FURINA_FANFARE_UNTIL.getOrDefault(id, 0L)) ? FURINA_FANFARE_POINTS.getOrDefault(id, 0) : 0;
-        FURINA_FANFARE_POINTS.put(id, Math.min(300, Math.max(cur + (isNetherite ? 240 : 160), isNetherite ? 300 : 180)));
-        FURINA_FANFARE_UNTIL.put(id, now + 360L); // 18.0s Universal Revelry duration
-        FURINA_FANFARE_NETHERITE.put(id, isNetherite);
-    }
-
-    public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) {
-        if (entity == null || entity.level().isClientSide()) return 1.0F;
-        long now = entity.level().getGameTime();
-        // Check if entity is a player with Fanfare or allied near a player with Fanfare
-        UUID bestOwner = null;
-        int bestPoints = 0;
-        if (entity instanceof Player p) {
-            Long until = FURINA_FANFARE_UNTIL.get(p.getUUID());
-            if (until != null && now < until) {
-                bestPoints = FURINA_FANFARE_POINTS.getOrDefault(p.getUUID(), 0);
-                bestOwner = p.getUUID();
-            }
-        }
-        if (bestPoints < 300 && entity.level() instanceof ServerLevel sl) {
-            for (ServerPlayer sp : sl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= 256.0D)) {
-                Long until = FURINA_FANFARE_UNTIL.get(sp.getUUID());
-                if (until != null && now < until) {
-                    int pts = FURINA_FANFARE_POINTS.getOrDefault(sp.getUUID(), 0);
-                    if (pts > bestPoints) {
-                        bestPoints = pts;
-                        bestOwner = sp.getUUID();
-                    }
-                }
-            }
-        }
-        if (bestPoints <= 0 || bestOwner == null) return 1.0F;
-        boolean neth = Boolean.TRUE.equals(FURINA_FANFARE_NETHERITE.get(bestOwner));
-        float maxBonus = neth ? 0.30F : 0.25F;
-        return 1.0F + (bestPoints / 300.0F) * maxBonus;
-    }
-
-    public static boolean isMavuikaOnCooldown(UUID id, long now) {
-        Long cdUntil = MAVUIKA_SKILL_COOLDOWN_UNTIL.get(id);
-        return cdUntil != null && now < cdUntil;
-    }
-
-    public static long getMavuikaSkillRemainingTicks(UUID id, long now) {
-        return Math.max(0L, MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(id, 0L) - now);
-    }
-
-    public static void applyMavuikaDismountOrRemainingCooldown(ServerPlayer player) {
-        if (player == null) return;
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        long remCd = getMavuikaSkillRemainingTicks(player.getUUID(), now);
-        int clientCd;
-        if (isMavuikaAuraActive(player.getUUID(), now)) {
-            clientCd = 12;
-        } else {
-            long effectiveRem = Math.max(remCd, 100L);
-            MAVUIKA_SKILL_COOLDOWN_UNTIL.put(player.getUUID(), Math.max(
-                    MAVUIKA_SKILL_COOLDOWN_UNTIL.getOrDefault(player.getUUID(), 0L),
-                    now + effectiveRem));
-            clientCd = (int) Math.min(Integer.MAX_VALUE, effectiveRem);
-        }
-        for (ItemStack invStack : player.getInventory().items) {
-            if (invStack.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(invStack) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                player.getCooldowns().addCooldown(staff, clientCd);
-            }
-        }
-        ItemStack off = player.getOffhandItem();
-        if (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
-                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            player.getCooldowns().addCooldown(staff, clientCd);
-        }
-    }
-
-    public static void activateMavuikaSunAura(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
-        if (player == null || player.level().isClientSide()) return;
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = player.getUUID();
-        MAVUIKA_AURA_UNTIL.put(id, now + 400L);
-        MAVUIKA_NIGHTSOUL_FUEL.put(id, 80.0F);
-        MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
-        MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
-        long cdTicks = Math.max(300L, cooldownTicks > 0 ? cooldownTicks : 300L);
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.put(id, now + cdTicks);
-        if (isNetherite && !MAVUIKA_LAST_NIGHTSOUL_TICK.containsKey(id)) {
-            MAVUIKA_LAST_NIGHTSOUL_TICK.put(id, now);
-        }
-        float pts = isNetherite ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
-        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 800, pts, isNetherite);
-        for (int a = 0; a < 12; a++) {
-            double ang = a * (Math.PI * 2.0D / 12.0D);
-            double px = player.getX() + Math.cos(ang) * 0.9D;
-            double pz = player.getZ() + Math.sin(ang) * 0.9D;
-            level.sendParticles(ParticleTypes.FLAME, px, player.getY() + 1.05D, pz, 2, 0.05D, 0.12D, 0.05D, 0.02D);
-        }
-        level.playSound(null, player.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.1F);
-    }
-
-    public static void consumeMavuikaNightsoulFuel(ServerPlayer player, float amount) {
-        if (player == null || amount <= 0.0F) return;
-        UUID id = player.getUUID();
-        long now = player.serverLevel().getServer().overworld().getGameTime();
-        if (now < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return; // Crucible of Death and Life: no Nightsoul cost
-        Float cur = MAVUIKA_NIGHTSOUL_FUEL.get(id);
-        if (cur == null || cur <= 0.0F) return;
-        float next = Math.max(0.0F, cur - amount);
-        MAVUIKA_NIGHTSOUL_FUEL.put(id, next);
-    }
-
-    public static boolean isMavuikaAuraActive(UUID id, long now) {
-        return MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) > 0.01F;
-    }
-
-    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
-        summonAndMountFlamestrider(player, isNetherite, cooldownTicks, true);
-    }
-
-    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks, boolean dealCastSweep) {
-        if (player == null || player.level().isClientSide()) return;
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        boolean firstCast = !isMavuikaAuraActive(player.getUUID(), now);
-        if (firstCast) {
-            activateMavuikaSunAura(player, isNetherite, cooldownTicks);
-        }
-        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
-            return;
-        }
-        com.velorise.staves.entity.FlamestriderBikeEntity bike =
-                com.velorise.staves.VeloriseStavesMod.FLAMESTRIDER_BIKE.get().create(level);
-        if (bike == null) return;
-        bike.moveTo(player.getX(), player.getY(), player.getZ(), player.getYRot(), 0.0F);
-        bike.setOwner(player);
-        bike.setNetherite(isNetherite);
-        level.addFreshEntity(bike);
-        player.startRiding(bike, true);
-        if (firstCast && dealCastSweep) {
-            // Genshin Hold E (first cast): initial forward bike tail-whip Pyro sweep on mount
-            float castDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite) * 0.65F;
-            Vec3 fwd = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
-            Vec3 sweepCenter = player.position().add(fwd.scale(2.0D)).add(0.0D, 0.5D, 0.0D);
-            AABB sweepBox = new AABB(sweepCenter.x - 3.6D, sweepCenter.y - 1.5D, sweepCenter.z - 3.6D,
-                    sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                    e -> e.isAlive() && !e.isRemoved() && e != player && !isPassiveAquaticOrAmbient(e))) {
-                applyElement(level, target, Element.PYRO, isNetherite ? 1.5F : 1.0F, player, castDmg);
-                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                        10, 0.25D, 0.25D, 0.25D, 0.05D);
-            }
-            bike.triggerMountWhip();
-        }
-        level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.5D, player.getZ(), 22, 0.55D, 0.3D, 0.55D, 0.07D);
-        level.playSound(null, player.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.9F, 0.95F);
-    }
-
-    public static void toggleMavuikaBike(ServerPlayer player) {
-        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-            player.stopRiding();
-            bike.discard();
-            return;
-        }
-        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
-        ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        ItemStack matched = ItemStack.EMPTY;
-        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            matched = main;
-        } else if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            matched = off;
-        }
-        if (matched.isEmpty()) return;
-        long now = player.serverLevel().getServer().overworld().getGameTime();
-        if (!isMavuikaAuraActive(player.getUUID(), now) && isMavuikaOnCooldown(player.getUUID(), now)) return;
-        summonAndMountFlamestrider(player, com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(matched), 300);
-    }
-
-    public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) {
-        if (!(target instanceof ServerPlayer sp)) return 0;
-        long now = sp.serverLevel().getServer().overworld().getGameTime();
-        return (int) Math.max(0L, MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(sp.getUUID(), 0L) - now);
-    }
-
-    public static void triggerMavuikaUlti(ServerPlayer player) {
-        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        boolean hasNethSuns = (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS && sm.isNetherite())
-                || (off.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS && so.isNetherite());
-        if (!hasNethSuns) return;
-
-        UUID id = player.getUUID();
-        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
-        if (pts < 5.0F) return;
-
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        if (now < MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(id, 0L)) return; // 18.0s Genshin Q cooldown
-        MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
-        float clampedPts = Math.min(10.0F, pts);
-        float baseScale = (float) (StavesConfig.getStaffBasicDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
-                / Math.max(0.001D, StavesConfig.getDefaultBasicDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)));
-        float ultiDmg = (10.0F + ((clampedPts - 5.0F) / 5.0F) * 10.0F) * baseScale;
-
-        MAVUIKA_NIGHTSOUL_POINTS.put(id, 0.0F);
-        if (!isMavuikaAuraActive(id, now)) {
-            MAVUIKA_AURA_UNTIL.put(id, now + 140L);
-            MAVUIKA_AURA_NETHERITE.put(id, true);
-            MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
-        }
-
-        MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F), 60.0F));
-        if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
-            summonAndMountFlamestrider(player, true, 0, false);
-        }
-        ArchonUltiManager.grantUltiIframe(player, 34); // 1.7s Genshin Q I-frames
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
-        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
-        if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-            bike.startUltiSlam(ultiDmg);
-        } else {
-            executeMavuikaUltiImpact(level, player, ultiDmg);
-        }
-
-        int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
-        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, 0.0F, true);
-    }
-
-    public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) {
-        if (level == null || player == null || !player.isAlive()) return;
-        Vec3 forward = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
-        Vec3 origin = player.position();
-        AABB box = player.getBoundingBox().inflate(5.5D, 2.5D, 5.5D);
-        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e.isAlive() && !e.isRemoved() && e != player);
-        for (LivingEntity target : targets) {
-            Vec3 toTarget = target.position().subtract(origin);
-            double distSqr = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-            if (distSqr > 25.0D || Math.abs(toTarget.y) > 3.2D) continue;
-            Vec3 horiz = new Vec3(toTarget.x, 0.0D, toTarget.z);
-            if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < 0.0D) continue;
-            applyElement(level, target, Element.PYRO, 2.0F, player, ultiDmg);
-        }
-
-        Vec3 right = new Vec3(-forward.z, 0.0D, forward.x).normalize();
-        Vec3 slashStart = origin.add(forward.scale(2.1D)).subtract(right.scale(4.4D)).add(0.0D, 0.55D, 0.0D);
-        Vec3 slashEnd = origin.add(forward.scale(4.2D)).add(right.scale(4.6D)).add(0.0D, 2.35D, 0.0D);
-        com.velorise.staves.network.ModNetwork.sendElectricArc(level, slashStart, slashEnd, 14, 0xFFFF6A00);
-        for (int k = 0; k <= 12; k++) {
-            double frac = k / 12.0D;
-            double bow = Math.sin(frac * Math.PI) * 2.2D;
-            Vec3 slashPt = slashStart.lerp(slashEnd, frac).add(forward.scale(bow));
-            level.sendParticles(ParticleTypes.FLAME, slashPt.x, slashPt.y, slashPt.z, 3, 0.10D, 0.10D, 0.10D, 0.03D);
-            if (k % 2 == 0) {
-                level.sendParticles(ParticleTypes.LAVA, slashPt.x, slashPt.y, slashPt.z, 1, 0.06D, 0.06D, 0.06D, 0.01D);
-            }
-        }
-
-        Vec3 slamCenter = origin.add(forward.scale(2.8D));
-        level.sendParticles(ParticleTypes.EXPLOSION, slamCenter.x, slamCenter.y + 0.8D, slamCenter.z, 2, 0.6D, 0.3D, 0.6D, 0.0D);
-        for (int a = 0; a < 360; a += 15) {
-            Vec3 dir = Vec3.directionFromRotation(0.0F, player.getYRot() + a);
-            Vec3 ringPos = origin.add(dir.scale(3.2D));
-            level.sendParticles(ParticleTypes.FLAME, ringPos.x, origin.y + 0.18D, ringPos.z, 2, 0.08D, 0.05D, 0.08D, 0.02D);
-            if (a >= -90 && a <= 90) {
-                for (double r = 1.8D; r <= 5.0D; r += 1.4D) {
-                    Vec3 p = origin.add(dir.scale(r));
-                    level.sendParticles(ParticleTypes.FLAME, p.x, origin.y + 0.4D, p.z, 2, 0.12D, 0.18D, 0.12D, 0.04D);
-                    level.sendParticles(ParticleTypes.LAVA, p.x, origin.y + 0.5D, p.z, 1, 0.1D, 0.1D, 0.1D, 0.01D);
-                }
-            }
-        }
-        level.playSound(null, player.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0F, 0.9F);
-        level.playSound(null, player.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 1.0F, 0.8F);
-    }
-
-    private static void tickMavuikaSunAura(MinecraftServer server, long serverNow) {
-        if (MAVUIKA_NIGHTSOUL_FUEL.isEmpty() && MAVUIKA_AURA_UNTIL.isEmpty() && MAVUIKA_NIGHTSOUL_POINTS.isEmpty()) return;
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            UUID id = player.getUUID();
-            float fuel = MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F);
-            boolean active = fuel > 0.01F;
-            boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, false);
-            if (!active) {
-                if (MAVUIKA_AURA_UNTIL.remove(id) != null || MAVUIKA_NIGHTSOUL_FUEL.remove(id) != null) {
-                    if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                        if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
-                                && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
-                            player.stopRiding();
-                            bike.discard();
-                        }
-                    }
-                    float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
-                    com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
-                    applyMavuikaDismountOrRemainingCooldown(player);
-                }
-                continue;
-            }
-            if (!player.isAlive()) {
-                MAVUIKA_AURA_UNTIL.remove(id);
-                MAVUIKA_NIGHTSOUL_FUEL.remove(id);
-                MAVUIKA_NIGHTSOUL_POINTS.remove(id);
-                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, 0.0F, neth);
-                continue;
-            }
-
-            ServerLevel level = player.serverLevel();
-            boolean onBike = player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity;
-            boolean crucibleActive = serverNow < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L);
-            float drainPerTick = 0.325F;
-            if (crucibleActive) {
-                drainPerTick = 0.0F;
-            } else if (onBike && player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                drainPerTick = 0.45F;
-                if (bike.isDashingServer()) {
-                    drainPerTick = 1.45F;
-                } else if (bike.isInWater()) {
-                    drainPerTick = 0.70F;
-                } else if (bike.isGliding()) {
-                    drainPerTick = 0.60F;
-                } else if (bike.isBikeSprinting()) {
-                    drainPerTick = 0.70F;
-                } else if (bike.isSpinning()) {
-                    drainPerTick = 0.55F;
-                }
-            }
-            fuel = Math.max(0.0F, fuel - drainPerTick);
-            MAVUIKA_NIGHTSOUL_FUEL.put(id, fuel);
-            if (fuel <= 0.01F) {
-                MAVUIKA_NIGHTSOUL_FUEL.remove(id);
-                MAVUIKA_AURA_UNTIL.remove(id);
-                if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                    if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
-                            && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
-                        player.stopRiding();
-                        bike.discard();
-                    }
-                }
-                float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
-                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
-                applyMavuikaDismountOrRemainingCooldown(player);
-                continue;
-            }
-            long nextStrike = MAVUIKA_AURA_NEXT_STRIKE.getOrDefault(id, 0L);
-            if (!onBike && serverNow >= nextStrike) {
-                MAVUIKA_AURA_NEXT_STRIKE.put(id, serverNow + 40L);
-                double radius = neth ? 8.0D : 6.0D;
-                AABB box = player.getBoundingBox().inflate(radius, 3.5D, radius);
-                List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, box,
-                        cand -> cand.isAlive() && !cand.isRemoved() && cand != player && !isPassiveAquaticOrAmbient(cand)
-                                && cand.distanceToSqr(player) <= radius * radius);
-                if (!candidates.isEmpty()) {
-                    candidates.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(player)));
-                    int maxTargets = Math.min(10, candidates.size()); // Genshin Ring of Searing Radiance: up to 10 opponents
-                    float strikeDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth) * 0.5F;
-                    for (int ti = 0; ti < maxTargets; ti++) {
-                        LivingEntity target = candidates.get(ti);
-                        applyElement(level, target, Element.PYRO, neth ? 1.5F : 1.0F, player, strikeDmg);
-                        for (int h = 0; h < 6; h++) {
-                            level.sendParticles(ParticleTypes.FLAME,
-                                    target.getX(), target.getY() + target.getBbHeight() + 0.3D + h * 0.45D, target.getZ(),
-                                    2, 0.08D, 0.08D, 0.08D, 0.02D);
-                        }
-                    }
-                    level.playSound(null, candidates.get(0).blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.55F, 1.35F);
-                }
-            }
-
-            if (neth) {
-                long lastNs = MAVUIKA_LAST_NIGHTSOUL_TICK.getOrDefault(id, 0L);
-                if (serverNow - lastNs >= 20L) {
-                    MAVUIKA_LAST_NIGHTSOUL_TICK.put(id, serverNow);
-                    AABB nearBox = player.getBoundingBox().inflate(14.0D, 6.0D, 14.0D);
-                    boolean hasMobNear = !level.getEntitiesOfClass(LivingEntity.class, nearBox,
-                            e -> e.isAlive() && !e.isRemoved() && !(e instanceof Player) && !isPassiveAquaticOrAmbient(e)).isEmpty();
-                    if (hasMobNear) {
-                        float cur = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
-                        float updated = Math.min(10.0F, cur + 0.5F);
-                        MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
-                    }
-                }
-            }
-
-            if (serverNow % 2L == 0L) {
-                int rem = Math.max(1, Math.round(fuel * 10.0F));
-                float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
-                com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, pts, neth);
-            }
-        }
-    }
 
     /**
      * Silently adjusts an entity's health (e.g. Furina's Salon Solitaire HP offer or Neuvillette's beam)
      * without triggering any hurt sound, red hurt flash, camera tilt, or knockback impulse.
      */
-    public static void drainHealthSilently(LivingEntity entity, float newHealth) {
-        if (entity == null || !entity.isAlive()) return;
-        Vec3 prevVel = entity.getDeltaMovement();
-        float clamped = Math.max(0.5F, Math.min(entity.getMaxHealth(), newHealth));
-        if (!entity.level().isClientSide()) {
-            com.velorise.staves.network.ModNetwork.sendSilentHealthSync(entity, clamped);
-        }
-        entity.setHealth(clamped);
-        entity.invulnerableTime = 0;
-        entity.hurtTime = 0;
-        entity.hurtDuration = 0;
-        entity.hurtMarked = false;
-        entity.setDeltaMovement(prevVel);
-    }
 
-    public static void setPlayerShieldAbsorption(ServerPlayer player, float targetAbsorption) {
-        if (player == null) return;
-        player.setAbsorptionAmount(targetAbsorption);
-    }
-
-    public static void activateJadeShield(ServerPlayer player, boolean isNetherite) {
-        if (player == null || player.level().isClientSide()) return;
-        long now = player.level().getGameTime();
-        JADE_SHIELD_UNTIL.put(player.getUUID(), now + 400L); // 20s Jade Shield
-        JADE_SHIELD_NETHERITE.put(player.getUUID(), isNetherite);
-        float maxHp = Math.max(20.0F, player.getMaxHealth());
-        // Base Jade Shield capacity + 20% Golden Majesty Shield Strength bonus
-        float shieldHp = ((isNetherite ? (maxHp * 0.25F + 5.4167F) : (maxHp * 0.18F + 3.9F)) * 1.20F); // 9.0 HP Basic / 12.5 HP Netherite at 20 MaxHP
-        if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
-            shieldHp *= 1.15F;
-        }
-        com.velorise.staves.effect.ModMobEffects.removeAllShields(player);
-        var geoShieldObj = com.velorise.staves.effect.ModMobEffects.getShieldForElement(Element.GEO);
-        if (geoShieldObj != null && geoShieldObj.isPresent()) {
-            player.addEffect(new MobEffectInstance(geoShieldObj.get(), 400, isNetherite ? 1 : 0, false, false, true));
-        }
-        setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
-        CrystallizeShardManager.onShieldApplied(player, Element.GEO, 400);
-    }
-
-    public static void activateNightsFocusShield(ServerPlayer player, boolean isNetherite) {
-        if (player == null || player.level().isClientSide()) return;
-        UUID id = player.getUUID();
-        long now = player.level().getGameTime();
-        NIGHTS_FOCUS_UNTIL.put(id, now + 240L); // 12s Cryo Shield
-        NIGHTS_FOCUS_NETHERITE.put(id, isNetherite);
-        NIGHTS_FOCUS_STARS.put(id, 0);
-        NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
-        NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
-        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
-
-        float maxHp = Math.max(20.0F, player.getMaxHealth());
-        float shieldHp = maxHp * (isNetherite ? 0.60F : 0.40F);
-        if (ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.GEO)) {
-            shieldHp *= 1.15F;
-        }
-        NIGHTS_FOCUS_BASE_HP.put(id, shieldHp);
-        JADE_SHIELD_UNTIL.remove(id);
-
-        com.velorise.staves.effect.ModMobEffects.removeAllShields(player);
-        var cryoShieldObj = com.velorise.staves.effect.ModMobEffects.getShieldForElement(Element.CRYO);
-        if (cryoShieldObj != null && cryoShieldObj.isPresent()) {
-            player.addEffect(new MobEffectInstance(cryoShieldObj.get(), 240, isNetherite ? 1 : 0, false, false, true));
-        }
-        setPlayerShieldAbsorption(player, Math.max(player.getAbsorptionAmount(), shieldHp));
-        CrystallizeShardManager.onShieldApplied(player, Element.CRYO, 240);
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
-    }
-
-    public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) {
-        if (player == null || player.level().isClientSide()) return;
-        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
-        ArchonUltiManager.grantUltiIframe(player, 24);
-        UUID id = player.getUUID();
-        long now = player.level().getGameTime();
-        if (now >= NIGHTS_FOCUS_UNTIL.getOrDefault(id, 0L)) {
-            activateNightsFocusShield(player, isNetherite);
-        }
-        NIGHTS_FOCUS_STARS.put(id, 4);
-        LAYLA_DREAMSPHERE_UNTIL.put(id, now + 240L); // 12.0s Celestial Dreamsphere
-        LAYLA_DREAMSPHERE_NETHERITE.put(id, isNetherite);
-        LAYLA_DREAMSPHERE_NEXT_SHOT.put(id, now + 20L);
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 14);
-    }
-
-    private static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) {
-        UUID id = player.getUUID();
-        NIGHTS_FOCUS_UNTIL.remove(id);
-        NIGHTS_FOCUS_NETHERITE.remove(id);
-        NIGHTS_FOCUS_STARS.remove(id);
-        NIGHTS_FOCUS_LAST_AUTO_STAR.remove(id);
-        NIGHTS_FOCUS_LAST_SKILL_STAR.remove(id);
-        NIGHTS_FOCUS_BASE_HP.remove(id);
-        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
-        MAVUIKA_AURA_UNTIL.remove(id);
-        MAVUIKA_AURA_NETHERITE.remove(id);
-        MAVUIKA_AURA_NEXT_STRIKE.remove(id);
-        MAVUIKA_NIGHTSOUL_POINTS.remove(id);
-        MAVUIKA_LAST_NIGHTSOUL_TICK.remove(id);
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(id);
-        RAIDEN_EYE_UNTIL.remove(id);
-        RAIDEN_EYE_NETHERITE.remove(id);
-        RAIDEN_EYE_NEXT_PROC.remove(id);
-        RAIDEN_RESOLVE.remove(id);
-        RAIDEN_MUSOU_UNTIL.remove(id);
-        RAIDEN_MUSOU_NETHERITE.remove(id);
-        RAIDEN_SKILL_CD_UNTIL.remove(id);
-        RAIDEN_BURST_CD_UNTIL.remove(id);
-        RAIDEN_IFRAME_UNTIL.remove(id);
-        RAIDEN_NA_COMBO.remove(id);
-        RAIDEN_LAST_MELEE_TICK.remove(id);
-        RAIDEN_NEXT_SWING_TICK.remove(id);
-        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-        RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
-        long now = player.level().getGameTime();
-        Element cryst = CrystallizeShardManager.getActiveShield(player, now);
-        if (cryst == null) {
-            com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(player, null, 0);
-        }
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 19);
-        if (playBreakSound && player.level() instanceof ServerLevel sl) {
-            sl.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.9F, 1.35F);
-        }
-    }
-
-    public static boolean hasActiveNightsFocusShield(@Nullable LivingEntity entity) {
-        if (!(entity instanceof Player player)) return false;
-        Long until = NIGHTS_FOCUS_UNTIL.get(player.getUUID());
-        if (until == null) return false;
-        long now = player.level().getGameTime();
-        if (now >= until) {
-            if (player instanceof ServerPlayer sp) {
-                clearNightsFocusShield(sp, false);
-            } else {
-                NIGHTS_FOCUS_UNTIL.remove(player.getUUID());
-            }
-            return false;
-        }
-        if (!player.isCreative() && player.getAbsorptionAmount() <= 0.01F) {
-            if (player instanceof ServerPlayer sp) {
-                clearNightsFocusShield(sp, true);
-            } else {
-                NIGHTS_FOCUS_UNTIL.remove(player.getUUID());
-            }
-            return false;
-        }
-        return true;
-    }
-
-    public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) {
-        if (player == null) return;
-        grantRaidenResolveOnStaffSkill(player);
-        if (!hasActiveNightsFocusShield(player)) return;
-        UUID id = player.getUUID();
-        long now = player.level().getGameTime();
-        long lastSkill = NIGHTS_FOCUS_LAST_SKILL_STAR.getOrDefault(id, -100L);
-        if (now - lastSkill < 6L) return; // 0.3s cooldown
-        NIGHTS_FOCUS_LAST_SKILL_STAR.put(id, now);
-        addNightsFocusStars(player, 2, now);
-    }
-
-    private static void grantRaidenResolveOnStaffSkill(ServerPlayer player) {
-        if (player.level().isClientSide()) return;
-        UUID id = player.getUUID();
-        long now = player.serverLevel().getServer().overworld().getGameTime();
-        long last = RAIDEN_LAST_STAFF_RESOLVE_TICK.getOrDefault(id, -100L);
-        if (now - last < 20L) return;
-        boolean hasRaiden = now < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)
-                || ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
-                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
-        if (!hasRaiden) {
-            for (ItemStack invStack : player.getInventory().items) {
-                if (ArcaneStaffItem.getEffectiveKind(invStack) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-                    hasRaiden = true;
-                    break;
-                }
-            }
-        }
-        if (!hasRaiden) return;
-        RAIDEN_LAST_STAFF_RESOLVE_TICK.put(id, now);
-        addRaidenResolve(player, 6);
-    }
-
-    private static void addNightsFocusStars(ServerPlayer player, int amount, long now) {
-        UUID id = player.getUUID();
-        int prev = NIGHTS_FOCUS_STARS.getOrDefault(id, 0);
-        int next = Math.min(4, prev + amount);
-        if (next > prev) {
-            int gained = next - prev;
-            NIGHTS_FOCUS_STARS.put(id, next);
-            float baseHp = NIGHTS_FOCUS_BASE_HP.getOrDefault(id, Math.max(20.0F, player.getMaxHealth()) * 0.40F);
-            float bonus = baseHp * 0.06F * gained;
-            if (bonus > 0.0F && player.getAbsorptionAmount() > 0.0F) {
-                setPlayerShieldAbsorption(player, Math.min(baseHp * 1.24F, player.getAbsorptionAmount() + bonus));
-            }
-            if (player.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1.5D, player.getZ(),
-                        4 * gained, 0.45D, 0.3D, 0.45D, 0.02D);
-                sl.playSound(null, player.getX(), player.getY(), player.getZ(),
-                        SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.55F, 1.4F + 0.1F * next);
-            }
-            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10 + next);
-        }
-    }
-
-    private static void tickNightsFocusShield(ServerPlayer player, long now) {
-        UUID dsId = player.getUUID();
-        long dsUntil = LAYLA_DREAMSPHERE_UNTIL.getOrDefault(dsId, 0L);
-        if (now < dsUntil && player.level() instanceof ServerLevel dsLevel) {
-            long nextShot = LAYLA_DREAMSPHERE_NEXT_SHOT.getOrDefault(dsId, 0L);
-            if (now >= nextShot) {
-                LAYLA_DREAMSPHERE_NEXT_SHOT.put(dsId, now + 30L); // Fires Starlight Slug every 1.5s (30 ticks)
-                LivingEntity dsTarget = findNearestNightsFocusTarget(dsLevel, player);
-                if (dsTarget != null) {
-                    boolean dsNeth = LAYLA_DREAMSPHERE_NETHERITE.getOrDefault(dsId, false);
-                    float slugDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.NIGHTS_FOCUS, dsNeth) * 0.90F;
-                    float slugUnits = dsNeth ? 1.0F : 0.75F;
-                    Vec3 spherePos = player.position().add(0.0D, player.getBbHeight() + 1.15D, 0.0D);
-                    NIGHTS_FOCUS_PROJECTILES.add(new NightsFocusStarProjectile(dsLevel, player, dsTarget, spherePos, slugDmg, slugUnits));
-                    dsLevel.sendParticles(ParticleTypes.SNOWFLAKE, spherePos.x, spherePos.y, spherePos.z, 6, 0.18D, 0.18D, 0.18D, 0.03D);
-                    dsLevel.sendParticles(ParticleTypes.END_ROD, spherePos.x, spherePos.y, spherePos.z, 3, 0.12D, 0.12D, 0.12D, 0.02D);
-                    dsLevel.playSound(null, spherePos.x, spherePos.y, spherePos.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.70F, 1.60F);
-                    if (hasActiveNightsFocusShield(player)) {
-                        addNightsFocusStars(player, 1, now);
-                    }
-                }
-            }
-        } else if (dsUntil > 0L) {
-            LAYLA_DREAMSPHERE_UNTIL.remove(dsId);
-            LAYLA_DREAMSPHERE_NETHERITE.remove(dsId);
-            LAYLA_DREAMSPHERE_NEXT_SHOT.remove(dsId);
-        }
-        if (!hasActiveNightsFocusShield(player)) return;
-        UUID id = player.getUUID();
-        if (player.level() instanceof ServerLevel sl) {
-            if (now % 10 == 0) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1.0D, player.getZ(),
-                        3, 0.35D, 0.45D, 0.35D, 0.01D);
-            }
-            int pending = NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0);
-            if (pending > 0 && now % 9 == 0) {
-                if (fireSingleNightsFocusStar(sl, player)) {
-                    int remaining = pending - 1;
-                    if (remaining <= 0) {
-                        NIGHTS_FOCUS_PENDING_SHOTS.remove(id);
-                        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10);
-                    } else {
-                        NIGHTS_FOCUS_PENDING_SHOTS.put(id, remaining);
-                        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 10 + remaining);
-                    }
-                }
-            }
-        }
-
-        if (NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0) > 0) {
-            NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
-        } else {
-            long lastAuto = NIGHTS_FOCUS_LAST_AUTO_STAR.getOrDefault(id, now);
-            if (now - lastAuto >= 30L) { // 1.5s per Night Star
-                NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
-                addNightsFocusStars(player, 1, now);
-            }
-        }
-
-        int stars = NIGHTS_FOCUS_STARS.getOrDefault(id, 0);
-        if (stars >= 4 && NIGHTS_FOCUS_PENDING_SHOTS.getOrDefault(id, 0) <= 0 && player.level() instanceof ServerLevel sl) {
-            LivingEntity nearest = findNearestNightsFocusTarget(sl, player);
-            if (nearest != null) {
-                NIGHTS_FOCUS_STARS.put(id, 0);
-                NIGHTS_FOCUS_LAST_AUTO_STAR.put(id, now);
-                if (fireSingleNightsFocusStar(sl, player)) {
-                    NIGHTS_FOCUS_PENDING_SHOTS.put(id, 3);
-                    com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 13);
-                } else {
-                    NIGHTS_FOCUS_PENDING_SHOTS.put(id, 4);
-                    com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 14);
-                }
-            }
-        }
-    }
-
-    private static @Nullable LivingEntity findNearestNightsFocusTarget(ServerLevel level, ServerPlayer player) {
-        AABB box = player.getBoundingBox().inflate(16.0D);
-        LivingEntity best = null;
-        double bestDist = Double.MAX_VALUE;
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box,
-                ent -> ent.isAlive() && !ent.isSpectator() && ent != player && !player.isAlliedTo(ent)
-                        && (ent instanceof net.minecraft.world.entity.monster.Enemy || ent instanceof Player))) {
-            double d = e.distanceToSqr(player);
-            if (d <= 256.0D && d < bestDist) {
-                bestDist = d;
-                best = e;
-            }
-        }
-        return best;
-    }
-
-    private static final class NightsFocusStarProjectile {
-        final ServerLevel level;
-        final ServerPlayer owner;
-        @Nullable LivingEntity target;
-        Vec3 pos;
-        Vec3 lastTargetPos;
-        final float damage;
-        final float units;
-        int age;
-
-        NightsFocusStarProjectile(ServerLevel level, ServerPlayer owner, LivingEntity target, Vec3 pos, float damage, float units) {
-            this.level = level;
-            this.owner = owner;
-            this.target = target;
-            this.pos = pos;
-            this.lastTargetPos = target.getBoundingBox().getCenter();
-            this.damage = damage;
-            this.units = units;
-        }
-    }
-
-    private static final List<NightsFocusStarProjectile> NIGHTS_FOCUS_PROJECTILES = new java.util.concurrent.CopyOnWriteArrayList<>();
-
-    private static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) {
-        LivingEntity target = findNearestNightsFocusTarget(level, player);
-        if (target == null) return false;
-        boolean isNetherite = NIGHTS_FOCUS_NETHERITE.getOrDefault(player.getUUID(), false);
-        float dmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.NIGHTS_FOCUS, isNetherite) * 0.75F;
-        float units = isNetherite ? 0.75F : 0.5F;
-
-        Vec3 start = player.position().add(0.0D, player.getBbHeight() + 0.65D, 0.0D);
-        NIGHTS_FOCUS_PROJECTILES.add(new NightsFocusStarProjectile(level, player, target, start, dmg, units));
-        level.sendParticles(ParticleTypes.SNOWFLAKE, start.x, start.y, start.z, 4, 0.1D, 0.1D, 0.1D, 0.02D);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                SoundEvents.SNOW_GOLEM_SHOOT, SoundSource.PLAYERS, 0.6F, 1.55F);
-        return true;
-    }
-
-    private static void tickNightsFocusProjectiles() {
-        if (NIGHTS_FOCUS_PROJECTILES.isEmpty()) return;
-        for (NightsFocusStarProjectile p : NIGHTS_FOCUS_PROJECTILES) {
-            p.age++;
-            Vec3 targetPos = (p.target != null && p.target.isAlive() && !p.target.isRemoved())
-                    ? p.target.getBoundingBox().getCenter()
-                    : p.lastTargetPos;
-            p.lastTargetPos = targetPos;
-
-            Vec3 toTarget = targetPos.subtract(p.pos);
-            double dist = toTarget.length();
-            boolean hit = dist <= 0.75D;
-            if (!hit && p.target != null && p.target.isAlive()) {
-                AABB box = new AABB(p.pos.x - 0.35D, p.pos.y - 0.35D, p.pos.z - 0.35D,
-                        p.pos.x + 0.35D, p.pos.y + 0.35D, p.pos.z + 0.35D);
-                hit = p.target.getBoundingBox().intersects(box);
-            }
-
-            if (hit || p.age > 65) {
-                NIGHTS_FOCUS_PROJECTILES.remove(p);
-                if (hit && p.target != null && p.target.isAlive()) {
-                    p.level.sendParticles(ParticleTypes.SNOWFLAKE, p.pos.x, p.pos.y, p.pos.z, 8, 0.18D, 0.18D, 0.18D, 0.04D);
-                    p.level.sendParticles(ParticleTypes.END_ROD, p.pos.x, p.pos.y, p.pos.z, 4, 0.1D, 0.1D, 0.1D, 0.02D);
-                    p.level.playSound(null, p.pos.x, p.pos.y, p.pos.z,
-                            SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.45F, 1.7F);
-                    applyElement(p.level, p.target, Element.CRYO, p.units, p.owner, p.damage);
-                }
-                continue;
-            }
-
-            Vec3 dir = dist > 1.0E-4D ? toTarget.scale(1.0D / dist) : new Vec3(0.0D, 1.0D, 0.0D);
-            if (p.age <= 4) {
-                dir = dir.add(0.0D, 0.35D, 0.0D).normalize();
-            }
-            p.pos = p.pos.add(dir.scale(0.55D)); // Moderate flight speed (~11 blocks/s)
-            p.level.sendParticles(ParticleTypes.SNOWFLAKE, p.pos.x, p.pos.y, p.pos.z, 2, 0.04D, 0.04D, 0.04D, 0.01D);
-            p.level.sendParticles(ParticleTypes.END_ROD, p.pos.x, p.pos.y, p.pos.z, 1, 0.01D, 0.01D, 0.01D, 0.0D);
-        }
-    }
-
-    public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) {
-        if (!(entity instanceof Player player)) return false;
-        Long until = JADE_SHIELD_UNTIL.get(player.getUUID());
-        if (until == null) {
-            return false;
-        }
-        long now = player.level().getGameTime();
-        if (now >= until) {
-            JADE_SHIELD_UNTIL.remove(player.getUUID());
-            if (!player.level().isClientSide() && player instanceof ServerPlayer sp) {
-                Element cryst = CrystallizeShardManager.getActiveShield(sp, now);
-                if (cryst == null) {
-                    com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(sp, null, 0);
-                }
-            }
-            return false;
-        }
-        if (!player.isCreative() && player.getAbsorptionAmount() <= 0.01F) {
-            JADE_SHIELD_UNTIL.remove(player.getUUID());
-            if (!player.level().isClientSide() && player instanceof ServerPlayer sp) {
-                Element cryst = CrystallizeShardManager.getActiveShield(sp, now);
-                if (cryst == null) {
-                    com.velorise.staves.network.ModNetwork.sendCrystallizeShieldToPlayer(sp, null, 0);
-                }
-                ((ServerLevel) sp.level()).playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                        SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 0.9F, 0.75F);
-            }
-            return false;
-        }
-        return true;
-    }
-
-    public static boolean isNearJadeShieldAura(@Nullable LivingEntity target) {
-        if (target == null || !(target.level() instanceof ServerLevel sl)) return false;
-        for (ServerPlayer sp : sl.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(target) <= 20.25D)) {
-            if (hasActiveJadeShield(sp) && sp != target && !sp.isAlliedTo(target)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) {
-        return 1.0F;
-    }
-
-    public static boolean isChannelingGuardianLens(Player player) {
-        if (player == null) return false;
-        if (NeuvilletteManager.isChannelingOrFiring(player)) return true;
-        if (!player.isUsingItem()) return false;
-        ItemStack active = player.getUseItem();
-        return ArcaneStaffItem.getEffectiveKind(active) == ArcaneStaffItem.Kind.GUARDIAN;
-    }
-
-    public static void applyFurinaWaterWalking(Player player) {
-        if (player == null || player.isShiftKeyDown() || player.isSpectator() || player.getAbilities().flying) return;
-        if (player.isEyeInFluid(net.minecraft.tags.FluidTags.WATER)) return;
-        if (!player.level().getEntitiesOfClass(
-                com.velorise.staves.entity.GeoFangPillarEntity.class,
-                player.getBoundingBox().inflate(0.25D, 0.75D, 0.25D),
-                Entity::isAlive
-        ).isEmpty()) {
-            return;
-        }
-
-        double px = player.getX();
-        double py = player.getY();
-        double pz = player.getZ();
-        var level = player.level();
-
-        // Check horizontal footprint (center + 4 corners) so sprinting/jumping across block edges never dips
-        double[][] offsets = {
-            {0.0D, 0.0D},
-            {-0.28D, -0.28D},
-            {0.28D, -0.28D},
-            {-0.28D, 0.28D},
-            {0.28D, 0.28D}
-        };
-
-        BlockPos waterPos = null;
-        for (double[] off : offsets) {
-            double cx = px + off[0];
-            double cz = pz + off[1];
-            BlockPos feet = BlockPos.containing(cx, py - 0.01D, cz);
-            BlockPos below = BlockPos.containing(cx, py - 0.45D, cz);
-            if (level.getFluidState(feet).is(net.minecraft.tags.FluidTags.WATER)
-                    && !level.getFluidState(feet.above()).is(net.minecraft.tags.FluidTags.WATER)
-                    && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()) {
-                if (waterPos == null || feet.getY() > waterPos.getY()) {
-                    waterPos = feet;
-                }
-            } else if (level.getFluidState(below).is(net.minecraft.tags.FluidTags.WATER)
-                    && !level.getFluidState(below.above()).is(net.minecraft.tags.FluidTags.WATER)
-                    && level.getBlockState(below.above()).getCollisionShape(level, below.above()).isEmpty()) {
-                if (waterPos == null || below.getY() > waterPos.getY()) {
-                    waterPos = below;
-                }
-            }
-        }
-        if (waterPos == null) return;
-
-        // Place the support plane right at the top of the water block (Y + 1.0), completely above the
-        // 0.8889 fluid height so player.isInWater() never flips true to cause water drag or weak liquid jumps!
-        double surfaceY = waterPos.getY() + 1.0D;
-
-        Vec3 dv = player.getDeltaMovement();
-        // Allow normal upward jump trajectory (jumpFromGround sets dv.y = 0.42D)
-        if (dv.y > 0.08D) {
-            return;
-        }
-
-        // Catch player either when within the surface tolerance band OR about to cross below surfaceY on this tick
-        double minSurfaceOffset = isChannelingGuardianLens(player) ? 1.15D : 0.65D;
-        boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - minSurfaceOffset);
-        boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.04D && py <= surfaceY + 0.85D);
-        if (!atSurface && !crossingSurface) {
-            return;
-        }
-
-        if (py < surfaceY || crossingSurface) {
-            player.setPos(px, surfaceY, pz);
-        }
-        if (dv.y < 0.0D) {
-            player.setDeltaMovement(dv.x, 0.0D, dv.z);
-        }
-        player.setOnGround(true);
-        player.fallDistance = 0.0F;
-        player.setSwimming(false);
-    }
-
-    public static boolean hasRecentHpChangeBuff(ServerPlayer player) {
-        if (player == null || player.level().isClientSide()) return false;
-        long now = player.level().getGameTime();
-        updatePlayerHpTracking(player, now);
-        Long until = PLAYER_HP_CHANGE_BUFF_UNTIL.get(player.getUUID());
-        return until != null && now < until;
-    }
-
-    public static boolean carriesGuardianLens(Player player) {
-        if (player == null) return false;
-        for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
-                return true;
-            }
-        }
-        for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static void onHydroReactionTriggered(
-            ServerLevel level,
-            Vec3 targetPos,
-            ElementalReaction reaction,
-            @Nullable Element reactedAura,
-            @Nullable Element triggerElem,
-            @Nullable ServerPlayer attacker
-    ) {
-        if (level == null || reaction == null) return;
-        boolean isHydroReaction = switch (reaction) {
-            case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE, FROZEN, ELECTRO_CHARGED, BLOOM, REVERSE_BLOOM -> true;
-            case SWIRL, CRYSTALLIZE -> reactedAura == Element.HYDRO || triggerElem == Element.HYDRO;
-            default -> false;
-        };
-        if (!isHydroReaction) return;
-
-        long now = level.getGameTime();
-        if (attacker != null) {
-            String stackKey = switch (reaction) {
-                case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE -> "VAPORIZE";
-                case FROZEN -> "FROZEN";
-                case ELECTRO_CHARGED -> "ELECTRO_CHARGED";
-                case BLOOM, REVERSE_BLOOM -> "BLOOM";
-                case SWIRL -> "HYDRO_SWIRL";
-                case CRYSTALLIZE -> "HYDRO_CRYSTALLIZE";
-                default -> reaction.name();
-            };
-            Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.computeIfAbsent(attacker.getUUID(), k -> new ConcurrentHashMap<>());
-            stacks.entrySet().removeIf(e -> now >= e.getValue());
-            stacks.put(stackKey, now + 600L); // 30s Past Draconic Glories stack
-        }
-
-        // Item 6: Hydro reactions ONLY grant Past Draconic Glories stacks; Sourcewater Droplets spawn exclusively from Skill E & Burst [R].
-    }
-
-    private static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) {
-        if (!(entity instanceof Player player)) return false;
-        for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty()
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
-                return true;
-            }
-        }
-        for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty()
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) {
-        NeuvilletteManager.tryInterruptChanneling(victim, damageDealt);
-        if (damageDealt <= 0.0F || !(victim instanceof ServerPlayer sp)) return;
-        if (sp.getAbsorptionAmount() > 0.0F) return;
-        if (!sp.isUsingItem()) return;
-        ItemStack active = sp.getUseItem();
-        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(active) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
-                && !com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(active)) {
-            sp.stopUsingItem();
-            sp.serverLevel().playSound(null, sp.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.PLAYERS, 0.55F, 1.25F);
-        }
-    }
-
-    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) {
-        if (entity == null) return 0;
-        int c1Base = hasNetheriteGuardianLens(entity) ? 1 : 0;
-        Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.get(entity.getUUID());
-        if (stacks == null || stacks.isEmpty()) return c1Base;
-        long now = entity.level().getGameTime();
-        stacks.entrySet().removeIf(e -> now >= e.getValue());
-        return Math.min(3, stacks.size() + c1Base);
-    }
-
-    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) {
-        int stacks = getDraconicGloriesStacks(entity);
-        return switch (stacks) {
-            case 1 -> 1.15F;
-            case 2 -> 1.30F;
-            case 3 -> 1.60F;
-            default -> 1.00F;
-        };
-    }
-
-    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) {
-        SOURCEWATER_DROPLETS.removeIf(d -> d.level() != level || (now - d.spawnTick()) >= 300L);
-        long activeInLevel = SOURCEWATER_DROPLETS.stream()
-                .filter(d -> d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId))
-                .count();
-        if (activeInLevel >= 9) {
-            for (SourcewaterDroplet d : SOURCEWATER_DROPLETS) {
-                if (d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId)) {
-                    SOURCEWATER_DROPLETS.remove(d);
-                    break;
-                }
-            }
-        }
-        double ox = (level.random.nextDouble() - 0.5D) * 1.6D;
-        double oz = (level.random.nextDouble() - 0.5D) * 1.6D;
-        Vec3 dropPos = new Vec3(basePos.x + ox, basePos.y + 0.45D, basePos.z + oz);
-        SOURCEWATER_DROPLETS.add(new SourcewaterDroplet(level, dropPos, now, ownerId));
-        level.sendParticles(ParticleTypes.SPLASH, dropPos.x, dropPos.y, dropPos.z, 10, 0.2D, 0.2D, 0.2D, 0.04D);
-        level.sendParticles(ParticleTypes.GLOW, dropPos.x, dropPos.y, dropPos.z, 6, 0.15D, 0.15D, 0.15D, 0.02D);
-    }
-
-    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) {
-        if (level == null || caster == null || SOURCEWATER_DROPLETS.isEmpty()) return 0;
-        double r2 = radius * radius;
-        Vec3 cPos = caster.position();
-        UUID casterId = caster.getUUID();
-        int absorbed = 0;
-        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
-            if (droplet.level() != level) continue;
-            if (droplet.ownerId() == null || !droplet.ownerId().equals(casterId)) continue;
-            if (droplet.pos().distanceToSqr(cPos) <= r2) {
-                SOURCEWATER_DROPLETS.remove(droplet);
-                absorbed++;
-                level.sendParticles(ParticleTypes.BUBBLE_POP, droplet.pos().x, droplet.pos().y, droplet.pos().z, 12, 0.2D, 0.2D, 0.2D, 0.04D);
-                level.sendParticles(ParticleTypes.HEART, caster.getX(), caster.getY() + 1.2D, caster.getZ(), 1, 0.2D, 0.2D, 0.2D, 0.02D);
-                if (absorbed >= maxCount) break;
-            }
-        }
-        if (absorbed > 0) {
-            caster.heal(caster.getMaxHealth() * 0.16F * absorbed);
-            level.playSound(null, caster.blockPosition(), SoundEvents.BUCKET_FILL, SoundSource.PLAYERS, 0.85F, 1.35F);
-        }
-        return absorbed;
-    }
-
-    private static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) {
-        if (SOURCEWATER_DROPLETS.isEmpty()) return;
-        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
-            ServerLevel lvl = droplet.level();
-            if (lvl == null || serverNow < droplet.spawnTick() || (serverNow - droplet.spawnTick()) >= 300L) {
-                SOURCEWATER_DROPLETS.remove(droplet);
-                continue;
-            }
-            if (serverNow % 5 == 0) {
-                lvl.sendParticles(ParticleTypes.DRIPPING_WATER, droplet.pos().x, droplet.pos().y, droplet.pos().z, 3, 0.12D, 0.12D, 0.12D, 0.01D);
-                lvl.sendParticles(ParticleTypes.GLOW, droplet.pos().x, droplet.pos().y, droplet.pos().z, 2, 0.10D, 0.10D, 0.10D, 0.01D);
-            }
-            UUID ownerId = droplet.ownerId();
-            if (ownerId == null) continue;
-            for (ServerPlayer player : lvl.getPlayers(p -> p.isAlive() && !p.isSpectator()
-                    && p.getUUID().equals(ownerId) && p.position().distanceToSqr(droplet.pos()) <= 2.25D)) {
-                if (player.getHealth() < player.getMaxHealth()) {
-                    SOURCEWATER_DROPLETS.remove(droplet);
-                    player.heal(player.getMaxHealth() * 0.16F);
-                    lvl.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.1D, player.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.02D);
-                    lvl.playSound(null, player.blockPosition(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.65F, 1.4F);
-                    break;
-                }
-            }
-        }
-    }
-
-    public static @Nullable Element getElementForEffect(MobEffect effect) {
-        if (effect == null) return null;
-        if (effect == MobEffects.MOVEMENT_SPEED) return Element.ANEMO;
-        if (effect == MobEffects.MOVEMENT_SLOWDOWN) return Element.CRYO;
-        if (effect == MobEffects.DAMAGE_RESISTANCE) return Element.GEO;
-        if (effect == MobEffects.POISON) return Element.DENDRO;
-        String desc = effect.getDescriptionId();
-        if (desc != null) {
-            if (desc.contains("wind_charged")) return Element.ANEMO;
-            if (desc.contains("oozing")) return Element.DENDRO;
-            if (desc.contains("infested")) return Element.GEO;
-        }
-        return null;
-    }
-
-    public static List<Element> getElementsFromPotionStack(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return Collections.emptyList();
-        List<Element> result = new ArrayList<>();
-        Potion potion = PotionUtils.getPotion(stack);
-        if (potion == Potions.WATER) {
-            result.add(Element.HYDRO);
-        }
-        for (MobEffectInstance inst : PotionUtils.getMobEffects(stack)) {
-            Element mapped = getElementForEffect(inst.getEffect());
-            if (mapped != null && !result.contains(mapped)) {
-                result.add(mapped);
-            } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
-                result.add(Element.ELECTRO);
-            }
-        }
-        return result;
-    }
-
-    public static List<Element> getElementsFromArrow(ServerLevel level, Arrow arrow) {
-        if (arrow == null) return Collections.emptyList();
-        List<Element> result = new ArrayList<>();
-        try {
-            CompoundTag nbt = new CompoundTag();
-            arrow.saveWithoutId(nbt);
-            for (MobEffectInstance inst : PotionUtils.getAllEffects(nbt)) {
-                Element mapped = getElementForEffect(inst.getEffect());
-                if (mapped != null && !result.contains(mapped)) {
-                    result.add(mapped);
-                } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
-                    result.add(Element.ELECTRO);
-                }
-            }
-        } catch (Throwable ignored) {}
-        return result;
-    }
-
-    public static List<Element> getElementsFromAreaEffectCloud(ServerLevel level, AreaEffectCloud cloud) {
-        if (cloud == null) return Collections.emptyList();
-        List<Element> result = new ArrayList<>();
-        try {
-            if (cloud.getPotion() == Potions.WATER) {
-                result.add(Element.HYDRO);
-            }
-            CompoundTag nbt = new CompoundTag();
-            cloud.saveWithoutId(nbt);
-            for (MobEffectInstance inst : PotionUtils.getAllEffects(nbt)) {
-                Element mapped = getElementForEffect(inst.getEffect());
-                if (mapped != null && !result.contains(mapped)) {
-                    result.add(mapped);
-                } else if (inst.getEffect() == MobEffects.HARM && !result.contains(Element.ELECTRO)) {
-                    result.add(Element.ELECTRO);
-                }
-            }
-        } catch (Throwable ignored) {}
-        return result;
-    }
-
-    public static void handleTippedArrowHit(ServerLevel level, Arrow arrow, LivingEntity target) {
-        if (arrow == null || target == null || !target.isAlive() || arrow.getTags().contains("velorise_staves:arrow_elem_applied")) {
-            return;
-        }
-        List<Element> elements = getElementsFromArrow(level, arrow);
-        if (elements.isEmpty()) return;
-        arrow.addTag("velorise_staves:arrow_elem_applied");
-        ServerPlayer shooter = arrow.getOwner() instanceof ServerPlayer sp ? sp : null;
-        for (Element elem : elements) {
-            applyElementBypassIcd(level, target, elem, 1.0F, shooter, 0.0F);
-        }
-    }
-
-    public static void handleItemUseFinish(ServerLevel level, LivingEntity entity, ItemStack stack) {
-        if (level == null || entity == null || !entity.isAlive() || stack == null || stack.isEmpty()) return;
-        if (!(stack.getItem() instanceof PotionItem)) return;
-        List<Element> elements = getElementsFromPotionStack(stack);
-        if (elements.isEmpty()) return;
-        ServerPlayer player = entity instanceof ServerPlayer sp ? sp : null;
-        for (Element elem : elements) {
-            applyElementBypassIcd(level, entity, elem, 1.0F, player, 0.0F);
-        }
-    }
-
-    public static int getMaceWindBurstLevel(LivingEntity attacker) {
-        if (attacker == null) return 0;
-        ItemStack mainHand = attacker.getMainHandItem();
-        if (mainHand.isEmpty()) return 0;
-        String desc = mainHand.getItem().getDescriptionId();
-        if (desc == null || !desc.contains("mace")) return 0;
-        var enchTags = mainHand.getEnchantmentTags();
-        for (int i = 0; i < enchTags.size(); i++) {
-            CompoundTag tag = enchTags.getCompound(i);
-            if (tag.getString("id").contains("wind_burst")) {
-                return Math.max(1, tag.getInt("lvl"));
-            }
-        }
-        return 0;
-    }
-
-
-    public static int getElementalMasteryLevel(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return 0;
-        var enchTags = stack.getEnchantmentTags();
-        for (int i = 0; i < enchTags.size(); i++) {
-            CompoundTag tag = enchTags.getCompound(i);
-            if (tag.getString("id").contains("elemental_mastery")) {
-                return Math.min(3, Math.max(0, tag.getInt("lvl")));
-            }
-        }
-        return 0;
-    }
-
-    public static int getElementalMasteryLevel(@Nullable LivingEntity attacker) {
-        if (attacker == null) return 0;
-        int mainLvl = getElementalMasteryLevel(attacker.getMainHandItem());
-        int base = mainLvl > 0 ? mainLvl : getElementalMasteryLevel(attacker.getOffhandItem());
-        int bonus = ElementalResonanceManager.getBonusElementalMasteryLevels(attacker)
-                + NahidaManager.getBonusEmLevels(attacker);
-        if (attacker instanceof Player p) {
-            Element heldElem = p.getMainHandItem().getItem() instanceof ArcaneStaffItem s ? s.getElement() : null;
-            bonus += TsaritsaManager.getBonusEmLevels(p, heldElem);
-        }
-        return base + bonus;
-    }
-
-    public static int getElementalProtectionLevel(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) return 0;
-        var enchTags = stack.getEnchantmentTags();
-        for (int i = 0; i < enchTags.size(); i++) {
-            CompoundTag tag = enchTags.getCompound(i);
-            if (tag.getString("id").contains("elemental_protection")) {
-                return Math.min(4, Math.max(0, tag.getInt("lvl")));
-            }
-        }
-        return 0;
-    }
-
-    public static int getElementalProtectionTotalLevel(@Nullable LivingEntity entity) {
-        if (entity == null) return 0;
-        int total = 0;
-        for (ItemStack armor : entity.getArmorSlots()) {
-            total += getElementalProtectionLevel(armor);
-        }
-        return Math.min(16, total);
-    }
-
-    public static float applyElementalProtectionAndArmorWear(LivingEntity entity, DamageSource source, float amount) {
-        if (amount <= 0.0F || entity == null || !entity.isAlive()) return amount;
-        boolean isElem = (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource)
-                || "velorise_elemental".equals(source.type().msgId())
-                || isElementalOrMagicDamage(source);
-        if (!isElem) return amount;
-
-        int epTotal = getElementalProtectionTotalLevel(entity);
-        if (epTotal > 0) {
-            float reduction = Math.min(0.80F, epTotal * 0.05F);
-            amount *= (1.0F - reduction);
-        }
-
-        if (!entity.level().isClientSide()) {
-            String wearMode = StavesConfig.ELEMENTAL_ARMOR_DURABILITY_WEAR.get();
-            boolean shouldWear = "always".equalsIgnoreCase(wearMode)
-                    || ("auto".equalsIgnoreCase(wearMode) && entity.level().getDifficulty() == net.minecraft.world.Difficulty.HARD);
-            if (shouldWear) {
-                long now = entity.level().getGameTime();
-                Long lastWear = LAST_ELEMENTAL_ARMOR_WEAR.get(entity.getUUID());
-                if (lastWear == null || now < lastWear || (now - lastWear) >= 20L) {
-                    LAST_ELEMENTAL_ARMOR_WEAR.put(entity.getUUID(), now);
-                    net.minecraft.world.entity.EquipmentSlot[] slots = {
-                            net.minecraft.world.entity.EquipmentSlot.HEAD,
-                            net.minecraft.world.entity.EquipmentSlot.CHEST,
-                            net.minecraft.world.entity.EquipmentSlot.LEGS,
-                            net.minecraft.world.entity.EquipmentSlot.FEET
-                    };
-                    for (net.minecraft.world.entity.EquipmentSlot slot : slots) {
-                        ItemStack piece = entity.getItemBySlot(slot);
-                        if (!piece.isEmpty() && piece.isDamageableItem()) {
-                            piece.hurtAndBreak(1, entity, e -> e.broadcastBreakEvent(slot));
-                        }
-                    }
-                }
-            }
-        }
-        return amount;
-    }
-
-    public static void updateCoopMobScaling(ServerLevel level, LivingEntity entity) {
-        if (level == null || entity == null || !entity.isAlive() || entity.level().isClientSide()) return;
-        if (!(entity instanceof Mob mob) || entity instanceof Player || entity instanceof Npc) return;
-        if (entity instanceof net.minecraft.world.entity.TamableAnimal tamable && tamable.isTame()) return;
-        boolean eligible = entity instanceof Enemy || isBossEntity(entity) || isMutatedInnate(entity) || isOmniInnate(entity) || !getInnateElements(entity).isEmpty();
-        if (!eligible) return;
-
-        int nearbyPlayers = 0;
-        if (level.players().size() > 1) {
-            double radius = StavesConfig.COOP_SCAN_RADIUS.get();
-            double r2 = radius * radius;
-            nearbyPlayers = level.getPlayers(p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(entity) <= r2).size();
-        }
-        int maxCap = Math.max(1, StavesConfig.MAX_COOP_PLAYERS_CAP.get());
-        int extraPlayers = Math.min(maxCap - 1, Math.max(0, nearbyPlayers - 1));
-
-        double hpBonus = (StavesConfig.ENABLE_COOP_MOB_SCALING.get() && extraPlayers > 0)
-                ? (extraPlayers * StavesConfig.HP_SCALE_PER_EXTRA_PLAYER.get())
-                : 0.0D;
-        double atkBonus = 0.0D;
-        if (StavesConfig.ENABLE_COOP_ATK_SCALING.get() && extraPlayers > 0) {
-            atkBonus = switch (extraPlayers) {
-                case 1 -> 0.10D;
-                case 2 -> 0.25D;
-                case 3 -> 0.40D;
-                default -> 0.40D + (extraPlayers - 3) * 0.15D;
-            };
-        }
-
-        AttributeInstance hpAttr = mob.getAttribute(Attributes.MAX_HEALTH);
-        if (hpAttr != null) {
-            AttributeModifier cur = hpAttr.getModifier(COOP_HP_MOD_ID);
-            double curVal = cur != null ? cur.getAmount() : 0.0D;
-            if (Math.abs(curVal - hpBonus) > 0.001D) {
-                float oldMax = mob.getMaxHealth();
-                float ratio = oldMax > 0.0F ? Math.min(1.0F, mob.getHealth() / oldMax) : 1.0F;
-                if (cur != null) hpAttr.removeModifier(COOP_HP_MOD_ID);
-                if (hpBonus > 0.001D) {
-                    hpAttr.addTransientModifier(new AttributeModifier(
-                            COOP_HP_MOD_ID, "Co-Op Mob HP Scale", hpBonus, AttributeModifier.Operation.MULTIPLY_BASE));
-                }
-                mob.setHealth(Math.max(1.0F, mob.getMaxHealth() * ratio));
-            }
-        }
-
-        AttributeInstance atkAttr = mob.getAttribute(Attributes.ATTACK_DAMAGE);
-        if (atkAttr != null) {
-            AttributeModifier cur = atkAttr.getModifier(COOP_ATK_MOD_ID);
-            double curVal = cur != null ? cur.getAmount() : 0.0D;
-            if (Math.abs(curVal - atkBonus) > 0.001D) {
-                if (cur != null) atkAttr.removeModifier(COOP_ATK_MOD_ID);
-                if (atkBonus > 0.001D) {
-                    atkAttr.addTransientModifier(new AttributeModifier(
-                            COOP_ATK_MOD_ID, "Co-Op Mob ATK Scale", atkBonus, AttributeModifier.Operation.MULTIPLY_BASE));
-                }
-            }
-        }
-    }
-
-    private static GaugeState createAuraGauge(LivingEntity target, Element elem, float appliedUnits) {
+    public static GaugeState createAuraGauge(LivingEntity target, Element elem, float appliedUnits) {
         float scale = ElementalResonanceManager.getPlayerIncomingAuraDurationScale(target, elem);
         return GaugeState.createWithDurationScale(elem, appliedUnits, scale);
     }
 
-    private static void refreshAuraGauge(LivingEntity target, GaugeState existing, Element elem, float appliedUnits) {
+    public static void refreshAuraGauge(LivingEntity target, GaugeState existing, Element elem, float appliedUnits) {
         float scale = ElementalResonanceManager.getPlayerIncomingAuraDurationScale(target, elem);
         existing.refresh(appliedUnits, scale);
     }
 
-    private static void notifyResonanceReaction(ElementalReaction reaction, @Nullable ServerPlayer attacker, long now) {
+    public static void notifyResonanceReaction(ElementalReaction reaction, @Nullable ServerPlayer attacker, long now) {
         if (attacker == null || reaction == ElementalReaction.NONE || reaction == ElementalReaction.IMMUNE) return;
         triggerHiddenReactionAdvancements(attacker, reaction);
         switch (reaction) {
@@ -2671,1100 +463,37 @@ public final class ElementalGaugeManager {
         return 1.0F + 0.25F * Math.max(0, emLevel);
     }
 
-    public static int getThornsEnchantmentLevel(LivingEntity entity) {
-        if (entity == null) return 0;
-        int maxLevel = 0;
-        for (ItemStack armor : entity.getArmorSlots()) {
-            if (armor.isEmpty()) continue;
-            var enchTags = armor.getEnchantmentTags();
-            for (int i = 0; i < enchTags.size(); i++) {
-                CompoundTag tag = enchTags.getCompound(i);
-                String id = tag.getString("id");
-                int lvl = tag.getInt("lvl");
-                if (lvl > maxLevel && (id.equals("minecraft:thorns") || id.endsWith(":thorns"))) {
-                    maxLevel = lvl;
-                }
-            }
-        }
-        return maxLevel;
-    }
-
-    public static boolean hasThornsEnchantment(LivingEntity entity) {
-        return getThornsEnchantmentLevel(entity) > 0;
-    }
-
-    @Nullable
-    private static Element pickDefenderAuraForThorns(LivingEntity defender) {
-        if (defender == null) return null;
-        UUID id = defender.getUUID();
-        Map<Element, GaugeState> gauges = GAUGES.get(id);
-        if (gauges != null && !gauges.isEmpty()) {
-            for (Element elem : REACTION_PRIORITY_ORDER) {
-                GaugeState gs = gauges.get(elem);
-                if (gs != null && !gs.isExpired()) {
-                    return elem;
-                }
-            }
-            for (Map.Entry<Element, GaugeState> entry : gauges.entrySet()) {
-                if (entry.getValue() != null && !entry.getValue().isExpired()) {
-                    return entry.getKey();
-                }
-            }
-        }
-        GaugeState frozen = FROZEN_GAUGES.get(id);
-        if (frozen != null && !frozen.isExpired()) {
-            return Element.CRYO;
-        }
-        GaugeState quicken = QUICKEN_GAUGES.get(id);
-        if (quicken != null && !quicken.isExpired()) {
-            return Element.DENDRO;
-        }
-        return null;
-    }
-
-    private static void reflectThornsElement(
-            ServerLevel level,
-            LivingEntity defender,
-            LivingEntity attacker,
-            long now,
-            @Nullable Element fallbackElement
-    ) {
-        if (level == null || defender == null || attacker == null
-                || defender == attacker || !attacker.isAlive() || attacker.isRemoved()
-                || IS_PROCESSING_THORNS.get()) {
-            return;
-        }
-
-        Element reflected = getInnateElement(defender);
-        if (reflected == null) {
-            reflected = pickDefenderAuraForThorns(defender);
-        }
-        if (reflected == null) {
-            reflected = fallbackElement;
-        }
-        if (reflected == null && defender.getRemainingFireTicks() > 0 && !defender.fireImmune() && !isEntityInWater(defender)) {
-            reflected = Element.PYRO;
-        }
-        if (reflected == null) {
-            return;
-        }
-
-        long dedupKey = (((long) attacker.getId()) << 32) | (defender.getId() & 0xFFFFFFFFL);
-        Long lastTick = LAST_THORNS_REFLECT.get(dedupKey);
-        if (lastTick != null && now >= lastTick && (now - lastTick) < 2L) {
-            return;
-        }
-        LAST_THORNS_REFLECT.put(dedupKey, now);
-
-        int thornsLevel = getThornsEnchantmentLevel(defender);
-        if (thornsLevel <= 0) {
-            thornsLevel = 1; // e.g., Guardian natural Thorns spikes
-        }
-        float reflectU = 0.5F * thornsLevel;
-
-        IS_PROCESSING_THORNS.set(true);
-        try {
-            ServerPlayer defenderPlayer = defender instanceof ServerPlayer sp ? sp : null;
-            applyElementBypassIcd(level, attacker, reflected, reflectU, defenderPlayer, 0.0F);
-            Vec3 hitPos = attacker.getBoundingBox().getCenter();
-            level.sendParticles(ParticleTypes.ENCHANTED_HIT, hitPos.x, hitPos.y, hitPos.z,
-                    6, 0.25D, 0.25D, 0.25D, 0.05D);
-        } finally {
-            IS_PROCESSING_THORNS.set(false);
-        }
-    }
-
     /**
      * Handles environmental damage types and innate elemental mob attacks.
      */
-    public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) {
-        if (!target.isAlive() || target.isInvulnerable() || target.level().isClientSide()) return;
-        if (source.is(DamageTypes.THORNS)) {
-            if (target.level() instanceof ServerLevel level
-                    && source.getEntity() instanceof LivingEntity defender
-                    && defender != target
-                    && !IS_PROCESSING_THORNS.get()) {
-                reflectThornsElement(level, defender, target, level.getGameTime(), THORNS_CONTEXT_ELEMENT.get());
-            }
-            return;
-        }
-        if (IS_PROCESSING_DAMAGE.get() || IS_PROCESSING_REACTION.get()) return;
-
-        IS_PROCESSING_DAMAGE.set(true);
-        try {
-            if (target.level() instanceof ServerLevel level) {
-                Element preHitAura = hasThornsEnchantment(target) ? pickDefenderAuraForThorns(target) : null;
-                LivingEntity prevCredit = CURRENT_REACTION_ATTACKER.get();
-                LivingEntity sourceAttacker = source.getEntity() instanceof LivingEntity le && le != target
-                        ? le : (source.getDirectEntity() instanceof LivingEntity de && de != target ? de : null);
-                if (sourceAttacker != null) {
-                    CURRENT_REACTION_ATTACKER.set(sourceAttacker);
-                }
-                try {
-                    processIncomingDamageSources(level, target, source);
-                } finally {
-                    if (prevCredit == null) CURRENT_REACTION_ATTACKER.remove();
-                    else CURRENT_REACTION_ATTACKER.set(prevCredit);
-                }
-                if (source.getEntity() instanceof LivingEntity attacker
-                        && attacker != target
-                        && attacker.isAlive()
-                        && !IS_PROCESSING_THORNS.get()
-                        && hasThornsEnchantment(target)) {
-                    reflectThornsElement(level, target, attacker, level.getGameTime(), preHitAura);
-                }
-            }
-        } finally {
-            IS_PROCESSING_DAMAGE.set(false);
-        }
-    }
-
-    private static void processIncomingDamageSources(ServerLevel level, LivingEntity target, DamageSource source) {
-                if ((target.getRemainingFireTicks() > 0 || target.isOnFire()) && (isPyroInnate(target) || isOmniInnate(target))) {
-                    extinguishPyroInnate(target);
-                }
-                // 0. Omni Mutated Mob Attack: adaptive reaction if target has aura, else random 1 of 7 elements
-                if (source.getEntity() instanceof LivingEntity omniAttacker && omniAttacker != target && isOmniInnate(omniAttacker)) {
-                    if (omniAttacker.isOnFire() && !target.isInLava()) {
-                        target.clearFire();
-                    }
-                    Element chosenElem = chooseOmniMutatedAttackElement(target, omniAttacker);
-                    ServerPlayer attackerPlayer = omniAttacker instanceof ServerPlayer sp ? sp : null;
-                    boolean hadElectroBeforeOmni = hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO);
-                    applyElementBypassIcd(level, target, chosenElem, 1.0F, attackerPlayer, 0.0F);
-                    if (chosenElem == Element.PYRO && !hadElectroBeforeOmni
-                            && target.isAlive()
-                            && !isPyroInnate(target)
-                            && !isOmniInnate(target)
-                            && !target.fireImmune()
-                            && !(target instanceof Warden)) {
-                        if (!isEntityInWater(target) && target.getRemainingFireTicks() < 40) {
-                            target.setRemainingFireTicks(40);
-                        }
-                        float fireDmg = (float) (2.0F * StavesConfig.DAMAGE_MULTIPLIER.get());
-                        if (fireDmg > 0.0F) {
-                            int prevInvuln = target.invulnerableTime;
-                            target.invulnerableTime = 0;
-                            target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), omniAttacker, null, Element.PYRO), fireDmg);
-                            target.invulnerableTime = prevInvuln;
-                        }
-                        level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                                6, 0.25D, 0.25D, 0.25D, 0.03D);
-                    }
-                    return;
-                }
-                if (isOmniInnate(target)) {
-                    return;
-                }
-                // 1. Environmental Fire (skip refreshing existing Pyro from residual ON_FIRE afterburn unless touching real fire/lava or reacting)
-                if (source.is(DamageTypeTags.IS_FIRE)) {
-                    if (source.is(DamageTypes.ON_FIRE)
-                            && !isTouchingEnvironmentalFireBlock(target)
-                            && !BURNING_UNTIL.containsKey(target.getUUID())) {
-                        Map<Element, GaugeState> tg = GAUGES.get(target.getUUID());
-                        GaugeState fg = FROZEN_GAUGES.get(target.getUUID());
-                        boolean hasReactive = (fg != null && !fg.isExpired())
-                                || (tg != null && (tg.containsKey(Element.CRYO)
-                                        || tg.containsKey(Element.HYDRO)
-                                        || tg.containsKey(Element.ELECTRO)
-                                        || tg.containsKey(Element.DENDRO)))
-                                || QUICKEN_GAUGES.containsKey(target.getUUID());
-                        if (!hasReactive && tg != null && tg.containsKey(Element.PYRO)) {
-                            return;
-                        }
-                    }
-                    handleEnvironmentalFireDamage(target);
-                    return;
-                }
-
-                // 1b. Mutated Innate Mob Attack (takes priority over mob-specific default elements like Husk/Ravager)
-                if (source.getEntity() instanceof LivingEntity mutatedAttacker && mutatedAttacker != target && isMutatedInnate(mutatedAttacker)) {
-                    EnumSet<Element> mutatedSet = getInnateElements(mutatedAttacker);
-                    if (!mutatedSet.isEmpty()) {
-                        if (!mutatedSet.contains(Element.PYRO) && mutatedAttacker.isOnFire() && !target.isInLava()) {
-                            target.clearFire();
-                        }
-                        ServerPlayer attackerPlayer = mutatedAttacker instanceof ServerPlayer sp ? sp : null;
-                        for (Element mutatedElem : mutatedSet) {
-                            if (!target.isAlive()) break;
-                            boolean hadElectroBeforeMut = hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO);
-                            applyElementBypassIcd(level, target, mutatedElem, 1.0F, attackerPlayer, 0.0F);
-                            if (mutatedElem == Element.PYRO && !hadElectroBeforeMut
-                                    && target.isAlive()
-                                    && !isPyroInnate(target)
-                                    && !isOmniInnate(target)
-                                    && !target.fireImmune()
-                                    && !(target instanceof Warden)) {
-                                if (!isEntityInWater(target) && target.getRemainingFireTicks() < 40) {
-                                    target.setRemainingFireTicks(40);
-                                }
-                                float fireDmg = (float) (2.0F * StavesConfig.DAMAGE_MULTIPLIER.get());
-                                if (fireDmg > 0.0F) {
-                                    int prevInvuln = target.invulnerableTime;
-                                    target.invulnerableTime = 0;
-                                    target.hurt(ElementalDeathMessageHelper.createTypedDamageSource(level.damageSources().onFire(), mutatedAttacker, null, Element.PYRO), fireDmg);
-                                    target.invulnerableTime = prevInvuln;
-                                }
-                                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                                        6, 0.25D, 0.25D, 0.25D, 0.03D);
-                            }
-                        }
-                        return;
-                    }
-                }
-
-                // 1c. Wither Skull (Wither Boss, mobs, or player-launched/reflected skulls) -> Dendro (1.0U)
-                if (source.is(DamageTypes.WITHER_SKULL)
-                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.WitherSkull) {
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElementBypassIcd(level, target, Element.DENDRO, 1.0F, attacker, 0.0F);
-                    return;
-                }
-
-                // 2. Dragon's Breath (DamageTypes.DRAGON_BREATH) -> Electro
-                if (source.is(DamageTypes.DRAGON_BREATH)) {
-                    applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
-                    return;
-                }
-
-                // 3. Lightning Bolt (DamageTypeTags.IS_LIGHTNING) -> Electro
-                if (source.is(DamageTypeTags.IS_LIGHTNING)) {
-                    applyElement(level, target, Element.ELECTRO, 2.0F, null, 0.0F);
-                    return;
-                }
-
-                // 4. Freezing / Powder snow (DamageTypeTags.IS_FREEZING) -> Cryo
-                if (source.is(DamageTypeTags.IS_FREEZING)) {
-                    applyElement(level, target, Element.CRYO, 1.0F, null, 0.0F);
-                    return;
-                }
-
-                // 5. Environmental Plant / Thorn damage (Cactus, Sweet Berry Bush) -> Dendro (1.0U)
-                if (source.is(DamageTypes.CACTUS) || source.is(DamageTypes.SWEET_BERRY_BUSH)) {
-                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
-                    return;
-                }
-
-                // 6. Cave Spider venom bite -> Dendro (1.0U)
-                if (source.getEntity() instanceof CaveSpider) {
-                    applyElement(level, target, Element.DENDRO, 1.0F, null, 0.0F);
-                    return;
-                }
-
-                // 7. Wind Charge damage (Vanilla Wind Charge / Breeze) -> Anemo (1.0U)
-                if ((source.type().msgId().contains("wind_charge") || source.type().msgId().contains("breeze"))) {
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, Element.ANEMO, 1.0F, attacker, 1.0F);
-                    return;
-                }
-
-                // 7b. Warden Sonic Boom -> Anemo (2.0U) (swirls target's elements)
-                if (source.is(DamageTypes.SONIC_BOOM) || "sonic_boom".equals(source.type().msgId())) {
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, Element.ANEMO, 2.0F, attacker, 0.0F);
-                    return;
-                }
-
-                // 8. Falling Stalactite / Stalagmite / Anvil / Falling Block -> Geo (1.5U)
-                if (source.is(DamageTypes.FALLING_STALACTITE) || source.is(DamageTypes.STALAGMITE)
-                        || source.is(DamageTypes.FALLING_ANVIL) || source.is(DamageTypes.FALLING_BLOCK)) {
-                    applyElement(level, target, Element.GEO, 1.5F, null, 0.0F);
-                    return;
-                }
-
-                // 9. Trident damage (Thrown Trident, Trident melee, or Drowned attack) -> Hydro (1.0U)
-                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownTrident
-                        || source.is(DamageTypes.TRIDENT)
-                        || (source.getEntity() instanceof LivingEntity attacker && attacker.getMainHandItem().is(Items.TRIDENT))) {
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, Element.HYDRO, 1.0F, attacker, 0.0F);
-                    return;
-                }
-
-                // 10. Direct Ender projectiles (Dragon Fireball, Shulker Bullet, Ender Pearl) -> Electro (1.5U)
-                if (source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.DragonFireball
-                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ShulkerBullet
-                        || source.getDirectEntity() instanceof net.minecraft.world.entity.projectile.ThrownEnderpearl) {
-                    applyElement(level, target, Element.ELECTRO, 1.5F, null, 0.0F);
-                    return;
-                }
-
-                // 11. Husk melee attack -> Geo (0.5U)
-                if (source.getEntity() instanceof Husk) {
-                    applyElement(level, target, Element.GEO, 0.5F, null, 0.0F);
-                    return;
-                }
-
-                // 12. Ravager: Roar shockwave -> Anemo (1.5U), Stomp/Melee -> Geo (1.0U)
-                if (source.getEntity() instanceof Ravager ravager) {
-                    if (ravager.getRoarTick() > 0) {
-                        applyElement(level, target, Element.ANEMO, 1.5F, null, 0.0F);
-                    } else {
-                        applyElement(level, target, Element.GEO, 1.0F, null, 0.0F);
-                    }
-                    return;
-                }
-
-                // 13. Evoker Fangs -> Geo (1.0U) (only for natural/wild Evokers)
-                if (source.getDirectEntity() instanceof EvokerFangs fangs) {
-                    if (fangs.getTags().contains("velorise_staves:geo_fangs")) {
-                        return; // Handled with custom Geo damage & immunity at bite time
-                    }
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, Element.GEO, 1.0F, attacker, 0.0F);
-                    return;
-                }
-
-                // 14. Vex melee attack -> Anemo (0.5U)
-                if (source.getEntity() instanceof Vex) {
-                    applyElement(level, target, Element.ANEMO, 0.5F, null, 0.0F);
-                    return;
-                }
-
-                // 15. Fireworks explosion -> Pyro (1.5U)
-                if (source.is(DamageTypes.FIREWORKS)
-                        || source.getDirectEntity() instanceof FireworkRocketEntity) {
-                    ServerPlayer attacker = source.getEntity() instanceof ServerPlayer sp ? sp : null;
-                    applyElement(level, target, Element.PYRO, 1.5F, attacker, 0.0F);
-                    return;
-                }
-
-                // 15B. Tipped Arrow elemental application (1.0U mapped element)
-                if (source.getDirectEntity() instanceof Arrow arrow) {
-                    handleTippedArrowHit(level, arrow, target);
-                }
-
-                // 15C. Mace with Wind Burst enchantment -> deals bonus Anemo damage & triggers Swirl
-                if (source.getEntity() instanceof LivingEntity maceAttacker && maceAttacker != target
-                        && source.getDirectEntity() == maceAttacker) {
-                    int windBurstLvl = getMaceWindBurstLevel(maceAttacker);
-                    if (windBurstLvl > 0) {
-                        ServerPlayer attackerPlayer = maceAttacker instanceof ServerPlayer sp ? sp : null;
-                        float anemoU = 1.0F + (windBurstLvl - 1) * 0.5F;
-                        float bonusAnemoDmg = 2.0F + windBurstLvl * 1.5F;
-                        level.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.6D, target.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                        level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, 1.15F);
-                        applyElementBypassIcd(level, target, Element.ANEMO, anemoU, attackerPlayer, bonusAnemoDmg);
-                    }
-                }
-
-                // 16. Attacker with Innate Element
-                if (source.getEntity() instanceof LivingEntity attackerMob && attackerMob != target) {
-                    EnumSet<Element> innateSet = getInnateElements(attackerMob);
-                    if (!innateSet.isEmpty()) {
-                        if (!innateSet.contains(Element.PYRO) && attackerMob.isOnFire() && !target.isInLava()) {
-                            target.clearFire();
-                        }
-                        ServerPlayer attackerPlayer = attackerMob instanceof ServerPlayer sp ? sp : null;
-                        for (Element innate : innateSet) {
-                            if (!target.isAlive()) break;
-                            applyElementBypassIcd(level, target, innate, 1.0F, attackerPlayer, 0.0F);
-                        }
-                    }
-                }
-    }
 
     /**
      * Pre-damage hook for environmental fire damage (sunlight burning on Stray, fire blocks, lava, magma).
      * Amplifies incoming fire damage when Forward Melt (2.0x) or Reverse Vaporize (1.5x) is triggered.
      */
-    public static float modifyIncomingEnvironmentalDamage(LivingEntity target, DamageSource source, float amount) {
-        boolean prev = Boolean.TRUE.equals(IS_MODIFYING_ENV_DAMAGE.get());
-        IS_MODIFYING_ENV_DAMAGE.set(Boolean.TRUE);
-        try {
-            return modifyIncomingEnvironmentalDamageInternal(target, source, amount);
-        } finally {
-            IS_MODIFYING_ENV_DAMAGE.set(prev);
-        }
-    }
-
-    private static float modifyIncomingEnvironmentalDamageInternal(LivingEntity target, DamageSource source, float amount) {
-        if (!target.isAlive() || target.isSpectator() || target.level().isClientSide()) return amount;
-        if (IS_PROCESSING_REACTION.get()) return amount;
-        if (!source.is(DamageTypeTags.IS_FIRE)) return amount;
-        if (isEntityInWater(target)) return amount;
-
-        if (isOmniInnate(target)) return 0.0F;
-        EnumSet<Element> innateSet = getInnateElements(target);
-        if (innateSet.contains(Element.PYRO)) return 0.0F;
-
-        UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-        long now = target.level().getGameTime();
-        double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
-
-        // 1. Frozen or Cryo (including Innate Cryo like Stray burning in sunlight) -> Forward Melt (2.0x damage)
-        GaugeState fg = FROZEN_GAUGES.get(id);
-        if ((fg != null && !fg.isExpired()) || targetGauges.containsKey(Element.CRYO) || innateSet.contains(Element.CRYO)) {
-            if (checkReactionIcd(target, ElementalReaction.FORWARD_MELT, now)) {
-                if (fg != null) {
-                    clearFreezeState(target, id);
-                } else {
-                    targetGauges.remove(Element.CRYO);
-                }
-                enforceInnateLock(target, targetGauges, id, innateSet, now);
-                target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
-                if (target.level() instanceof ServerLevel sl) {
-                    sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
-                }
-                float meltDmg = Math.max(amount * ElementalReaction.FORWARD_MELT.getDamageMultiplier(), (float) (2.0F * dmgMult));
-                syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT,
-                        applyMobElementalResistance(target, Element.PYRO, meltDmg));
-                return meltDmg;
-            }
-            return amount;
-        }
-
-        // 2. Hydro (including Innate Hydro) -> Reverse Vaporize (1.5x damage)
-        if (targetGauges.containsKey(Element.HYDRO) || innateSet.contains(Element.HYDRO)) {
-            if (checkReactionIcd(target, ElementalReaction.REVERSE_VAPORIZE, now)) {
-                targetGauges.remove(Element.HYDRO);
-                enforceInnateLock(target, targetGauges, id, innateSet, now);
-                target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
-                if (target.level() instanceof ServerLevel sl) {
-                    sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
-                }
-                float vapeDmg = Math.max(amount * ElementalReaction.REVERSE_VAPORIZE.getDamageMultiplier(), (float) (1.5F * dmgMult));
-                syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE,
-                        applyMobElementalResistance(target, Element.PYRO, vapeDmg));
-                return vapeDmg;
-            }
-            return amount;
-        }
-
-        return amount;
-    }
 
     /**
      * Maintains Pyro 1U aura on burning entities in tick() without prematurely stealing Melt/Vaporize before the fire damage tick.
      */
-    public static void maintainBurningPyroAura(LivingEntity target) {
-        if (!target.isAlive() || target.isSpectator() || isEntityInWater(target)) return;
-        if (isOmniInnate(target)) {
-            extinguishPyroInnate(target);
-            return;
-        }
-        EnumSet<Element> innateSet = getInnateElements(target);
-        if (innateSet.contains(Element.PYRO)) {
-            extinguishPyroInnate(target);
-            return;
-        }
-        if (innateSet.contains(Element.CRYO) || innateSet.contains(Element.HYDRO)) return;
-
-        UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-        GaugeState fg = FROZEN_GAUGES.get(id);
-        if ((fg != null && !fg.isExpired()) || targetGauges.containsKey(Element.CRYO) || targetGauges.containsKey(Element.HYDRO)) {
-            return; // Wait for actual fire damage tick to trigger Forward Melt / Reverse Vaporize with amplified damage
-        }
-        handleEnvironmentalFireDamage(target);
-    }
 
     /**
      * Handles environmental fire damage (lava, fire block, campfire, magma, burning) on entities.
      */
-    public static void handleEnvironmentalFireDamage(LivingEntity target) {
-        if (!target.isAlive() || target.isSpectator()) return;
-        if (isOmniInnate(target)) {
-            extinguishPyroInnate(target);
-            return;
-        }
-        EnumSet<Element> innateSet = getInnateElements(target);
-        if (innateSet.contains(Element.PYRO)) {
-            return;
-        }
-        if (isEntityInWater(target)) return;
-
-        UUID id = target.getUUID();
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-        long now = target.level().getGameTime();
-
-        // 1. Check if entity has Frozen or Cryo -> Forward Melt (if not already handled in modifyIncomingEnvironmentalDamage)
-        GaugeState fg = FROZEN_GAUGES.get(id);
-        if ((fg != null && !fg.isExpired()) || targetGauges.containsKey(Element.CRYO) || innateSet.contains(Element.CRYO)) {
-            if (!checkReactionIcd(target, ElementalReaction.FORWARD_MELT, now)) return;
-            if (fg != null) {
-                clearFreezeState(target, id);
-            } else {
-                targetGauges.remove(Element.CRYO);
-            }
-            enforceInnateLock(target, targetGauges, id, innateSet, now);
-            target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
-            if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 15, 0.3D, 0.3D, 0.3D, 0.04D);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.PYRO, ElementalReaction.FORWARD_MELT, 2.0F);
-            return;
-        }
-
-        // 2. Check if entity has Electro -> Overloaded
-        if (targetGauges.containsKey(Element.ELECTRO) || innateSet.contains(Element.ELECTRO)) {
-            if (!checkReactionIcd(target, ElementalReaction.OVERLOADED, now)) {
-                if (!target.isInLava()) {
-                    target.clearFire();
-                }
-                return;
-            }
-            targetGauges.remove(Element.ELECTRO);
-            targetGauges.remove(Element.PYRO);
-            BURNING_UNTIL.remove(id);
-            BURNING_EM_LEVEL.remove(id);
-            BURNING_ATTACKER_UUID.remove(id);
-            LAST_BURN_PYRO_REFRESH.remove(id);
-            if (!target.isInLava()) {
-                target.clearFire();
-            }
-            enforceInnateLock(target, targetGauges, id, innateSet, now);
-            if (target.level() instanceof ServerLevel sl) {
-                triggerOverloadExplosion(sl, target, null, 1.0D);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.ELECTRO, Element.PYRO, ElementalReaction.OVERLOADED, 6.0F);
-            return;
-        }
-
-        // 3. Check if entity has Hydro -> Reverse Vaporize
-        if (targetGauges.containsKey(Element.HYDRO) || innateSet.contains(Element.HYDRO)) {
-            if (!checkReactionIcd(target, ElementalReaction.REVERSE_VAPORIZE, now)) return;
-            targetGauges.remove(Element.HYDRO);
-            enforceInnateLock(target, targetGauges, id, innateSet, now);
-            target.level().playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.3F);
-            if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.PYRO, ElementalReaction.REVERSE_VAPORIZE, 1.5F);
-            return;
-        }
-
-        // 4. Dendro or Quicken -> Burning
-        GaugeState qg = QUICKEN_GAUGES.get(id);
-        boolean hasQuicken = qg != null && !qg.isExpired();
-        if (targetGauges.containsKey(Element.DENDRO) || hasQuicken || innateSet.contains(Element.DENDRO)) {
-            if (target.fireImmune() || target instanceof Warden) {
-                return;
-            }
-            if (!BURNING_UNTIL.containsKey(id) && checkReactionIcd(target, ElementalReaction.BURNING, now)) {
-                long burnTicks = ElementalResonanceManager.getBurningDurationTicksForTarget(
-                        target, 200L);
-                BURNING_UNTIL.put(id, now + burnTicks);
-                LAST_BURN_PYRO_REFRESH.put(id, now);
-                if (innateSet.isEmpty() || innateSet.contains(Element.DENDRO) || innateSet.contains(Element.GEO)) {
-                    targetGauges.put(Element.PYRO, GaugeState.createBurning(2.0F));
-                }
-                if (target.getRemainingFireTicks() < 100) {
-                    target.setSecondsOnFire(5);
-                }
-                enforceInnateLock(target, targetGauges, id, innateSet, now);
-                syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, 0.0F);
-            }
-            return;
-        }
-
-        // No reactive aura -> apply or refresh Pyro (2.0U on Soul Campfire, 1.0U on regular fire/lava/campfire)
-        if (!innateSet.contains(Element.PYRO)) {
-            boolean soulFire = isTouchingSoulCampfire(target);
-            float appliedPyro = soulFire ? 2.5F : 1.25F; // 2.5F * 0.8 tax = 2.0U; 1.25F * 0.8 tax = 1.0U
-            boolean wasMissing = !targetGauges.containsKey(Element.PYRO);
-            if (wasMissing) {
-                targetGauges.put(Element.PYRO, createAuraGauge(target, Element.PYRO, appliedPyro));
-                syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
-            } else {
-                GaugeState existing = targetGauges.get(Element.PYRO);
-                if (existing != null && (soulFire || isTouchingEnvironmentalFireBlock(target))) {
-                    refreshAuraGauge(target, existing, Element.PYRO, appliedPyro);
-                    if (soulFire || now % 20 == 0) {
-                        syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
-                    }
-                }
-            }
-        }
-    }
-
-    public static boolean isNaturallyWaterSensitive(LivingEntity target) {
-        return target.isSensitiveToWater()
-                || target instanceof Blaze
-                || target instanceof Strider
-                || target instanceof MagmaCube
-                || target instanceof SnowGolem
-                || target instanceof EnderMan;
-    }
 
     /**
      * Handles environmental water/rain on entities holding active auras.
      */
-    public static void handleEnvironmentalWater(LivingEntity target) {
-        if (!target.isAlive() || target.isSpectator() || isOmniInnate(target)) return;
-        UUID id = target.getUUID();
-        EnumSet<Element> innateSet = getInnateElements(target);
-
-        if (!innateSet.isEmpty()) {
-            long now = target.level().getGameTime();
-            // 1A. Innate Dendro mob (Bee, Bogged, Slime, Mutated Dendro) in water or rain -> Trigger Bloom & spawn Dendro Core!
-            if (innateSet.contains(Element.DENDRO)) {
-                Long lastBloom = INNATE_COOLDOWN_UNTIL.get(id);
-                if (lastBloom == null || now >= lastBloom) {
-                    INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
-                    if (target.level() instanceof ServerLevel sl) {
-                        DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
-                        sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
-                    }
-                    syncAuras(target, innateSet, Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
-                }
-            }
-
-            // 1B. Innate Pyro mob in water or rain -> Vaporize!
-            if (innateSet.contains(Element.PYRO)) {
-                Long lastVape = INNATE_COOLDOWN_UNTIL.get(id);
-                if (lastVape == null || now >= lastVape) {
-                    INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
-                    boolean sensitive = isNaturallyWaterSensitive(target);
-                    float vapeDmg = sensitive ? applyMobElementalResistance(target, Element.HYDRO, 3.0F) : 0.0F;
-                    if (target.level() instanceof ServerLevel sl) {
-                        sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 14, 0.3D, 0.3D, 0.3D, 0.04D);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.7F, 1.2F);
-                        if (sensitive && vapeDmg > 0.0F) {
-                            hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.FORWARD_VAPORIZE, Element.HYDRO), vapeDmg);
-                        }
-                    }
-                    syncAuras(target, innateSet, Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
-                }
-            }
-
-            // 1C. Innate Electro mob in water or rain -> Electro discharge into water, immune to self-shock!
-            if (innateSet.contains(Element.ELECTRO)) {
-                Long lastEc = INNATE_COOLDOWN_UNTIL.get(id);
-                if (lastEc == null || now >= lastEc) {
-                    INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
-                    if (target.level() instanceof ServerLevel sl) {
-                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
-                        if (isEntitySubmergedInWater(target)) {
-                            AABB chainBox = target.getBoundingBox().inflate(1.0D);
-                            for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != target)) {
-                                if (isEntitySubmergedInWater(nearby) && !hasInnateElement(nearby, Element.ELECTRO)) {
-                                    drawVoltaicArc(sl, target, nearby);
-                                    applyElement(sl, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 1D. Innate Cryo mob physically in water or stepping on water surface -> Freeze Water!
-            if (innateSet.contains(Element.CRYO)) {
-                checkCryoWaterFreezing(target);
-            }
-            return;
-        }
-
-        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-        long now = target.level().getGameTime();
-
-        // 2. Pyro in water/rain -> Extinguish & Vaporize
-        if (targetGauges.containsKey(Element.PYRO)) {
-            targetGauges.remove(Element.PYRO);
-            BURNING_UNTIL.remove(id);
-            BURNING_EM_LEVEL.remove(id);
-            BURNING_ATTACKER_UUID.remove(id);
-            ELECTRO_CHARGE_EM_LEVEL.remove(id);
-            LAST_BURN_PYRO_REFRESH.remove(id);
-            target.clearFire();
-            boolean sensitive = isNaturallyWaterSensitive(target);
-            float vapeDmg = sensitive ? applyMobElementalResistance(target, Element.HYDRO, 2.5F) : 0.0F;
-            if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.03D);
-                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
-                if (sensitive && vapeDmg > 0.0F) {
-                    hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.FORWARD_VAPORIZE, Element.HYDRO), vapeDmg);
-                }
-            }
-            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.HYDRO, ElementalReaction.FORWARD_VAPORIZE, vapeDmg);
-            return;
-        }
-
-        // 3. Applied Dendro or Quicken in water/rain -> Bloom reaction & spawn Dendro Core!
-        GaugeState qg = QUICKEN_GAUGES.get(id);
-        boolean hasQuicken = qg != null && !qg.isExpired();
-        if (targetGauges.containsKey(Element.DENDRO) || hasQuicken) {
-            GaugeState dg = targetGauges.get(Element.DENDRO);
-            if (dg != null) {
-                dg.consume(0.5F);
-                if (dg.isExpired()) targetGauges.remove(Element.DENDRO);
-            }
-            if (qg != null) {
-                qg.consume(0.5F);
-                if (qg.isExpired()) clearQuickenState(id);
-            }
-            Long lastSpawn = LAST_BLOOM_SPAWN.get(id);
-            if (lastSpawn == null || now < lastSpawn || (now - lastSpawn) >= 10L) {
-                if (target.level() instanceof ServerLevel sl) {
-                    DendroCoreManager.spawn(sl, target.position(), null, 1.0F);
-                    sl.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, target.getX(), target.getY() + 0.8D, target.getZ(), 20, 0.6D, 0.4D, 0.6D, 0.04D);
-                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.8F, 1.2F);
-                }
-                LAST_BLOOM_SPAWN.put(id, now);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.DENDRO, Element.HYDRO, ElementalReaction.BLOOM, 0.0F);
-            return;
-        }
-
-        // 4. Electro in water/rain -> Trigger Electro-Charged shock on entity itself (with reaction ICD, 1.0F = 0.5 heart damage)
-        if (targetGauges.containsKey(Element.ELECTRO)) {
-            if (!checkReactionIcd(target, ElementalReaction.ELECTRO_CHARGED, now)) return;
-            GaugeState electro = targetGauges.get(Element.ELECTRO);
-            if (electro != null) {
-                electro.consume(0.4F);
-                if (electro.isExpired()) targetGauges.remove(Element.ELECTRO);
-            }
-            float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
-            if (target.level() instanceof ServerLevel sl) {
-                sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
-                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
-            return;
-        }
-
-        // 5. Environmental Wet: Apply or keep Hydro refreshed while in water or rain
-        if (innateSet.isEmpty()) {
-            if (!targetGauges.containsKey(Element.HYDRO)) {
-                targetGauges.put(Element.HYDRO, createAuraGauge(target, Element.HYDRO, 1.25F));
-                syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
-            } else {
-                GaugeState hydro = targetGauges.get(Element.HYDRO);
-                if (hydro != null) {
-                    refreshAuraGauge(target, hydro, Element.HYDRO, 1.25F);
-                }
-            }
-        }
-    }
-
-    public static void checkCryoWaterFreezing(LivingEntity entity) {
-        if (entity.level().isClientSide() || !(entity.level() instanceof ServerLevel sl)) return;
-        if (!hasInnateElement(entity, Element.CRYO) && !hasElement(entity, Element.CRYO)) return;
-
-        BlockPos pos = entity.blockPosition();
-        BlockPos below = pos.below();
-        Vec3 motion = entity.getDeltaMovement();
-        Vec3 predictedPos = entity.position().add(motion);
-        BlockPos predBlock = BlockPos.containing(predictedPos);
-
-        boolean touchingWater = entity.isInWater() || isEntitySubmergedInWater(entity)
-                || sl.getFluidState(pos).is(FluidTags.WATER)
-                || sl.getFluidState(below).is(FluidTags.WATER)
-                || sl.getFluidState(predBlock).is(FluidTags.WATER)
-                || sl.getFluidState(predBlock.below()).is(FluidTags.WATER);
-
-        if (!touchingWater) {
-            AABB scan = entity.getBoundingBox().expandTowards(motion).inflate(0.4D, 0.5D, 0.4D);
-            BlockPos min = BlockPos.containing(scan.minX, scan.minY, scan.minZ);
-            BlockPos max = BlockPos.containing(scan.maxX, scan.maxY, scan.maxZ);
-            for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-                if (sl.hasChunkAt(p) && sl.getFluidState(p).is(FluidTags.WATER)) {
-                    touchingWater = true;
-                    break;
-                }
-            }
-        }
-
-        if (touchingWater) {
-            com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(sl, entity.position(), 2);
-            if (motion.lengthSqr() > 0.005D) {
-                com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(sl, predictedPos, 2);
-            }
-            // If the water block at the entity's feet just froze into Frosted Ice while falling/pushed, lift onto the ice surface
-            BlockPos feetPos = entity.blockPosition();
-            if (sl.getBlockState(feetPos).is(Blocks.FROSTED_ICE)) {
-                entity.setPos(entity.getX(), feetPos.getY() + 1.0D, entity.getZ());
-                if (motion.y < 0.0D) {
-                    entity.setDeltaMovement(motion.x, 0.0D, motion.z);
-                }
-            }
-        }
-    }
-
-    public static boolean isHostileMob(LivingEntity entity) {
-        if (entity == null) return false;
-        if (entity instanceof Player) return false;
-        if (entity instanceof Npc) return false;
-        if (entity instanceof Animal) return false;
-        if (entity instanceof AbstractGolem) return false;
-        if (isBossEntity(entity) || isPassiveAquaticOrAmbient(entity)) return false;
-        return entity instanceof Enemy || entity.getType().getCategory() == MobCategory.MONSTER;
-    }
-
-    public static void checkInnateMutation(LivingEntity entity) {
-        if (entity == null || entity instanceof Player || entity.level().isClientSide()) return;
-        if (entity instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
-            mob.setNoAi(false);
-            mob.removeTag(TAG_FROZEN_STATUE);
-        }
-
-        CompoundTag data = entity.getPersistentData();
-        boolean alreadyChecked = data.contains("VeloriseInnateChecked") || entity.getTags().contains("VeloriseInnateChecked");
-        if (!alreadyChecked) {
-            data.putBoolean("VeloriseInnateChecked", true);
-            entity.addTag("VeloriseInnateChecked");
-            rollInnateMutationOnce(entity, data);
-        }
-
-        if (entity.level() instanceof ServerLevel slInit) {
-            updateCoopMobScaling(slInit, entity);
-        }
-    }
-
-    private static void rollInnateMutationOnce(LivingEntity entity, CompoundTag data) {
-        // If the entity already has a natural innate element (other than non-mutated Charged Creeper lightning), do not mutate it
-        if (!(entity instanceof Creeper) && getNaturalInnateElement(entity) != null) return;
-
-        StavesConfig.MutationRules rules = StavesConfig.getMutationRules();
-        double mutateChance = rules.resolveMutationChance(entity);
-        if (mutateChance <= 0.0D) return;
-
-        double roll = entity.getRandom().nextDouble();
-        if (roll < mutateChance) {
-            double omniThreshold = mutateChance * rules.omniShare;
-            if (omniThreshold > 0.0D && roll < omniThreshold) {
-                data.putString("VeloriseInnate", "OMNI");
-                entity.addTag(TAG_INNATE_OMNI);
-                entity.addTag("VeloriseInnate:OMNI");
-                OMNI_INNATE_ENTITIES.add(entity.getUUID());
-                extinguishPyroInnate(entity);
-                com.velorise.staves.network.ModNetwork.sendAuraSync(entity, Collections.emptyList(), null, null, null, 0.0F, -2);
-                return;
-            }
-            Element[] elements = Element.values();
-            Element chosen = elements[entity.getRandom().nextInt(elements.length)];
-            data.putString("VeloriseInnate", chosen.name());
-            entity.addTag("VeloriseInnate:" + chosen.name());
-            if (chosen == Element.PYRO) {
-                extinguishPyroInnate(entity);
-            }
-
-            // Immediately initialize mutated innate element(s) in GAUGES (including Anemo & Geo + Charged Creeper dual)
-            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
-            EnumSet<Element> innateSet = getInnateElements(entity);
-            for (Element inn : innateSet) {
-                gauges.put(inn, new GaugeState(inn, 1.25F));
-            }
-            syncAuras(entity, innateSet, null, null, null, 0.0F);
-        }
-    }
-
-    public static boolean isOmniInnate(@Nullable Entity entity) {
-        if (!(entity instanceof LivingEntity living) || living instanceof Player) return false;
-        if (!living.level().isClientSide() && !living.getPersistentData().contains("VeloriseInnateChecked") && !living.getTags().contains("VeloriseInnateChecked")) {
-            checkInnateMutation(living);
-        }
-        if (OMNI_INNATE_ENTITIES.contains(living.getUUID())) return true;
-        if (living.getTags().contains(TAG_INNATE_OMNI) || living.getTags().contains("VeloriseInnate:OMNI")) {
-            OMNI_INNATE_ENTITIES.add(living.getUUID());
-            return true;
-        }
-        if (living.getPersistentData().contains("VeloriseInnate")
-                && "OMNI".equalsIgnoreCase(living.getPersistentData().getString("VeloriseInnate"))) {
-            OMNI_INNATE_ENTITIES.add(living.getUUID());
-            return true;
-        }
-        return false;
-    }
-
-    public static @Nullable Element getInnateElement(LivingEntity target) {
-        if (target == null || target instanceof Player) return null;
-        if (!target.level().isClientSide() && !target.getPersistentData().contains("VeloriseInnateChecked") && !target.getTags().contains("VeloriseInnateChecked")) {
-            checkInnateMutation(target);
-        }
-        if (target.getTags().contains(TAG_INNATE_OMNI) || target.getTags().contains("VeloriseInnate:OMNI")) {
-            OMNI_INNATE_ENTITIES.add(target.getUUID());
-            return null;
-        }
-        if (target.getPersistentData().contains("VeloriseInnate")) {
-            String elemName = target.getPersistentData().getString("VeloriseInnate");
-            if ("OMNI".equalsIgnoreCase(elemName)) {
-                OMNI_INNATE_ENTITIES.add(target.getUUID());
-                return null;
-            }
-            try {
-                return Element.valueOf(elemName);
-            } catch (IllegalArgumentException ignored) {}
-        }
-        for (String tag : target.getTags()) {
-            if (tag.startsWith("VeloriseInnate:")) {
-                String val = tag.substring("VeloriseInnate:".length());
-                if ("OMNI".equalsIgnoreCase(val)) {
-                    OMNI_INNATE_ENTITIES.add(target.getUUID());
-                    return null;
-                }
-                try {
-                    return Element.valueOf(val);
-                } catch (IllegalArgumentException ignored) {}
-            }
-        }
-        return getNaturalInnateElement(target);
-    }
 
     /**
      * Returns all permanent innate elements held by the entity (empty for Omni or non-innate).
      * A Mutated Creeper struck by lightning retains both its mutated element and Charged Electro.
      */
-    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) {
-        EnumSet<Element> set = EnumSet.noneOf(Element.class);
-        if (target == null) return set;
-        if (isOmniInnate(target)) return set;
-        Element primary = getInnateElement(target);
-        if (primary != null) {
-            set.add(primary);
-        }
-        if (target instanceof Creeper creeper && creeper.isPowered()) {
-            set.add(Element.ELECTRO);
-        }
-        return set;
-    }
-
-    public static boolean hasInnateElement(@Nullable LivingEntity target, @Nullable Element element) {
-        return target != null && element != null && getInnateElements(target).contains(element);
-    }
-
-    public static boolean isPyroInnate(@Nullable Entity entity) {
-        return entity instanceof LivingEntity living && hasInnateElement(living, Element.PYRO);
-    }
-
-    public static boolean isPyroResistant(@Nullable LivingEntity target) {
-        return target != null && (target instanceof Warden || target.fireImmune() || target.hasEffect(MobEffects.FIRE_RESISTANCE));
-    }
-
-    public static void ensurePreDeathPyroIgnite(@Nullable LivingEntity target, int seconds) {
-        if (target == null || !target.isAlive() || seconds <= 0) return;
-        if (isPyroInnate(target) || isPyroResistant(target) || isEntityInWater(target)) return;
-        if (hasElement(target, Element.ELECTRO) || hasInnateElement(target, Element.ELECTRO)) return;
-        if (target.getRemainingFireTicks() < seconds * 20) {
-            target.setSecondsOnFire(seconds);
-        }
-    }
-
-    public static void extinguishPyroInnate(@Nullable LivingEntity entity) {
-        if (entity == null || (!isPyroInnate(entity) && !isOmniInnate(entity))) return;
-        if (entity.getRemainingFireTicks() > 0 || entity.isOnFire()) {
-            entity.clearFire();
-            entity.setSharedFlagOnFire(false);
-        }
-        if (!entity.level().isClientSide()) {
-            UUID id = entity.getUUID();
-            BURNING_UNTIL.remove(id);
-            BURNING_EM_LEVEL.remove(id);
-            LAST_BURN_PYRO_REFRESH.remove(id);
-        }
-    }
-
-    public static boolean isMutatedInnate(LivingEntity entity) {
-        if (entity.getPersistentData().contains("VeloriseInnate")) return true;
-        for (String tag : entity.getTags()) {
-            if (tag.startsWith("VeloriseInnate:")) return true;
-        }
-        return false;
-    }
 
     /**
      * Rolls fixed elemental essence drops on death for Hostile Enemies killed by a player
      * (no Looting scaling, split tiny/medium Slimes and Magma Cubes excluded):
      * Omni Mutated 25%, Regular Mutated 15%, Natural Innate 5%.
      */
-    public static void tryDropElementOnDeath(LivingEntity entity, DamageSource source) {
-        if (!(entity.level() instanceof ServerLevel level)) return;
-        boolean mutatedOrOmni = isMutatedInnate(entity) || isOmniInnate(entity);
-        if (!(entity instanceof Enemy) && !mutatedOrOmni) return;
-        if (entity instanceof Slime slime && slime.getSize() < 3) return;
-        boolean playerKill = (source.getEntity() instanceof Player) || (entity.getKillCredit() instanceof Player);
-        if (!playerKill) return;
-
-        double chance;
-        net.minecraft.world.item.Item dropItem;
-        if (isOmniInnate(entity)) {
-            chance = 0.25D;
-            dropItem = VeloriseStavesMod.getElementItem(null);
-        } else if (isMutatedInnate(entity)) {
-            Element mutated = getInnateElement(entity);
-            if (mutated == null) return;
-            chance = 0.15D;
-            dropItem = VeloriseStavesMod.getElementItem(mutated);
-        } else {
-            Element natural = getNaturalInnateElement(entity);
-            if (natural == null) return;
-            chance = 0.05D;
-            dropItem = VeloriseStavesMod.getElementItem(natural);
-        }
-
-        if (level.random.nextDouble() < chance) {
-            ItemEntity drop = new ItemEntity(level, entity.getX(), entity.getY() + 0.5D, entity.getZ(), new ItemStack(dropItem));
-            drop.setDefaultPickUpDelay();
-            level.addFreshEntity(drop);
-            level.sendParticles(ParticleTypes.END_ROD, entity.getX(), entity.getY() + 0.6D, entity.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.04D);
-        }
-    }
-
-    public static @Nullable Element getNaturalInnateElement(LivingEntity target) {
-        EntityType<?> type = target.getType();
-        if (type.is(PYRO_CREATURES)) return Element.PYRO;
-        if (type.is(HYDRO_CREATURES)) return Element.HYDRO;
-        if (type.is(CRYO_CREATURES)) return Element.CRYO;
-        if (type.is(ELECTRO_CREATURES)) return Element.ELECTRO;
-        if (type.is(DENDRO_CREATURES) && !(target instanceof MagmaCube)) return Element.DENDRO;
-        if (type.is(ANEMO_CREATURES)) return Element.ANEMO;
-        if (type.is(GEO_CREATURES)) return Element.GEO;
-
-        // Fallback / dynamic state checks
-        if (target instanceof Blaze
-                || target instanceof MagmaCube
-                || target instanceof Strider
-                || target instanceof Ghast
-                || target instanceof ZombifiedPiglin
-                || target instanceof Zoglin
-                || target instanceof WitherSkeleton) {
-            return Element.PYRO;
-        }
-        if (target instanceof Stray || target instanceof SnowGolem || target instanceof PolarBear) {
-            return Element.CRYO;
-        }
-        if (target instanceof Guardian || target instanceof ElderGuardian || target instanceof Drowned
-                || target instanceof Axolotl) {
-            return Element.HYDRO;
-        }
-        if (target.getType().getDescriptionId().contains("breeze")
-                || target instanceof Phantom
-                || target instanceof Vex) {
-            return Element.ANEMO;
-        }
-        if ((target instanceof Creeper creeper && creeper.isPowered())
-                || target instanceof EnderMan
-                || target instanceof EnderDragon
-                || target instanceof Endermite
-                || target instanceof Shulker) {
-            return Element.ELECTRO;
-        }
-        if (target instanceof MushroomCow
-                || target instanceof Bee || target instanceof CaveSpider
-                || (target instanceof Slime && !(target instanceof MagmaCube))
-                || target.getType().getDescriptionId().contains("bogged")) {
-            return Element.DENDRO;
-        }
-        if (target.getType().getDescriptionId().contains("armadillo")) {
-            return Element.GEO;
-        }
-        return null;
-    }
-
-    public static boolean isBossEntity(LivingEntity entity) {
-        return entity instanceof Warden
-                || entity instanceof EnderDragon
-                || entity instanceof WitherBoss
-                || entity instanceof ElderGuardian;
-    }
-
-    public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) {
-        return entity instanceof WaterAnimal || entity instanceof AmbientCreature;
-    }
 
     public static boolean checkStandardIcd(LivingEntity target, Element element, @Nullable ServerPlayer attacker, long now) {
         int attackerKey = attacker != null ? attacker.getId() : 0;
@@ -3866,7 +595,7 @@ public final class ElementalGaugeManager {
         }
     }
 
-    private static void applyElement(
+    public static void applyElement(
             ServerLevel level,
             LivingEntity target,
             Element attackElement,
@@ -3884,74 +613,8 @@ public final class ElementalGaugeManager {
      * returns the final incoming sword damage (amplified/boosted by reactions, or unchanged
      * physical damage when immune / below full charge).
      */
-    public static void recordPreAttackStrength(@Nullable Player player, float scale) {
-        if (player != null) {
-            PRE_ATTACK_STRENGTH.put(player.getUUID(), scale);
-        }
-    }
 
-    public static void clearPreAttackStrength(@Nullable Player player) {
-        if (player != null) {
-            PRE_ATTACK_STRENGTH.remove(player.getUUID());
-        }
-    }
-
-    public static float getEffectiveAttackStrengthScale(Player attacker) {
-        Float recorded = PRE_ATTACK_STRENGTH.get(attacker.getUUID());
-        float current = attacker.getAttackStrengthScale(0.5F);
-        return recorded != null ? Math.max(recorded, current) : current;
-    }
-
-    public static float applyImbuedSwordHit(LivingEntity target, DamageSource source, float incomingDamage) {
-        if (target == null || !target.isAlive() || incomingDamage <= 0.0F) return incomingDamage;
-        if (!(target.level() instanceof ServerLevel level)) return incomingDamage;
-        if (Boolean.TRUE.equals(IS_PROCESSING_SWORD_IMBUE.get())) return incomingDamage;
-        if (!source.is(DamageTypes.PLAYER_ATTACK)) return incomingDamage;
-        if (!(source.getDirectEntity() instanceof ServerPlayer attacker)) return incomingDamage;
-        if (attacker == target) return incomingDamage;
-
-        ItemStack weapon = attacker.getMainHandItem();
-        boolean hasFireAspect = com.velorise.staves.item.SwordImbueHelper.hasFireAspect(weapon);
-        String imbueKey = com.velorise.staves.item.SwordImbueHelper.getImbuedKey(weapon);
-        if (imbueKey == null && !hasFireAspect) {
-            return incomingDamage;
-        }
-        if (com.velorise.staves.item.SwordImbueHelper.isNonPyroImbued(weapon) && hasFireAspect) {
-            ensurePreDeathPyroIgnite(target, 4);
-            return incomingDamage;
-        }
-
-        if (getEffectiveAttackStrengthScale(attacker) < 0.9F) {
-            if (hasFireAspect) {
-                ensurePreDeathPyroIgnite(target, 4);
-            }
-            return incomingDamage;
-        }
-
-        Element chosen;
-        if (imbueKey == null) {
-            chosen = Element.PYRO; // Non-imbued Fire Aspect weapon applies 1U Pyro on full-charge swing
-        } else if (com.velorise.staves.item.SwordImbueHelper.OMNI_KEY.equals(imbueKey)) {
-            chosen = com.velorise.staves.entity.OmniOrbEntity.chooseBestElementForTarget(target, attacker);
-        } else {
-            chosen = com.velorise.staves.item.SwordImbueHelper.getImbuedElement(weapon);
-        }
-        if (chosen == null) return incomingDamage;
-
-        float[] outDamage = new float[] { incomingDamage };
-        IS_PROCESSING_SWORD_IMBUE.set(true);
-        try {
-            applyElement(level, target, chosen, 1.0F, attacker, incomingDamage, true, outDamage);
-        } finally {
-            IS_PROCESSING_SWORD_IMBUE.set(false);
-        }
-        if ((chosen == Element.PYRO || hasFireAspect) && !hasElement(target, Element.ELECTRO) && !hasInnateElement(target, Element.ELECTRO)) {
-            ensurePreDeathPyroIgnite(target, 4);
-        }
-        return outDamage[0];
-    }
-
-    private static float dealOrDeferDamage(
+    public static float dealOrDeferDamage(
             ServerLevel level,
             LivingEntity target,
             @Nullable ServerPlayer attacker,
@@ -3962,7 +625,7 @@ public final class ElementalGaugeManager {
         return dealOrDeferDamage(level, target, attacker, damage, attackElement, meleeOut, null);
     }
 
-    private static float dealOrDeferDamage(
+    public static float dealOrDeferDamage(
             ServerLevel level,
             LivingEntity target,
             @Nullable ServerPlayer attacker,
@@ -3986,7 +649,7 @@ public final class ElementalGaugeManager {
         return resDamage;
     }
 
-    private static void applyElement(
+    public static void applyElement(
             ServerLevel level,
             LivingEntity target,
             Element attackElement,
@@ -4014,7 +677,7 @@ public final class ElementalGaugeManager {
         }
     }
 
-    private static void applyElementGuarded(
+    public static void applyElementGuarded(
             ServerLevel level,
             LivingEntity target,
             Element attackElement,
@@ -4030,7 +693,6 @@ public final class ElementalGaugeManager {
             meleeOut[0] = baseDamage;
         }
 
-        // Notify mob aggro when a player attacks directly with staves/magic (skip for GeoFangPillar waves which taunt onto the pillar)
         if (!physicalMelee && !Boolean.TRUE.equals(com.velorise.staves.entity.GeoFangPillarEntity.IS_GEO_PULSE.get())) {
             triggerMobAggro(level, target, attacker);
         }
@@ -4039,8 +701,6 @@ public final class ElementalGaugeManager {
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
         float effectiveDamage = physicalMelee ? baseDamage : (float) (baseDamage * dmgMult);
 
-        // Crystallize Shield matching elemental resistance:
-        // 250% absorption efficiency -> 40% incoming damage (damage / 2.5), only while Absorption hearts remain
         if (!physicalMelee && target instanceof ServerPlayer sp && effectiveDamage > 0.0F) {
             Element activeShield = CrystallizeShardManager.getActiveShield(sp, level.getGameTime());
             if (activeShield == attackElement) {
@@ -4053,7 +713,6 @@ public final class ElementalGaugeManager {
         Element preThornsAura = pickDefenderAuraForThorns(target);
         Element thornsContext = preThornsAura != null ? preThornsAura : attackElement;
 
-        // Omni Mutated immunity: 100% immune to all elemental attacks and auras (takes only physical damage)
         if (isOmniInnate(target)) {
             extinguishPyroInnate(target);
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -4062,7 +721,6 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // Same-element immunity (Genshin Impact): Innate elemental beings are 100% immune to their own element
         EnumSet<Element> innateElements = getInnateElements(target);
         if (innateElements.contains(attackElement)) {
             level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -4081,9 +739,6 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // Pyro-resistant targets (Warden, fireImmune mobs, Fire Resistance effect):
-        // - Elemental-imbued swords: cannot activate Pyro mark or trigger reactions -> IMMUNE feedback, normal physical damage only.
-        // - Staves / magic: deal 0 Pyro damage, while allowing Pyro aura attachment rules to proceed.
         if (attackElement == Element.PYRO && isPyroResistant(target)) {
             if (physicalMelee) {
                 level.sendParticles(ParticleTypes.SMOKE, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.02D);
@@ -4097,7 +752,6 @@ public final class ElementalGaugeManager {
             ensurePreDeathPyroIgnite(target, 3);
         }
 
-        // Always allow non-immune Electro/Pyro attacks to detonate nearby physical 3D Dendro Cores (Hyperbloom / Burgeon)
         DendroCoreManager.checkReactionsNear(level, target.position(), 3.5D, attackElement, attacker);
         if (attackElement == Element.PYRO) {
             EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, target.position(), 1.5D);
@@ -4139,7 +793,6 @@ public final class ElementalGaugeManager {
 
         long now = level.getGameTime();
 
-        // Standard ICD check (3-Hit / 2.5s rule) for elemental attacks
         boolean canApply = bypassStandardIcd || checkStandardIcd(target, attackElement, attacker, now);
         if (!canApply) {
             if (physicalMelee) {
@@ -4184,7 +837,7 @@ public final class ElementalGaugeManager {
         }
     }
 
-    private static void applyElementInternal(
+    public static void applyElementInternal(
             ServerLevel level,
             LivingEntity target,
             Element attackElement,
@@ -4203,7 +856,6 @@ public final class ElementalGaugeManager {
         float transEmMult = getTransformativeMultiplier(emLevel);
         float catEmMult = getCatalyzeMultiplier(emLevel);
 
-        // 0A. Innate Elemental Creature Logic
         EnumSet<Element> innateElements = getInnateElements(target);
         if (!innateElements.isEmpty()) {
             if (innateElements.contains(attackElement)) {
@@ -4240,7 +892,6 @@ public final class ElementalGaugeManager {
                 if (checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
                     executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, attackElement, 0.5F, attacker, dmgMult);
                 }
-                // If target was set on fire or is burning and hit by Pyro, ensure Pyro is attached/refreshed
                 if (attackElement == Element.PYRO && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava())) {
                     if (targetGauges.containsKey(Element.PYRO)) {
                         targetGauges.get(Element.PYRO).refresh(attackU);
@@ -4248,16 +899,13 @@ public final class ElementalGaugeManager {
                         targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, attackU));
                     }
                 }
-                // If target has no other reactive aura (e.g. Dendro or dual innate Electro), finish Crystallize hit directly
                 if (!targetGauges.containsKey(Element.DENDRO) && findPrimaryReactiveAura(targetGauges, attackElement) == null) {
                     float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.CRYSTALLIZE);
                     syncAuras(target, targetGauges.keySet(), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, resDmg);
                     return;
                 }
-                // Otherwise, fall through to resolve reaction with the attached aura!
             } else if (innateElements.contains(Element.GEO) && attackElement == Element.DENDRO
                     && findPrimaryReactiveAura(targetGauges, attackElement) == null) {
-                // Geo and Dendro do not react; Dendro attaches as an independent coexisting aura
                 if (targetGauges.containsKey(Element.DENDRO)) {
                     targetGauges.get(Element.DENDRO).refresh(attackU);
                 } else {
@@ -4269,7 +917,6 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 0B. On-Hit Environmental Auras
         if (isEntityInWater(target)) {
             if (targetGauges.remove(Element.PYRO) != null || BURNING_UNTIL.remove(targetId) != null) {
                 LAST_BURN_PYRO_REFRESH.remove(targetId);
@@ -4295,10 +942,6 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 1. Quicken / Catalyze Checks (Independent Quicken Aura coexisting with Dendro/Electro):
-        //    - Electro triggers Aggravate (+1.0 DMG) without consuming Quicken, and can STILL react with underlying Dendro (to refresh Quicken) or coexist!
-        //    - Dendro triggers Spread (+1.25 DMG) without consuming Quicken, and can STILL react with underlying Electro (to refresh Quicken) or coexist!
-        //    - Pyro / Hydro react directly with the Quicken aura (acting as a Dendro gauge).
         GaugeState quickenGauge = QUICKEN_GAUGES.get(targetId);
         Long quickenEnd = QUICKEN_UNTIL.get(targetId);
         boolean hasQuicken = (quickenGauge != null && !quickenGauge.isExpired()) && (quickenEnd == null || now < quickenEnd);
@@ -4316,7 +959,6 @@ public final class ElementalGaugeManager {
                     level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
                     level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.8F, 1.6F);
                 }
-                // If no underlying Dendro aura is present to re-trigger Quicken, coexist as underlying Electro aura and deal the Aggravate hit
                 if (!targetGauges.containsKey(Element.DENDRO) && !targetGauges.containsKey(Element.HYDRO) && !targetGauges.containsKey(Element.PYRO) && !targetGauges.containsKey(Element.CRYO)) {
                     if (innateElements.isEmpty()) {
                         if (targetGauges.containsKey(Element.ELECTRO)) {
@@ -4340,7 +982,6 @@ public final class ElementalGaugeManager {
                     level.sendParticles(ParticleTypes.GLOW, target.getX(), target.getY() + 1.0D, target.getZ(), 20, 0.35D, 0.4D, 0.35D, 0.05D);
                     level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.CHORUS_FLOWER_GROW, SoundSource.PLAYERS, 0.9F, 1.4F);
                 }
-                // If no underlying Electro aura is present to re-trigger Quicken, coexist as underlying Dendro aura and deal the Spread hit
                 if (!targetGauges.containsKey(Element.ELECTRO) && !targetGauges.containsKey(Element.HYDRO) && !targetGauges.containsKey(Element.PYRO)) {
                     if (innateElements.isEmpty()) {
                         if (targetGauges.containsKey(Element.DENDRO)) {
@@ -4354,26 +995,17 @@ public final class ElementalGaugeManager {
                     return;
                 }
             } else if (attackElement == Element.PYRO || attackElement == Element.HYDRO) {
-                // Expose Quicken gauge into DENDRO slot if no underlying Dendro gauge exists so Pyro/Hydro can consume it
                 if (!targetGauges.containsKey(Element.DENDRO) && quickenGauge != null) {
                     targetGauges.put(Element.DENDRO, quickenGauge);
                 }
             }
         }
 
-        // 2. Frozen Checks (Genshin Impact Frozen rules with Underlying Hydro/Cryo Aura preservation):
-        //    - Geo triggers Shatter (+10.0 DMG, consumes 8.0U Freeze) and exposes any underlying Hydro/Cryo aura
-        //    - Pyro triggers Forward Melt (x2.0 DMG, consumes 2.0x Freeze)
-        //    - Electro triggers Superconduct (consumes 1.0x Freeze)
-        //    - Anemo swirls the Freeze aura (and any underlying Hydro if gauge remains)
         GaugeState freezeGauge = FROZEN_GAUGES.get(targetId);
         Long frozenEnd = FROZEN_UNTIL.get(targetId);
         boolean isFrozen = (freezeGauge != null && !freezeGauge.isExpired()) && (frozenEnd == null || now < frozenEnd);
 
         if (isFrozen && freezeGauge != null) {
-            // Genshin Impact Heavy / Blunt / Melee Shatter Priority:
-            // Blunt strikes, Geo attacks, and melee sword hits trigger Shatter FIRST, consuming the Freeze gauge
-            // before applying the weapon's secondary element onto any remaining underlying aura!
             if (attackElement == Element.GEO || meleeOut != null) {
                 if (!checkReactionIcd(target, ElementalReaction.SHATTER, now)) {
                     if (attackElement == Element.GEO) {
@@ -4471,7 +1103,6 @@ public final class ElementalGaugeManager {
                         clearFreezeState(target, targetId);
                     }
                     float remainingAnemoU = Math.max(0.0F, attackU - (freezeBefore / 0.5F));
-                    // If underlying HYDRO exists and Anemo gauge remains, swirl underlying Hydro first/too!
                     if (remainingAnemoU > 0.01F && targetGauges.containsKey(Element.HYDRO)) {
                         GaugeState hydro = targetGauges.get(Element.HYDRO);
                         float hydroBefore = hydro.getUnits();
@@ -4489,7 +1120,6 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 3. Check Overvape (Target has both Hydro & Electro, attacked with Pyro)
         if (attackElement == Element.PYRO && targetGauges.containsKey(Element.HYDRO) && targetGauges.containsKey(Element.ELECTRO)) {
             if (!checkReactionIcd(target, ElementalReaction.OVERVAPE, now)) {
                 float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
@@ -4555,8 +1185,6 @@ public final class ElementalGaugeManager {
                 }
                 GaugeState aura = targetGauges.get(auraElement);
 
-                // Electro-Charged Coexistence: both HYDRO and ELECTRO coexist on normal targets;
-                // Trigger aura is created with standard 0.8x Aura Tax, then initial EC tick consumes 0.4U from both.
                 if (reaction == ElementalReaction.ELECTRO_CHARGED) {
                     if (innateElements.isEmpty()) {
                         GaugeState triggerState = targetGauges.get(attackElement);
@@ -4585,7 +1213,6 @@ public final class ElementalGaugeManager {
                     return;
                 }
 
-                // Burning Coexistence: maintains 2.0U Burning Pyro state and consumes Dendro/Quicken at 0.4U/s until depleted
                 if (reaction == ElementalReaction.BURNING) {
                     boolean immuneToBurn = innateElements.contains(Element.PYRO) || target.fireImmune() || target instanceof Warden;
                     if (!immuneToBurn) {
@@ -4641,7 +1268,6 @@ public final class ElementalGaugeManager {
                     }
                 }
 
-                // Also consume from independent Quicken gauge if Hydro triggered Bloom against Quicken/Dendro
                 if (auraElement == Element.DENDRO && (reaction == ElementalReaction.BLOOM || reaction == ElementalReaction.REVERSE_BLOOM)) {
                     GaugeState qg = QUICKEN_GAUGES.get(targetId);
                     if (qg != null) {
@@ -4652,10 +1278,6 @@ public final class ElementalGaugeManager {
                     }
                 }
 
-                // When Frozen is triggered:
-                // - Preserve any unconsumed underlying HYDRO or CRYO aura in targetGauges!
-                // - Compute U_Freeze = 2 * min(U_aura, U_trigger) and dynamic duration T_Freeze = 2 * sqrt(5 * U_Freeze + 4) - 4s
-                // - Genshin Boss Freeze Immunity: Bosses (Warden, Ender Dragon, Wither, Elder Guardian) cannot be immobilized
                 if (reaction == ElementalReaction.FROZEN) {
                     float freezeU = 2.0F * Math.min(auraUnitsBefore, attackU);
                     GaugeState newFreeze = GaugeState.createFrozen(Math.max(0.8F, freezeU));
@@ -4665,9 +1287,6 @@ public final class ElementalGaugeManager {
                     }
                 }
 
-                // When Quicken is triggered:
-                // - U_Quicken = min(U_aura, U_trigger * 0.8), Duration = 5 * U_Quicken + 6s
-                // - Store in independent QUICKEN_GAUGES so leftover Dendro/Electro can coexist in targetGauges
                 if (reaction == ElementalReaction.QUICKEN) {
                     float postTaxAttackU = attackU * 0.8F;
                     float quickenU = Math.max(0.4F, Math.min(auraUnitsBefore, postTaxAttackU));
@@ -4678,7 +1297,6 @@ public final class ElementalGaugeManager {
                         QUICKEN_UNTIL.put(targetId, now + newQuicken.getRemainingTicks());
                     }
 
-                    // Leftover trigger gauge if trigger attack was stronger than reacted aura
                     float leftoverTriggerU = postTaxAttackU - auraUnitsBefore;
                     if (leftoverTriggerU > 0.05F && innateElements.isEmpty()) {
                         if (targetGauges.containsKey(attackElement)) {
@@ -4690,7 +1308,6 @@ public final class ElementalGaugeManager {
                 }
 
                 // Simultaneous Reaction Priority: if the first aura was completely consumed and trigger gauge remains,
-                // immediately resolve a secondary reaction against any remaining reactive aura (e.g. Cryo/Anemo/Dendro on Electro + Hydro)!
                 float neededTriggerU = reaction.getConsumptionModifier() > 0.0F
                         ? (auraUnitsBefore / reaction.getConsumptionModifier())
                         : attackU;
@@ -4762,7 +1379,6 @@ public final class ElementalGaugeManager {
             }
         }
 
-        // 5. No Reaction: Apply or Refresh Aura (Aura elements only!)
         if (attackElement.isAura()) {
             if (attackElement == Element.PYRO && isEntityInWater(target)) {
                 target.clearFire();
@@ -4798,7 +1414,6 @@ public final class ElementalGaugeManager {
             return;
         }
 
-        // Deal normal damage
         float resNormalDmg = 0.0F;
         if (effectiveDamage > 0.0F) {
             resNormalDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, catalyzeReaction);
@@ -4806,7 +1421,7 @@ public final class ElementalGaugeManager {
         syncAuras(target, targetGauges.keySet(), null, attackElement, catalyzeReaction, resNormalDmg);
     }
 
-    private static void enforceInnateLock(
+    public static void enforceInnateLock(
             @Nullable LivingEntity target,
             Map<Element, GaugeState> targetGauges,
             UUID targetId,
@@ -4816,7 +1431,6 @@ public final class ElementalGaugeManager {
         if (innateElements == null || innateElements.isEmpty()) return;
         boolean isBurning = target != null && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava() || BURNING_UNTIL.containsKey(targetId));
         boolean allowGeoDendro = innateElements.contains(Element.GEO);
-        // Allow DENDRO to coexist on GEO innate creatures, and allow PYRO when actively burning on fire/lava
         targetGauges.keySet().removeIf(e -> !innateElements.contains(e)
                 && !(allowGeoDendro && e == Element.DENDRO)
                 && !(isBurning && e == Element.PYRO));
@@ -4832,7 +1446,7 @@ public final class ElementalGaugeManager {
      * Selects the primary aura to react with the incoming trigger element according to
      * Genshin Impact's Simultaneous Reaction Priority (Electro -> Pyro -> Hydro -> Cryo -> Dendro).
      */
-    private static @Nullable Element findPrimaryReactiveAura(Map<Element, GaugeState> gauges, Element trigger) {
+    public static @Nullable Element findPrimaryReactiveAura(Map<Element, GaugeState> gauges, Element trigger) {
         for (Element priorityElem : REACTION_PRIORITY_ORDER) {
             if (priorityElem == trigger) continue;
             GaugeState gs = gauges.get(priorityElem);
@@ -4843,7 +1457,7 @@ public final class ElementalGaugeManager {
         return null;
     }
 
-    private static ElementalReaction determineReaction(Element aura, Element trigger) {
+    public static ElementalReaction determineReaction(Element aura, Element trigger) {
         if (aura == Element.PYRO) {
             if (trigger == Element.HYDRO) return ElementalReaction.FORWARD_VAPORIZE;
             if (trigger == Element.CRYO) return ElementalReaction.REVERSE_MELT;
@@ -4879,221 +1493,19 @@ public final class ElementalGaugeManager {
         return ElementalReaction.NONE;
     }
 
-    private static void executeReactionEffect(
+    public static void executeReactionEffect(
             ServerLevel level,
             LivingEntity target,
             ElementalReaction reaction,
-            Element auraElement,
-            float removedAuraU,
+            Element trigger,
+            float reactedU,
             @Nullable ServerPlayer attacker,
             double dmgMult
     ) {
-        if (attacker != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
-            com.velorise.staves.advancement.ModAdvancements.trigger(
-                    attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
-            notifyResonanceReaction(reaction, attacker, level.getGameTime());
-        }
-        onHydroReactionTriggered(level, target.position(), reaction, auraElement, null, attacker);
-        if (reaction != null && reaction != ElementalReaction.NONE && reaction != ElementalReaction.IMMUNE) {
-            NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
-        }
-        Vec3 pos = target.position();
-        int emLevel = getElementalMasteryLevel(attacker);
-        float transEmMult = getTransformativeMultiplier(emLevel);
-        switch (reaction) {
-            case FORWARD_VAPORIZE, REVERSE_VAPORIZE -> {
-                if (reaction == ElementalReaction.FORWARD_VAPORIZE) {
-                    target.clearFire();
-                }
-                level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 0.8D, pos.z, 20, 0.3D, 0.3D, 0.3D, 0.05D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.8F, 1.3F);
-            }
-            case FORWARD_MELT, REVERSE_MELT -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 20, 0.35D, 0.35D, 0.35D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.5F);
-            }
-            case OVERLOADED -> {
-                BURNING_UNTIL.remove(target.getUUID());
-                BURNING_EM_LEVEL.remove(target.getUUID());
-                BURNING_ATTACKER_UUID.remove(target.getUUID());
-                LAST_BURN_PYRO_REFRESH.remove(target.getUUID());
-                if (!target.isInLava()) {
-                    target.clearFire();
-                }
-                triggerOverloadExplosion(level, target, attacker, dmgMult);
-            }
-            case ELECTRO_CHARGED -> {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.7F);
-            }
-            case STELLAR_CONDUCT -> {
-                long debuffEnd = level.getGameTime() + 240L;
-                SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
-                float stellarMult = attacker != null ? TsaritsaManager.getStellarReactionMultiplier(attacker) : 1.0F;
-                float rawStellarDmg = (float) (2.5F * dmgMult) * transEmMult * stellarMult;
-                TsaritsaManager.onStellarConductTriggered(level, target, attacker, rawStellarDmg);
-                AABB box = target.getBoundingBox().inflate(4.5D);
-                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    if (isOmniInnate(nearby)) {
-                        notifyOmniImmuneEnvironmental(level, nearby);
-                        continue;
-                    }
-                    float dmg = applyMobElementalResistance(nearby, Element.CRYO, rawStellarDmg);
-                    nearby.invulnerableTime = 0;
-                    LivingEntity scCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
-                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createTypedDamageSource(
-                            level.damageSources().freeze(), scCredit, ElementalReaction.STELLAR_CONDUCT, Element.CRYO), dmg);
-                    SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
-                    if (nearby != target && dmg > 0.0F) {
-                        syncAuras(nearby, getEntityElements(nearby.getUUID()), Element.CRYO, Element.ELECTRO, ElementalReaction.STELLAR_CONDUCT, dmg);
-                    }
-                }
-            }
-            case STELLAR_SWIRL -> {
-                float stellarMult = attacker != null ? TsaritsaManager.getStellarReactionMultiplier(attacker) : 1.0F;
-                float swirlAoeDmg = (float) (4.0F * 1.15F * dmgMult) * transEmMult * stellarMult;
-                TsaritsaManager.onStellarSwirlTriggered(level, target, attacker, swirlAoeDmg);
-            }
-            case SUPERCONDUCT -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 1.2D, 0.5D, 1.2D, 0.03D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 15, 0.8D, 0.5D, 0.8D, 0.06D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.9F, 1.2F);
-                long debuffEnd = level.getGameTime() + 240L; // 12 seconds Physical RES shred (-40% Physical RES)
-                SUPERCONDUCT_UNTIL.put(target.getUUID(), debuffEnd);
-                AABB box = target.getBoundingBox().inflate(3.5D);
-                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-                    if (isOmniInnate(nearby)) {
-                        notifyOmniImmuneEnvironmental(level, nearby);
-                        continue;
-                    }
-                    float dmg = applyMobElementalResistance(nearby, Element.CRYO,
-                            (float) (1.0F * dmgMult) * transEmMult); // 0.5 heart Cryo AoE damage scaled by EM
-                    if (nearby instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.CRYO) {
-                        dmg *= 0.4F;
-                    }
-                    nearby.invulnerableTime = 0;
-                    LivingEntity scCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
-                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createTypedDamageSource(
-                            level.damageSources().freeze(), scCredit, ElementalReaction.SUPERCONDUCT, Element.CRYO), dmg);
-                    SUPERCONDUCT_UNTIL.put(nearby.getUUID(), debuffEnd);
-                    nearby.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 160, 0));
-                    if (nearby != target && dmg > 0.0F) {
-                        syncAuras(nearby, getEntityElements(nearby.getUUID()), Element.CRYO, Element.ELECTRO, ElementalReaction.SUPERCONDUCT, dmg);
-                    }
-                }
-            }
-            case FROZEN -> {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 25, 0.4D, 0.6D, 0.4D, 0.02D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.9F, 1.4F);
-                if (isEntitySubmergedInWater(target)) {
-                    com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, target.position(), 1);
-                }
-            }
-            case QUICKEN -> {
-                level.sendParticles(ParticleTypes.GLOW, pos.x, pos.y + 0.8D, pos.z, 20, 0.35D, 0.5D, 0.35D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.2F);
-            }
-            case BLOOM, REVERSE_BLOOM -> {
-                long now = level.getGameTime();
-                Long lastSpawn = LAST_BLOOM_SPAWN.get(target.getUUID());
-                if (lastSpawn == null || now < lastSpawn || (now - lastSpawn) >= 10L) { // 0.5s ICD per target
-                    DendroCoreManager.spawn(level, target.position(), attacker, (float) dmgMult * transEmMult);
-                    LAST_BLOOM_SPAWN.put(target.getUUID(), now);
-                }
-                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.8D, pos.z, 25, 0.8D, 0.5D, 0.8D, 0.04D);
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.1F);
-            }
-            case BURNING -> {
-                if (!hasInnateElement(target, Element.PYRO) && !target.fireImmune() && !(target instanceof Warden)) {
-                    long burnTicks = ElementalResonanceManager.getBurningDurationTicksForTarget(
-                            target, 200L);
-                    BURNING_UNTIL.put(target.getUUID(), level.getGameTime() + burnTicks);
-                    BURNING_EM_LEVEL.put(target.getUUID(), emLevel);
-                    LivingEntity burnCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
-                    if (burnCredit != null && burnCredit != target) {
-                        BURNING_ATTACKER_UUID.put(target.getUUID(), burnCredit.getUUID());
-                    }
-                    EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 1.5D);
-                    target.setSecondsOnFire(5);
-                    level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.8D, pos.z, 15, 0.3D, 0.4D, 0.3D, 0.03D);
-                }
-            }
-            case SWIRL -> {
-                level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.9F, 1.1F);
-                AABB box = target.getBoundingBox().inflate(5.0D);
-                // Genshin Impact rule: Pyro, Electro, Cryo Swirls deal AoE damage + spread element; Hydro Swirl only spreads Wet aura!
-                // Spread gauge formula: U_Swirl = (U_removed - 0.04) * 1.25 + 1.5
-                float swirlSpreadU = Math.max(0.5F, (Math.max(0.04F, removedAuraU) - 0.04F) * 1.25F + 1.5F);
-                if (auraElement == Element.PYRO) {
-                    EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, pos, 3.5D);
-                }
-                if (auraElement == Element.PYRO || auraElement == Element.ELECTRO) {
-                    DendroCoreManager.checkReactionsNear(level, pos, 5.0D, auraElement, attacker);
-                }
-                float swirlAoeDmg = (auraElement == Element.HYDRO) ? 0.0F : (float) (4.0F * dmgMult) * transEmMult;
-                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != target && e != attacker)) {
-                    applyElement(level, nearby, auraElement, swirlSpreadU, attacker, swirlAoeDmg);
-                }
-            }
-            case CRYSTALLIZE -> {
-                double popY = target.getY() + target.getBbHeight() * 0.80D;
-                level.sendParticles(ParticleTypes.CRIT, target.getX(), popY, target.getZ(), 15, 0.35D, 0.35D, 0.35D, 0.05D);
-                level.playSound(null, target.getX(), popY, target.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.4F);
-                CrystallizeShardManager.spawn(level, target, auraElement, target.getUUID(), emLevel);
-                XilonenManager.onCrystallizeTriggered(attacker, auraElement, level.getGameTime());
-            }
-            default -> {}
-        }
+        VentiManager.executeReactionEffectInternal(level, target, reaction, trigger, reactedU, attacker, dmgMult);
     }
 
-    private static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) {
-        Vec3 pos = target.position();
-        level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.0D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 20, 0.6D, 0.6D, 0.6D, 0.06D);
-        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.1F);
-        EnvironmentalBlockManager.applyOverloadEnvironmentEffects(level, pos, 3.5D);
-
-        AABB box = target.getBoundingBox().inflate(3.5D);
-        float transEmMult = getTransformativeMultiplier(getElementalMasteryLevel(attacker));
-        for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
-            if (isOmniInnate(victim)) {
-                notifyOmniImmuneEnvironmental(level, victim);
-                continue;
-            }
-            float dmg = applyMobElementalResistance(victim, Element.PYRO, (float) (6.0F * dmgMult) * transEmMult);
-            if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, level.getGameTime()) == Element.PYRO) {
-                dmg *= 0.4F;
-            }
-            victim.invulnerableTime = 0;
-            LivingEntity olCredit = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
-            if (dmg > 0.0F) {
-                ElementalDeathMessageHelper.recordReactionForDeath(victim, ElementalReaction.OVERLOADED, Element.PYRO, olCredit);
-            }
-            hurtWithPreAppliedElementalRes(victim, getElementalDamageSource(level, attacker, ElementalReaction.OVERLOADED, Element.PYRO), dmg);
-            if (victim != target && dmg > 0.0F) {
-                syncAuras(victim, getEntityElements(victim.getUUID()), Element.ELECTRO, Element.PYRO, ElementalReaction.OVERLOADED, dmg);
-            }
-            Vec3 diff = victim == target && attacker != null
-                ? target.position().subtract(attacker.position())
-                : victim.position().subtract(pos);
-            Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-            victim.setDeltaMovement(victim.getDeltaMovement().add(knock.x * 0.85D, 0.45D, knock.z * 0.85D));
-            victim.hurtMarked = true;
-        }
-    }
-
-    public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) {
-        ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.0D, false);
-    }
-
-    public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) {
-        ElectrifiedWaterManager.drawElectricArc(level, from, to, 8);
-    }
-
-    /**
-     * Server tick loop for decay, environmental water/rain extinguish, and periodic reactions.
-     */
-    public static void tick(MinecraftServer server) {
+public static void tick(MinecraftServer server) {
         flushPendingEvokerConstructs(server);
         for (ServerLevel lvl : server.getAllLevels()) {
             DendroCoreManager.tick(lvl);
@@ -5107,6 +1519,7 @@ public final class ElementalGaugeManager {
 
         long serverNow = server.overworld().getGameTime();
         if (serverNow % 100 == 0) {
+            PlayerGenshinState.pruneInactive(server);
             ICD_TRACKER.entrySet().removeIf(e -> Math.abs(serverNow - e.getValue().firstHitTime) > 100L);
             REACTION_ICD_TRACKER.entrySet().removeIf(e -> Math.abs(serverNow - e.getValue()) > 100L);
             SUPERCONDUCT_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue() || (e.getValue() - serverNow) > 600L);
@@ -5153,1472 +1566,176 @@ public final class ElementalGaugeManager {
         for (ServerLevel lvl : server.getAllLevels()) {
             TsaritsaManager.tickServer(lvl);
         }
-        Set<UUID> activeEntityIds = new HashSet<>(GAUGES.keySet());
-        activeEntityIds.addAll(QUICKEN_GAUGES.keySet());
-        activeEntityIds.addAll(FROZEN_GAUGES.keySet());
-        activeEntityIds.addAll(FROZEN_UNTIL.keySet());
-        activeEntityIds.addAll(PETRIFIED_UNTIL.keySet());
-
-        for (UUID id : activeEntityIds) {
-            LivingEntity target = null;
-            ServerLevel targetLevel = null;
-
-            ServerPlayer onlinePlayer = server.getPlayerList().getPlayer(id);
-            if (onlinePlayer != null && onlinePlayer.isAlive() && !onlinePlayer.isRemoved()) {
-                target = onlinePlayer;
-                targetLevel = (ServerLevel) onlinePlayer.level();
-            } else {
-                for (ServerLevel lvl : server.getAllLevels()) {
-                    Entity e = lvl.getEntity(id);
-                    if (e instanceof LivingEntity living && living.isAlive() && !living.isRemoved()) {
-                        target = living;
-                        targetLevel = lvl;
-                        break;
-                    }
-                }
-            }
-
-            if (target == null || targetLevel == null) {
-                GAUGES.remove(id);
-                FROZEN_GAUGES.remove(id);
-                QUICKEN_GAUGES.remove(id);
-                FROZEN_UNTIL.remove(id);
-                PETRIFIED_UNTIL.remove(id);
-                FROZEN_POSES.remove(id);
-                LAST_FREEZE_STRUGGLE.remove(id);
-                QUICKEN_UNTIL.remove(id);
-                BURNING_UNTIL.remove(id);
-                BURNING_EM_LEVEL.remove(id);
-                BURNING_ATTACKER_UUID.remove(id);
-                ELECTRO_CHARGE_EM_LEVEL.remove(id);
-                SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(id);
-                LAST_BURN_PYRO_REFRESH.remove(id);
-                INNATE_COOLDOWN_UNTIL.remove(id);
-                ELECTRO_CHARGE_TICK.remove(id);
-                LAST_BLOOM_SPAWN.remove(id);
-                SUPERCONDUCT_UNTIL.remove(id);
-        OMNI_INNATE_ENTITIES.remove(id);
-        LAST_OMNI_ENV_IMMUNE.remove(id);
-        LAST_MUSHROOM_CONTACT.remove(id);
-        EXPLODED_CREEPERS.remove(id);
-        PENDING_EVOKER_CONSTRUCTS.remove(id);
-        PLAYER_LAST_HP.remove(id);
-        PLAYER_HP_CHANGE_BUFF_UNTIL.remove(id);
-        DRACONIC_GLORIES_STACKS.remove(id);
-                continue;
-            }
-
-            long now = targetLevel.getGameTime();
-            Map<Element, GaugeState> entityGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
-            EnumSet<Element> innateSet = getInnateElements(target);
-            boolean changed = false;
-
-            if (innateSet.contains(Element.PYRO)) {
-                extinguishPyroInnate(target);
-            }
-
-            // 1. Environmental Water / Fire check & Cryo Water Freezing
-            if (innateSet.contains(Element.CRYO) || entityGauges.containsKey(Element.CRYO)) {
-                checkCryoWaterFreezing(target);
-            }
-            if (isEntityInWater(target)) {
-                handleEnvironmentalWater(target);
-                if (entityGauges.isEmpty() && !QUICKEN_GAUGES.containsKey(id) && !FROZEN_GAUGES.containsKey(id)) {
-                    GAUGES.remove(id);
-                    continue;
-                }
-            } else if (isTouchingEnvironmentalFireBlock(target)) {
-                maintainBurningPyroAura(target);
-            }
-
-            // Powered Creeper (special lightning creature): radiates electric shock within 1.0 block in air & water once per second
-            if (target instanceof Creeper creeper && creeper.isPowered()) {
-                if (now % 20 == 0) {
-                    final LivingEntity electroSource = target;
-                    AABB auraField = electroSource.getBoundingBox().inflate(1.0D);
-                    for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, auraField,
-                            e -> e.isAlive() && !e.isRemoved() && e != electroSource && !e.isSpectator()
-                                    && !(e instanceof Player p && p.isCreative())
-                                    && !hasInnateElement(e, Element.ELECTRO))) {
-                        drawVoltaicArc(targetLevel, electroSource, nearby);
-                        applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
-                    }
-
-                    if (isEntitySubmergedInWater(electroSource)) {
-                        ElectrifiedWaterManager.electrify(targetLevel, electroSource.blockPosition(), 1.0D, 30, null, 1.0F);
-                    }
-                }
-            } else if (innateSet.contains(Element.ELECTRO) && isMutatedInnate(target)) {
-                // Mutated Electro mob: does NOT radiate Electro into the air; only electrifies the 1 single water block it touches
-                if (now % 20 == 0 && isEntitySubmergedInWater(target)) {
-                    ElectrifiedWaterManager.electrifySingleBlock(targetLevel, target.blockPosition(), 30, null, 1.0F);
-                }
-            }
-
-            // 2. Tick gauges decay
-            Iterator<Map.Entry<Element, GaugeState>> gaugeIt = entityGauges.entrySet().iterator();
-            while (gaugeIt.hasNext()) {
-                Map.Entry<Element, GaugeState> gEntry = gaugeIt.next();
-                if (innateSet.contains(gEntry.getKey())) {
-                    continue; // Innate lock: never decay naturally
-                }
-                if (gEntry.getKey() == Element.PYRO && (isTouchingEnvironmentalFireBlock(target) || BURNING_UNTIL.containsKey(id))) {
-                    continue;
-                }
-                if (gEntry.getKey() == Element.HYDRO && isEntityInWater(target)) {
-                    continue;
-                }
-                GaugeState state = gEntry.getValue();
-                state.tick();
-                if (state.isExpired()) {
-                    gaugeIt.remove();
-                    changed = true;
-                }
-            }
-
-            // Tick independent Quicken gauge
-            GaugeState qg = QUICKEN_GAUGES.get(id);
-            Long quickenEnd = QUICKEN_UNTIL.get(id);
-            if (qg != null) {
-                qg.tick();
-                if (qg.isExpired() || (quickenEnd != null && now >= quickenEnd)) {
-                    clearQuickenState(id);
-                    changed = true;
-                }
-            } else if (quickenEnd != null && now >= quickenEnd) {
-                clearQuickenState(id);
-                changed = true;
-            }
-
-            // Tick independent Freeze gauge (Genshin Statue Freeze: lock AI, position, and rotation)
-            GaugeState fg = FROZEN_GAUGES.get(id);
-            Long frozenEnd = FROZEN_UNTIL.get(id);
-            Long petrifiedEnd = PETRIFIED_UNTIL.get(id);
-            if (petrifiedEnd != null && now >= petrifiedEnd) {
-                PETRIFIED_UNTIL.remove(id);
-                petrifiedEnd = null;
-                changed = true;
-            }
-            if (isBossEntity(target)) {
-                if (fg != null || frozenEnd != null || petrifiedEnd != null) {
-                    clearFreezeState(target, id);
-                    changed = true;
-                }
-            } else if (fg != null) {
-                fg.tick();
-                if (fg.isExpired() || (frozenEnd != null && now >= frozenEnd)) {
-                    if (petrifiedEnd != null && now < petrifiedEnd) {
-                        FROZEN_GAUGES.remove(id);
-                        changed = true;
-                        enforceFrozenPose(target, id);
-                    } else {
-                        clearFreezeState(target, id);
-                        changed = true;
-                    }
-                } else {
-                    enforceFrozenPose(target, id);
-                }
-            } else if (frozenEnd != null) {
-                if (now >= frozenEnd) {
-                    clearFreezeState(target, id);
-                    changed = true;
-                } else {
-                    enforceFrozenPose(target, id);
-                }
-            } else if (petrifiedEnd != null) {
-                PETRIFIED_UNTIL.remove(id);
-                changed = true;
-            }
-
-            // 2B. Proximity Voltaic Arcing (ONLY when BOTH entities are physically submerged in water)
-            if (entityGauges.containsKey(Element.ELECTRO) && isEntitySubmergedInWater(target) && (now % 4 == 0)) {
-                final LivingEntity srcTarget = target;
-                AABB arcBox = target.getBoundingBox().inflate(4.0D);
-                for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, arcBox, e -> e.isAlive() && !e.isRemoved() && e != srcTarget)) {
-                    if (isEntitySubmergedInWater(nearby)) {
-                        long pairKey = (((long) Math.min(target.getId(), nearby.getId())) << 32) | ((long) Math.max(target.getId(), nearby.getId()) & 0xFFFFFFFFL);
-                        Long lastShock = LAST_PROXIMITY_SHOCK.get(pairKey);
-                        if (lastShock == null || now < lastShock || (now - lastShock) >= 20) {
-                            LAST_PROXIMITY_SHOCK.put(pairKey, now);
-                            drawVoltaicArc(targetLevel, target, nearby);
-                            targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
-                            applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
-                            if (!innateSet.contains(Element.ELECTRO)) {
-                                float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
-                                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
-                                syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // 3. Electro-Charged periodic damage (every 20 ticks = 1 second, 0.5 heart = 1.0F damage, consuming 0.4U from both Hydro and Electro)
-            if (entityGauges.containsKey(Element.HYDRO) && entityGauges.containsKey(Element.ELECTRO)
-                    && !(innateSet.contains(Element.HYDRO) && innateSet.contains(Element.ELECTRO))) {
-                int counter = ELECTRO_CHARGE_TICK.getOrDefault(id, 0) + 1;
-                GaugeState hydroState = entityGauges.get(Element.HYDRO);
-                GaugeState electroState = entityGauges.get(Element.ELECTRO);
-                // Genshin EC premature final tick: if either gauge is about to expire via decay and >= 0.5s (10 ticks) has passed since last tick
-                boolean prematureFinalTick = counter >= 10 && (
-                        (hydroState != null && hydroState.getRemainingTicks() <= 1) ||
-                        (electroState != null && electroState.getRemainingTicks() <= 1)
-                );
-                if (counter >= 20 || prematureFinalTick) {
-                    counter = 0;
-                    int ecEmLvl = ELECTRO_CHARGE_EM_LEVEL.getOrDefault(id, 0);
-                    float ecDmg = applyMobElementalResistance(target, Element.ELECTRO,
-                            1.0F * getTransformativeMultiplier(ecEmLvl));
-                    if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, targetLevel.getGameTime()) == Element.ELECTRO) {
-                        ecDmg *= 0.4F;
-                    }
-                    if (!innateSet.contains(Element.ELECTRO)) {
-                        hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
-                        syncAuras(target, entityGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
-                    }
-
-                    if (isEntitySubmergedInWater(target)) {
-                        final LivingEntity srcTarget = target;
-                        AABB chainBox = target.getBoundingBox().inflate(4.0D);
-                        for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
-                            if (isEntitySubmergedInWater(nearby)) {
-                                drawVoltaicArc(targetLevel, target, nearby);
-                                applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
-                            }
-                        }
-                    }
-
-                    if (hydroState != null && !innateSet.contains(Element.HYDRO)) {
-                        hydroState.consume(0.4F);
-                        if (hydroState.isExpired()) {
-                            entityGauges.remove(Element.HYDRO);
-                            changed = true;
-                        }
-                    }
-                    if (electroState != null && !innateSet.contains(Element.ELECTRO)) {
-                        electroState.consume(0.4F);
-                        if (electroState.isExpired()) {
-                            entityGauges.remove(Element.ELECTRO);
-                            changed = true;
-                        }
-                    }
-                }
-                ELECTRO_CHARGE_TICK.put(id, counter);
-            } else {
-                ELECTRO_CHARGE_TICK.remove(id);
-            }
-
-            // 4. Burning periodic damage (Genshin standard: ticks every 0.25s = 5 ticks, consumes 0.4U/s Dendro/Quicken = 0.1U per 5 ticks,
-            //    and continues until all Dendro & Quicken gauges are completely depleted!)
-            if (BURNING_UNTIL.containsKey(id)) {
-                boolean hasDendroFuel = entityGauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(id) || innateSet.contains(Element.DENDRO);
-                boolean hasPyro = entityGauges.containsKey(Element.PYRO) || innateSet.contains(Element.PYRO);
-                if (!hasDendroFuel || !hasPyro || target.isInWaterOrRain() || target.fireImmune() || target instanceof Warden) {
-                    BURNING_UNTIL.remove(id);
-                    BURNING_EM_LEVEL.remove(id);
-                    BURNING_ATTACKER_UUID.remove(id);
-                    LAST_BURN_PYRO_REFRESH.remove(id);
-                    if (innateSet.contains(Element.DENDRO)) {
-                        entityGauges.remove(Element.PYRO);
-                        if (!target.isInLava()) {
-                            target.clearFire();
-                        }
-                    }
-                    changed = true;
-                } else if (now % 5 == 0) {
-                    int burnEmLvl = BURNING_EM_LEVEL.getOrDefault(id, 0);
-                    float burnDmg = applyMobElementalResistance(target, Element.PYRO,
-                            0.75F * getTransformativeMultiplier(burnEmLvl)); // 0.75 per 0.25s = 3.0 DMG/s scaled by EM
-                    if (target instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, now) == Element.PYRO) {
-                        burnDmg *= 0.4F;
-                    }
-                    UUID burnCreditId = BURNING_ATTACKER_UUID.get(id);
-                    Entity burnCreditEnt = burnCreditId != null ? targetLevel.getEntity(burnCreditId) : null;
-                    LivingEntity burnCredit = burnCreditEnt instanceof LivingEntity livingCredit ? livingCredit : null;
-                    IS_PROCESSING_REACTION.set(true);
-                    try {
-                        hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createTypedDamageSource(
-                                targetLevel.damageSources().inFire(), burnCredit, ElementalReaction.BURNING, Element.PYRO), burnDmg);
-                    } finally {
-                        IS_PROCESSING_REACTION.set(false);
-                    }
-                    if (!target.isAlive() && burnDmg > 0.0F) {
-                        syncAuras(target, Collections.emptyList(), Element.DENDRO, Element.PYRO, ElementalReaction.BURNING, burnDmg);
-                    } else if (target.isAlive() && burnDmg > 0.0F) {
-                        MobHazardAvoidanceManager.reportReactionOrHazard(target, null, target.position(), Element.DENDRO, Element.PYRO);
-                    }
-                    BURNING_UNTIL.put(id, now + 200L);
-                    target.setSecondsOnFire(2);
-
-                    // Consume 0.1U per 5 ticks (= 0.4U/s) from Dendro and Quicken gauges
-                    GaugeState dendroState = entityGauges.get(Element.DENDRO);
-                    if (dendroState != null && !innateSet.contains(Element.DENDRO)) {
-                        dendroState.consume(0.1F);
-                        if (dendroState.isExpired()) {
-                            entityGauges.remove(Element.DENDRO);
-                            changed = true;
-                        }
-                    }
-                    GaugeState quickenState = QUICKEN_GAUGES.get(id);
-                    if (quickenState != null) {
-                        quickenState.consume(0.1F);
-                        if (quickenState.isExpired()) {
-                            clearQuickenState(id);
-                            changed = true;
-                        }
-                    }
-
-                    // Re-apply 1U Pyro aura every 2.0s (40 ticks) per Genshin Burning self-refresh ICD
-                    Long lastPyroRefresh = LAST_BURN_PYRO_REFRESH.get(id);
-                    if ((innateSet.isEmpty() || innateSet.contains(Element.DENDRO) || innateSet.contains(Element.GEO)) && (lastPyroRefresh == null || now < lastPyroRefresh || (now - lastPyroRefresh) >= 40L)) {
-                        LAST_BURN_PYRO_REFRESH.put(id, now);
-                        if (entityGauges.containsKey(Element.PYRO)) {
-                            entityGauges.get(Element.PYRO).refresh(1.0F);
-                        } else {
-                            entityGauges.put(Element.PYRO, new GaugeState(Element.PYRO, 1.0F));
-                        }
-                    }
-
-                    if (!entityGauges.containsKey(Element.DENDRO) && !QUICKEN_GAUGES.containsKey(id) && !innateSet.contains(Element.DENDRO)) {
-                        BURNING_UNTIL.remove(id);
-                        BURNING_EM_LEVEL.remove(id);
-                        LAST_BURN_PYRO_REFRESH.remove(id);
-                        changed = true;
-                    }
-                    targetLevel.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.8D, target.getZ(), 4, 0.25D, 0.3D, 0.25D, 0.02D);
-                }
-            }
-
-            // 5. Cryo Aura passive debuff (-15% Movement Speed, -15% Attack Speed) when not Statue-Frozen
-            boolean hasUnfrozenCryo = entityGauges.containsKey(Element.CRYO) && !isEntityFrozen(target);
-            Element cryoInnateFlag = innateSet.contains(Element.CRYO) ? Element.CRYO : null;
-            updateCryoDebuff(target, id, hasUnfrozenCryo, cryoInnateFlag);
-
-            if (entityGauges.isEmpty() && !QUICKEN_GAUGES.containsKey(id) && !FROZEN_GAUGES.containsKey(id)) {
-                updateCryoDebuff(target, id, false, cryoInnateFlag);
-                GAUGES.remove(id);
-            }
-
-            if (changed) {
-                syncAuras(target, entityGauges.keySet(), null, null, null);
-            }
-
-            // 6. Ambient aura particles (every 10 ticks)
-            if ((!entityGauges.isEmpty() || QUICKEN_GAUGES.containsKey(id) || FROZEN_GAUGES.containsKey(id)) && now % 10 == 0 && StavesConfig.SHOW_ELEMENTAL_PARTICLES.get()) {
-                spawnAmbientParticles(targetLevel, target, entityGauges, now);
-            }
-        }
-
-        // 7. Environmental water, fire, lingering potion clouds & cryo checks on active online players
-        tickNightsFocusProjectiles();
-        tickMavuikaSunAura(server, serverNow);
-        tickRaidenState(server, serverNow);
-        ArchonUltiManager.tick(server, serverNow);
-        Set<UUID> visitedNearby = new HashSet<>();
-        Set<UUID> visitedClouds = new HashSet<>();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            if (!player.isAlive() || player.isDeadOrDying()) {
-                clearEntityState(player);
-                continue;
-            }
-            updatePlayerHpTracking(player, player.level().getGameTime());
-            if (!player.isShiftKeyDown() && (com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player) || isChannelingGuardianLens(player))) {
-                applyFurinaWaterWalking(player);
-            }
-            if (hasActiveJadeShield(player) && player.level() instanceof ServerLevel jsl && serverNow % 10 == 0) {
-                jsl.sendParticles(ParticleTypes.WAX_ON, player.getX(), player.getY() + 1.0D, player.getZ(), 3, 0.35D, 0.45D, 0.35D, 0.01D);
-            }
-            tickNightsFocusShield(player, serverNow);
-            ElementalResonanceManager.tickPlayer(player);
-            if (!player.isSpectator()) {
-                if (isEntityInWater(player)) {
-                    handleEnvironmentalWater(player);
-                } else if (isTouchingEnvironmentalFireBlock(player) || isTouchingSoulCampfire(player)) {
-                    maintainBurningPyroAura(player);
-                }
-                Collection<Element> playerElements = getEntityElements(player.getUUID());
-                updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO) && !isEntityFrozen(player), null);
-
-                if (player.level() instanceof ServerLevel sl) {
-                    if (serverNow % 5 == 0) {
-                        tryApplyMushroomContactAura(sl, player, sl.getGameTime());
-                    }
-                    AABB searchBox = player.getBoundingBox().inflate(32.0D);
-
-                    // Lingering Potion AreaEffectCloud elemental application (every 20 ticks = 1.0s)
-                    if (serverNow % 20 == 0) {
-                        for (AreaEffectCloud cloud : sl.getEntitiesOfClass(AreaEffectCloud.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
-                            if (!visitedClouds.add(cloud.getUUID())) {
-                                continue;
-                            }
-                            if (cloud.getTags().contains("velorise_staves:dragonfire_cloud")
-                                    || cloud.getTags().contains("velorise_staves:ghastfire_field")) {
-                                continue;
-                            }
-                            List<Element> cloudElements = getElementsFromAreaEffectCloud(sl, cloud);
-                            if (!cloudElements.isEmpty()) {
-                                ServerPlayer cloudOwner = cloud.getOwner() instanceof ServerPlayer sp ? sp : null;
-                                for (LivingEntity inCloud : sl.getEntitiesOfClass(LivingEntity.class, cloud.getBoundingBox(),
-                                        e -> e.isAlive() && !e.isRemoved() && !e.isSpectator())) {
-                                    for (Element elem : cloudElements) {
-                                        applyElementBypassIcd(sl, inCloud, elem, 1.0F, cloudOwner, 0.0F);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    for (LivingEntity nearby : sl.getEntitiesOfClass(LivingEntity.class, searchBox, e -> e.isAlive() && !e.isRemoved())) {
-                        if (!visitedNearby.add(nearby.getUUID())) {
-                            continue;
-                        }
-                        if (nearby instanceof Mob mob && mob.getTags().contains(TAG_FROZEN_STATUE) && !isEntityFrozen(mob)) {
-                            mob.setNoAi(false);
-                            mob.removeTag(TAG_FROZEN_STATUE);
-                        }
-                        if (serverNow % 20 == 0) {
-                            updateCoopMobScaling(sl, nearby);
-                        }
-                        EnumSet<Element> nearbyInnates = getInnateElements(nearby);
-                        if (nearbyInnates.contains(Element.CRYO) || hasElement(nearby, Element.CRYO)) {
-                            checkCryoWaterFreezing(nearby);
-                        }
-                        if (!nearbyInnates.isEmpty() && serverNow % 20 == 0) {
-                            if (isEntityInWater(nearby)) {
-                                handleEnvironmentalWater(nearby);
-                            } else if (isTouchingEnvironmentalFireBlock(nearby) || isTouchingSoulCampfire(nearby)) {
-                                maintainBurningPyroAura(nearby);
-                            }
-                        }
-                        if (serverNow % 5 == 0 && !isPassiveAquaticOrAmbient(nearby)) {
-                            tryApplyMushroomContactAura(sl, nearby, sl.getGameTime());
-                        }
-                        if (isOmniInnate(nearby)) {
-                            OMNI_INNATE_ENTITIES.add(nearby.getUUID());
-                            extinguishPyroInnate(nearby);
-                            if (serverNow % 20 == 0 && nearby instanceof net.minecraft.world.entity.TamableAnimal ta
-                                    && ta.isTame() && player.getUUID().equals(ta.getOwnerUUID())) {
-                                com.velorise.staves.advancement.ModAdvancements.trigger(
-                                        player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAME_OMNI_PET);
-                            }
-                            if (serverNow % 40 == 0) {
-                                com.velorise.staves.network.ModNetwork.sendAuraSync(nearby, Collections.emptyList(), null, null, null, 0.0F, -2);
-                            }
-                            continue;
-                        }
-                        // Ensure Powered Creeper (including dual-element Charged Mutated) and ALL Mutated Mobs stay registered in GAUGES
-                        if (!nearbyInnates.isEmpty()
-                                && ((nearby instanceof Creeper creeper && creeper.isPowered()) || isMutatedInnate(nearby))) {
-                            Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(nearby.getUUID(), k -> new ConcurrentHashMap<>());
-                            boolean added = false;
-                            for (Element keepElem : nearbyInnates) {
-                                if (!gauges.containsKey(keepElem)) {
-                                    gauges.put(keepElem, new GaugeState(keepElem, 1.25F));
-                                    added = true;
-                                }
-                            }
-                            if (added || serverNow % 40 == 0) {
-                                syncAuras(nearby, gauges.keySet(), null, null, null);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        MavuikaManager.tickActiveEntityGauges(server, serverNow);
+        MavuikaManager.tickActivePlayersAndEnvironment(server, serverNow);
     }
 
-    private static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) {
-        if (innate == Element.CRYO) return;
-        if (hasCryo) {
-            if (!target.hasEffect(MobEffects.MOVEMENT_SLOWDOWN)) {
-                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 0, false, false, true));
-            }
-            if (!target.hasEffect(MobEffects.DIG_SLOWDOWN)) {
-                target.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 30, 0, false, false, true));
-            }
-        } else {
-            if (target.hasEffect(MobEffects.DIG_SLOWDOWN)) {
-                target.removeEffect(MobEffects.DIG_SLOWDOWN);
-            }
-            MobEffectInstance slow = target.getEffect(MobEffects.MOVEMENT_SLOWDOWN);
-            if (slow != null && slow.getAmplifier() == 0 && !FROZEN_GAUGES.containsKey(id)) {
-                target.removeEffect(MobEffects.MOVEMENT_SLOWDOWN);
-            }
-        }
-    }
-
-    private static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) {
-        double x = target.getX();
-        double y = target.getY() + target.getBbHeight() * 0.65D;
-        double z = target.getZ();
-
-        if (gauges.containsKey(Element.PYRO)) {
-            level.sendParticles(ParticleTypes.FLAME, x, y, z, 2, 0.2D, 0.25D, 0.2D, 0.01D);
-        }
-        if (gauges.containsKey(Element.HYDRO)) {
-            level.sendParticles(ParticleTypes.FALLING_WATER, x, y, z, 3, 0.2D, 0.25D, 0.2D, 0.0D);
-        }
-        if (gauges.containsKey(Element.CRYO) || FROZEN_GAUGES.containsKey(target.getUUID())) {
-            level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 2, 0.25D, 0.25D, 0.25D, 0.01D);
-        }
-        if (gauges.containsKey(Element.ELECTRO)) {
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 2, 0.2D, 0.2D, 0.2D, 0.02D);
-        }
-        if (gauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(target.getUUID())) {
-            level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y, z, 2, 0.2D, 0.25D, 0.2D, 0.01D);
-        }
-    }
-
-    /** Renders a horizontal expanding square perimeter wave used by lingering AoE field zones. */
-    public static void spawnExpandingSquareParticles(
-            ServerLevel level,
-            Vec3 center,
-            double halfExtent,
-            double yOffset,
-            ParticleOptions primary,
-            @Nullable ParticleOptions accent,
-            int accentStride
-    ) {
-        if (halfExtent <= 0.05D) return;
-        int steps = Math.max(3, (int) Math.round(halfExtent * 3.5D));
-        double y = center.y + yOffset;
-        double[][] edges = {
-                {-1.0D, -1.0D,  1.0D,  0.0D},
-                { 1.0D, -1.0D,  0.0D,  1.0D},
-                { 1.0D,  1.0D, -1.0D,  0.0D},
-                {-1.0D,  1.0D,  0.0D, -1.0D}
-        };
-        int idx = 0;
-        for (double[] edge : edges) {
-            for (int i = 0; i < steps; i++) {
-                double frac = (2.0D * i) / steps;
-                double px = center.x + (edge[0] + edge[2] * frac) * halfExtent;
-                double pz = center.z + (edge[1] + edge[3] * frac) * halfExtent;
-                level.sendParticles(primary, px, y, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                if (accent != null && accentStride > 0 && idx % accentStride == 0) {
-                    level.sendParticles(accent, px, y + 0.05D, pz, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                }
-                idx++;
-            }
-        }
-    }
-
-    /**
-     * Unleashes an elemental burst around an innate, mutated, Omni, or Charged Creeper detonation,
-     * applying all innate/mutated element(s) to exposed targets and triggering matching world effects.
-     */
-    public static void handleCreeperExplosionBurst(
-            ServerLevel level,
-            Creeper creeper,
-            Vec3 center,
-            float explosionRadius
-    ) {
-        if (level == null || creeper == null || center == null) return;
-        UUID creeperId = creeper.getUUID();
-        long now = level.getGameTime();
-        Long prevBurst = EXPLODED_CREEPERS.putIfAbsent(creeperId, now);
-        if (prevBurst != null) return;
-        if (creeper.getTags().contains("velorise_staves:explosion_burst_done")) return;
-        creeper.addTag("velorise_staves:explosion_burst_done");
-
-        boolean isOmni = isOmniInnate(creeper);
-        EnumSet<Element> innateElements = getInnateElements(creeper);
-        if (!isOmni && innateElements.isEmpty()) {
-            return;
-        }
-
-        boolean powered = creeper.isPowered();
-        double baseRad = explosionRadius > 0.0F ? explosionRadius : (powered ? 6.0D : 3.0D);
-        double burstRadius = powered ? Math.max(6.0D, baseRad * 1.5D) : Math.max(3.5D, baseRad * 1.6D);
-        float applyU = powered ? 2.0F : 1.5F;
-        double dmgMult = 1.0D;
-        try {
-            dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
-        } catch (Exception ignored) {}
-        float baseElemDmg = (float) ((powered ? 3.0F : 2.0F) * dmgMult);
-
-        // Environmental element signatures around crater center
-        if (isOmni) {
-            level.sendParticles(ParticleTypes.FIREWORK, center.x, center.y + 0.6D, center.z, 26, 1.0D, 0.8D, 1.0D, 0.08D);
-            level.sendParticles(ParticleTypes.END_ROD, center.x, center.y + 0.6D, center.z, 18, 0.9D, 0.7D, 0.9D, 0.05D);
-        } else {
-            if (innateElements.contains(Element.PYRO)) {
-                level.sendParticles(ParticleTypes.FLAME, center.x, center.y + 0.6D, center.z, 32, 1.2D, 0.6D, 1.2D, 0.06D);
-                BlockPos bp = BlockPos.containing(center);
-                for (BlockPos p : BlockPos.betweenClosed(bp.offset(-2, -1, -2), bp.offset(2, 2, 2))) {
-                    if (!level.hasChunkAt(p)) continue;
-                    BlockState st = level.getBlockState(p);
-                    if (st.is(Blocks.FROSTED_ICE) || st.is(Blocks.ICE)) {
-                        level.setBlockAndUpdate(p, level.dimensionType().ultraWarm() ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState());
-                    }
-                }
-            }
-            if (innateElements.contains(Element.HYDRO)) {
-                level.sendParticles(ParticleTypes.SPLASH, center.x, center.y + 0.6D, center.z, 34, 1.2D, 0.6D, 1.2D, 0.1D);
-                BlockPos bp = BlockPos.containing(center);
-                for (BlockPos p : BlockPos.betweenClosed(bp.offset(-2, -1, -2), bp.offset(2, 2, 2))) {
-                    if (level.hasChunkAt(p) && level.getBlockState(p).is(Blocks.FIRE)) {
-                        level.setBlockAndUpdate(p, Blocks.AIR.defaultBlockState());
-                    }
-                }
-            }
-            if (innateElements.contains(Element.ELECTRO)) {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y + 0.7D, center.z, 34, 1.2D, 0.8D, 1.2D, 0.08D);
-                ElectrifiedWaterManager.electrify(level, BlockPos.containing(center), powered ? 3.5D : 2.5D, 60, null, 1.5F);
-            }
-            if (innateElements.contains(Element.CRYO)) {
-                level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.6D, center.z, 32, 1.2D, 0.7D, 1.2D, 0.05D);
-                com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, center, powered ? 4 : 3);
-            }
-            if (innateElements.contains(Element.DENDRO)) {
-                level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, center.x, center.y + 0.7D, center.z, 28, 1.1D, 0.7D, 1.1D, 0.05D);
-                BlockPos bp = BlockPos.containing(center);
-                if (level.getFluidState(bp).is(FluidTags.WATER) || level.getFluidState(bp.below()).is(FluidTags.WATER)) {
-                    DendroCoreManager.spawn(level, center, null, 1.0F);
-                }
-            }
-            if (innateElements.contains(Element.ANEMO)) {
-                level.sendParticles(ParticleTypes.CLOUD, center.x, center.y + 0.7D, center.z, 24, 1.0D, 0.5D, 1.0D, 0.1D);
-            }
-            if (innateElements.contains(Element.GEO)) {
-                level.sendParticles(ParticleTypes.WAX_ON, center.x, center.y + 0.6D, center.z, 24, 1.1D, 0.6D, 1.1D, 0.05D);
-                level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.HOSTILE, 0.9F, 1.2F);
-            }
-        }
-
-        AABB area = new AABB(center.x - burstRadius, center.y - burstRadius, center.z - burstRadius,
-                center.x + burstRadius, center.y + burstRadius, center.z + burstRadius);
-        List<LivingEntity> victims = level.getEntitiesOfClass(LivingEntity.class, area, e ->
-                e.isAlive() && !e.isRemoved() && e != creeper && !e.isSpectator()
-                        && !(e instanceof Player p && p.isCreative()));
-
-        LivingEntity prevAttacker = CURRENT_REACTION_ATTACKER.get();
-        CURRENT_REACTION_ATTACKER.set(creeper);
-        try {
-            for (LivingEntity victim : victims) {
-                double dist = Math.sqrt(victim.distanceToSqr(center));
-                if (dist > burstRadius) continue;
-                float seen = net.minecraft.world.level.Explosion.getSeenPercent(center, victim);
-                if (seen <= 0.0F) continue;
-                float falloff = (float) Math.max(0.35D, 1.0D - (dist / (burstRadius + 0.5D)));
-                float elemDmg = baseElemDmg * falloff * seen;
-
-                if (isOmni) {
-                    Element first = chooseOmniMutatedAttackElement(victim, creeper);
-                    victim.invulnerableTime = 0;
-                    if (first == Element.PYRO) ensurePreDeathPyroIgnite(victim, 4);
-                    applyElementBypassIcd(level, victim, first, applyU, null, elemDmg);
-                    if (powered && victim.isAlive()) {
-                        Element second = Element.ELECTRO != first ? Element.ELECTRO : Element.PYRO;
-                        victim.invulnerableTime = 0;
-                        applyElementBypassIcd(level, victim, second, 1.5F, null, elemDmg * 0.7F);
-                    }
-                    victim.invulnerableTime = 0;
-                } else {
-                    for (Element elem : innateElements) {
-                        if (!victim.isAlive()) break;
-                        victim.invulnerableTime = 0;
-                        if (elem == Element.PYRO) {
-                            ensurePreDeathPyroIgnite(victim, 4);
-                        }
-                        applyElementBypassIcd(level, victim, elem, applyU, null, elemDmg);
-                        if (elem == Element.ANEMO) {
-                            Vec3 dir = victim.position().subtract(center);
-                            Vec3 norm = dir.lengthSqr() > 1.0E-4D ? dir.normalize() : new Vec3(0.0D, 0.3D, 0.0D);
-                            victim.setDeltaMovement(victim.getDeltaMovement().add(norm.x * 0.75D * falloff, 0.35D * falloff, norm.z * 0.75D * falloff));
-                            victim.hurtMarked = true;
-                        }
-                    }
-                    victim.invulnerableTime = 0;
-                }
-            }
-        } finally {
-            if (prevAttacker == null) CURRENT_REACTION_ATTACKER.remove();
-            else CURRENT_REACTION_ATTACKER.set(prevAttacker);
-        }
-    }
-
-    /**
-     * Tracks wild Evoker EvokerFangs as they spawn so the final fang in each spell
-     * summons a Basic Geo Construct at its endpoint at the end of the cast tick.
-     */
-    public static void onEvokerFangJoin(ServerLevel level, EvokerFangs fangs) {
-        if (level == null || fangs == null || fangs.isRemoved()) return;
-        if (fangs.getTags().contains("velorise_staves:geo_fangs")
-                || fangs.getTags().contains("velorise_staves:evoker_construct_checked")) {
-            return;
-        }
-        if (!(fangs.getOwner() instanceof net.minecraft.world.entity.monster.Evoker evoker) || !evoker.isAlive()) {
-            return;
-        }
-        fangs.addTag("velorise_staves:evoker_construct_checked");
-        int warmup = 0;
-        try {
-            CompoundTag nbt = new CompoundTag();
-            fangs.saveWithoutId(nbt);
-            warmup = nbt.getInt("Warmup");
-        } catch (Exception ignored) {}
-        long now = level.getGameTime();
-        UUID evokerId = evoker.getUUID();
-        PendingEvokerConstruct cur = PENDING_EVOKER_CONSTRUCTS.get(evokerId);
-        if (cur == null || cur.tick() != now || warmup >= cur.maxWarmup()) {
-            PENDING_EVOKER_CONSTRUCTS.put(evokerId, new PendingEvokerConstruct(
-                    level, evokerId, now, fangs.getX(), fangs.getY(), fangs.getZ(), fangs.getYRot(), warmup
-            ));
-        }
-    }
-
-    private static void flushPendingEvokerConstructs(MinecraftServer server) {
-        if (PENDING_EVOKER_CONSTRUCTS.isEmpty()) return;
-        List<PendingEvokerConstruct> batch = new ArrayList<>(PENDING_EVOKER_CONSTRUCTS.values());
-        PENDING_EVOKER_CONSTRUCTS.clear();
-        for (PendingEvokerConstruct entry : batch) {
-            if (entry.level() == null) continue;
-            Entity ownerEnt = entry.level().getEntity(entry.evokerId());
-            if (!(ownerEnt instanceof net.minecraft.world.entity.monster.Evoker evoker) || !evoker.isAlive() || evoker.isRemoved()) {
-                continue;
-            }
-            double cx = Math.floor(entry.x()) + 0.5D;
-            double cz = Math.floor(entry.z()) + 0.5D;
-            double cy = entry.y();
-            AABB overlapBox = new AABB(cx - 0.65D, cy - 0.5D, cz - 0.65D, cx + 0.65D, cy + 1.5D, cz + 0.65D);
-            boolean alreadyPresent = !entry.level().getEntitiesOfClass(
-                    com.velorise.staves.entity.GeoFangPillarEntity.class, overlapBox,
-                    p -> p.isAlive() && !p.isRemoved()).isEmpty();
-            if (alreadyPresent) continue;
-
-            com.velorise.staves.entity.GeoFangPillarEntity.enforceMaxConstructsForOwner(
-                    entry.level(), VeloriseStavesMod.GEO_FANG_PILLAR.get(), evoker.getUUID());
-            com.velorise.staves.entity.GeoFangPillarEntity construct =
-                    new com.velorise.staves.entity.GeoFangPillarEntity(
-                            VeloriseStavesMod.GEO_FANG_PILLAR.get(),
-                            entry.level(),
-                            cx, cy, cz,
-                            entry.yawDeg(),
-                            evoker,
-                            false
-                    );
-            entry.level().addFreshEntity(construct);
-        }
-    }
-
-    public static void summonDaybreakVortex(ServerPlayer owner, Vec3 center, boolean isNetherite) {
-        ServerLevel level = (ServerLevel) owner.level();
-        long now = level.getServer().overworld().getGameTime();
-        long duration = 160L; // 8.0s Genshin Wind's Grand Ode (same for Basic & Netherite)
-        double radius = isNetherite ? 6.0D : 4.0D; // 4m Basic, 6m Netherite
-        DAYBREAK_VORTICES.removeIf(v -> v.ownerId.equals(owner.getUUID()));
-        DAYBREAK_VORTICES.add(new DaybreakVortexField(level, center, owner.getUUID(), isNetherite, now + duration, radius));
-        com.velorise.staves.network.ModNetwork.sendVortexSphere(level, center.add(0.0D, 1.0D, 0.0D), radius, (int) duration, 0xFF66FFD8);
-        level.sendParticles(ParticleTypes.EXPLOSION, center.x, center.y + 0.9D, center.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        level.playSound(null, center.x, center.y, center.z, VeloriseStavesMod.WIND_CHARGE_BURST_SOUND.get(), SoundSource.PLAYERS, 1.2F, 0.85F);
-    }
-
-    private static void tickDaybreakVortices(MinecraftServer server, long serverNow) {
-        if (DAYBREAK_VORTICES.isEmpty()) return;
-        DAYBREAK_VORTICES.removeIf(v -> serverNow >= v.expireTick || v.level == null);
-        for (DaybreakVortexField vortex : DAYBREAK_VORTICES) {
-            ServerLevel level = vortex.level;
-            Vec3 center = vortex.center;
-            double radius = vortex.radius;
-            double radiusSqr = radius * radius;
-            ServerPlayer owner = server.getPlayerList().getPlayer(vortex.ownerId);
-
-            if (serverNow % 2L == 0L) {
-                AABB pullBox = new AABB(center, center).inflate(radius);
-                Vec3 eyeTarget = center.add(0.0D, 0.85D, 0.0D);
-                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, pullBox, e -> e.isAlive() && !e.isRemoved())) {
-                    if (target.getUUID().equals(vortex.ownerId)) continue;
-                    if (target instanceof net.minecraft.world.entity.TamableAnimal tame && vortex.ownerId.equals(tame.getOwnerUUID())) continue;
-                    if (target instanceof ServerPlayer && !server.isPvpAllowed()) continue;
-                    if (isEntityFrozen(target)) continue;
-                    double distSqr = target.position().distanceToSqr(center);
-                    if (distSqr > radiusSqr) continue;
-
-                    Vec3 diff = eyeTarget.subtract(target.getBoundingBox().getCenter());
-                    double dist = diff.length();
-                    if (dist > 0.25D) {
-                        Vec3 dir = diff.scale(1.0D / dist);
-                        double bossScale = target.getMaxHealth() >= 100.0F ? 0.35D : 1.0D;
-                        double pullStrength = Math.min(0.42D, 0.16D + (dist / radius) * 0.26D) * bossScale;
-                        Vec3 cur = target.getDeltaMovement();
-                        double nextY = (target.getMaxHealth() >= 100.0F)
-                                ? cur.y
-                                : Math.max(-0.08D, Math.min(0.32D, cur.y * 0.65D + dir.y * 0.22D + 0.06D));
-                        target.setDeltaMovement(
-                                cur.x * 0.72D + dir.x * pullStrength,
-                                nextY,
-                                cur.z * 0.72D + dir.z * pullStrength
-                        );
-                        target.fallDistance = 0.0F;
-                        target.hurtMarked = true;
-                    }
-                }
-                for (net.minecraft.world.entity.item.ItemEntity item : level.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, pullBox, e -> e.isAlive() && !e.isRemoved())) {
-                    if (item.position().distanceToSqr(center) > radiusSqr) continue;
-                    Vec3 diff = eyeTarget.subtract(item.position());
-                    double dist = diff.length();
-                    if (dist > 0.35D) {
-                        Vec3 dir = diff.scale(1.0D / dist);
-                        double pull = Math.min(0.32D, 0.12D + (dist / radius) * 0.20D);
-                        Vec3 cur = item.getDeltaMovement();
-                        item.setDeltaMovement(cur.x * 0.72D + dir.x * pull, Math.max(-0.05D, Math.min(0.24D, cur.y * 0.65D + dir.y * 0.18D + 0.04D)), cur.z * 0.72D + dir.z * pull);
-                    }
-                }
-            }
-
-            if (serverNow % 10L == 0L) {
-                AABB tickBox = new AABB(center, center).inflate(radius);
-                List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, tickBox, e -> {
-                    if (!e.isAlive() || e.isRemoved() || e.getUUID().equals(vortex.ownerId)) return false;
-                    if (e instanceof net.minecraft.world.entity.TamableAnimal tame && vortex.ownerId.equals(tame.getOwnerUUID())) return false;
-                    if (e instanceof ServerPlayer && !server.isPvpAllowed()) return false;
-                    return e.position().distanceToSqr(center) <= radiusSqr;
-                });
-
-                if (vortex.absorbedElement == null) {
-                    Element absorbed = detectDaybreakAbsorption(level, center, targets);
-                    if (absorbed != null) {
-                        vortex.absorbedElement = absorbed;
-                        int absorbedColor = switch (absorbed) {
-                            case PYRO -> 0xFFFF5522;
-                            case HYDRO -> 0xFF18BFFF;
-                            case ELECTRO -> 0xFFC44DFF;
-                            case CRYO -> 0xFF7CF4FF;
-                            default -> 0xFF66FFD8;
-                        };
-                        int remainingTicks = (int) Math.max(5L, vortex.expireTick - serverNow);
-                        com.velorise.staves.network.ModNetwork.sendVortexSphere(
-                                level, center.add(0.0D, 1.0D, 0.0D), radius, remainingTicks, absorbedColor);
-                        level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
-                    }
-                }
-
-                float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK, vortex.isNetherite);
-                float anemoTickDmg = baseDmg * 0.6F;
-                float absorbedTickDmg = baseDmg * 0.45F;
-                for (LivingEntity target : targets) {
-                    applyElement(level, target, Element.ANEMO, 1.0F, owner, anemoTickDmg);
-                    if (vortex.absorbedElement != null) {
-                        applyElement(level, target, vortex.absorbedElement, 1.0F, owner, absorbedTickDmg);
-                    }
-                }
-                level.playSound(null, center.x, center.y, center.z, VeloriseStavesMod.WIND_CHARGE_BURST_SOUND.get(), SoundSource.PLAYERS, 0.35F, 1.4F);
-            }
-        }
-    }
-
-    private static @Nullable Element detectDaybreakAbsorption(ServerLevel level, Vec3 center, List<LivingEntity> targets) {
-        Element[] priority = {Element.PYRO, Element.HYDRO, Element.ELECTRO, Element.CRYO};
-        for (Element candidate : priority) {
-            for (LivingEntity target : targets) {
-                Map<Element, GaugeState> gauges = GAUGES.get(target.getUUID());
-                if (gauges != null && gauges.containsKey(candidate)) {
-                    return candidate;
-                }
-                if (candidate == Element.PYRO && target.isOnFire()) {
-                    return Element.PYRO;
-                }
-                if (candidate == Element.HYDRO && target.isInWaterOrRain()) {
-                    return Element.HYDRO;
-                }
-            }
-        }
-        // Environmental fire absorption near vortex center (Fire, Soul Fire, Lava, lit Campfire, Torches)
-        BlockPos origin = BlockPos.containing(center);
-        for (BlockPos p : BlockPos.betweenClosed(origin.offset(-3, -2, -3), origin.offset(3, 2, 3))) {
-            BlockState st = level.getBlockState(p);
-            if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.LAVA) || st.is(Blocks.MAGMA_BLOCK)
-                    || st.is(Blocks.TORCH) || st.is(Blocks.WALL_TORCH)
-                    || st.is(Blocks.SOUL_TORCH) || st.is(Blocks.SOUL_WALL_TORCH)
-                    || (st.getBlock() instanceof net.minecraft.world.level.block.CampfireBlock
-                        && (!st.hasProperty(net.minecraft.world.level.block.CampfireBlock.LIT)
-                            || st.getValue(net.minecraft.world.level.block.CampfireBlock.LIT)))) {
-                return Element.PYRO;
-            }
-        }
-        return null;
-    }
-
-    // ==================== RAIDEN SHOGUN: ENGULFING LIGHTNING ====================
-
-    static boolean isRaidenProtectedAlly(ServerPlayer owner, LivingEntity e) {
-        if (e instanceof net.minecraft.world.entity.TamableAnimal tame && owner.getUUID().equals(tame.getOwnerUUID())) {
-            return true;
-        }
-        return e instanceof ServerPlayer && owner.getServer() != null && !owner.getServer().isPvpAllowed();
-    }
-
-    public static boolean isRaidenSkillOnCooldown(UUID id, long now) {
-        return now < RAIDEN_SKILL_CD_UNTIL.getOrDefault(id, 0L);
-    }
-
-    public static long getRaidenSkillRemainingTicks(UUID id, long now) {
-        return Math.max(0L, RAIDEN_SKILL_CD_UNTIL.getOrDefault(id, 0L) - now);
-    }
-
-    public static boolean isRaidenBurstOnCooldown(UUID id, long now) {
-        return now < RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L);
-    }
-
-    public static long getRaidenBurstRemainingTicks(UUID id, long now) {
-        return Math.max(0L, RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L) - now);
-    }
-
-    public static boolean isRaidenMusouActive(UUID id, long now) {
-        return now < RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L);
-    }
-
-    public static boolean isRaidenIframeActive(@Nullable Entity entity) {
-        if (!(entity instanceof ServerPlayer sp) || !(sp.level() instanceof ServerLevel sl)) return false;
-        long now = sl.getServer().overworld().getGameTime();
-        return now < RAIDEN_IFRAME_UNTIL.getOrDefault(sp.getUUID(), 0L)
-                || ArchonUltiManager.isZhongliIframeActive(entity)
-                || NeuvilletteManager.isNeuvilletteIframeActive(sp);
-    }
-
-    public static boolean isMavuikaBikeIframeActive(@Nullable Entity entity, @Nullable DamageSource source) {
-        if (entity == null || (source != null && source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))) {
-            return false;
-        }
-        com.velorise.staves.entity.FlamestriderBikeEntity bike = null;
-        if (entity instanceof com.velorise.staves.entity.FlamestriderBikeEntity b) {
-            bike = b;
-        } else if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity b) {
-            bike = b;
-        }
-        return bike != null && (bike.isDashIframeActive() || bike.getUltiTicks() > 0);
-    }
-
-    public static int getRaidenResolve(UUID id) {
-        return RAIDEN_RESOLVE.getOrDefault(id, 0);
-    }
-
-    private static void syncRaidenState(ServerPlayer player, long now) {
-        if (player == null) return;
-        UUID id = player.getUUID();
-        int eyeRem = (int) Math.max(0L, RAIDEN_EYE_UNTIL.getOrDefault(id, 0L) - now);
-        int musouRem = (int) Math.max(0L, RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L) - now);
-        int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
-        boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false) || RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
-        int burstCd = (int) Math.max(0L, RAIDEN_BURST_CD_UNTIL.getOrDefault(id, 0L) - now);
-        com.velorise.staves.network.ModNetwork.sendRaidenSync(player, eyeRem, musouRem, resolve, neth, burstCd);
-    }
-
-    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span, boolean isLeftArm) {
-        Vec3 fwd = new Vec3(forward.x, 0.0D, forward.z);
-        if (fwd.lengthSqr() < 1.0E-4D) fwd = new Vec3(0.0D, 0.0D, 1.0D);
-        else fwd = fwd.normalize();
-        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
-        if (isLeftArm) right = right.scale(-1.0D);
-        Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
-        int color = (isMusouBurst || isCharged) ? 0xFFE0B0FF : 0xFFB84DFF;
-        int dur = isMusouBurst ? 10 : 6;
-
-        if (isCharged) {
-            Vec3 s1 = center.add(right.scale(-span * 0.90D)).add(up.scale(-span * 0.48D));
-            Vec3 e1 = center.add(right.scale(span * 0.90D)).add(up.scale(span * 0.58D));
-            Vec3 c2 = center.add(fwd.scale(1.35D));
-            Vec3 s2 = c2.add(right.scale(span * 0.90D)).add(up.scale(-span * 0.45D));
-            Vec3 e2 = c2.add(right.scale(-span * 0.90D)).add(up.scale(span * 0.62D));
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
-            return;
-        }
-        if (isMusouBurst) {
-            Vec3 s = center.add(right.scale(-span)).add(up.scale(0.05D));
-            Vec3 e = center.add(right.scale(span)).add(up.scale(0.05D));
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, color);
-            return;
-        }
-        int step = Math.floorMod(comboStep, 5);
-        if (step == 3) {
-            Vec3 s1 = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.42D));
-            Vec3 e1 = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.45D));
-            Vec3 s2 = center.add(right.scale(span * 0.85D)).add(up.scale(-span * 0.42D));
-            Vec3 e2 = center.add(right.scale(-span * 0.85D)).add(up.scale(span * 0.45D));
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
-            return;
-        }
-        Vec3 s;
-        Vec3 e;
-        int arcColor = color;
-        switch (step) {
-            case 0 -> {
-                s = center.add(right.scale(span)).add(up.scale(0.10D));
-                e = center.add(right.scale(-span)).add(up.scale(-0.08D));
-            }
-            case 1 -> {
-                s = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.48D));
-                e = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
-            }
-            case 2 -> {
-                s = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
-                e = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.45D));
-            }
-            default -> {
-                s = center.add(up.scale(span * 1.15D));
-                e = center.add(up.scale(-span * 0.85D)).add(fwd.scale(0.35D));
-                arcColor = 0xFFE0B0FF;
-            }
-        }
-        com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, arcColor);
-    }
-
-    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) {
-        sendRaidenSlashArc(level, center, forward, comboStep, isMusouBurst, isCharged, span, false);
-    }
-
-    public static void addRaidenResolve(ServerPlayer player, int baseAmount) {
-        if (player == null || baseAmount <= 0) return;
-        boolean hasNetherite = ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
-                && ArcaneStaffItem.getEffectiveNetherite(player.getMainHandItem());
-        int gained = hasNetherite ? (int) Math.ceil(baseAmount * 1.5D) : baseAmount;
-        UUID id = player.getUUID();
-        int updated = Math.min(60, RAIDEN_RESOLVE.getOrDefault(id, 0) + gained);
-        RAIDEN_RESOLVE.put(id, updated);
-        if (player.level() instanceof ServerLevel sl) {
-            syncRaidenState(player, sl.getServer().overworld().getGameTime());
-        }
-    }
-
-    public static boolean activateRaidenEye(ServerPlayer player, boolean isNetherite) {
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = player.getUUID();
-        if (isRaidenSkillOnCooldown(id, now)) {
-            double rem = getRaidenSkillRemainingTicks(id, now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§dBaleful Omen CD: %.1fs", rem)), true);
-            return false;
-        }
-        RAIDEN_EYE_UNTIL.put(id, now + 300L);
-        RAIDEN_EYE_NETHERITE.put(id, isNetherite);
-        RAIDEN_EYE_NEXT_PROC.put(id, now + 18L);
-        RAIDEN_SKILL_CD_UNTIL.put(id, now + 200L);
-        addRaidenResolve(player, 10);
-
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (3.5D * scale * StavesConfig.getDamageMultiplier());
-        float attackU = isNetherite ? 1.5F : 1.0F;
-        double radius = isNetherite ? 6.75D : 4.5D;
-        Vec3 center = player.position().add(0.0D, 1.0D, 0.0D);
-
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            AABB box = player.getBoundingBox().inflate(radius, 2.5D, radius);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                applyElement(level, target, Element.ELECTRO, attackU, player, dmg);
-            }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, center, radius, player, dmg);
-
-        DustParticleOptions electroDust = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), isNetherite ? 1.6F : 1.25F);
-        for (int i = 0; i < 24; i++) {
-            double angle = (Math.PI * 2.0D * i) / 24.0D;
-            double px = center.x + Math.cos(angle) * (radius * 0.6D);
-            double pz = center.z + Math.sin(angle) * (radius * 0.6D);
-            level.sendParticles(electroDust, px, center.y, pz, 1, 0.05D, 0.05D, 0.05D, 0.01D);
-        }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y, center.z, 18, 0.8D, 0.4D, 0.8D, 0.08D);
-        Vec3 frontEyePos = center.add(player.getLookAngle().scale(1.2D));
-        level.sendParticles(ParticleTypes.END_ROD, frontEyePos.x, frontEyePos.y + 0.2D, frontEyePos.z, 10, 0.35D, 0.35D, 0.35D, 0.05D);
-        sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 0.6F, 1.55F);
-        player.displayClientMessage(Component.literal("§d⚡ Eye of Stormy Judgment (15s)"), true);
-        syncRaidenState(player, now);
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 6);
-        return true;
-    }
-
-    public static boolean activateRaidenMusouBurst(ServerPlayer player, boolean isNetherite) {
-        ServerLevel level = player.serverLevel();
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = player.getUUID();
-        if (isRaidenBurstOnCooldown(id, now)) {
-            double rem = getRaidenBurstRemainingTicks(id, now) / 20.0D;
-            player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§dMusou Shinsetsu CD: %.1fs", rem)), true);
-            return false;
-        }
-        int resolve = RAIDEN_RESOLVE.getOrDefault(id, 0);
-        RAIDEN_RESOLVE.put(id, 0);
-        float resolveMult = 1.0F + (resolve / 60.0F) * 1.50F;
-
-        RAIDEN_MUSOU_UNTIL.put(id, now + 172L); // 32t draw windup + 7.0s (140t) Musou Isshin stance
-        RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
-        RAIDEN_BURST_CD_UNTIL.put(id, now + 360L); // Genshin Q cooldown: 18.0s
-        RAIDEN_IFRAME_UNTIL.put(id, now + 34L); // 1.6s Burst i-frame covering full draw animation
-        RAIDEN_NEXT_SWING_TICK.put(id, now + 30L); // Lock NA attacks until chest draw + slash finishes
-        player.invulnerableTime = Math.max(player.invulnerableTime, 34);
-        ArchonUltiManager.applyBurstRoot(player, 32);
-
-        RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 28L);
-        RAIDEN_PENDING_HITOTACHI_MULT.put(id, resolveMult);
-
-        DustParticleOptions chargeGlow = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 1.5F : 1.25F);
-        level.sendParticles(chargeGlow, player.getX(), player.getY() + 1.15D, player.getZ(), 12, 0.28D, 0.25D, 0.28D, 0.02D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.15D, player.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.05D);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.35F);
-        player.displayClientMessage(Component.literal("§d⚡ Musou Shinsetsu... | Resolve: " + resolve), true);
-        syncRaidenState(player, now);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
-        return true;
-    }
-
-    private static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) {
-        ServerLevel level = player.serverLevel();
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float hitotachiDmg = (float) (12.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
-        float attackU = isNetherite ? 3.0F : 2.0F;
-        double reach = isNetherite ? 9.0D : 6.0D;
-        double aoeRadius = isNetherite ? 5.25D : 3.5D;
-        Vec3 look = player.getLookAngle().normalize();
-        Vec3 slashCenter = player.getEyePosition().add(look.scale(reach * 0.5D));
-
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            AABB box = new AABB(slashCenter, slashCenter).inflate(aoeRadius, 3.0D, aoeRadius);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                applyElement(level, target, Element.ELECTRO, attackU, player, hitotachiDmg);
-            }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, slashCenter, aoeRadius, player, hitotachiDmg);
-
-        DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
-        Vec3 right = new Vec3(-look.z, 0.0D, look.x);
-        if (right.lengthSqr() < 1.0E-4D) right = new Vec3(1.0D, 0.0D, 0.0D);
-        else right = right.normalize();
-        for (int i = -10; i <= 10; i++) {
-            double t = i / 10.0D;
-            Vec3 arcPos = slashCenter.add(right.scale(t * aoeRadius)).add(0.0D, Math.cos(t * 1.4D) * 0.6D - 0.3D, 0.0D);
-            level.sendParticles(violetSlash, arcPos.x, arcPos.y, arcPos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcPos.x, arcPos.y, arcPos.z, 2, 0.12D, 0.12D, 0.12D, 0.06D);
-        }
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 1.0F, 1.15F);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
-        sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s)"), true);
-    }
-
-    public static void triggerRaidenUlti(ServerPlayer player) {
-        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
-        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
-        ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        ItemStack raidenStack = ItemStack.EMPTY;
-        boolean fromMain = false;
-        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            raidenStack = main;
-            fromMain = true;
-        } else if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            raidenStack = off;
-        }
-        if (raidenStack.isEmpty()) return;
-        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(raidenStack);
-        if (activateRaidenMusouBurst(player, isNetherite)) {
-            final net.minecraft.world.InteractionHand breakHand = fromMain
-                    ? net.minecraft.world.InteractionHand.MAIN_HAND
-                    : net.minecraft.world.InteractionHand.OFF_HAND;
-            raidenStack.hurtAndBreak(1, player, p -> p.broadcastBreakEvent(breakHand));
-            player.awardStat(net.minecraft.stats.Stats.ITEM_USED.get(raidenStack.getItem()));
-            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 8);
-        }
-    }
-
-    public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) {
-        if (target == null || !target.isAlive() || !(target.level() instanceof ServerLevel level)) return;
-        if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return;
-        ServerPlayer attacker = null;
-        if (source.getEntity() instanceof ServerPlayer sp) attacker = sp;
-        else if (source.getDirectEntity() instanceof ServerPlayer sp) attacker = sp;
-        if (attacker == null || attacker == target) return;
-
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = attacker.getUUID();
-        if (now >= RAIDEN_EYE_UNTIL.getOrDefault(id, 0L)) return;
-        if (now < RAIDEN_EYE_NEXT_PROC.getOrDefault(id, 0L)) return;
-
-        RAIDEN_EYE_NEXT_PROC.put(id, now + 18L);
-        boolean isNetherite = RAIDEN_EYE_NETHERITE.getOrDefault(id, false);
-        addRaidenResolve(attacker, 4);
-
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float dmg = (float) (2.5D * scale * StavesConfig.getDamageMultiplier());
-        float attackU = isNetherite ? 1.5F : 1.0F;
-        double aoe = isNetherite ? 1.5D : 1.0D;
-        Vec3 pos = target.position().add(0.0D, target.getBbHeight() * 0.55D, 0.0D);
-
-        final ServerPlayer finalAttacker = attacker;
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            AABB box = target.getBoundingBox().inflate(aoe, 1.0D, aoe);
-            for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e.isAlive() && !e.isSpectator() && e != finalAttacker && !isRaidenProtectedAlly(finalAttacker, e))) {
-                applyElement(level, victim, Element.ELECTRO, attackU, finalAttacker, dmg);
-            }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
-
-        DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
-        level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.06D);
-        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER, SoundSource.PLAYERS, 0.35F, 1.8F);
-    }
-
-    public static float applyRaidenMusouIsshinHit(LivingEntity target, DamageSource source, float incomingDamage) {
-        if (target == null || !target.isAlive() || incomingDamage <= 0.0F) return incomingDamage;
-        if (!(target.level() instanceof ServerLevel level)) return incomingDamage;
-        if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return incomingDamage;
-        if (!source.is(DamageTypes.PLAYER_ATTACK)) return incomingDamage;
-        if (!(source.getDirectEntity() instanceof ServerPlayer attacker) || attacker == target) return incomingDamage;
-
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = attacker.getUUID();
-        if (!isRaidenMusouActive(id, now)) return incomingDamage;
-        ItemStack mainHand = attacker.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            return incomingDamage;
-        }
-
-        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
-        boolean isCharged = false;
-        if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) {
-            return 0.0F;
-        }
-        RAIDEN_LAST_MELEE_TICK.put(id, now);
-        RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
-        int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
-        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
-        float atkStrength = Math.max(0.35F, getEffectiveAttackStrengthScale(attacker));
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
-        float chargedMult = isCharged ? 1.35F : finisherMult;
-        float musouResMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
-        float bonusDmg = (float) (5.0D * scale * musouResMult * atkStrength * chargedMult * StavesConfig.getDamageMultiplier());
-        float totalDmg = bonusDmg;
-        float attackU = isNetherite ? 1.5F : 1.0F;
-        float[] outDamage = new float[] { totalDmg };
-
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            applyElement(level, target, Element.ELECTRO, attackU, attacker, totalDmg, true, outDamage);
-            double sweepRadius = (isNetherite ? 5.25D : 3.5D) * (isCharged ? 1.35D : 1.0D);
-            AABB sweepBox = target.getBoundingBox().inflate(sweepRadius, 1.75D, sweepRadius);
-            for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                    e -> e.isAlive() && !e.isSpectator() && e != attacker && e != target && !isRaidenProtectedAlly(attacker, e))) {
-                applyElement(level, nearby, Element.ELECTRO, attackU, attacker, bonusDmg * 0.75F);
-            }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
-
-        Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
-        sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
-        level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 10, 0.4D, 0.3D, 0.4D, 0.07D);
-        level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
-        return outDamage[0];
-    }
-
-    public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) {
-        if (player == null || !player.isAlive()) return;
-        if (!(player.level() instanceof ServerLevel level)) return;
-        long now = level.getServer().overworld().getGameTime();
-        UUID id = player.getUUID();
-        if (!isRaidenMusouActive(id, now)) return;
-        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
-        ItemStack mainHand = player.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            return;
-        }
-        if (now < RAIDEN_NEXT_SWING_TICK.getOrDefault(id, 0L)) return;
-        if (now - RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L) <= 1L) return;
-
-        RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
-        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
-        int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
-        RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
-
-        float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
-        float finisherMult = (!isCharged && comboStep == 4) ? 1.25F : 1.0F;
-        float chargedMult = isCharged ? 1.35F : finisherMult;
-        float musouResMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
-        float slashDmg = (float) (5.0D * scale * musouResMult * chargedMult * StavesConfig.getDamageMultiplier());
-        float attackU = isNetherite ? 1.5F : 1.0F;
-        Vec3 look = player.getLookAngle().normalize();
-        double reach = isCharged ? (isNetherite ? 9.5D : 7.5D) : ((isNetherite ? 5.25D : 3.75D) * finisherMult);
-        Vec3 slashPos = player.getEyePosition().add(look.scale(reach * 0.55D)).add(0.0D, -0.25D, 0.0D);
-
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            if (isCharged) {
-                java.util.Set<UUID> hitIds = new java.util.HashSet<>();
-                for (double frac : new double[]{0.35D, 0.75D}) {
-                    Vec3 boxCenter = player.getEyePosition().add(look.scale(reach * frac)).add(0.0D, -0.25D, 0.0D);
-                    AABB sweepBox = new AABB(boxCenter, boxCenter).inflate(2.4D, 1.85D, 2.4D);
-                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                        if (hitIds.add(target.getUUID())) {
-                            applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
-                        }
-                    }
-                }
-            } else {
-                AABB sweepBox = new AABB(slashPos, slashPos).inflate(reach * 0.65D, 1.75D, reach * 0.65D);
-                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                        e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                    applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
-                }
-            }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
-
-        sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        if (isCharged) {
-            Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
-            sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, farSlashPos.x, farSlashPos.y, farSlashPos.z, 10, 0.55D, 0.3D, 0.55D, 0.08D);
-        }
-        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.55F : 1.25F);
-        level.sendParticles(slash, slashPos.x, slashPos.y, slashPos.z, 8, 0.45D, 0.25D, 0.45D, 0.03D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, slashPos.x, slashPos.y, slashPos.z, 8, 0.4D, 0.25D, 0.4D, 0.06D);
-        level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
-    }
-
-    private static void tickRaidenState(MinecraftServer server, long serverNow) {
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            UUID id = player.getUUID();
-            boolean eyeActive = serverNow < RAIDEN_EYE_UNTIL.getOrDefault(id, 0L);
-            boolean musouActive = serverNow < RAIDEN_MUSOU_UNTIL.getOrDefault(id, 0L);
-
-            if (musouActive) {
-                ItemStack mainHand = player.getMainHandItem();
-                if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-                    RAIDEN_MUSOU_UNTIL.remove(id);
-                    RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-                    RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
-                    musouActive = false;
-                    syncRaidenState(player, serverNow);
-                } else {
-                    Long pendingHitTick = RAIDEN_PENDING_HITOTACHI_TICK.get(id);
-                    if (pendingHitTick != null && serverNow >= pendingHitTick) {
-                        RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-                        Float pendingMult = RAIDEN_PENDING_HITOTACHI_MULT.getOrDefault(id, 1.0F);
-                        if (player.isAlive()) {
-                            boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
-                            executeRaidenHitotachiImpact(player, neth, pendingMult);
-                        }
-                    }
-                    if (serverNow % 3 == 0 && player.level() instanceof ServerLevel sl) {
-                        boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
-                        DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
-                        sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
-                        sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
-                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.05D, player.getZ(), 2, 0.3D, 0.35D, 0.3D, 0.02D);
-                    }
-                }
-            }
-            if (!musouActive) {
-                RAIDEN_PENDING_HITOTACHI_TICK.remove(id);
-                RAIDEN_PENDING_HITOTACHI_MULT.remove(id);
-            }
-
-            if ((eyeActive || musouActive || RAIDEN_RESOLVE.getOrDefault(id, 0) > 0 || isRaidenBurstOnCooldown(id, serverNow)) && serverNow % 10 == 0) {
-                syncRaidenState(player, serverNow);
-            }
-            if (!eyeActive && RAIDEN_EYE_UNTIL.containsKey(id)) {
-                RAIDEN_EYE_UNTIL.remove(id);
-                syncRaidenState(player, serverNow);
-            }
-        }
-    }
-
-    static void applyPetrifyState(LivingEntity target, int petrifyTicks, long targetGameTime) {
-        if (target == null || !target.isAlive() || isBossEntity(target)) return;
-        UUID targetId = target.getUUID();
-        long until = targetGameTime + petrifyTicks;
-        Long prevFreezeUntil = FROZEN_UNTIL.get(targetId);
-        FROZEN_UNTIL.put(targetId, prevFreezeUntil == null ? until : Math.max(prevFreezeUntil, until));
-        Long prevPetrifyUntil = PETRIFIED_UNTIL.get(targetId);
-        PETRIFIED_UNTIL.put(targetId, prevPetrifyUntil == null ? until : Math.max(prevPetrifyUntil, until));
-
-        target.stopUsingItem();
-        target.releaseUsingItem();
-        target.setDeltaMovement(Vec3.ZERO);
-        target.hasImpulse = false;
-        target.hurtMarked = true;
-
-        FROZEN_POSES.computeIfAbsent(targetId, k -> new FrozenPoseState(
-                target.getX(), target.getY(), target.getZ(),
-                target.getYRot(), target.getXRot(), target.getYHeadRot(), target.yBodyRot
-        ));
-
-        if (target instanceof Mob mob) {
-            mob.getNavigation().stop();
-            mob.setAggressive(false);
-            mob.setNoAi(true);
-            mob.addTag(TAG_FROZEN_STATUE);
-        }
-        enforceFrozenPose(target, targetId);
-
-        Map<Element, GaugeState> entityGauges = GAUGES.get(targetId);
-        syncAuras(target, entityGauges != null ? entityGauges.keySet() : Collections.emptySet(), null, null, null);
-        com.velorise.staves.network.ModNetwork.sendStaffAnimation(target, petrifyTicks >= 95 ? 17 : 16);
-    }
-
-    public static void addMavuikaFightingSpiritFromExternalNightsoul(ServerPlayer player, float nightsoulConsumed) {
-        if (player == null || nightsoulConsumed <= 0.0F) return;
-        boolean hasSuns = false;
-        boolean nethSuns = false;
-        for (ItemStack s : player.getInventory().items) {
-            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                hasSuns = true;
-                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) nethSuns = true;
-            }
-        }
-        for (ItemStack s : player.getInventory().offhand) {
-            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-                hasSuns = true;
-                if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) nethSuns = true;
-            }
-        }
-        UUID id = player.getUUID();
-        if (!hasSuns && !MAVUIKA_NIGHTSOUL_POINTS.containsKey(id)) return;
-        boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, nethSuns);
-        float fsEfficiency = neth ? 1.25F : 1.0F;
-        float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
-        float updated = Math.min(10.0F, curPts + nightsoulConsumed * 0.05F * fsEfficiency);
-        if (updated != curPts) {
-            MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
-            int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
-            com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, updated, neth);
-        }
-    }
-
-    public static boolean isInsideAnemoUpdraft(ServerLevel level, Vec3 pos) {
-        if (level == null || pos == null || DAYBREAK_VORTICES.isEmpty()) return false;
-        for (DaybreakVortexField v : DAYBREAK_VORTICES) {
-            if (v.level != level) continue;
-            double dx = pos.x - v.center.x;
-            double dz = pos.z - v.center.z;
-            double r = v.radius + 1.5D;
-            if ((dx * dx + dz * dz) <= r * r && pos.y >= v.center.y - 3.0D && pos.y <= v.center.y + 14.0D) {
-                return true;
-            }
-        }
-        return false;
-    }
+    public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
+    public static boolean isPhysicalDamage(DamageSource source) { return ZhongliManager.isPhysicalDamage(source); }
+    public static boolean isElementalOrMagicDamage(DamageSource source) { return ZhongliManager.isElementalOrMagicDamage(source); }
+    public static void notifyOmniImmuneEnvironmental(ServerLevel level, LivingEntity target) { RaidenManager.notifyOmniImmuneEnvironmental(level, target); }
+    public static Element chooseOmniMutatedAttackElement(LivingEntity target, LivingEntity attacker) { return RaidenManager.chooseOmniMutatedAttackElement(target, attacker); }
+    public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) { return ZhongliManager.getElementalDamageSource(level, attacker); }
+    public static DamageSource getElementalDamageSource( ServerLevel level, @Nullable LivingEntity attacker, @Nullable ElementalReaction reaction, @Nullable Element element ) { return ZhongliManager.getElementalDamageSource(level, attacker, reaction, element); }
+    public static boolean isGeoInnateMob(@Nullable Entity entity) { return ZhongliManager.isGeoInnateMob(entity); }
+    public static boolean isAnemoInnateMob(@Nullable Entity entity) { return ZhongliManager.isAnemoInnateMob(entity); }
+    public static boolean isProjectileDamageSource(@Nullable DamageSource source) { return ZhongliManager.isProjectileDamageSource(source); }
+    public static boolean isFallDamageImmunityApplicable(@Nullable LivingEntity entity, @Nullable DamageSource source) { return ZhongliManager.isFallDamageImmunityApplicable(entity, source); }
+    public static void beginDamageFloatTracking(@Nullable LivingEntity entity) { ZhongliManager.beginDamageFloatTracking(entity); }
+    public static void trySendPhysicalDamageFloat(@Nullable LivingEntity target, @Nullable DamageSource source, float finalDamage) { ZhongliManager.trySendPhysicalDamageFloat(target, source, finalDamage); }
+    public static boolean isVanillaPhysicalDisplayDamage(DamageSource source) { return ZhongliManager.isVanillaPhysicalDisplayDamage(source); }
+    public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) { return ZhongliManager.getMobElementalResistance(target, element); }
+    public static float getMobPhysicalResistance(@Nullable LivingEntity target) { return ZhongliManager.getMobPhysicalResistance(target); }
+    public static float computeResistanceMultiplier(float res) { return ZhongliManager.computeResistanceMultiplier(res); }
+    public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) { return ZhongliManager.getEffectivePhysicalMultiplier(target, now); }
+    public static float getEffectivePhysicalMultiplier(LivingEntity target, @Nullable DamageSource source, long now) { return ZhongliManager.getEffectivePhysicalMultiplier(target, source, now); }
+    public static float getEffectiveElementalResistance(@Nullable LivingEntity target, @Nullable Element element, long now) { return ZhongliManager.getEffectiveElementalResistance(target, element, now); }
+    public static float applyMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element, float damage) { return ZhongliManager.applyMobElementalResistance(target, element, damage); }
+    public static @Nullable Element inferElementFromDamageSource(DamageSource source) { return ZhongliManager.inferElementFromDamageSource(source); }
+    public static boolean hurtWithPreAppliedElementalRes(LivingEntity target, DamageSource source, float amount) { return ZhongliManager.hurtWithPreAppliedElementalRes(target, source, amount); }
+    public static float applyMobDamageResistances(LivingEntity entity, DamageSource source, float amount) { return ZhongliManager.applyMobDamageResistances(entity, source, amount); }
+    public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) { ZhongliManager.triggerMobAggro(level, target, attacker); }
+    public static void enforceFrozenPoseIfFrozen(LivingEntity target) { ZhongliManager.enforceFrozenPoseIfFrozen(target); }
+    public static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) { ZhongliManager.applyFreezeState(target, targetId, newFreeze, freezeTicks, now); }
+    public static void enforceFrozenPose(LivingEntity target, UUID id) { ZhongliManager.enforceFrozenPose(target, id); }
+    public static int getFrozenRemainingTicks(UUID id, long now) { return ZhongliManager.getFrozenRemainingTicks(id, now); }
+    public static void tickEntityFreezeGuard(LivingEntity entity) { ZhongliManager.tickEntityFreezeGuard(entity); }
+    public static void clearFreezeState(LivingEntity target, UUID id) { ZhongliManager.clearFreezeState(target, id); }
+    public static void handlePlayerFreezeStruggle(ServerPlayer player) { ZhongliManager.handlePlayerFreezeStruggle(player); }
+    public static boolean isEntitySubmergedInWater(LivingEntity target) { return MavuikaManager.isEntitySubmergedInWater(target); }
+    public static boolean isEntityInWater(LivingEntity target) { return MavuikaManager.isEntityInWater(target); }
+    public static boolean isTouchingSoulCampfire(LivingEntity target) { return MavuikaManager.isTouchingSoulCampfire(target); }
+    public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) { return MavuikaManager.isTouchingEnvironmentalFireBlock(target); }
+    public static boolean isTouchingMushroomBlock(LivingEntity target) { return MavuikaManager.isTouchingMushroomBlock(target); }
+    public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) { MavuikaManager.tryApplyMushroomContactAura(level, target, now); }
+    public static void updatePlayerHpTracking(ServerPlayer player, long now) { VentiManager.updatePlayerHpTracking(player, now); }
+    public static void recordFurinaHpFluctuation(ServerLevel level, LivingEntity changedEntity, float hpFractionDelta) { VentiManager.recordFurinaHpFluctuation(level, changedEntity, hpFractionDelta); }
+    public static void activateFurinaUniversalRevelry(ServerPlayer player, boolean isNetherite) { VentiManager.activateFurinaUniversalRevelry(player, isNetherite); }
+    public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) { return VentiManager.getFanfareBonusMultiplier(entity); }
+    public static boolean isMavuikaOnCooldown(UUID id, long now) { return MavuikaManager.isMavuikaOnCooldown(id, now); }
+    public static long getMavuikaSkillRemainingTicks(UUID id, long now) { return MavuikaManager.getMavuikaSkillRemainingTicks(id, now); }
+    public static void applyMavuikaDismountOrRemainingCooldown(ServerPlayer player) { MavuikaManager.applyMavuikaDismountOrRemainingCooldown(player); }
+    public static void activateMavuikaSunAura(ServerPlayer player, boolean isNetherite, int cooldownTicks) { MavuikaManager.activateMavuikaSunAura(player, isNetherite, cooldownTicks); }
+    public static void consumeMavuikaNightsoulFuel(ServerPlayer player, float amount) { MavuikaManager.consumeMavuikaNightsoulFuel(player, amount); }
+    public static boolean isMavuikaAuraActive(UUID id, long now) { return MavuikaManager.isMavuikaAuraActive(id, now); }
+    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks) { MavuikaManager.summonAndMountFlamestrider(player, isNetherite, cooldownTicks); }
+    public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks, boolean dealCastSweep) { MavuikaManager.summonAndMountFlamestrider(player, isNetherite, cooldownTicks, dealCastSweep); }
+    public static void toggleMavuikaBike(ServerPlayer player) { MavuikaManager.toggleMavuikaBike(player); }
+    public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) { return MavuikaManager.getMavuikaUltiCooldownTicks(target); }
+    public static void triggerMavuikaUlti(ServerPlayer player) { MavuikaManager.triggerMavuikaUlti(player); }
+    public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) { MavuikaManager.executeMavuikaUltiImpact(level, player, ultiDmg); }
+    public static void tickMavuikaSunAura(MinecraftServer server, long serverNow) { MavuikaManager.tickMavuikaSunAura(server, serverNow); }
+    public static void drainHealthSilently(LivingEntity entity, float newHealth) { VentiManager.drainHealthSilently(entity, newHealth); }
+    public static void setPlayerShieldAbsorption(ServerPlayer player, float targetAbsorption) { ZhongliManager.setPlayerShieldAbsorption(player, targetAbsorption); }
+    public static void activateJadeShield(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateJadeShield(player, isNetherite); }
+    public static void activateNightsFocusShield(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateNightsFocusShield(player, isNetherite); }
+    public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateNightsFocusBurstStars(player, isNetherite); }
+    public static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) { ZhongliManager.clearNightsFocusShield(player, playBreakSound); }
+    public static boolean hasActiveNightsFocusShield(@Nullable LivingEntity entity) { return ZhongliManager.hasActiveNightsFocusShield(entity); }
+    public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) { RaidenManager.onPlayerCastStaffSkill(player); }
+    public static void grantRaidenResolveOnStaffSkill(ServerPlayer player) { RaidenManager.grantRaidenResolveOnStaffSkill(player); }
+    public static void addNightsFocusStars(ServerPlayer player, int amount, long now) { ZhongliManager.addNightsFocusStars(player, amount, now); }
+    public static void tickNightsFocusShield(ServerPlayer player, long now) { ZhongliManager.tickNightsFocusShield(player, now); }
+    public static @Nullable LivingEntity findNearestNightsFocusTarget(ServerLevel level, ServerPlayer player) { return ZhongliManager.findNearestNightsFocusTarget(level, player); }
+    public static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) { return ZhongliManager.fireSingleNightsFocusStar(level, player); }
+    public static void tickNightsFocusProjectiles() { ZhongliManager.tickNightsFocusProjectiles(); }
+    public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) { return ZhongliManager.hasActiveJadeShield(entity); }
+    public static boolean isNearJadeShieldAura(@Nullable LivingEntity target) { return ZhongliManager.isNearJadeShieldAura(target); }
+    public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) { return ZhongliManager.getVortexGoldenMajestyMultiplier(attacker); }
+    public static boolean isChannelingGuardianLens(Player player) { return VentiManager.isChannelingGuardianLens(player); }
+    public static void applyFurinaWaterWalking(Player player) { VentiManager.applyFurinaWaterWalking(player); }
+    public static boolean hasRecentHpChangeBuff(ServerPlayer player) { return VentiManager.hasRecentHpChangeBuff(player); }
+    public static boolean carriesGuardianLens(Player player) { return VentiManager.carriesGuardianLens(player); }
+    public static void onHydroReactionTriggered( ServerLevel level, Vec3 targetPos, ElementalReaction reaction, @Nullable Element reactedAura, @Nullable Element triggerElem, @Nullable ServerPlayer attacker ) { VentiManager.onHydroReactionTriggered(level, targetPos, reaction, reactedAura, triggerElem, attacker); }
+    public static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) { return VentiManager.hasNetheriteGuardianLens(entity); }
+    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) { VentiManager.tryInterruptGuardianChanneling(victim, damageDealt); }
+    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) { return VentiManager.getDraconicGloriesStacks(entity); }
+    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) { return VentiManager.getDraconicGloriesMultiplier(entity); }
+    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) { VentiManager.spawnSourcewaterDroplet(level, basePos, ownerId, now); }
+    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) { return VentiManager.consumeSourcewaterDropletsForChannel(level, caster, radius, maxCount); }
+    public static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) { VentiManager.tickSourcewaterDroplets(server, serverNow); }
+    public static @Nullable Element getElementForEffect(MobEffect effect) { return VentiManager.getElementForEffect(effect); }
+    public static List<Element> getElementsFromPotionStack(ItemStack stack) { return VentiManager.getElementsFromPotionStack(stack); }
+    public static List<Element> getElementsFromArrow(ServerLevel level, Arrow arrow) { return VentiManager.getElementsFromArrow(level, arrow); }
+    public static List<Element> getElementsFromAreaEffectCloud(ServerLevel level, AreaEffectCloud cloud) { return VentiManager.getElementsFromAreaEffectCloud(level, cloud); }
+    public static void handleTippedArrowHit(ServerLevel level, Arrow arrow, LivingEntity target) { VentiManager.handleTippedArrowHit(level, arrow, target); }
+    public static void handleItemUseFinish(ServerLevel level, LivingEntity entity, ItemStack stack) { VentiManager.handleItemUseFinish(level, entity, stack); }
+    public static int getMaceWindBurstLevel(LivingEntity attacker) { return VentiManager.getMaceWindBurstLevel(attacker); }
+    public static int getElementalMasteryLevel(ItemStack stack) { return VentiManager.getElementalMasteryLevel(stack); }
+    public static int getElementalMasteryLevel(@Nullable LivingEntity attacker) { return VentiManager.getElementalMasteryLevel(attacker); }
+    public static int getElementalProtectionLevel(ItemStack stack) { return VentiManager.getElementalProtectionLevel(stack); }
+    public static int getElementalProtectionTotalLevel(@Nullable LivingEntity entity) { return VentiManager.getElementalProtectionTotalLevel(entity); }
+    public static float applyElementalProtectionAndArmorWear(LivingEntity entity, DamageSource source, float amount) { return VentiManager.applyElementalProtectionAndArmorWear(entity, source, amount); }
+    public static void updateCoopMobScaling(ServerLevel level, LivingEntity entity) { ZhongliManager.updateCoopMobScaling(level, entity); }
+    public static int getThornsEnchantmentLevel(LivingEntity entity) { return RaidenManager.getThornsEnchantmentLevel(entity); }
+    public static boolean hasThornsEnchantment(LivingEntity entity) { return RaidenManager.hasThornsEnchantment(entity); }
+    public static void reflectThornsElement( ServerLevel level, LivingEntity defender, LivingEntity attacker, long now, @Nullable Element fallbackElement ) { RaidenManager.reflectThornsElement(level, defender, attacker, now, fallbackElement); }
+    public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) { ZhongliManager.handleLivingIncomingDamage(target, source); }
+    public static void processIncomingDamageSources(ServerLevel level, LivingEntity target, DamageSource source) { ZhongliManager.processIncomingDamageSources(level, target, source); }
+    public static float modifyIncomingEnvironmentalDamage(LivingEntity target, DamageSource source, float amount) { return MavuikaManager.modifyIncomingEnvironmentalDamage(target, source, amount); }
+    public static float modifyIncomingEnvironmentalDamageInternal(LivingEntity target, DamageSource source, float amount) { return MavuikaManager.modifyIncomingEnvironmentalDamageInternal(target, source, amount); }
+    public static void maintainBurningPyroAura(LivingEntity target) { MavuikaManager.maintainBurningPyroAura(target); }
+    public static void handleEnvironmentalFireDamage(LivingEntity target) { MavuikaManager.handleEnvironmentalFireDamage(target); }
+    public static boolean isNaturallyWaterSensitive(LivingEntity target) { return MavuikaManager.isNaturallyWaterSensitive(target); }
+    public static void handleEnvironmentalWater(LivingEntity target) { MavuikaManager.handleEnvironmentalWater(target); }
+    public static void checkCryoWaterFreezing(LivingEntity entity) { MavuikaManager.checkCryoWaterFreezing(entity); }
+    public static boolean isHostileMob(LivingEntity entity) { return MavuikaManager.isHostileMob(entity); }
+    public static void checkInnateMutation(LivingEntity entity) { MavuikaManager.checkInnateMutation(entity); }
+    public static void rollInnateMutationOnce(LivingEntity entity, CompoundTag data) { MavuikaManager.rollInnateMutationOnce(entity, data); }
+    public static boolean isOmniInnate(@Nullable Entity entity) { return MavuikaManager.isOmniInnate(entity); }
+    public static @Nullable Element getInnateElement(LivingEntity target) { return MavuikaManager.getInnateElement(target); }
+    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) { return MavuikaManager.getInnateElements(target); }
+    public static boolean hasInnateElement(@Nullable LivingEntity target, @Nullable Element element) { return MavuikaManager.hasInnateElement(target, element); }
+    public static boolean isPyroInnate(@Nullable Entity entity) { return MavuikaManager.isPyroInnate(entity); }
+    public static boolean isPyroResistant(@Nullable LivingEntity target) { return MavuikaManager.isPyroResistant(target); }
+    public static void ensurePreDeathPyroIgnite(@Nullable LivingEntity target, int seconds) { MavuikaManager.ensurePreDeathPyroIgnite(target, seconds); }
+    public static void extinguishPyroInnate(@Nullable LivingEntity entity) { MavuikaManager.extinguishPyroInnate(entity); }
+    public static boolean isMutatedInnate(LivingEntity entity) { return MavuikaManager.isMutatedInnate(entity); }
+    public static void tryDropElementOnDeath(LivingEntity entity, DamageSource source) { MavuikaManager.tryDropElementOnDeath(entity, source); }
+    public static @Nullable Element getNaturalInnateElement(LivingEntity target) { return MavuikaManager.getNaturalInnateElement(target); }
+    public static boolean isBossEntity(LivingEntity entity) { return MavuikaManager.isBossEntity(entity); }
+    public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) { return MavuikaManager.isPassiveAquaticOrAmbient(entity); }
+    public static void recordPreAttackStrength(@Nullable Player player, float scale) { RaidenManager.recordPreAttackStrength(player, scale); }
+    public static void clearPreAttackStrength(@Nullable Player player) { RaidenManager.clearPreAttackStrength(player); }
+    public static float getEffectiveAttackStrengthScale(Player attacker) { return RaidenManager.getEffectiveAttackStrengthScale(attacker); }
+    public static float applyImbuedSwordHit(LivingEntity target, DamageSource source, float incomingDamage) { return RaidenManager.applyImbuedSwordHit(target, source, incomingDamage); }
+    public static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) { RaidenManager.triggerOverloadExplosion(level, target, attacker, dmgMult); }
+    public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) { RaidenManager.drawVoltaicArc(level, start, end); }
+    public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) { RaidenManager.drawVoltaicArc(level, from, to); }
+    public static Element pickDefenderAuraForThorns(LivingEntity defender) { return RaidenManager.pickDefenderAuraForThorns(defender); }
+    public static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) { MavuikaManager.updateCryoDebuff(target, id, hasCryo, innate); }
+    public static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) { MavuikaManager.spawnAmbientParticles(level, target, gauges, now); }
+    public static void spawnExpandingSquareParticles( ServerLevel level, Vec3 center, double halfExtent, double yOffset, ParticleOptions primary, @Nullable ParticleOptions accent, int accentStride ) { MavuikaManager.spawnExpandingSquareParticles(level, center, halfExtent, yOffset, primary, accent, accentStride); }
+    public static void handleCreeperExplosionBurst( ServerLevel level, Creeper creeper, Vec3 center, float explosionRadius ) { RaidenManager.handleCreeperExplosionBurst(level, creeper, center, explosionRadius); }
+    public static void onEvokerFangJoin(ServerLevel level, EvokerFangs fangs) { ZhongliManager.onEvokerFangJoin(level, fangs); }
+    public static void flushPendingEvokerConstructs(MinecraftServer server) { ZhongliManager.flushPendingEvokerConstructs(server); }
+    public static void summonDaybreakVortex(ServerPlayer owner, Vec3 center, boolean isNetherite) { VentiManager.summonDaybreakVortex(owner, center, isNetherite); }
+    public static void tickDaybreakVortices(MinecraftServer server, long serverNow) { VentiManager.tickDaybreakVortices(server, serverNow); }
+    public static @Nullable Element detectDaybreakAbsorption(ServerLevel level, Vec3 center, List<LivingEntity> targets) { return VentiManager.detectDaybreakAbsorption(level, center, targets); }
+    public static boolean isRaidenProtectedAlly(ServerPlayer owner, LivingEntity e) { return RaidenManager.isRaidenProtectedAlly(owner, e); }
+    public static boolean isRaidenSkillOnCooldown(UUID id, long now) { return RaidenManager.isRaidenSkillOnCooldown(id, now); }
+    public static long getRaidenSkillRemainingTicks(UUID id, long now) { return RaidenManager.getRaidenSkillRemainingTicks(id, now); }
+    public static boolean isRaidenBurstOnCooldown(UUID id, long now) { return RaidenManager.isRaidenBurstOnCooldown(id, now); }
+    public static long getRaidenBurstRemainingTicks(UUID id, long now) { return RaidenManager.getRaidenBurstRemainingTicks(id, now); }
+    public static boolean isRaidenMusouActive(UUID id, long now) { return RaidenManager.isRaidenMusouActive(id, now); }
+    public static boolean isRaidenIframeActive(@Nullable Entity entity) { return RaidenManager.isRaidenIframeActive(entity); }
+    public static boolean isMavuikaBikeIframeActive(@Nullable Entity entity, @Nullable DamageSource source) { return MavuikaManager.isMavuikaBikeIframeActive(entity, source); }
+    public static int getRaidenResolve(UUID id) { return RaidenManager.getRaidenResolve(id); }
+    public static void syncRaidenState(ServerPlayer player, long now) { RaidenManager.syncRaidenState(player, now); }
+    public static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span, boolean isLeftArm) { RaidenManager.sendRaidenSlashArc(level, center, forward, comboStep, isMusouBurst, isCharged, span, isLeftArm); }
+    public static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) { RaidenManager.sendRaidenSlashArc(level, center, forward, comboStep, isMusouBurst, isCharged, span); }
+    public static void addRaidenResolve(ServerPlayer player, int baseAmount) { RaidenManager.addRaidenResolve(player, baseAmount); }
+    public static boolean activateRaidenEye(ServerPlayer player, boolean isNetherite) { return RaidenManager.activateRaidenEye(player, isNetherite); }
+    public static boolean activateRaidenMusouBurst(ServerPlayer player, boolean isNetherite) { return RaidenManager.activateRaidenMusouBurst(player, isNetherite); }
+    public static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) { RaidenManager.executeRaidenHitotachiImpact(player, isNetherite, resolveMult); }
+    public static void triggerRaidenUlti(ServerPlayer player) { RaidenManager.triggerRaidenUlti(player); }
+    public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) { RaidenManager.triggerRaidenEyeCoordinatedStrike(target, source); }
+    public static float applyRaidenMusouIsshinHit(LivingEntity target, DamageSource source, float incomingDamage) { return RaidenManager.applyRaidenMusouIsshinHit(target, source, incomingDamage); }
+    public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) { RaidenManager.performRaidenMusouSwing(player, isCharged); }
+    public static void tickRaidenState(MinecraftServer server, long serverNow) { RaidenManager.tickRaidenState(server, serverNow); }
+    public static void applyPetrifyState(LivingEntity target, int petrifyTicks, long targetGameTime) { ZhongliManager.applyPetrifyState(target, petrifyTicks, targetGameTime); }
+    public static void addMavuikaFightingSpiritFromExternalNightsoul(ServerPlayer player, float nightsoulConsumed) { MavuikaManager.addMavuikaFightingSpiritFromExternalNightsoul(player, nightsoulConsumed); }
+    public static boolean isInsideAnemoUpdraft(ServerLevel level, Vec3 pos) { return VentiManager.isInsideAnemoUpdraft(level, pos); }
+    public static void clearEntityState(@Nullable LivingEntity entity) { MavuikaManager.clearEntityStateInternal(entity); }
+    public static void clearAll() { MavuikaManager.clearAllInternal(); }
 }

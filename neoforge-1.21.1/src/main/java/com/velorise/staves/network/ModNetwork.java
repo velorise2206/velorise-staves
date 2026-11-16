@@ -209,4 +209,8 @@ public final class ModNetwork {
         RaidenSyncPayload payload = new RaidenSyncPayload(target.getId(), eyeRemainingTicks, musouRemainingTicks, resolve, netherite, burstCooldownTicks);
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(target, payload);
     }
+
+    public static void sendRaidenSlash(boolean charged) {
+        PacketDistributor.sendToServer(new RaidenSlashPayload(charged));
+    }
 }

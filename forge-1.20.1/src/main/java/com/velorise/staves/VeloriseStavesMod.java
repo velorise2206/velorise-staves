@@ -531,4 +531,12 @@ public final class VeloriseStavesMod {
             event.accept(GEO_ROD.get());
         }
     }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity> getGeoFangPillarType() {
+        return GEO_FANG_PILLAR.get();
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
+        return FLAMESTRIDER_BIKE.get();
+    }
 }

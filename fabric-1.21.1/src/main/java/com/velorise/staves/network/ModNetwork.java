@@ -274,4 +274,8 @@ public final class ModNetwork {
         }
         ServerPlayNetworking.send(player, payload);
     }
+
+    public static void sendRaidenSlash(boolean charged) {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(new RaidenSlashPayload(charged));
+    }
 }

@@ -557,16 +557,21 @@ public class FlamestriderBikeEntity extends Entity {
                     14, 0.3D, 0.3D, 0.3D, 0.06D);
         }
         sl.sendParticles(ParticleTypes.FLASH, this.getX(), this.getY() + 0.6D, this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D);
+        spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.3D, this.getZ(), 42, 1.8D, 0.35D, 1.8D, 0.12D);
         sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.25D, this.getZ(), 16, 1.2D, 0.25D, 1.2D, 0.04D);
         sl.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
     }
 
     private static void spawnFierySweep(ServerLevel sl, Vec3 center, float yawDeg, double arcRadius) {
+        spawnFierySweep(sl, center, yawDeg, arcRadius, false);
+    }
+
+    private static void spawnFierySweep(ServerLevel sl, Vec3 center, float yawDeg, double arcRadius, boolean leftHand) {
+        double sweepDir = leftHand ? -1.0D : 1.0D;
         DustParticleOptions flameDust = new DustParticleOptions(new org.joml.Vector3f(1.0F, 0.38F, 0.05F), 1.55F);
         for (int i = -6; i <= 6; i++) {
-            double angleRad = Math.toRadians(yawDeg + i * 11.0D);
+            double angleRad = Math.toRadians(yawDeg + (i * sweepDir) * 11.0D);
             double px = center.x - Math.sin(angleRad) * arcRadius;
             double pz = center.z + Math.cos(angleRad) * arcRadius;
             sl.sendParticles(flameDust, px, center.y + 0.15D, pz, 2, 0.06D, 0.05D, 0.06D, 0.01D);
@@ -624,14 +629,15 @@ public class FlamestriderBikeEntity extends Entity {
         }
 
         Vec3 finFwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
-        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize();
+        boolean isLeftFin = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize().scale(isLeftFin ? -1.0D : 1.0D);
         Vec3 arcMid = this.position().add(0.0D, 1.05D, 0.0D).add(finFwd.scale(2.35D));
         com.velorise.staves.network.ModNetwork.sendElectricArc(
                 sl,
                 arcMid.add(finRight.scale(-2.45D)).add(0.0D, -0.08D, 0.0D),
                 arcMid.add(finRight.scale(2.45D)).add(0.0D, 0.18D, 0.0D),
                 10,
-                0xFFFF7A18);
+                isLeftFin ? 0xFFFF7A19 : 0xFFFF7A18);
         sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 18, 0.85D, 0.20D, 0.85D, 0.06D);
         sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.15F);
         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.85F, 0.95F);
@@ -646,7 +652,7 @@ public class FlamestriderBikeEntity extends Entity {
         this.entityData.set(DATA_NA_STEP, 2);
         this.entityData.set(DATA_NA_TICKS, 8);
         if (this.level() instanceof ServerLevel sl && this.getFirstPassenger() instanceof ServerPlayer sp) {
-            spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.2D);
+            spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.2D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         }
     }
 
@@ -720,7 +726,8 @@ public class FlamestriderBikeEntity extends Entity {
         }
         horizFwd = horizFwd.normalize();
         Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
-        if (sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT) {
+        boolean isLeftArm = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+        if (isLeftArm) {
             right = right.scale(-1.0D);
         }
         Vec3 slashCenter = this.position().add(horizFwd.scale(2.15D)).add(0.0D, 1.05D, 0.0D);
@@ -728,30 +735,30 @@ public class FlamestriderBikeEntity extends Entity {
         Vec3 slashEnd;
         int arcColor;
         switch (naComboStep) {
-            case 1 -> {
+            case 1 -> { // Hit 1: High-Right -> Low-Left (or High-Left -> Low-Right when left-handed) diagonal cleave
                 slashStart = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
                 slashEnd = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
-                arcColor = 0xFFFF8825;
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
             }
-            case 2 -> {
+            case 2 -> { // Hit 2: Low-Left -> High-Right (or Low-Right -> High-Left when left-handed) upward backhand
                 slashStart = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
                 slashEnd = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
-                arcColor = 0xFFFF8824;
+                arcColor = isLeftArm ? 0xFFFF8825 : 0xFFFF8824;
             }
-            case 3 -> {
+            case 3 -> { // Hit 3: Wide Right -> Left (or Wide Left -> Right when left-handed) horizontal sweep
                 slashStart = slashCenter.add(right.scale(1.90D)).add(0.0D, 0.25D, 0.0D);
                 slashEnd = slashCenter.add(right.scale(-1.90D)).add(0.0D, 0.25D, 0.0D);
-                arcColor = 0xFFFF8825;
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
             }
-            case 4 -> {
+            case 4 -> { // Hit 4: Low-Left -> Mid-Right (or Low-Right -> Mid-Left when left-handed) rising cross sweep
                 slashStart = slashCenter.add(right.scale(-1.85D)).add(0.0D, 0.05D, 0.0D);
                 slashEnd = slashCenter.add(right.scale(1.85D)).add(0.0D, 0.60D, 0.0D);
-                arcColor = 0xFFFF8824;
+                arcColor = isLeftArm ? 0xFFFF8825 : 0xFFFF8824;
             }
-            default -> {
+            default -> { // Hit 5: Heavy Top-Right -> Bottom-Left (or Heavy Top-Left -> Bottom-Right when left-handed) overhead cleave
                 slashStart = slashCenter.add(right.scale(1.30D)).add(0.0D, 1.55D, 0.0D);
                 slashEnd = slashCenter.add(right.scale(-1.15D)).add(0.0D, -0.55D, 0.0D);
-                arcColor = 0xFFFF8825;
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
             }
         }
         com.velorise.staves.network.ModNetwork.sendElectricArc(

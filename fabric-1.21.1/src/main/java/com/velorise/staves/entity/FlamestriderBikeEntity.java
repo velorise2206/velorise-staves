@@ -59,9 +59,9 @@ public class FlamestriderBikeEntity extends Entity {
             SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ULTI_TICKS =
             SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> DATA_NA_TICKS =
-            SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_NA_STEP =
+            SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_NA_TICKS =
             SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
 
     private long lastSpinDamageTick = -100L;
@@ -70,19 +70,19 @@ public class FlamestriderBikeEntity extends Entity {
     private int serverDashChain = 0;
     private int serverDashTicks = 0;
     private int serverDashIframeTicks = 0;
-    private long lastNaTick = -100L;
-    private int naComboStep = 0;
-    private float pendingUltiDamage = 0.0F;
-    private int ultiVoiceLine = 0;
-    private int ultiVoiceMaxTicks = 30;
-    private boolean pendingFinisher = false;
-    private boolean pendingDiscardAfterFinisher = false;
     private boolean spinInputHeld = false;
     private boolean sprintInputHeld = false;
     private int plungeTicks = 0;
     private long plungeRecoveryUntil = 0L;
     private float serverSpinAngle = 0.0F;
     private final java.util.Map<Integer, Long> spinHitCooldowns = new java.util.HashMap<>();
+    private int naComboStep = 0;
+    private long lastNaTick = -100L;
+    private float pendingUltiDamage = 0.0F;
+    private int ultiVoiceLine = 0;
+    private int ultiVoiceMaxTicks = 30;
+    private boolean pendingFinisher = false;
+    private boolean pendingDiscardAfterFinisher = false;
     private int clientGlideTicks = 0;
     private int clientGlideBoostTicks = 0;
     private int clientGlideCharges = 1;
@@ -123,8 +123,8 @@ public class FlamestriderBikeEntity extends Entity {
         builder.define(DATA_PLUNGING, false);
         builder.define(DATA_PLUNGE_WINDUP, 0);
         builder.define(DATA_ULTI_TICKS, 0);
-        builder.define(DATA_NA_TICKS, 0);
         builder.define(DATA_NA_STEP, 0);
+        builder.define(DATA_NA_TICKS, 0);
     }
 
     public void setOwner(@Nullable Player owner) {
@@ -220,12 +220,12 @@ public class FlamestriderBikeEntity extends Entity {
         return this.entityData.get(DATA_ULTI_TICKS);
     }
 
-    public int getNaTicks() {
-        return this.entityData.get(DATA_NA_TICKS);
-    }
-
     public int getNaStep() {
         return this.entityData.get(DATA_NA_STEP);
+    }
+
+    public int getNaTicks() {
+        return this.entityData.get(DATA_NA_TICKS);
     }
 
     public boolean isDashingServer() {
@@ -236,14 +236,8 @@ public class FlamestriderBikeEntity extends Entity {
         return serverDashTicks > 0 || serverDashIframeTicks > 0;
     }
 
-    public void triggerUltiAnimation() {
-        this.ultiVoiceMaxTicks = 30;
-        this.ultiVoiceLine = this.random.nextInt(20) == 0 ? 3 : this.random.nextInt(3);
-        this.entityData.set(DATA_ULTI_TICKS, 30);
-    }
-
-    public void startUltiSlam(float ultiDmg) {
-        this.pendingUltiDamage = ultiDmg;
+    public void startUltiSlam(float ultiDamage) {
+        this.pendingUltiDamage = ultiDamage;
         this.spinInputHeld = false;
         setSpinning(false);
         this.pendingFinisher = false;
@@ -264,6 +258,12 @@ public class FlamestriderBikeEntity extends Entity {
                             .withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD),
                     true);
         }
+    }
+
+    public void triggerUltiAnimation() {
+        this.ultiVoiceMaxTicks = 22;
+        this.ultiVoiceLine = this.random.nextInt(20) == 0 ? 3 : this.random.nextInt(3);
+        this.entityData.set(DATA_ULTI_TICKS, 22);
     }
 
     @Override
@@ -588,16 +588,147 @@ public class FlamestriderBikeEntity extends Entity {
                     14, 0.3D, 0.3D, 0.3D, 0.06D);
         }
         sl.sendParticles(ParticleTypes.FLASH, this.getX(), this.getY() + 0.6D, this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D);
+        spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.3D, this.getZ(), 42, 1.8D, 0.35D, 1.8D, 0.12D);
         sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.25D, this.getZ(), 16, 1.2D, 0.25D, 1.2D, 0.04D);
         sl.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.9F, 1.15F);
     }
 
+    public void triggerMountWhip() {
+        this.entityData.set(DATA_NA_STEP, 2);
+        this.entityData.set(DATA_NA_TICKS, 8);
+        if (this.level() instanceof ServerLevel sl && this.getFirstPassenger() instanceof ServerPlayer sp) {
+            spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.2D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+        }
+    }
+
+    public void performNormalAttack(ServerPlayer sp) {
+        if (!(this.level() instanceof ServerLevel sl)) return;
+        if (getUltiTicks() > 8 || isPlunging() || this.pendingDiscardAfterFinisher || this.pendingFinisher || (getNaStep() == 6 && getNaTicks() > 4)) return;
+        if (sl.getServer().overworld().getGameTime() < plungeRecoveryUntil) return;
+        boolean airborneHigh = !this.onGround()
+                && !this.isInWater()
+                && sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.85D, 0.0D))
+                && !sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.75D, this.getZ())).getFluidState().is(FluidTags.WATER);
+        if (airborneHigh) {
+            setGliding(false);
+            setSpinning(false);
+            setBikeSprinting(false);
+            setPlunging(true);
+            this.entityData.set(DATA_PLUNGE_WINDUP, 5);
+            plungeTicks = 0;
+            ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 2.0F);
+            sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.35F);
+            return;
+        }
+        long now = sl.getServer().overworld().getGameTime();
+        long requiredCd = (naComboStep == 5) ? 12L : 7L; // 0.35s between hits, 0.60s recovery after strong 5th hit
+        if (now - lastNaTick < requiredCd) return;
+        naComboStep = (now - lastNaTick > 32L || naComboStep >= 5) ? 1 : naComboStep + 1;
+        lastNaTick = now;
+        ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 1.0F);
+        this.entityData.set(DATA_NA_STEP, naComboStep);
+        this.entityData.set(DATA_NA_TICKS, naComboStep == 5 ? 14 : 10);
+        net.minecraft.world.InteractionHand swingHand =
+                (sp.getMainHandItem().getItem() instanceof ArcaneStaffItem sm
+                        && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                        ? net.minecraft.world.InteractionHand.MAIN_HAND
+                        : ((sp.getOffhandItem().getItem() instanceof ArcaneStaffItem so
+                                && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                                ? net.minecraft.world.InteractionHand.OFF_HAND
+                                : net.minecraft.world.InteractionHand.MAIN_HAND);
+        sp.swing(swingHand, true);
+
+        boolean neth = isNetherite();
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth);
+        float mult = switch (naComboStep) {
+            case 2 -> 1.05F;
+            case 3 -> 1.15F;
+            case 4 -> 1.30F;
+            case 5 -> 1.65F;
+            default -> 0.95F;
+        };
+        float dmg = baseDmg * (mult + ElementalGaugeManager.getMavuikaCrucibleNaBonusMultiplier(sp));
+        float units = naComboStep == 5 ? (neth ? 1.5F : 1.0F) : 1.0F;
+        double range = naComboStep == 5 ? 4.4D : (naComboStep >= 3 ? 3.8D : 3.5D);
+
+        Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
+        Vec3 origin = this.position().add(0.0D, 0.5D, 0.0D);
+        AABB box = this.getBoundingBox().inflate(range, 1.8D, range);
+        List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
+        boolean anyHit = false;
+        for (LivingEntity target : targets) {
+            Vec3 toTarget = target.position().subtract(origin);
+            double distSqr = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+            if (distSqr > range * range) continue;
+            Vec3 horiz = new Vec3(toTarget.x, 0.0D, toTarget.z);
+            if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < -0.15D) continue;
+            ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
+            anyHit = true;
+        }
+        if (anyHit) {
+            ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
+        }
+
+        Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);
+        if (horizFwd.lengthSqr() < 1.0E-4D) {
+            horizFwd = Vec3.directionFromRotation(0.0F, sp.getYRot());
+        }
+        horizFwd = horizFwd.normalize();
+        Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
+        boolean isLeftArm = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+        if (isLeftArm) {
+            right = right.scale(-1.0D);
+        }
+        Vec3 slashCenter = origin.add(horizFwd.scale(2.15D)).add(0.0D, 0.25D, 0.0D);
+        Vec3 slashStart;
+        Vec3 slashEnd;
+        int arcColor;
+        switch (naComboStep) {
+            case 1 -> { // Hit 1: High-Right -> Low-Left (or High-Left -> Low-Right when left-handed) diagonal cleave
+                slashStart = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
+            }
+            case 2 -> { // Hit 2: Low-Left -> High-Right (or Low-Right -> High-Left when left-handed) upward backhand
+                slashStart = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
+                arcColor = isLeftArm ? 0xFFFF8825 : 0xFFFF8824;
+            }
+            case 3 -> { // Hit 3: Wide Right -> Left (or Wide Left -> Right when left-handed) horizontal sweep
+                slashStart = slashCenter.add(right.scale(1.90D)).add(0.0D, 0.25D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.90D)).add(0.0D, 0.25D, 0.0D);
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
+            }
+            case 4 -> { // Hit 4: Low-Left -> Mid-Right (or Low-Right -> Mid-Left when left-handed) rising cross sweep
+                slashStart = slashCenter.add(right.scale(-1.85D)).add(0.0D, 0.05D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(1.85D)).add(0.0D, 0.60D, 0.0D);
+                arcColor = isLeftArm ? 0xFFFF8825 : 0xFFFF8824;
+            }
+            default -> { // Hit 5: Heavy Top-Right -> Bottom-Left (or Heavy Top-Left -> Bottom-Right when left-handed) overhead cleave
+                slashStart = slashCenter.add(right.scale(1.30D)).add(0.0D, 1.55D, 0.0D);
+                slashEnd = slashCenter.add(right.scale(-1.15D)).add(0.0D, -0.55D, 0.0D);
+                arcColor = isLeftArm ? 0xFFFF8824 : 0xFFFF8825;
+            }
+        }
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl, slashStart, slashEnd, naComboStep == 5 ? 9 : 7, arcColor);
+        sl.sendParticles(ParticleTypes.FLAME, slashCenter.x, slashCenter.y + 0.15D, slashCenter.z,
+                naComboStep == 5 ? 16 : 8, 0.55D, 0.25D, 0.55D, 0.04D);
+        sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS,
+                naComboStep == 5 ? 0.85F : 0.65F, 0.9F + naComboStep * 0.08F);
+    }
+
     private static void spawnFierySweep(ServerLevel sl, Vec3 center, float yawDeg, double arcRadius) {
+        spawnFierySweep(sl, center, yawDeg, arcRadius, false);
+    }
+
+    private static void spawnFierySweep(ServerLevel sl, Vec3 center, float yawDeg, double arcRadius, boolean leftHand) {
+        double sweepDir = leftHand ? -1.0D : 1.0D;
         DustParticleOptions flameDust = new DustParticleOptions(new org.joml.Vector3f(1.0F, 0.38F, 0.05F), 1.55F);
         for (int i = -6; i <= 6; i++) {
-            double angleRad = Math.toRadians(yawDeg + i * 11.0D);
+            double angleRad = Math.toRadians(yawDeg + (i * sweepDir) * 11.0D);
             double px = center.x - Math.sin(angleRad) * arcRadius;
             double pz = center.z + Math.cos(angleRad) * arcRadius;
             sl.sendParticles(flameDust, px, center.y + 0.15D, pz, 2, 0.06D, 0.05D, 0.06D, 0.01D);
@@ -657,14 +788,15 @@ public class FlamestriderBikeEntity extends Entity {
         }
 
         Vec3 finFwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
-        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize();
+        boolean isLeftFin = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+        Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize().scale(isLeftFin ? -1.0D : 1.0D);
         Vec3 arcMid = this.position().add(0.0D, 1.05D, 0.0D).add(finFwd.scale(2.35D));
         com.velorise.staves.network.ModNetwork.sendElectricArc(
                 sl,
                 arcMid.add(finRight.scale(-2.45D)).add(0.0D, -0.08D, 0.0D),
                 arcMid.add(finRight.scale(2.45D)).add(0.0D, 0.18D, 0.0D),
                 10,
-                0xFFFF7A18);
+                isLeftFin ? 0xFFFF7A19 : 0xFFFF7A18);
         sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 18, 0.85D, 0.20D, 0.85D, 0.06D);
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.85F);
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.90F);
@@ -717,146 +849,6 @@ public class FlamestriderBikeEntity extends Entity {
         sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.45D, this.getZ(), 16, 0.35D, 0.2D, 0.35D, 0.08D);
         sl.sendParticles(ParticleTypes.LAVA, this.getX() - look.x * 0.6D, this.getY() + 0.35D, this.getZ() - look.z * 0.6D, 5, 0.2D, 0.1D, 0.2D, 0.02D);
         sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.7F, 1.35F);
-    }
-
-    /**
-     * 5-hit Normal Attack combo on Flamestrider:
-     * 1: right-hand sword forward slash, 2: tail whip sweep, 3: right-hand sword reverse sweep,
-     * 4: rising wheelie slam, 5: full 360° front-flip fiery slam.
-     */
-    public void triggerMountWhip() {
-        this.entityData.set(DATA_NA_STEP, 2);
-        this.entityData.set(DATA_NA_TICKS, 8);
-        if (this.level() instanceof ServerLevel sl && this.getFirstPassenger() instanceof ServerPlayer sp) {
-            spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.2D);
-        }
-    }
-
-    public void performNormalAttack(ServerPlayer sp) {
-        if (!(this.level() instanceof ServerLevel sl)) return;
-        if (getUltiTicks() > 8 || isPlunging() || this.pendingDiscardAfterFinisher || this.pendingFinisher || (getNaStep() == 6 && getNaTicks() > 4)) return;
-        if (sl.getServer().overworld().getGameTime() < plungeRecoveryUntil) return;
-        boolean airborneHigh = !this.onGround()
-                && !this.isInWater()
-                && sl.noCollision(this, this.getBoundingBox().move(0.0D, -0.85D, 0.0D))
-                && !sl.getBlockState(BlockPos.containing(this.getX(), this.getY() - 0.75D, this.getZ())).getFluidState().is(FluidTags.WATER);
-        if (airborneHigh) {
-            setGliding(false);
-            setSpinning(false);
-            setBikeSprinting(false);
-            setPlunging(true);
-            this.entityData.set(DATA_PLUNGE_WINDUP, 5);
-            plungeTicks = 0;
-            ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 2.0F);
-            sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.35F);
-            return;
-        }
-        long now = sl.getServer().overworld().getGameTime();
-        long requiredCd = (naComboStep == 5) ? 12L : 7L; // ~0.35s between hits 1-4, 0.60s recovery after strong 5th hit
-        if (now - lastNaTick < requiredCd) return;
-        naComboStep = (now - lastNaTick <= 30L) ? (naComboStep % 5) + 1 : 1;
-        lastNaTick = now;
-        ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 1.0F);
-
-        int animTicks = naComboStep == 5 ? 14 : 10;
-        this.entityData.set(DATA_NA_STEP, naComboStep);
-        this.entityData.set(DATA_NA_TICKS, animTicks);
-        net.minecraft.world.InteractionHand swingHand =
-                (sp.getMainHandItem().getItem() instanceof ArcaneStaffItem sm
-                        && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
-                        ? net.minecraft.world.InteractionHand.MAIN_HAND
-                        : ((sp.getOffhandItem().getItem() instanceof ArcaneStaffItem so
-                                && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
-                                ? net.minecraft.world.InteractionHand.OFF_HAND
-                                : net.minecraft.world.InteractionHand.MAIN_HAND);
-        sp.swing(swingHand, true);
-
-        boolean neth = isNetherite();
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth);
-        float mult = switch (naComboStep) {
-            case 2 -> 1.1F;
-            case 3 -> 1.25F;
-            case 4 -> 1.35F;
-            case 5 -> 1.6F;
-            default -> 1.0F;
-        };
-        float dmg = baseDmg * (mult + ElementalGaugeManager.getMavuikaCrucibleNaBonusMultiplier(sp));
-        float units = neth ? 1.5F : 1.0F;
-
-        Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
-        Vec3 hitCenter = this.position().add(forward.scale(naComboStep == 5 ? 2.4D : 2.0D)).add(0.0D, 0.6D, 0.0D);
-        double radius = naComboStep == 5 ? 4.2D : 3.5D;
-
-        AABB box = new AABB(
-                hitCenter.x - radius, hitCenter.y - 1.5D, hitCenter.z - radius,
-                hitCenter.x + radius, hitCenter.y + 2.0D, hitCenter.z + radius
-        );
-        List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e.isAlive() && !e.isRemoved() && e != sp);
-        for (LivingEntity target : targets) {
-            ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
-            Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
-            if (kb.lengthSqr() > 1.0E-4D) {
-                kb = kb.normalize().scale(naComboStep == 5 ? 0.65D : 0.35D);
-                target.push(kb.x, naComboStep == 5 ? 0.32D : 0.14D, kb.z);
-            }
-            sl.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                    10, 0.25D, 0.25D, 0.25D, 0.05D);
-        }
-
-        if (!targets.isEmpty()) {
-            ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
-        }
-
-        Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);
-        if (horizFwd.lengthSqr() < 1.0E-4D) {
-            horizFwd = Vec3.directionFromRotation(0.0F, sp.getYRot());
-        }
-        horizFwd = horizFwd.normalize();
-        Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
-        if (sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT) {
-            right = right.scale(-1.0D);
-        }
-        Vec3 slashCenter = this.position().add(horizFwd.scale(2.15D)).add(0.0D, 1.05D, 0.0D);
-        Vec3 slashStart;
-        Vec3 slashEnd;
-        int arcColor;
-        switch (naComboStep) {
-            case 1 -> {
-                slashStart = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
-                slashEnd = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
-                arcColor = 0xFFFF8825;
-            }
-            case 2 -> {
-                slashStart = slashCenter.add(right.scale(-1.65D)).add(0.0D, -0.35D, 0.0D);
-                slashEnd = slashCenter.add(right.scale(1.65D)).add(0.0D, 1.05D, 0.0D);
-                arcColor = 0xFFFF8824;
-            }
-            case 3 -> {
-                slashStart = slashCenter.add(right.scale(1.90D)).add(0.0D, 0.25D, 0.0D);
-                slashEnd = slashCenter.add(right.scale(-1.90D)).add(0.0D, 0.25D, 0.0D);
-                arcColor = 0xFFFF8825;
-            }
-            case 4 -> {
-                slashStart = slashCenter.add(right.scale(-1.85D)).add(0.0D, 0.05D, 0.0D);
-                slashEnd = slashCenter.add(right.scale(1.85D)).add(0.0D, 0.60D, 0.0D);
-                arcColor = 0xFFFF8824;
-            }
-            default -> {
-                slashStart = slashCenter.add(right.scale(1.30D)).add(0.0D, 1.55D, 0.0D);
-                slashEnd = slashCenter.add(right.scale(-1.15D)).add(0.0D, -0.55D, 0.0D);
-                arcColor = 0xFFFF8825;
-            }
-        }
-        com.velorise.staves.network.ModNetwork.sendElectricArc(
-                sl, slashStart, slashEnd, naComboStep == 5 ? 9 : 7, arcColor);
-        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z,
-                naComboStep == 5 ? 16 : 8, 0.65D, 0.25D, 0.65D, 0.05D);
-        if (naComboStep == 5) {
-            sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.1F);
-        } else {
-            sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.7F, naComboStep % 2 == 0 ? 1.2F : 1.0F);
-        }
     }
 
     private void playUltiVoiceBeat(ServerLevel sl, int nextUlti) {
@@ -960,7 +952,7 @@ public class FlamestriderBikeEntity extends Entity {
                 clientGlideBoostTicks = 0;
             } else if (clientGlideCharges > 0) {
                 clientGlideCharges = 0;
-                clientGlideTicks = 60; // 3.0s level wing glide at current altitude
+                clientGlideTicks = 60; // 3.0s level wing glide at current altitude (Genshin cap)
                 clientGlideBoostTicks = 12; // 0.6s temporary forward surge when deploying wings
                 Vec3 wingSurge = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.96D);
                 this.setDeltaMovement(wingSurge.x, 0.0D, wingSurge.z);

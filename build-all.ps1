@@ -71,8 +71,23 @@ function Test-SharedClassParity {
         "element\Element.java",
         "element\ElementalReaction.java",
         "element\GaugeState.java",
+        "element\ElementalGaugeManager.java",
+        "element\PlayerGenshinState.java",
+        "element\RaidenManager.java",
+        "element\ZhongliManager.java",
+        "element\VentiManager.java",
+        "element\MavuikaManager.java",
         "client\ClientAuraTracker.java",
-        "client\ElementalCodexScreen.java"
+        "client\ElementalCodexScreen.java",
+        "client\glider\WindGliderRenderer.java",
+        "client\character\XilonenVisualRenderer.java",
+        "client\character\NahidaVisualRenderer.java",
+        "client\character\RaidenVisualRenderer.java",
+        "client\character\ZhongliVisualRenderer.java",
+        "client\character\MavuikaVisualRenderer.java",
+        "client\character\NeuvilletteVisualRenderer.java",
+        "client\character\TsaritsaVisualRenderer.java",
+        "client\character\VentiVisualRenderer.java"
     )
     foreach ($rel in $sharedClasses) {
         $nfFile = Join-Path $Root "neoforge-1.21.1\src\main\java\com\velorise\staves\$rel"

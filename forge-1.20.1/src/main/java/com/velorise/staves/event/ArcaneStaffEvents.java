@@ -1004,4 +1004,18 @@ public final class ArcaneStaffEvents {
             ElementalGaugeManager.handleCreeperExplosionBurst(sl, creeper, creeper.position(), creeper.isPowered() ? 6.0F : 3.0F);
         }
     }
+
+    @SubscribeEvent
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
+            com.velorise.staves.element.PlayerGenshinState.onEntityRemoved(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onEntityLeaveLevel(net.minecraftforge.event.entity.EntityLeaveLevelEvent event) {
+        if (!event.getLevel().isClientSide() && (!event.getEntity().isAlive() || event.getEntity().isRemoved())) {
+            com.velorise.staves.element.PlayerGenshinState.onEntityRemoved(event.getEntity());
+        }
+    }
 }
