@@ -36,8 +36,7 @@ public final class PlanetBefallMeteorRenderer {
         }
         if (!anyMeteor) return;
 
-        // Pass 1A: 3D Burr-Puzzle Luban Lock (Khối Lỗ Ban) 6 Interlocking Basalt Stone Bars
-        VertexConsumer texVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(ROCK_TEXTURE));
+        // Pass 1: 3 Interlocking Octagonal "0" Stone Rings (Planet Befall / Luban Lock) + Glowing Geo Core & 6 Gold Blocks
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
             long elapsedMs = Math.max(0L, now - arc.startTime);
@@ -63,97 +62,7 @@ public final class PlanetBefallMeteorRenderer {
             poseStack.mulPose(Axis.YP.rotationDegrees(spin));
             poseStack.mulPose(Axis.XP.rotationDegrees(28.0F + spin * 0.35F));
             poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F - spin * 0.22F));
-            Matrix4f mat = poseStack.last().pose();
-
-            // 6 Interlocking Basalt Bars with Carved Liyue '回' Patterns (Luban Lock Geometry)
-            float barHalfLen = 1.05F * s;
-            float barHalfThick = 0.22F * s;
-            float barOffset = 0.44F * s;
-
-            // Pair X: 2 bars parallel to X axis
-            drawTexturedSteleCube(texVc, mat, 0.0F,  barOffset, -barOffset, barHalfLen, barHalfThick, barHalfThick, 235, 195, 140, alpha);
-            drawTexturedSteleCube(texVc, mat, 0.0F, -barOffset,  barOffset, barHalfLen, barHalfThick, barHalfThick, 235, 195, 140, alpha);
-
-            // Pair Y: 2 bars parallel to Y axis
-            drawTexturedSteleCube(texVc, mat, -barOffset, 0.0F,  barOffset, barHalfThick, barHalfLen, barHalfThick, 235, 195, 140, alpha);
-            drawTexturedSteleCube(texVc, mat,  barOffset, 0.0F, -barOffset, barHalfThick, barHalfLen, barHalfThick, 235, 195, 140, alpha);
-
-            // Pair Z: 2 bars parallel to Z axis
-            drawTexturedSteleCube(texVc, mat,  barOffset, -barOffset, 0.0F, barHalfThick, barHalfThick, barHalfLen, 235, 195, 140, alpha);
-            drawTexturedSteleCube(texVc, mat, -barOffset,  barOffset, 0.0F, barHalfThick, barHalfThick, barHalfLen, 235, 195, 140, alpha);
-
-            poseStack.popPose();
-        }
-
-        // Pass 1B: Central Glowing Geo Magma Core, 12 Interstice Golden Crystals & 6 End Caps
-        VertexConsumer solidVc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.METEOR_SOLID);
-        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
-            if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
-            long elapsedMs = Math.max(0L, now - arc.startTime);
-            if (elapsedMs > 2650L) continue;
-
-            float fallT = Mth.clamp(elapsedMs / 2500.0F, 0.0F, 1.0F);
-            float eased = fallT * fallT * (0.35F + 0.65F * fallT);
-            float appear = Mth.clamp(elapsedMs / 160.0F, 0.0F, 1.0F);
-            float crushFade = elapsedMs <= 2500L ? 1.0F : Mth.clamp(1.0F - (elapsedMs - 2500.0F) / 150.0F, 0.0F, 1.0F);
-            int alpha = ClientAuraRenderer.clampColor((int) (255.0F * appear * crushFade));
-            if (alpha <= 4) continue;
-
-            float aoeRadius = Math.max(4.0F, arc.color / 10.0F);
-            float s = (0.85F + 0.35F * Mth.clamp(aoeRadius / 8.5F, 0.7F, 1.15F)) * (0.35F + 0.65F * appear);
-            Vec3 curPos = arc.start.lerp(arc.end, eased);
-            if (elapsedMs > 2500L) {
-                curPos = arc.end.add(0.0D, -0.35D * (1.0F - crushFade), 0.0D);
-            }
-
-            poseStack.pushPose();
-            poseStack.translate(curPos.x - camPos.x, curPos.y - camPos.y, curPos.z - camPos.z);
-            float spin = elapsedMs * 0.085F;
-            poseStack.mulPose(Axis.YP.rotationDegrees(spin));
-            poseStack.mulPose(Axis.XP.rotationDegrees(28.0F + spin * 0.35F));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F - spin * 0.22F));
-            Matrix4f mat = poseStack.last().pose();
-
-            // 1. Concentrated Central Geo Magma Core (Lõi Dung Nham Vàng Rực Rỡ)
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.38F * s, 0.38F * s, 0.38F * s, 255, 240, 140, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.48F * s, 0.48F * s, 0.48F * s, 255, 175, 40, Math.max(15, (int) (alpha * 0.75F)));
-
-            // 2. 12 Glowing Golden Rectangular Crystal Inserts (12 Khối Tinh Thể Chữ Nhật Vàng Kim Khóa Lỗ Ban)
-            float cLen = 0.42F * s;
-            float cThick = 0.17F * s;
-            float cPos = 0.44F * s;
-
-            // 4 crystals parallel to Z axis in corner interstices
-            for (float sx : new float[]{-cPos, cPos}) {
-                for (float sy : new float[]{-cPos, cPos}) {
-                    drawShadedMeteorBox(solidVc, mat, sx, sy, 0.0F, cThick, cThick, cLen, 255, 220, 80, alpha);
-                }
-            }
-            // 4 crystals parallel to X axis in corner interstices
-            for (float sy : new float[]{-cPos, cPos}) {
-                for (float sz : new float[]{-cPos, cPos}) {
-                    drawShadedMeteorBox(solidVc, mat, 0.0F, sy, sz, cLen, cThick, cThick, 255, 220, 80, alpha);
-                }
-            }
-            // 4 crystals parallel to Y axis in corner interstices
-            for (float sz : new float[]{-cPos, cPos}) {
-                for (float sx : new float[]{-cPos, cPos}) {
-                    drawShadedMeteorBox(solidVc, mat, sx, 0.0F, sz, cThick, cLen, cThick, 255, 220, 80, alpha);
-                }
-            }
-
-            // 3. 6 Protruding End Caps at the 6 Extents + 3D Geo Diamond Emblems
-            float capDist = 1.05F * s;
-            float capHalf = 0.22F * s;
-            drawShadedMeteorBox(solidVc, mat,  capDist, 0, 0, capHalf * 0.40F, capHalf, capHalf, 255, 215, 85, alpha);
-            drawShadedMeteorBox(solidVc, mat, -capDist, 0, 0, capHalf * 0.40F, capHalf, capHalf, 255, 215, 85, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0,  capDist, 0, capHalf, capHalf * 0.40F, capHalf, 255, 215, 85, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, -capDist, 0, capHalf, capHalf * 0.40F, capHalf, 255, 215, 85, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, 0,  capDist, capHalf, capHalf, capHalf * 0.40F, 255, 215, 85, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, 0, -capDist, capHalf, capHalf, capHalf * 0.40F, 255, 215, 85, alpha);
-
-            drawFaceDiamonds(solidVc, mat, capDist + capHalf * 0.45F, 0.24F * s, alpha);
-
+            renderMeteorMesh(poseStack, bufferSource, s, alpha);
             poseStack.popPose();
         }
 
@@ -300,6 +209,82 @@ public final class PlanetBefallMeteorRenderer {
                             ex + px * 0.25F, yBase + 0.03F, ez + pz * 0.25F, 215, 130, 28, 0,
                             ex - px * 0.25F, yBase + 0.03F, ez - pz * 0.25F, 215, 130, 28, 0);
                 }
+            }
+        }
+    }
+
+    /**
+     * Renders Zhongli's Planet Befall meteor mesh: 3 orthogonal interlocking octagonal "0" stone rings
+     * around a glowing golden Geo core with 6 protruding golden Geo blocks.
+     */
+    public static void renderMeteorMesh(PoseStack poseStack, MultiBufferSource bufferSource, float s, int alpha) {
+        VertexConsumer texVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(ROCK_TEXTURE));
+        // 3 orthogonal "0" rings (XY, YZ, XZ planes)
+        for (int ring = 0; ring < 3; ring++) {
+            poseStack.pushPose();
+            if (ring == 1) {
+                poseStack.mulPose(Axis.YP.rotationDegrees(90.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+            } else if (ring == 2) {
+                poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(90.0F));
+            }
+            drawSingleZeroRing(texVc, poseStack, s, alpha);
+            poseStack.popPose();
+        }
+
+        // Glowing golden Geo core & 6 protruding golden blocks (matching reference images)
+        VertexConsumer solidVc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.METEOR_SOLID);
+        Matrix4f mat = poseStack.last().pose();
+
+        // Central glowing Geo core (solid & filled inside so no hollow gaps appear)
+        drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.48F * s, 0.48F * s, 0.48F * s, 255, 232, 110, alpha);
+        drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.55F * s, 0.55F * s, 0.55F * s, 255, 188, 42, alpha);
+
+        // 6 Protruding bright yellow-gold Geo blocks sitting inside the 6 ring windows (seamlessly joined to core)
+        float bDist = 0.56F * s;
+        float bAxis = 0.22F * s;
+        float bCross = 0.30F * s;
+        drawShadedMeteorBox(solidVc, mat,  bDist, 0.0F, 0.0F, bAxis, bCross, bCross, 255, 212, 48, alpha);
+        drawShadedMeteorBox(solidVc, mat, -bDist, 0.0F, 0.0F, bAxis, bCross, bCross, 255, 212, 48, alpha);
+        drawShadedMeteorBox(solidVc, mat, 0.0F,  bDist, 0.0F, bCross, bAxis, bCross, 255, 212, 48, alpha);
+        drawShadedMeteorBox(solidVc, mat, 0.0F, -bDist, 0.0F, bCross, bAxis, bCross, 255, 212, 48, alpha);
+        drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F,  bDist, bCross, bCross, bAxis, 255, 212, 48, alpha);
+        drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, -bDist, bCross, bCross, bAxis, 255, 212, 48, alpha);
+
+        // Golden Liyue diamond emblems on outer 6 extents
+        drawFaceDiamonds(solidVc, mat, 1.06F * s, 0.19F * s, alpha);
+    }
+
+    private static void drawSingleZeroRing(VertexConsumer texVc, PoseStack poseStack, float s, int alpha) {
+        float outerL = 1.05F * s;
+        float outerW = 0.56F * s;
+        float halfThick = 0.21F * s;
+        float barHalf = 0.105F * s; // bar thickness = 0.21F * s
+        float sideX = outerW - barHalf;
+        float endY = outerL - barHalf;
+        float longHalfY = outerL - barHalf * 2.2F;
+        float shortHalfX = outerW - barHalf * 2.2F;
+
+        Matrix4f mat = poseStack.last().pose();
+        // Left & Right long vertical stone bars
+        drawTexturedSteleCube(texVc, mat, -sideX, 0.0F, 0.0F, barHalf, longHalfY, halfThick, 215, 160, 102, alpha);
+        drawTexturedSteleCube(texVc, mat,  sideX, 0.0F, 0.0F, barHalf, longHalfY, halfThick, 215, 160, 102, alpha);
+        // Top & Bottom horizontal end bars
+        drawTexturedSteleCube(texVc, mat, 0.0F,  endY, 0.0F, shortHalfX, barHalf, halfThick, 215, 160, 102, alpha);
+        drawTexturedSteleCube(texVc, mat, 0.0F, -endY, 0.0F, shortHalfX, barHalf, halfThick, 215, 160, 102, alpha);
+
+        // 4 Chamfered 45-degree octagonal corner segments
+        float cxOff = outerW - barHalf * 1.55F;
+        float cyOff = outerL - barHalf * 1.55F;
+        float chamHalf = barHalf * 1.35F;
+        for (int sx : new int[]{-1, 1}) {
+            for (int sy : new int[]{-1, 1}) {
+                poseStack.pushPose();
+                poseStack.translate(sx * cxOff, sy * cyOff, 0.0F);
+                poseStack.mulPose(Axis.ZP.rotationDegrees(sx * sy * 45.0F));
+                drawTexturedSteleCube(texVc, poseStack.last().pose(), 0.0F, 0.0F, 0.0F, barHalf * 0.96F, chamHalf, halfThick * 0.99F, 200, 146, 90, alpha);
+                poseStack.popPose();
             }
         }
     }

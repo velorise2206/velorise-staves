@@ -384,11 +384,11 @@ public final class RaidenVisualRenderer {
                 model.hat.copyFrom(model.head);
             } else {
                 float slash = WindGliderRenderer.smoothStep01((t - 0.8125F) / 0.1875F);
-                model.body.xRot = Mth.lerp(slash, 0.0F, 0.2F);
-                model.body.yRot = castDir * Mth.lerp(slash, -0.4F, 0.25F);
-                mainPart.xRot = Mth.lerp(slash, -2.2F, -0.3F);
-                mainPart.yRot = castDir * Mth.lerp(slash, -1.25F, 1.42F);
-                mainPart.zRot = castDir * Mth.lerp(slash, 0.1F, -0.5F);
+                model.body.xRot = Mth.lerp(slash, 0.0F, 0.18F);
+                model.body.yRot = castDir * Mth.lerp(slash, -0.45F, 0.55F);
+                mainPart.xRot = Mth.lerp(slash, -2.2F, -1.48F);
+                mainPart.yRot = castDir * Mth.lerp(slash, 0.85F, -1.25F);
+                mainPart.zRot = castDir * Mth.lerp(slash, -0.35F, 1.15F);
                 offPart.xRot = Mth.lerp(slash, -0.35F, 0.30F);
             }
             return true;
@@ -602,12 +602,12 @@ public final class RaidenVisualRenderer {
                 poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(prep, -10.0F, -58.0F)));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(prep, 172.0F, 82.0F)));
             } else {
-                float slash = WindGliderRenderer.smoothStep01((t - 0.72F) / 0.16F);
-                float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
-                poseStack.translate(dir * Mth.lerp(slash, -0.68F, 0.88F) * w, -0.02F * w, -0.28F * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, -42.0F, 68.0F) * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-58.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 88.0F, -88.0F) * w));
+                float slash = WindGliderRenderer.smoothStep01((t - 0.72F) / 0.18F);
+                float w = (t < 0.90F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.90F) / 0.10F) * (float) Math.PI));
+                poseStack.translate(dir * Mth.lerp(slash, -0.90F, 1.25F) * w, 0.04F * w, -0.35F * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, -78.0F, 95.0F) * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(-88.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 86.0F * w));
             }
             return true;
         }
@@ -680,5 +680,138 @@ public final class RaidenVisualRenderer {
             return true;
         }
         return true;
+    }
+
+    private static float stepIdleFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.raidenIdleLastMs <= 0L) {
+            d.raidenIdleLastMs = nowMs;
+            if (d.raidenIdle) {
+                d.raidenIdleFade = Math.min(1.0F, d.raidenIdleFade + 0.016F / 0.45F);
+            }
+        } else if (nowMs > d.raidenIdleLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.raidenIdleLastMs) / 1000.0F);
+            d.raidenIdleLastMs = nowMs;
+            if (d.raidenIdle) {
+                d.raidenIdleFade = Math.min(1.0F, d.raidenIdleFade + dt / 0.45F);
+            } else {
+                d.raidenIdleFade = Math.max(0.0F, d.raidenIdleFade - dt / 0.35F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.raidenIdleFade);
+    }
+
+    public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (!ClientAuraTracker.isRaidenIdle(entity.getId())) return false;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) return false;
+        float bob = Mth.sin(ageInTicks * 0.08F) * 0.025F;
+        model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+        model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+        // Left arm extended forward-outward with open palm supporting the Electro Sphere
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.04F + bob);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.14F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.16F);
+        // Right arm relaxed at side
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, 0.08F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, 0.0F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.08F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.16F);
+        model.head.yRot = Mth.lerp(w, model.head.yRot, 0.24F);
+        return true;
+    }
+
+    public static void renderIdleEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        if (!ClientAuraTracker.isRaidenIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        long nowMs = System.currentTimeMillis();
+        float fade = stepIdleFade(d, nowMs);
+        if (fade <= 0.01F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+        float pt = mc.getFrameTime();
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        // Positioned cleanly above the extended LEFT palm
+        float bob = Mth.sin(time * 0.12F) * 0.025F;
+        poseStack.translate(0.38F, 1.18F + bob, 0.52F);
+        poseStack.scale(fade, fade, fade);
+
+        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        float pulse = 1.0F + 0.06F * Mth.sin(time * 0.28F);
+        float haloR = 0.21F * pulse;
+        float shellR = 0.145F * pulse;
+        float midR = 0.095F * pulse;
+        float coreR = 0.042F * pulse;
+
+        int haloA = Math.max(10, Math.round(90.0F * fade));
+        int shellA = Math.max(16, Math.round(185.0F * fade));
+        int midA = Math.max(20, Math.round(225.0F * fade));
+        int coreA = Math.max(24, Math.round(255.0F * fade));
+
+        // 1. Multi-layered swirling Electro Sphere (outer halo -> deep purple shell -> bright violet -> white core)
+        for (int layer = 0; layer < 3; layer++) {
+            poseStack.pushPose();
+            float dir = (layer % 2 == 0) ? 1.0F : -1.0F;
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.4F * dir + layer * 48.0F));
+            poseStack.mulPose(Axis.XP.rotationDegrees(time * 2.5F * dir + layer * 35.0F));
+            Matrix4f mat = poseStack.last().pose();
+            WindGliderRenderer.emitDoubleQuad(vc, mat, -haloR, -haloR, 0.0F, haloR, -haloR, 0.0F, haloR, haloR, 0.0F, -haloR, haloR, 0.0F, 145, 45, 255, haloA);
+            WindGliderRenderer.emitDoubleQuad(vc, mat, -shellR, -shellR, 0.0F, shellR, -shellR, 0.0F, shellR, shellR, 0.0F, -shellR, shellR, 0.0F, 118, 35, 230, shellA);
+            WindGliderRenderer.emitDoubleQuad(vc, mat, 0.0F, -shellR, -shellR, 0.0F, -shellR, shellR, 0.0F, shellR, shellR, 0.0F, shellR, -shellR, 118, 35, 230, shellA);
+            WindGliderRenderer.emitDoubleQuad(vc, mat, -midR, -midR, 0.0F, midR, -midR, 0.0F, midR, midR, 0.0F, -midR, midR, 0.0F, 198, 115, 255, midA);
+            WindGliderRenderer.emitDoubleQuad(vc, mat, -coreR, -coreR, 0.0F, coreR, -coreR, 0.0F, coreR, coreR, 0.0F, -coreR, coreR, 0.0F, 255, 240, 255, coreA);
+            poseStack.popPose();
+        }
+
+        // 2. Three tilted orbiting Electro energy rings
+        for (int rIdx = 0; rIdx < 3; rIdx++) {
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.ZP.rotationDegrees(rIdx == 0 ? 34.0F : (rIdx == 1 ? -42.0F : 78.0F)));
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * (rIdx % 2 == 0 ? 5.2F : -4.6F) + rIdx * 55.0F));
+            Matrix4f rMat = poseStack.last().pose();
+            float rad = 0.175F + rIdx * 0.015F;
+            float thick = 0.010F;
+            int segs = 14;
+            for (int s = 0; s < segs; s++) {
+                float a0 = (float) (s * Math.PI * 2.0D / segs);
+                float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs);
+                float x0 = Mth.cos(a0) * rad, z0 = Mth.sin(a0) * rad;
+                float x1 = Mth.cos(a1) * rad, z1 = Mth.sin(a1) * rad;
+                WindGliderRenderer.emitDoubleQuad(vc, rMat, x0, -thick, z0, x1, -thick, z1, x1, thick, z1, x0, thick, z0, 225, 145, 255, shellA);
+            }
+            poseStack.popPose();
+        }
+
+        // 3. Crackling jagged lightning arcs snapping around the sphere
+        VertexConsumer lightVc = buffer.getBuffer(RenderType.lightning());
+        int arcPhase = (int) (time * 0.45F);
+        int boltAlpha = Math.max(25, Math.round(235.0F * fade));
+        for (int b = 0; b < 4; b++) {
+            float aStart = (float) ((b * 1.57D) + ((arcPhase * 0.73D + b * 1.9D) % 6.28D));
+            float aEnd = aStart + 1.15F;
+            float rArc = 0.19F;
+            Vec3 p0 = new Vec3(Mth.cos(aStart) * rArc, Mth.sin(aStart * 1.3F) * 0.11F, Mth.sin(aStart) * rArc);
+            Vec3 p3 = new Vec3(Mth.cos(aEnd) * rArc, Mth.sin(aEnd * 1.3F) * 0.11F, Mth.sin(aEnd) * rArc);
+            float jx = Mth.sin(arcPhase * 3.1F + b * 2.7F) * 0.055F;
+            float jy = Mth.cos(arcPhase * 2.4F + b * 1.9F) * 0.055F;
+            Vec3 p1 = p0.lerp(p3, 0.35D).add(jx, jy, -jx);
+            Vec3 p2 = p0.lerp(p3, 0.68D).add(-jy, -jx, jy);
+            Matrix4f lMat = poseStack.last().pose();
+            Vec3 camDir = new Vec3(0.0D, 0.0D, 1.0D);
+            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p0, p1, camDir, 0.009D, 195, 95, 255, boltAlpha);
+            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p1, p2, camDir, 0.008D, 235, 190, 255, boltAlpha);
+            com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.drawQuadRibbon(lightVc, lMat, p2, p3, camDir, 0.007D, 255, 240, 255, boltAlpha);
+        }
+
+        poseStack.popPose();
     }
 }

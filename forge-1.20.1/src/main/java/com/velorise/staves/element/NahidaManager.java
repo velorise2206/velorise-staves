@@ -17,6 +17,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -94,6 +97,21 @@ public final class NahidaManager {
 
     private static final Map<UUID, NahidaPlayerState> PLAYER_STATES = new ConcurrentHashMap<>();
     private static final Map<UUID, SkandhaMark> SKANDHA_MARKS = new ConcurrentHashMap<>();
+
+    private static final UUID VIEWFINDER_KB_MOD_UUID =
+            UUID.fromString("e4a8c3b2-1f45-4c9a-9e21-8b7d6c5a4321");
+
+    private static void setViewfinderKnockbackRes(ServerPlayer player, boolean active) {
+        AttributeInstance kbAttr = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+        if (kbAttr == null) return;
+        if (active) {
+            if (kbAttr.getModifier(VIEWFINDER_KB_MOD_UUID) == null) {
+                kbAttr.addTransientModifier(new AttributeModifier(VIEWFINDER_KB_MOD_UUID, "nahida_viewfinder_kb", 1.0D, AttributeModifier.Operation.ADDITION));
+            }
+        } else {
+            kbAttr.removeModifier(VIEWFINDER_KB_MOD_UUID);
+        }
+    }
 
     private NahidaManager() {}
 
@@ -218,42 +236,45 @@ public final class NahidaManager {
         }
         Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
 
+        double forwardReach = 5.0D;
+        double halfWidth = 1.0D; // 2 blocks wide x 5 blocks forward
+        AABB naHitBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.2D, halfWidth);
+        List<LivingEntity> naTargets = level.getEntitiesOfClass(LivingEntity.class, naHitBox,
+                e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+
         if (step <= 3) {
-            double reach = 3.8D + step * 1.6D;
-            double halfWidth = 1.1D + step * 0.35D;
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 1.5F : 1.0F;
 
             ModNetwork.sendElectricArc(level, player.position(), player.position().add(horiz.scale(3.6D)), 16, 0x4E410000 | step);
 
-            AABB hitBox = player.getBoundingBox().expandTowards(horiz.scale(reach)).inflate(halfWidth, 1.2D, halfWidth);
-            List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, hitBox,
-                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
-            for (LivingEntity target : targets) {
+            for (LivingEntity target : naTargets) {
                 Vec3 toTarget = target.position().subtract(player.position());
                 double proj = toTarget.dot(horiz);
-                if (proj < -0.5D || proj > reach + 1.0D) continue;
+                double side = Math.abs(toTarget.dot(right));
+                if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, dmg);
             }
-            fertilizeSaplingsInBox(level, player, hitBox);
+            fertilizeSaplingsInBox(level, player, naHitBox);
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, 1.25F + step * 0.12F);
             level.playSound(null, player.blockPosition(), SoundEvents.AZALEA_LEAVES_PLACE, SoundSource.PLAYERS, 0.85F, 1.15F + step * 0.10F);
         } else {
             Vec3 burstCenter = player.position().add(horiz.scale(3.6D));
-            double radius = isNeth ? 4.5D : 3.5D;
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 2.0F : 1.5F;
 
             ModNetwork.sendElectricArc(level, player.position(), burstCenter, 22, 0x4E410004);
 
-            AABB aoeBox = new AABB(burstCenter, burstCenter).inflate(radius, 2.2D, radius);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, aoeBox,
-                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
+            for (LivingEntity target : naTargets) {
+                Vec3 toTarget = target.position().subtract(player.position());
+                double proj = toTarget.dot(horiz);
+                double side = Math.abs(toTarget.dot(right));
+                if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, dmg);
             }
-            forceGrowPlantsInBox(level, player, aoeBox);
+            forceGrowPlantsInBox(level, player, naHitBox);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.55F);
             level.playSound(null, BlockPos.containing(burstCenter), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.90F, 1.35F);
         }
@@ -274,29 +295,40 @@ public final class NahidaManager {
         float caDmg = 6.0F * baseScale;
         float gaugeU = isNeth ? 2.0F : 1.5F;
 
-        Vec3 eye = player.getEyePosition();
-        Vec3 look = player.getLookAngle().normalize();
-        HitResult hit = level.clip(new ClipContext(eye, eye.add(look.scale(8.5D)),
-                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-        Vec3 center = hit.getType() == HitResult.Type.BLOCK
-                ? hit.getLocation()
-                : player.position().add(new Vec3(look.x, 0.0D, look.z).normalize().scale(4.5D));
-
-        double halfSide = isNeth ? 2.4D : 1.8D;
-        // Vanilla dust particles removed in favor of 3D Dendro Box Hologram
-
-        AABB box = new AABB(center.x - halfSide - 0.8D, center.y - 1.5D, center.z - halfSide - 0.8D,
-                center.x + halfSide + 0.8D, center.y + 2.8D, center.z + halfSide + 0.8D);
-        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
-            target.invulnerableTime = 0;
-            ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, gaugeU, player, caDmg);
+        Vec3 look = player.getLookAngle();
+        Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+        if (horiz.lengthSqr() < 1.0E-4D) {
+            horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+        } else {
+            horiz = horiz.normalize();
         }
+        Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+        Vec3 center = player.position().add(horiz.scale(3.5D)).add(0.0D, 2.5D, 0.0D);
+        ModNetwork.sendElectricArc(level, player.position(), center, 13, 0x4E430000);
 
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
         level.playSound(null, BlockPos.containing(center), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.40F);
-        level.playSound(null, BlockPos.containing(center), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.70F, 1.55F);
+
+        final Vec3 fHoriz = horiz;
+        final Vec3 fRight = right;
+        final Vec3 fPlayerPos = player.position();
+        final Vec3 fCenter = center;
+        ArchonUltiManager.scheduleBurstAction(player, 8, () -> {
+            if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            AABB box = new AABB(fCenter.x - 1.5D, fCenter.y - 1.5D, fCenter.z - 1.5D,
+                    fCenter.x + 1.5D, fCenter.y + 1.5D, fCenter.z + 1.5D);
+            for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
+                Vec3 toTarget = target.position().subtract(fPlayerPos);
+                double proj = toTarget.dot(fHoriz);
+                double side = Math.abs(toTarget.dot(fRight));
+                if (proj < 2.0D || proj > 5.0D || side > 1.5D) continue;
+                target.invulnerableTime = 0;
+                ElementalGaugeManager.applyElementBypassIcd(sl, target, Element.DENDRO, gaugeU, player, caDmg);
+            }
+            sl.playSound(null, BlockPos.containing(fCenter), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.70F, 1.55F);
+        });
     }
 
     public static void onStartHoldUse(ServerPlayer player, ItemStack stack, boolean isNetherite) {
@@ -319,6 +351,7 @@ public final class NahidaManager {
         }
         if (elapsedTicks >= 5 && !st.holdingViewfinder) {
             st.holdingViewfinder = true;
+            setViewfinderKnockbackRes(player, true);
             syncPlayerStateToClients(player, st, now, true);
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.50F);
         }
@@ -462,6 +495,7 @@ public final class NahidaManager {
         NahidaPlayerState st = PLAYER_STATES.computeIfAbsent(player.getUUID(), k -> new NahidaPlayerState());
         boolean wasViewfinder = st.holdingViewfinder || elapsedTicks >= 6;
         st.holdingViewfinder = false;
+        setViewfinderKnockbackRes(player, false);
         syncPlayerStateToClients(player, st, now, true);
 
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNetherite);
@@ -471,19 +505,35 @@ public final class NahidaManager {
         if (!wasViewfinder) {
             // Tap E: 360-degree pirouette sweep marking nearby enemies within a tight ~2.8m radius with Seeds of Skandha
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_TAP_E);
-            double radius = isNetherite ? 5.5D : 4.8D;
-            AABB box = player.getBoundingBox().inflate(radius, 2.0D, radius);
-            List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, box,
-                    e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
-            nearby.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player)));
-            int marked = 0;
-            for (LivingEntity target : nearby) {
-                if (marked >= 8) break;
-                marked++;
-                applySkandhaMark(level, player, target, isNetherite, now);
-                target.invulnerableTime = 0;
-                ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, skillDmg);
-            }
+            Vec3 eLook = player.getLookAngle();
+            Vec3 eHoriz = new Vec3(eLook.x, 0.0D, eLook.z);
+            if (eHoriz.lengthSqr() < 1.0E-4D) eHoriz = Vec3.directionFromRotation(0.0F, player.getYRot());
+            else eHoriz = eHoriz.normalize();
+            ModNetwork.sendElectricArc(level, player.position(), player.position().add(eHoriz), 13, 0x4E440000);
+            final Vec3 castPos = player.position();
+            final double radius = 2.0D;
+            ArchonUltiManager.scheduleBurstAction(player, 5, () -> {
+                if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                long hitNow = sl.getGameTime();
+                AABB box = new AABB(castPos.x - radius, castPos.y - 0.5D, castPos.z - radius,
+                        castPos.x + radius, castPos.y + 2.2D, castPos.z + radius);
+                List<LivingEntity> nearby = sl.getEntitiesOfClass(LivingEntity.class, box,
+                        e -> {
+                            if (!e.isAlive() || e == player || e.isSpectator() || player.isAlliedTo(e)) return false;
+                            double dx = e.getX() - castPos.x;
+                            double dz = e.getZ() - castPos.z;
+                            return (dx * dx + dz * dz) <= (radius * radius);
+                        });
+                nearby.sort(Comparator.comparingDouble(e -> e.distanceToSqr(castPos)));
+                int marked = 0;
+                for (LivingEntity target : nearby) {
+                    if (marked >= 8) break;
+                    marked++;
+                    applySkandhaMark(sl, player, target, isNetherite, hitNow);
+                    target.invulnerableTime = 0;
+                    ElementalGaugeManager.applyElement(sl, target, Element.DENDRO, gaugeU, player, skillDmg);
+                }
+            });
 // Tap E dust particles removed in favor of 360 ribbon sweep
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.45F);
             int cdTicks = Math.max(20, (int) Math.round(5.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
@@ -760,6 +810,7 @@ public final class NahidaManager {
 
             if (st.holdingViewfinder && (!holdingNahida || !player.isUsingItem())) {
                 st.holdingViewfinder = false;
+                setViewfinderKnockbackRes(player, false);
                 syncPlayerStateToClients(player, st, now, true);
             }
 

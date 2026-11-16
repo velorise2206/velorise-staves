@@ -37,6 +37,7 @@ minecraft {
 
         client {
             property 'forge.enabledGameTestNamespaces', mod_id
+            args '--username', 'Dev'
         }
 
         server {

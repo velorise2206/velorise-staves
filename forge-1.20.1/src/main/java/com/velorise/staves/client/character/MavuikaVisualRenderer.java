@@ -32,6 +32,7 @@ import org.joml.Matrix4f;
 import java.util.Locale;
 
 public final class MavuikaVisualRenderer {
+    private static final java.util.Map<Integer, float[]> BIKE_ARM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
     private MavuikaVisualRenderer() {}
 
     public static void renderMavuikaVirtualHelmet(
@@ -57,7 +58,8 @@ public final class MavuikaVisualRenderer {
         int flR = 255, flG = 115, flB = 20;
 
         poseStack.pushPose();
-        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float bodyYaw = (d != null && d.mavuikaIdleYawSet) ? d.mavuikaIdleYaw : Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
         float entityScale = 1.0F;
         poseStack.scale(-entityScale, -entityScale, entityScale);
@@ -245,9 +247,9 @@ public final class MavuikaVisualRenderer {
         int step = bike.getNaStep();
         int naT = bike.getNaTicks();
         if (ultiT > 0) {
-            handleArm.xRot = -1.15F;
-            handleArm.yRot = 0.16F * dir;
-            handleArm.zRot = -0.05F * dir;
+            handleArm.xRot = -1.32F;
+            handleArm.yRot = -0.14F * dir;
+            handleArm.zRot = 0.12F * dir;
             if (ultiT >= 19) {
                 float p1 = WindGliderRenderer.smoothStep01((30.0F - ultiT) / 11.0F);
                 model.body.xRot = Mth.lerp(p1, 0.22F, 0.04F);
@@ -279,24 +281,26 @@ public final class MavuikaVisualRenderer {
                 weaponArm.yRot = Mth.lerp(rec, 1.05F, -0.16F) * dir;
                 weaponArm.zRot = Mth.lerp(rec, 0.72F, 0.05F) * dir;
             }
+            smoothBikeWeaponArm(entity.getId(), weaponArm);
             return true;
         }
         if (bike.isSpinning()) {
-            model.body.xRot = 0.22F;
+            model.body.xRot = 0.28F;
             model.body.yRot = -0.15F * dir;
-            handleArm.xRot = -1.15F;
-            handleArm.yRot = 0.16F * dir;
-            handleArm.zRot = -0.05F * dir;
+            handleArm.xRot = -1.32F;
+            handleArm.yRot = -0.14F * dir;
+            handleArm.zRot = 0.12F * dir;
             weaponArm.xRot = -1.05F;
             weaponArm.yRot = -0.95F * dir;
             weaponArm.zRot = 0.35F * dir;
+            smoothBikeWeaponArm(entity.getId(), weaponArm);
             return true;
         }
-        model.body.xRot = 0.22F;
+        model.body.xRot = 0.28F;
         model.body.yRot = 0.0F;
-        handleArm.xRot = -1.15F;
-        handleArm.yRot = 0.16F * dir;
-        handleArm.zRot = -0.05F * dir;
+        handleArm.xRot = -1.32F;
+        handleArm.yRot = -0.14F * dir;
+        handleArm.zRot = 0.12F * dir;
         if (step == 6 && naT > 0) {
             if (naT > 12) {
                 float w = (16.0F - naT) / 4.0F;
@@ -345,10 +349,11 @@ public final class MavuikaVisualRenderer {
             weaponArm.yRot = Mth.lerp(t, 0.28F, -0.60F) * dir;
             weaponArm.zRot = Mth.lerp(t, 0.25F, -0.10F) * dir;
         } else {
-            weaponArm.xRot = -1.15F;
-            weaponArm.yRot = -0.16F * dir;
-            weaponArm.zRot = 0.05F * dir;
+            weaponArm.xRot = -1.32F;
+            weaponArm.yRot = 0.14F * dir;
+            weaponArm.zRot = -0.12F * dir;
         }
+        smoothBikeWeaponArm(entity.getId(), weaponArm);
         return true;
     }
 
@@ -376,6 +381,11 @@ public final class MavuikaVisualRenderer {
             boolean leftHand,
             PoseStack poseStack
     ) {
+        if (entity.getVehicle() instanceof FlamestriderBikeEntity bike
+                && bike.getUltiTicks() <= 0 && bike.getNaTicks() <= 0 && !bike.isSpinning()) {
+            poseStack.scale(0.0F, 0.0F, 0.0F);
+            return true;
+        }
         if (effKind != ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) return false;
         if (!(entity.getVehicle() instanceof FlamestriderBikeEntity bike)) return false;
         int ultiT = bike.getUltiTicks();
@@ -658,5 +668,219 @@ public final class MavuikaVisualRenderer {
             }
         }
         return true;
+    }
+
+    private static float stepIdleFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.mavuikaIdleLastMs <= 0L) {
+            d.mavuikaIdleLastMs = nowMs;
+            if (d.mavuikaIdle) {
+                d.mavuikaIdleFade = Math.min(1.0F, d.mavuikaIdleFade + 0.016F / 0.45F);
+            }
+        } else if (nowMs > d.mavuikaIdleLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.mavuikaIdleLastMs) / 1000.0F);
+            d.mavuikaIdleLastMs = nowMs;
+            if (d.mavuikaIdle) {
+                d.mavuikaIdleFade = Math.min(1.0F, d.mavuikaIdleFade + dt / 0.45F);
+            } else {
+                d.mavuikaIdleFade = Math.max(0.0F, d.mavuikaIdleFade - dt / 0.35F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.mavuikaIdleFade);
+    }
+
+    public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (!ClientAuraTracker.isMavuikaIdle(entity.getId()) || entity.getVehicle() instanceof FlamestriderBikeEntity) {
+            ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
+            if (dOff != null) dOff.mavuikaIdleYawSet = false;
+            return false;
+        }
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) {
+            if (d != null && !d.mavuikaIdle) d.mavuikaIdleYawSet = false;
+            return false;
+        }
+        if (d != null) {
+            if (!d.mavuikaIdleYawSet) {
+                d.mavuikaIdleYaw = entity.yBodyRot;
+                d.mavuikaIdleYawSet = true;
+            }
+            entity.yBodyRot = d.mavuikaIdleYaw;
+            entity.yBodyRotO = d.mavuikaIdleYaw;
+        }
+
+        // Sitting/leaning right in the middle of the tilted Flamestrider bike
+        float leanBack = -0.12F * w;
+        float sitDropY = 1.6F * w;
+        float shiftZ = -0.6F * w;
+        model.body.y += sitDropY;
+        model.head.y += sitDropY;
+        model.hat.y += sitDropY;
+        model.rightArm.y += sitDropY;
+        model.leftArm.y += sitDropY;
+        model.rightLeg.y += sitDropY;
+        model.leftLeg.y += sitDropY;
+        model.body.z += shiftZ;
+        model.head.z += shiftZ;
+        model.hat.z += shiftZ;
+        model.rightArm.z += shiftZ;
+        model.leftArm.z += shiftZ;
+        model.rightLeg.z += shiftZ;
+        model.leftLeg.z += shiftZ;
+
+        model.body.xRot = Mth.lerp(w, model.body.xRot, leanBack);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.26F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.08F);
+        model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+        model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+        // Right arm resting back on the tank/handlebar
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, 0.42F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.26F);
+        // Left arm: appear with sunglasses -> raise to eyes (0.45s..1.15s) -> lower back to hip (1.15s..1.55s)
+        float elapsedSec = (d != null && d.mavuikaIdleStartMs > 0L)
+                ? Math.max(0.0F, (System.currentTimeMillis() - d.mavuikaIdleStartMs) / 1000.0F)
+                : 2.0F;
+        float raiseW = WindGliderRenderer.smoothStep01((elapsedSec - 0.30F) / 0.55F)
+                * (1.0F - WindGliderRenderer.smoothStep01((elapsedSec - 1.15F) / 0.40F));
+        float lArmX = Mth.lerp(raiseW, 0.14F, -1.72F);
+        float lArmY = Mth.lerp(raiseW, 0.0F, 0.36F);
+        float lArmZ = Mth.lerp(raiseW, -0.22F, -0.18F);
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, lArmX);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, lArmY);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, lArmZ);
+        // One leg crossed/extended forward, other supporting
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.44F);
+        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.20F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.16F);
+        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.06F);
+        return true;
+    }
+
+    public static void renderIdleSunglasses(
+            LivingEntity entity,
+            EntityModel<?> model,
+            float partialTicks,
+            PoseStack poseStack,
+            MultiBufferSource buffer
+    ) {
+        int id = entity.getId();
+        if (!ClientAuraTracker.isMavuikaIdle(id)) return;
+        if (entity.getVehicle() instanceof FlamestriderBikeEntity) return;
+        if (!(model instanceof HumanoidModel<?> humanoid)) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.02F) return;
+
+        poseStack.pushPose();
+        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        float entityScale = entity.getScale();
+        poseStack.scale(-entityScale, -entityScale, entityScale);
+        poseStack.translate(0.0F, -1.501F, 0.0F);
+        humanoid.head.translateAndRotate(poseStack);
+        float elapsedSec = (d != null && d.mavuikaIdleStartMs > 0L)
+                ? Math.max(0.0F, (System.currentTimeMillis() - d.mavuikaIdleStartMs) / 1000.0F)
+                : 2.0F;
+        float glassAppear = WindGliderRenderer.smoothStep01(elapsedSec / 0.45F);
+        float putOn = WindGliderRenderer.smoothStep01((elapsedSec - 0.45F) / 0.65F);
+        float gScale = fade * glassAppear;
+        if (gScale <= 0.02F) {
+            poseStack.popPose();
+            return;
+        }
+        float invPut = 1.0F - putOn;
+        if (invPut > 0.001F) {
+            poseStack.translate(0.24F * invPut, 0.34F * invPut, -0.22F * invPut);
+            poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * invPut));
+            poseStack.mulPose(Axis.YP.rotationDegrees(-32.0F * invPut));
+        }
+        poseStack.scale(gScale, gScale, gScale);
+
+        Matrix4f mat = poseStack.last().pose();
+        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+
+        // Dark tinted angular sunglasses lenses (positioned squarely over the eyes)
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.235F, -0.190F, -0.285F, -0.032F, -0.092F, -0.252F, 18, 16, 24, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, 0.032F, -0.190F, -0.285F, 0.235F, -0.092F, -0.252F, 18, 16, 24, 255);
+        // Golden nose bridge & top brow frame
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.250F, -0.208F, -0.292F, 0.250F, -0.184F, -0.248F, 255, 198, 45, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.036F, -0.188F, -0.288F, 0.036F, -0.145F, -0.250F, 255, 198, 45, 255);
+        // Side temples with fiery orange accent
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.265F, -0.195F, -0.275F, -0.242F, -0.135F, 0.060F, 255, 115, 20, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, 0.242F, -0.195F, -0.275F, 0.265F, -0.135F, 0.060F, 255, 115, 20, 255);
+
+        poseStack.popPose();
+        if (buffer instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(ClientAuraRenderer.getMeteorSolid());
+        }
+    }
+
+    public static void renderIdleBike(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        if (!ClientAuraTracker.isMavuikaIdle(id)) return;
+        if (entity.getVehicle() instanceof FlamestriderBikeEntity) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.02F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+            return;
+        }
+        if (d != null && !d.mavuikaIdleYawSet) {
+            d.mavuikaIdleYaw = entity.yBodyRot;
+            d.mavuikaIdleYawSet = true;
+        }
+        float bodyYaw = (d != null && d.mavuikaIdleYawSet) ? d.mavuikaIdleYaw : entity.yBodyRot;
+        ClientAuraTracker.MavuikaDisplayState mState = ClientAuraTracker.getMavuika(id);
+        boolean neth = mState != null && mState.netherite;
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.16F, 0.0F, -0.22F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(72.0F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(15.0F));
+        poseStack.scale(fade, fade, fade);
+
+        com.velorise.staves.client.FlamestriderBikeRenderer.renderBikeMesh(
+                poseStack,
+                buffer,
+                mc.font,
+                neth,
+                0.0F,
+                0.0F,
+                0.0F,
+                false,
+                false
+        );
+
+        poseStack.popPose();
+    }
+
+    private static void smoothBikeWeaponArm(int entityId, ModelPart weaponArm) {
+        long nowMs = System.currentTimeMillis();
+        float[] st = BIKE_ARM_SMOOTH.get(entityId);
+        if (st == null) {
+            BIKE_ARM_SMOOTH.put(entityId, new float[]{weaponArm.xRot, weaponArm.yRot, weaponArm.zRot, (float) (nowMs & 0xFFFFFFL)});
+            return;
+        }
+        long prevLow = (long) st[3];
+        long curLow = nowMs & 0xFFFFFFL;
+        float dt = ((curLow - prevLow) & 0xFFFFFFL) / 1000.0F;
+        dt = Mth.clamp(dt, 0.001F, 0.08F);
+        float alpha = 1.0F - (float) Math.exp(-16.0F * dt);
+        st[0] = Mth.lerp(alpha, st[0], weaponArm.xRot);
+        st[1] = Mth.lerp(alpha, st[1], weaponArm.yRot);
+        st[2] = Mth.lerp(alpha, st[2], weaponArm.zRot);
+        st[3] = (float) curLow;
+        weaponArm.xRot = st[0];
+        weaponArm.yRot = st[1];
+        weaponArm.zRot = st[2];
     }
 }

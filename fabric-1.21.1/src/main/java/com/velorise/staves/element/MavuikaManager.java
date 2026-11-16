@@ -985,25 +985,7 @@ public final class MavuikaManager {
             return;
         }
 
-        // 4. Electro in water/rain -> Trigger Electro-Charged shock on entity itself (with reaction ICD, 1.0F = 0.5 heart damage)
-        if (targetGauges.containsKey(Element.ELECTRO)) {
-            if (!checkReactionIcd(target, ElementalReaction.ELECTRO_CHARGED, now)) return;
-            GaugeState electro = targetGauges.get(Element.ELECTRO);
-            if (electro != null) {
-                electro.consume(0.4F);
-                if (electro.isExpired()) targetGauges.remove(Element.ELECTRO);
-            }
-            float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
-            if (target.level() instanceof ServerLevel sl) {
-                if (canEmitReactionVisual(sl, target.position(), 2)) {
-                    // ParticleTypes.ELECTRIC_SPARK removed
-                    sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.8F);
-                }
-                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
-            }
-            syncAuras(target, targetGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
-            return;
-        }
+        // 4. Electro in water/rain -> Keep Hydro aura active so section 3 ticks Electro-Charged cleanly once per 1.0s (no double tick)
 
         // 5. Environmental Wet: Apply or keep Hydro refreshed while in water or rain
         if (innateSet.isEmpty()) {
@@ -1972,11 +1954,11 @@ public final class MavuikaManager {
                             LAST_PROXIMITY_SHOCK.put(pairKey, now);
                             drawVoltaicArc(targetLevel, target, nearby);
                             targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
-                            applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
-                            if (innate != Element.ELECTRO) {
-                                float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
-                                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
-                                syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, ecDmg);
+                            if (getInnateElement(nearby) != Element.ELECTRO && checkReactionIcd(nearby, ElementalReaction.ELECTRO_CHARGED, now)) {
+                                float nearEcDmg = applyMobElementalResistance(nearby, Element.ELECTRO, 1.0F);
+                                hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), nearEcDmg);
+                                Map<Element, GaugeState> nearGauges = GAUGES.getOrDefault(nearby.getUUID(), Collections.emptyMap());
+                                syncAuras(nearby, nearGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, nearEcDmg);
                             }
                             break;
                         }
@@ -2016,7 +1998,13 @@ public final class MavuikaManager {
                             if (isEntitySubmergedInWater(nearby)) {
                                 if (chained++ >= 2) break;
                                 drawVoltaicArc(targetLevel, target, nearby);
-                                applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
+                                if (getInnateElement(nearby) != Element.ELECTRO && checkReactionIcd(nearby, ElementalReaction.ELECTRO_CHARGED, now)) {
+                                    float nearEcDmg = applyMobElementalResistance(nearby, Element.ELECTRO,
+                                            1.0F * getTransformativeMultiplier(ecEmLvl));
+                                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), nearEcDmg);
+                                    Map<Element, GaugeState> nearGauges = GAUGES.getOrDefault(nearby.getUUID(), Collections.emptyMap());
+                                    syncAuras(nearby, nearGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, nearEcDmg);
+                                }
                             }
                         }
                     }
@@ -2143,5 +2131,47 @@ public final class MavuikaManager {
             }
         }
 
+    }
+
+    private static final class MavuikaIdleState {
+        net.minecraft.world.phys.Vec3 lastStillPos = net.minecraft.world.phys.Vec3.ZERO;
+        int stillTicks = 0;
+        boolean idleActive = false;
+        int lastSyncedCode = -1;
+    }
+
+    private static final java.util.Map<java.util.UUID, MavuikaIdleState> MAVUIKA_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void tickIdle(MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            MavuikaIdleState st = MAVUIKA_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new MavuikaIdleState());
+            ItemStack main = player.getMainHandItem();
+            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
+                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
+                    && ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS);
+            if (st.lastStillPos == null || st.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
+                st.lastStillPos = player.position();
+            }
+            double distSq = player.position().distanceToSqr(st.lastStillPos);
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging
+                    && !(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
+            if (canIdle && distSq < 0.16D) {
+                st.stillTicks++;
+                if (st.stillTicks >= 60 && !st.idleActive) {
+                    st.idleActive = true;
+                }
+            } else {
+                st.stillTicks = 0;
+                st.lastStillPos = player.position();
+                st.idleActive = false;
+            }
+            int code = st.idleActive ? 4031 : 4030;
+            if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
+                st.lastSyncedCode = code;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, code);
+            }
+        }
     }
 }

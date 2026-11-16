@@ -102,71 +102,147 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         int naT = entity.getNaTicks();
         applyActionTransforms(entity, ultiT, naT, partialTicks, poseStack);
 
+        renderBikeMesh(
+                poseStack,
+                bufferSource,
+                this.getFont(),
+                entity.isNetherite(),
+                entity.wheelSpinAngle,
+                (float) entity.getCurrentSpeedBlocksPerSec(),
+                (float) entity.getDistanceTraveledBlocks(),
+                entity.isGliding(),
+                entity.isBikeSprinting() || entity.isSpinning()
+        );
+
+        poseStack.popPose();
+        super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
+    }
+
+    public static void renderBikeMesh(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            net.minecraft.client.gui.Font font,
+            boolean neth,
+            float wheelSpinAngle,
+            float speedBps,
+            float odoMeters,
+            boolean gliding,
+            boolean sprinting
+    ) {
         VertexConsumer vc = bufferSource.getBuffer(BIKE_RENDER_TYPE);
-        boolean neth = entity.isNetherite();
 
-        // Color palette (Crimson Red, Molten Gold, Obsidian Black, Flame Core)
-        float crR = neth ? 0.85F : 0.75F, crG = 0.14F, crB = 0.10F;
-        float gdR = 1.00F, gdG = 0.76F, gdB = 0.16F;
-        float obR = 0.12F, obG = 0.10F, obB = 0.12F;
-        float flR = 1.00F, flG = 0.48F, flB = 0.08F;
+        // Rich multi-tone Flamestrider palette (Deep Maroon Nose, Crimson Armor, Molten Gold, Obsidian, Fiery Orange, Bright Amber)
+        float mrR = 0.36F, mrG = 0.07F, mrB = 0.10F;
+        float crR = neth ? 0.86F : 0.76F, crG = 0.13F, crB = 0.11F;
+        float gdR = 1.00F, gdG = 0.78F, gdB = 0.18F;
+        float obR = 0.11F, obG = 0.09F, obB = 0.12F;
+        float trR = 0.19F, trG = 0.18F, trB = 0.22F;
+        float flR = 1.00F, flG = 0.45F, flB = 0.06F;
+        float amR = 1.00F, amG = 0.88F, amB = 0.26F;
 
-        // 1. Rear & Front Wheels (spinning)
-        renderWheel(poseStack, vc, 0.0F, 0.34F, -0.82F, entity.wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
-        renderWheel(poseStack, vc, 0.0F, 0.34F, 0.86F, entity.wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
+        // 1. Rear & Front Wheels (with chunky treads)
+        renderWheel(poseStack, vc, 0.0F, 0.34F, -0.82F, wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
+        renderWheel(poseStack, vc, 0.0F, 0.34F, 0.86F, wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
 
-        // 2. Rear Swingarm, Engine Block & Tail Fender
+        // 2. Rear Swingarm, Sun-Emblem Hub, Engine Block & Radiator Vents
         drawBox(poseStack, vc, -0.18F, 0.30F, -0.82F, -0.11F, 0.40F, -0.30F, obR, obG, obB, 1.0F);
         drawBox(poseStack, vc, 0.11F, 0.30F, -0.82F, 0.18F, 0.40F, -0.30F, obR, obG, obB, 1.0F);
+        // Rear glowing Sun-Emblem side fairings & winglets
+        for (int side : new int[]{-1, 1}) {
+            float sx0 = side < 0 ? -0.24F : 0.16F;
+            float sx1 = side < 0 ? -0.16F : 0.24F;
+            drawBox(poseStack, vc, sx0, 0.28F, -0.94F, sx1, 0.44F, -0.64F, crR, crG, crB, 1.0F);
+            float gx0 = side < 0 ? -0.255F : 0.235F;
+            float gx1 = side < 0 ? -0.235F : 0.255F;
+            drawBox(poseStack, vc, gx0, 0.30F, -0.88F, gx1, 0.42F, -0.74F, gdR, gdG, gdB, 1.0F);
+            drawBox(poseStack, vc, gx0 - side * 0.006F, 0.33F, -0.85F, gx1 - side * 0.006F, 0.39F, -0.77F, amR, amG, amB, 1.0F);
+            // Swept rear winglet fin
+            poseStack.pushPose();
+            poseStack.translate(side * 0.22F, 0.46F, -0.78F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F));
+            drawBox(poseStack, vc, -0.025F, -0.02F, -0.22F, 0.025F, 0.05F, 0.12F, flR, flG, flB, 1.0F);
+            poseStack.popPose();
+        }
         drawBox(poseStack, vc, -0.20F, 0.28F, -0.45F, 0.20F, 0.60F, 0.48F, obR, obG, obB, 1.0F); // Lower engine
         drawBox(poseStack, vc, -0.22F, 0.40F, -0.18F, 0.22F, 0.56F, 0.32F, gdR * 0.85F, gdG * 0.85F, gdB * 0.85F, 1.0F); // Gold engine ribs
+        // Side radiator intake gills & fiery core strips
+        for (int g = 0; g < 3; g++) {
+            float gz = 0.02F + g * 0.11F;
+            drawBox(poseStack, vc, -0.235F, 0.33F, gz, -0.205F, 0.48F, gz + 0.05F, flR, flG, flB, 1.0F);
+            drawBox(poseStack, vc, 0.205F, 0.33F, gz, 0.235F, 0.48F, gz + 0.05F, flR, flG, flB, 1.0F);
+        }
         // Angled rear tail & fender
         poseStack.pushPose();
         poseStack.translate(0.0F, 0.72F, -0.64F);
         poseStack.mulPose(Axis.XP.rotationDegrees(-20.0F));
         drawBox(poseStack, vc, -0.16F, -0.04F, -0.34F, 0.16F, 0.08F, 0.18F, crR, crG, crB, 1.0F);
         drawBox(poseStack, vc, -0.10F, 0.06F, -0.38F, 0.10F, 0.12F, -0.22F, gdR, gdG, gdB, 1.0F);
+        drawBox(poseStack, vc, -0.12F, 0.01F, -0.42F, 0.12F, 0.06F, -0.34F, flR, flG, flB, 1.0F); // Rear taillight bar
         poseStack.popPose();
 
         // 3. Sculpted Sportbike Tank, Fairing & Contoured Saddle
         drawBox(poseStack, vc, -0.22F, 0.58F, -0.12F, 0.22F, 0.84F, 0.58F, crR, crG, crB, 1.0F);
         drawBox(poseStack, vc, -0.16F, 0.82F, 0.02F, 0.16F, 0.90F, 0.50F, gdR, gdG, gdB, 1.0F); // Tank spine
-        // Gold Natlan side trim fins
+        // Gold & Fiery-Orange Natlan side trim fins + flame decals
         drawBox(poseStack, vc, -0.25F, 0.62F, -0.08F, -0.22F, 0.78F, 0.52F, gdR, gdG, gdB, 1.0F);
         drawBox(poseStack, vc, 0.22F, 0.62F, -0.08F, 0.25F, 0.78F, 0.52F, gdR, gdG, gdB, 1.0F);
-        // Contoured Saddle seat
+        drawBox(poseStack, vc, -0.265F, 0.67F, 0.04F, -0.245F, 0.73F, 0.44F, flR, flG, flB, 1.0F);
+        drawBox(poseStack, vc, 0.245F, 0.67F, 0.04F, 0.265F, 0.73F, 0.44F, flR, flG, flB, 1.0F);
+        // Contoured Saddle seat + backrest lip
         drawBox(poseStack, vc, -0.18F, 0.60F, -0.56F, 0.18F, 0.69F, -0.10F, 0.16F, 0.11F, 0.12F, 1.0F);
+        drawBox(poseStack, vc, -0.15F, 0.68F, -0.58F, 0.15F, 0.74F, -0.46F, crR, crG, crB, 1.0F);
 
-        // 4. Front Suspension Forks, Dragonic Cowling, Headlight & Handlebars
+        // 4. Front Suspension Forks, Dragonic Cowling, Swept Side Blades, Headlight & Handlebars
         poseStack.pushPose();
         poseStack.translate(0.0F, 0.34F, 0.86F);
         poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F));
-        // Twin front forks connecting wheel axle up to triple clamp
+        // Twin front forks with dark collar sleeves
         drawBox(poseStack, vc, -0.18F, 0.0F, -0.05F, -0.11F, 0.62F, 0.05F, gdR, gdG, gdB, 1.0F);
         drawBox(poseStack, vc, 0.11F, 0.0F, -0.05F, 0.18F, 0.62F, 0.05F, gdR, gdG, gdB, 1.0F);
-        // Front mudguard
-        drawBox(poseStack, vc, -0.14F, 0.30F, -0.14F, 0.14F, 0.36F, 0.18F, crR, crG, crB, 1.0F);
-        // Dragonic cowling & glowing headlight
+        drawBox(poseStack, vc, -0.19F, 0.22F, -0.06F, -0.10F, 0.30F, 0.06F, obR, obG, obB, 1.0F);
+        drawBox(poseStack, vc, 0.10F, 0.22F, -0.06F, 0.19F, 0.30F, 0.06F, obR, obG, obB, 1.0F);
+        // Aggressive pointed dark-maroon & charcoal-armored shark-nose beak
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.42F, 0.18F);
+        poseStack.mulPose(Axis.XP.rotationDegrees(22.0F));
+        drawBox(poseStack, vc, -0.17F, -0.08F, -0.14F, 0.17F, 0.12F, 0.36F, mrR, mrG, mrB, 1.0F);
+        drawBox(poseStack, vc, -0.12F, 0.06F, 0.02F, 0.12F, 0.14F, 0.48F, trR, trG, trB, 1.0F);
+        drawBox(poseStack, vc, -0.08F, 0.02F, 0.36F, 0.08F, 0.11F, 0.56F, obR, obG, obB, 1.0F);
+        // Fiery-orange flame trim lines along the nose
+        drawBox(poseStack, vc, -0.165F, 0.04F, -0.06F, -0.145F, 0.08F, 0.30F, flR, flG, flB, 1.0F);
+        drawBox(poseStack, vc, 0.145F, 0.04F, -0.06F, 0.165F, 0.08F, 0.30F, flR, flG, flB, 1.0F);
+        drawBox(poseStack, vc, -0.08F, 0.09F, 0.08F, 0.08F, 0.125F, 0.36F, gdR, gdG, gdB, 1.0F);
+        poseStack.popPose();
+        // Long, sweeping crimson & gold saber-blades flanking the front wheel down toward the ground
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.21F, 0.32F, 0.02F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(44.0F));
+            poseStack.mulPose(Axis.YP.rotationDegrees(side * 8.0F));
+            drawBox(poseStack, vc, -0.04F, -0.52F, -0.10F, 0.04F, 0.24F, 0.12F, mrR, mrG, mrB, 1.0F);
+            drawBox(poseStack, vc, -0.045F, -0.46F, -0.06F, 0.045F, 0.20F, 0.09F, crR, crG, crB, 1.0F);
+            drawBox(poseStack, vc, -0.052F, -0.42F, 0.04F, 0.052F, 0.16F, 0.11F, flR, flG, flB, 1.0F);
+            drawBox(poseStack, vc, -0.03F, -0.58F, -0.04F, 0.03F, -0.46F, 0.08F, amR, amG, amB, 1.0F);
+            poseStack.popPose();
+        }
+        // Dragonic cowling & glowing headlight + smoked visor
         drawBox(poseStack, vc, -0.18F, 0.38F, -0.10F, 0.18F, 0.66F, 0.30F, crR, crG, crB, 1.0F);
-        drawBox(poseStack, vc, -0.12F, 0.46F, 0.26F, 0.12F, 0.60F, 0.36F, flR, flG, flB, 1.0F); // Headlight
-        drawBox(poseStack, vc, -0.14F, 0.66F, -0.02F, 0.14F, 0.72F, 0.22F, gdR, gdG, gdB, 1.0F); // Dragon crest
+        drawBox(poseStack, vc, -0.13F, 0.44F, 0.24F, 0.13F, 0.56F, 0.34F, amR, amG, amB, 1.0F);
+        drawBox(poseStack, vc, -0.14F, 0.66F, -0.02F, 0.14F, 0.72F, 0.22F, gdR, gdG, gdB, 1.0F);
+        drawBox(poseStack, vc, -0.11F, 0.70F, -0.06F, 0.11F, 0.78F, 0.10F, obR, obG, obB, 0.90F);
         // Swept Handlebars + gold grips
         drawBox(poseStack, vc, -0.44F, 0.62F, -0.18F, 0.44F, 0.67F, -0.10F, obR, obG, obB, 1.0F);
         drawBox(poseStack, vc, -0.48F, 0.61F, -0.19F, -0.34F, 0.68F, -0.09F, gdR, gdG, gdB, 1.0F);
         drawBox(poseStack, vc, 0.34F, 0.61F, -0.19F, 0.48F, 0.68F, -0.09F, gdR, gdG, gdB, 1.0F);
 
         // 4B. Illuminated Digital Cockpit Dashboard (y = 0.63F, z = -0.14F, angled ~35 deg toward rider)
-        float speedBps = (float) entity.getCurrentSpeedBlocksPerSec();
         float rpmRatio = Mth.clamp(speedBps / 28.0F, 0.12F, 1.0F);
         poseStack.pushPose();
         poseStack.translate(0.0F, 0.63F, -0.14F);
         poseStack.mulPose(Axis.XP.rotationDegrees(35.0F));
-        // Console housing & golden bezel
         drawBox(poseStack, vc, -0.16F, -0.02F, -0.02F, 0.16F, 0.11F, 0.025F, obR, obG, obB, 1.0F);
         drawBox(poseStack, vc, -0.17F, -0.025F, -0.015F, 0.17F, 0.115F, 0.015F, gdR, gdG, gdB, 1.0F);
-        // Illuminated digital display screen backing
         drawBox(poseStack, vc, -0.145F, -0.005F, -0.024F, 0.145F, 0.095F, -0.018F, 0.06F, 0.08F, 0.12F, 1.0F);
-        // Nightsoul RPM LED bar gauge (Amber Gold -> Fiery Orange -> Blazing Crimson)
         int totalBars = 8;
         int litBars = Math.max(1, Math.round(rpmRatio * totalBars));
         for (int b = 0; b < litBars; b++) {
@@ -200,13 +276,11 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         poseStack.mulPose(Axis.XP.rotationDegrees(14.0F));
         drawBox(poseStack, vc, -0.15F, -0.055F, -0.015F, 0.15F, 0.055F, 0.015F, gdR, gdG, gdB, 1.0F);
         drawBox(poseStack, vc, -0.138F, -0.045F, -0.020F, 0.138F, 0.045F, 0.010F, obR, obG, obB, 1.0F);
-        // Illuminated Natlan Saurian & Pyro rune emblem strips on plate
         drawBox(poseStack, vc, -0.115F, 0.015F, -0.023F, 0.115F, 0.030F, -0.018F, flR, flG, flB, 1.0F);
         drawBox(poseStack, vc, -0.085F, -0.025F, -0.023F, 0.085F, -0.008F, -0.018F, gdR, gdG, gdB, 1.0F);
         poseStack.popPose();
 
         // 6. Deployable Side Jet-Wings (folded flush when grounded, flared wide open when gliding)
-        boolean gliding = entity.isGliding();
         float wingSpread = gliding ? 12.0F : 78.0F;
         float wingLift = gliding ? 14.0F : 0.0F;
         for (int side : new int[]{-1, 1}) {
@@ -223,14 +297,11 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             poseStack.popPose();
         }
 
-        // Render digital cockpit text (Speedometer B/s, Odometer ODO, Drive State) & License Plate text
-        net.minecraft.client.gui.Font font = this.getFont();
+        // 7. Digital cockpit text & License plate text
         if (font != null) {
-            int odoMeters = (int) Math.round(entity.getDistanceTraveledBlocks());
-            String driveState = entity.isGliding() ? "[AIR]"
-                    : ((entity.isBikeSprinting() || entity.isSpinning()) ? "[S]" : (speedBps > 0.5F ? "[D]" : "[N]"));
+            String driveState = gliding ? "[AIR]" : (sprinting ? "[S]" : (speedBps > 0.5F ? "[D]" : "[N]"));
             String spdText = String.format(java.util.Locale.ROOT, "%.1f B/s %s", speedBps, driveState);
-            String odoText = String.format(java.util.Locale.ROOT, "ODO: %d m", odoMeters);
+            String odoText = String.format(java.util.Locale.ROOT, "ODO: %d m", Math.round(odoMeters));
 
             poseStack.pushPose();
             poseStack.translate(0.0F, 0.34F, 0.86F);
@@ -244,7 +315,6 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             font.drawInBatch(odoText, -font.width(odoText) / 2.0F, 7.0F, 0xFF66EEFF, false, dashMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
             poseStack.popPose();
 
-            // Rear license plate text: NATLAN • 500
             String plateText = "NATLAN • 500";
             poseStack.pushPose();
             poseStack.translate(0.0F, 0.42F, -0.92F);
@@ -255,9 +325,6 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             font.drawInBatch(plateText, -font.width(plateText) / 2.0F, -3.0F, 0xFFFFB833, false, plateMat, bufferSource, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, 0xF000F0);
             poseStack.popPose();
         }
-
-        poseStack.popPose();
-        super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
     }
 
     private static void renderWheel(
@@ -272,10 +339,11 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         poseStack.translate(x, y, z);
         poseStack.mulPose(Axis.XP.rotation(spinRad));
         // Octagonal tire profile (3 rotated segments)
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             poseStack.pushPose();
-            poseStack.mulPose(Axis.XP.rotationDegrees(i * 60.0F));
-            drawBox(poseStack, vc, -0.11F, -0.33F, -0.14F, 0.11F, 0.33F, 0.14F, tireR, tireG, tireB, 1.0F);
+            poseStack.mulPose(Axis.XP.rotationDegrees(i * 45.0F));
+            drawBox(poseStack, vc, -0.115F, -0.34F, -0.12F, 0.115F, 0.34F, 0.12F, tireR, tireG, tireB, 1.0F);
+            drawBox(poseStack, vc, -0.122F, -0.35F, -0.045F, 0.122F, 0.35F, 0.045F, tireR * 1.55F, tireG * 1.55F, tireB * 1.55F, 1.0F);
             poseStack.popPose();
         }
         // Fiery rim ring + crimson spoke + gold axle hub

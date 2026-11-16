@@ -1076,4 +1076,55 @@ public final class VentiManager {
     /**
      * Server tick loop for decay, environmental water/rain extinguish, and periodic reactions.
      */
+
+    private static final class ArchonStillState {
+        net.minecraft.world.phys.Vec3 lastStillPos = net.minecraft.world.phys.Vec3.ZERO;
+        int stillTicks = 0;
+        int activeCode = 0;
+        int lastSyncedCode = -1;
+    }
+
+    private static final java.util.Map<java.util.UUID, ArchonStillState> VENTI_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void tickIdle(MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            ItemStack main = player.getMainHandItem();
+            ItemStack off = player.getOffhandItem();
+
+            // Venti (DAYBREAK)
+            ArchonStillState vst = VENTI_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new ArchonStillState());
+            boolean holdingVenti = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK
+                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main) && ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.DAYBREAK);
+            if (vst.lastStillPos == null || vst.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
+                vst.lastStillPos = player.position();
+            }
+            double vDistSq = player.position().distanceToSqr(vst.lastStillPos);
+            boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
+            if (canVenti && vDistSq < 0.16D) {
+                vst.stillTicks++;
+                vst.activeCode = vst.stillTicks >= 60 ? 4051 : 4050;
+            } else {
+                vst.stillTicks = 0;
+                vst.lastStillPos = player.position();
+                vst.activeCode = 4050;
+            }
+            if (vst.activeCode != vst.lastSyncedCode || (vst.activeCode == 4051 && now % 20L == 0L)) {
+                vst.lastSyncedCode = vst.activeCode;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
+            }
+            if (vst.activeCode == 4051 && vst.stillTicks >= 60 && (vst.stillTicks - 60) % 4 == 0) {
+                int[] melody = {13, 17, 20, 22, 20, 17, 15, -1, 13, 15, 17, 20, 17, 15, 13, -1, 10, 13, 17, 20, 18, 17, 15, 13, -1, -1};
+                int noteIdx = ((vst.stillTicks - 60) / 4) % melody.length;
+                int note = melody[noteIdx];
+                if (note >= 0 && player.level() instanceof ServerLevel sl) {
+                    float pitch = (float) Math.pow(2.0D, (note - 12) / 12.0D);
+                    sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                            SoundEvents.NOTE_BLOCK_HARP.value(), SoundSource.PLAYERS, 0.45F, pitch);
+                }
+            }
+
+        }
+    }
 }

@@ -117,9 +117,56 @@ public final class ZhongliManager {
     public static final java.util.Map<UUID, PendingEvokerConstruct> PENDING_EVOKER_CONSTRUCTS = new java.util.concurrent.ConcurrentHashMap<>();
     public static final java.util.List<NightsFocusStarProjectile> NIGHTS_FOCUS_PROJECTILES = new java.util.concurrent.CopyOnWriteArrayList<>();
 
+    private static final class ZhongliIdleState {
+        Vec3 lastStillPos = Vec3.ZERO;
+        int stillTicks = 0;
+        boolean idleMeteorActive = false;
+        int lastSyncedCode = -1;
+    }
+
+    private static final Map<UUID, ZhongliIdleState> ZHONGLI_IDLE_STATES = new ConcurrentHashMap<>();
+
+    private static boolean isHoldingZhongli(@Nullable Player player) {
+        if (player == null) return false;
+        ItemStack main = player.getMainHandItem();
+        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.VORTEX) return true;
+        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
+        return ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.VORTEX;
+    }
+
+    public static void tick(MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            ZhongliIdleState st = ZHONGLI_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new ZhongliIdleState());
+            boolean holdingZhongli = isHoldingZhongli(player);
+            if (st.lastStillPos == null || st.lastStillPos.equals(Vec3.ZERO)) {
+                st.lastStillPos = player.position();
+            }
+            double distSq = player.position().distanceToSqr(st.lastStillPos);
+            boolean canIdle = holdingZhongli && player.onGround() && !player.isUsingItem() && !player.swinging;
+            if (canIdle && distSq < 0.16D) {
+                st.stillTicks++;
+                if (st.stillTicks >= 60 && !st.idleMeteorActive) {
+                    st.idleMeteorActive = true;
+                }
+            } else {
+                st.stillTicks = 0;
+                st.lastStillPos = player.position();
+                st.idleMeteorActive = false;
+            }
+            int code = st.idleMeteorActive ? 4011 : 4010;
+            if (code != st.lastSyncedCode || (st.idleMeteorActive && now % 20L == 0L)) {
+                st.lastSyncedCode = code;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, code);
+            }
+        }
+    }
+
     public static void clearAll() {
         PENDING_EVOKER_CONSTRUCTS.clear();
         NIGHTS_FOCUS_PROJECTILES.clear();
+        ZHONGLI_IDLE_STATES.clear();
     }
 
     private record PendingEvokerConstruct(

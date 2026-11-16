@@ -15,7 +15,10 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -81,13 +84,32 @@ public final class NahidaVisualRenderer {
         return true;
     }
 
+    private static float stepIdleSwingFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.nahidaIdleSwingLastMs <= 0L) {
+            d.nahidaIdleSwingLastMs = nowMs;
+            if (d.nahidaIdleSwing) {
+                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + 0.016F / 0.48F);
+            }
+        } else if (nowMs > d.nahidaIdleSwingLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.nahidaIdleSwingLastMs) / 1000.0F);
+            d.nahidaIdleSwingLastMs = nowMs;
+            if (d.nahidaIdleSwing) {
+                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + dt / 0.48F);
+            } else {
+                d.nahidaIdleSwingFade = Math.max(0.0F, d.nahidaIdleSwingFade - dt / 0.35F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.nahidaIdleSwingFade);
+    }
+
     public static boolean applyIdleAndViewfinderHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
-            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
-            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+            ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+            float w = stepIdleSwingFade(d, System.currentTimeMillis());
             float sway = Mth.sin(ageInTicks * 0.10F);
-            float sitDropY = 3.2F;
-            float swayZ = -1.65F * sway;
+            float sitDropY = 3.2F * w;
+            float swayZ = -3.45F * sway * w;
             model.body.y += sitDropY;
             model.head.y += sitDropY;
             model.hat.y += sitDropY;
@@ -99,29 +121,27 @@ public final class NahidaVisualRenderer {
             model.body.z += swayZ;
             model.head.z += swayZ;
             model.hat.z += swayZ;
-            model.rightArm.z = swayZ + 3.6F;
-            model.leftArm.z = swayZ + 3.6F;
-            model.rightLeg.z += swayZ - 1.8F;
-            model.leftLeg.z += swayZ - 1.8F;
+            model.rightArm.z += swayZ;
+            model.leftArm.z += swayZ;
+            model.rightLeg.z += swayZ - 1.8F * w;
+            model.leftLeg.z += swayZ - 1.8F * w;
 
-            model.body.xRot = 0.06F * sway;
-            model.rightLeg.xRot = -1.28F + 0.16F * sway;
-            model.leftLeg.xRot = -1.28F - 0.16F * sway;
-            model.rightLeg.yRot = 0.08F;
-            model.leftLeg.yRot = -0.08F;
-            model.rightArm.xRot = -0.45F;
-            model.leftArm.xRot = -0.45F;
-            model.rightArm.yRot = -0.16F;
-            model.leftArm.yRot = 0.16F;
-            model.rightArm.zRot = -0.10F;
-            model.leftArm.zRot = 0.10F;
+            model.body.xRot = Mth.lerp(w, model.body.xRot, 0.06F * sway);
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -1.28F + 0.16F * sway);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -1.28F - 0.16F * sway);
+            model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, 0.08F);
+            model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, -0.08F);
             return true;
         }
         if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
-            model.rightArm.xRot = -1.55F + model.head.xRot * 0.65F;
-            model.leftArm.xRot = -1.55F + model.head.xRot * 0.65F;
-            model.rightArm.yRot = -0.42F + model.head.yRot * 0.5F;
-            model.leftArm.yRot = 0.42F + model.head.yRot * 0.5F;
+            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+            model.rightArm.xRot = -1.52F + model.head.xRot * 0.75F;
+            model.leftArm.xRot = -1.52F + model.head.xRot * 0.75F;
+            model.rightArm.yRot = -0.28F + model.head.yRot * 0.5F;
+            model.leftArm.yRot = 0.28F + model.head.yRot * 0.5F;
+            model.rightArm.zRot = 0.18F;
+            model.leftArm.zRot = -0.18F;
             return true;
         }
         return false;
@@ -162,8 +182,10 @@ public final class NahidaVisualRenderer {
             } else {
                 // Step 4 (Finisher): Light hop bounce & finger snap finish (NO body spin)
                 model.body.yRot = 0.15F * hop;
-                model.rightLeg.xRot = -0.55F * hop;
-                model.leftLeg.xRot = -0.55F * hop;
+                model.rightLeg.xRot = -0.68F * hop;
+                model.leftLeg.xRot = 0.48F * hop;
+                model.rightLeg.zRot = 0.08F * hop;
+                model.leftLeg.zRot = -0.08F * hop;
                 model.rightArm.xRot = -1.65F * hop;
                 model.leftArm.xRot = -1.65F * hop;
                 model.rightArm.yRot = -0.42F * hop;
@@ -190,29 +212,43 @@ public final class NahidaVisualRenderer {
         }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
             float sweep = Mth.sin(t * (float) Math.PI);
-            float hopY = -2.5F * sweep;
+            float hopY = -6.5F * sweep;
+            float spinY = -WindGliderRenderer.smoothStep01(t) * (float) (Math.PI * 2.0D);
+            float cs = Mth.cos(spinY);
+            float sn = Mth.sin(spinY);
+
             model.body.y += hopY;
             model.head.y += hopY;
             model.hat.y += hopY;
 
-            model.body.yRot = 0.0F;
-            model.head.yRot = 0.0F;
+            model.body.yRot = spinY;
+            model.head.yRot += spinY;
             model.hat.copyFrom(model.head);
 
+            model.rightArm.x = -5.0F * cs;
+            model.rightArm.z =  5.0F * sn;
             model.rightArm.y = 2.0F + hopY;
-            model.rightArm.xRot = -1.25F * sweep;
-            model.rightArm.yRot = -0.20F * sweep;
-            model.rightArm.zRot = 0.45F * sweep;
+            model.rightArm.xRot = -0.85F * sweep;
+            model.rightArm.yRot = spinY - 0.20F * sweep;
+            model.rightArm.zRot = 0.65F * sweep;
 
+            model.leftArm.x =  5.0F * cs;
+            model.leftArm.z = -5.0F * sn;
             model.leftArm.y = 2.0F + hopY;
-            model.leftArm.xRot = -1.25F * sweep;
-            model.leftArm.yRot = 0.20F * sweep;
-            model.leftArm.zRot = -0.45F * sweep;
+            model.leftArm.xRot = -0.85F * sweep;
+            model.leftArm.yRot = spinY + 0.20F * sweep;
+            model.leftArm.zRot = -0.65F * sweep;
 
+            model.rightLeg.x = -1.9F * cs;
+            model.rightLeg.z =  1.9F * sn;
             model.rightLeg.y = 12.0F + hopY;
-            model.rightLeg.xRot = -0.35F * sweep;
+            model.rightLeg.yRot = spinY;
+            model.rightLeg.xRot = -0.30F * sweep;
 
+            model.leftLeg.x =  1.9F * cs;
+            model.leftLeg.z = -1.9F * sn;
             model.leftLeg.y = 12.0F + hopY;
+            model.leftLeg.yRot = spinY;
             model.leftLeg.xRot = 0.25F * sweep;
             return true;
         }
@@ -244,6 +280,36 @@ public final class NahidaVisualRenderer {
         return false;
     }
 
+    public static boolean applyThirdPersonItemTransform(
+            LivingEntity entity,
+            ArcaneStaffItem.Kind effKind,
+            PoseStack poseStack
+    ) {
+        if (effKind != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
+        if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
+            poseStack.scale(0.001F, 0.001F, 0.001F);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean setupFirstPersonCameraArmPose(
+            AbstractClientPlayer player,
+            HumanoidArm arm,
+            PoseStack poseStack
+    ) {
+        if (player == null || !ClientAuraTracker.isNahidaViewfinder(player.getId())) return false;
+        ItemStack mainStack = player.getMainHandItem();
+        if (ArcaneStaffItem.getEffectiveKind(mainStack) != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
+        float armDir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
+        // Like Zhongli Ulti 1st-person hands, lowered by half and opened outward by half
+        poseStack.translate(-armDir * 0.16F, -0.28F, -0.18F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 34.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(22.0F));
+        poseStack.mulPose(Axis.YP.rotationDegrees(-armDir * 10.0F));
+        return true;
+    }
+
     public static boolean applyFirstPersonTransform(
             ArcaneStaffItem.Kind effKind,
             float dir,
@@ -253,6 +319,12 @@ public final class NahidaVisualRenderer {
             long now
     ) {
         if (effKind != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && ClientAuraTracker.isNahidaViewfinder(mc.player.getId())) {
+            poseStack.translate(0.0F, -2.0F, 0.0F);
+            poseStack.scale(0.001F, 0.001F, 0.001F);
+            return true;
+        }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
@@ -281,8 +353,7 @@ public final class NahidaVisualRenderer {
         boolean idleSwing = ClientAuraTracker.isNahidaIdleSwing(id);
         boolean skandha = ClientAuraTracker.hasSkandhaMark(id);
         boolean shrine = ClientAuraTracker.hasNahidaShrine(id);
-        boolean nahidaAnim = (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4)
-                || activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA;
+        boolean nahidaAnim = (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4);
 
         if (!idleSwing && !skandha && !shrine && !nahidaAnim) return;
 
@@ -293,77 +364,19 @@ public final class NahidaVisualRenderer {
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
 
-        if (idleSwing && !isFirstPersonSelf) {
-            ResourceLocation ropeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_rope.png");
-            ResourceLocation seatTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_seat.png");
-            poseStack.pushPose();
-            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            renderNahidaIdleSwing3D(poseStack, buffer, time, ropeTex, seatTex);
-            poseStack.popPose();
-            vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
-        }
-
-        if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E && !isFirstPersonSelf) {
-            poseStack.pushPose();
-            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            Matrix4f eMat = poseStack.last().pose();
-            float eRadius = 3.6F;
-            int eSegs = 24;
-            for (int s = 0; s < eSegs; s++) {
-                float a0 = (float) (s * Math.PI * 2.0D / eSegs);
-                float a1 = (float) ((s + 1) * Math.PI * 2.0D / eSegs);
-                float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
-                float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
-                WindGliderRenderer.emitDoubleQuad(vc, eMat,
-                        c0 * (eRadius - 0.22F), 0.12F, s0 * (eRadius - 0.22F),
-                        c0 * (eRadius + 0.22F), 0.12F, s0 * (eRadius + 0.22F),
-                        c1 * (eRadius + 0.22F), 0.12F, s1 * (eRadius + 0.22F),
-                        c1 * (eRadius - 0.22F), 0.12F, s1 * (eRadius - 0.22F),
-                        90, 255, 135, 185);
+        if (idleSwing) {
+            float swingFade = stepIdleSwingFade(d, now);
+            if (!isFirstPersonSelf && swingFade > 0.02F) {
+                ResourceLocation ropeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_rope.png");
+                ResourceLocation seatTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_seat.png");
+                poseStack.pushPose();
+                poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+                poseStack.translate(0.0F, 1.5F * (1.0F - swingFade), 0.0F);
+                poseStack.scale(swingFade, swingFade, swingFade);
+                renderNahidaIdleSwing3D(poseStack, buffer, time, ropeTex, seatTex, swingFade);
+                poseStack.popPose();
+                vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
             }
-            for (int k = 0; k < 6; k++) {
-                float ka = (float) (k * Math.PI * 2.0D / 6.0D + time * 0.08F);
-                WindGliderRenderer.renderFourLeafClover2D(vc, eMat, Mth.cos(ka) * eRadius, 0.15F, Mth.sin(ka) * eRadius, 0.38F, 115, 255, 150, 220);
-            }
-            poseStack.popPose();
-        } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && !isFirstPersonSelf && d != null) {
-            poseStack.pushPose();
-            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            Matrix4f mat = poseStack.last().pose();
-            float z = 1.10F;
-            float cy = 1.15F;
-            float caProg = Mth.clamp(1.0F - (d.staffAnimUntil - now) / 500.0F, 0.0F, 1.0F);
-
-            if (caProg < 0.52F) {
-                float hw = 0.62F;
-                float hh = 0.44F;
-                WindGliderRenderer.emitDoubleQuad(vc, mat, -hw, cy - hh, z,  hw, cy - hh, z,  hw, cy - hh + 0.03F, z, -hw, cy - hh + 0.03F, z, 220, 255, 140, 225);
-                WindGliderRenderer.emitDoubleQuad(vc, mat, -hw, cy + hh - 0.03F, z,  hw, cy + hh - 0.03F, z,  hw, cy + hh, z, -hw, cy + hh, z, 220, 255, 140, 225);
-                WindGliderRenderer.emitDoubleQuad(vc, mat, -hw, cy - hh, z, -hw + 0.03F, cy - hh, z, -hw + 0.03F, cy + hh, z, -hw, cy + hh, z, 220, 255, 140, 225);
-                WindGliderRenderer.emitDoubleQuad(vc, mat,  hw - 0.03F, cy - hh, z,  hw, cy - hh, z,  hw, cy + hh, z,  hw - 0.03F, cy + hh, z, 220, 255, 140, 225);
-                WindGliderRenderer.renderCloverCross2D(vc, mat, -hw, cy - hh, z, 0.14F, 245, 255, 150, 245);
-                WindGliderRenderer.renderCloverCross2D(vc, mat,  hw, cy - hh, z, 0.14F, 245, 255, 150, 245);
-                WindGliderRenderer.renderCloverCross2D(vc, mat,  hw, cy + hh, z, 0.14F, 245, 255, 150, 245);
-                WindGliderRenderer.renderCloverCross2D(vc, mat, -hw, cy + hh, z, 0.14F, 245, 255, 150, 245);
-            } else {
-                float boom = (caProg - 0.52F) / 0.48F;
-                float cloverRad = 0.72F + boom * 0.55F;
-                int aBoom = Math.round(245.0F * (1.0F - boom * 0.35F));
-                WindGliderRenderer.renderFourLeafClover2D(vc, mat, 0.0F, cy, z, cloverRad, 95, 255, 140, aBoom);
-                WindGliderRenderer.renderCloverCross2D(vc, mat, 0.0F, cy, z - 0.01F, cloverRad * 0.45F, 250, 255, 200, aBoom);
-                float ringR = 0.45F + boom * 1.15F;
-                for (int s = 0; s < 16; s++) {
-                    float ra0 = (float) (s * Math.PI * 2.0D / 16);
-                    float ra1 = (float) ((s + 1) * Math.PI * 2.0D / 16);
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            Mth.cos(ra0) * ringR, cy + Mth.sin(ra0) * ringR, z,
-                            Mth.cos(ra1) * ringR, cy + Mth.sin(ra1) * ringR, z,
-                            Mth.cos(ra1) * (ringR + 0.06F), cy + Mth.sin(ra1) * (ringR + 0.06F), z,
-                            Mth.cos(ra0) * (ringR + 0.06F), cy + Mth.sin(ra0) * (ringR + 0.06F), z,
-                            210, 255, 175, Math.max(15, Math.round(180.0F * (1.0F - boom))));
-                }
-            }
-            poseStack.popPose();
         }
 
         if (skandha) {
@@ -389,32 +402,28 @@ public final class NahidaVisualRenderer {
             // Spawn world-anchored footstep Dendro flower-grass clumps (Image 1) whenever walking inside the Shrine of Maya
             double curX = entity.getX();
             double curZ = entity.getZ();
-            double dx = curX - d.lastShrineStepX;
-            double dz = curZ - d.lastShrineStepZ;
-            boolean movedEnough = Double.isNaN(d.lastShrineStepX) || (dx * dx + dz * dz) >= 0.42D;
-            if (movedEnough && (now - d.lastShrineStepMs) >= 180L && (entity.onGround() || Math.abs(entity.getDeltaMovement().y) < 0.25D)) {
+            if (Double.isNaN(d.lastShrineStepX) || Double.isNaN(d.lastShrineStepZ)) {
                 d.lastShrineStepX = curX;
                 d.lastShrineStepZ = curZ;
-                d.lastShrineStepMs = now;
-                int varIdx = d.shrineStepVariant++;
-                float sideSign = (varIdx & 1) == 0 ? 0.20F : -0.20F;
-                float yawRad = (float) Math.toRadians(bodyYaw);
-                double rightX = Math.cos(yawRad) * sideSign;
-                double rightZ = Math.sin(yawRad) * sideSign;
-                double fwdX = -Math.sin(yawRad);
-                double fwdZ = Math.cos(yawRad);
-                Vec3 footStart = new Vec3(curX + rightX, entity.getY(), curZ + rightZ);
-                Vec3 footEnd = footStart.add(fwdX, 0.0D, fwdZ);
-                ClientAuraTracker.addArc(-8, footStart, -8, footEnd, 36, 0x4E420000 | (varIdx & 7));
-            }
-            if (!isFirstPersonSelf) {
-                ResourceLocation stepGrassTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_shrine_step_grass.png");
-                VertexConsumer grassVc = buffer.getBuffer(RenderType.entityCutoutNoCull(stepGrassTex));
-                poseStack.pushPose();
-                poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-                poseStack.translate(0.18F, 0.02F, -0.12F);
-                renderUnfurlingTexturedRibbon(grassVc, poseStack, 0.26F, 0.46F, 1.0F, time * 0.05F, 0.04F, 0.5F, 8);
-                poseStack.popPose();
+            } else {
+                double dx = curX - d.lastShrineStepX;
+                double dz = curZ - d.lastShrineStepZ;
+                boolean movedEnough = (dx * dx + dz * dz) >= 0.42D;
+                if (movedEnough && (now - d.lastShrineStepMs) >= 180L && entity.onGround()) {
+                    d.lastShrineStepX = curX;
+                    d.lastShrineStepZ = curZ;
+                    d.lastShrineStepMs = now;
+                    int varIdx = d.shrineStepVariant++;
+                    float sideSign = (varIdx & 1) == 0 ? 0.20F : -0.20F;
+                    float yawRad = (float) Math.toRadians(bodyYaw);
+                    double rightX = Math.cos(yawRad) * sideSign;
+                    double rightZ = Math.sin(yawRad) * sideSign;
+                    double fwdX = -Math.sin(yawRad);
+                    double fwdZ = Math.cos(yawRad);
+                    Vec3 footStart = new Vec3(curX + rightX, entity.getY(), curZ + rightZ);
+                    Vec3 footEnd = footStart.add(fwdX, 0.0D, fwdZ);
+                    ClientAuraTracker.addArc(-8, footStart, -8, footEnd, 36, 0x4E420000 | (varIdx & 7));
+                }
             }
         }
     }
@@ -426,7 +435,8 @@ public final class NahidaVisualRenderer {
             MultiBufferSource bufferSource,
             float time,
             ResourceLocation ropeTex,
-            ResourceLocation seatTex
+            ResourceLocation seatTex,
+            float swingFade
     ) {
         // Pendulum swing around the floating top 4-petal flower anchors (y = 2.68F, NO horizontal top bar!)
         float swingDeg = -Mth.sin(time * 0.10F) * 4.6F;
@@ -537,16 +547,16 @@ public final class NahidaVisualRenderer {
         poseStack.translate(sx, sy + 0.02F, sz);
         poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
 
-        // Primary lush 4-petal flower-grass clump sprouting at the footstep
-        float mainW = 0.36F * fade;
-        float mainH = 0.68F * fade;
-        renderUnfurlingTexturedRibbon(grassVc, poseStack, mainW, mainH, grow, timeSec, 0.055F, variant * 0.9F, 8);
+        // Primary lush 4-petal flower-grass clump sprouting at the footstep (scaled down 20%)
+        float mainW = 0.36F * 0.80F * fade;
+        float mainH = 0.68F * 0.80F * fade;
+        renderUnfurlingTexturedRibbon(grassVc, poseStack, mainW, mainH, grow, timeSec, 0.044F, variant * 0.9F, 8);
 
-        // Secondary smaller companion sprout slightly offset for natural clustering (as seen in Image 1)
+        // Secondary smaller companion sprout slightly offset (scaled down 20%)
         poseStack.pushPose();
-        poseStack.translate((variant % 2 == 0) ? 0.22F : -0.22F, 0.0F, -0.16F);
+        poseStack.translate((variant % 2 == 0) ? 0.176F : -0.176F, 0.0F, -0.128F);
         poseStack.mulPose(Axis.YP.rotationDegrees(38.0F));
-        renderUnfurlingTexturedRibbon(grassVc, poseStack, 0.24F * fade, 0.46F * fade, grow, timeSec, 0.045F, variant * 1.5F + 1.0F, 8);
+        renderUnfurlingTexturedRibbon(grassVc, poseStack, 0.24F * 0.80F * fade, 0.46F * 0.80F * fade, grow, timeSec, 0.036F, variant * 1.5F + 1.0F, 8);
         poseStack.popPose();
 
         poseStack.popPose();
@@ -579,6 +589,53 @@ public final class NahidaVisualRenderer {
         WindGliderRenderer.emitWingQuad(topVc, p, -topHalf, -topHalf, 0.0F, 0.0F, 1.0F, topHalf, -topHalf, 0.0F, 1.0F, 1.0F, topHalf, topHalf, 0.0F, 1.0F, 0.0F, -topHalf, topHalf, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
         WindGliderRenderer.emitWingQuad(topVc, p, -topHalf, topHalf, 0.0F, 0.0F, 0.0F, topHalf, topHalf, 0.0F, 1.0F, 0.0F, topHalf, -topHalf, 0.0F, 1.0F, 1.0F, -topHalf, -topHalf, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
         poseStack.popPose();
+    }
+
+    private static void renderUnfurlingRetractingRibbon(
+            VertexConsumer vc,
+            PoseStack poseStack,
+            float halfW,
+            float fullH,
+            float growProg,
+            float retractProg,
+            float timeSec,
+            float curveAmp,
+            float phase,
+            int slices
+    ) {
+        float minF = Mth.clamp(retractProg, 0.0F, 1.0F);
+        float maxF = Mth.clamp(growProg, 0.0F, 1.0F);
+        if (maxF - minF <= 0.015F) return;
+        for (int plane = 0; plane < 2; plane++) {
+            poseStack.pushPose();
+            if (plane == 1) {
+                poseStack.mulPose(Axis.YP.rotationDegrees(68.0F));
+            }
+            PoseStack.Pose p = poseStack.last();
+            for (int s = 0; s < slices; s++) {
+                float f0 = Mth.lerp(s / (float) slices, minF, maxF);
+                float f1 = Mth.lerp((s + 1) / (float) slices, minF, maxF);
+                float y0 = f0 * fullH;
+                float y1 = f1 * fullH;
+                float v0 = 1.0F - f0;
+                float v1 = 1.0F - f1;
+                float sway0 = Mth.sin(f0 * (float) Math.PI * 1.25F - timeSec * 5.2F + phase) * curveAmp * f0;
+                float sway1 = Mth.sin(f1 * (float) Math.PI * 1.25F - timeSec * 5.2F + phase) * curveAmp * f1;
+                WindGliderRenderer.emitWingQuad(vc, p,
+                        -halfW + sway0, y0, 0.0F, 0.0F, v0,
+                         halfW + sway0, y0, 0.0F, 1.0F, v0,
+                         halfW + sway1, y1, 0.0F, 1.0F, v1,
+                        -halfW + sway1, y1, 0.0F, 0.0F, v1,
+                        0.0F, 0.0F, 1.0F);
+                WindGliderRenderer.emitWingQuad(vc, p,
+                        -halfW + sway1, y1, 0.0F, 0.0F, v1,
+                         halfW + sway1, y1, 0.0F, 1.0F, v1,
+                         halfW + sway0, y0, 0.0F, 1.0F, v0,
+                        -halfW + sway0, y0, 0.0F, 0.0F, v0,
+                        0.0F, 0.0F, -1.0F);
+            }
+            poseStack.popPose();
+        }
     }
 
     private static void renderUnfurlingTexturedRibbon(
@@ -657,7 +714,8 @@ public final class NahidaVisualRenderer {
         float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
         float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
         float grow = WindGliderRenderer.smoothStep01(Mth.clamp(prog / 0.34F, 0.0F, 1.0F));
-        float fade = prog > 0.72F ? Mth.clamp((1.0F - prog) / 0.28F, 0.0F, 1.0F) : 1.0F;
+        float retract = prog > 0.68F ? WindGliderRenderer.smoothStep01((prog - 0.68F) / 0.32F) : 0.0F;
+        float fade = 1.0F;
         float timeSec = (now - arc.startTime) * 0.001F;
 
         Vec3 dir = arc.end.subtract(arc.start);
@@ -700,7 +758,7 @@ public final class NahidaVisualRenderer {
                 poseStack.pushPose();
                 poseStack.translate(st[0], 0.03F, st[1]);
                 poseStack.mulPose(Axis.YP.rotationDegrees(Mth.sin(timeSec * 3.0F + st[3]) * 12.0F));
-                renderUnfurlingTexturedRibbon(vineVc, poseStack, 0.52F * fade, st[2] * fade, grow, timeSec, 0.11F, st[3], 10);
+                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.52F, st[2], grow, retract, timeSec, 0.11F, st[3], 10);
                 poseStack.popPose();
             }
 
@@ -730,7 +788,7 @@ public final class NahidaVisualRenderer {
             for (float side : new float[]{-1.15F, 1.15F}) {
                 poseStack.pushPose();
                 poseStack.translate(side, 0.03F, burstZ - 0.55F);
-                renderUnfurlingTexturedRibbon(vineVc, poseStack, 0.48F * fade, 1.65F * fade, grow, timeSec, 0.09F, side, 10);
+                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.48F, 1.65F, grow, retract, timeSec, 0.09F, side, 10);
                 poseStack.popPose();
             }
 
@@ -740,7 +798,7 @@ public final class NahidaVisualRenderer {
             poseStack.translate(0.0F, 0.05F, burstZ);
             float heartHalfW = (1.35F + 0.25F * grow) * fade;
             float heartH = 2.85F * fade;
-            renderUnfurlingTexturedRibbon(heartVc, poseStack, heartHalfW, heartH, grow, timeSec, 0.05F, 0.0F, 12);
+            renderUnfurlingRetractingRibbon(heartVc, poseStack, heartHalfW, heartH, grow, retract, timeSec, 0.05F, 0.0F, 12);
             poseStack.popPose();
 
             // Ground-scattered & rising waffle 4-petal clovers (matching Image 4 foreground & ground sparkles)
@@ -897,6 +955,173 @@ public final class NahidaVisualRenderer {
                     poseStack.popPose();
                 }
                 poseStack.popPose();
+            } else if (arc.fromEntityId == -8 && (arc.color & 0xFFFF0000) == 0x4E430000) {
+                // Nahida Charged Attack (world-anchored 3x3x3 box 1 block in front, visible in 1st & 3rd person)
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float caProg = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                float cx = (float) (arc.end.x - camPos.x);
+                float cy = (float) (arc.end.y - camPos.y);
+                float cz = (float) (arc.end.z - camPos.z);
+
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, cz);
+                if (caProg < 0.62F) {
+                    // Phase 1: Box opens and grows larger until explosion
+                    float boxScale = 0.15F + 1.05F * WindGliderRenderer.smoothStep01(caProg / 0.62F);
+                    float h = 1.15F * boxScale;
+                    VertexConsumer vc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+                    Matrix4f mat = poseStack.last().pose();
+                    int faceA = 48;
+                    WindGliderRenderer.emitDoubleQuad(vc, mat, -h, -h, -h,  h, -h, -h,  h,  h, -h, -h,  h, -h, 130, 230, 68, faceA);
+                    WindGliderRenderer.emitDoubleQuad(vc, mat, -h, -h,  h,  h, -h,  h,  h,  h,  h, -h,  h,  h, 130, 230, 68, faceA);
+                    WindGliderRenderer.emitDoubleQuad(vc, mat, -h, -h, -h, -h, -h,  h, -h,  h,  h, -h,  h, -h, 120, 220, 64, faceA);
+                    WindGliderRenderer.emitDoubleQuad(vc, mat,  h, -h, -h,  h, -h,  h,  h,  h,  h,  h,  h, -h, 120, 220, 64, faceA);
+                    WindGliderRenderer.emitDoubleQuad(vc, mat, -h,  h, -h,  h,  h, -h,  h,  h,  h, -h,  h,  h, 145, 242, 78, faceA);
+                    WindGliderRenderer.emitDoubleQuad(vc, mat, -h, -h, -h,  h, -h, -h,  h, -h,  h, -h, -h,  h, 110, 210, 58, faceA);
+                    float tEdge = 0.028F;
+                    float[][] edges = {
+                            {-h,-h,-h, h,-h,-h}, {-h, h,-h, h, h,-h}, {-h,-h, h, h,-h, h}, {-h, h, h, h, h, h},
+                            {-h,-h,-h,-h, h,-h}, { h,-h,-h, h, h,-h}, {-h,-h, h,-h, h, h}, { h,-h, h, h, h, h},
+                            {-h,-h,-h,-h,-h, h}, { h,-h,-h, h,-h, h}, {-h, h,-h,-h, h, h}, { h, h,-h, h, h, h}
+                    };
+                    for (float[] e : edges) {
+                        boolean isY = Math.abs(e[4] - e[1]) > 0.01F;
+                        float dxO = isY ? tEdge : 0.0F;
+                        float dyO = isY ? 0.0F : tEdge;
+                        WindGliderRenderer.emitDoubleQuad(vc, mat,
+                                e[0]-dxO, e[1]-dyO, e[2], e[0]+dxO, e[1]+dyO, e[2],
+                                e[3]+dxO, e[4]+dyO, e[5], e[3]-dxO, e[4]-dyO, e[5],
+                                215, 255, 130, 238);
+                        for (int s = 1; s <= 4; s++) {
+                            float f = s * 0.20F;
+                            float sx = Mth.lerp(f, e[0], e[3]);
+                            float sy = Mth.lerp(f, e[1], e[4]);
+                            float sz = Mth.lerp(f, e[2], e[5]);
+                            WindGliderRenderer.renderCloverCross2D(vc, mat, sx, sy, sz, 0.06F * Math.max(0.45F, boxScale), 235, 255, 165, 240);
+                        }
+                    }
+                    for (int dIdx = 0; dIdx < 5; dIdx++) {
+                        float dx = ((dIdx % 3) - 1) * 0.45F * boxScale;
+                        float dz = (dIdx < 2 ? -0.35F : 0.35F) * boxScale;
+                        float dy = Mth.sin(caProg * 10.0F + dIdx * 1.4F) * 0.35F * boxScale;
+                        WindGliderRenderer.renderCloverCross2D(vc, mat, dx, dy, dz, 0.09F * boxScale, 195, 255, 120, 210);
+                    }
+                    // Dotted glowing Dendro cursor ring at top-right corner
+                    float cRad = 0.28F * Math.max(0.45F, boxScale);
+                    for (int rIdx = 0; rIdx < 18; rIdx++) {
+                        float ra0 = (float) (rIdx * Math.PI * 2.0D / 18.0D + caProg * 3.0F);
+                        WindGliderRenderer.renderCloverCross2D(vc, mat, h + Mth.cos(ra0) * cRad, h + Mth.sin(ra0) * cRad, -h, 0.028F, 210, 255, 145, 240);
+                    }
+                    WindGliderRenderer.renderFourLeafClover2D(vc, mat, h, h, -h - 0.01F, 0.13F * Math.max(0.45F, boxScale), 225, 255, 130, 245);
+                } else {
+                    // Phase 2: Fast explosion using seed_of_skandha.png, growing larger and 50% more transparent
+                    float boom = (caProg - 0.62F) / 0.38F;
+                    float expHalf = 0.65F + boom * 1.65F;
+                    int expAlpha = Math.max(4, Math.round(125.0F * (1.0F - boom)));
+                    VertexConsumer skVc = bufferSource.getBuffer(RenderType.entityTranslucent(skandhaTex));
+                    for (int plane = 0; plane < 2; plane++) {
+                        poseStack.pushPose();
+                        poseStack.mulPose(Axis.YP.rotationDegrees(plane * 90.0F + boom * 35.0F));
+                        PoseStack.Pose p = poseStack.last();
+                        emitTexQuadAlpha(skVc, p, -expHalf, -expHalf, 0.0F, 0.0F, 1.0F, expHalf, -expHalf, 0.0F, 1.0F, 1.0F, expHalf, expHalf, 0.0F, 1.0F, 0.0F, -expHalf, expHalf, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, expAlpha);
+                        emitTexQuadAlpha(skVc, p, -expHalf, expHalf, 0.0F, 0.0F, 0.0F, expHalf, expHalf, 0.0F, 1.0F, 0.0F, expHalf, -expHalf, 0.0F, 1.0F, 1.0F, -expHalf, -expHalf, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F, expAlpha);
+                        poseStack.popPose();
+                    }
+                    poseStack.pushPose();
+                    poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
+                    PoseStack.Pose ph = poseStack.last();
+                    emitTexQuadAlpha(skVc, ph, -expHalf, -expHalf, 0.0F, 0.0F, 1.0F, expHalf, -expHalf, 0.0F, 1.0F, 1.0F, expHalf, expHalf, 0.0F, 1.0F, 0.0F, -expHalf, expHalf, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, expAlpha);
+                    emitTexQuadAlpha(skVc, ph, -expHalf, expHalf, 0.0F, 0.0F, 0.0F, expHalf, expHalf, 0.0F, 1.0F, 0.0F, expHalf, -expHalf, 0.0F, 1.0F, 1.0F, -expHalf, -expHalf, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F, expAlpha);
+                    poseStack.popPose();
+                }
+                poseStack.popPose();
+            } else if (arc.fromEntityId == -8 && (arc.color & 0xFFFF0000) == 0x4E440000) {
+                // Nahida Tap E: Sweeps from knee (0.45) to neck (1.45) across >half-circle in front, dim -> bright, varied-size 4-leaf seeds
+                float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+                float eProg = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+                float fadeOut = eProg > 0.78F ? Mth.clamp((1.0F - eProg) / 0.22F, 0.0F, 1.0F) : 1.0F;
+                Vec3 fwd = arc.end.subtract(arc.start);
+                Vec3 hFwd = new Vec3(fwd.x, 0.0D, fwd.z);
+                if (hFwd.lengthSqr() < 1.0E-4D) hFwd = new Vec3(0.0D, 0.0D, 1.0D);
+                else hFwd = hFwd.normalize();
+                double baseAngle = Math.atan2(hFwd.z, hFwd.x);
+                double arcSpan = Math.PI * 2.0D; // full 360-degree sweep matching body spin
+                double startAng = baseAngle + arcSpan * 0.5D; // reversed sweep direction
+                float eRadius = 2.0F;
+
+                poseStack.pushPose();
+                poseStack.translate((float) (arc.start.x - camPos.x), (float) (arc.start.y - camPos.y), (float) (arc.start.z - camPos.z));
+                VertexConsumer vc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+                Matrix4f eMat = poseStack.last().pose();
+
+                int segs = 28;
+                float sweepFrac = Mth.clamp(eProg / 0.62F, 0.0F, 1.0F);
+                float overallReveal = Mth.clamp(eProg / 0.35F, 0.25F, 1.0F);
+                int activeSegs = Math.max(1, Math.round(segs * sweepFrac));
+                for (int s = 0; s < activeSegs; s++) {
+                    float f0 = s / (float) segs;
+                    float f1 = (s + 1) / (float) segs;
+                    double a0 = startAng - f0 * arcSpan;
+                    double a1 = startAng - f1 * arcSpan;
+                    float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0);
+                    float c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+                    // Tail rises higher than head (knee 0.42F -> above neck 1.55F)
+                    float y0 = Mth.lerp(f0, 0.42F, 1.55F);
+                    float y1 = Mth.lerp(f1, 0.42F, 1.55F);
+                    float w0 = 0.06F + 0.15F * f0;
+                    float w1 = 0.06F + 0.15F * f1;
+                    // Dim at start -> bright & clear later
+                    int aTrail = Math.max(8, Math.round(Mth.lerp(f0, 18.0F, 240.0F) * overallReveal * fadeOut));
+                    int aCore = Math.max(12, Math.round(Mth.lerp(f0, 26.0F, 255.0F) * overallReveal * fadeOut));
+                    WindGliderRenderer.emitDoubleQuad(vc, eMat,
+                            c0 * (eRadius - w0), y0, s0 * (eRadius - w0),
+                            c0 * (eRadius + w0), y0, s0 * (eRadius + w0),
+                            c1 * (eRadius + w1), y1, s1 * (eRadius + w1),
+                            c1 * (eRadius - w1), y1, s1 * (eRadius - w1),
+                            90, 250, 128, aTrail);
+                    WindGliderRenderer.emitDoubleQuad(vc, eMat,
+                            c0 * (eRadius - 0.03F), y0 + 0.015F, s0 * (eRadius - 0.03F),
+                            c0 * (eRadius + 0.03F), y0 + 0.015F, s0 * (eRadius + 0.03F),
+                            c1 * (eRadius + 0.03F), y1 + 0.015F, s1 * (eRadius + 0.03F),
+                            c1 * (eRadius - 0.03F), y1 + 0.015F, s1 * (eRadius - 0.03F),
+                            220, 255, 175, aCore);
+                }
+                // Varied large & small 4-leaf seed_of_skandha particles both along the trail AND scattered around it
+                float[][] seedSpecs = {
+                        // {frac, radiusOffset, yOffset, size}
+                        {0.10F,  0.00F,  0.04F, 0.12F},
+                        {0.24F,  0.00F, -0.04F, 0.34F},
+                        {0.39F,  0.00F,  0.05F, 0.14F},
+                        {0.54F,  0.00F, -0.03F, 0.40F},
+                        {0.70F,  0.00F,  0.06F, 0.15F},
+                        {0.85F,  0.00F, -0.04F, 0.32F},
+                        {0.96F,  0.00F,  0.04F, 0.22F},
+                        // Surrounding scattered seeds (to & nho xung quanh)
+                        {0.18F,  0.42F,  0.22F, 0.11F},
+                        {0.32F, -0.45F, -0.18F, 0.26F},
+                        {0.48F,  0.52F, -0.24F, 0.13F},
+                        {0.62F, -0.38F,  0.28F, 0.29F},
+                        {0.76F,  0.48F,  0.20F, 0.16F},
+                        {0.90F, -0.50F, -0.16F, 0.22F}
+                };
+                VertexConsumer skVc = bufferSource.getBuffer(RenderType.entityTranslucent(skandhaTex));
+                for (float[] sp : seedSpecs) {
+                    if (sp[0] > sweepFrac) continue;
+                    double ka = startAng - sp[0] * arcSpan;
+                    float rad = eRadius + sp[1];
+                    float kx = (float) Math.cos(ka) * rad;
+                    float kz = (float) Math.sin(ka) * rad;
+                    float ky = Mth.lerp(sp[0], 0.42F, 1.55F) + sp[2];
+                    float sz = sp[3];
+                    int sAlpha = Math.max(16, Math.round(Mth.lerp(sp[0], 60.0F, 245.0F) * overallReveal * fadeOut));
+                    poseStack.pushPose();
+                    poseStack.translate(kx, ky, kz);
+                    poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
+                    PoseStack.Pose p = poseStack.last();
+                    emitTexQuadAlpha(skVc, p, -sz, -sz, 0.0F, 0.0F, 1.0F, sz, -sz, 0.0F, 1.0F, 1.0F, sz, sz, 0.0F, 1.0F, 0.0F, -sz, sz, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F, sAlpha);
+                    poseStack.popPose();
+                }
+                poseStack.popPose();
             } else if (arc.fromEntityId == -8 && (arc.color & 0xFFFF0000) == 0x4E410000) {
                 renderNahidaNormalAttackWorldVfx(poseStack, bufferSource, camPos, arc, now, skandhaTex);
             } else if (arc.fromEntityId == -8 && (arc.color & 0xFFFF0000) == 0x4E420000) {
@@ -929,5 +1154,20 @@ public final class NahidaVisualRenderer {
                 }
             }
         }
+    }
+    private static void emitTexQuadAlpha(
+            VertexConsumer vc, PoseStack.Pose pose,
+            float x0, float y0, float z0, float u0, float v0,
+            float x1, float y1, float z1, float u1, float v1,
+            float x2, float y2, float z2, float u2, float v2,
+            float x3, float y3, float z3, float u3, float v3,
+            float nx, float ny, float nz, int alpha
+    ) {
+        Matrix4f mat = pose.pose();
+        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        vc.addVertex(mat, x0, y0, z0).setColor(255, 255, 255, alpha).setUv(u0, v0).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
+        vc.addVertex(mat, x1, y1, z1).setColor(255, 255, 255, alpha).setUv(u1, v1).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
+        vc.addVertex(mat, x2, y2, z2).setColor(255, 255, 255, alpha).setUv(u2, v2).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
+        vc.addVertex(mat, x3, y3, z3).setColor(255, 255, 255, alpha).setUv(u3, v3).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
     }
 }

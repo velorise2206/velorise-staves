@@ -90,6 +90,7 @@ public final class TsaritsaManager {
         public Vec3 center;
         public long expireTick;
         public int stacks; // 1..4 Polestar stacks (+10% Crit Rate & +14% Base DMG per stack)
+        public long lastTriggerTick = -100L;
         public boolean netheriteOwner;
 
         public PolestarFieldState(UUID ownerId, net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension, Vec3 center, long expireTick, boolean netheriteOwner) {
@@ -340,18 +341,25 @@ public final class TsaritsaManager {
         boolean netherite = attacker != null && hasNetheriteTsaritsaInParty(attacker);
 
         PolestarFieldState field = POLESTAR_FIELDS.get(ownerId);
-        if (field != null && field.dimension.equals(level.dimension()) && now < field.expireTick
-                && field.center.distanceToSqr(center) <= (POLESTAR_FIELD_RADIUS * POLESTAR_FIELD_RADIUS)) {
+        boolean createdNew = false;
+        if (field != null && field.dimension.equals(level.dimension()) && now < field.expireTick) {
+            if (now - field.lastTriggerTick < 10L) {
+                return; // Prevent multi-mob AoE hit from spawning/stacking multiple fields in the same attack
+            }
             field.expireTick = now + POLESTAR_FIELD_DURATION_TICKS;
             field.stacks = Math.min(4, field.stacks + 1);
-            field.center = center;
+            field.lastTriggerTick = now;
         } else {
             field = new PolestarFieldState(ownerId, level.dimension(), center, now + POLESTAR_FIELD_DURATION_TICKS, netherite);
+            field.lastTriggerTick = now;
             POLESTAR_FIELDS.put(ownerId, field);
+            createdNew = true;
         }
 
-        // Visual Polestar Field ring & starry burst
-        ModNetwork.sendTsaritsaPolarField(level, center, POLESTAR_FIELD_RADIUS, 40, 3);
+        // Visual Polestar Field ring only when newly created (max 1 active field per owner)
+        if (createdNew) {
+            ModNetwork.sendTsaritsaPolarField(level, field.center, POLESTAR_FIELD_RADIUS, 40, 3);
+        }
         level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.5D, center.z, 24, 2.2D, 0.4D, 2.2D, 0.04D);
         // ParticleTypes.ELECTRIC_SPARK removed
         level.sendParticles(ParticleTypes.END_ROD, center.x, center.y + 0.8D, center.z, 14, 1.8D, 0.4D, 1.8D, 0.03D);
@@ -458,6 +466,7 @@ public final class TsaritsaManager {
             float finalDmg = applyStellarAndCrownMultipliers(player, living, Element.CRYO, baseDmg);
             living.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(living, Element.CRYO, player, finalDmg, 1.0F);
+            RaidenManager.tryTriggerRaidenEye(living, player);
         } else if (hitTarget instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
             crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
         }
@@ -614,7 +623,8 @@ public final class TsaritsaManager {
         if (hitTarget instanceof LivingEntity living) {
             float primaryDmg = applyStellarAndCrownMultipliers(player, living, Element.CRYO, baseDmg);
             living.invulnerableTime = 0;
-            ElementalGaugeManager.applyElement(living, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
+            ElementalGaugeManager.applyElement(living, Element.CRYO, player, primaryDmg, 2.0F);
+            RaidenManager.tryTriggerRaidenEye(living, player); // 2U Cryo
         } else if (hitTarget instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
             crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
         } else {
@@ -676,10 +686,8 @@ public final class TsaritsaManager {
 
         level.playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.9F, 1.55F);
-        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 2.1D, player.getZ(),
-                18, 0.5D, 0.25D, 0.5D, 0.03D);
-        level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.2D, player.getZ(),
-                12, 0.4D, 0.2D, 0.4D, 0.02D);
+        level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 2.15D, player.getZ(),
+                26, 0.5D, 0.25D, 0.5D, 0.03D);
     }
 
     /**
@@ -964,6 +972,9 @@ public final class TsaritsaManager {
             state.wasHoldingTsaritsaLastTick = holding;
 
             // Tick Azure Star Crown (fires 2-3 Cryo Star Projectiles every 2.0s from above the player's head, even off-field!)
+            if (now < state.azureCrownUntilTick && now % 2L == 0L) {
+                freezeWaterAroundCrownPlayer(player, level);
+            }
             if (now < state.azureCrownUntilTick && now >= state.nextCrownStarTick) {
                 state.nextCrownStarTick = now + AZURE_CROWN_FIRE_INTERVAL_TICKS;
                 fireAzureCrownStars(player, level, state, now < state.supportBurstUntilTick);
@@ -1007,12 +1018,13 @@ public final class TsaritsaManager {
             Vec3 startPos = crownPos.add(Math.cos(offsetAngle) * 0.35D, 0.1D, Math.sin(offsetAngle) * 0.35D);
 
             ModNetwork.sendCryoArrow(level, startPos, hitPos, 10, 1);
-            level.sendParticles(ParticleTypes.END_ROD, startPos.x, startPos.y, startPos.z, 3, 0.08D, 0.08D, 0.08D, 0.01D);
+            level.sendParticles(ParticleTypes.SNOWFLAKE, startPos.x, startPos.y, startPos.z, 4, 0.08D, 0.08D, 0.08D, 0.01D);
             level.sendParticles(ParticleTypes.SNOWFLAKE, hitPos.x, hitPos.y, hitPos.z, 8, 0.25D, 0.25D, 0.25D, 0.03D);
 
             float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, starDmg);
             target.invulnerableTime = 0;
             ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 1.0F);
+            RaidenManager.tryTriggerRaidenEye(target, player);
         }
     }
 
@@ -1134,5 +1146,73 @@ public final class TsaritsaManager {
     public static void clearAll() {
         PLAYER_STATES.clear();
         POLESTAR_FIELDS.clear();
+    }
+
+    private static final class TsaritsaIdleState {
+        Vec3 lastStillPos = Vec3.ZERO;
+        int stillTicks = 0;
+        boolean idleActive = false;
+        int lastSyncedCode = -1;
+    }
+
+    private static final Map<UUID, TsaritsaIdleState> TSARITSA_IDLE_STATES = new ConcurrentHashMap<>();
+
+    public static void tickIdle(net.minecraft.server.MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            TsaritsaIdleState st = TSARITSA_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new TsaritsaIdleState());
+            ItemStack main = player.getMainHandItem();
+            ArcaneStaffItem.Kind mk = ArcaneStaffItem.getEffectiveKind(main);
+            ArcaneStaffItem.Kind ok = ArcaneStaffItem.getEffectiveKind(player.getOffhandItem());
+            boolean holding = (mk == ArcaneStaffItem.Kind.TSARITSA_BOW || mk == ArcaneStaffItem.Kind.TSARITSA_SPEAR)
+                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
+                    && (ok == ArcaneStaffItem.Kind.TSARITSA_BOW || ok == ArcaneStaffItem.Kind.TSARITSA_SPEAR));
+            if (st.lastStillPos == null || st.lastStillPos.equals(Vec3.ZERO)) {
+                st.lastStillPos = player.position();
+            }
+            double distSq = player.position().distanceToSqr(st.lastStillPos);
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
+            if (canIdle && distSq < 0.16D) {
+                st.stillTicks++;
+                if (st.stillTicks >= 60 && !st.idleActive) {
+                    st.idleActive = true;
+                }
+            } else {
+                st.stillTicks = 0;
+                st.lastStillPos = player.position();
+                st.idleActive = false;
+            }
+            int code = st.idleActive ? 4061 : 4060;
+            if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
+                st.lastSyncedCode = code;
+                ModNetwork.sendStaffAnimation(player, code);
+            }
+        }
+    }
+
+    private static void freezeWaterAroundCrownPlayer(ServerPlayer player, ServerLevel level) {
+        if (player == null || player.isSpectator() || player.isUnderWater()) return;
+        net.minecraft.core.BlockPos base = player.blockPosition();
+        int radius = 5;
+        int rSq = radius * radius;
+        net.minecraft.core.BlockPos.MutableBlockPos mpos = new net.minecraft.core.BlockPos.MutableBlockPos();
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                if (dx * dx + dz * dz > rSq) continue;
+                for (int dy = -1; dy <= 0; dy++) {
+                    mpos.set(base.getX() + dx, base.getY() + dy, base.getZ() + dz);
+                    if (!level.isLoaded(mpos)) continue;
+                    net.minecraft.world.level.block.state.BlockState bs = level.getBlockState(mpos);
+                    if (bs.is(net.minecraft.world.level.block.Blocks.WATER)
+                            && level.getFluidState(mpos).isSource()
+                            && level.getBlockState(mpos.above()).isAir()) {
+                        level.setBlockAndUpdate(mpos, net.minecraft.world.level.block.Blocks.FROSTED_ICE.defaultBlockState());
+                        level.scheduleTick(mpos.immutable(), net.minecraft.world.level.block.Blocks.FROSTED_ICE,
+                                net.minecraft.util.Mth.nextInt(level.random, 80, 140));
+                    }
+                }
+            }
+        }
     }
 }

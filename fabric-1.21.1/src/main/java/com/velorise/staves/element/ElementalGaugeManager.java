@@ -1588,6 +1588,12 @@ public static void tick(MinecraftServer server) {
         PlungeAndGliderManager.tick(server, serverNow);
         NeuvilletteManager.tick(server, serverNow);
         NahidaManager.tick(server, serverNow);
+        ZhongliManager.tick(server, serverNow);
+        RaidenManager.tickIdle(server, serverNow);
+        MavuikaManager.tickIdle(server, serverNow);
+        VentiManager.tickIdle(server, serverNow);
+        FurinaManager.tickIdle(server, serverNow);
+        TsaritsaManager.tickIdle(server, serverNow);
         for (ServerLevel lvl : server.getAllLevels()) {
             TsaritsaManager.tickServer(lvl);
         }

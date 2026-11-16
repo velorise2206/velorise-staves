@@ -1096,4 +1096,5 @@ public final class WindGliderRenderer {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         guiGraphics.blit(echoTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
     }
+
 }

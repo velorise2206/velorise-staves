@@ -851,9 +851,16 @@ public final class RaidenManager {
         }
     }
 
+    public static void tryTriggerRaidenEye(LivingEntity target, ServerPlayer attacker) {
+        if (target == null || attacker == null) return;
+        triggerRaidenEyeCoordinatedStrike(target, attacker.damageSources().playerAttack(attacker));
+    }
+
     public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) {
         if (target == null || !target.isAlive() || !(target.level() instanceof ServerLevel level)) return;
         if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return;
+        if (Boolean.TRUE.equals(ElectrifiedWaterManager.IS_SHOCKING.get())) return;
+        if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource) return;
         ServerPlayer attacker = null;
         if (source.getEntity() instanceof ServerPlayer sp) attacker = sp;
         else if (source.getDirectEntity() instanceof ServerPlayer sp) attacker = sp;
@@ -998,9 +1005,19 @@ public final class RaidenManager {
                     }
                 }
             } else {
-                AABB sweepBox = new AABB(slashPos, slashPos).inflate(reach * 0.65D, 1.75D, reach * 0.65D);
+                Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+                if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+                else horiz = horiz.normalize();
+                Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+                double forwardReach = 3.0D; // 3 blocks forward
+                double halfWidth = 2.5D;    // 5 blocks wide
+                AABB sweepBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.75D, halfWidth);
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
                         e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                    Vec3 toTarget = target.position().subtract(player.position());
+                    double proj = toTarget.dot(horiz);
+                    double side = Math.abs(toTarget.dot(right));
+                    if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
                     applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
                 }
             }
@@ -1065,6 +1082,47 @@ public final class RaidenManager {
             if (!eyeActive && RAIDEN_EYE_UNTIL.containsKey(id)) {
                 RAIDEN_EYE_UNTIL.remove(id);
                 syncRaidenState(player, serverNow);
+            }
+        }
+    }
+
+    private static final class RaidenIdleState {
+        net.minecraft.world.phys.Vec3 lastStillPos = net.minecraft.world.phys.Vec3.ZERO;
+        int stillTicks = 0;
+        boolean idleActive = false;
+        int lastSyncedCode = -1;
+    }
+
+    private static final java.util.Map<java.util.UUID, RaidenIdleState> RAIDEN_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void tickIdle(MinecraftServer server, long now) {
+        if (server == null) return;
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            if (!player.isAlive() || player.isSpectator()) continue;
+            RaidenIdleState st = RAIDEN_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new RaidenIdleState());
+            ItemStack main = player.getMainHandItem();
+            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
+                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
+                    && ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            if (st.lastStillPos == null || st.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
+                st.lastStillPos = player.position();
+            }
+            double distSq = player.position().distanceToSqr(st.lastStillPos);
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
+            if (canIdle && distSq < 0.16D) {
+                st.stillTicks++;
+                if (st.stillTicks >= 60 && !st.idleActive) {
+                    st.idleActive = true;
+                }
+            } else {
+                st.stillTicks = 0;
+                st.lastStillPos = player.position();
+                st.idleActive = false;
+            }
+            int code = st.idleActive ? 4021 : 4020;
+            if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
+                st.lastSyncedCode = code;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, code);
             }
         }
     }

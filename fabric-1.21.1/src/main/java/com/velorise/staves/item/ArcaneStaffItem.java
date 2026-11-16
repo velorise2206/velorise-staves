@@ -1602,7 +1602,6 @@ public final class ArcaneStaffItem extends Item {
             return false;
         }
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-        player.swing(hand, true);
         hurtStaffAndCheckBreak(stack, 2, player, hand);
         ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
         player.awardStat(Stats.ITEM_USED.get(this));

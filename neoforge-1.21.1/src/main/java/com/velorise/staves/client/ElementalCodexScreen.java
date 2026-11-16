@@ -781,20 +781,20 @@ public class ElementalCodexScreen extends Screen {
                         {"webcaster", ArcaneStaffItem.Kind.WEB, Element.DENDRO,
                                 trapPoison, trapPoison, "28m", "codex.velorise_staves.staff.webcaster"},
                         {"thousand_floating_dreams", ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, Element.DENDRO,
-                                fmtHearts(2.0 * dmgMult) + "–" + fmtHearts(5.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.0 * dmgMult) + "–" + fmtHearts(7.5 * dmgMult) + "§f\uE008§6", "E 16m / Shrine 18m➔22.5m", "codex.velorise_staves.staff.thousand_floating_dreams"},
+                                fmtHearts(1.0) + "–" + fmtHearts(6.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(1.0) + "–" + fmtHearts(9.0 * dmgMult) + "§f\uE008§6", "NA 2x5m / CA 3x3x3m / E 2m–28m / Q 18m➔22.5m", "codex.velorise_staves.staff.thousand_floating_dreams"},
                         {"wind_staff", ArcaneStaffItem.Kind.WIND, Element.ANEMO,
                                 fmtHearts(1.5 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "§f\uE008§6", "28m (AoE)", "codex.velorise_staves.staff.wind"},
                         {"the_daybreak_chronicles", ArcaneStaffItem.Kind.DAYBREAK, Element.ANEMO,
                                 fmtHearts(1.5 * dmgMult) + "–" + fmtHearts(2.7 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(2.25 * dmgMult) + "–" + fmtHearts(4.0 * dmgMult) + "§f\uE008§6", "20m–36m / Vortex 8m➔12m", "codex.velorise_staves.staff.the_daybreak_chronicles"},
                         {"engulfing_lightning", ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, Element.ELECTRO,
-                                fmtHearts(2.5 * dmgMult) + "–" + fmtHearts(12.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.75 * dmgMult) + "–" + fmtHearts(18.0 * dmgMult) + "§f\uE008§6", "Eye 3m➔4.5m / Q 6m➔9m", "codex.velorise_staves.staff.engulfing_lightning"},
+                                fmtHearts(2.5 * dmgMult) + "–" + fmtHearts(12.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(3.75 * dmgMult) + "–" + fmtHearts(18.0 * dmgMult) + "§f\uE008§6", "Eye 3m➔4.5m / Q 6m➔9m (Musou 5x3m)", "codex.velorise_staves.staff.engulfing_lightning"},
                         {"resonant_echo", ArcaneStaffItem.Kind.ECHO, Element.ANEMO,
                                 fmtHearts(11.0 * dmgMult) + "§f\uE008§r", "§6" + fmtHearts(16.5 * dmgMult) + "§f\uE008§6", "28m➔32m", "codex.velorise_staves.staff.echo"},
                         {"evoker_fang_staff", ArcaneStaffItem.Kind.EVOKER, Element.GEO,
                                 fmtHearts(3.0 * dmgMult) + "§f\uE008§rx9", "§6" + fmtHearts(4.5 * dmgMult) + "§f\uE008§6x13", "13.5m➔19.5m", "codex.velorise_staves.staff.evoker"},
                         {"vortex_vanquisher", ArcaneStaffItem.Kind.VORTEX, Element.GEO,
                                 fmtHearts((4.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§r",
-                                "§6" + fmtHearts((6.0 + maxHp * 0.0285) * dmgMult) + "§f\uE008§6", "12m (Max 3 / 4m Pulse)", "codex.velorise_staves.staff.vortex"},
+                                "§6" + fmtHearts((6.0 + maxHp * 0.0285) * dmgMult) + "§f\uE008§6", "4m Pulse (Max 3) / E 6m / Q 6m➔8.5m", "codex.velorise_staves.staff.vortex"},
                         {"peak_patrol_song", ArcaneStaffItem.Kind.PEAK_PATROL_SONG, Element.GEO,
                                 fmtHearts(1.0 * dmgMult) + "§f\uE008§r",
                                 "§6" + fmtHearts(1.5 * dmgMult) + "§f\uE008§6", "3m Skate / 8m -36% RES", "codex.velorise_staves.staff.peak_patrol_song"},
@@ -1219,14 +1219,8 @@ public class ElementalCodexScreen extends Screen {
                 renderHoveredItem(guiGraphics, new ItemStack(Items.WATER_BUCKET), cx + 65, midY, mouseX, mouseY);
             }
             case STAVES -> {
-                renderHoveredItem(guiGraphics, new ItemStack(Items.NETHERITE_UPGRADE_SMITHING_TEMPLATE), cx - 106, midY, mouseX, mouseY);
-                guiGraphics.drawString(this.font, "+", cx - 87, midY + 4, 0xFFFFFFFF, true);
-                renderHoveredItem(guiGraphics, getModItemStack("dragonfire_scepter"), cx - 76, midY, mouseX, mouseY);
-                guiGraphics.drawString(this.font, "+", cx - 57, midY + 4, 0xFFFFFFFF, true);
-                renderHoveredItem(guiGraphics, new ItemStack(Items.NETHERITE_INGOT), cx - 46, midY, mouseX, mouseY);
-                guiGraphics.drawString(this.font, "➔", cx - 26, midY + 4, 0xFFFFD60A, true);
-                renderHoveredItem(guiGraphics, getModItemStack("netherite_dragonfire_scepter"), cx - 14, midY, mouseX, mouseY);
-                drawLeftFitString(guiGraphics, "§6+50% §f\uE008§6 / +50% U", cx + 6, midY + 4, Math.max(40, (x + w - 4) - (cx + 6)), 0xFFFFD60A, true);
+                drawLeftFitString(guiGraphics, "§eSmithing Table:§r Netherite Template + Staff + Netherite Ingot ➔ §6+50% §f\uE008§6 / +50% U",
+                        x + 8, midY + 4, Math.max(60, w - 16), 0xFFFFE082, true);
             }
             case MASTERY -> {
                 renderHoveredItem(guiGraphics, new ItemStack(Items.ENCHANTING_TABLE), cx - 110, midY, mouseX, mouseY);

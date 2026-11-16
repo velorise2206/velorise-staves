@@ -12,7 +12,7 @@
 
 📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/velorise2206/velorise-staves/wiki)!**
 
-A lightweight Minecraft magic & combat mod introducing **17 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **17 custom advancements (including 6 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
+A lightweight Minecraft magic & combat mod introducing **22 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **17 custom advancements (including 6 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -81,11 +81,13 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
   <tr>
     <td align="center" width="50%">
       <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/media/docs/showcase/ingame%20items.png" alt="Ingame Items" width="100%"/><br/>
-      <b>Staves &amp; Essences</b> — 17 staves, utility artifacts, elements &amp; books
+      <b>Staves &amp; Essences</b> — 22 staves, utility artifacts, elements &amp; books
     </td>
     <td align="center" width="50%">
-      <img src="https://raw.githubusercontent.com/velorise2206/velorise-staves/media/docs/showcase/omni%20craft%20recipe.png" alt="Omni Element Crafting" width="100%"/><br/>
-      <b>Omni Element Recipe</b> — Combine all 7 Elemental Essences
+      <b>Crafting &amp; Upgrades (Text Guide)</b><br/><br/>
+      • <b>Omni Element:</b> Combine all 7 Elemental Essences in a Crafting Table.<br/>
+      • <b>Omni Staff:</b> Combine 7 Non-Archon Staves (or Trident for Hydro / Void Translocator for Electro) + Diamond/Netherite Sword.<br/>
+      • <b>Netherite Tier:</b> Upgrade any Staff in a Smithing Table with a Netherite Upgrade Template + Netherite Ingot (+50% DMG &amp; +50% Gauge U).
     </td>
   </tr>
 </table>
@@ -94,13 +96,13 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 
 ## Features
 
-### Combat Staves (17 Types + Netherite Upgrades)
+### Combat Staves (22 Types + Netherite Upgrades)
 
 - **Inferno Rod** (![Pyro][pyro] Pyro): Rapid-fires blazing fireballs in tight bursts.
 - **Ghastfire Staff** (![Pyro][pyro] Pyro): Launches explosive fireballs that detonate on contact.
-- **A Thousand Blazing Suns** (![Pyro][pyro] Pyro): Tap to summon an 8s **Sun Ring** behind you (striking nearby enemies every 2s for Pyro); hold or tap again during Aura to mount the **Flamestrider** bike (water-skimming, double-Space wing glide, hold Right-Click to spin 3m AoE, Left-Click/Sprint for **Dash Cancel**). **Netherite** tier unlocks the curved **Nightsoul** gauge (+0.5/s near mobs across casts) and **`[R]` Sun Slam Ulti** (180° frontal 5m AoE, 5–10 hearts).
+- **A Thousand Blazing Suns** (![Pyro][pyro] Pyro): Mavuika's Pyro claymore — Tap Right-Click (`15s` CD) for the **Ring of Searing Radiance** (12s Pyro strikes every 2s); Hold or re-press to mount the **Flamestrider** motorcycle (cliff-climbing, water/lava gliding, 5-hit combo, Donut Spin CA, Sprint Dash with I-frames). **`[R]` Hour of Burning Skies** (`18s` CD, `1.7s` I-frames) consumes Fighting Spirit for **Sunfell Slice** (`5.0❤➔10.0❤` AoE Pyro) + 7s Crucible buff.
 - **Guardian Lens** (![Hydro][hydro] Hydro): Quick-tap fires a **Hydro Orb** (`1♥`, `2.0s` CD) for easy reaction triggers, or Hold 3s (instant with **Sourcewater Droplets**) to unleash a continuous 3.0s *Equitable Judgment* Hydro beam scaling with Max HP & Past Draconic Glories (`6.0s` CD).
-- **Splendor of Tranquil Waters** (![Hydro][hydro] Hydro): Furina's dual-stance (`Ousia` / `Pneuma`) scepter that summons Salon Solitaire or Singer of Many Waters, grants Water Walking & Fanfare buffs, and features custom First/Third-Person animations.
+- **Splendor of Tranquil Waters** (![Hydro][hydro] Hydro): Furina's dual-stance (`Ousia` / `Pneuma`, Hold Left-Click to switch) scepter — Skill E (`20s` CD, `30s` duration) summons **Salon Solitaire** (3 Hydro companions) or **Singer of Many Waters** (`1.0❤`/2s heal) while granting **Water Walking**. **`[R]` Let the People Rejoice** (`15s` CD, `1.8s` I-frames) activates **Universal Revelry** (18s Fanfare DMG & Healing bonus).
 - **Frostbolt Wand** (![Cryo][cryo] Cryo): Propels frost orbs inflicting deep freeze and severe slowness.
 - **Nights of Formal Focus** (![Cryo][cryo] Cryo): Layla's Cryo staff (crafted with **Frost Rod**) — Grants a **12s Cryo Shield** (`40%` Basic / `60%` Netherite Max HP, `250%` Cryo Absorb) + AoE Cryo, and accumulates **Night Stars** (1/1.5s, +2 on skill cast) to launch 4 homing **Shooting Stars** at 4 stacks.
 - **Arc Caster** (![Electro][electro] Electro): Channels a high-voltage lightning stream that chains across nearby enemies and electrifies water.
@@ -108,16 +110,21 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a devastating Warden sonic boom that pierces through blocks.
 - **Webcaster** (![Dendro][dendro] Dendro): Traps enemies in temporary toxic cobwebs that dissolve automatically.
 - **Evoker Fang Staff** (![Geo][geo] Geo): Erupts a line of evoker fangs and raises a **Geo Fang Pillar** (`1x1x1` Basic / `1x2x1` Netherite, up to 3 active) that taunts enemies, pulses Geo waves, and elevates the caster when cast beneath feet.
-- **Vortex Vanquisher** (![Geo][geo] Geo): Zhongli's Geo polearm — Tap to summon a 3.5m resonant **Stone Stele** (vertical or horizontal wall-mounted), or Hold 1.5s (with custom chest-convergence & radial-spread animation) to form a **Jade Shield** (`150%` absorption, `-20%` All RES shred, `+20%` Basic / `+30%` Netherite DMG).
+- **Vortex Vanquisher** (![Geo][geo] Geo): Zhongli's Geo polearm — Tap Right-Click (`4s` CD) to summon a 3.5m **Stone Stele** (`30s`, max 3 Geo Constructs, `4m` pulse); Hold 1.5s (`12s` CD) for **Jade Shield** (`20s`, `150%` absorption, knockback immunity, `-20%` All RES shred within `6m`). **`[R]` Planet Befall** (`12s` CD, `2.5s` I-frames) drops a Geo meteor (`6.0m➔8.5m` AoE) that **Petrifies** enemies (`4.0s➔5.0s`).
 - **Shulker Seeker** (![Electro][electro] Electro): Fires homing shulker bullets causing levitation.
 - **Dragonfire Scepter** (![Electro][electro] Electro): Hurls dragon breath creating a lingering mystic damage cloud.
 - **Wither Scepter** (Dendro/Nether): Discharges a 3-skull spread inflicting Wither decay and applying Dendro.
+- **The Daybreak Chronicles** (![Anemo][anemo] Anemo): Venti's Anemo bow — Tap Left-Click for wind shots, Hold for 3-stage gale arrow (`0.45x➔1.45x` AoE + wind-jump; Netherite C1 fires 2 extra side bolts). Right-Click (`2s` CD) casts **Skyward Sonnet** (`5.0m` Swirl + updraft). **`[R]` Wind's Grand Ode** (`15s` CD, `2.0s` I-frames) fires **Stormeye Vortex** (`8s`, `8m➔12m` pull & elemental absorption).
+- **Engulfing Lightning** (![Electro][electro] Electro): Raiden Shogun's Electro polearm — Hold Left-Click for upward crescent sweep (`1.35x` DMG, `7.5m➔9.5m`). Right-Click (`10s` CD) opens **Eye of Stormy Judgment** (`15s`, `0.9s` coordinated strikes, builds up to 60 Resolve). **`[R]` Secret Art: Musou Shinsetsu** (`18s` CD, `1.6s` I-frames) unleashes **Musou no Hitotachi** (`6m➔9m`, up to `2.5x`) and **Musou Isshin** (`7s` 5-step Tachi combo, `5m wide × 3m forward` slash).
+- **A Thousand Floating Dreams** (![Dendro][dendro] Dendro): Nahida's Dendro catalyst — Tap Left-Click for 4-step hopscotch combo (`2m wide × 5m forward`, `0.5❤`); Hold Left-Click weaves a 3D Dendro box (`3×3×3m`, 1m ahead) that explodes for AoE Dendro (`3.0❤➔4.5❤`). Tap Right-Click (`5s` CD) sweeps within `2m`; Hold Right-Click (`6s` CD) opens **Camera Viewfinder** (`20m➔28m`) to mark up to 8 targets with **Seeds of Skandha** (`25s`, **Tri-Karma Purification**) & harvest crops/items. **`[R]` Illusory Heart** (`13.5s` CD, `2.0s` I-frames) expands **Shrine of Maya** (`15s➔23s`, `18m➔22.5m`, `+1➔+2 EM` & Pyro/Electro/Hydro buffs).
+- **Peak Patrol Song** (![Geo][geo] Geo): Xilonen's Geo sword — Right-Click (`7s` CD) activates Roller Skate Nightsoul (`+35%` speed, wall-climbing); 2 kicks trigger **Source Samples** (`15s`, `-36%` Elemental RES shred within `8m`, `+90` Fighting Spirit to Mavuika). **`[R]` Ocelotlicue Point!** deals AoE Geo & heals for `12s`.
+- **Absolution of the Rime-Throne** (![Cryo][cryo] Cryo): Tsaritsa's dual-stance (`Bow ⇄ Spear`, Hold Right-Click `0.7s`) Cryo weapon — Frostflake Arrows / 3-step Spear cleave that freezes water, **Rime-Pillar** (`8s` CD, `12s`, `4.5m➔6.0m`), **Stellar Cryo** passive, and **`[R]` Rime-Throne's Decree** (`15s` CD, `2.0s` I-frames).
 - **Omni Staff** (![Omni][omni] Omni): Fires prism crystal orbs that automatically trigger the strongest reaction element, or hold `[Tab]` to open the Element Wheel and lock onto any element.
 
 *All staves can be upgraded to Netherite via the Smithing Table for **1.5x combat stats (damage, HP scaling, elemental gauge U, and effect durations)** and extended range (without reducing cooldowns), and scale with the custom **Elemental Mastery I–III** enchantment.*
 
 > [!NOTE]
-> **Full 1.20.1 & 1.21.1 Parity:** All **17 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges, Breeze Rods crafted from `anemo_element`, and Frost Rods crafted from `cryo_element` + `breeze_rod`).
+> **Full 1.20.1 & 1.21.1 Parity:** All **22 combat staves** are playable on NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 (`1.20.1` includes custom throwable Wind Charges, Breeze Rods crafted from `anemo_element`, and Frost Rods crafted from `cryo_element` + `breeze_rod`).
 
 ### Elemental Essences, Anvil Repair & Imbued Swords
 

@@ -91,8 +91,6 @@ public final class TsaritsaVisualRenderer {
 
             if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
                 float slash = WindGliderRenderer.smoothStep01(t / 0.55F);
-                model.body.yRot = castDir * Mth.lerp(slash, -0.32F, 0.38F) * w;
-                model.body.xRot = 0.08F * w;
 
                 mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.38F);
                 mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.85F, -0.92F));
@@ -109,8 +107,6 @@ public final class TsaritsaVisualRenderer {
                 model.hat.copyFrom(model.head);
             } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2) {
                 float slash = WindGliderRenderer.smoothStep01(t / 0.55F);
-                model.body.yRot = castDir * Mth.lerp(slash, 0.35F, -0.35F) * w;
-                model.body.xRot = Mth.lerp(slash, 0.06F, -0.10F) * w;
 
                 mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -0.65F, -2.15F));
                 mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.88F, 0.72F));
@@ -127,10 +123,6 @@ public final class TsaritsaVisualRenderer {
                 float lift = WindGliderRenderer.smoothStep01(t / 0.32F);
                 float slam = WindGliderRenderer.smoothStep01((t - 0.32F) / 0.45F);
                 float armX = (t < 0.32F) ? Mth.lerp(lift, -1.35F, -2.65F) : Mth.lerp(slam, -2.65F, -0.45F);
-                float bodyX = (t < 0.32F) ? Mth.lerp(lift, 0.0F, -0.12F) : Mth.lerp(slam, -0.12F, 0.34F);
-
-                model.body.xRot = Mth.lerp(w, model.body.xRot, bodyX);
-                model.body.yRot = castDir * (t < 0.32F ? -0.15F * lift : 0.22F * slam) * w;
 
                 mainPart.xRot = Mth.lerp(w, mainPart.xRot, armX);
                 mainPart.yRot = castDir * (t < 0.32F ? 0.20F : -0.10F) * w;
@@ -252,6 +244,7 @@ public final class TsaritsaVisualRenderer {
         boolean supportBurst = ClientAuraTracker.isTsaritsaSupportBurst(id) || activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT;
         boolean dpsSeal = ClientAuraTracker.isTsaritsaDpsSeal(id);
 
+        renderIdleThrone(entity, poseStack, buffer);
         if (!crown && !supportBurst && !dpsSeal && activeAnim != ClientAuraTracker.ANIM_TSARITSA_BURST_DPS) return;
 
         Minecraft mc = Minecraft.getInstance();
@@ -260,10 +253,15 @@ public final class TsaritsaVisualRenderer {
 
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
-        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+        if (d != null && !d.tsaritsaIdleYawSet) {
+            d.tsaritsaIdleYaw = entity.yBodyRot;
+            d.tsaritsaIdleYawSet = true;
+        }
+        float bodyYaw = (d != null && d.tsaritsaIdleYawSet) ? d.tsaritsaIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer. getTranslucentNoDepthWrite());
 
         if (crown) {
+            VertexConsumer crownVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
             poseStack.pushPose();
             float bob = Mth.sin(time * 0.15F) * 0.05F;
             poseStack.translate(0.0F, entity.getBbHeight() + 0.42F + bob, 0.0F);
@@ -283,9 +281,9 @@ public final class TsaritsaVisualRenderer {
             for (float[] f : faces) {
                 float x0 = f[0], z0 = f[1], x1 = f[2], z1 = f[3];
                 float mx = (x0 + x1) * 0.5F, mz = (z0 + z1) * 0.5F;
-                WindGliderRenderer.emitDoubleQuad(vc, mat, x0, 0.0F, z0, x1, 0.0F, z1, x1, baseH, z1, x0, baseH, z0, br, bg, bb, 235);
-                WindGliderRenderer.emitDoubleQuad(vc, mat, x0, baseH, z0, x1, baseH, z1, mx, peakH, mz, mx, peakH, mz, pr, pg, pb, 245);
-                WindGliderRenderer.renderCloverCrossXZ(vc, mat, mx, peakH + 0.04F, mz, 0.08F, 245, 255, 255, 250);
+                WindGliderRenderer.emitDoubleQuad(crownVc, mat, x0, 0.0F, z0, x1, 0.0F, z1, x1, baseH, z1, x0, baseH, z0, br, bg, bb, 255);
+                WindGliderRenderer.emitDoubleQuad(crownVc, mat, x0, baseH, z0, x1, baseH, z1, mx, peakH, mz, mx, peakH, mz, pr, pg, pb, 255);
+                WindGliderRenderer.renderCloverCrossXZ(crownVc, mat, mx, peakH + 0.04F, mz, 0.08F, 245, 255, 255, 255);
             }
             poseStack.popPose();
         }
@@ -432,5 +430,233 @@ public final class TsaritsaVisualRenderer {
                 poseStack.popPose();
             }
         }
+    }
+
+    private static float stepIdleFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.tsaritsaIdleLastMs <= 0L) {
+            d.tsaritsaIdleLastMs = nowMs;
+            if (d.tsaritsaIdle) {
+                d.tsaritsaIdleFade = Math.min(1.0F, d.tsaritsaIdleFade + 0.016F / 0.45F);
+            }
+        } else if (nowMs > d.tsaritsaIdleLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.tsaritsaIdleLastMs) / 1000.0F);
+            d.tsaritsaIdleLastMs = nowMs;
+            if (d.tsaritsaIdle) {
+                d.tsaritsaIdleFade = Math.min(1.0F, d.tsaritsaIdleFade + dt / 0.45F);
+            } else {
+                d.tsaritsaIdleFade = Math.max(0.0F, d.tsaritsaIdleFade - dt / 0.35F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.tsaritsaIdleFade);
+    }
+
+    public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (!ClientAuraTracker.isTsaritsaIdle(entity.getId())) {
+            ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
+            if (dOff != null) dOff.tsaritsaIdleYawSet = false;
+            return false;
+        }
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) {
+            if (d != null && !d.tsaritsaIdle) d.tsaritsaIdleYawSet = false;
+            return false;
+        }
+        if (d != null) {
+            if (!d.tsaritsaIdleYawSet) {
+                d.tsaritsaIdleYaw = entity.yBodyRot;
+                d.tsaritsaIdleYawSet = true;
+            }
+            entity.yBodyRot = d.tsaritsaIdleYaw;
+            entity.yBodyRotO = d.tsaritsaIdleYaw;
+        }
+
+        float sitDropY = 3.0F * w;
+        model.body.y += sitDropY;
+        model.head.y += sitDropY;
+        model.hat.y += sitDropY;
+        model.rightArm.y += sitDropY;
+        model.leftArm.y += sitDropY;
+        model.rightLeg.y += sitDropY;
+        model.leftLeg.y += sitDropY;
+
+        // Leaning slightly forward reviewing documents on the ice desk
+        model.body.xRot = Mth.lerp(w, model.body.xRot, 0.08F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.34F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), -0.08F);
+        model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+        model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+        // Left hand resting thoughtfully near chin; right hand resting on open book/papers
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.24F);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.34F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.14F);
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.78F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, 0.16F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.08F);
+        // Crossed/regal seated legs under the desk
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -1.32F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -1.14F);
+        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, -0.14F);
+        model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, 0.14F);
+        return true;
+    }
+
+    public static void renderIdleThrone(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        if (!ClientAuraTracker.isTsaritsaIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.01F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) return;
+
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+        poseStack.translate(0.0F, 0.0F, -0.08F);
+        poseStack.scale(fade, fade, fade);
+
+        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        Matrix4f mat = poseStack.last().pose();
+
+        // 1. Stepped Frosted Obsidian & Glacial-Blue Dais + Seat
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.68F, 0.0F, -0.58F, 0.68F, 0.08F, 0.50F, 35, 68, 118, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.56F, 0.08F, -0.50F, 0.56F, 0.16F, 0.38F, 55, 115, 185, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.44F, 0.16F, -0.44F, 0.44F, 0.58F, 0.28F, 68, 148, 218, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.40F, 0.58F, -0.40F, 0.40F, 0.65F, 0.26F, 175, 236, 255, 255);
+
+        // 2. Spiky Armrests & Lower Crystal Buttresses
+        for (int side : new int[]{-1, 1}) {
+            float ax0 = side < 0 ? -0.56F : 0.38F;
+            float ax1 = side < 0 ? -0.38F : 0.56F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0, 0.16F, -0.40F, ax1, 0.88F, 0.30F, 52, 118, 192, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0 - side * 0.02F, 0.84F, -0.38F, ax1 - side * 0.02F, 0.91F, 0.34F, 175, 236, 255, 255);
+            // Forward & outward spiky crystal claws on armrest
+            for (int cl = 0; cl < 2; cl++) {
+                poseStack.pushPose();
+                poseStack.translate(side * (0.48F + cl * 0.06F), 0.88F - cl * 0.12F, 0.30F - cl * 0.18F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(32.0F - cl * 14.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-side * (10.0F + cl * 18.0F)));
+                Matrix4f cMat = poseStack.last().pose();
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, cMat, -0.055F, 0.0F, -0.055F, 0.055F, 0.24F, 0.055F, 145, 224, 255, 255);
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, cMat, -0.03F, 0.24F, -0.03F, 0.03F, 0.38F, 0.03F, 238, 253, 255, 255);
+                poseStack.popPose();
+            }
+        }
+
+        // 3. Tall Ultra-Spiky Jagged Cryo Backrest (9 stepped crystalline spires + glowing apex star)
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.50F, 0.58F, -0.48F, 0.50F, 1.56F, -0.34F, 48, 112, 185, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.38F, 0.66F, -0.35F, 0.38F, 1.48F, -0.31F, 125, 205, 252, 255);
+        float[][] spires = new float[][]{
+            {0.0F, 1.54F, -0.41F, 0.0F, 0.0F, 0.14F, 1.12F},
+            {-0.25F, 1.50F, -0.41F, -10.0F, 8.0F, 0.10F, 0.86F},
+            {0.25F, 1.50F, -0.41F, -10.0F, -8.0F, 0.10F, 0.86F},
+            {-0.46F, 1.38F, -0.39F, -16.0F, 20.0F, 0.085F, 0.72F},
+            {0.46F, 1.38F, -0.39F, -16.0F, -20.0F, 0.085F, 0.72F},
+            {-0.58F, 1.14F, -0.36F, -14.0F, 34.0F, 0.075F, 0.58F},
+            {0.58F, 1.14F, -0.36F, -14.0F, -34.0F, 0.075F, 0.58F},
+            {-0.62F, 0.82F, -0.33F, -10.0F, 48.0F, 0.065F, 0.45F},
+            {0.62F, 0.82F, -0.33F, -10.0F, -48.0F, 0.065F, 0.45F}
+        };
+        for (float[] sp : spires) {
+            poseStack.pushPose();
+            poseStack.translate(sp[0], sp[1], sp[2]);
+            poseStack.mulPose(Axis.XP.rotationDegrees(sp[3]));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(sp[4]));
+            Matrix4f sMat = poseStack.last().pose();
+            float w = sp[5], h = sp[6];
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w, 0.0F, -w, w, h * 0.48F, w, 72, 162, 232, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w * 0.68F, h * 0.48F, -w * 0.68F, w * 0.68F, h * 0.78F, w * 0.68F, 155, 228, 255, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, sMat, -w * 0.34F, h * 0.78F, -w * 0.34F, w * 0.34F, h, w * 0.34F, 240, 253, 255, 255);
+            poseStack.popPose();
+        }
+
+        // Glowing 4-Pointed Cryo Star at throne apex
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 2.74F, -0.41F);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(time * 0.08F) * 8.0F));
+        Matrix4f starMat = poseStack.last().pose();
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.045F, -0.18F, -0.035F, 0.045F, 0.18F, 0.035F, 215, 248, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.18F, -0.045F, -0.035F, 0.18F, 0.045F, 0.035F, 215, 248, 255, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, starMat, -0.075F, -0.075F, -0.045F, 0.075F, 0.075F, 0.045F, 255, 255, 255, 255);
+        poseStack.popPose();
+
+        // 4. Frosted-Ice Royal Desk in front of Tsaritsa + Stacks of Books & Documents
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.0F, 0.66F);
+        Matrix4f dMat = poseStack.last().pose();
+        // Desk tabletop & glowing cyan-ice edge trim
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.76F, 0.80F, -0.26F, 0.76F, 0.86F, 0.26F, 58, 132, 205, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.78F, 0.83F, -0.28F, 0.78F, 0.875F, 0.28F, 185, 240, 255, 255);
+        // Sculpted ice desk legs & under-brackets
+        for (int side : new int[]{-1, 1}) {
+            float lx0 = side < 0 ? -0.68F : 0.54F;
+            float lx1 = side < 0 ? -0.54F : 0.68F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, lx0, 0.0F, -0.14F, lx1, 0.80F, 0.14F, 48, 108, 178, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, lx0 - 0.02F, 0.0F, -0.18F, lx1 + 0.02F, 0.08F, 0.18F, 145, 224, 255, 255);
+        }
+
+        // Center: Open Royal Dossier / Book + Inkwell & Quill
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.18F, 0.875F, -0.12F, 0.18F, 0.895F, 0.12F, 42, 68, 122, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.165F, 0.895F, -0.105F, -0.01F, 0.918F, 0.105F, 244, 236, 218, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, 0.01F, 0.895F, -0.105F, 0.165F, 0.918F, 0.105F, 244, 236, 218, 255);
+        // Inkwell & tiny ice quill
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.27F, 0.875F, -0.05F, -0.21F, 0.935F, 0.01F, 32, 42, 72, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.245F, 0.935F, -0.025F, -0.225F, 1.04F, -0.005F, 215, 248, 255, 255);
+
+        // Left side of desk (+X): Neat stack of 4 books & parchment
+        for (int b = 0; b < 4; b++) {
+            float by = 0.875F + b * 0.048F;
+            float rot = (b % 2 == 0) ? 4.0F : -6.0F;
+            poseStack.pushPose();
+            poseStack.translate(0.46F, by, 0.02F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rot));
+            Matrix4f bMat = poseStack.last().pose();
+            int cr = (b % 2 == 0) ? 55 : 85;
+            int cg = (b % 2 == 0) ? 88 : 148;
+            int cb = (b % 2 == 0) ? 148 : 215;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.13F, 0.0F, -0.10F, 0.13F, 0.036F, 0.10F, cr, cg, cb, 255);
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.115F, 0.036F, -0.088F, 0.115F, 0.048F, 0.088F, 242, 234, 216, 255);
+            poseStack.popPose();
+        }
+
+        // Right side of desk (-X): Tall stack of 8 documents/tomes (matching reference!)
+        for (int b = 0; b < 8; b++) {
+            float by = 0.875F + b * 0.046F;
+            float rot = ((b * 11) % 17) - 8.0F;
+            float ox = ((b % 3) - 1) * 0.012F;
+            poseStack.pushPose();
+            poseStack.translate(-0.48F + ox, by, -0.02F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(rot));
+            Matrix4f bMat = poseStack.last().pose();
+            boolean blueCover = (b % 3 == 0);
+            if (blueCover) {
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.14F, 0.0F, -0.11F, 0.14F, 0.032F, 0.11F, 48, 82, 145, 255);
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.125F, 0.032F, -0.095F, 0.125F, 0.046F, 0.095F, 242, 234, 214, 255);
+            } else {
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.135F, 0.0F, -0.105F, 0.135F, 0.042F, 0.105F, 238, 232, 216, 255);
+                ZhongliVisualRenderer.drawJadeArmorBox(solidVc, bMat, -0.138F, 0.016F, -0.108F, 0.138F, 0.024F, 0.108F, 135, 198, 245, 255);
+            }
+            poseStack.popPose();
+        }
+        poseStack.popPose();
+
+        // 5. Orbiting Cryo Crystal Shards around the throne
+        for (int i = 0; i < 4; i++) {
+            float ang = (float) (time * 0.06D + i * Math.PI * 0.5D);
+            poseStack.pushPose();
+            poseStack.translate(Mth.cos(ang) * 0.88F, 1.65F + Mth.sin(time * 0.12F + i) * 0.08F, -0.55F + Mth.sin(ang) * 0.18F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 3.0F + i * 45.0F));
+            Matrix4f shMat = poseStack.last().pose();
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, shMat, -0.045F, -0.11F, -0.045F, 0.045F, 0.11F, 0.045F, 210, 248, 255, 255);
+            poseStack.popPose();
+        }
+
+        poseStack.popPose();
     }
 }

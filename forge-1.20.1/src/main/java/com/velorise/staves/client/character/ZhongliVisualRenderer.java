@@ -194,6 +194,47 @@ public final class ZhongliVisualRenderer {
         }
     }
 
+    public static void renderEntityEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (ClientAuraRenderer.isRenderingScreen() || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        if (d == null) return;
+        long nowMs = System.currentTimeMillis();
+        float dt = d.zhongliIdleLastMs > 0L ? Math.min(0.1F, Math.max(0.0F, (nowMs - d.zhongliIdleLastMs) / 1000.0F)) : 0.016F;
+        d.zhongliIdleLastMs = nowMs;
+        if (d.zhongliIdleMeteor) {
+            d.zhongliIdleFade = Math.min(1.0F, d.zhongliIdleFade + dt / 0.45F);
+        } else {
+            d.zhongliIdleFade = Math.max(0.0F, d.zhongliIdleFade - dt / 0.35F);
+        }
+        float fade = WindGliderRenderer.smoothStep01(d.zhongliIdleFade);
+        if (fade <= 0.01F) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) return;
+
+        float pt = mc.getFrameTime();
+        float time = entity.tickCount + pt;
+        // Orbit around the player, bobbing up and down, rotating randomly on all axes
+        float orbitAngle = time * 0.045F;
+        float orbitRadius = 0.92F;
+        float ox = Mth.cos(orbitAngle) * orbitRadius;
+        float oz = Mth.sin(orbitAngle) * orbitRadius;
+        float wave = 0.65F * Mth.sin(time * 0.135F + 0.9F) + 0.35F * Mth.cos(time * 0.052F);
+        float oy = 1.425F + Mth.clamp(wave, -1.0F, 1.0F) * 0.375F;
+
+        float rotY = time * 2.30F + Mth.sin(time * 0.06F) * 35.0F;
+        float rotX = time * 1.60F + Mth.cos(time * 0.05F) * 40.0F;
+        float rotZ = time * 1.15F;
+
+        poseStack.pushPose();
+        poseStack.translate(ox, oy, oz);
+        poseStack.mulPose(Axis.YP.rotationDegrees(rotY));
+        poseStack.mulPose(Axis.XP.rotationDegrees(rotX));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(rotZ));
+        PlanetBefallMeteorRenderer.renderMeteorMesh(poseStack, buffer, 0.18F * fade, Math.max(8, Math.round(255.0F * fade)));
+        poseStack.popPose();
+
+    }
+
     public static void renderWorldMeteor(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         PlanetBefallMeteorRenderer.render(poseStack, bufferSource, camPos, now);
     }

@@ -43,7 +43,8 @@ public final class ModNetwork {
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
-        ElectricArcPayload payload = new ElectricArcPayload(-1, start.x, start.y, start.z, -1, end.x, end.y, end.z, durationTicks, color);
+        int tag = ((color & 0xFF000000) == 0x4E000000) ? -8 : -1;
+        ElectricArcPayload payload = new ElectricArcPayload(tag, start.x, start.y, start.z, tag, end.x, end.y, end.z, durationTicks, color);
         for (ServerPlayer player : PlayerLookup.around(level, start, 64.0D)) {
             ServerPlayNetworking.send(player, payload);
         }

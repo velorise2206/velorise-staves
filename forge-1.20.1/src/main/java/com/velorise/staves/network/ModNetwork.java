@@ -90,7 +90,8 @@ public final class ModNetwork {
     }
 
     public static void sendElectricArc(net.minecraft.server.level.ServerLevel level, net.minecraft.world.phys.Vec3 start, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
-        ElectricArcPacket packet = new ElectricArcPacket(-1, start.x, start.y, start.z, -1, end.x, end.y, end.z, durationTicks, color);
+        int tag = ((color & 0xFF000000) == 0x4E000000) ? -8 : -1;
+        ElectricArcPacket packet = new ElectricArcPacket(tag, start.x, start.y, start.z, tag, end.x, end.y, end.z, durationTicks, color);
         CHANNEL.send(PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(start.x, start.y, start.z, 64.0D, level.dimension())), packet);
     }
 

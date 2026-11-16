@@ -470,26 +470,34 @@ public final class ElementalReactionBadgeRenderer {
         }
         ClientAuraTracker.AuraDisplayData auraData = ClientAuraTracker.get(entity.getId());
         boolean isPetrified = auraData != null && System.currentTimeMillis() < auraData.petrifiedUntil;
-        float iceScale = entityScale * (isPetrified ? 1.012F : 1.025F);
-        poseStack.scale(-iceScale, -iceScale, iceScale);
-        poseStack.translate(0.0F, -1.501F, 0.0F);
-
-        VertexConsumer iceConsumer = buffer.getBuffer(isPetrified
-                ? RenderType.entityCutoutNoCull(STONE_STATUE_TEXTURE)
-                : RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
-        model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
-                isPetrified ? 0.96F : 0.47F,
-                isPetrified ? 0.92F : 0.88F,
-                isPetrified ? 0.84F : 1.0F,
-                isPetrified ? 1.00F : 0.45F);
-
         if (isPetrified) {
-            float crackScale = 1.002F;
-            poseStack.scale(crackScale, crackScale, crackScale);
-            VertexConsumer crackConsumer = buffer.getBuffer(RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
+            RenderType stoneType = ClientAuraRenderer.ShieldRenderTypes.getPetrifiedStone(STONE_STATUE_TEXTURE);
+            poseStack.pushPose();
+            float innerScale = entityScale * 1.002F;
+            poseStack.scale(-innerScale, -innerScale, innerScale);
+            poseStack.translate(0.0F, -1.501F, 0.0F);
+            model.renderToBuffer(poseStack, buffer.getBuffer(stoneType), FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                    0.96F, 0.92F, 0.84F, 1.00F);
+            poseStack.popPose();
+
+            float outerScale = entityScale * 1.045F;
+            poseStack.scale(-outerScale, -outerScale, outerScale);
+            poseStack.translate(0.0F, -1.501F, 0.0F);
+            model.renderToBuffer(poseStack, buffer.getBuffer(stoneType), FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                    0.96F, 0.92F, 0.84F, 1.00F);
+
+            poseStack.scale(1.003F, 1.003F, 1.003F);
+            VertexConsumer crackConsumer = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.getPetrifiedCrack(FROSTED_ICE_TEXTURE));
             float pulse = 0.85F + 0.15F * (float) Math.sin(System.currentTimeMillis() * 0.005D);
             model.renderToBuffer(poseStack, crackConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
                     1.0F, 0.74F, 0.20F, 0.90F * pulse);
+        } else {
+            float iceScale = entityScale * 1.025F;
+            poseStack.scale(-iceScale, -iceScale, iceScale);
+            poseStack.translate(0.0F, -1.501F, 0.0F);
+            VertexConsumer iceConsumer = buffer.getBuffer(RenderType.entityTranslucent(FROSTED_ICE_TEXTURE));
+            model.renderToBuffer(poseStack, iceConsumer, FULL_BRIGHT, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY,
+                    0.47F, 0.88F, 1.0F, 0.45F);
         }
 
         poseStack.popPose();
@@ -542,7 +550,7 @@ public final class ElementalReactionBadgeRenderer {
                     && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && data.laylaDreamsphereUntil <= now
                     && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now
                     && !data.tsaritsaCrownActive && data.tsaritsaSyncUntil <= now
-                    && !data.nahidaIdleSwing && !data.nahidaViewfinder && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now
+                    && (!data.nahidaIdleSwing && data.nahidaIdleSwingFade <= 0.01F) && (!data.zhongliIdleMeteor && data.zhongliIdleFade <= 0.01F) && (!data.raidenIdle && data.raidenIdleFade <= 0.01F) && (!data.mavuikaIdle && data.mavuikaIdleFade <= 0.01F) && (data.furinaIdleMode == 0 && data.furinaIdleFade <= 0.01F) && (!data.ventiIdle && data.ventiIdleFade <= 0.01F) && (!data.tsaritsaIdle && data.tsaritsaIdleFade <= 0.01F) && !data.nahidaViewfinder && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now
                     && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
@@ -1921,12 +1929,15 @@ public final class ElementalReactionBadgeRenderer {
             normal = normal.normalize();
 
             int c = arc.color;
-            int r = (c == 0 || c == 0xBF40FF) ? 185 : ((c >> 16) & 0xFF);
-            int g = (c == 0 || c == 0xBF40FF) ? 90 : ((c >> 8) & 0xFF);
-            int bCol = (c == 0 || c == 0xBF40FF) ? 255 : (c & 0xFF);
+            boolean isWaterArc = (c == 0xBF40FE);
+            int r = (c == 0 || c == 0xBF40FF || isWaterArc) ? 185 : ((c >> 16) & 0xFF);
+            int g = (c == 0 || c == 0xBF40FF || isWaterArc) ? 90 : ((c >> 8) & 0xFF);
+            int bCol = (c == 0 || c == 0xBF40FF || isWaterArc) ? 255 : (c & 0xFF);
+            double outerW = isWaterArc ? 0.034D : 0.02D;
+            double coreW = isWaterArc ? 0.012D : 0.007D;
 
-            drawQuadRibbon(consumer, matrix, a, b, normal, 0.02D, r, g, bCol, 230);
-            drawQuadRibbon(consumer, matrix, a, b, normal, 0.007D, 255, 255, 255, 255);
+            drawQuadRibbon(consumer, matrix, a, b, normal, outerW, r, g, bCol, 230);
+            drawQuadRibbon(consumer, matrix, a, b, normal, coreW, 255, 255, 255, 255);
         }
     }
 

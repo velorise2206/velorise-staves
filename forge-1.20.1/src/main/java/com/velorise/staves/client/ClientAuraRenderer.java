@@ -11,6 +11,7 @@ import com.velorise.staves.client.character.NahidaVisualRenderer;
 import com.velorise.staves.client.character.NeuvilletteVisualRenderer;
 import com.velorise.staves.client.character.RaidenVisualRenderer;
 import com.velorise.staves.client.character.TsaritsaVisualRenderer;
+import com.velorise.staves.client.character.FurinaVisualRenderer;
 import com.velorise.staves.client.character.VentiVisualRenderer;
 import com.velorise.staves.client.character.XilonenVisualRenderer;
 import com.velorise.staves.client.character.ZhongliVisualRenderer;
@@ -98,6 +99,48 @@ public final class ClientAuraRenderer {
                         .setWriteMaskState(COLOR_DEPTH_WRITE)
                         .createCompositeState(false)
         );
+        public static RenderType getPetrifiedStone(ResourceLocation texture) {
+            return RenderType.create(
+                    "velorise_petrified_stone",
+                    DefaultVertexFormat.NEW_ENTITY,
+                    VertexFormat.Mode.QUADS,
+                    1536,
+                    true,
+                    false,
+                    RenderType.CompositeState.builder()
+                            .setShaderState(RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER)
+                            .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
+                            .setTransparencyState(NO_TRANSPARENCY)
+                            .setCullState(NO_CULL)
+                            .setLightmapState(LIGHTMAP)
+                            .setOverlayState(OVERLAY)
+                            .setDepthTestState(LEQUAL_DEPTH_TEST)
+                            .setWriteMaskState(COLOR_DEPTH_WRITE)
+                            .setLayeringState(POLYGON_OFFSET_LAYERING)
+                            .createCompositeState(true)
+            );
+        }
+        public static RenderType getPetrifiedCrack(ResourceLocation texture) {
+            return RenderType.create(
+                    "velorise_petrified_crack",
+                    DefaultVertexFormat.NEW_ENTITY,
+                    VertexFormat.Mode.QUADS,
+                    1536,
+                    true,
+                    true,
+                    RenderType.CompositeState.builder()
+                            .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
+                            .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
+                            .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                            .setCullState(NO_CULL)
+                            .setLightmapState(LIGHTMAP)
+                            .setOverlayState(OVERLAY)
+                            .setDepthTestState(LEQUAL_DEPTH_TEST)
+                            .setWriteMaskState(COLOR_WRITE)
+                            .setLayeringState(VIEW_OFFSET_Z_LAYERING)
+                            .createCompositeState(true)
+            );
+        }
         private ShieldRenderTypes(String n, Runnable s, Runnable c) { super(n, s, c); }
     }
 
@@ -342,6 +385,7 @@ public final class ClientAuraRenderer {
         model.leftLeg.yRot = -0.005F;
         model.body.zRot = 0.0F;
         model.body.yRot = 0.0F;
+        model.head.zRot = 0.0F;
         model.hat.zRot = 0.0F;
         model.hat.yRot = 0.0F;
     }
@@ -377,6 +421,11 @@ public final class ClientAuraRenderer {
         if (ZhongliVisualRenderer.applyHumanoidAnimation(entity, model, ageInTicks, activeAnim, t)) return;
         if (WindGliderRenderer.applyAuxiliaryStaffHumanoidAnimation(entity, model, ageInTicks, activeAnim, t)) return;
         if (NahidaVisualRenderer.applyIdleAndViewfinderHumanoidPose(entity, model, ageInTicks)) return;
+        if (RaidenVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (MavuikaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (FurinaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (VentiVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (TsaritsaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (VentiVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
 
@@ -395,6 +444,16 @@ public final class ClientAuraRenderer {
         if (entity == null || stack == null || stack.isEmpty()) return;
         if (displayContext != ItemDisplayContext.THIRD_PERSON_RIGHT_HAND && displayContext != ItemDisplayContext.THIRD_PERSON_LEFT_HAND) return;
         if (WindGliderRenderer.applyThirdPersonPlungeTransform(entity, leftHand, poseStack)) return;
+        ClientAuraTracker.AuraDisplayData idleChk = ClientAuraTracker.get(entity.getId());
+        if (idleChk != null && (idleChk.raidenIdle || idleChk.raidenIdleFade > 0.05F
+                || idleChk.mavuikaIdle || idleChk.mavuikaIdleFade > 0.05F
+                || idleChk.furinaIdleMode > 0 || idleChk.furinaIdleFade > 0.05F
+                || idleChk.ventiIdle || idleChk.ventiIdleFade > 0.05F
+                || idleChk.tsaritsaIdle || idleChk.tsaritsaIdleFade > 0.05F
+                || idleChk.nahidaIdleSwing || idleChk.nahidaIdleSwingFade > 0.05F)) {
+            poseStack.scale(0.0F, 0.0F, 0.0F);
+            return;
+        }
         if (!(stack.getItem() instanceof ArcaneStaffItem staff)) return;
         ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(stack);
         long now = System.currentTimeMillis();
@@ -405,6 +464,7 @@ public final class ClientAuraRenderer {
         if (ZhongliVisualRenderer.applyThirdPersonItemTransform(entity, stack, staff, effKind, leftHand, poseStack, data, activeAnim, now)) return;
         if (RaidenVisualRenderer.applyThirdPersonItemTransform(effKind, leftHand, poseStack, data, activeAnim, now)) return;
         MavuikaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack);
+        NahidaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, poseStack);
     }
 
     public static void applyFirstPersonStaffTransform(AbstractClientPlayer player, float partialTicks, InteractionHand hand, ItemStack stack, PoseStack poseStack) {
@@ -412,6 +472,11 @@ public final class ClientAuraRenderer {
         HumanoidArm arm = (hand == InteractionHand.MAIN_HAND) ? player.getMainArm() : player.getMainArm().getOpposite();
         float dir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
         if (WindGliderRenderer.applyFirstPersonPlungeTransform(player, dir, poseStack)) return;
+        ClientAuraTracker.AuraDisplayData fpIdle = ClientAuraTracker.get(player.getId());
+        if (fpIdle != null && (fpIdle.ventiIdle || fpIdle.ventiIdleFade > 0.05F)) {
+            poseStack.scale(0.0F, 0.0F, 0.0F);
+            return;
+        }
         if (!(stack.getItem() instanceof ArcaneStaffItem staff)) return;
         ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(stack);
         WindGliderRenderer.pollClientUseTransitions(player);
@@ -431,6 +496,7 @@ public final class ClientAuraRenderer {
     }
 
     public static boolean setupFirstPersonVortexMainArmPose(AbstractClientPlayer player, float partialTicks, HumanoidArm mainArm, PoseStack poseStack) {
+        if (NahidaVisualRenderer.setupFirstPersonCameraArmPose(player, mainArm, poseStack)) return true;
         return ZhongliVisualRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack);
     }
 
@@ -445,6 +511,9 @@ public final class ClientAuraRenderer {
         if (effKind == ArcaneStaffItem.Kind.SPLENDOR) {
             return WindGliderRenderer.setupFirstPersonSplendorOffhandPose(player, offArm, poseStack);
         }
+        if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
+            return NahidaVisualRenderer.setupFirstPersonCameraArmPose(player, offArm, poseStack);
+        }
         return false;
     }
 
@@ -454,6 +523,7 @@ public final class ClientAuraRenderer {
         XilonenVisualRenderer.renderRollerSkatesAndSamples(entity, model, partialTicks, poseStack, buffer);
         WindGliderRenderer.renderGliderWings(entity, model, partialTicks, poseStack, buffer);
         MavuikaVisualRenderer.renderMavuikaVirtualHelmet(entity, model, partialTicks, poseStack, buffer);
+        MavuikaVisualRenderer.renderIdleSunglasses(entity, model, partialTicks, poseStack, buffer);
     }
 
     public static void renderJadeShieldBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
@@ -473,6 +543,11 @@ public final class ClientAuraRenderer {
         MavuikaVisualRenderer.renderMavuikaSunAuraRing(entity, poseStack, buffer);
         RaidenVisualRenderer.renderRaidenEyeRing(entity, poseStack, buffer);
         NahidaVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
+        ZhongliVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
+        RaidenVisualRenderer.renderIdleEffects(entity, poseStack, buffer);
+        MavuikaVisualRenderer.renderIdleBike(entity, poseStack, buffer);
+        FurinaVisualRenderer.renderIdleEffects(entity, poseStack, buffer);
+        VentiVisualRenderer.renderIdleEffects(entity, poseStack, buffer);
         TsaritsaVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
         XilonenVisualRenderer.renderXilonenDjBooth(entity, poseStack, buffer);
         ElementalReactionBadgeRenderer.renderReactionBadges(entity, poseStack, buffer);

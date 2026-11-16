@@ -3,6 +3,7 @@ package com.velorise.staves.client.character;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import com.velorise.staves.client.ClientAuraRenderer;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.client.glider.WindGliderRenderer;
 import com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer;
@@ -472,5 +473,127 @@ public final class VentiVisualRenderer {
             }
         }
         return true;
+    }
+
+    private static float stepIdleFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.ventiIdleLastMs <= 0L) {
+            d.ventiIdleLastMs = nowMs;
+            if (d.ventiIdle) {
+                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + 0.016F / 0.45F);
+            }
+        } else if (nowMs > d.ventiIdleLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.ventiIdleLastMs) / 1000.0F);
+            d.ventiIdleLastMs = nowMs;
+            if (d.ventiIdle) {
+                d.ventiIdleFade = Math.min(1.0F, d.ventiIdleFade + dt / 0.45F);
+            } else {
+                d.ventiIdleFade = Math.max(0.0F, d.ventiIdleFade - dt / 0.35F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.ventiIdleFade);
+    }
+
+    public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
+        if (!ClientAuraTracker.isVentiIdle(entity.getId())) {
+            ClientAuraTracker.AuraDisplayData dOff = ClientAuraTracker.get(entity.getId());
+            if (dOff != null) dOff.ventiIdleYawSet = false;
+            return false;
+        }
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        float w = stepIdleFade(d, System.currentTimeMillis());
+        if (w <= 0.01F) {
+            if (d != null && !d.ventiIdle) d.ventiIdleYawSet = false;
+            return false;
+        }
+        if (d != null) {
+            if (!d.ventiIdleYawSet) {
+                d.ventiIdleYaw = entity.yBodyRot;
+                d.ventiIdleYawSet = true;
+            }
+            entity.yBodyRot = d.ventiIdleYaw;
+            entity.yBodyRotO = d.ventiIdleYaw;
+        }
+
+        float strum = Mth.sin(ageInTicks * 0.28F);
+        model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+        model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+        // Left hand cradles the Holy Lyre in front of chest
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.05F);
+        model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.46F);
+        // Right hand strums across the strings
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.98F + strum * 0.14F);
+        model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.35F - strum * 0.08F);
+        model.head.zRot = Mth.lerp(w, model.head.zRot, 0.12F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.14F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.0F);
+        return true;
+    }
+
+    public static void renderIdleEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        if (!ClientAuraTracker.isVentiIdle(id)) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        float fade = stepIdleFade(d, System.currentTimeMillis());
+        if (fade <= 0.01F) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
+
+        float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+        float time = entity.tickCount + pt;
+        poseStack.pushPose();
+        if (isFirstPersonSelf) {
+            float camYaw = Mth.rotLerp(pt, entity.yRotO, entity.getYRot());
+            float camPitch = Mth.rotLerp(pt, entity.xRotO, entity.getXRot());
+            poseStack.translate(0.0F, entity.getEyeHeight(), 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-camYaw));
+            poseStack.mulPose(Axis.XP.rotationDegrees(camPitch));
+            poseStack.translate(-0.16F, -0.20F + Mth.sin(time * 0.12F) * 0.012F, 0.44F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(16.0F));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(12.0F));
+            poseStack.scale(fade * 0.85F, fade * 0.85F, fade * 0.85F);
+        } else {
+            if (d != null && !d.ventiIdleYawSet) {
+                d.ventiIdleYaw = entity.yBodyRot;
+                d.ventiIdleYawSet = true;
+            }
+            float bodyYaw = (d != null && d.ventiIdleYawSet) ? d.ventiIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            poseStack.translate(0.06F, 1.08F + Mth.sin(time * 0.12F) * 0.02F, 0.38F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(12.0F));
+            poseStack.scale(fade, fade, fade);
+        }
+
+        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        Matrix4f mat = poseStack.last().pose();
+        // Holy Lyre golden frame & teal soundbox
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.14F, -0.12F, -0.03F, 0.14F, -0.02F, 0.03F, 45, 195, 165, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.16F, -0.02F, -0.025F, -0.11F, 0.24F, 0.025F, 255, 212, 75, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, 0.11F, -0.02F, -0.025F, 0.16F, 0.24F, 0.025F, 255, 212, 75, 255);
+        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.14F, 0.21F, -0.02F, 0.14F, 0.26F, 0.02F, 255, 212, 75, 255);
+        // 5 glowing Anemo strings
+        for (int s = -2; s <= 2; s++) {
+            float sx = s * 0.042F;
+            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, sx - 0.005F, -0.02F, -0.006F, sx + 0.005F, 0.21F, 0.006F, 130, 255, 225, 255);
+        }
+
+        // Swirling wind notes around Venti
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+        int aNote = Math.max(15, Math.round(200.0F * fade));
+        for (int n = 0; n < 3; n++) {
+            float ang = (float) (time * 0.09D + n * Math.PI * 2.0D / 3.0D);
+            float nx = Mth.cos(ang) * 0.48F;
+            float nz = Mth.sin(ang) * 0.48F - 0.25F;
+            float ny = 0.05F + Mth.sin(time * 0.16F + n * 1.9F) * 0.14F;
+            poseStack.pushPose();
+            poseStack.translate(nx, ny, nz);
+            poseStack.mulPose(Axis.YP.rotationDegrees(time * 4.0F));
+            Matrix4f nMat = poseStack.last().pose();
+            WindGliderRenderer.emitDoubleQuad(transVc, nMat, -0.045F, -0.045F, 0.0F, 0.045F, -0.045F, 0.0F, 0.045F, 0.045F, 0.0F, -0.045F, 0.045F, 0.0F, 125, 255, 215, aNote);
+            poseStack.popPose();
+        }
+
+        poseStack.popPose();
     }
 }

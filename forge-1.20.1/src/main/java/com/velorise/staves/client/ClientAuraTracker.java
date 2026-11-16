@@ -149,6 +149,34 @@ public final class ClientAuraTracker {
 
         // Nahida states
         public boolean nahidaIdleSwing = false;
+        public float nahidaIdleSwingFade = 0.0F;
+        public long nahidaIdleSwingLastMs = 0L;
+        public boolean zhongliIdleMeteor = false;
+        public float zhongliIdleFade = 0.0F;
+        public long zhongliIdleLastMs = 0L;
+        public boolean raidenIdle = false;
+        public float raidenIdleFade = 0.0F;
+        public long raidenIdleLastMs = 0L;
+        public boolean mavuikaIdle = false;
+        public float mavuikaIdleFade = 0.0F;
+        public long mavuikaIdleLastMs = 0L;
+        public long mavuikaIdleStartMs = 0L;
+        public float mavuikaIdleYaw = 0.0F;
+        public boolean mavuikaIdleYawSet = false;
+        public int furinaIdleMode = 0; // 0=off, 1=Ousia Salon, 2=Pneuma Bubble+Cake
+        public float furinaIdleFade = 0.0F;
+        public long furinaIdleLastMs = 0L;
+        public int furinaIdleLastMode = 0;
+        public boolean ventiIdle = false;
+        public float ventiIdleFade = 0.0F;
+        public long ventiIdleLastMs = 0L;
+        public float ventiIdleYaw = 0.0F;
+        public boolean ventiIdleYawSet = false;
+        public boolean tsaritsaIdle = false;
+        public float tsaritsaIdleFade = 0.0F;
+        public long tsaritsaIdleLastMs = 0L;
+        public float tsaritsaIdleYaw = 0.0F;
+        public boolean tsaritsaIdleYawSet = false;
         public boolean nahidaViewfinder = false;
         public long skandhaMarkedUntil = 0L;
         public int nahidaShrineMask = 0;
@@ -500,6 +528,43 @@ public final class ClientAuraTracker {
             entry.nahidaViewfinder = (animType == 4002);
             return;
         }
+        if (animType == 4010 || animType == 4011) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.zhongliIdleMeteor = (animType == 4011);
+            return;
+        }
+        if (animType == 4020 || animType == 4021) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.raidenIdle = (animType == 4021);
+            return;
+        }
+        if (animType == 4030 || animType == 4031) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            boolean was = entry.mavuikaIdle;
+            entry.mavuikaIdle = (animType == 4031);
+            if (entry.mavuikaIdle && !was) {
+                entry.mavuikaIdleStartMs = now;
+            }
+            return;
+        }
+        if (animType >= 4040 && animType <= 4042) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.furinaIdleMode = animType - 4040;
+            if (entry.furinaIdleMode > 0) {
+                entry.furinaIdleLastMode = entry.furinaIdleMode;
+            }
+            return;
+        }
+        if (animType == 4050 || animType == 4051) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.ventiIdle = (animType == 4051);
+            return;
+        }
+        if (animType == 4060 || animType == 4061) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.tsaritsaIdle = (animType == 4061);
+            return;
+        }
         if (animType >= 4100 && animType <= 4101) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.skandhaMarkedUntil = (animType == 4101) ? (now + 25000L) : 0L;
@@ -600,8 +665,8 @@ public final class ClientAuraTracker {
             case ANIM_LAYLA_BURST -> 1600L;
             case ANIM_NAHIDA_NA_1, ANIM_NAHIDA_NA_2, ANIM_NAHIDA_NA_3 -> 380L;
             case ANIM_NAHIDA_NA_4 -> 520L;
-            case ANIM_NAHIDA_CA -> 620L;
-            case ANIM_NAHIDA_TAP_E -> 480L;
+            case ANIM_NAHIDA_CA -> 650L;
+            case ANIM_NAHIDA_TAP_E -> 650L;
             case ANIM_NAHIDA_HOLD_E -> 520L;
             case ANIM_NAHIDA_BURST -> 2000L;
             case ANIM_TSARITSA_BOW_NA -> 350L;
@@ -860,7 +925,7 @@ public final class ClientAuraTracker {
             }
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && !entry.nahidaIdleSwing && !entry.nahidaViewfinder && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && (!entry.nahidaIdleSwing && entry.nahidaIdleSwingFade <= 0.01F) && (!entry.zhongliIdleMeteor && entry.zhongliIdleFade <= 0.01F) && (!entry.raidenIdle && entry.raidenIdleFade <= 0.01F) && (!entry.mavuikaIdle && entry.mavuikaIdleFade <= 0.01F) && (entry.furinaIdleMode == 0 && entry.furinaIdleFade <= 0.01F) && (!entry.ventiIdle && entry.ventiIdleFade <= 0.01F) && (!entry.tsaritsaIdle && entry.tsaritsaIdleFade <= 0.01F) && !entry.nahidaViewfinder && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -1154,7 +1219,37 @@ public final class ClientAuraTracker {
 
     public static boolean isNahidaIdleSwing(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        return data != null && data.nahidaIdleSwing;
+        return data != null && (data.nahidaIdleSwing || data.nahidaIdleSwingFade > 0.01F);
+    }
+
+    public static boolean isZhongliIdleMeteor(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.zhongliIdleMeteor;
+    }
+
+    public static boolean isRaidenIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.raidenIdle || data.raidenIdleFade > 0.01F);
+    }
+
+    public static boolean isMavuikaIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.mavuikaIdle || data.mavuikaIdleFade > 0.01F);
+    }
+
+    public static boolean isFurinaIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.furinaIdleMode > 0 || data.furinaIdleFade > 0.01F);
+    }
+
+    public static boolean isVentiIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.ventiIdle || data.ventiIdleFade > 0.01F);
+    }
+
+    public static boolean isTsaritsaIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.tsaritsaIdle || data.tsaritsaIdleFade > 0.01F);
     }
 
     public static boolean isNahidaViewfinder(int entityId) {
