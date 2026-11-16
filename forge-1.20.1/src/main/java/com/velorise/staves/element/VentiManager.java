@@ -933,7 +933,7 @@ public final class VentiManager {
             }
             case ELECTRO_CHARGED -> {
                 if (emitVisual) {
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                     level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.7F);
                 }
             }
@@ -968,7 +968,7 @@ public final class VentiManager {
             case SUPERCONDUCT -> {
                 if (emitVisual) {
                     level.sendParticles(ParticleTypes.SNOWFLAKE, pos.x, pos.y + 0.8D, pos.z, 10, 1.0D, 0.4D, 1.0D, 0.03D);
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 6, 0.7D, 0.4D, 0.7D, 0.05D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                     level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.8F, 1.2F);
                 }
                 long debuffEnd = level.getGameTime() + 240L; // 12 seconds Physical RES shred (-40% Physical RES)

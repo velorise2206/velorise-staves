@@ -459,11 +459,6 @@ public final class ElementalGaugeManager {
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ANEMO);
             default -> {}
         }
-        switch (reaction) {
-            case FORWARD_VAPORIZE, REVERSE_VAPORIZE, ELECTRO_CHARGED, FROZEN, BLOOM, REVERSE_BLOOM, OVERVAPE ->
-                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_HYDRO);
-            default -> {}
-        }
         if (attacker.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
                 && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.OMNI) {
             com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_OMNI);
@@ -992,7 +987,7 @@ public final class ElementalGaugeManager {
                     notifyResonanceReaction(ElementalReaction.AGGRAVATE, attacker, now);
                     NahidaManager.onElementalReactionOrCoreDamage(level, target, attacker);
                     if (attacker != null) com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 1.0D, target.getZ(), 18, 0.35D, 0.4D, 0.35D, 0.08D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                     level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.8F, 1.6F);
                 }
                 if (!targetGauges.containsKey(Element.DENDRO) && !targetGauges.containsKey(Element.HYDRO) && !targetGauges.containsKey(Element.PYRO) && !targetGauges.containsKey(Element.CRYO)) {

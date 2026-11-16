@@ -233,7 +233,7 @@ public final class DendroCoreManager {
         Vec3 p0 = pos.add(0, 0.35D, 0);
 
         // Electro trigger burst at origin: crisp electric sparks + luminous glow
-        core.level.sendParticles(ParticleTypes.ELECTRIC_SPARK, p0.x, p0.y, p0.z, 6, 0.15D, 0.15D, 0.15D, 0.04D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         core.level.sendParticles(ParticleTypes.GLOW, p0.x, p0.y, p0.z, 8, 0.2D, 0.2D, 0.2D, 0.04D);
         core.level.playSound(null, p0.x, p0.y, p0.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
 
@@ -361,7 +361,7 @@ public final class DendroCoreManager {
                 // Impact burst: luminous green flash, electric sparks, and chime
                 level.sendParticles(HYPERBLOOM_FOOTPRINT, hitPos.x, hitPos.y, hitPos.z, 16, 0.25D, 0.25D, 0.25D, 0.05D);
                 level.sendParticles(ParticleTypes.GLOW, hitPos.x, hitPos.y, hitPos.z, 12, 0.25D, 0.25D, 0.25D, 0.04D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 6, 0.2D, 0.2D, 0.2D, 0.03D);
+                // ParticleTypes.ELECTRIC_SPARK removed
                 level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.8F);
 
                 // Genshin Impact: Hyperbloom deals small AoE splash damage with 1.0m radius around impact point
@@ -439,7 +439,7 @@ public final class DendroCoreManager {
             level.sendParticles(ParticleTypes.GLOW, nextPos.x, nextPos.y, nextPos.z, 4, 0.05D, 0.05D, 0.05D, 0.02D);
             level.sendParticles(ParticleTypes.END_ROD, nextPos.x, nextPos.y, nextPos.z, 1, 0.01D, 0.01D, 0.01D, 0.002D);
             if (m.currentTick % 2 == 0) {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, nextPos.x, nextPos.y, nextPos.z, 2, 0.04D, 0.04D, 0.04D, 0.02D);
+                // ParticleTypes.ELECTRIC_SPARK removed
             }
 
             // Play flying hum / whistling sound at launch and mid-flight

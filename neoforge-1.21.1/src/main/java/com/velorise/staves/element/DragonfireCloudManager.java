@@ -83,7 +83,7 @@ public final class DragonfireCloudManager {
                 double halfExtent = radius * progress;
                 ElementalGaugeManager.spawnExpandingSquareParticles(
                         level, cloud.position(), halfExtent, 0.15D,
-                        ParticleTypes.DRAGON_BREATH, ParticleTypes.ELECTRIC_SPARK, 3
+                        ParticleTypes.DRAGON_BREATH, ParticleTypes.DRAGON_BREATH, 3
                 );
             }
 
@@ -107,7 +107,7 @@ public final class DragonfireCloudManager {
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
                     ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, pulseU, owner, damage);
                     MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.ELECTRO, null);
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.6D, target.getZ(), 5, 0.2D, 0.2D, 0.2D, 0.04D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                 }
 
                 // 3. Detonate any Dendro Cores in the cloud (Hyperbloom)

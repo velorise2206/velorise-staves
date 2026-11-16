@@ -24,7 +24,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_RAIDEN_DRAW = 8;
     public static final int ANIM_RAIDEN_SLASH = 9;
     public static final int ANIM_ZHONGLI_PLANET_BEFALL = 15;
-    public static final int ANIM_ZHONGLI_PLANET_BEFALL_FIRST = 61;
+    public static final int ANIM_ZHONGLI_PLANET_BEFALL_FIRST = 65;
     public static final int ANIM_XILONEN_SKATE_DASH = 20;
     public static final int ANIM_XILONEN_KICK_1 = 21;
     public static final int ANIM_XILONEN_KICK_2 = 22;

@@ -308,14 +308,7 @@ public final class NahidaManager {
                 : player.position().add(new Vec3(look.x, 0.0D, look.z).normalize().scale(4.5D));
 
         double halfSide = isNeth ? 2.4D : 1.8D;
-        for (int i = -6; i <= 6; i++) {
-            double o = (i / 6.0D) * halfSide;
-            level.sendParticles(DENDRO_GLOW_DUST, center.x + o, center.y + 0.25D, center.z - halfSide, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-            level.sendParticles(DENDRO_GLOW_DUST, center.x + o, center.y + 0.25D, center.z + halfSide, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-            level.sendParticles(DENDRO_GLOW_DUST, center.x - halfSide, center.y + 0.25D, center.z + o, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-            level.sendParticles(DENDRO_GLOW_DUST, center.x + halfSide, center.y + 0.25D, center.z + o, 1, 0.02D, 0.02D, 0.02D, 0.0D);
-        }
-        level.sendParticles(ParticleTypes.COMPOSTER, center.x, center.y + 0.6D, center.z, 24, halfSide * 0.5D, 0.35D, halfSide * 0.5D, 0.04D);
+        // Vanilla dust particles removed in favor of 3D Dendro Box Hologram
 
         AABB box = new AABB(center.x - halfSide - 0.8D, center.y - 1.5D, center.z - halfSide - 0.8D,
                 center.x + halfSide + 0.8D, center.y + 2.8D, center.z + halfSide + 0.8D);
@@ -514,7 +507,7 @@ public final class NahidaManager {
         if (!wasViewfinder) {
             // Tap E: 360-degree pirouette sweep marking nearby enemies within a tight ~2.8m radius with Seeds of Skandha
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_TAP_E);
-            double radius = 2.8D;
+            double radius = isNetherite ? 5.5D : 4.8D;
             AABB box = player.getBoundingBox().inflate(radius, 2.0D, radius);
             List<LivingEntity> nearby = level.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
@@ -527,12 +520,7 @@ public final class NahidaManager {
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElement(level, target, Element.DENDRO, gaugeU, player, skillDmg);
             }
-            for (int i = 0; i < 20; i++) {
-                double ang = (Math.PI * 2.0D * i) / 20.0D;
-                double rx = player.getX() + Math.cos(ang) * 2.0D;
-                double rz = player.getZ() + Math.sin(ang) * 2.0D;
-                level.sendParticles(DENDRO_GLOW_DUST, rx, player.getY() + 0.35D, rz, 2, 0.10D, 0.10D, 0.10D, 0.02D);
-            }
+// Tap E dust particles removed in favor of 360 ribbon sweep
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.45F);
             int cdTicks = Math.max(20, (int) Math.round(5.0D * 20.0D * StavesConfig.getCooldownMultiplier()));
             ElementalResonanceManager.applyCooldown(player, cooldownItem, cdTicks);

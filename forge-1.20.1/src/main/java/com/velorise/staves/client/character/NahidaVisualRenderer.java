@@ -83,6 +83,8 @@ public final class NahidaVisualRenderer {
 
     public static boolean applyIdleAndViewfinderHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
+            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
             float sway = Mth.sin(ageInTicks * 0.10F);
             float sitDropY = 3.2F;
             float swayZ = -1.65F * sway;
@@ -97,8 +99,8 @@ public final class NahidaVisualRenderer {
             model.body.z += swayZ;
             model.head.z += swayZ;
             model.hat.z += swayZ;
-            model.rightArm.z += swayZ;
-            model.leftArm.z += swayZ;
+            model.rightArm.z = swayZ + 3.6F;
+            model.leftArm.z = swayZ + 3.6F;
             model.rightLeg.z += swayZ - 1.8F;
             model.leftLeg.z += swayZ - 1.8F;
 
@@ -107,10 +109,12 @@ public final class NahidaVisualRenderer {
             model.leftLeg.xRot = -1.28F - 0.16F * sway;
             model.rightLeg.yRot = 0.08F;
             model.leftLeg.yRot = -0.08F;
-            model.rightArm.xRot = -0.86F + 0.05F * sway;
-            model.leftArm.xRot = -0.86F + 0.05F * sway;
-            model.rightArm.zRot = 0.18F;
-            model.leftArm.zRot = -0.18F;
+            model.rightArm.xRot = -0.45F;
+            model.leftArm.xRot = -0.45F;
+            model.rightArm.yRot = -0.16F;
+            model.leftArm.yRot = 0.16F;
+            model.rightArm.zRot = -0.10F;
+            model.leftArm.zRot = 0.10F;
             return true;
         }
         if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
@@ -299,13 +303,29 @@ public final class NahidaVisualRenderer {
             vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         }
 
-        if (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4) {
-            ResourceLocation keycapTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_keycap_tile.png");
+        if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E && !isFirstPersonSelf) {
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            renderHopscotchKeycap3D(poseStack, buffer, keycapTex, 0.58F, 0.18F, 1.0F);
+            Matrix4f eMat = poseStack.last().pose();
+            float eRadius = 3.6F;
+            int eSegs = 24;
+            for (int s = 0; s < eSegs; s++) {
+                float a0 = (float) (s * Math.PI * 2.0D / eSegs);
+                float a1 = (float) ((s + 1) * Math.PI * 2.0D / eSegs);
+                float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+                float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+                WindGliderRenderer.emitDoubleQuad(vc, eMat,
+                        c0 * (eRadius - 0.22F), 0.12F, s0 * (eRadius - 0.22F),
+                        c0 * (eRadius + 0.22F), 0.12F, s0 * (eRadius + 0.22F),
+                        c1 * (eRadius + 0.22F), 0.12F, s1 * (eRadius + 0.22F),
+                        c1 * (eRadius - 0.22F), 0.12F, s1 * (eRadius - 0.22F),
+                        90, 255, 135, 185);
+            }
+            for (int k = 0; k < 6; k++) {
+                float ka = (float) (k * Math.PI * 2.0D / 6.0D + time * 0.08F);
+                WindGliderRenderer.renderFourLeafClover2D(vc, eMat, Mth.cos(ka) * eRadius, 0.15F, Mth.sin(ka) * eRadius, 0.38F, 115, 255, 150, 220);
+            }
             poseStack.popPose();
-            vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && !isFirstPersonSelf && d != null) {
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
@@ -409,7 +429,7 @@ public final class NahidaVisualRenderer {
             ResourceLocation seatTex
     ) {
         // Pendulum swing around the floating top 4-petal flower anchors (y = 2.68F, NO horizontal top bar!)
-        float swingDeg = Mth.sin(time * 0.10F) * 4.5F;
+        float swingDeg = -Mth.sin(time * 0.10F) * 4.6F;
         poseStack.pushPose();
         poseStack.translate(0.0F, 2.68F, 0.0F);
         poseStack.mulPose(Axis.XP.rotationDegrees(swingDeg));
@@ -703,21 +723,7 @@ public final class NahidaVisualRenderer {
             renderGroundStarSeal(starVc, poseStack, -1.15F, 0.03F, burstZ - 0.55F, (0.42F + 0.20F * grow) * fade, -timeSec * 35.0F);
             renderGroundStarSeal(starVc, poseStack,  1.15F, 0.03F, burstZ - 0.55F, (0.42F + 0.20F * grow) * fade,  timeSec * 35.0F);
 
-            // Translucent vertical emerald light curtain rising from the ground seal
-            VertexConsumer beamVc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
-            Matrix4f bMat = poseStack.last().pose();
-            int beamAlpha = Math.max(15, Math.round(75.0F * fade * grow));
-            for (int b = 0; b < 4; b++) {
-                float ba0 = (float) (b * Math.PI * 0.5D + timeSec * 0.6F);
-                float ba1 = ba0 + 0.55F;
-                float br = 0.85F;
-                WindGliderRenderer.emitDoubleQuad(beamVc, bMat,
-                        Mth.cos(ba0) * br, 0.04F, burstZ + Mth.sin(ba0) * br,
-                        Mth.cos(ba1) * br, 0.04F, burstZ + Mth.sin(ba1) * br,
-                        Mth.cos(ba1) * br, 2.65F * grow, burstZ + Mth.sin(ba1) * br,
-                        Mth.cos(ba0) * br, 2.65F * grow, burstZ + Mth.sin(ba0) * br,
-                        95, 255, 135, beamAlpha);
-            }
+// NA4 vertical light beam removed
 
             // Side curved vine-flowers flanking the Heart Arch
             VertexConsumer vineVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(vineTex));

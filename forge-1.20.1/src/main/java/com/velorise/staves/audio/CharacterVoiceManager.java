@@ -8,6 +8,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 
 import java.io.File;
 import java.io.FileReader;
@@ -262,9 +264,18 @@ public final class CharacterVoiceManager {
 
     public static void playClientZhongliBurstVoice(int entityId, boolean forceFirstOrder) {
         if (!isVoiceAllowed(entityId, "zhongli")) return;
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) {
+            Entity ent = mc.level.getEntity(entityId);
+            if (ent instanceof LivingEntity le) {
+                ItemStack held = le.getMainHandItem();
+                boolean isVortex = held.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem staff
+                        && staff.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.VORTEX;
+                if (!isVortex) return;
+            }
+        }
         if (forceFirstOrder || !firstZhongliOrderPlayedInWorld) {
             firstZhongliOrderPlayedInWorld = true;
-            Minecraft mc = Minecraft.getInstance();
             if (mc.level != null) {
                 Entity entity = mc.level.getEntity(entityId);
                 double x = entity != null ? entity.getX() : (mc.player != null ? mc.player.getX() : 0.0D);

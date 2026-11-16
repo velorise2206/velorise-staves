@@ -571,9 +571,7 @@ public final class ElementalResonanceManager {
             }
         }
 
-        attacker.serverLevel().sendParticles(ParticleTypes.ELECTRIC_SPARK,
-                attacker.getX(), attacker.getY() + 1.0D, attacker.getZ(),
-                8, 0.35D, 0.45D, 0.35D, 0.05D);
+        // Particle removed
     }
 
     public static void onDendroReactionTriggered(@Nullable ServerPlayer attacker, long now) {

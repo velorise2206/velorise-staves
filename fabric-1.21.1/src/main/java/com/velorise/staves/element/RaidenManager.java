@@ -382,7 +382,7 @@ public final class RaidenManager {
         Vec3 pos = target.position();
         if (canEmitReactionVisual(level, pos, 2)) {
             level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 8, 0.5D, 0.5D, 0.5D, 0.05D);
+            // ParticleTypes.ELECTRIC_SPARK removed
             level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.1F);
         }
         EnvironmentalBlockManager.applyOverloadEnvironmentEffects(level, pos, 3.5D);
@@ -480,7 +480,7 @@ public final class RaidenManager {
                 }
             }
             if (innateElements.contains(Element.ELECTRO)) {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y + 0.7D, center.z, 34, 1.2D, 0.8D, 1.2D, 0.08D);
+                // ParticleTypes.ELECTRIC_SPARK removed
                 ElectrifiedWaterManager.electrify(level, BlockPos.containing(center), powered ? 3.5D : 2.5D, 60, null, 1.5F);
             }
             if (innateElements.contains(Element.CRYO)) {
@@ -728,7 +728,7 @@ public final class RaidenManager {
             double pz = center.z + Math.sin(angle) * (radius * 0.6D);
             level.sendParticles(electroDust, px, center.y, pz, 1, 0.05D, 0.05D, 0.05D, 0.01D);
         }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y, center.z, 18, 0.8D, 0.4D, 0.8D, 0.08D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         Vec3 frontEyePos = center.add(player.getLookAngle().scale(1.2D));
         level.sendParticles(ParticleTypes.END_ROD, frontEyePos.x, frontEyePos.y + 0.2D, frontEyePos.z, 10, 0.35D, 0.35D, 0.35D, 0.05D);
         sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
@@ -763,7 +763,7 @@ public final class RaidenManager {
 
         DustParticleOptions chargeGlow = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 1.5F : 1.25F);
         level.sendParticles(chargeGlow, player.getX(), player.getY() + 1.15D, player.getZ(), 12, 0.28D, 0.25D, 0.28D, 0.02D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.15D, player.getZ(), 10, 0.25D, 0.25D, 0.25D, 0.05D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.35F);
         syncRaidenState(player, now);
@@ -821,7 +821,7 @@ public final class RaidenManager {
             double t = i / 10.0D;
             Vec3 arcPos = slashCenter.add(right.scale(t * aoeRadius)).add(0.0D, Math.cos(t * 1.4D) * 0.6D - 0.3D, 0.0D);
             level.sendParticles(violetSlash, arcPos.x, arcPos.y, arcPos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcPos.x, arcPos.y, arcPos.z, 2, 0.12D, 0.12D, 0.12D, 0.06D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
@@ -889,7 +889,7 @@ public final class RaidenManager {
 
         DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
         level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.06D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
     }
@@ -946,18 +946,19 @@ public final class RaidenManager {
         sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
         level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 10, 0.4D, 0.3D, 0.4D, 0.07D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
         return outDamage[0];
     }
 
     public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) {
         if (player == null || !player.isAlive()) return;
+        if (isCharged) return;
         if (!(player.level() instanceof ServerLevel level)) return;
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
         boolean musouActive = isRaidenMusouActive(id, now);
-        if (!musouActive && !isCharged) return;
+        if (!musouActive) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack mainHand = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(mainHand) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
@@ -1012,11 +1013,11 @@ public final class RaidenManager {
         if (isCharged) {
             Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
             sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, farSlashPos.x, farSlashPos.y, farSlashPos.z, 10, 0.55D, 0.3D, 0.55D, 0.08D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
         DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.55F : 1.25F);
         level.sendParticles(slash, slashPos.x, slashPos.y, slashPos.z, 8, 0.45D, 0.25D, 0.45D, 0.03D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, slashPos.x, slashPos.y, slashPos.z, 8, 0.4D, 0.25D, 0.4D, 0.06D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
     }
 
@@ -1049,7 +1050,7 @@ public final class RaidenManager {
                         DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
                         sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
                         sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
-                        sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, player.getX(), player.getY() + 1.05D, player.getZ(), 2, 0.3D, 0.35D, 0.3D, 0.02D);
+                        // ParticleTypes.ELECTRIC_SPARK removed
                     }
                 }
             }

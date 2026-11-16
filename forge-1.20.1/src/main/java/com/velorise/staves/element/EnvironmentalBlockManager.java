@@ -243,7 +243,7 @@ public final class EnvironmentalBlockManager {
 
                 // Overloaded detonation visuals & sound
                 level.sendParticles(ParticleTypes.EXPLOSION, blockCenter.x, blockCenter.y, blockCenter.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, blockCenter.x, blockCenter.y, blockCenter.z, 16, 0.35D, 0.35D, 0.35D, 0.06D);
+                // ParticleTypes.ELECTRIC_SPARK removed
                 level.sendParticles(ParticleTypes.FLAME, blockCenter.x, blockCenter.y, blockCenter.z, 12, 0.3D, 0.3D, 0.3D, 0.04D);
                 level.playSound(null, p, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, 0.75F, 1.35F);
                 level.playSound(null, p, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.BLOCKS, 1.0F, 1.1F);
@@ -284,7 +284,7 @@ public final class EnvironmentalBlockManager {
             Vec3 endPt = rodCenter.add(Math.cos(angle) * dist, (level.random.nextDouble() - 0.5D) * 0.8D, Math.sin(angle) * dist);
             ElectrifiedWaterManager.drawElectricArc(level, rodCenter, endPt, 0.25D, true);
         }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, rodCenter.x, rodCenter.y + 0.3D, rodCenter.z, 25, 0.8D, 0.5D, 0.8D, 0.08D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, rodCenter.x, rodCenter.y, rodCenter.z,
                 SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS, 0.9F, 1.65F);
 
@@ -545,7 +545,7 @@ public final class EnvironmentalBlockManager {
                         );
                         Vec3 targetPos = living.position().add(0, living.getBbHeight() * 0.5D, 0);
                         ElectrifiedWaterManager.drawElectricArc(level, portPos, targetPos, 0.12D, false);
-                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, targetPos.x, targetPos.y, targetPos.z, 4, 0.15D, 0.15D, 0.15D, 0.03D);
+                        // ParticleTypes.ELECTRIC_SPARK removed
                     }
                 }
             }
@@ -601,7 +601,7 @@ public final class EnvironmentalBlockManager {
                 Vec3 end = living.position().add(0, living.getBbHeight() * (0.35D + level.random.nextDouble() * 0.4D), 0);
                 ElectrifiedWaterManager.drawElectricArc(level, start, end, 0.24D, true);
             }
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, living.getX(), living.getY() + 0.3D, living.getZ(), 2, 0.15D, 0.15D, 0.15D, 0.02D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
         if (touchingSoulCampfire) {
             ElementalGaugeManager.applyElement(level, living, Element.PYRO, 2.0F, null, 0.0F);
@@ -636,7 +636,7 @@ public final class EnvironmentalBlockManager {
 
                 Vec3 end = living.position().add(0, living.getBbHeight() * 0.5D, 0);
                 ElectrifiedWaterManager.drawElectricArc(level, Vec3.atCenterOf(amethystZapPos), end, 0.15D, false);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, end.x, end.y, end.z, 4, 0.2D, 0.2D, 0.2D, 0.03D);
+                // ParticleTypes.ELECTRIC_SPARK removed
                 level.playSound(null, amethystZapPos.getX(), amethystZapPos.getY(), amethystZapPos.getZ(),
                         SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.0F, 1.6F);
                 level.playSound(null, living.getX(), living.getY(), living.getZ(),
@@ -744,7 +744,7 @@ public final class EnvironmentalBlockManager {
         TESLA_COIL_OVERCHARGE_UNTIL.put(immutableRod, Math.max(currentUntil != null ? currentUntil : 0L, newUntil));
         if (freshActivation) {
             Vec3 tip = Vec3.atCenterOf(immutableRod).add(0.0D, 0.35D, 0.0D);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, tip.x, tip.y, tip.z, 10, 0.25D, 0.25D, 0.25D, 0.08D);
+            // ParticleTypes.ELECTRIC_SPARK removed
             for (ServerPlayer sp : level.getEntitiesOfClass(ServerPlayer.class, new AABB(immutableRod).inflate(24.0D), p -> p.isAlive() && !p.isSpectator())) {
                 com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_TESLA_COIL);
             }
@@ -789,8 +789,7 @@ public final class EnvironmentalBlockManager {
         );
 
         if (overcharged && (now % 10L == 0L)) {
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, origin.x, origin.y, origin.z,
-                    3, 0.16D, 0.12D, 0.16D, 0.03D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
 
         long intervalTicks = overcharged ? 20L : 40L;
@@ -904,8 +903,7 @@ public final class EnvironmentalBlockManager {
                         arcEnd = struck.getBoundingBox().getCenter();
                         ElementalGaugeManager.applyElementBypassIcd(level, struck, Element.ELECTRO, electroU, null, boltDamage);
                         MobHazardAvoidanceManager.reportReactionOrHazard(struck, null, origin, Element.ELECTRO, null);
-                        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
-                                5, 0.2D, 0.2D, 0.2D, 0.04D);
+                        // ParticleTypes.ELECTRIC_SPARK removed
                         break;
                     }
 
@@ -919,13 +917,11 @@ public final class EnvironmentalBlockManager {
 
             if (arcEnd.distanceToSqr(origin) >= 0.35D) {
                 ElectrifiedWaterManager.drawElectricArc(level, origin, arcEnd, overcharged ? 0.30D : 0.24D, true);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z,
-                        overcharged ? 3 : 2, 0.12D, 0.12D, 0.12D, 0.02D);
+                // ParticleTypes.ELECTRIC_SPARK removed
             }
         }
 
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, origin.x, origin.y, origin.z,
-                overcharged ? 5 : 3, 0.12D, 0.12D, 0.12D, 0.02D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, origin.x, origin.y, origin.z,
                 SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.BLOCKS,
                 overcharged ? 0.38F : 0.25F, overcharged ? 1.75F : 1.9F);
@@ -1037,7 +1033,7 @@ public final class EnvironmentalBlockManager {
             if (level.getFluidState(p).is(FluidTags.WATER) || st.is(Blocks.WATER) || st.is(Blocks.WATER_CAULDRON)) {
                 hitWater = true;
                 if (level.random.nextFloat() < 0.25F) {
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, bCenter.x, bCenter.y + 0.5D, bCenter.z, 2, 0.2D, 0.1D, 0.2D, 0.05D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                 }
             } else if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.LAVA)
                     || (st.getBlock() instanceof CampfireBlock && st.hasProperty(CampfireBlock.LIT) && st.getValue(CampfireBlock.LIT))) {
@@ -1045,9 +1041,11 @@ public final class EnvironmentalBlockManager {
             }
         }
 
-        if (hitWater || (attacker != null && attacker.isInWaterOrRain())) {
+        if (hitWater) {
+            ServerPlayer spAttacker = attacker instanceof ServerPlayer sp ? sp : null;
+            ElectrifiedWaterManager.electrify(level, center, (int) Math.round(radius), 70, spAttacker, Math.max(1.0F, baseDamage * 0.25F));
             level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.70F, 1.75F);
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y + 0.2D, hitPos.z, 16, 0.8D, 0.3D, 0.8D, 0.08D);
+            // ParticleTypes.ELECTRIC_SPARK removed
 
             AABB box = new AABB(hitPos.x - radius - 1.5D, hitPos.y - 2.0D, hitPos.z - radius - 1.5D,
                                 hitPos.x + radius + 1.5D, hitPos.y + 3.0D, hitPos.z + radius + 1.5D);
@@ -1062,7 +1060,7 @@ public final class EnvironmentalBlockManager {
                 float shockDmg = Math.max(1.5F, baseDamage * 0.40F);
                 victim.hurt(ElementalDeathMessageHelper.createDamageSource(level, attacker, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), shockDmg);
                 ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 1.0F, attacker instanceof ServerPlayer sp ? sp : null, shockDmg);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, victim.getX(), victim.getY() + 0.8D, victim.getZ(), 6, 0.2D, 0.3D, 0.2D, 0.05D);
+                // ParticleTypes.ELECTRIC_SPARK removed
             }
         }
 

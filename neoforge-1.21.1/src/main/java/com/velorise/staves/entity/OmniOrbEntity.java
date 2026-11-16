@@ -221,11 +221,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
             double rx = (this.random.nextDouble() - 0.5D) * 1.5D;
             double ry = (this.random.nextDouble() - 0.5D) * 1.5D;
             double rz = (this.random.nextDouble() - 0.5D) * 1.5D;
-            this.level().addParticle(
-                    ParticleTypes.ELECTRIC_SPARK,
-                    this.getX() + rx, this.getY() + ry, this.getZ() + rz,
-                    0.0D, 0.0D, 0.0D
-            );
+            // Particle removed
         }
         if (this.tickCount % 2 == 0) {
             this.level().addParticle(ParticleTypes.END_ROD, this.getX(), this.getY(), this.getZ(), 0.0D, 0.0D, 0.0D);
@@ -257,7 +253,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
                 this.zappedEntities.add(target.getUUID());
                 Vec3 arcEnd = hitPt.lerp(center, 0.45D);
                 ElectrifiedWaterManager.drawElectricArc(level, orbPt, arcEnd, 0.18D, true);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, arcEnd.x, arcEnd.y, arcEnd.z, 6, 0.2D, 0.2D, 0.2D, 0.04D);
+                // ParticleTypes.ELECTRIC_SPARK removed
                 level.playSound(null, orbPt.x, orbPt.y, orbPt.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.25F, 1.9F);
                 ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, zapU, attacker, zapDmg);
             }
@@ -444,7 +440,7 @@ public class OmniOrbEntity extends ThrowableProjectile {
             case PYRO -> level.sendParticles(ParticleTypes.FLAME, hitPos.x, hitPos.y + 0.1D, hitPos.z, count, 0.35D, 0.35D, 0.35D, 0.06D);
             case HYDRO -> level.sendParticles(ParticleTypes.SPLASH, hitPos.x, hitPos.y + 0.1D, hitPos.z, count + 6, 0.4D, 0.3D, 0.4D, 0.08D);
             case ANEMO -> level.sendParticles(ParticleTypes.CLOUD, hitPos.x, hitPos.y + 0.1D, hitPos.z, count, 0.4D, 0.25D, 0.4D, 0.05D);
-            case ELECTRO -> level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y + 0.1D, hitPos.z, count + 4, 0.4D, 0.35D, 0.4D, 0.08D);
+            case ELECTRO -> {}
             case DENDRO -> level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, hitPos.x, hitPos.y + 0.1D, hitPos.z, count + 4, 0.45D, 0.35D, 0.45D, 0.05D);
             case CRYO -> level.sendParticles(ParticleTypes.SNOWFLAKE, hitPos.x, hitPos.y + 0.1D, hitPos.z, count + 4, 0.4D, 0.35D, 0.4D, 0.05D);
             case GEO -> {

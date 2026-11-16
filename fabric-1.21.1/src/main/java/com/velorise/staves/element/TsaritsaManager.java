@@ -353,7 +353,7 @@ public final class TsaritsaManager {
         // Visual Polestar Field ring & starry burst
         ModNetwork.sendTsaritsaPolarField(level, center, POLESTAR_FIELD_RADIUS, 40, 3);
         level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y + 0.5D, center.z, 24, 2.2D, 0.4D, 2.2D, 0.04D);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y + 0.6D, center.z, 20, 2.0D, 0.5D, 2.0D, 0.06D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.sendParticles(ParticleTypes.END_ROD, center.x, center.y + 0.8D, center.z, 14, 1.8D, 0.4D, 1.8D, 0.03D);
         level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.2F, 1.35F);
 

@@ -305,8 +305,8 @@ public final class CrystallizeShardManager {
                 level.sendParticles(ParticleTypes.FALLING_WATER, px2, py2, pz2, 1, 0, 0, 0, 0.005D);
             }
             case ELECTRO -> {
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, px1, py1, pz1, 1, 0, 0, 0, 0.005D);
-                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, px2, py2, pz2, 1, 0, 0, 0, 0.005D);
+                // ParticleTypes.ELECTRIC_SPARK removed
+                // ParticleTypes.ELECTRIC_SPARK removed
             }
             case CRYO -> {
                 level.sendParticles(ParticleTypes.SNOWFLAKE, px1, py1, pz1, 1, 0, 0, 0, 0.005D);

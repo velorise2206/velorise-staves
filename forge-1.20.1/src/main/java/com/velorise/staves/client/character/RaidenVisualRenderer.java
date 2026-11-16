@@ -39,23 +39,8 @@ public final class RaidenVisualRenderer {
     private RaidenVisualRenderer() {}
 
     public static void tickClientAttackHold(Minecraft mc) {
-        if (mc.level != null && mc.player != null) {
-            if (mc.screen == null && mc.options.keyAttack.isDown()
-                    && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
-                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)
-                    && mc.player.getMainHandItem().getItem() instanceof ArcaneStaffItem
-                    && ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-                ClientAuraTracker.localRaidenAttackHeld = true;
-                raidenAttackHoldTicks++;
-                if (raidenAttackHoldTicks >= 6 && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
-                    ClientAuraTracker.triggerStaffAnimation(mc.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
-                    ModNetwork.sendRaidenSlash(true);
-                }
-            } else {
-                ClientAuraTracker.localRaidenAttackHeld = false;
-                raidenAttackHoldTicks = 0;
-            }
-        }
+        ClientAuraTracker.localRaidenAttackHeld = false;
+        raidenAttackHoldTicks = 0;
     }
 
     public static void renderRaidenEyeRing(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
@@ -402,7 +387,7 @@ public final class RaidenVisualRenderer {
                 model.body.xRot = Mth.lerp(slash, 0.0F, 0.2F);
                 model.body.yRot = castDir * Mth.lerp(slash, -0.4F, 0.25F);
                 mainPart.xRot = Mth.lerp(slash, -2.2F, -0.3F);
-                mainPart.yRot = castDir * Mth.lerp(slash, 0.2F, 1.2F);
+                mainPart.yRot = castDir * Mth.lerp(slash, -1.25F, 1.42F);
                 mainPart.zRot = castDir * Mth.lerp(slash, 0.1F, -0.5F);
                 offPart.xRot = Mth.lerp(slash, -0.35F, 0.30F);
             }
@@ -619,10 +604,10 @@ public final class RaidenVisualRenderer {
             } else {
                 float slash = WindGliderRenderer.smoothStep01((t - 0.72F) / 0.16F);
                 float w = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
-                poseStack.translate(dir * Mth.lerp(slash, -0.46F, 0.34F) * w, -0.02F * w, -0.28F * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, -24.0F, 52.0F) * w));
+                poseStack.translate(dir * Mth.lerp(slash, -0.68F, 0.88F) * w, -0.02F * w, -0.28F * w);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, -42.0F, 68.0F) * w));
                 poseStack.mulPose(Axis.XP.rotationDegrees(-58.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 82.0F, -76.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 88.0F, -88.0F) * w));
             }
             return true;
         }

@@ -951,8 +951,7 @@ public final class ArcaneStaffEvents {
             target.clearFire();
         }
         DendroCoreManager.checkReactionsNear(level, hit, radius, Element.ELECTRO, owner);
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hit.x, hit.y + 0.5D, hit.z, isNetherite ? 40 : 30,
-            radius * 0.35D, 0.8D, radius * 0.35D, 0.08D);
+        // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 1.0F);
     }
 
@@ -976,7 +975,7 @@ public final class ArcaneStaffEvents {
             freezeWaterNear(level, hitPos, 2);
         }
         if (elements.contains(Element.ELECTRO)) {
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 20, 0.5D, 0.3D, 0.5D, 0.05D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
     }
 

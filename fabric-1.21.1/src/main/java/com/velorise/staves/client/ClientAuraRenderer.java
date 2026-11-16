@@ -168,13 +168,25 @@ public final class ClientAuraRenderer {
 
     public static void resetHumanoidPoseDefaults(HumanoidModel<?> model) {
         if (model == null) return;
-        model.rightLeg.setPos(-1.9F, 12.0F, 0.0F);
-        model.leftLeg.setPos(1.9F, 12.0F, 0.0F);
-        model.rightArm.setPos(-5.0F, 2.0F, 0.0F);
-        model.leftArm.setPos(5.0F, 2.0F, 0.0F);
-        model.body.setPos(0.0F, 0.0F, 0.0F);
-        model.head.setPos(0.0F, 0.0F, 0.0F);
-        model.hat.setPos(0.0F, 0.0F, 0.0F);
+        if (model.crouching) {
+            model.body.xRot = 0.5F;
+            model.body.setPos(0.0F, 3.2F, 0.0F);
+            model.head.setPos(0.0F, 4.2F, 0.0F);
+            model.hat.setPos(0.0F, 4.2F, 0.0F);
+            model.rightArm.setPos(-5.0F, 5.2F, 0.0F);
+            model.leftArm.setPos(5.0F, 5.2F, 0.0F);
+            model.rightLeg.setPos(-1.9F, 12.2F, 4.0F);
+            model.leftLeg.setPos(1.9F, 12.2F, 4.0F);
+        } else {
+            model.body.xRot = 0.0F;
+            model.body.setPos(0.0F, 0.0F, 0.0F);
+            model.head.setPos(0.0F, 0.0F, 0.0F);
+            model.hat.setPos(0.0F, 0.0F, 0.0F);
+            model.rightArm.setPos(-5.0F, 2.0F, 0.0F);
+            model.leftArm.setPos(5.0F, 2.0F, 0.0F);
+            model.rightLeg.setPos(-1.9F, 12.0F, 0.0F);
+            model.leftLeg.setPos(1.9F, 12.0F, 0.0F);
+        }
 
         model.rightLeg.zRot = 0.005F;
         model.leftLeg.zRot = -0.005F;

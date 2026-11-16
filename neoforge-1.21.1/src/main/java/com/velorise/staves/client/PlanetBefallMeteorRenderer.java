@@ -20,7 +20,7 @@ import org.joml.Matrix4f;
  * paired with glowing golden Geo cores and 3D diamond emblems.
  */
 public final class PlanetBefallMeteorRenderer {
-    private static final ResourceLocation STELE_TEXTURE =
+    private static final ResourceLocation ROCK_TEXTURE =
             ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/entity/stone_stele.png");
 
     private PlanetBefallMeteorRenderer() {
@@ -36,8 +36,8 @@ public final class PlanetBefallMeteorRenderer {
         }
         if (!anyMeteor) return;
 
-        // Pass 1A: Textured Liyue bronze-basalt Rubik sub-cubes (stone_stele.png atlas)
-        VertexConsumer texVc = bufferSource.getBuffer(RenderType.entityTranslucent(STELE_TEXTURE));
+        // Pass 1A: 3D Burr-Puzzle Luban Lock (Khối Lỗ Ban) 6 Interlocking Basalt Stone Bars
+        VertexConsumer texVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(ROCK_TEXTURE));
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
             long elapsedMs = Math.max(0L, now - arc.startTime);
@@ -65,27 +65,27 @@ public final class PlanetBefallMeteorRenderer {
             poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F - spin * 0.22F));
             Matrix4f mat = poseStack.last().pose();
 
-            float step = 0.62F * s;
-            float cubeHalf = 0.24F * s;
-            for (int ix = -1; ix <= 1; ix++) {
-                for (int iy = -1; iy <= 1; iy++) {
-                    for (int iz = -1; iz <= 1; iz++) {
-                        int absSum = Math.abs(ix) + Math.abs(iy) + Math.abs(iz);
-                        if (absSum <= 1) continue; // keep '+' channels & core unobstructed
-                        boolean isCorner = absSum == 3;
-                        float radial = isCorner ? step * 1.06F : step * 0.96F;
-                        float half = isCorner ? cubeHalf * 1.05F : cubeHalf * 0.94F;
-                        int r = isCorner ? 195 : 245;
-                        int g = isCorner ? 175 : 225;
-                        int b = isCorner ? 145 : 190;
-                        drawTexturedSteleCube(texVc, mat, ix * radial, iy * radial, iz * radial, half, half, half, r, g, b, alpha);
-                    }
-                }
-            }
+            // 6 Interlocking Basalt Bars with Carved Liyue '回' Patterns (Luban Lock Geometry)
+            float barHalfLen = 1.05F * s;
+            float barHalfThick = 0.22F * s;
+            float barOffset = 0.44F * s;
+
+            // Pair X: 2 bars parallel to X axis
+            drawTexturedSteleCube(texVc, mat, 0.0F,  barOffset, -barOffset, barHalfLen, barHalfThick, barHalfThick, 235, 195, 140, alpha);
+            drawTexturedSteleCube(texVc, mat, 0.0F, -barOffset,  barOffset, barHalfLen, barHalfThick, barHalfThick, 235, 195, 140, alpha);
+
+            // Pair Y: 2 bars parallel to Y axis
+            drawTexturedSteleCube(texVc, mat, -barOffset, 0.0F,  barOffset, barHalfThick, barHalfLen, barHalfThick, 235, 195, 140, alpha);
+            drawTexturedSteleCube(texVc, mat,  barOffset, 0.0F, -barOffset, barHalfThick, barHalfLen, barHalfThick, 235, 195, 140, alpha);
+
+            // Pair Z: 2 bars parallel to Z axis
+            drawTexturedSteleCube(texVc, mat,  barOffset, -barOffset, 0.0F, barHalfThick, barHalfThick, barHalfLen, 235, 195, 140, alpha);
+            drawTexturedSteleCube(texVc, mat, -barOffset,  barOffset, 0.0F, barHalfThick, barHalfThick, barHalfLen, 235, 195, 140, alpha);
+
             poseStack.popPose();
         }
 
-        // Pass 1B: Glowing golden Geo core, axial '+' channels & 3D face-center Geo diamond emblems
+        // Pass 1B: Central Glowing Geo Magma Core, 12 Interstice Golden Crystals & 6 End Caps
         VertexConsumer solidVc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.METEOR_SOLID);
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -3 || arc.start == null || arc.end == null) continue;
@@ -114,23 +114,45 @@ public final class PlanetBefallMeteorRenderer {
             poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F - spin * 0.22F));
             Matrix4f mat = poseStack.last().pose();
 
-            // Glowing golden core & 3 axial '+' monolith beams
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.56F * s, 0.56F * s, 0.56F * s, 255, 224, 96, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 1.08F * s, 0.28F * s, 0.28F * s, 255, 206, 72, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.28F * s, 1.08F * s, 0.28F * s, 255, 206, 72, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.28F * s, 0.28F * s, 1.08F * s, 255, 206, 72, alpha);
+            // 1. Concentrated Central Geo Magma Core (Lõi Dung Nham Vàng Rực Rỡ)
+            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.38F * s, 0.38F * s, 0.38F * s, 255, 240, 140, alpha);
+            drawShadedMeteorBox(solidVc, mat, 0.0F, 0.0F, 0.0F, 0.48F * s, 0.48F * s, 0.48F * s, 255, 175, 40, Math.max(15, (int) (alpha * 0.75F)));
 
-            // 6 protruding golden face-center glyph caps + glowing Geo diamond emblems
-            float capDist = 0.74F * s;
-            float capHalf = 0.18F * s;
-            drawShadedMeteorBox(solidVc, mat, capDist, 0, 0, capHalf * 0.55F, capHalf, capHalf, 255, 212, 82, alpha);
-            drawShadedMeteorBox(solidVc, mat, -capDist, 0, 0, capHalf * 0.55F, capHalf, capHalf, 255, 212, 82, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, capDist, 0, capHalf, capHalf * 0.55F, capHalf, 255, 212, 82, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, -capDist, 0, capHalf, capHalf * 0.55F, capHalf, 255, 212, 82, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, 0, capDist, capHalf, capHalf, capHalf * 0.55F, 255, 212, 82, alpha);
-            drawShadedMeteorBox(solidVc, mat, 0, 0, -capDist, capHalf, capHalf, capHalf * 0.55F, 255, 212, 82, alpha);
+            // 2. 12 Glowing Golden Rectangular Crystal Inserts (12 Khối Tinh Thể Chữ Nhật Vàng Kim Khóa Lỗ Ban)
+            float cLen = 0.42F * s;
+            float cThick = 0.17F * s;
+            float cPos = 0.44F * s;
 
-            drawFaceDiamonds(solidVc, mat, capDist + capHalf * 0.60F, 0.22F * s, alpha);
+            // 4 crystals parallel to Z axis in corner interstices
+            for (float sx : new float[]{-cPos, cPos}) {
+                for (float sy : new float[]{-cPos, cPos}) {
+                    drawShadedMeteorBox(solidVc, mat, sx, sy, 0.0F, cThick, cThick, cLen, 255, 220, 80, alpha);
+                }
+            }
+            // 4 crystals parallel to X axis in corner interstices
+            for (float sy : new float[]{-cPos, cPos}) {
+                for (float sz : new float[]{-cPos, cPos}) {
+                    drawShadedMeteorBox(solidVc, mat, 0.0F, sy, sz, cLen, cThick, cThick, 255, 220, 80, alpha);
+                }
+            }
+            // 4 crystals parallel to Y axis in corner interstices
+            for (float sz : new float[]{-cPos, cPos}) {
+                for (float sx : new float[]{-cPos, cPos}) {
+                    drawShadedMeteorBox(solidVc, mat, sx, 0.0F, sz, cThick, cLen, cThick, 255, 220, 80, alpha);
+                }
+            }
+
+            // 3. 6 Protruding End Caps at the 6 Extents + 3D Geo Diamond Emblems
+            float capDist = 1.05F * s;
+            float capHalf = 0.22F * s;
+            drawShadedMeteorBox(solidVc, mat,  capDist, 0, 0, capHalf * 0.40F, capHalf, capHalf, 255, 215, 85, alpha);
+            drawShadedMeteorBox(solidVc, mat, -capDist, 0, 0, capHalf * 0.40F, capHalf, capHalf, 255, 215, 85, alpha);
+            drawShadedMeteorBox(solidVc, mat, 0,  capDist, 0, capHalf, capHalf * 0.40F, capHalf, 255, 215, 85, alpha);
+            drawShadedMeteorBox(solidVc, mat, 0, -capDist, 0, capHalf, capHalf * 0.40F, capHalf, 255, 215, 85, alpha);
+            drawShadedMeteorBox(solidVc, mat, 0, 0,  capDist, capHalf, capHalf, capHalf * 0.40F, 255, 215, 85, alpha);
+            drawShadedMeteorBox(solidVc, mat, 0, 0, -capDist, capHalf, capHalf, capHalf * 0.40F, 255, 215, 85, alpha);
+
+            drawFaceDiamonds(solidVc, mat, capDist + capHalf * 0.45F, 0.24F * s, alpha);
 
             poseStack.popPose();
         }

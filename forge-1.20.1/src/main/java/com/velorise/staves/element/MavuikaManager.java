@@ -819,7 +819,7 @@ public final class MavuikaManager {
                     INNATE_COOLDOWN_UNTIL.put(id, now + 20L); // 1.0s ICD
                     if (target.level() instanceof ServerLevel sl) {
                         if (canEmitReactionVisual(sl, target.position(), 2)) {
-                            sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                            // ParticleTypes.ELECTRIC_SPARK removed
                             sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.8F);
                         }
                         if (isEntitySubmergedInWater(target)) {
@@ -906,7 +906,7 @@ public final class MavuikaManager {
             float ecDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
             if (target.level() instanceof ServerLevel sl) {
                 if (canEmitReactionVisual(sl, target.position(), 2)) {
-                    sl.sendParticles(ParticleTypes.ELECTRIC_SPARK, target.getX(), target.getY() + 0.8D, target.getZ(), 1, 0.1D, 0.1D, 0.1D, 0.02D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                     sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.5F, 1.8F);
                 }
                 hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), ecDmg);
@@ -1367,7 +1367,7 @@ public final class MavuikaManager {
             level.sendParticles(ParticleTypes.SNOWFLAKE, x, y, z, 1, 0.25D, 0.25D, 0.25D, 0.01D);
         }
         if (gauges.containsKey(Element.ELECTRO)) {
-            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, x, y, z, 1, 0.2D, 0.2D, 0.2D, 0.02D);
+            // ParticleTypes.ELECTRIC_SPARK removed
         }
         if (gauges.containsKey(Element.DENDRO) || QUICKEN_GAUGES.containsKey(target.getUUID())) {
             level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, x, y, z, 1, 0.2D, 0.25D, 0.2D, 0.01D);
