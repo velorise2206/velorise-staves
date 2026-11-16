@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  左クリック: 氷元素チャージ矢",
   "tooltip.velorise_staves.action.tsaritsa.right": "  右クリック: 氷元素スキル",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  右クリック長押し: 弓 / 槍 を切り替え",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  [R]を押す: 女皇の氷元素爆発"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  [R]を押す: 女皇の氷元素爆発",
+  "config.velorise_staves.texture_res": "テクスチャ解像度",
+  "config.velorise_staves.texture_res.desc": "元素アイコンおよび風の翼のテクスチャ解像度を16x16（標準）と32x32（HD）で切り替えます。"
 }

@@ -127,21 +127,14 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }));
 
-        // Row 6: Client Element Icon Resolution & Wind Glider Texture Resolution (16x16px Default vs 32x32px HD)
-        this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px" : "16x16px"))
+        // Row 6: Unified Texture Resolution (16x16px Standard vs 32x32px HD for Element Icons & Wind Glider)
+        this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px (HD)" : "16x16px"))
                 .withValues(List.of(false, true))
-                .withInitialValue(StavesConfig.isUse32pxElementIcons())
-                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.icon_32px.desc")))
-                .create(leftColX, startY + rowHeight * 5, colWidth, 20, Component.translatable("config.velorise_staves.icon_32px"), (btn, val) -> {
+                .withInitialValue(StavesConfig.isUse32pxTextures())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.texture_res.desc")))
+                .create(centerX - 100, startY + rowHeight * 5, 200, 20, Component.translatable("config.velorise_staves.texture_res"), (btn, val) -> {
+                    StavesConfig.USE_32PX_TEXTURES.set(val);
                     StavesConfig.USE_32PX_ELEMENT_ICONS.set(val);
-                    this.saveLocalConfig();
-                }));
-
-        this.addRenderableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px" : "16x16px"))
-                .withValues(List.of(false, true))
-                .withInitialValue(StavesConfig.isUse32pxGliderTexture())
-                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.glider_32px.desc")))
-                .create(rightColX, startY + rowHeight * 5, colWidth, 20, Component.translatable("config.velorise_staves.glider_32px"), (btn, val) -> {
                     StavesConfig.USE_32PX_GLIDER_TEXTURE.set(val);
                     this.saveLocalConfig();
                 }));
@@ -190,6 +183,7 @@ public class VeloriseConfigScreen extends Screen {
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.reset"), btn -> {
             StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.set(true);
+            StavesConfig.USE_32PX_TEXTURES.set(false);
             StavesConfig.USE_32PX_ELEMENT_ICONS.set(false);
             StavesConfig.USE_32PX_GLIDER_TEXTURE.set(false);
             StavesConfig.SHOW_REACTION_TEXT.set(true);

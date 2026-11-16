@@ -68,6 +68,7 @@ public final class StavesConfig {
     public static final DoubleValue COOP_SCAN_RADIUS = defineDouble("scaling", "coop_scan_radius", 40.0D, 8.0D, 128.0D);
     public static final BooleanValue SHOW_ELEMENTAL_PARTICLES = defineBool("elemental_gauge", "show_elemental_particles", true);
     public static final BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS = defineBool("elemental_gauge", "show_overhead_element_icons", true);
+    public static final BooleanValue USE_32PX_TEXTURES = defineBool("elemental_gauge", "use_32px_textures", false);
     public static final BooleanValue USE_32PX_ELEMENT_ICONS = defineBool("elemental_gauge", "use_32px_element_icons", false);
     public static final BooleanValue USE_32PX_GLIDER_TEXTURE = defineBool("elemental_gauge", "use_32px_glider_texture", false);
     public static final StringValue CHARACTER_VOICE_LANGUAGE = defineString("audio", "character_voice_language", "auto");
@@ -768,16 +769,22 @@ public final class StavesConfig {
         return 1.0;
     }
 
-    public static boolean isUse32pxElementIcons() {
-        return USE_32PX_ELEMENT_ICONS.get();
-    }
-
-    public static boolean isUse32pxGliderTexture() {
+    public static boolean isUse32pxTextures() {
         try {
-            return USE_32PX_GLIDER_TEXTURE.get();
+            if (USE_32PX_TEXTURES != null && USE_32PX_TEXTURES.get()) return true;
+            return (USE_32PX_ELEMENT_ICONS != null && USE_32PX_ELEMENT_ICONS.get())
+                    || (USE_32PX_GLIDER_TEXTURE != null && USE_32PX_GLIDER_TEXTURE.get());
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static boolean isUse32pxElementIcons() {
+        return isUse32pxTextures();
+    }
+
+    public static boolean isUse32pxGliderTexture() {
+        return isUse32pxTextures();
     }
 
     public static String getCharacterVoiceLanguage() {

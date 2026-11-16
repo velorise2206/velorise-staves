@@ -113,7 +113,6 @@ public final class ArchonUltiManager {
     public static void triggerUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (!isPlayerGroundedForBurst(player)) {
-            player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
             return;
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
@@ -148,7 +147,6 @@ public final class ArchonUltiManager {
     public static void triggerVentiUlti(ServerPlayer player) {
         if (player == null || !player.isAlive()) return;
         if (!isPlayerGroundedForBurst(player)) {
-            player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
             return;
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;

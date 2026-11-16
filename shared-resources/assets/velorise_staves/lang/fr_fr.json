@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  Clic Gauche: Flèche Chargée Cryo",
   "tooltip.velorise_staves.action.tsaritsa.right": "  Clic Droit: Compétence Élémentaire Cryo",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  Clic Droit (Maintenir): Changer Arc / Lance",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  Appuyer sur [R]: Déchaînement Élémentaire Cryo"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  Appuyer sur [R]: Déchaînement Élémentaire Cryo",
+  "config.velorise_staves.texture_res": "Résolution des textures",
+  "config.velorise_staves.texture_res.desc": "Bascule entre 16x16px (Standard) et 32x32px (HD) pour les icônes élémentaires et ailes de planeur."
 }

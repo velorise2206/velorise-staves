@@ -725,5 +725,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  Chuột Trái: Bắn Tên Băng Tụ Lực",
   "tooltip.velorise_staves.action.tsaritsa.right": "  Chuột Phải: Kỹ Năng Nguyên Tố Băng",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  Giữ Chuột Phải: Chuyển Đổi Cung / Thương",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  Nhấn [R]: Bão Tuyết Nguyên Tố Băng"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  Nhấn [R]: Bão Tuyết Nguyên Tố Băng",
+  "config.velorise_staves.texture_res": "Độ phân giải Texture",
+  "config.velorise_staves.texture_res.desc": "Chuyển đổi giữa 16x16px (Tiêu chuẩn) và 32x32px (HD) cho biểu tượng nguyên tố và Phong Chi Dực."
 }

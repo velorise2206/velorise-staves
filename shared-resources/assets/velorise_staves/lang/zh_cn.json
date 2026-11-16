@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  左键: 冰元素蓄力箭",
   "tooltip.velorise_staves.action.tsaritsa.right": "  右键: 冰元素战技",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  右键长按: 切换 弓 / 长柄武器",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  按 [R]: 冰皇元素爆发"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  按 [R]: 冰皇元素爆发",
+  "config.velorise_staves.texture_res": "材质分辨率",
+  "config.velorise_staves.texture_res.desc": "在16x16（标准）与32x32（高清HD）之间切换元素图标与风之翼材质分辨率。"
 }

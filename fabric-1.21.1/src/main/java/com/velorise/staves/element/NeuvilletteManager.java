@@ -166,6 +166,10 @@ public final class NeuvilletteManager {
     public static boolean castSkillE(ServerPlayer player, ItemStack stack, boolean isNetherite) {
         if (player == null || !(player.level() instanceof ServerLevel level)) return false;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return false;
+        NeuvilletteState st = STATES.get(player.getUUID());
+        if (st != null && (st.leftClickHeld || st.firingBeam)) {
+            stopChanneling(player, st);
+        }
         long now = level.getGameTime();
         double range = 16.0D;
         double aoeRadius = isNetherite ? 4.5D : 3.5D;
@@ -242,6 +246,9 @@ public final class NeuvilletteManager {
 
         long now = level.getGameTime();
         NeuvilletteState st = STATES.computeIfAbsent(player.getUUID(), k -> new NeuvilletteState());
+        if (st.leftClickHeld || st.firingBeam) {
+            stopChanneling(player, st);
+        }
         if (now < st.ultiCooldownUntilTick) {
             double rem = (st.ultiCooldownUntilTick - now) / 20.0D;
             player.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "§b🌊 O Tides, I Have Returned CD: %.1fs", rem)), true);
