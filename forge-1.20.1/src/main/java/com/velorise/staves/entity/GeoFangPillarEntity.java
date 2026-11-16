@@ -205,6 +205,9 @@ public class GeoFangPillarEntity extends Entity {
         super.onSyncedDataUpdated(key);
         if (DATA_NETHERITE.equals(key) || DATA_STELE.equals(key) || DATA_ATTACH_DIR.equals(key)) {
             this.refreshDimensions();
+            if (isHorizontalStele()) {
+                this.setBoundingBox(this.makeBoundingBox());
+            }
         }
     }
 
@@ -226,9 +229,19 @@ public class GeoFangPillarEntity extends Entity {
     @Override
     public EntityDimensions getDimensions(Pose pose) {
         if (isStoneStele()) {
-            return EntityDimensions.scalable(1.0F, isHorizontalStele() ? 0.90F : 3.5F);
+            return isHorizontalStele()
+                    ? EntityDimensions.scalable(7.2F, 0.90F)
+                    : EntityDimensions.scalable(1.0F, 3.5F);
         }
         return EntityDimensions.scalable(1.0F, isNetherite() ? 2.0F : 1.0F);
+    }
+
+    @Override
+    public void refreshDimensions() {
+        super.refreshDimensions();
+        if (isHorizontalStele()) {
+            this.setBoundingBox(this.makeBoundingBox());
+        }
     }
 
     @Override
@@ -541,6 +554,7 @@ public class GeoFangPillarEntity extends Entity {
             liftOverlappingEntitiesClientOrServer(this.level());
         }
         supportEntitiesStandingOnTop(this.level());
+        resolveHorizontalSteleCollision(this.level());
 
         if (!(this.level() instanceof ServerLevel sl)) {
             tickClientWaves();
@@ -676,6 +690,48 @@ public class GeoFangPillarEntity extends Entity {
     }
 
     /**
+     * Prevents entities from clipping into or walking through horizontal Stone Steles.
+     * Overlapping entities are safely supported on top or pushed horizontally outside.
+     */
+    private void resolveHorizontalSteleCollision(Level lvl) {
+        if (!isHorizontalStele()) return;
+        AABB box = this.getBoundingBox();
+        double topY = box.maxY;
+        List<LivingEntity> overlapping = lvl.getEntitiesOfClass(
+                LivingEntity.class,
+                box.inflate(0.04D),
+                e -> e.isAlive() && !e.isSpectator()
+        );
+        for (LivingEntity living : overlapping) {
+            AABB livingBox = living.getBoundingBox();
+            if (livingBox.intersects(box)) {
+                double dy = topY - living.getY();
+                AABB aboveBox = livingBox.move(0.0D, Math.max(0.0D, dy), 0.0D);
+                if (dy > 0.0D && dy <= 1.25D && lvl.noCollision(living, aboveBox)) {
+                    living.setPos(living.getX(), topY, living.getZ());
+                    Vec3 dv = living.getDeltaMovement();
+                    if (dv.y < 0.0D) {
+                        living.setDeltaMovement(dv.x, 0.0D, dv.z);
+                    }
+                    living.setOnGround(true);
+                    living.fallDistance = 0.0F;
+                } else if (dy > 1.25D || !lvl.noCollision(living, aboveBox)) {
+                    net.minecraft.core.Direction dir = getAttachDirection();
+                    Vec3 pushDir;
+                    if (dir.getAxis() == net.minecraft.core.Direction.Axis.X) {
+                        double dz = living.getZ() - this.getZ();
+                        pushDir = new Vec3(0.0D, 0.0D, dz >= 0.0D ? 1.0D : -1.0D);
+                    } else {
+                        double dx = living.getX() - this.getX();
+                        pushDir = new Vec3(dx >= 0.0D ? 1.0D : -1.0D, 0.0D, 0.0D);
+                    }
+                    living.move(net.minecraft.world.entity.MoverType.SELF, pushDir.scale(0.12D));
+                }
+            }
+        }
+    }
+
+    /**
      * Ensures players and mobs can stand stably on top of the pillar even when submerged in water
      * (fixes Fabric 1.21.1 water sinking / fluid drag pulling entities through the top of the construct).
      */
@@ -705,9 +761,7 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
-    /**
-     * Drops the pillar down if spawned in mid-air or if a supporting block/pillar beneath it is removed.
-     */
+
     private void settleOntoSupportBelow(ServerLevel sl) {
         double supportY = findHighestSupportYBelow(sl, this.getX(), this.getY(), this.getZ(), this);
         if (this.getY() > supportY + 1.0E-3D) {
