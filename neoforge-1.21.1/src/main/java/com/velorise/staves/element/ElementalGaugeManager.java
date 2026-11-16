@@ -461,6 +461,8 @@ public final class ElementalGaugeManager {
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_GEO);
             case BLOOM, REVERSE_BLOOM, BURNING, QUICKEN, AGGRAVATE, SPREAD ->
                     com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_DENDRO);
+            case SWIRL, STELLAR_SWIRL ->
+                    com.velorise.staves.advancement.ModAdvancements.trigger(attacker, com.velorise.staves.advancement.ModAdvancements.EVENT_HIDDEN_ANEMO);
             default -> {}
         }
     }
