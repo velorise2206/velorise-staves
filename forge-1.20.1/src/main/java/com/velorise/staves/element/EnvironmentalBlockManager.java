@@ -1002,4 +1002,73 @@ public final class EnvironmentalBlockManager {
         level.sendParticles(ParticleTypes.SMOKE, cx, cy, cz, 4, 0.22D, 0.18D, 0.22D, 0.02D);
         level.sendParticles(ParticleTypes.SPLASH, cx, cy, cz, 4, 0.25D, 0.18D, 0.25D, 0.05D);
     }
+
+    /**
+     * Applies Electro environmental reactions to the surrounding world:
+     * 1. Water Electrification & Conduction: If hitting water, rain, or waterlogged blocks,
+     *    conducts electricity across connected water blocks and shocks all entities
+     *    in or touching water with Electro-Charged damage, electrical spark particles, and audio zaps.
+     * 2. Overloaded detonation when striking Fire, Campfires (lit), Lava, or lit Candles.
+     * 3. Activates nearby Lightning Rods and Tesla Coils.
+     */
+    public static void applyElectroEnvironmentEffects(
+            ServerLevel level,
+            Vec3 hitPos,
+            double radius,
+            LivingEntity attacker,
+            float baseDamage
+    ) {
+        if (level == null || hitPos == null) return;
+        BlockPos center = BlockPos.containing(hitPos);
+        int r = Math.max(2, (int) Math.ceil(radius));
+        double r2 = (radius + 0.65D) * (radius + 0.65D);
+
+        boolean hitWater = false;
+        boolean hitFireOrLava = false;
+
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -1, -r), center.offset(r, 2, r))) {
+            if (!level.hasChunkAt(p)) continue;
+            Vec3 bCenter = Vec3.atCenterOf(p);
+            if (bCenter.distanceToSqr(hitPos) > r2) continue;
+
+            BlockState st = level.getBlockState(p);
+            if (st.isAir()) continue;
+
+            if (level.getFluidState(p).is(FluidTags.WATER) || st.is(Blocks.WATER) || st.is(Blocks.WATER_CAULDRON)) {
+                hitWater = true;
+                if (level.random.nextFloat() < 0.25F) {
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, bCenter.x, bCenter.y + 0.5D, bCenter.z, 2, 0.2D, 0.1D, 0.2D, 0.05D);
+                }
+            } else if (st.is(Blocks.FIRE) || st.is(Blocks.SOUL_FIRE) || st.is(Blocks.LAVA)
+                    || (st.getBlock() instanceof CampfireBlock && st.hasProperty(CampfireBlock.LIT) && st.getValue(CampfireBlock.LIT))) {
+                hitFireOrLava = true;
+            }
+        }
+
+        if (hitWater || (attacker != null && attacker.isInWaterOrRain())) {
+            level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.70F, 1.75F);
+            level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y + 0.2D, hitPos.z, 16, 0.8D, 0.3D, 0.8D, 0.08D);
+
+            AABB box = new AABB(hitPos.x - radius - 1.5D, hitPos.y - 2.0D, hitPos.z - radius - 1.5D,
+                                hitPos.x + radius + 1.5D, hitPos.y + 3.0D, hitPos.z + radius + 1.5D);
+            List<LivingEntity> inWaterEntities = level.getEntitiesOfClass(LivingEntity.class, box, e ->
+                    e.isAlive() && !e.isSpectator() && (e.isInWaterOrRain() || e.isInWater()) && (attacker == null || !e.getUUID().equals(attacker.getUUID()))
+            );
+
+            for (LivingEntity victim : inWaterEntities) {
+                float shockDmg = Math.max(1.5F, baseDamage * 0.40F);
+                victim.hurt(ElementalDeathMessageHelper.createDamageSource(level, attacker, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), shockDmg);
+                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 1.0F, attacker instanceof ServerPlayer sp ? sp : null, shockDmg);
+                level.sendParticles(ParticleTypes.ELECTRIC_SPARK, victim.getX(), victim.getY() + 0.8D, victim.getZ(), 6, 0.2D, 0.3D, 0.2D, 0.05D);
+            }
+        }
+
+        if (hitFireOrLava) {
+            applyOverloadEnvironmentEffects(level, hitPos, Math.max(2.0D, radius * 0.8D));
+            level.sendParticles(ParticleTypes.LAVA, hitPos.x, hitPos.y + 0.5D, hitPos.z, 8, 0.4D, 0.4D, 0.4D, 0.08D);
+            level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.55F, 1.35F);
+        }
+
+        activateTeslaCoilsNear(level, hitPos, radius + 2.0D);
+    }
 }

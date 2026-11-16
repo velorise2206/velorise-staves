@@ -4207,6 +4207,8 @@ public final class ElementalGaugeManager {
         DendroCoreManager.checkReactionsNear(level, target.position(), 3.5D, attackElement, attacker);
         if (attackElement == Element.PYRO) {
             EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, target.position(), 1.5D);
+        } else if (attackElement == Element.ELECTRO) {
+            EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, target.position(), 2.8D, attacker, effectiveDamage);
         }
 
         if (!physicalMelee) {
@@ -6315,6 +6317,7 @@ public final class ElementalGaugeManager {
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
+        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, center, radius, player, dmg);
 
         DustParticleOptions electroDust = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), isNetherite ? 1.6F : 1.25F);
         for (int i = 0; i < 24; i++) {
@@ -6389,6 +6392,7 @@ public final class ElementalGaugeManager {
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
+        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, slashCenter, aoeRadius, player, hitotachiDmg);
 
         DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
         Vec3 right = new Vec3(-look.z, 0.0D, look.x);
@@ -6463,6 +6467,7 @@ public final class ElementalGaugeManager {
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
+        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
 
         DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
         level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);

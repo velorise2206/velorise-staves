@@ -2332,45 +2332,45 @@ public final class ArcaneStaffItem extends Item {
                 ? getOmniAbsorbedStaff(stack, dispElem) : this;
         tooltip.add(Component.literal("  " + dispStaff.getDamageDisplay(dispElem)).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.GUARDIAN) {
-            tooltip.add(Component.literal("  Hold Left-Click: Charge & Fire Hydro Beam").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Right-Click: Summon Hydro Droplets").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Press [R]: Hydro Burst & Spawn Droplets").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.guardian.hold_left").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.guardian.right").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.guardian.burst").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.SPLENDOR) {
             tooltip.add(Component.literal("  ").append(Component.translatable("tooltip.velorise_staves.splendor_arkhe")).withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Right-Click: Summon Salon Members / Singer").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Press [R]: Universal Revelry (Fanfare Aura)").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.splendor.right").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.splendor.burst").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.VORTEX) {
-            tooltip.add(Component.literal("  Tap Right-Click: Summon Stone Stele").withStyle(ChatFormatting.GOLD));
-            tooltip.add(Component.literal("  Hold Right-Click: Create Jade Shield").withStyle(ChatFormatting.YELLOW));
-            tooltip.add(Component.literal("  Press [R]: Drop Meteor (Petrify)").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.vortex.tap_right").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.vortex.hold_right").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.vortex.burst").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.NIGHTS_FOCUS) {
-            tooltip.add(Component.literal("  Right-Click: Curtain of Slumber Shield").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Passive: Shooting Stars on E & Time").withStyle(ChatFormatting.BLUE));
-            tooltip.add(Component.literal("  Press [R]: Starlight Slug (Max Stars)").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.nights_focus.right").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.nights_focus.passive").withStyle(ChatFormatting.BLUE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.nights_focus.burst").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.THOUSAND_BLAZING_SUNS) {
-            tooltip.add(Component.literal("  Tap Right-Click: Ring of Searing Radiance").withStyle(ChatFormatting.GOLD));
-            tooltip.add(Component.literal("  Hold / Double-Tap Right-Click: Ride Flamestrider").withStyle(ChatFormatting.YELLOW));
-            tooltip.add(Component.literal("  Press [R]: Sunfell Meteor (Fighting Spirit)").withStyle(ChatFormatting.RED));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.blazing_suns.tap_right").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.blazing_suns.hold_right").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.blazing_suns.burst").withStyle(ChatFormatting.RED));
         } else if (kind == Kind.DAYBREAK) {
-            tooltip.add(Component.literal("  Left-Click (Hold): Anemo Charged Arrow").withStyle(ChatFormatting.GREEN));
-            tooltip.add(Component.literal("  Right-Click: Skyward Sonnet (Updraft)").withStyle(ChatFormatting.GREEN));
-            tooltip.add(Component.literal("  Press [R]: Wind's Grand Ode (Vortex)").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.daybreak.hold_left").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.daybreak.right").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.daybreak.burst").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.ENGULFING_LIGHTNING) {
-            tooltip.add(Component.literal("  Right-Click: Eye of Stormy Judgment").withStyle(ChatFormatting.LIGHT_PURPLE));
-            tooltip.add(Component.literal("  Press [R]: Musou Isshin (Electro Sword)").withStyle(ChatFormatting.DARK_PURPLE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.engulfing.right").withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.engulfing.burst").withStyle(ChatFormatting.DARK_PURPLE));
         } else if (kind == Kind.PEAK_PATROL_SONG) {
-            tooltip.add(Component.literal("  Right-Click: Rollerblade Rush (Nightsoul)").withStyle(ChatFormatting.GOLD));
-            tooltip.add(Component.literal("  Left-Click: Skate Kick / Wall-Climb").withStyle(ChatFormatting.YELLOW));
-            tooltip.add(Component.literal("  Press [R]: Ocelotlicue Point (Soundwave / Heal)").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.peak_patrol.right").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.peak_patrol.left").withStyle(ChatFormatting.YELLOW));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.peak_patrol.burst").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.THOUSAND_FLOATING_DREAMS) {
-            tooltip.add(Component.literal("  Tap Right-Click: Mark Enemies (Tri-Karma)").withStyle(ChatFormatting.GREEN));
-            tooltip.add(Component.literal("  Hold Right-Click: Aim & Link Up to 8 Targets").withStyle(ChatFormatting.GREEN));
-            tooltip.add(Component.literal("  Press [R]: Shrine of Maya (Domain Buff)").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.tap_right").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.hold_right").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.burst").withStyle(ChatFormatting.GOLD));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
-            tooltip.add(Component.literal("  Left-Click: Cryo Charged Arrow").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Right-Click: Cryo Skill").withStyle(ChatFormatting.BLUE));
-            tooltip.add(Component.literal("  Hold Right-Click: Switch Bow / Spear").withStyle(ChatFormatting.AQUA));
-            tooltip.add(Component.literal("  Press [R]: Cryo Burst").withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.left").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.right").withStyle(ChatFormatting.BLUE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.hold_right").withStyle(ChatFormatting.AQUA));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.burst").withStyle(ChatFormatting.LIGHT_PURPLE));
         }
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", dispStaff.getRangeDisplay()).withStyle(ChatFormatting.BLUE));
         if (kind == Kind.VORTEX) {
