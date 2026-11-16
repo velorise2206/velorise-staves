@@ -139,6 +139,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static boolean canRightClickToggleGlider(Player player) {
+        if (!StavesConfig.isEnableWindGlider()) return false;
         if (player == null || !player.isAlive() || player.isSpectator()) return false;
         if (!isWindGliderUnlocked(player)) return false;
         if (player.onGround() || player.isInWater() || player.isInLava()
@@ -161,6 +162,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static boolean canTriggerMidAirPlunge(Player player) {
+        if (!StavesConfig.isEnablePlungeAttack()) return false;
         if (player == null || !player.isAlive() || player.isSpectator()) return false;
         if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {
             return false;
@@ -180,6 +182,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static void handleToggleGlider(ServerPlayer player) {
+        if (!StavesConfig.isEnableWindGlider()) return;
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (!isWindGliderUnlocked(player)) return;
         if (player.getVehicle() != null || player.isInWater() || player.isInLava()) {
@@ -216,6 +219,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static void handleStartPlunge(ServerPlayer player) {
+        if (!StavesConfig.isEnablePlungeAttack()) return;
         if (player == null || !player.isAlive() || player.isSpectator()) return;
         if (player.getVehicle() instanceof FlamestriderBikeEntity) return;
         if (player.getVehicle() != null || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying) {

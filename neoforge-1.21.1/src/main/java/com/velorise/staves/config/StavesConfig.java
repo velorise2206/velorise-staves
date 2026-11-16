@@ -63,6 +63,8 @@ public final class StavesConfig {
     public static final ModConfigSpec.ConfigValue<String> CHARACTER_VOICE_LANGUAGE;
     public static final ModConfigSpec.BooleanValue SHOW_REACTION_TEXT;
     public static final ModConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
+    public static final ModConfigSpec.BooleanValue ENABLE_PLUNGE_ATTACK;
+    public static final ModConfigSpec.BooleanValue ENABLE_WIND_GLIDER;
     public static final ModConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
 
     // Innate Mutation Rules & Whitelist/Blacklist
@@ -241,6 +243,12 @@ public final class StavesConfig {
         SHOW_DAMAGE_NUMBERS = builder
             .comment("Render floating elemental & physical damage numbers in combat. Default: true")
             .define("show_damage_numbers", true);
+        ENABLE_PLUNGE_ATTACK = builder
+            .comment("Enable Mid-Air Plunge Attack for Arcane Staves and Swords. Default: true")
+            .define("enable_plunge_attack", true);
+        ENABLE_WIND_GLIDER = builder
+            .comment("Enable Permanent Wind Glider flight and updraft soaring. Default: true")
+            .define("enable_wind_glider", true);
         INNATE_MUTATION_CHANCE = builder
             .comment("Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
             .defineInRange("innate_mutation_chance", 0.07D, 0.0D, 1.0D);
@@ -413,6 +421,8 @@ public final class StavesConfig {
         public final boolean enableElementalResonance;
         public final int maxStavesInInventory;
         public final double[] staffDamages;
+        public final boolean enablePlungeAttack;
+        public final boolean enableWindGlider;
 
         public SyncedData(
                 double damageMultiplier,
@@ -433,7 +443,9 @@ public final class StavesConfig {
                 double innateMutationChance,
                 boolean enableElementalResonance,
                 int maxStavesInInventory,
-                double[] staffDamages
+                double[] staffDamages,
+                boolean enablePlungeAttack,
+                boolean enableWindGlider
         ) {
             this.damageMultiplier = damageMultiplier;
             this.cooldownMultiplier = cooldownMultiplier;
@@ -454,6 +466,8 @@ public final class StavesConfig {
             this.enableElementalResonance = enableElementalResonance;
             this.maxStavesInInventory = maxStavesInInventory;
             this.staffDamages = staffDamages;
+            this.enablePlungeAttack = enablePlungeAttack;
+            this.enableWindGlider = enableWindGlider;
         }
 
         public void write(net.minecraft.network.FriendlyByteBuf buf) {
@@ -482,6 +496,8 @@ public final class StavesConfig {
             for (double dmg : staffDamages) {
                 buf.writeDouble(dmg);
             }
+            buf.writeBoolean(enablePlungeAttack);
+            buf.writeBoolean(enableWindGlider);
         }
 
         public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
@@ -520,7 +536,9 @@ public final class StavesConfig {
                     if (i < dmgs.length) dmgs[i] = v;
                 }
             }
-            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs);
+            boolean plungeOn = buf.isReadable() ? buf.readBoolean() : true;
+            boolean gliderOn = buf.isReadable() ? buf.readBoolean() : true;
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs, plungeOn, gliderOn);
         }
     }
 
@@ -565,7 +583,9 @@ public final class StavesConfig {
                 INNATE_MUTATION_CHANCE.get(),
                 ENABLE_ELEMENTAL_RESONANCE.get(),
                 MAX_STAVES_IN_INVENTORY.get(),
-                dmgs
+                dmgs,
+                ENABLE_PLUNGE_ATTACK.get(),
+                ENABLE_WIND_GLIDER.get()
         );
     }
 
@@ -830,6 +850,16 @@ public final class StavesConfig {
     public static int getMaxStavesInInventory() {
         SyncedData s = syncedServerData;
         return s != null ? s.maxStavesInInventory : MAX_STAVES_IN_INVENTORY.get();
+    }
+
+    public static boolean isEnablePlungeAttack() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.enablePlungeAttack : ENABLE_PLUNGE_ATTACK.get();
+    }
+
+    public static boolean isEnableWindGlider() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.enableWindGlider : ENABLE_WIND_GLIDER.get();
     }
 
     public static final class MutationRules {

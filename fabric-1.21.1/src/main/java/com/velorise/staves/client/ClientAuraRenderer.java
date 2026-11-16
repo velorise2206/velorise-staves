@@ -1039,13 +1039,13 @@ public final class ClientAuraRenderer {
             model.body.xRot = 0.22F;
             model.body.yRot = 0.0F;
             model.body.zRot = 0.0F;
-            // Genshin glider holding pose: arms reach forward-upward holding the harness grips
-            model.rightArm.xRot = -1.25F + breeze;
-            model.leftArm.xRot = -1.25F - breeze;
-            model.rightArm.yRot = -0.26F;
-            model.leftArm.yRot = 0.26F;
-            model.rightArm.zRot = 0.32F;
-            model.leftArm.zRot = -0.32F;
+            // Wind Glider soaring pose: both arms spread out wide horizontally to the sides
+            model.rightArm.xRot = -0.08F + breeze;
+            model.leftArm.xRot = -0.08F - breeze;
+            model.rightArm.yRot = -0.05F;
+            model.leftArm.yRot = 0.05F;
+            model.rightArm.zRot = 1.38F + breeze;
+            model.leftArm.zRot = -1.38F - breeze;
             // Legs trail gracefully in the airflow
             model.rightLeg.xRot = 0.28F + breeze;
             model.leftLeg.xRot = 0.18F - breeze;
@@ -5815,11 +5815,6 @@ public final class ClientAuraRenderer {
             }
             String ptStr = pts + "/90";
             guiGraphics.drawString(mc.font, ptStr, bx + barW + 4, by - 2, 0xFFFFE066, true);
-        }
-        if (hasSamples && sampleMask > 0) {
-            String sampleText = "▲ -36% RES";
-            int tw = mc.font.width(sampleText);
-            guiGraphics.drawString(mc.font, sampleText, sw / 2 - tw / 2, by + (skating ? 7 : 0), 0xFF55F2E2, true);
         }
     }
 

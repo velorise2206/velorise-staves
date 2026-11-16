@@ -32,8 +32,8 @@ public class VeloriseConfigScreen extends Screen {
         int colGap = 12;
         int leftColX = centerX - colWidth - (colGap / 2);
         int rightColX = centerX + (colGap / 2);
-        int startY = 40;
-        int rowHeight = 23;
+        int startY = 28;
+        int rowHeight = 22;
 
         // Row 1: Overhead Icons (Left) & Reaction Text (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get())
@@ -146,25 +146,40 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }));
 
-        // Row 7: Character Voice Settings (Left: Full Panel, Right: Quick Master Toggle)
+        // Row 7: Universal Plunge Attack & Wind Glider Toggles
+        this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_PLUNGE_ATTACK.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_plunge.desc")))
+                .create(leftColX, startY + rowHeight * 6, colWidth, 20, Component.translatable("config.velorise_staves.enable_plunge"), (btn, val) -> {
+                    StavesConfig.ENABLE_PLUNGE_ATTACK.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_WIND_GLIDER.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_glider.desc")))
+                .create(rightColX, startY + rowHeight * 6, colWidth, 20, Component.translatable("config.velorise_staves.enable_glider"), (btn, val) -> {
+                    StavesConfig.ENABLE_WIND_GLIDER.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        // Row 8: Character Voice Settings (Left: Full Panel, Right: Quick Master Toggle)
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.voice_settings_btn"), btn -> {
             this.saveLocalConfig();
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new CharacterVoiceScreen(this));
             }
-        }).bounds(leftColX, startY + rowHeight * 6, colWidth, 20).build());
+        }).bounds(leftColX, startY + rowHeight * 7, colWidth, 20).build());
 
         this.addRenderableWidget(CycleButton.<String>builder(val -> Component.translatable("config.velorise_staves.voice_master_mode." + val))
                 .withValues(List.of("all", "self_only", "disabled"))
                 .withInitialValue(com.velorise.staves.audio.CharacterVoiceManager.getMasterMode())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_master_mode.desc")))
-                .create(rightColX, startY + rowHeight * 6, colWidth, 20, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 7, colWidth, 20, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
                     com.velorise.staves.audio.CharacterVoiceManager.setMasterMode(val);
                 }));
 
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
         int btnW = 98;
-        int bottomY = startY + rowHeight * 7 + 4;
+        int bottomY = startY + rowHeight * 8 + 4;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
             this.saveLocalConfig();
@@ -182,6 +197,8 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.SHOW_ELEMENTAL_PARTICLES.set(true);
             StavesConfig.ENABLE_ELEMENTAL_GAUGE.set(true);
             StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(true);
+            StavesConfig.ENABLE_PLUNGE_ATTACK.set(true);
+            StavesConfig.ENABLE_WIND_GLIDER.set(true);
             StavesConfig.MAX_STAVES_IN_INVENTORY.set(4);
             StavesConfig.INNATE_MUTATION_CHANCE.set(0.07D);
             StavesConfig.OMNI_MUTATION_SHARE.set(0.143D);

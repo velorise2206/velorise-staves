@@ -479,17 +479,20 @@ public final class ArchonUltiManager {
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, rx, impact.y + 0.12D, rz, 2, 0.20D, 0.08D, 0.20D, 0.02D);
             level.sendParticles(ParticleTypes.CLOUD, rx, impact.y + 0.10D, rz, 2, 0.22D, 0.06D, 0.22D, 0.03D);
         }
-        // Massive geological impact: booming stalactite/rock shatter & muted deep seismic rumble
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 2.50F, 0.48F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.50F, 0.45F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.20F, 0.46F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 2.20F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.TUFF_BREAK, SoundSource.PLAYERS, 2.00F, 0.40F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 2.20F, 0.40F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_FALL, SoundSource.PLAYERS, 2.00F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 2.20F, 0.38F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 1.80F, 0.42F);
-        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.45F, 0.35F);
+        // Massive geological impact: booming stalactite/rock shatter & muted deep seismic rumble (no explosion sound)
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 3.20F, 0.48F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_BREAK, SoundSource.PLAYERS, 2.80F, 0.68F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 3.00F, 0.44F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 2.60F, 0.62F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 3.00F, 0.46F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 2.60F, 0.70F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 2.80F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.TUFF_BREAK, SoundSource.PLAYERS, 2.60F, 0.40F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 3.00F, 0.45F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DRIPSTONE_BLOCK_FALL, SoundSource.PLAYERS, 2.60F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.DEEPSLATE_FALL, SoundSource.PLAYERS, 2.60F, 0.38F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_FALL, SoundSource.PLAYERS, 2.40F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.20F, 0.32F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */
