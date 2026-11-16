@@ -114,7 +114,7 @@ public final class StavesConfig {
     public static final DoubleValue INFERNO_DAMAGE = defineDouble("damage", "inferno_damage", 3.0D, 0.0D, 500.0D);
     public static final DoubleValue GHASTFIRE_DAMAGE = defineDouble("damage", "ghastfire_damage", 6.0D, 0.0D, 500.0D);
     public static final DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE = defineDouble("damage", "thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
-    public static final DoubleValue PEAK_PATROL_SONG_DAMAGE = defineDouble("damage", "peak_patrol_song_damage", 4.0D, 0.0D, 500.0D);
+    public static final DoubleValue PEAK_PATROL_SONG_DAMAGE = defineDouble("damage", "peak_patrol_song_damage", 1.0D, 0.0D, 500.0D);
     public static final DoubleValue WITHER_DAMAGE = defineDouble("damage", "wither_damage", 4.0D, 0.0D, 500.0D);
     public static final DoubleValue SHULKER_DAMAGE = defineDouble("damage", "shulker_damage", 6.0D, 0.0D, 500.0D);
     public static final DoubleValue GUARDIAN_DAMAGE = defineDouble("damage", "guardian_damage", 2.0D, 0.0D, 500.0D);
@@ -596,7 +596,7 @@ public final class StavesConfig {
             case INFERNO -> 3.0D;
             case GHASTFIRE -> 6.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
-            case PEAK_PATROL_SONG -> 4.0D;
+            case PEAK_PATROL_SONG -> 1.0D;
             case THOUSAND_FLOATING_DREAMS -> 4.0D;
             case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
             case WITHER -> 4.0D;

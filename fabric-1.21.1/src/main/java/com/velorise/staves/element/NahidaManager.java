@@ -744,21 +744,25 @@ public final class NahidaManager {
         return true;
     }
 
-    /** Returns +2 EM levels if the entity is standing inside an active Shrine of Maya. */
+    /** Returns bonus EM levels (Basic +1, Netherite +2) if the entity is standing inside an active Shrine of Maya. */
     public static int getBonusEmLevels(@Nullable LivingEntity entity) {
         if (!(entity instanceof ServerPlayer player) || !(player.level() instanceof ServerLevel level)) return 0;
         long now = level.getGameTime();
+        int maxBonus = 0;
         for (ServerPlayer caster : level.players()) {
             NahidaPlayerState st = PLAYER_STATES.get(caster.getUUID());
             if (st != null && now < st.shrineUntilTick) {
                 if (caster == player || caster.isAlliedTo(player) || ElementalGaugeManager.isRaidenProtectedAlly(caster, player)) {
                     if (player.position().distanceToSqr(st.shrineCenter) <= (st.shrineRadius + 1.5D) * (st.shrineRadius + 1.5D)) {
-                        return 2;
+                        int bonus = st.shrineNetherite ? 2 : 1;
+                        if (bonus > maxBonus) {
+                            maxBonus = bonus;
+                        }
                     }
                 }
             }
         }
-        return 0;
+        return maxBonus;
     }
 
     public static void tick(MinecraftServer server, long now) {

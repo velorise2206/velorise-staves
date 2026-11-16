@@ -324,7 +324,7 @@ public final class StavesConfig {
         ENGULFING_LIGHTNING_DAMAGE = builder.defineInRange("engulfing_lightning_damage", 4.0D, 0.0D, 500.0D);
         OMNI_DAMAGE = builder.defineInRange("omni_damage", 10.0D, 0.0D, 500.0D);
         THOUSAND_BLAZING_SUNS_DAMAGE = builder.defineInRange("thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
-        PEAK_PATROL_SONG_DAMAGE = builder.defineInRange("peak_patrol_song_damage", 4.0D, 0.0D, 500.0D);
+        PEAK_PATROL_SONG_DAMAGE = builder.defineInRange("peak_patrol_song_damage", 1.0D, 0.0D, 500.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
@@ -655,7 +655,7 @@ public final class StavesConfig {
             case ENGULFING_LIGHTNING -> 4.0D;
             case OMNI -> 10.0D;
             case THOUSAND_BLAZING_SUNS -> 4.0D;
-            case PEAK_PATROL_SONG -> 4.0D;
+            case PEAK_PATROL_SONG -> 1.0D;
             case THOUSAND_FLOATING_DREAMS -> 4.0D;
             case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
         };

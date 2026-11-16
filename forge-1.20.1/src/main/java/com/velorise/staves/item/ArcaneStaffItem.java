@@ -2321,8 +2321,8 @@ public final class ArcaneStaffItem extends Item {
             case DAYBREAK -> fmtHearts(StavesConfig.getStaffBaseDamage(Kind.DAYBREAK, isNetherite)) + heart + " " + icon + (isNetherite ? "1.5U" : "1U") + swirlTag;
             case PEAK_PATROL_SONG -> {
                 float skateDmg = StavesConfig.getStaffBaseDamage(Kind.PEAK_PATROL_SONG, isNetherite);
-                float kickDmg = (isNetherite ? 5.25F : 3.5F);
-                yield fmtHearts(skateDmg) + heart + " (E) / " + fmtHearts(kickDmg) + heart + " (N2 Kick) / 0.5" + heart + " [R] " + icon + (isNetherite ? "1.5U" : "1U");
+                float kickDmg = (isNetherite ? 1.5F : 1.0F);
+                yield fmtHearts(skateDmg) + heart + " (E) / " + fmtHearts(kickDmg) + heart + " (Kick) / 0.5" + heart + " [R] " + icon + (isNetherite ? "1.5U" : "1U");
             }
             case ENGULFING_LIGHTNING -> {
                 float baseDmg = StavesConfig.getStaffBaseDamage(Kind.ENGULFING_LIGHTNING, isNetherite);

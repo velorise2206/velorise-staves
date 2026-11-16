@@ -494,7 +494,7 @@
   "entity.velorise_staves.hydro_salon_summon": "サロン・ソリティア召喚物",
   "tooltip.velorise_staves.splendor.mode_ousia": "ウーシア (サロン・ソリティア - 攻撃)",
   "tooltip.velorise_staves.splendor.mode_pneuma": "プネウマ (衆水の歌い手 - 回復)",
-  "tooltip.velorise_staves.splendor_arkhe": "[左クリック長押し]: サロンメンバー3体 <-> 衆の水の歌い手（回復像）を切替",
+  "tooltip.velorise_staves.splendor_arkhe": "[左クリック長押し]: 3匹の従者 <-> 回復の像",
   "tooltip.velorise_staves.splendor_hp_scale": "  Right-Click: Summon Salon Solitaire (Ousia) or Singer of Many Waters (Pneuma)",
   "message.velorise_staves.splendor_arkhe_switched": "アルケー属性を切り替えました: %s",
   "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, silently drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (heals 1§f§r/2s Basic, scales with Max HP on Netherite). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",

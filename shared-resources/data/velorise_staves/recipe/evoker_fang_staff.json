@@ -14,11 +14,11 @@
       "item": "velorise_staves:geo_element"
     },
     "B": {
-      "item": "minecraft:blaze_rod"
+      "item": "minecraft:stick"
     }
   },
   "result": {
-    "id": "velorise_staves:evoker_fang_staff",
-    "count": 1
+    "count": 1,
+    "id": "velorise_staves:evoker_fang_staff"
   }
 }

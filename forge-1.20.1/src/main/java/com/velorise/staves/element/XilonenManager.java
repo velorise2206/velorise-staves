@@ -278,7 +278,7 @@ public final class XilonenManager {
                 : com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_KICK_2;
         ModNetwork.sendStaffAnimation(player, anim);
 
-        float kickDmg = (isNetherite ? 5.25F : 3.5F) * (float) StavesConfig.getDamageMultiplier();
+        float kickDmg = (isNetherite ? 1.5F : 1.0F) * (float) StavesConfig.getDamageMultiplier();
         float gaugeU = isNetherite ? 1.5F : 1.0F;
         target.invulnerableTime = 0;
         ElementalGaugeManager.applyElement(level, target, Element.GEO, gaugeU, player, kickDmg);

@@ -494,7 +494,7 @@
   "entity.velorise_staves.hydro_salon_summon": "孤心沙龙召唤物",
   "tooltip.velorise_staves.splendor.mode_ousia": "荒性 (孤心沙龙 - 攻击)",
   "tooltip.velorise_staves.splendor.mode_pneuma": "芒性 (众水的歌者 - 治疗)",
-  "tooltip.velorise_staves.splendor_arkhe": "[长按左键]: 切换 3名孤心沙龙召唤物 <-> 众水歌者治疗雕像",
+  "tooltip.velorise_staves.splendor_arkhe": "[长按左键]: 3只随从 <-> 治疗雕像",
   "tooltip.velorise_staves.splendor_hp_scale": "  Right-Click: Summon Salon Solitaire (Ousia) or Singer of Many Waters (Pneuma)",
   "message.velorise_staves.splendor_arkhe_switched": "始基力形态已切换为: %s",
   "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, silently drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (heals 1§f§r/2s Basic, scales with Max HP on Netherite). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",

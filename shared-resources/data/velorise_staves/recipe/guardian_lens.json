@@ -1,24 +1,24 @@
 {
-    "type": "minecraft:crafting_shaped",
-    "category": "equipment",
-    "pattern": [
-        "  H",
-        " S ",
-        "C  "
-    ],
-    "key": {
-        "H": {
-            "item": "velorise_staves:hydro_element"
-        },
-        "S": {
-            "item": "minecraft:prismarine_shard"
-        },
-        "C": {
-            "item": "minecraft:prismarine_crystals"
-        }
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " PH",
+    " HP",
+    "R  "
+  ],
+  "key": {
+    "P": {
+      "item": "minecraft:prismarine_shard"
     },
-    "result": {
-        "id": "velorise_staves:guardian_lens",
-        "count": 1
+    "H": {
+      "item": "velorise_staves:hydro_element"
+    },
+    "R": {
+      "item": "velorise_staves:hydro_rod"
     }
+  },
+  "result": {
+    "count": 1,
+    "id": "velorise_staves:guardian_lens"
+  }
 }

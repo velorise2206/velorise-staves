@@ -494,7 +494,7 @@
   "entity.velorise_staves.hydro_salon_summon": "Triệu Hồi Vật Salon Thủy",
   "tooltip.velorise_staves.splendor.mode_ousia": "Ousia (Salon Cô Độc - Tấn công)",
   "tooltip.velorise_staves.splendor.mode_pneuma": "Pneuma (Ca Sĩ Nước Nguồn - Hồi máu)",
-  "tooltip.velorise_staves.splendor_arkhe": "[Giữ Chuột Trái]: Đổi 3 triệu hồi vật tấn công <-> Tượng ca sĩ hồi máu",
+  "tooltip.velorise_staves.splendor_arkhe": "[Giữ Chuột Trái]: 3 Pet <-> Tượng Hồi Máu",
   "tooltip.velorise_staves.splendor_hp_scale": "  Right-Click: Triệu hồi Salon Solitaire (Ousia) hoặc Ca Sĩ Nước Nguồn (Pneuma)",
   "message.velorise_staves.splendor_arkhe_switched": "Đã chuyển thuộc tính Arkhe sang: %s",
   "codex.velorise_staves.staff.splendor": "Triệu hồi Salon Cô Độc (Ousia: 3 thú cưng Thủy, rút máu êm >50% HP nhân tới 1.4x DMG) hoặc Ca Sĩ Nước Nguồn (Pneuma: hồi 1§f§r/2s ở bản thường, tăng theo Max HP ở Netherite). Đi trên mặt nước & tích Náo Nhiệt (+25%→+30% DMG/Heal).",

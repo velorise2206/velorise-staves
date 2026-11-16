@@ -2,23 +2,19 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "  I",
-    " C ",
-    "B  "
+    " S",
+    "R "
   ],
   "key": {
-    "I": {
-      "item": "minecraft:blue_ice"
+    "S": {
+      "item": "minecraft:snowball"
     },
-    "C": {
-      "item": "velorise_staves:cryo_element"
-    },
-    "B": {
+    "R": {
       "item": "velorise_staves:frost_rod"
     }
   },
   "result": {
-    "id": "velorise_staves:frostbolt_wand",
-    "count": 1
+    "count": 1,
+    "id": "velorise_staves:frostbolt_wand"
   }
 }

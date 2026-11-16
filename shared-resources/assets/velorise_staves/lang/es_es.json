@@ -494,7 +494,7 @@
   "entity.velorise_staves.hydro_salon_summon": "Invocación del Salón Solitario",
   "tooltip.velorise_staves.splendor.mode_ousia": "Ousía (Salón Solitario - Ataque)",
   "tooltip.velorise_staves.splendor.mode_pneuma": "Pneuma (Juglar de las Aguas - Curación)",
-  "tooltip.velorise_staves.splendor_arkhe": "[Mantener Clic Izq.]: Cambiar 3 invocaciones del Salón <-> Estatua curativa",
+  "tooltip.velorise_staves.splendor_arkhe": "[Mantener Clic Izq.]: 3 mascotas <-> Estatua curativa",
   "tooltip.velorise_staves.splendor_hp_scale": "  Right-Click: Summon Salon Solitaire (Ousia) or Singer of Many Waters (Pneuma)",
   "message.velorise_staves.splendor_arkhe_switched": "Alineación Arjé cambiada a: %s",
   "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, silently drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (heals 1§f§r/2s Basic, scales with Max HP on Netherite). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",

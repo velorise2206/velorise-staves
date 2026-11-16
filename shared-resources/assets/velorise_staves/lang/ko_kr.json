@@ -494,7 +494,7 @@
   "entity.velorise_staves.hydro_salon_summon": "고독한 살롱 소환수",
   "tooltip.velorise_staves.splendor.mode_ousia": "우시아 (고독한 살롱 - 공격)",
   "tooltip.velorise_staves.splendor.mode_pneuma": "프네우마 (물들의 가수 - 치유)",
-  "tooltip.velorise_staves.splendor_arkhe": "[좌클릭 홀드]: 살롱 멤버 3기 <-> 치유의 가수 조각상 전환",
+  "tooltip.velorise_staves.splendor_arkhe": "[좌클릭 홀드]: 3마리 소환수 <-> 치유 석상",
   "tooltip.velorise_staves.splendor_hp_scale": "  Right-Click: Summon Salon Solitaire (Ousia) or Singer of Many Waters (Pneuma)",
   "message.velorise_staves.splendor_arkhe_switched": "아르케 속성이 전환되었습니다: %s",
   "codex.velorise_staves.staff.splendor": "Summons Ousia Salon Solitaire (3 Hydro pets, silently drains >50% HP for up to 1.4x DMG) or Pneuma Singer of Many Waters (heals 1§f§r/2s Basic, scales with Max HP on Netherite). Grants Water Walking & Fanfare (+25%→+30% DMG/Heal).",
