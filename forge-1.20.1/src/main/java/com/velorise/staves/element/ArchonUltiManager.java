@@ -392,59 +392,20 @@ public final class ArchonUltiManager {
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, isNetherite ? 3 : 2, player, hand);
 
-        Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
-        Vec3 rayEnd = eye.add(look.scale(14.0D));
-
-        double bestDistSq = Double.MAX_VALUE;
-        Vec3 bestEntityHit = null;
-        LivingEntity hitLiving = null;
-        AABB searchBox = new AABB(eye, rayEnd).inflate(1.25D);
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, searchBox,
-                ent -> ent.isAlive() && !ent.isSpectator() && ent != player && !ElementalGaugeManager.isRaidenProtectedAlly(player, ent))) {
-            Optional<Vec3> clip = e.getBoundingBox().inflate(0.45D).clip(eye, rayEnd);
-            if (clip.isPresent()) {
-                double d2 = eye.distanceToSqr(clip.get());
-                if (d2 < bestDistSq) {
-                    bestDistSq = d2;
-                    bestEntityHit = clip.get();
-                    hitLiving = e;
-                }
-            }
-        }
-
-        BlockHitResult blockHit = level.clip(new ClipContext(
-                eye, rayEnd, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-        double blockDistSq = blockHit.getType() == HitResult.Type.BLOCK
-                ? eye.distanceToSqr(blockHit.getLocation())
-                : Double.MAX_VALUE;
-
-        Vec3 impactPos;
-        if (bestEntityHit != null && bestDistSq <= blockDistSq) {
-            BlockHitResult downHit = level.clip(new ClipContext(
-                    bestEntityHit.add(0.0D, 0.3D, 0.0D), bestEntityHit.subtract(0.0D, 4.0D, 0.0D),
-                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-            impactPos = downHit.getType() == HitResult.Type.BLOCK
-                    ? downHit.getLocation()
-                    : new Vec3(bestEntityHit.x, hitLiving.getY(), bestEntityHit.z);
-        } else if (blockHit.getType() == HitResult.Type.BLOCK) {
-            impactPos = blockHit.getLocation();
-        } else {
-            Vec3 fallback = eye.add(look.scale(8.5D));
-            BlockHitResult downHit = level.clip(new ClipContext(
-                    fallback.add(0.0D, 2.0D, 0.0D), fallback.subtract(0.0D, 18.0D, 0.0D),
-                    ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-            impactPos = downHit.getType() == HitResult.Type.BLOCK
-                    ? downHit.getLocation()
-                    : new Vec3(fallback.x, player.getY(), fallback.z);
-        }
-
         Vec3 horizFwd = new Vec3(look.x, 0.0D, look.z);
         if (horizFwd.lengthSqr() < 1.0E-4D) {
             horizFwd = Vec3.directionFromRotation(0.0F, player.getYRot());
         } else {
             horizFwd = horizFwd.normalize();
         }
+        Vec3 targetPoint = player.position().add(horizFwd.scale(5.0D));
+        BlockHitResult downHit = level.clip(new ClipContext(
+                targetPoint.add(0.0D, 3.0D, 0.0D), targetPoint.subtract(0.0D, 8.0D, 0.0D),
+                ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+        Vec3 impactPos = downHit.getType() == HitResult.Type.BLOCK
+                ? downHit.getLocation()
+                : targetPoint;
         Vec3 horizRight = new Vec3(-horizFwd.z, 0.0D, horizFwd.x);
         double backFromPlayer = 5.2D;
         Vec3 skyStart = new Vec3(

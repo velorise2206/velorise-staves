@@ -53,6 +53,7 @@ public final class OmniWheelOverlay {
     private static boolean wheelActive = false;
     private static boolean suppressedUntilRelease = false;
     private static int hoveredSlot = -1;
+    private static long lastDaybreakClientShotMs = 0L;
 
     static {
         SLOT_TEXTURES[0] = new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/omni.png");
@@ -394,11 +395,15 @@ public final class OmniWheelOverlay {
                 int pulled = ClientAuraTracker.localDaybreakBowPullTicks;
                 ClientAuraTracker.localDaybreakBowPullTicks = 0;
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
+                long nowMs = System.currentTimeMillis();
                 if (pulled >= 16) {
+                    lastDaybreakClientShotMs = nowMs;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DAYBREAK_CA_FULL);
                 } else if (pulled >= 6) {
+                    lastDaybreakClientShotMs = nowMs;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DAYBREAK_CA);
-                } else if (pulled > 0 || daybreakFast > 0) {
+                } else if ((pulled > 0 || daybreakFast > 0) && nowMs - lastDaybreakClientShotMs >= 400L) {
+                    lastDaybreakClientShotMs = nowMs;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DAYBREAK_NA);
                 }
             }

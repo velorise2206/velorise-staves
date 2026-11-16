@@ -96,6 +96,10 @@ public class OmniOrbEntity extends ThrowableProjectile {
         this.entityData.set(DATA_NETHERITE, isNetherite);
     }
 
+    public void setBaseDamage(float dmg) {
+        this.baseDamage = dmg;
+    }
+
     public static void clearCycleCache() {
     }
 

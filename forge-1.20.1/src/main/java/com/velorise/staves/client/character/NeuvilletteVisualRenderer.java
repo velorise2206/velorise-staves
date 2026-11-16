@@ -77,10 +77,25 @@ public final class NeuvilletteVisualRenderer {
 
     public static boolean applyChannelingHumanoidPose(LivingEntity entity, HumanoidModel<?> model, int activeAnim) {
         if (ClientAuraTracker.isNeuvilletteChargingOrFiring(entity.getId()) && activeAnim != ClientAuraTracker.ANIM_NEUVILLETTE_BURST) {
+            model.body.xRot = 0.0F;
+            model.body.yRot = 0.0F;
+            model.body.zRot = 0.0F;
+
             model.rightArm.xRot = -1.42F;
             model.rightArm.yRot = -0.15F;
+            model.rightArm.zRot = 0.05F;
+
             model.leftArm.xRot = -1.15F;
             model.leftArm.yRot = 0.25F;
+            model.leftArm.zRot = -0.05F;
+
+            model.leftLeg.xRot = 0.05F;
+            model.leftLeg.yRot = 0.0F;
+            model.leftLeg.zRot = -0.05F;
+
+            model.rightLeg.xRot = 0.05F;
+            model.rightLeg.yRot = 0.0F;
+            model.rightLeg.zRot = 0.05F;
             return true;
         }
         return false;
@@ -95,13 +110,15 @@ public final class NeuvilletteVisualRenderer {
         }
         if (activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_BURST) {
             float w = (t < 0.20F) ? WindGliderRenderer.smoothStep01(t / 0.20F) : (t < 0.80F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.80F) / 0.20F));
-            model.body.xRot = -0.14F * w;
             model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -2.35F);
             model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -2.15F);
             model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.42F);
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.42F);
-            model.head.xRot -= 0.16F * w;
-            model.hat.copyFrom(model.head);
+
+            model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.22F);
+            model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.22F);
+            model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.05F);
+            model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.05F);
             return true;
         }
         return false;

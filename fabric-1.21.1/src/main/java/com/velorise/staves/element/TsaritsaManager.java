@@ -45,7 +45,7 @@ public final class TsaritsaManager {
 
     public static final int AZURE_CROWN_DURATION_TICKS = 400; // 20.0s
     public static final int AZURE_CROWN_FIRE_INTERVAL_TICKS = 40; // 2.0s
-    public static final int SPEAR_STANCE_DURATION_TICKS = 120; // 6.0s
+    public static final int SPEAR_STANCE_DURATION_TICKS = 240; // 12.0s
     public static final int HOLD_E_CHARGE_TICKS = 16; // 0.8s hold to transform into Spear Stance
     public static final int BOW_FULL_CHARGE_TICKS = 18; // 3 stages: 0..5 (_0), 6..17 (_1), 18+ (_2)
 
@@ -429,7 +429,7 @@ public final class TsaritsaManager {
         if (now - state.lastBowNaTick < 10L) return;
         state.lastBowNaTick = now;
 
-        float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW);
+        float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * 0.60F;
         if (state.netherite) baseDmg *= 1.15F;
 
         ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BOW_NA);
@@ -440,7 +440,7 @@ public final class TsaritsaManager {
         Vec3 look = player.getLookAngle().normalize();
         double range = StavesConfig.getRange(ArcaneStaffItem.Kind.TSARITSA_BOW);
 
-        LivingEntity hitTarget = raycastTarget(level, player, eye, look, range);
+        Entity hitTarget = raycastCombatEntity(level, player, eye, look, range);
         Vec3 endPos = hitTarget != null
                 ? hitTarget.position().add(0.0D, hitTarget.getBbHeight() * 0.55D, 0.0D)
                 : eye.add(look.scale(range));
@@ -454,11 +454,14 @@ public final class TsaritsaManager {
             level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 1, 0.03D, 0.03D, 0.03D, 0.0D);
         }
 
-        if (hitTarget != null) {
-            float finalDmg = applyStellarAndCrownMultipliers(player, hitTarget, Element.CRYO, baseDmg);
-            hitTarget.invulnerableTime = 0;
-            ElementalGaugeManager.applyElement(hitTarget, Element.CRYO, player, finalDmg, 1.0F);
+        if (hitTarget instanceof LivingEntity living) {
+            float finalDmg = applyStellarAndCrownMultipliers(player, living, Element.CRYO, baseDmg);
+            living.invulnerableTime = 0;
+            ElementalGaugeManager.applyElement(living, Element.CRYO, player, finalDmg, 1.0F);
+        } else if (hitTarget instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
+            crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
         }
+        checkEndCrystalsNear(level, endPos, 1.8D, player);
     }
 
     private static void performSpearNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
@@ -553,6 +556,10 @@ public final class TsaritsaManager {
                 target.hurtMarked = true;
             }
         }
+        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(
+                net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+            crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
+        }
     }
 
     /**
@@ -589,7 +596,7 @@ public final class TsaritsaManager {
         Vec3 look = player.getLookAngle().normalize();
         double range = StavesConfig.getRange(ArcaneStaffItem.Kind.TSARITSA_BOW);
 
-        LivingEntity hitTarget = raycastTarget(level, player, eye, look, range);
+        Entity hitTarget = raycastCombatEntity(level, player, eye, look, range);
         Vec3 impactPos;
         if (hitTarget != null) {
             impactPos = hitTarget.position().add(0.0D, hitTarget.getBbHeight() * 0.55D, 0.0D);
@@ -601,10 +608,12 @@ public final class TsaritsaManager {
         // Primary Frostbite 3D Cryo Arrow
         ModNetwork.sendCryoArrow(level, eye.add(look.scale(0.6D)), impactPos, 12, 2);
 
-        if (hitTarget != null) {
-            float primaryDmg = applyStellarAndCrownMultipliers(player, hitTarget, Element.CRYO, baseDmg);
-            hitTarget.invulnerableTime = 0;
-            ElementalGaugeManager.applyElement(hitTarget, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
+        if (hitTarget instanceof LivingEntity living) {
+            float primaryDmg = applyStellarAndCrownMultipliers(player, living, Element.CRYO, baseDmg);
+            living.invulnerableTime = 0;
+            ElementalGaugeManager.applyElement(living, Element.CRYO, player, primaryDmg, 2.0F); // 2U Cryo
+        } else if (hitTarget instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal) {
+            crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
         } else {
             AABB splashBox = new AABB(impactPos.x - 2.8D, impactPos.y - 1.8D, impactPos.z - 2.8D,
                     impactPos.x + 2.8D, impactPos.y + 1.8D, impactPos.z + 2.8D);
@@ -615,6 +624,7 @@ public final class TsaritsaManager {
                 ElementalGaugeManager.applyElement(splashVictim, Element.CRYO, player, primaryDmg, 2.0F);
             }
         }
+        checkEndCrystalsNear(level, impactPos, 3.0D, player);
 
         // Schedule 3 additional 3D Stellar Cryo Arrows from 3 directions (120 degrees apart)
         // in 3 distinct staggered waves (+3, +6, +9 ticks) to bypass Minecraft iframes!
@@ -925,6 +935,7 @@ public final class TsaritsaManager {
                             sub.invulnerableTime = 0;
                             ElementalGaugeManager.applyElement(sub, Element.CRYO, owner, finalSubDmg, 1.0F);
                         }
+                        checkEndCrystalsNear(level, pending.impactPos, 2.5D, owner);
                     }
                 }
             }
@@ -1036,6 +1047,42 @@ public final class TsaritsaManager {
         }
     }
 
+    private static Entity raycastCombatEntity(ServerLevel level, ServerPlayer player, Vec3 start, Vec3 dir, double maxRange) {
+        Vec3 end = start.add(dir.scale(maxRange));
+        AABB searchBox = new AABB(start, end).inflate(1.5D);
+        Entity best = null;
+        double bestDist = maxRange + 1.0D;
+
+        List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, searchBox,
+                e -> e != player && e.isAlive() && isValidCombatTarget(player, e));
+        for (LivingEntity cand : candidates) {
+            Vec3 toCand = cand.position().add(0.0D, cand.getBbHeight() * 0.5D, 0.0D).subtract(start);
+            double proj = toCand.dot(dir);
+            if (proj < 0.0D || proj > maxRange) continue;
+            Vec3 closest = start.add(dir.scale(proj));
+            double perpDist = closest.distanceTo(cand.position().add(0.0D, cand.getBbHeight() * 0.5D, 0.0D));
+            if (perpDist <= Math.max(0.95D, cand.getBbWidth() * 0.85D) && proj < bestDist) {
+                bestDist = proj;
+                best = cand;
+            }
+        }
+
+        List<net.minecraft.world.entity.boss.enderdragon.EndCrystal> crystals = level.getEntitiesOfClass(
+                net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, searchBox);
+        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : crystals) {
+            Vec3 toCand = crystal.position().add(0.0D, 1.0D, 0.0D).subtract(start);
+            double proj = toCand.dot(dir);
+            if (proj < 0.0D || proj > maxRange) continue;
+            Vec3 closest = start.add(dir.scale(proj));
+            double perpDist = closest.distanceTo(crystal.position().add(0.0D, 1.0D, 0.0D));
+            if (perpDist <= 1.4D && proj < bestDist) {
+                bestDist = proj;
+                best = crystal;
+            }
+        }
+        return best;
+    }
+
     private static LivingEntity raycastTarget(ServerLevel level, ServerPlayer player, Vec3 start, Vec3 dir, double maxRange) {
         Vec3 end = start.add(dir.scale(maxRange));
         AABB searchBox = new AABB(start, end).inflate(1.5D);
@@ -1055,6 +1102,17 @@ public final class TsaritsaManager {
             }
         }
         return best;
+    }
+
+    private static void checkEndCrystalsNear(ServerLevel level, Vec3 center, double radius, ServerPlayer player) {
+        if (level == null || center == null) return;
+        AABB box = new AABB(center.x - radius, center.y - radius, center.z - radius,
+                center.x + radius, center.y + radius, center.z + radius);
+        List<net.minecraft.world.entity.boss.enderdragon.EndCrystal> crystals = level.getEntitiesOfClass(
+                net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box);
+        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : crystals) {
+            crystal.hurt(level.damageSources().playerAttack(player), 5.0F);
+        }
     }
 
     public static boolean isValidCombatTarget(Entity attacker, LivingEntity candidate) {
