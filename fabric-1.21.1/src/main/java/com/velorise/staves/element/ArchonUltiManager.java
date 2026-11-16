@@ -102,9 +102,21 @@ public final class ArchonUltiManager {
         PENDING_BURST_ACTIONS.add(new PendingBurstAction(sl, player.getUUID(), now + delayTicks, action));
     }
 
+    public static boolean isPlayerGroundedForBurst(Player player) {
+        if (player == null) return false;
+        if (player.getVehicle() != null) {
+            return player.getVehicle().onGround();
+        }
+        return player.onGround();
+    }
+
     /** Dispatches the shared [R] burst keybind to whichever Genshin weapon the player is holding. */
     public static void triggerUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (!isPlayerGroundedForBurst(player)) {
+            player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
+            return;
+        }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ElementalGaugeManager.triggerMavuikaUlti(player);
@@ -122,6 +134,7 @@ public final class ArchonUltiManager {
     /** Plays Venti hold-[R] wind-charge cadence feedback while charging Skyward Harp. */
     public static void tickVentiUltiCharge(ServerPlayer player) {
         if (player == null || !player.isAlive()) return;
+        if (!isPlayerGroundedForBurst(player)) return;
         ServerLevel level = player.serverLevel();
         long t = level.getGameTime();
         if (t % 10L == 0L) {
@@ -135,6 +148,10 @@ public final class ArchonUltiManager {
     /** Casts Venti's Wind's Grand Ode on pressing [R] (2.0s / 40-tick Burst animation & root, firing Stormeye at end of cast). */
     public static void triggerVentiUlti(ServerPlayer player) {
         if (player == null || !player.isAlive()) return;
+        if (!isPlayerGroundedForBurst(player)) {
+            player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
+            return;
+        }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK

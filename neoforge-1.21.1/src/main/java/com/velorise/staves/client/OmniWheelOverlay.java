@@ -247,6 +247,13 @@ public final class OmniWheelOverlay {
             mc.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
         }
         while (MAVUIKA_ULTI_KEY.consumeClick()) {
+            if (mc.player != null) {
+                boolean grounded = mc.player.onGround() || (mc.player.getVehicle() != null && mc.player.getVehicle().onGround());
+                if (!grounded) {
+                    mc.player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
+                    continue;
+                }
+            }
             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
         }
 
