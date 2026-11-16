@@ -410,6 +410,9 @@ public final class XilonenManager {
         }
 
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_XILONEN_BURST);
+        level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 1.0F, 1.65F);
+        level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9F, 1.45F);
+        level.playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.PLAYERS, 0.85F, 1.85F);
         final boolean fNeth = isNetherite;
         final int fPhec = loadout.phecCount();
         final boolean fHasNethXilo = loadout.hasNetheriteXilonen();

@@ -1138,13 +1138,48 @@ public final class ClientAuraRenderer {
             model.rightArm.xRot = -1.15F * k;
             model.leftArm.xRot = 0.60F * k;
         } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_BURST) {
-            float drop = Mth.sin(t * (float) Math.PI);
-            model.body.xRot = 0.28F * drop;
-            model.rightArm.xRot = -1.45F * drop;
-            model.leftArm.xRot = -1.35F * drop;
-            model.rightArm.yRot = -0.35F * drop;
-            model.leftArm.yRot = 0.35F * drop;
-            model.rightLeg.xRot = -0.55F * Mth.sin(t * (float) Math.PI * 2.0F);
+            // Xilonen Ulti: DJ Party! Left hand scratches turntable disc, right hand points to sky, body bounces to beat
+            float beat = Mth.abs(Mth.sin(t * (float) Math.PI * 6.0F));
+            float bobY = beat * 1.5F;
+            float grooveSway = Mth.sin(t * (float) Math.PI * 3.0F);
+
+            // Whole body energetic bounce & groove sway
+            model.body.y += bobY;
+            model.head.y += bobY;
+            model.hat.y += bobY;
+            model.rightArm.y += bobY;
+            model.leftArm.y += bobY;
+            model.rightLeg.y += bobY * 0.4F;
+            model.leftLeg.y += bobY * 0.4F;
+
+            // Torso grooving with beat
+            model.body.xRot = 0.08F + 0.06F * beat;
+            model.body.yRot = 0.10F * grooveSway;
+            model.body.zRot = 0.06F * grooveSway;
+
+            // Head nodding to beat with music attitude
+            model.head.xRot = 0.18F * beat + 0.05F;
+            model.head.yRot = 0.08F * grooveSway;
+            model.head.zRot = 0.05F * grooveSway;
+            model.hat.copyFrom(model.head);
+
+            // Left Arm: reaches down forward onto DJ turntable platter, scratching back and forth
+            float scratch = Mth.sin(t * (float) Math.PI * 14.0F) * 0.16F;
+            model.leftArm.xRot = -0.76F + scratch;
+            model.leftArm.yRot = 0.32F + scratch * 0.6F;
+            model.leftArm.zRot = 0.16F + scratch * 0.3F;
+
+            // Right Arm: raised triumphantly to sky, pointing up and pumping to beat
+            float pump = Mth.sin(t * (float) Math.PI * 6.0F) * 0.16F;
+            model.rightArm.xRot = -2.75F + pump;
+            model.rightArm.yRot = -0.22F;
+            model.rightArm.zRot = 0.28F + pump * 0.4F;
+
+            // Legs: rhythmic knee bend with beat
+            model.rightLeg.xRot = 0.14F * beat;
+            model.leftLeg.xRot = 0.14F * beat;
+            model.rightLeg.zRot = 0.06F;
+            model.leftLeg.zRot = -0.06F;
         } else if (activeAnim == ClientAuraTracker.ANIM_NEUVILLETTE_SKILL_E) {
             float strike = Mth.sin(t * (float) Math.PI);
             model.rightArm.xRot = Mth.lerp(strike, model.rightArm.xRot, -1.65F);
@@ -1252,13 +1287,50 @@ public final class ClientAuraRenderer {
             model.head.xRot += 0.04F * w;
             model.hat.copyFrom(model.head);
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_TAP_E) {
-            // Nahida Tap E: 360-degree pirouette spin flourish
-            model.body.yRot = (float) Math.PI * 2.0F * t;
+            // Nahida Tap E: 360-degree pirouette spin flourish - entire body rotates together!
+            float spinAngle = (float) Math.PI * 2.0F * t;
+            float cosS = Mth.cos(spinAngle);
+            float sinS = Mth.sin(spinAngle);
             float sweep = Mth.sin(t * (float) Math.PI);
-            model.rightArm.xRot = -1.45F * sweep;
-            model.leftArm.xRot = -1.45F * sweep;
+
+            // Whole-body hop upward
+            float hopY = -2.5F * sweep;
+            model.body.y += hopY;
+            model.head.y += hopY;
+            model.hat.y += hopY;
+
+            // Torso & Head rotate with spin
+            model.body.yRot = spinAngle;
+            model.head.yRot = spinAngle;
+            model.hat.copyFrom(model.head);
+
+            // Arms rotate around body center (x = +/-5.0F) and spread out gracefully
+            model.rightArm.x = -5.0F * cosS;
+            model.rightArm.z = -5.0F * sinS;
+            model.rightArm.y = 2.0F + hopY;
+            model.rightArm.xRot = -0.55F * sweep;
+            model.rightArm.yRot = spinAngle - 0.20F * sweep;
             model.rightArm.zRot = 0.72F * sweep;
+
+            model.leftArm.x = 5.0F * cosS;
+            model.leftArm.z = 5.0F * sinS;
+            model.leftArm.y = 2.0F + hopY;
+            model.leftArm.xRot = -0.55F * sweep;
+            model.leftArm.yRot = spinAngle + 0.20F * sweep;
             model.leftArm.zRot = -0.72F * sweep;
+
+            // Legs rotate around body center (x = +/-1.9F) with playful crossed pirouette pose
+            model.rightLeg.x = -1.9F * cosS;
+            model.rightLeg.z = -1.9F * sinS;
+            model.rightLeg.y = 12.0F + hopY;
+            model.rightLeg.yRot = spinAngle;
+            model.rightLeg.xRot = 0.22F * sweep;
+
+            model.leftLeg.x = 1.9F * cosS;
+            model.leftLeg.z = 1.9F * sinS;
+            model.leftLeg.y = 12.0F + hopY;
+            model.leftLeg.yRot = spinAngle;
+            model.leftLeg.xRot = -0.15F * sweep;
         } else if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA) {
             // Nahida CA: Right arm sweeps diagonally upward across screen
             float sweep = Mth.sin(t * (float) Math.PI);
@@ -1980,6 +2052,11 @@ public final class ClientAuraRenderer {
                 poseStack.translate(dir * 0.18F * slash, -0.22F * slash, -0.24F * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(-48.0F * slash));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 38.0F * slash));
+            } else if (activeAnim == ClientAuraTracker.ANIM_XILONEN_BURST) {
+                float scratch = Mth.sin(t * (float) Math.PI * 14.0F) * 0.08F;
+                poseStack.translate(-dir * (0.20F * w + scratch), -0.22F * w, -0.18F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(24.0F * w + scratch * 25.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * (18.0F * w + scratch * 15.0F)));
             } else {
                 poseStack.translate(-dir * 0.16F * w, 0.22F * w, -0.20F * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * w));
@@ -3171,6 +3248,7 @@ public final class ClientAuraRenderer {
         renderMavuikaSunAuraRing(entity, poseStack, buffer);
         renderRaidenEyeRing(entity, poseStack, buffer);
         renderNahidaAndTsaritsaEffects(entity, poseStack, buffer);
+        renderXilonenDjBooth(entity, poseStack, buffer);
 
         boolean showIcons = true;
         try {
@@ -5028,6 +5106,7 @@ public final class ClientAuraRenderer {
         PlanetBefallMeteorRenderer.render(poseStack, bufferSource, camPos, now);
         renderVentiDebugHitboxes(poseStack, bufferSource, camPos);
         renderNahidaAndTsaritsaWorldArcs(poseStack, bufferSource, camPos, now);
+        renderFirstPersonXilonenDjBooth(poseStack, bufferSource, camPos, now);
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
         Matrix4f matrix = poseStack.last().pose();
 
@@ -5914,25 +5993,25 @@ public final class ClientAuraRenderer {
             // No vanilla particles — 100% custom quads
             if (step == 1) {
                 // Step 1: 1 central sprouting vine blooming 1 clover
-                emitDoubleQuad(vc, mat, -0.03F, 0.04F, -0.85F, 0.03F, 0.04F, -0.85F, 0.03F, 0.68F, -0.85F, -0.03F, 0.68F, -0.85F, 75, 240, 110, 220);
-                renderFourLeafClover2D(vc, mat, 0.0F, 0.72F, -0.85F, 0.22F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, -0.03F, 0.04F, 0.85F, 0.03F, 0.04F, 0.85F, 0.03F, 0.68F, 0.85F, -0.03F, 0.68F, 0.85F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.0F, 0.72F, 0.85F, 0.22F, 120, 255, 150, 235);
             } else if (step == 2) {
                 // Step 2: 2 sprouting curving vines (1 taller, 1 shorter)
-                emitDoubleQuad(vc, mat, -0.31F, 0.04F, -0.92F, -0.25F, 0.04F, -0.92F, -0.25F, 0.62F, -0.92F, -0.31F, 0.62F, -0.92F, 75, 240, 110, 220);
-                renderFourLeafClover2D(vc, mat, -0.28F, 0.66F, -0.92F, 0.20F, 120, 255, 150, 235);
-                emitDoubleQuad(vc, mat, 0.25F, 0.04F, -0.92F, 0.31F, 0.04F, -0.92F, 0.31F, 0.92F, -0.92F, 0.25F, 0.92F, -0.92F, 75, 240, 110, 220);
-                renderFourLeafClover2D(vc, mat, 0.28F, 0.96F, -0.92F, 0.24F, 135, 255, 165, 240);
+                emitDoubleQuad(vc, mat, -0.31F, 0.04F, 0.92F, -0.25F, 0.04F, 0.92F, -0.25F, 0.62F, 0.92F, -0.31F, 0.62F, 0.92F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, -0.28F, 0.66F, 0.92F, 0.20F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, 0.25F, 0.04F, 0.92F, 0.31F, 0.04F, 0.92F, 0.31F, 0.92F, 0.92F, 0.25F, 0.92F, 0.92F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.28F, 0.96F, 0.92F, 0.24F, 135, 255, 165, 240);
             } else if (step == 3) {
                 // Step 3: 3 sprouting curving vines rising higher
-                emitDoubleQuad(vc, mat, -0.38F, 0.04F, -1.02F, -0.32F, 0.04F, -1.02F, -0.32F, 0.75F, -1.02F, -0.38F, 0.75F, -1.02F, 75, 240, 110, 220);
-                renderFourLeafClover2D(vc, mat, -0.35F, 0.79F, -1.02F, 0.22F, 120, 255, 150, 235);
-                emitDoubleQuad(vc, mat, -0.03F, 0.04F, -1.08F, 0.03F, 0.04F, -1.08F, 0.03F, 1.15F, -1.08F, -0.03F, 1.15F, -1.08F, 85, 245, 120, 230);
-                renderFourLeafClover2D(vc, mat, 0.0F, 1.20F, -1.08F, 0.28F, 140, 255, 175, 245);
-                emitDoubleQuad(vc, mat, 0.32F, 0.04F, -1.02F, 0.38F, 0.04F, -1.02F, 0.38F, 0.85F, -1.02F, 0.32F, 0.85F, -1.02F, 75, 240, 110, 220);
-                renderFourLeafClover2D(vc, mat, 0.35F, 0.89F, -1.02F, 0.22F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, -0.38F, 0.04F, 1.02F, -0.32F, 0.04F, 1.02F, -0.32F, 0.75F, 1.02F, -0.38F, 0.75F, 1.02F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, -0.35F, 0.79F, 1.02F, 0.22F, 120, 255, 150, 235);
+                emitDoubleQuad(vc, mat, -0.03F, 0.04F, 1.08F, 0.03F, 0.04F, 1.08F, 0.03F, 1.15F, 1.08F, -0.03F, 1.15F, 1.08F, 85, 245, 120, 230);
+                renderFourLeafClover2D(vc, mat, 0.0F, 1.20F, 1.08F, 0.28F, 140, 255, 175, 245);
+                emitDoubleQuad(vc, mat, 0.32F, 0.04F, 1.02F, 0.38F, 0.04F, 1.02F, 0.38F, 0.85F, 1.02F, 0.32F, 0.85F, 1.02F, 75, 240, 110, 220);
+                renderFourLeafClover2D(vc, mat, 0.35F, 0.89F, 1.02F, 0.22F, 120, 255, 150, 235);
             } else {
                 // Step 4 (Image 8): Twin curving leafy vines forming a radiant glowing HEART!
-                float zH = -1.15F;
+                float zH = 1.15F;
                 // Left vine arching up and bending into heart lobe
                 emitDoubleQuad(vc, mat, -0.45F, 0.06F, zH, -0.39F, 0.06F, zH, -0.50F, 0.65F, zH, -0.56F, 0.65F, zH, 75, 240, 110, 225);
                 emitDoubleQuad(vc, mat, -0.56F, 0.65F, zH, -0.50F, 0.65F, zH, -0.42F, 1.15F, zH, -0.48F, 1.15F, zH, 85, 245, 120, 235);
@@ -5953,7 +6032,7 @@ public final class ClientAuraRenderer {
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             Matrix4f mat = poseStack.last().pose();
-            float z = -1.10F;
+            float z = 1.10F;
             float cy = 1.15F;
             float caProg = Mth.clamp(1.0F - (d.staffAnimUntil - now) / 500.0F, 0.0F, 1.0F);
 
@@ -5977,7 +6056,7 @@ public final class ClientAuraRenderer {
                 float cloverRad = 0.72F + boom * 0.55F;
                 int aBoom = Math.round(245.0F * (1.0F - boom * 0.35F));
                 renderFourLeafClover2D(vc, mat, 0.0F, cy, z, cloverRad, 95, 255, 140, aBoom);
-                renderCloverCross2D(vc, mat, 0.0F, cy, z - 0.01F, cloverRad * 0.45F, 250, 255, 200, aBoom);
+                renderCloverCross2D(vc, mat, 0.0F, cy, z + 0.01F, cloverRad * 0.45F, 250, 255, 200, aBoom);
                 // Expanding floral shockwave ring
                 float ringR = 0.45F + boom * 1.15F;
                 for (int s = 0; s < 16; s++) {
@@ -6312,6 +6391,271 @@ public final class ClientAuraRenderer {
             vc.vertex(mat, cx + c1 * rIn, cy + s1 * rIn, 0.0F).color(r, g, b, a).endVertex();
             vc.vertex(mat, cx + c1 * rOut, cy + s1 * rOut, 0.0F).color(r, g, b, a).endVertex();
             vc.vertex(mat, cx + c0 * rOut, cy + s0 * rOut, 0.0F).color(r, g, b, a).endVertex();
+        }
+    }
+
+    public static void renderXilonenDjBooth(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        int id = entity.getId();
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(id);
+        long now = System.currentTimeMillis();
+        int activeAnim = (d != null && now < d.staffAnimUntil) ? d.staffAnimType : 0;
+        if (activeAnim != ClientAuraTracker.ANIM_XILONEN_BURST) return;
+
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
+        if (isFirstPersonSelf) return;
+
+        float pt = (mc.level != null) ? mc.getFrameTime() : 0.0F;
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+        float totalMs = Math.max(1.0F, (float) (d.staffAnimUntil - d.staffAnimStartTime));
+        float t = Mth.clamp((now - d.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+
+        float alphaScale = (t < 0.08F) ? (t / 0.08F) : (t > 0.90F ? (1.0F - t) / 0.10F : 1.0F);
+        int alphaBase = Math.round(255 * alphaScale);
+        if (alphaBase <= 8) return;
+
+        VertexConsumer vc = buffer.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+
+        renderXilonenDjBoothGeometry(vc, poseStack.last().pose(), time, t, alphaBase);
+
+        poseStack.popPose();
+    }
+
+    private static void renderFirstPersonXilonenDjBooth(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || !mc.options.getCameraType().isFirstPerson()) return;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(mc.player.getId());
+        if (d == null || now >= d.staffAnimUntil || d.staffAnimType != ClientAuraTracker.ANIM_XILONEN_BURST) return;
+
+        float totalMs = Math.max(1.0F, (float) (d.staffAnimUntil - d.staffAnimStartTime));
+        float t = Mth.clamp((now - d.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+        float alphaScale = (t < 0.08F) ? (t / 0.08F) : (t > 0.90F ? (1.0F - t) / 0.10F : 1.0F);
+        int alphaBase = Math.round(255 * alphaScale);
+        if (alphaBase <= 8) return;
+
+        float pt = (mc.level != null) ? mc.getFrameTime() : 0.0F;
+        float time = mc.player.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, mc.player.yBodyRotO, mc.player.yBodyRot);
+
+        float cx = (float) (mc.player.getX() - camPos.x);
+        float cy = (float) (mc.player.getY() - camPos.y);
+        float cz = (float) (mc.player.getZ() - camPos.z);
+
+        VertexConsumer vc = bufferSource.getBuffer(ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+        poseStack.pushPose();
+        poseStack.translate(cx, cy, cz);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+
+        renderXilonenDjBoothGeometry(vc, poseStack.last().pose(), time, t, alphaBase);
+
+        poseStack.popPose();
+    }
+
+    private static void renderXilonenDjBoothGeometry(VertexConsumer vc, Matrix4f mat, float time, float t, int alphaBase) {
+        // Floating hover height in front of player's hips/waist with gentle anti-gravity bob
+        float hoverBob = Mth.sin(time * 0.28F) * 0.025F;
+        float tableY = 0.78F + hoverBob;
+        float tableZ = 0.58F;
+
+        // 1. MAIN CONSOLE TABLETOP SLAB (Obsidian Body + Gold Metallic Rim + Cyan Neon Light Channels)
+        drawJadeArmorBox(vc, mat, -0.62F, tableY, tableZ - 0.18F, 0.62F, tableY + 0.075F, tableZ + 0.18F, 34, 30, 38, alphaBase);
+
+        // Angular Natlan Wing Extensions (Left and Right chamfered wings)
+        drawJadeArmorBox(vc, mat, -0.72F, tableY + 0.01F, tableZ - 0.14F, -0.62F, tableY + 0.065F, tableZ + 0.14F, 28, 24, 32, alphaBase);
+        drawJadeArmorBox(vc, mat,  0.62F, tableY + 0.01F, tableZ - 0.14F,  0.72F, tableY + 0.065F, tableZ + 0.14F, 28, 24, 32, alphaBase);
+
+        // Rich Natlan Golden Metallic Frame (Front, Back, and Side Rims)
+        int gR = 255, gG = 196, gB = 45;
+        // Front golden border
+        drawJadeArmorBox(vc, mat, -0.72F, tableY - 0.012F, tableZ + 0.18F,  0.72F, tableY + 0.082F, tableZ + 0.205F, gR, gG, gB, alphaBase);
+        // Back golden border (facing player)
+        drawJadeArmorBox(vc, mat, -0.72F, tableY - 0.012F, tableZ - 0.205F, 0.72F, tableY + 0.082F, tableZ - 0.18F,  gR, gG, gB, alphaBase);
+        // Left & Right golden endcaps
+        drawJadeArmorBox(vc, mat, -0.74F, tableY - 0.012F, tableZ - 0.15F, -0.72F, tableY + 0.082F, tableZ + 0.15F, gR, gG, gB, alphaBase);
+        drawJadeArmorBox(vc, mat,  0.72F, tableY - 0.012F, tableZ - 0.15F,  0.74F, tableY + 0.082F, tableZ + 0.15F, gR, gG, gB, alphaBase);
+
+        // Glowing Natlan Cyan/Turquoise Neon Light Strips along front and sides
+        int cR = 40, cG = 245, cB = 230;
+        drawJadeArmorBox(vc, mat, -0.68F, tableY + 0.028F, tableZ + 0.206F, 0.68F, tableY + 0.048F, tableZ + 0.212F, cR, cG, cB, alphaBase);
+        drawJadeArmorBox(vc, mat, -0.742F, tableY + 0.028F, tableZ - 0.12F, -0.738F, tableY + 0.048F, tableZ + 0.12F, cR, cG, cB, alphaBase);
+        drawJadeArmorBox(vc, mat,  0.738F, tableY + 0.028F, tableZ - 0.12F,  0.742F, tableY + 0.048F, tableZ + 0.12F, cR, cG, cB, alphaBase);
+
+        // 2. TURNTABLES (Left: Scratching vinyl disc; Right: Spinning vinyl disc)
+        float leftPlatterX = -0.38F;
+        float rightPlatterX = 0.38F;
+        float platterY = tableY + 0.076F;
+        float platterRadius = 0.165F;
+        int numSegs = 16;
+
+        // Left Platter scratch rotation (rapid back-and-forth oscillation synced with scratch hand)
+        float leftScratchAngle = (float) Math.toRadians(Mth.sin(t * (float) Math.PI * 14.0F) * 65.0F + (time * 16.0F));
+        // Right Platter continuous spin
+        float rightSpinAngle = (float) Math.toRadians(time * 24.0F);
+
+        renderTurntablePlatter(vc, mat, leftPlatterX, platterY, tableZ, platterRadius, leftScratchAngle, numSegs, alphaBase, true);
+        renderTurntablePlatter(vc, mat, rightPlatterX, platterY, tableZ, platterRadius, rightSpinAngle, numSegs, alphaBase, false);
+
+        // 3. CENTER DIGITAL MIXER & DYNAMIC EQUALIZER VU-METERS
+        drawJadeArmorBox(vc, mat, -0.15F, tableY + 0.076F, tableZ - 0.15F, 0.15F, tableY + 0.081F, tableZ + 0.15F, 22, 20, 26, alphaBase);
+
+        // 6-Band Animated Graphic Equalizer / VU-Meter Bars
+        float[] eqXs = {-0.10F, -0.06F, -0.02F, 0.02F, 0.06F, 0.10F};
+        for (int ch = 0; ch < eqXs.length; ch++) {
+            float eqX = eqXs[ch];
+            float freq = Mth.abs(Mth.sin(t * (float) Math.PI * (8.0F + ch * 1.8F) + ch * 1.1F));
+            int segments = Math.min(6, (int) (freq * 7.5F));
+            for (int seg = 0; seg < 6; seg++) {
+                float segZ0 = tableZ - 0.08F + seg * 0.026F;
+                float segZ1 = segZ0 + 0.020F;
+                boolean lit = seg <= segments;
+                int r, g, b, a;
+                if (lit) {
+                    if (seg < 3) {
+                        r = 45; g = 240; b = 130; a = alphaBase;
+                    } else if (seg < 5) {
+                        r = 255; g = 220; b = 40; a = alphaBase;
+                    } else {
+                        r = 255; g = 60; b = 35; a = alphaBase;
+                    }
+                } else {
+                    r = 35; g = 40; b = 42; a = Math.min(alphaBase, 80);
+                }
+                drawJadeArmorBox(vc, mat, eqX - 0.012F, tableY + 0.082F, segZ0, eqX + 0.012F, tableY + 0.088F, segZ1, r, g, b, a);
+            }
+        }
+
+        // Crossfader Slider knob (oscillates along X)
+        float faderX = Mth.sin(t * (float) Math.PI * 7.0F) * 0.06F;
+        drawJadeArmorBox(vc, mat, faderX - 0.015F, tableY + 0.082F, tableZ + 0.10F, faderX + 0.015F, tableY + 0.096F, tableZ + 0.125F, 245, 245, 250, alphaBase);
+        // Crossfader rail slot
+        drawJadeArmorBox(vc, mat, -0.09F, tableY + 0.081F, tableZ + 0.11F, 0.09F, tableY + 0.083F, tableZ + 0.115F, 12, 10, 14, alphaBase);
+
+        // 4. UNDERNEATH HOVER THRUSTERS / WARM GOLDEN SPOTLIGHT BEAMS (Screenshot Match)
+        float flareAlpha = 0.35F + 0.15F * Mth.sin(time * 0.45F);
+        int coneAlpha = Math.round(alphaBase * flareAlpha);
+        renderHoverSpotlight(vc, mat, leftPlatterX, tableY, tableZ, 0.11F, 0.28F, 0.72F, coneAlpha);
+        renderHoverSpotlight(vc, mat, rightPlatterX, tableY, tableZ, 0.11F, 0.28F, 0.72F, coneAlpha);
+
+        // 5. FLOATING NATLAN MUSICAL NOTES / HOLOGRAPHIC SOUND PARTICLES
+        renderDjHologramNotes(vc, mat, tableY, tableZ, time, t, alphaBase);
+    }
+
+    private static void renderTurntablePlatter(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float cy, float cz,
+            float radius, float rotAngle,
+            int segs, int alpha, boolean isScratching
+    ) {
+        // 1. Golden Outer Bevel Housing Ring
+        float rOut = radius + 0.018F;
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (i * 2.0D * Math.PI / segs);
+            float a1 = (float) ((i + 1) * 2.0D * Math.PI / segs);
+            emitDoubleQuad(vc, mat,
+                    cx + Mth.cos(a0) * radius, cy + 0.002F, cz + Mth.sin(a0) * radius,
+                    cx + Mth.cos(a1) * radius, cy + 0.002F, cz + Mth.sin(a1) * radius,
+                    cx + Mth.cos(a1) * rOut, cy + 0.002F, cz + Mth.sin(a1) * rOut,
+                    cx + Mth.cos(a0) * rOut, cy + 0.002F, cz + Mth.sin(a0) * rOut,
+                    255, 198, 48, alpha);
+        }
+
+        // 2. Vinyl Record Grooves Disc (Dark Vinyl with circular sheen)
+        float rLabel = radius * 0.36F;
+        for (int i = 0; i < segs; i++) {
+            float a0 = rotAngle + (float) (i * 2.0D * Math.PI / segs);
+            float a1 = rotAngle + (float) ((i + 1) * 2.0D * Math.PI / segs);
+            int vinylTone = (i % 2 == 0) ? 22 : 16;
+            emitDoubleQuad(vc, mat,
+                    cx + Mth.cos(a0) * rLabel, cy + 0.004F, cz + Mth.sin(a0) * rLabel,
+                    cx + Mth.cos(a1) * rLabel, cy + 0.004F, cz + Mth.sin(a1) * rLabel,
+                    cx + Mth.cos(a1) * radius, cy + 0.004F, cz + Mth.sin(a1) * radius,
+                    cx + Mth.cos(a0) * radius, cy + 0.004F, cz + Mth.sin(a0) * radius,
+                    vinylTone, vinylTone, vinylTone + 2, alpha);
+        }
+
+        // 3. Center Natlan Sun Label (Rotating Gold Medallion)
+        for (int i = 0; i < segs; i++) {
+            float a0 = rotAngle + (float) (i * 2.0D * Math.PI / segs);
+            float a1 = rotAngle + (float) ((i + 1) * 2.0D * Math.PI / segs);
+            emitDoubleQuad(vc, mat,
+                    cx, cy + 0.006F, cz,
+                    cx + Mth.cos(a0) * rLabel, cy + 0.006F, cz + Mth.sin(a0) * rLabel,
+                    cx + Mth.cos(a1) * rLabel, cy + 0.006F, cz + Mth.sin(a1) * rLabel,
+                    cx, cy + 0.006F, cz,
+                    255, 215, 60, alpha);
+        }
+        renderCloverCrossXZ(vc, mat, cx, cy + 0.008F, cz, 0.025F, 50, 245, 235, alpha);
+
+        // 4. Tonearm / Stylus needle
+        float armPivotX = cx + (isScratching ? -0.21F : 0.21F);
+        float armPivotZ = cz - 0.12F;
+        float armTipX = cx + (isScratching ? -0.06F : 0.06F);
+        float armTipZ = cz + 0.04F;
+        emitDoubleQuad(vc, mat,
+                armPivotX - 0.008F, cy + 0.016F, armPivotZ - 0.008F,
+                armPivotX + 0.008F, cy + 0.016F, armPivotZ + 0.008F,
+                armTipX + 0.008F, cy + 0.009F, armTipZ + 0.008F,
+                armTipX - 0.008F, cy + 0.009F, armTipZ - 0.008F,
+                230, 200, 75, alpha);
+        drawJadeArmorBox(vc, mat, armPivotX - 0.018F, cy + 0.004F, armPivotZ - 0.018F, armPivotX + 0.018F, cy + 0.022F, armPivotZ + 0.018F, 255, 195, 45, alpha);
+    }
+
+    private static void renderHoverSpotlight(
+            VertexConsumer vc, Matrix4f mat,
+            float cx, float tableY, float cz,
+            float topRadius, float bottomRadius, float coneHeight,
+            int alpha
+    ) {
+        if (alpha <= 5) return;
+        float yTop = tableY - 0.015F;
+        float yBottom = Math.max(0.04F, tableY - coneHeight);
+        int segs = 12;
+
+        for (int i = 0; i < segs; i++) {
+            float a0 = (float) (i * 2.0D * Math.PI / segs);
+            float a1 = (float) ((i + 1) * 2.0D * Math.PI / segs);
+            float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
+            float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
+
+            emitDoubleQuad(vc, mat,
+                    cx + c0 * topRadius, yTop, cz + s0 * topRadius,
+                    cx + c1 * topRadius, yTop, cz + s1 * topRadius,
+                    cx + c1 * bottomRadius, yBottom, cz + s1 * bottomRadius,
+                    cx + c0 * bottomRadius, yBottom, cz + s0 * bottomRadius,
+                    255, 210, 65, alpha);
+        }
+
+        renderCloverCrossXZ(vc, mat, cx, yTop, cz, 0.10F, 255, 240, 130, Math.min(255, alpha * 2));
+    }
+
+    private static void renderDjHologramNotes(
+            VertexConsumer vc, Matrix4f mat,
+            float tableY, float tableZ,
+            float time, float t, int alphaBase
+    ) {
+        float[][] noteOffsets = {
+                {-0.36F, 0.22F, -0.04F, 0.12F, 40, 245, 230},
+                {-0.22F, 0.36F,  0.02F, 0.10F, 255, 215, 60},
+                { 0.24F, 0.28F,  0.03F, 0.11F, 255, 215, 60},
+                { 0.38F, 0.42F, -0.02F, 0.13F, 40, 245, 230},
+                { 0.00F, 0.32F, -0.05F, 0.09F, 255, 160, 40}
+        };
+
+        for (int i = 0; i < noteOffsets.length; i++) {
+            float[] n = noteOffsets[i];
+            float bob = Mth.sin(time * 0.35F + i * 1.3F) * 0.04F;
+            float nx = n[0];
+            float ny = tableY + 0.10F + n[1] + bob;
+            float nz = tableZ + n[2];
+            float noteSize = n[3];
+            int r = (int) n[4];
+            int g = (int) n[5];
+            int b = (int) n[6];
+            int a = Math.round(alphaBase * 0.85F);
+            renderCloverCross2D(vc, mat, nx, ny, nz, noteSize, r, g, b, a);
         }
     }
 }
