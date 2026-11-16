@@ -10,10 +10,10 @@
     "description": {
       "translate": "advancement.velorise_staves.hidden_omni.desc"
     },
-    "frame": "challenge",
+    "frame": "task",
     "show_toast": true,
     "announce_to_chat": true,
-    "hidden": true
+    "hidden": false
   },
   "criteria": {
     "hidden_omni": {

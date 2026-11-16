@@ -783,8 +783,8 @@ public class ElementalCodexScreen extends Screen {
                                 fmtHearts((4.0 + maxHp * 0.019) * dmgMult) + "§f\uE008§r",
                                 "§6" + fmtHearts((6.0 + maxHp * 0.0285) * dmgMult) + "§f\uE008§6", "12m (Max 3 / 4m Pulse)", "codex.velorise_staves.staff.vortex"},
                         {"peak_patrol_song", ArcaneStaffItem.Kind.PEAK_PATROL_SONG, Element.GEO,
-                                fmtHearts(4.0 * dmgMult) + "§f\uE008§r",
-                                "§6" + fmtHearts(6.0 * dmgMult) + "§f\uE008§6", "3m Skate / 8m -36% RES", "codex.velorise_staves.staff.peak_patrol_song"},
+                                fmtHearts(1.0 * dmgMult) + "§f\uE008§r",
+                                "§6" + fmtHearts(1.5 * dmgMult) + "§f\uE008§6", "3m Skate / 8m -36% RES", "codex.velorise_staves.staff.peak_patrol_song"},
                         {"omni_staff", ArcaneStaffItem.Kind.OMNI, null,
                                 fmtHearts(10.0 * dmgMult) + "§f\uE008§r 2U", "§6" + fmtHearts(15.0 * dmgMult) + "§f\uE008§6 3U", "36m➔48m", "codex.velorise_staves.staff.omni"}
                 };

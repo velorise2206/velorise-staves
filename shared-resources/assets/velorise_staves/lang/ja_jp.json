@@ -230,6 +230,7 @@
   "codex.velorise_staves.env.world_traps.p2": "• §aスライム/蜂蜜/サボテン/ベリー§r = §a草§r | §7金床/鍾乳石§r = §6岩§r | §5棘の鎧§r Lv毎に §e0.5U§r 反射 | §dポーション・矢・メイス§r でも付着！",
   "codex.velorise_staves.staff.inferno": "灼熱の §c炎§r 火球；§b氷§r を溶かしブロックに引火します。",
   "codex.velorise_staves.staff.ghastfire": "爆発する §c炎§r ガスト火球；§c火炎フィールド§r を残します。",
+  "codex.velorise_staves.staff.thousand_blazing_suns": "右クリックで灼熱の光輪を展開（継続的な炎範囲攻撃）。長押し/ダブルタップで火走のバイクに騎乗。闘志を消費して[R]キーで太陽落としの大隕石を召喚。",
   "codex.velorise_staves.staff.guardian": "Hold Left-Click (0s CD) to charge Equitable Judgment (3.0s charge, absorbing up to 3 Sourcewater Droplets within 12m to reduce charge by 1.0s each and heal 16% Max HP -> 3 Droplets fire immediately!) and channel a 3.0s HP-scaled Hydro beam. Right-Click (Skill E, 12s CD) summons a surging waterfall in front of you, spawning 3 Sourcewater Droplets when hitting an enemy. Press [R] (Burst Q, 18s CD) for 1.7s I-frames, crashing Hydro waves, and 6 immediate Sourcewater Droplets. Triggering Hydro reactions grants Past Draconic Glories stacks (1.15x/1.30x/1.60x beam DMG).",
   "codex.velorise_staves.staff.frostbolt": "極寒 §b氷§r 弾；減速（§c-30% 速度§r）し水面を凍らせます。",
   "codex.velorise_staves.staff.nights_focus": "Grants a §b12s Cryo Shield§r (§e40% Max HP§r / §660%§r Netherite, §b250% Cryo Absorb§r) + AoE §bCryo§r. Gains §eNight Stars§r (1/1.5s, +2 on skill); at 4 stars fires 4 homing §bShooting Stars§r.",

@@ -159,21 +159,16 @@ public final class NahidaManager {
         BlockPos max = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
         for (BlockPos pos : BlockPos.betweenClosed(min, max)) {
             BlockState state = level.getBlockState(pos);
-            if (state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock bonemealable) {
+            if (state.is(net.minecraft.tags.BlockTags.SAPLINGS) && state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock bonemealable) {
                 for (int attempts = 0; attempts < 15; attempts++) {
                     if (!bonemealable.isValidBonemealTarget(level, pos, state, false)) break;
                     bonemealable.performBonemeal(level, level.random, pos, state);
                     state = level.getBlockState(pos);
-                    if (!(state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock b) || !b.isValidBonemealTarget(level, pos, state, false)) {
+                    if (!state.is(net.minecraft.tags.BlockTags.SAPLINGS) || !(state.getBlock() instanceof net.minecraft.world.level.block.BonemealableBlock b) || !b.isValidBonemealTarget(level, pos, state, false)) {
                         break;
                     }
                 }
                 level.levelEvent(1505, pos, 0);
-            } else if (state.getBlock() instanceof net.minecraft.world.level.block.CropBlock crop) {
-                if (!crop.isMaxAge(state)) {
-                    level.setBlock(pos, crop.getStateForAge(crop.getMaxAge()), 2);
-                    level.levelEvent(1505, pos, 0);
-                }
             }
         }
     }

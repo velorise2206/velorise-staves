@@ -230,6 +230,7 @@
   "codex.velorise_staves.env.world_traps.p2": "• §a史莱姆/蜂蜜/仙人掌/浆果§r = §a草§r | §7铁砧/滴水石锥§r = §6岩§r | §5荆棘(Thorns)§r 每级反弹 §e0.5U§r | §d药水、箭矢与重锤§r 均可附着！",
   "codex.velorise_staves.staff.inferno": "发射炽热 §c火球§r；可融解 §b冰块§r 并引燃方块。",
   "codex.velorise_staves.staff.ghastfire": "爆炸性 §c火§r 恶魂火球；命中留下持续 §c火海§r。",
+  "codex.velorise_staves.staff.thousand_blazing_suns": "右键点击释放曜石之环（持续火元素范围打击）。长按/双击右键骑乘炽炎摩托。在拥有战意点数时按 [R] 释放炽天陨星大招。",
   "codex.velorise_staves.staff.guardian": "Hold Left-Click (0s CD) to charge Equitable Judgment (3.0s charge, absorbing up to 3 Sourcewater Droplets within 12m to reduce charge by 1.0s each and heal 16% Max HP -> 3 Droplets fire immediately!) and channel a 3.0s HP-scaled Hydro beam. Right-Click (Skill E, 12s CD) summons a surging waterfall in front of you, spawning 3 Sourcewater Droplets when hitting an enemy. Press [R] (Burst Q, 18s CD) for 1.7s I-frames, crashing Hydro waves, and 6 immediate Sourcewater Droplets. Triggering Hydro reactions grants Past Draconic Glories stacks (1.15x/1.30x/1.60x beam DMG).",
   "codex.velorise_staves.staff.frostbolt": "极寒 §b冰§r 法球；减速（§c-30% 移速§r）并冻结水面。",
   "codex.velorise_staves.staff.nights_focus": "Grants a §b12s Cryo Shield§r (§e40% Max HP§r / §660%§r Netherite, §b250% Cryo Absorb§r) + AoE §bCryo§r. Gains §eNight Stars§r (1/1.5s, +2 on skill); at 4 stars fires 4 homing §bShooting Stars§r.",

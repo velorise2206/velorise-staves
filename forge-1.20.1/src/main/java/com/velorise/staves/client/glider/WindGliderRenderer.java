@@ -903,10 +903,11 @@ public final class WindGliderRenderer {
             if (player.isUsingItem() && player.getUseItem() == stack) {
                 int elapsed = Math.max(0, staff.getUseDuration(stack) - player.getUseItemRemainingTicks());
                 float w = smoothStep01((elapsed + partialTicks) / 16.0F);
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.8F) * 0.008F * w;
-                poseStack.translate(-dir * 0.06F * w + tremor, 0.16F * w, -0.10F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * w));
+                float tremor = Mth.sin((player.tickCount + partialTicks) * 1.8F) * 0.005F * w;
+                poseStack.translate(dir * 0.22F * w + tremor, 0.38F * w, -0.06F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-32.0F * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 18.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 16.0F * w));
                 return true;
             }
             if (activeAnim == ClientAuraTracker.ANIM_GHASTFIRE_SLAM && data != null) {
@@ -914,9 +915,10 @@ public final class WindGliderRenderer {
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 float slam = smoothStep01(t / 0.35F);
                 float w = (t < 0.45F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.45F) / 0.55F) * (float) Math.PI));
-                poseStack.translate(-dir * 0.06F * (1.0F - slam) * w, Mth.lerp(slam, 0.16F, -0.22F) * w, Mth.lerp(slam, -0.10F, -0.24F) * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, -18.0F, -68.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * (1.0F - slam) * w));
+                poseStack.translate(dir * 0.22F * (1.0F - slam) * w, Mth.lerp(slam, 0.38F, -0.22F) * w, Mth.lerp(slam, -0.06F, -0.24F) * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slam, -32.0F, -68.0F) * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 18.0F * (1.0F - slam) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 16.0F * (1.0F - slam) * w));
                 return true;
             }
         }

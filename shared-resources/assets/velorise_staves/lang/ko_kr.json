@@ -230,6 +230,7 @@
   "codex.velorise_staves.env.world_traps.p2": "• §a슬라임/꿀/선인장/열매§r = §a풀§r | §7모루/점적석§r = §6바위§r | §5가시(Thorns)§r 레벨당 §e0.5U§r 반사 | §d물약·화살·철퇴§r 도 부여!",
   "codex.velorise_staves.staff.inferno": "작열하는 §c불§r 화염구; §b얼음§r 을 녹이고 가연 블록에 점화합니다.",
   "codex.velorise_staves.staff.ghastfire": "폭발성 §c불§r 가스트 화염구; 지속 §c화염 지대§r 를 남깁니다.",
+  "codex.velorise_staves.staff.thousand_blazing_suns": "우클릭 시 작열하는 광륜 전개(지속 불 원소 범위 타격). 우클릭 유지/더블클릭 시 플레임스트라이더 모터사이클 탑승. 투지가 차 있을 때 [R] 키로 태양 낙하 대운석 소환.",
   "codex.velorise_staves.staff.guardian": "Hold Left-Click (0s CD) to charge Equitable Judgment (3.0s charge, absorbing up to 3 Sourcewater Droplets within 12m to reduce charge by 1.0s each and heal 16% Max HP -> 3 Droplets fire immediately!) and channel a 3.0s HP-scaled Hydro beam. Right-Click (Skill E, 12s CD) summons a surging waterfall in front of you, spawning 3 Sourcewater Droplets when hitting an enemy. Press [R] (Burst Q, 18s CD) for 1.7s I-frames, crashing Hydro waves, and 6 immediate Sourcewater Droplets. Triggering Hydro reactions grants Past Draconic Glories stacks (1.15x/1.30x/1.60x beam DMG).",
   "codex.velorise_staves.staff.frostbolt": "혹한의 §b얼음§r 탄환; 감속(§c-30% 이속§r) 및 수면을 얼립니다.",
   "codex.velorise_staves.staff.nights_focus": "Grants a §b12s Cryo Shield§r (§e40% Max HP§r / §660%§r Netherite, §b250% Cryo Absorb§r) + AoE §bCryo§r. Gains §eNight Stars§r (1/1.5s, +2 on skill); at 4 stars fires 4 homing §bShooting Stars§r.",
