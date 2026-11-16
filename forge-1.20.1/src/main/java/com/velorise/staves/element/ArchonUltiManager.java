@@ -391,7 +391,6 @@ public final class ArchonUltiManager {
         applyBurstRoot(player, 50);
         ElementalGaugeManager.onPlayerCastStaffSkill(player);
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, isNetherite ? 3 : 2, player, hand);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_THIS_IS_ORDER);
 
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
@@ -475,6 +474,9 @@ public final class ArchonUltiManager {
         ServerLevel level = pending.level();
         if (level.getServer() == null) return;
         ServerPlayer caster = level.getServer().getPlayerList().getPlayer(pending.casterId());
+        if (caster != null && caster.isAlive()) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(caster, com.velorise.staves.advancement.ModAdvancements.EVENT_THIS_IS_ORDER);
+        }
         Vec3 impact = pending.impactPos();
         double aoeRadius = pending.aoeRadius();
         double horizLimitSq = (aoeRadius + 0.85D) * (aoeRadius + 0.85D);
