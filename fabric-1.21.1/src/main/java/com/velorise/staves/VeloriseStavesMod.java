@@ -641,7 +641,10 @@ public final class VeloriseStavesMod implements ModInitializer {
             com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(player);
             if (!player.getTags().contains("velorise_staves:received_codex")) {
                 player.addTag("velorise_staves:received_codex");
-                player.getInventory().add(new ItemStack(ELEMENTAL_CODEX));
+                ItemStack codex = new ItemStack(ELEMENTAL_CODEX);
+                if (!player.getInventory().add(codex)) {
+                    player.drop(codex, false);
+                }
             }
         });
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {

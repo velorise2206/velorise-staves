@@ -188,6 +188,9 @@ public final class ArcaneStaffEvents {
     public static void onPlayerClone(PlayerEvent.Clone event) {
         if (!event.getEntity().level().isClientSide()) {
             com.velorise.staves.element.PlungeAndGliderManager.copyPersistentState(event.getOriginal(), event.getEntity());
+            if (event.getOriginal().getTags().contains("velorise_staves:received_codex")) {
+                event.getEntity().addTag("velorise_staves:received_codex");
+            }
         }
     }
 
@@ -195,6 +198,13 @@ public final class ArcaneStaffEvents {
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
             com.velorise.staves.element.PlungeAndGliderManager.syncPlayerOnJoinOrRespawn(player);
+            if (!player.getTags().contains("velorise_staves:received_codex")) {
+                player.addTag("velorise_staves:received_codex");
+                ItemStack codex = new ItemStack(VeloriseStavesMod.ELEMENTAL_CODEX.get());
+                if (!player.getInventory().add(codex)) {
+                    player.drop(codex, false);
+                }
+            }
         }
     }
 
