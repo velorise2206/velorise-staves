@@ -264,12 +264,12 @@ public final class ArchonUltiManager {
         applyBurstRoot(player, 36); // 1.8s (36t) stage fanfare pose + root
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_FURINA_BURST);
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_LET_THE_PEOPLE_REJOICE);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
 
         final boolean finalIsNeth = isNeth;
         scheduleBurstAction(player, 34, () -> {
             if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_LET_THE_PEOPLE_REJOICE);
             double radius = finalIsNeth ? 8.0D : 6.0D;
             float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.SPLENDOR, finalIsNeth);
             float burstDmg = (6.0F + player.getMaxHealth() * 0.12F) * scale;

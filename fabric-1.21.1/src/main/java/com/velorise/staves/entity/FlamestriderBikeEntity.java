@@ -441,6 +441,7 @@ public class FlamestriderBikeEntity extends Entity {
                     pendingUltiDamage = 0.0F;
                     sl.sendParticles(ParticleTypes.FLASH, this.getX(), this.getY() + 1.0D, this.getZ(), 1, 0.0D, 0.0D, 0.0D, 0.0D);
                     ElementalGaugeManager.executeMavuikaUltiImpact(sl, sp, dmg);
+                    com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_RAT_FROM_THE_SKY);
                 }
             }
             int naT = getNaTicks();

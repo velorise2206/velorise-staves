@@ -685,12 +685,12 @@ public final class NahidaManager {
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
 
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_ILLUSORY_HEART);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_BURST);
         level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
 
         ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
             if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+            com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_ILLUSORY_HEART);
             long eruptNow = sl.getGameTime();
             st.shrineUntilTick = eruptNow + totalDurationTicks;
             st.shrineCenter = player.position();

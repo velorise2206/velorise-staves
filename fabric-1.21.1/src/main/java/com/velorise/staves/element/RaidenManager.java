@@ -765,12 +765,12 @@ public final class RaidenManager {
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.35F);
         syncRaidenState(player, now);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
         return true;
     }
 
     public static void executeRaidenHitotachiImpact(ServerPlayer player, boolean isNetherite, float resolveMult) {
         ServerLevel level = player.serverLevel();
+        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_INAZUMA_SHINES_ETERNAL);
         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, isNetherite);
         float hitotachiDmg = (float) (12.0D * scale * resolveMult * StavesConfig.getDamageMultiplier());
         float attackU = isNetherite ? 3.0F : 2.0F;

@@ -1552,10 +1552,10 @@ public final class ArcaneStaffItem extends Item {
         hurtStaffAndCheckBreak(stack, 2, player, hand);
         ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
         player.awardStat(Stats.ITEM_USED.get(this));
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_MUST_BE_THE_STORM);
         com.velorise.staves.element.ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
             if (player.isAlive()) {
                 castDaybreakVortex(player);
+                com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_MUST_BE_THE_STORM);
             }
         });
         return true;

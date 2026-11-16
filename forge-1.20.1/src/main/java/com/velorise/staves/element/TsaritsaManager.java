@@ -721,7 +721,6 @@ public final class TsaritsaManager {
         ArchonUltiManager.applyBurstRoot(player, BURST_IFRAME_TICKS);
         InteractionHand tsHand = getActiveTsaritsaHand(player);
         ArcaneStaffItem.hurtStaffAndCheckBreak(player.getItemInHand(tsHand), 1, player, tsHand);
-        com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_LOVE_LEFT);
 
         boolean spearMode = isSpearStanceActive(player);
         if (!spearMode) {
@@ -731,6 +730,7 @@ public final class TsaritsaManager {
                     SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.3F, 1.25F);
             ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_LOVE_LEFT);
                 long eruptNow = sl.getGameTime();
                 state.azureCrownUntilTick = Math.max(state.azureCrownUntilTick, eruptNow + SUPPORT_BURST_DURATION_TICKS);
                 state.supportBurstUntilTick = eruptNow + SUPPORT_BURST_DURATION_TICKS;
@@ -758,6 +758,7 @@ public final class TsaritsaManager {
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
             ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_LOVE_LEFT);
                 long eruptNow = sl.getGameTime();
                 state.spearStanceUntilTick = Math.max(state.spearStanceUntilTick, eruptNow + DPS_BURST_SEAL_TICKS);
                 state.dpsSealUntilTick = eruptNow + DPS_BURST_SEAL_TICKS;
