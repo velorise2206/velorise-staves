@@ -153,6 +153,10 @@ public final class ClientAuraTracker {
         public long skandhaMarkedUntil = 0L;
         public int nahidaShrineMask = 0;
         public long nahidaShrineUntil = 0L;
+        public double lastShrineStepX = Double.NaN;
+        public double lastShrineStepZ = Double.NaN;
+        public long lastShrineStepMs = 0L;
+        public int shrineStepVariant = 0;
 
         // Tsaritsa states
         public boolean tsaritsaCrownActive = false;
@@ -372,9 +376,10 @@ public final class ClientAuraTracker {
             }
         }
         ActiveArc arc = new ActiveArc();
-        arc.fromEntityId = ((color & 0xFFFF0000) == 0x4E410000) ? -8 : fromId;
+        boolean isNahidaWorldVfx = ((color & 0xFFFF0000) == 0x4E410000) || ((color & 0xFFFF0000) == 0x4E420000);
+        arc.fromEntityId = isNahidaWorldVfx ? -8 : fromId;
         arc.start = start;
-        arc.toEntityId = ((color & 0xFFFF0000) == 0x4E410000) ? -8 : toId;
+        arc.toEntityId = isNahidaWorldVfx ? -8 : toId;
         arc.end = end;
         arc.startTime = now;
         arc.expireTime = nextExpire;
