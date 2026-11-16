@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -225,6 +226,13 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 client.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
             }
             while (mavuikaUltiKey.consumeClick()) {
+                if (client.player != null) {
+                    boolean grounded = client.player.onGround() || (client.player.getVehicle() != null && client.player.getVehicle().onGround());
+                    if (!grounded) {
+                        client.player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
+                        continue;
+                    }
+                }
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_ULTI);
             }
             if (ClientAuraTracker.isRaidenMusouActive(client.player.getId())
