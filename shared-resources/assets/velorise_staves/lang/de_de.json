@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  Linksklick: Aufgeladener Cryo-Pfeil",
   "tooltip.velorise_staves.action.tsaritsa.right": "  Rechtsklick: Cryo-Elementarfähigkeit",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  Rechtsklick (Halten): Bogen / Speer wechseln",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  Drücke [R]: Cryo-Elementarausbruch"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  Drücke [R]: Cryo-Elementarausbruch",
+  "config.velorise_staves.texture_res": "Texturauflösung",
+  "config.velorise_staves.texture_res.desc": "Wechselt zwischen 16x16px (Standard) und 32x32px (HD) Auflösung für Elementsymbole und Windgleiter-Texturen."
 }

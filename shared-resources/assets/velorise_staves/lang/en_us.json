@@ -726,5 +726,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  Left-Click: Cryo Charged Arrow",
   "tooltip.velorise_staves.action.tsaritsa.right": "  Right-Click: Cryo Skill",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  Hold Right-Click: Switch Bow / Spear",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  Press [R]: Cryo Burst"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  Press [R]: Cryo Burst",
+  "config.velorise_staves.texture_res": "Texture Resolution",
+  "config.velorise_staves.texture_res.desc": "Switch between 16x16px (Standard) and 32x32px (HD) resolution for element icons and wind glider textures."
 }

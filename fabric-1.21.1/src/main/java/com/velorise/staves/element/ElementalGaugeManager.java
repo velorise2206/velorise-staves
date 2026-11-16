@@ -6213,11 +6213,12 @@ public final class ElementalGaugeManager {
         com.velorise.staves.network.ModNetwork.sendRaidenSync(player, eyeRem, musouRem, resolve, neth, burstCd);
     }
 
-    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) {
+    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span, boolean isLeftArm) {
         Vec3 fwd = new Vec3(forward.x, 0.0D, forward.z);
         if (fwd.lengthSqr() < 1.0E-4D) fwd = new Vec3(0.0D, 0.0D, 1.0D);
         else fwd = fwd.normalize();
         Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
+        if (isLeftArm) right = right.scale(-1.0D);
         Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
         int color = (isMusouBurst || isCharged) ? 0xFFE0B0FF : 0xFFB84DFF;
         int dur = isMusouBurst ? 10 : 6;
@@ -6271,6 +6272,10 @@ public final class ElementalGaugeManager {
             }
         }
         com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, dur, arcColor);
+    }
+
+    private static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span) {
+        sendRaidenSlashArc(level, center, forward, comboStep, isMusouBurst, isCharged, span, false);
     }
 
     public static void addRaidenResolve(ServerPlayer player, int baseAmount) {
@@ -6329,7 +6334,7 @@ public final class ElementalGaugeManager {
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, center.x, center.y, center.z, 18, 0.8D, 0.4D, 0.8D, 0.08D);
         Vec3 frontEyePos = center.add(player.getLookAngle().scale(1.2D));
         level.sendParticles(ParticleTypes.END_ROD, frontEyePos.x, frontEyePos.y + 0.2D, frontEyePos.z, 10, 0.35D, 0.35D, 0.35D, 0.05D);
-        sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D);
+        sendRaidenSlashArc(level, frontEyePos, player.getLookAngle(), 0, false, false, isNetherite ? 2.6D : 1.9D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6F, 1.55F);
         player.displayClientMessage(Component.literal("§d⚡ Eye of Stormy Judgment (15s)"), true);
         syncRaidenState(player, now);
@@ -6406,7 +6411,7 @@ public final class ElementalGaugeManager {
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
-        sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius);
+        sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         player.displayClientMessage(Component.literal("§d⚡ Musou Isshin (7s)"), true);
     }
 
@@ -6472,7 +6477,7 @@ public final class ElementalGaugeManager {
         DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
         level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y, pos.z, 8, 0.3D, 0.3D, 0.3D, 0.06D);
-        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D);
+        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
     }
 
@@ -6524,7 +6529,7 @@ public final class ElementalGaugeManager {
         }
 
         Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
-        sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D));
+        sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
         level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, hitPos.x, hitPos.y, hitPos.z, 10, 0.4D, 0.3D, 0.4D, 0.07D);
@@ -6586,10 +6591,10 @@ public final class ElementalGaugeManager {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
 
-        sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D));
+        sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         if (isCharged) {
             Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
-            sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D);
+            sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
             level.sendParticles(ParticleTypes.ELECTRIC_SPARK, farSlashPos.x, farSlashPos.y, farSlashPos.z, 10, 0.55D, 0.3D, 0.55D, 0.08D);
         }
         DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.55F : 1.25F);

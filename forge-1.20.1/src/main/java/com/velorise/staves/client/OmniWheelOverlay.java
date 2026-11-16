@@ -246,7 +246,6 @@ public final class OmniWheelOverlay {
             if (mc.player != null) {
                 boolean grounded = mc.player.onGround() || (mc.player.getVehicle() != null && mc.player.getVehicle().onGround());
                 if (!grounded) {
-                    mc.player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
                     continue;
                 }
             }

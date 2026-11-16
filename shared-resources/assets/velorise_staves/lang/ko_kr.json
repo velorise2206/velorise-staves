@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  좌클릭: 얼음 원소 조준 사격",
   "tooltip.velorise_staves.action.tsaritsa.right": "  우클릭: 얼음 원소 전투 스킬",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  우클릭 유지: 활 / 창 전환",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  [R] 누르기: 여왕의 얼음 원소폭발"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  [R] 누르기: 여왕의 얼음 원소폭발",
+  "config.velorise_staves.texture_res": "텍스처 해상도",
+  "config.velorise_staves.texture_res.desc": "원소 아이콘 및 바람의 날개 텍스처 해상도를 16x16(기본)과 32x32(HD) 중에서 전환합니다。"
 }

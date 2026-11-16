@@ -229,7 +229,6 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (client.player != null) {
                     boolean grounded = client.player.onGround() || (client.player.getVehicle() != null && client.player.getVehicle().onGround());
                     if (!grounded) {
-                        client.player.displayClientMessage(Component.translatable("message.velorise_staves.burst_requires_ground"), true);
                         continue;
                     }
                 }

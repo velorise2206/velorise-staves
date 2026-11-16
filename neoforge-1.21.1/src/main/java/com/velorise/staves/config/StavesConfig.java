@@ -58,6 +58,7 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue COOP_SCAN_RADIUS;
     public static final ModConfigSpec.BooleanValue SHOW_ELEMENTAL_PARTICLES;
     public static final ModConfigSpec.BooleanValue SHOW_OVERHEAD_ELEMENT_ICONS;
+    public static final ModConfigSpec.BooleanValue USE_32PX_TEXTURES;
     public static final ModConfigSpec.BooleanValue USE_32PX_ELEMENT_ICONS;
     public static final ModConfigSpec.BooleanValue USE_32PX_GLIDER_TEXTURE;
     public static final ModConfigSpec.ConfigValue<String> CHARACTER_VOICE_LANGUAGE;
@@ -228,6 +229,9 @@ public final class StavesConfig {
         SHOW_OVERHEAD_ELEMENT_ICONS = builder
             .comment("Render Genshin-style overhead elemental aura icons above afflicted mobs. Default: true")
             .define("show_overhead_element_icons", true);
+        USE_32PX_TEXTURES = builder
+            .comment("Client-side preference: use 32x32px HD textures for Element Icons and Wind Glider instead of default 16x16px. Default: false")
+            .define("use_32px_textures", false);
         USE_32PX_ELEMENT_ICONS = builder
             .comment("Client-side preference: use 32x32px textures for element icons instead of default 16x16px. Default: false")
             .define("use_32px_element_icons", false);
@@ -808,20 +812,22 @@ public final class StavesConfig {
         return getMaxDurability(ArcaneStaffItem.Kind.DRAGONFIRE, true);
     }
 
-    public static boolean isUse32pxElementIcons() {
+    public static boolean isUse32pxTextures() {
         try {
-            return USE_32PX_ELEMENT_ICONS.get();
+            if (USE_32PX_TEXTURES != null && USE_32PX_TEXTURES.get()) return true;
+            return (USE_32PX_ELEMENT_ICONS != null && USE_32PX_ELEMENT_ICONS.get())
+                    || (USE_32PX_GLIDER_TEXTURE != null && USE_32PX_GLIDER_TEXTURE.get());
         } catch (Exception e) {
             return false;
         }
     }
 
+    public static boolean isUse32pxElementIcons() {
+        return isUse32pxTextures();
+    }
+
     public static boolean isUse32pxGliderTexture() {
-        try {
-            return USE_32PX_GLIDER_TEXTURE.get();
-        } catch (Exception e) {
-            return false;
-        }
+        return isUse32pxTextures();
     }
 
     public static String getCharacterVoiceLanguage() {

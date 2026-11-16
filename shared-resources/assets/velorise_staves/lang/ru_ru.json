@@ -723,5 +723,7 @@
   "tooltip.velorise_staves.action.tsaritsa.left": "  ЛКМ: Заряженная Крио-стрела",
   "tooltip.velorise_staves.action.tsaritsa.right": "  ПКМ: Крио элементальный навык",
   "tooltip.velorise_staves.action.tsaritsa.hold_right": "  Зажать ПКМ: Переключить Лук / Копьё",
-  "tooltip.velorise_staves.action.tsaritsa.burst": "  Нажать [R]: Крио взрыв стихии"
+  "tooltip.velorise_staves.action.tsaritsa.burst": "  Нажать [R]: Крио взрыв стихии",
+  "config.velorise_staves.texture_res": "Разрешение текстур",
+  "config.velorise_staves.texture_res.desc": "Переключение между 16x16 (стандарт) и 32x32 (HD) для иконок элементов и планера ветра."
 }

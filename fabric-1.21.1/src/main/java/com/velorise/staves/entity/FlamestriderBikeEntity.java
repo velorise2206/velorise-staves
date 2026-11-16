@@ -473,7 +473,7 @@ public class FlamestriderBikeEntity extends Entity {
             setBikeSprinting(sprintInputHeld && !holdingSuns && getUltiTicks() <= 8);
 
             if (holdingSuns) {
-                serverSpinAngle = (serverSpinAngle + 24.0F) % 360.0F;
+                serverSpinAngle = (serverSpinAngle - 24.0F + 360.0F) % 360.0F;
                 performDonutSweepHit(sl, sp, now);
             } else {
                 serverSpinAngle = 0.0F;
@@ -814,6 +814,9 @@ public class FlamestriderBikeEntity extends Entity {
         }
         horizFwd = horizFwd.normalize();
         Vec3 right = new Vec3(-horizFwd.z, 0.0D, horizFwd.x).normalize();
+        if (sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT) {
+            right = right.scale(-1.0D);
+        }
         Vec3 slashCenter = this.position().add(horizFwd.scale(2.15D)).add(0.0D, 1.05D, 0.0D);
         Vec3 slashStart;
         Vec3 slashEnd;
@@ -892,8 +895,8 @@ public class FlamestriderBikeEntity extends Entity {
         this.wheelSpinAngle += (float) (horizSpeed * 2.6F);
         this.prevSpinLean = this.spinLean;
         if (isSpinning()) {
-            this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
-            this.spinLean = Mth.lerp(0.35F, this.spinLean, 22.0F);
+            this.spinYawOffset = (this.spinYawOffset - 24.0F + 360.0F) % 360.0F;
+            this.spinLean = Mth.lerp(0.35F, this.spinLean, -22.0F);
         } else {
             this.spinYawOffset = 0.0F;
             this.spinLean = Mth.lerp(0.28F, this.spinLean, 0.0F);
@@ -1037,7 +1040,7 @@ public class FlamestriderBikeEntity extends Entity {
                 spinPivotZ += stepZ;
             }
             spinOrbitRadius = Math.min(2.25D, spinOrbitRadius + 0.75D);
-            spinOrbitAngle = (spinOrbitAngle + 24.0F) % 360.0F;
+            spinOrbitAngle = (spinOrbitAngle - 24.0F + 360.0F) % 360.0F;
             double orbitRad = Math.toRadians(spinOrbitAngle);
             double cosO = Math.cos(orbitRad);
             double sinO = Math.sin(orbitRad);
@@ -1057,7 +1060,7 @@ public class FlamestriderBikeEntity extends Entity {
             double targetZ = spinPivotZ + sinO * effectiveRadius;
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
-            float bikeYaw = (spinOrbitAngle + 15.0F) % 360.0F;
+            float bikeYaw = (spinOrbitAngle - 15.0F + 360.0F) % 360.0F;
             this.setYRot(bikeYaw);
             this.yRotO = bikeYaw;
         } else {

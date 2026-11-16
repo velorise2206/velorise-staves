@@ -5674,7 +5674,7 @@ public final class ClientAuraRenderer {
         poseStack.translate(0.0F, entity.getBbHeight() * 0.72F, 0.0F);
         poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
         poseStack.translate(0.0F, 0.0F, -0.46F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(time * 1.6F));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(-time * 1.6F));
 
         Matrix4f mat = poseStack.last().pose();
         org.joml.Matrix3f norm = poseStack.last().normal();
