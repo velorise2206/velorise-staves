@@ -2,14 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "category": "misc",
   "ingredients": [
-    [
-      {
-        "item": "velorise_staves:anemo_element"
-      },
-      {
-        "item": "velorise_staves:omni_element"
-      }
-    ],
+    {
+      "item": "velorise_staves:anemo_element"
+    },
     {
       "item": "velorise_staves:hydro_rod"
     }

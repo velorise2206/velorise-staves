@@ -403,16 +403,17 @@ public final class PlungeAndGliderManager {
         ItemStack held = player.getMainHandItem();
         boolean isNeth = false;
         Element elem = null;
+        float basePlungeDmg = 4.5F;
         if (held.getItem() instanceof ArcaneStaffItem staff) {
             isNeth = ArcaneStaffItem.getEffectiveNetherite(held);
             elem = staff.kind() == ArcaneStaffItem.Kind.OMNI
                     ? ArcaneStaffItem.getOmniActiveElement(held)
                     : staff.getElement();
+            basePlungeDmg = StavesConfig.getStaffBaseDamage(staff.kind(), isNeth) * 1.65F;
         } else {
             elem = SwordImbueHelper.getImbuedElement(held);
         }
 
-        float plungeDmg = (isNeth ? 9.0F : 6.5F) * (float) StavesConfig.getDamageMultiplier();
         float gaugeU = isNeth ? 1.5F : 1.0F;
         double radius = 3.5D;
 
@@ -422,9 +423,10 @@ public final class PlungeAndGliderManager {
         for (LivingEntity target : targets) {
             target.invulnerableTime = 0;
             if (elem != null) {
-                ElementalGaugeManager.applyElement(level, target, elem, gaugeU, player, plungeDmg);
+                ElementalGaugeManager.applyElement(level, target, elem, gaugeU, player, basePlungeDmg);
             } else {
-                target.hurt(level.damageSources().playerAttack(player), plungeDmg);
+                float physPlungeDmg = basePlungeDmg * (float) StavesConfig.getDamageMultiplier();
+                target.hurt(level.damageSources().playerAttack(player), physPlungeDmg);
             }
         }
 

@@ -321,6 +321,20 @@ public final class ClientAuraRenderer {
             input.right = false;
             input.jumping = false;
             input.shiftKeyDown = false;
+        } else if (mc.player != null && event.getEntity() == mc.player && ClientAuraTracker.isUltiCastActive(mc.player.getId())) {
+            Input input = event.getInput();
+            input.shiftKeyDown = false;
+            mc.options.keyShift.setDown(false);
+            mc.player.setShiftKeyDown(false);
+            if (ClientAuraTracker.isFiveStarBurstRootActive(mc.player.getId())) {
+                input.forwardImpulse = 0.0F;
+                input.leftImpulse = 0.0F;
+                input.up = false;
+                input.down = false;
+                input.left = false;
+                input.right = false;
+                input.jumping = false;
+            }
         }
     }
 

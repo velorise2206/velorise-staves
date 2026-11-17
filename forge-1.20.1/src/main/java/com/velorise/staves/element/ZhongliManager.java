@@ -223,7 +223,12 @@ public final class ZhongliManager {
                 || source.is(DamageTypes.THORNS)) {
             return true;
         }
-        return "wind_charge".equals(source.type().msgId()) || "sonic_boom".equals(source.type().msgId());
+        String msgId = source.type().msgId();
+        return "velorise_elemental".equals(msgId)
+                || "wind_charge".equals(msgId)
+                || "sonic_boom".equals(msgId)
+                || source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource
+                || Boolean.TRUE.equals(ELEMENTAL_RES_APPLIED.get());
     }
 
     public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) {

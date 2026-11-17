@@ -463,10 +463,10 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 poseStack.translate(0.0D, Math.sin(p * Math.PI) * 0.88D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees(s * 360.0F));
             } else if (step == 6) {
-                // Genshin Charged Attack Final (Finisher): continuous C1 leap & overhead slam arc
+                // Genshin Charged Attack Final (Finisher): higher continuous C1 leap & overhead slam arc
                 float p = entity.getFinisherProgress(partialTicks);
-                float jumpArc = (p < 0.72F) ? Mth.sin((p / 0.72F) * (float) Math.PI) * 0.42F : 0.0F;
-                float surgeZ = Mth.sin(p * (float) Math.PI) * 0.16F;
+                float jumpArc = (p < 0.72F) ? Mth.sin((p / 0.72F) * (float) Math.PI) * 0.68F : 0.0F;
+                float surgeZ = Mth.sin(p * (float) Math.PI) * 0.20F;
                 poseStack.translate(0.0D, jumpArc, surgeZ);
                 float yawWhip;
                 float pitch;

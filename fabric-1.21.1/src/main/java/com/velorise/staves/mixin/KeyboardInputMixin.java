@@ -21,6 +21,22 @@ public abstract class KeyboardInputMixin extends Input {
             this.right = false;
             this.jumping = false;
             this.shiftKeyDown = false;
+        } else {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.player != null && com.velorise.staves.client.ClientAuraTracker.isUltiCastActive(mc.player.getId())) {
+                this.shiftKeyDown = false;
+                mc.options.keyShift.setDown(false);
+                mc.player.setShiftKeyDown(false);
+                if (com.velorise.staves.client.ClientAuraTracker.isFiveStarBurstRootActive(mc.player.getId())) {
+                    this.forwardImpulse = 0.0F;
+                    this.leftImpulse = 0.0F;
+                    this.up = false;
+                    this.down = false;
+                    this.left = false;
+                    this.right = false;
+                    this.jumping = false;
+                }
+            }
         }
     }
 }

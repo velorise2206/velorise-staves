@@ -675,7 +675,7 @@ public final class ElementalResonanceManager {
         if (!(src.getEntity() instanceof ServerPlayer attacker) || attacker == target) return amount;
         if (ElementalGaugeManager.isElementalOrMagicDamage(src)) return amount;
         amount *= ElementalGaugeManager.getFanfareBonusMultiplier(attacker);
-        amount *= XilonenManager.getXilonenDamageMultiplier(attacker, Element.GEO, level.getGameTime());
+        amount *= XilonenManager.getXilonenDamageMultiplier(attacker, null, level.getGameTime());
         if (!StavesConfig.isElementalResonanceEnabled()) return amount;
 
         long now = level.getGameTime();

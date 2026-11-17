@@ -713,7 +713,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 }
                 boolean useHeld = !bikeMountWaitRelease[0] && client.options.keyUse.isDown();
                 boolean sprintDown = client.options.keySprint.isDown() || useHeld;
-                boolean dashTriggered = sprintDown && !wasBikeDashDown[0] && !bike.isOnDashCooldown();
+                boolean dashTriggered = sprintDown && !wasBikeDashDown[0] && !bike.isOnDashCooldown() && bike.getUltiTicks() <= 0;
                 wasBikeDashDown[0] = sprintDown;
                 if (dashTriggered) {
                     boolean wasSpinningOrHolding = bikeSpinActive[0] || bike.isSpinning() || bikeSpinReleaseWindowTicks[0] > 0

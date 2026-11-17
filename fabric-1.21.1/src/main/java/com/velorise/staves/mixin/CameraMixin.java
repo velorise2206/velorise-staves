@@ -63,6 +63,11 @@ public abstract class CameraMixin {
             this.setPosition(targetPos.x, targetPos.y, targetPos.z);
         }
         if (!detached && entity != null) {
+            if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity ultiBike && ultiBike.getUltiTicks() > 0) {
+                net.minecraft.world.phys.Vec3 ultiOff = ultiBike.getFirstPersonUltiCameraOffset(partialTick);
+                net.minecraft.world.phys.Vec3 curCam = this.getPosition();
+                this.setPosition(curCam.x + ultiOff.x, curCam.y + ultiOff.y, curCam.z + ultiOff.z);
+            }
             float liftY = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
                     + com.velorise.staves.client.character.MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)
                     + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)

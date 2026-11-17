@@ -656,7 +656,7 @@ public final class ClientInputHandler {
                 }
                 boolean useHeld = !bikeMountWaitRelease && mc.options.keyUse.isDown();
                 boolean sprintDown = mc.options.keySprint.isDown() || useHeld;
-                boolean dashTriggered = sprintDown && !wasBikeDashDown && !bike.isOnDashCooldown();
+                boolean dashTriggered = sprintDown && !wasBikeDashDown && !bike.isOnDashCooldown() && bike.getUltiTicks() <= 0;
                 wasBikeDashDown = sprintDown;
                 if (dashTriggered) {
                     boolean wasSpinningOrHolding = bikeSpinActive || bike.isSpinning() || bikeSpinReleaseWindowTicks > 0

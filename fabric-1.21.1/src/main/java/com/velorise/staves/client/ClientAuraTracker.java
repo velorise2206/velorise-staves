@@ -1238,7 +1238,25 @@ public final class ClientAuraTracker {
         }
     }
 
+    public static boolean isUltiCastActive(int entityId) {
+        if (isFiveStarBurstRootActive(entityId)) return true;
+        AuraDisplayData data = DATA.get(entityId);
+        if (data != null && System.currentTimeMillis() < data.staffAnimUntil && data.staffAnimType == ANIM_MAVUIKA_BURST) {
+            return true;
+        }
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Entity ent
+                && ent.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike
+                && bike.getUltiTicks() > 0) {
+            return true;
+        }
+        return false;
+    }
+
     public static void interruptActiveAnimations(int entityId) {
+        if (isUltiCastActive(entityId)) {
+            return;
+        }
         AuraDisplayData data = DATA.get(entityId);
         if (data != null) {
             data.staffAnimUntil = 0L;

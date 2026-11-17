@@ -144,7 +144,9 @@ public final class ArchonUltiManager {
         if (player.onGround()) return true;
         if (player.getVehicle() != null) {
             Entity vehicle = player.getVehicle();
-            if (vehicle.onGround() || isStandingOnGeoConstruct(vehicle)) return true;
+            if (vehicle instanceof com.velorise.staves.entity.FlamestriderBikeEntity
+                    || vehicle.onGround()
+                    || isStandingOnGeoConstruct(vehicle)) return true;
         }
         if (isStandingOnGeoConstruct(player)) return true;
         if (ElementalGaugeManager.isStandingOnWaterSurface(player)) return true;
@@ -538,6 +540,8 @@ public final class ArchonUltiManager {
                 if (server != null) {
                     ServerPlayer sp = server.getPlayerList().getPlayer(entry.getKey());
                     if (sp != null && sp.isAlive() && sp.level() == root.level()) {
+                        sp.setShiftKeyDown(false);
+                        sp.setPose(net.minecraft.world.entity.Pose.STANDING);
                         sp.setDeltaMovement(Vec3.ZERO);
                         sp.fallDistance = 0.0F;
                         if (sp.position().distanceToSqr(root.pos()) > 0.04D) {

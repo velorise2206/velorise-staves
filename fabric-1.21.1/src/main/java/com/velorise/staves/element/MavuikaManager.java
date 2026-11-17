@@ -378,6 +378,7 @@ public final class MavuikaManager {
     public static void toggleMavuikaBike(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            if (bike.getUltiTicks() > 0) return;
             player.stopRiding();
             bike.discard();
             return;
@@ -464,10 +465,12 @@ public final class MavuikaManager {
 
         float maxFuel = isNetherite ? 120.0F : 80.0F;
         MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.min(maxFuel, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) + 20.0F, 80.0F)));
+        player.setShiftKeyDown(false);
+        player.setPose(net.minecraft.world.entity.Pose.STANDING);
         if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
             summonAndMountFlamestrider(player, isNetherite, 0, false);
         }
-        ArchonUltiManager.grantUltiIframe(player, 34); // 1.7s Genshin Q I-frames
+        ArchonUltiManager.grantUltiIframe(player, 36); // Full unstoppable Genshin Q I-frames
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
         MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 162L); // Genshin Q: 22t Sunfell Slice windup + 140t (7.0s) Crucible of Death and Life
         MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
