@@ -400,10 +400,15 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         if (entity.isGliding() && !entity.isPlunging() && ultiT <= 0 && naT <= 0) {
             poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F));
         }
+        if (entity.isSpinning() && ultiT <= 0 && !entity.isPlunging()) {
+            // Genshin Donut Spin: front tire planted, rear wheel slightly lifted & drifting outward
+            poseStack.translate(0.0D, 0.06D, 0.0D);
+            poseStack.mulPose(Axis.XP.rotationDegrees(7.5F));
+        }
         if (entity.isPlunging()) {
             int windup = entity.getPlungeWindup();
             if (windup > 0) {
-                float w = (5.0F - windup) / 5.0F;
+                float w = Mth.clamp((5.0F - ((float) windup - partialTicks)) / 5.0F, 0.0F, 1.0F);
                 poseStack.translate(0.0D, Math.sin(w * Math.PI) * 0.18D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -28.0F, 62.0F)));
             } else {
@@ -446,60 +451,90 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             }
         }
 
-        if (naT > 0) {
+        if (naT > 0 && !entity.isSpinning()) {
             int step = entity.getNaStep();
+            float naTf = Math.max(0.0F, (float) naT - partialTicks);
             if (step == 1) {
-                float t = naT / 10.0F;
-                float pitch = (t > 0.5F) ? Mth.lerp((t - 0.5F) * 2.0F, 18.0F, -24.0F) : Mth.lerp(t * 2.0F, 0.0F, 18.0F);
-                poseStack.translate(0.0D, Math.sin(t * Math.PI) * 0.20D, 0.0D);
+                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
+                float swing = Mth.sin(p * (float) Math.PI);
+                float pitch = (s < 0.45F)
+                        ? Mth.lerp(s / 0.45F, 0.0F, -16.0F)
+                        : Mth.lerp((s - 0.45F) / 0.55F, -16.0F, 14.0F) * (1.0F - p * 0.65F);
+                poseStack.translate(0.0D, swing * 0.16D, swing * 0.10D);
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, 10.0F, -14.0F) * swing));
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(10.0F * swing));
             } else if (step == 2) {
-                float p = Mth.clamp(1.0F - (((float) naT - partialTicks) / 10.0F), 0.0F, 1.0F);
+                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
                 float swing = Mth.sin(p * (float) Math.PI);
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(p, -28.0F, 32.0F) * swing));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F * swing));
+                poseStack.translate(0.0D, swing * 0.10D, 0.0D);
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -34.0F, 36.0F) * swing));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(20.0F * swing));
+                poseStack.mulPose(Axis.XP.rotationDegrees(8.0F * swing));
             } else if (step == 3) {
-                float p = Mth.clamp(1.0F - (((float) naT - partialTicks) / 10.0F), 0.0F, 1.0F);
+                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
                 float swing = Mth.sin(p * (float) Math.PI);
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(p, 32.0F, -32.0F) * swing));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-20.0F * swing));
+                poseStack.translate(0.0D, swing * 0.08D, swing * 0.12D);
+                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, 38.0F, -38.0F) * swing));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-22.0F * swing));
             } else if (step == 4) {
-                float t = naT / 10.0F;
-                float pitch = (t > 0.5F) ? Mth.lerp((t - 0.5F) * 2.0F, 20.0F, -32.0F) : Mth.lerp(t * 2.0F, 0.0F, 20.0F);
-                poseStack.translate(0.0D, Math.sin(t * Math.PI) * 0.35D, 0.0D);
+                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
+                float swing = Mth.sin(p * (float) Math.PI);
+                float pitch = (s < 0.52F)
+                        ? Mth.lerp(s / 0.52F, 0.0F, -34.0F)
+                        : Mth.lerp((s - 0.52F) / 0.48F, -34.0F, 18.0F) * (1.0F - (p - 0.52F));
+                poseStack.translate(0.0D, swing * 0.36D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(-12.0F * swing));
             } else if (step == 5) {
-                float t = naT / 14.0F;
-                poseStack.translate(0.0D, Math.sin(t * Math.PI) * 0.85D, 0.0D);
-                poseStack.mulPose(Axis.XP.rotationDegrees((1.0F - t) * 360.0F));
+                float p = Mth.clamp(1.0F - (naTf / 14.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
+                poseStack.translate(0.0D, Math.sin(p * Math.PI) * 0.88D, 0.0D);
+                poseStack.mulPose(Axis.XP.rotationDegrees(s * 360.0F));
             } else if (step == 6) {
-                float naTf = Math.max(0.0F, naT - partialTicks);
+                // Genshin Charged Attack Final (Finisher): straight centered leap & overhead slam
                 float yawWhip;
                 float pitch;
                 float roll;
-                if (naTf > 7.0F) {
-                    float w = Mth.clamp((16.0F - naTf) / 9.0F, 0.0F, 1.0F);
-                    float jumpArc = (float) Math.sin(w * Math.PI * 0.85F) * 0.34F;
-                    yawWhip = Mth.lerp(w, 0.0F, -18.0F);
-                    pitch = Mth.lerp(w, 0.0F, -18.0F);
-                    roll = Mth.lerp(w, 0.0F, -12.0F);
-                    poseStack.translate(0.0D, jumpArc, Math.sin(w * Math.PI) * 0.14D);
+                if (naTf > 6.5F) {
+                    float w = Mth.clamp((14.0F - naTf) / 7.5F, 0.0F, 1.0F);
+                    float sw = w * w * (3.0F - 2.0F * w);
+                    float jumpArc = (float) Math.sin(sw * Math.PI * 0.85F) * 0.42F;
+                    yawWhip = Mth.lerp(sw, 0.0F, -8.0F);
+                    pitch = Mth.lerp(sw, 0.0F, -22.0F);
+                    roll = Mth.lerp(sw, 0.0F, -8.0F);
+                    poseStack.translate(0.0D, jumpArc, Math.sin(sw * Math.PI) * 0.16D);
                 } else if (naTf > 2.0F) {
-                    float s = Mth.clamp((7.0F - naTf) / 5.0F, 0.0F, 1.0F);
-                    float dropY = (1.0F - s) * 0.16F;
-                    yawWhip = Mth.lerp(s, -18.0F, 24.0F);
-                    pitch = Mth.lerp(s, -18.0F, 11.0F);
-                    roll = Mth.lerp(s, -12.0F, 14.0F);
+                    float s = Mth.clamp((6.5F - naTf) / 4.5F, 0.0F, 1.0F);
+                    float ss = s * s * (3.0F - 2.0F * s);
+                    float dropY = (1.0F - ss) * 0.20F;
+                    yawWhip = Mth.lerp(ss, -8.0F, 10.0F);
+                    pitch = Mth.lerp(ss, -22.0F, 14.0F);
+                    roll = Mth.lerp(ss, -8.0F, 10.0F);
                     poseStack.translate(0.0D, dropY, 0.0D);
                 } else {
                     float r = Mth.clamp((2.0F - naTf) / 2.0F, 0.0F, 1.0F);
-                    yawWhip = Mth.lerp(r, 24.0F, 0.0F);
-                    pitch = Mth.lerp(r, 11.0F, 0.0F);
-                    roll = Mth.lerp(r, 14.0F, 0.0F);
+                    yawWhip = Mth.lerp(r, 10.0F, 0.0F);
+                    pitch = Mth.lerp(r, 14.0F, 0.0F);
+                    roll = Mth.lerp(r, 10.0F, 0.0F);
                 }
                 poseStack.mulPose(Axis.YP.rotationDegrees(yawWhip));
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
+            } else if (step == 7) {
+                // Genshin Hold E Mount: 180-deg half-donut rear-wheel tail whip around front tire pivot
+                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+                float s = p * p * (3.0F - 2.0F * p);
+                float swing = Mth.sin(p * (float) Math.PI);
+                poseStack.translate(0.0F, swing * 0.10F, 0.72F);
+                poseStack.mulPose(Axis.YP.rotationDegrees((1.0F - s) * 180.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(26.0F * swing));
+                poseStack.mulPose(Axis.XP.rotationDegrees(12.0F * swing));
+                poseStack.translate(0.0F, 0.0F, -0.72F);
             }
         }
     }

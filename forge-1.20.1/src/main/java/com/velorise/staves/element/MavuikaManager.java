@@ -305,7 +305,8 @@ public final class MavuikaManager {
     }
 
     public static boolean isMavuikaAuraActive(UUID id, long now) {
-        return MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) > 0.01F;
+        return MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) > 0.01F
+                || now < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L);
     }
 
     public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks) {
@@ -331,20 +332,9 @@ public final class MavuikaManager {
         bike.setNetherite(isNetherite);
         level.addFreshEntity(bike);
         player.startRiding(bike, true);
-        if (firstCast && dealCastSweep) {
-            // Genshin Hold E (first cast): initial forward bike tail-whip Pyro sweep on mount
-            float castDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite) * 0.65F;
-            Vec3 fwd = Vec3.directionFromRotation(0.0F, player.getYRot()).normalize();
-            Vec3 sweepCenter = player.position().add(fwd.scale(2.0D)).add(0.0D, 0.5D, 0.0D);
-            AABB sweepBox = new AABB(sweepCenter.x - 3.6D, sweepCenter.y - 1.5D, sweepCenter.z - 3.6D,
-                    sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D);
-            for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                    e -> e.isAlive() && !e.isRemoved() && e != player && !isPassiveAquaticOrAmbient(e))) {
-                applyElement(level, target, Element.PYRO, isNetherite ? 1.5F : 1.0F, player, castDmg);
-                level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
-                        10, 0.25D, 0.25D, 0.25D, 0.05D);
-            }
-            bike.triggerMountWhip();
+        if (dealCastSweep) {
+            // Genshin Hold E mount: whip the rear wheel in a 180-deg half-donut arc first, then trigger Pyro AoE damage at the whip apex
+            bike.triggerMountWhip(firstCast);
         }
         level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.5D, player.getZ(), 22, 0.55D, 0.3D, 0.55D, 0.07D);
         level.playSound(null, player.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.9F, 0.95F);
@@ -434,13 +424,14 @@ public final class MavuikaManager {
             MAVUIKA_AURA_UNTIL.put(id, Math.max(MAVUIKA_AURA_UNTIL.getOrDefault(id, 0L), now + 140L));
         }
 
-        MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F), 60.0F));
+        float maxFuel = isNetherite ? 120.0F : 80.0F;
+        MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.min(maxFuel, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) + 20.0F, 80.0F)));
         if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
             summonAndMountFlamestrider(player, isNetherite, 0, false);
         }
         ArchonUltiManager.grantUltiIframe(player, 34); // 1.7s Genshin Q I-frames
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
-        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
+        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 162L); // Genshin Q: 22t Sunfell Slice windup + 140t (7.0s) Crucible of Death and Life
         MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
             bike.startUltiSlam(ultiDmg);

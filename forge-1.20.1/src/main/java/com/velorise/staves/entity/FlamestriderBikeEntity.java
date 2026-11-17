@@ -80,6 +80,8 @@ public class FlamestriderBikeEntity extends Entity {
     private int spinReleaseGraceTicks = 0;
     private long lastSpinStartHitResetTick = -100L;
     private int clientSpinOrbitGraceTicks = 0;
+    private boolean pendingMountWhipDamage = false;
+    private float spinStartYaw = 0.0F;
     private int naComboStep = 0;
     private long lastNaTick = -100L;
     private float pendingUltiDamage = 0.0F;
@@ -255,6 +257,12 @@ public class FlamestriderBikeEntity extends Entity {
         this.spinReleaseGraceTicks = 0;
         setSpinning(false);
         this.pendingFinisher = false;
+        this.pendingDiscardAfterFinisher = false;
+        this.pendingMountWhipDamage = false;
+        this.plungeRecoveryUntil = 0L;
+        this.serverDashTicks = 0;
+        this.serverDashCooldownUntil = -100L;
+        this.serverDashChain = 0;
         setPlunging(false);
         this.entityData.set(DATA_PLUNGE_WINDUP, 0);
         this.entityData.set(DATA_NA_STEP, 0);
@@ -396,7 +404,9 @@ public class FlamestriderBikeEntity extends Entity {
                 this.discard();
                 return;
             }
-            if (!ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
+            if (ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
+                this.pendingDiscardAfterFinisher = false;
+            } else {
                 if (this.spinInputHeld || isSpinning()) {
                     this.spinInputHeld = false;
                     setSpinning(false);
@@ -467,12 +477,25 @@ public class FlamestriderBikeEntity extends Entity {
             }
             int naT = getNaTicks();
             if (naT > 0) {
+                int curStep = getNaStep();
                 int nextNa = naT - 1;
                 this.entityData.set(DATA_NA_TICKS, nextNa);
-                if (pendingFinisher && getNaStep() == 6 && nextNa == 6) {
+                if (curStep == 7) {
+                    // Hold E 180-deg half-donut rear-wheel tail whip: emit rear tire drift trail & trigger AoE Pyro sweep at apex (nextNa == 5)
+                    double prog = 1.0D - (nextNa / 10.0D);
+                    double whipYawDeg = sp.getYRot() + (1.0D - prog) * 180.0D;
+                    double whipRad = Math.toRadians(whipYawDeg);
+                    double tailX = this.getX() + Math.sin(whipRad) * 1.35D;
+                    double tailZ = this.getZ() - Math.cos(whipRad) * 1.35D;
+                    sl.sendParticles(ParticleTypes.FLAME, tailX, this.getY() + 0.18D, tailZ, 4, 0.14D, 0.05D, 0.14D, 0.02D);
+                    sl.sendParticles(ParticleTypes.LARGE_SMOKE, tailX, this.getY() + 0.10D, tailZ, 2, 0.10D, 0.03D, 0.10D, 0.01D);
+                    if (nextNa == 5) {
+                        executeMountWhipImpact(sl, sp);
+                    }
+                } else if (pendingFinisher && curStep == 6 && nextNa == 6) {
                     pendingFinisher = false;
                     executeChargedFinisher(sl, sp);
-                } else if (!pendingFinisher && !pendingDiscardAfterFinisher && getNaStep() == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
+                } else if (!pendingFinisher && !pendingDiscardAfterFinisher && curStep == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
                     // Genshin Finisher Cancel ("F -> C" / "F CDCD("): transition immediately out of Finisher recovery into Donut Spin
                     this.entityData.set(DATA_NA_STEP, 0);
                     this.entityData.set(DATA_NA_TICKS, 0);
@@ -647,16 +670,62 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     public void triggerMountWhip() {
-        this.entityData.set(DATA_NA_STEP, 2);
-        this.entityData.set(DATA_NA_TICKS, 8);
-        if (this.level() instanceof ServerLevel sl && this.getFirstPassenger() instanceof ServerPlayer sp) {
-            spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.2D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+        triggerMountWhip(true);
+    }
+
+    public void triggerMountWhip(boolean dealDamage) {
+        this.entityData.set(DATA_NA_STEP, 7);
+        this.entityData.set(DATA_NA_TICKS, 10);
+        this.pendingMountWhipDamage = dealDamage;
+        if (this.level() instanceof ServerLevel sl) {
+            sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.80F, 1.15F);
+        }
+    }
+
+    private void executeMountWhipImpact(ServerLevel sl, ServerPlayer sp) {
+        boolean isLeft = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+        spawnFierySweep(sl, this.position().add(0.0D, 0.45D, 0.0D), sp.getYRot(), 3.2D, isLeft);
+        Vec3 fwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
+        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize().scale(isLeft ? -1.0D : 1.0D);
+        Vec3 arcCenter = this.position().add(0.0D, 0.65D, 0.0D).add(fwd.scale(1.85D));
+        com.velorise.staves.network.ModNetwork.sendElectricArc(
+                sl,
+                arcCenter.add(right.scale(-2.35D)),
+                arcCenter.add(right.scale(2.35D)),
+                8,
+                isLeft ? 0xFFFF8824 : 0xFFFF8825
+        );
+        sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.90F, 1.05F);
+        sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.85F, 1.15F);
+        if (!this.pendingMountWhipDamage) return;
+        this.pendingMountWhipDamage = false;
+        boolean neth = isNetherite();
+        float castDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth) * 0.68F;
+        float units = neth ? 1.5F : 1.0F;
+        Vec3 sweepCenter = this.position().add(fwd.scale(1.8D)).add(0.0D, 0.5D, 0.0D);
+        AABB sweepBox = new AABB(
+                sweepCenter.x - 3.6D, sweepCenter.y - 1.5D, sweepCenter.z - 3.6D,
+                sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D
+        );
+        for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                e -> e.isAlive() && !e.isRemoved() && e != sp && !ElementalGaugeManager.isPassiveAquaticOrAmbient(e))) {
+            ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, castDmg);
+            Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
+            if (kb.lengthSqr() > 1.0E-4D) {
+                kb = kb.normalize().scale(0.42D);
+                target.push(kb.x, 0.20D, kb.z);
+            }
+            sl.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
+                    12, 0.28D, 0.25D, 0.28D, 0.05D);
         }
     }
 
     public void performNormalAttack(ServerPlayer sp) {
         if (!(this.level() instanceof ServerLevel sl)) return;
-        if (getUltiTicks() > 8 || isPlunging() || this.pendingDiscardAfterFinisher || this.pendingFinisher || (getNaStep() == 6 && getNaTicks() > 4)) return;
+        if (getUltiTicks() > 8 || isPlunging() || this.pendingDiscardAfterFinisher) return;
+        if (this.pendingFinisher && getNaStep() == 6 && getNaTicks() > 6 && getNaTicks() <= 8) return;
+        this.pendingFinisher = false;
+        this.spinReleaseGraceTicks = 0;
         if (sl.getServer().overworld().getGameTime() < plungeRecoveryUntil) return;
         boolean airborneHigh = !this.onGround()
                 && !this.isInWater()
@@ -923,7 +992,7 @@ public class FlamestriderBikeEntity extends Entity {
         serverDashIframeTicks = 10;
         sp.invulnerableTime = Math.max(sp.invulnerableTime, 10);
         this.invulnerableTime = Math.max(this.invulnerableTime, 10);
-        ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 10.0F);
+        ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 3.0F);
         if (dashCd >= 15) {
             if (sp.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
                     && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
@@ -996,7 +1065,7 @@ public class FlamestriderBikeEntity extends Entity {
         this.prevSpinLean = this.spinLean;
         if (isSpinning()) {
             this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
-            this.spinLean = Mth.lerp(0.35F, this.spinLean, 22.0F);
+            this.spinLean = Mth.lerp(0.42F, this.spinLean, 24.0F);
         } else {
             this.spinYawOffset = 0.0F;
             this.spinLean = Mth.lerp(0.28F, this.spinLean, 0.0F);
@@ -1017,9 +1086,9 @@ public class FlamestriderBikeEntity extends Entity {
         }
         if (!spinningNow) {
             if (finNaT > 0) {
-                // Smoothly turn out of the donut tangent into the Finisher facing direction
+                // Rapidly align out of any Donut angle straight into the front-center Finisher direction
                 this.yRotO = this.getYRot();
-                this.setYRot(Mth.rotLerp(finNaT > 6 ? 0.30F : 0.55F, this.getYRot(), targetYaw));
+                this.setYRot(Mth.rotLerp(finNaT > 8 ? 0.60F : 0.80F, this.getYRot(), targetYaw));
             } else {
                 // Align bike heading directly with rider's camera yaw
                 this.setYRot(targetYaw);
@@ -1126,12 +1195,17 @@ public class FlamestriderBikeEntity extends Entity {
 
         if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
             if (!clientWasSpinning && clientSpinOrbitGraceTicks <= 0) {
-                spinPivotX = this.getX();
-                spinPivotZ = this.getZ();
+                // Anchor Donut center R = 1.75m in front of Mavuika so she starts at 6 o'clock (her exact current spot, zero sideways snap)
+                spinStartYaw = targetYaw;
+                double startRad = Math.toRadians(spinStartYaw);
+                double fwdX = -Math.sin(startRad);
+                double fwdZ = Math.cos(startRad);
+                spinOrbitRadius = 1.75D;
+                spinPivotX = this.getX() + fwdX * spinOrbitRadius;
+                spinPivotZ = this.getZ() + fwdZ * spinOrbitRadius;
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
-                spinOrbitAngle = targetYaw;
-                spinOrbitRadius = 0.0D;
+                spinOrbitAngle = 0.0F;
             } else {
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
@@ -1139,20 +1213,28 @@ public class FlamestriderBikeEntity extends Entity {
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
-            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX + stepX - this.getX(), 0.0D, spinPivotZ - this.getZ()))) {
+            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(stepX, 0.0D, 0.0D))) {
                 spinPivotX += stepX;
             }
-            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX - this.getX(), 0.0D, spinPivotZ + stepZ - this.getZ()))) {
+            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(0.0D, 0.0D, stepZ))) {
                 spinPivotZ += stepZ;
             }
-            spinOrbitRadius = Math.min(2.25D, spinOrbitRadius + 0.75D);
+            spinOrbitRadius = 1.75D;
             spinOrbitAngle = (spinOrbitAngle + 24.0F) % 360.0F;
-            double orbitRad = Math.toRadians(spinOrbitAngle);
-            double cosO = Math.cos(orbitRad);
-            double sinO = Math.sin(orbitRad);
+            double startRad = Math.toRadians(spinStartYaw);
+            double fwdX = -Math.sin(startRad);
+            double fwdZ = Math.cos(startRad);
+            double rightX = -Math.cos(startRad);
+            double rightZ = -Math.sin(startRad);
+            double phaseRad = Math.toRadians(spinOrbitAngle);
+            double cosP = Math.cos(phaseRad);
+            double sinP = Math.sin(phaseRad);
+            // 0 deg = 6 o'clock (-fwd), 90 deg = 3 o'clock (+right), 180 deg = 12 o'clock (+fwd), 270 deg = 9 o'clock (-right)
+            double dirX = -fwdX * cosP + rightX * sinP;
+            double dirZ = -fwdZ * cosP + rightZ * sinP;
             double effectiveRadius = spinOrbitRadius;
             Vec3 pivotPos = new Vec3(spinPivotX, this.getY() + 0.65D, spinPivotZ);
-            Vec3 desiredOrbit = new Vec3(spinPivotX + cosO * effectiveRadius, this.getY() + 0.65D, spinPivotZ + sinO * effectiveRadius);
+            Vec3 desiredOrbit = new Vec3(spinPivotX + dirX * effectiveRadius, this.getY() + 0.65D, spinPivotZ + dirZ * effectiveRadius);
             net.minecraft.world.phys.BlockHitResult wallHit = this.level().clip(new net.minecraft.world.level.ClipContext(
                     pivotPos, desiredOrbit,
                     net.minecraft.world.level.ClipContext.Block.COLLIDER,
@@ -1162,11 +1244,11 @@ public class FlamestriderBikeEntity extends Entity {
             if (wallHit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
                 effectiveRadius = Math.max(0.35D, wallHit.getLocation().distanceTo(pivotPos) - 0.55D);
             }
-            double targetX = spinPivotX + cosO * effectiveRadius;
-            double targetZ = spinPivotZ + sinO * effectiveRadius;
+            double targetX = spinPivotX + dirX * effectiveRadius;
+            double targetZ = spinPivotZ + dirZ * effectiveRadius;
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
-            float bikeYaw = (spinOrbitAngle + 195.0F) % 360.0F;
+            float bikeYaw = Mth.wrapDegrees(spinStartYaw - spinOrbitAngle + 55.0F);
             this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
         } else {
@@ -1233,16 +1315,27 @@ public class FlamestriderBikeEntity extends Entity {
             }
             this.setOnGround(false);
         } else if (finNaT > 6) {
-            if (finNaT >= 11) {
-                Vec3 fwdJump = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.32D);
-                vx = Mth.lerp(0.55D, prev.x, fwdJump.x);
-                vz = Mth.lerp(0.55D, prev.z, fwdJump.z);
-                vy = 0.24D;
+            // Converge from any Donut release angle straight onto the front-center target axis (spinPivot + fwd * 0.35D)
+            Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
+            if (finNaT >= 9) {
+                double goalX = spinPivotX + fwdDir.x * 0.35D;
+                double goalZ = spinPivotZ + fwdDir.z * 0.35D;
+                double toGoalX = goalX - this.getX();
+                double toGoalZ = goalZ - this.getZ();
+                double distGoal = Math.hypot(toGoalX, toGoalZ);
+                if ((spinPivotX != 0.0D || spinPivotZ != 0.0D) && distGoal > 0.05D && distGoal < 4.5D) {
+                    vx = Mth.clamp(toGoalX * 0.38D + fwdDir.x * 0.14D, -0.68D, 0.68D);
+                    vz = Mth.clamp(toGoalZ * 0.38D + fwdDir.z * 0.14D, -0.68D, 0.68D);
+                } else {
+                    vx = fwdDir.x * 0.30D;
+                    vz = fwdDir.z * 0.30D;
+                }
+                vy = 0.25D;
                 this.setOnGround(false);
             } else {
-                vx = prev.x * 0.65D;
-                vz = prev.z * 0.65D;
-                vy = Math.min(prev.y - 0.14D, -0.34D);
+                vx = prev.x * 0.55D + fwdDir.x * 0.10D;
+                vz = prev.z * 0.55D + fwdDir.z * 0.10D;
+                vy = Math.min(prev.y - 0.15D, -0.36D);
             }
         } else if (waterHere && canSkimWater) {
             vy = Math.max(vy, 0.14D); // Skim up to water surface
