@@ -26,7 +26,8 @@
     "GuiGraphicsMixin",
     "HumanoidModelMixin",
     "ItemInHandRendererMixin",
-    "MinecraftMixin"
+    "MinecraftMixin",
+    "GuiMixin"
   ],
   "injectors": {
     "defaultRequire": 1

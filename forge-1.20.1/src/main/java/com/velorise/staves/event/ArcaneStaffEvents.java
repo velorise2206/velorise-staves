@@ -832,9 +832,17 @@ public final class ArcaneStaffEvents {
         float pushScale = (charge01 >= 0.85F) ? 1.45F : (charge01 >= 0.45F ? 0.85F : 0.45F);
         float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.DAYBREAK, isNetherite) * (sideBolt ? 0.5F : 1.0F) * chargeScale;
         float attackU = isNetherite ? 1.5F : 1.0F;
-        double radius = isNetherite ? 4.5D : 3.5D;
+        boolean isSkillE = event.getProjectile().getPersistentData().getBoolean("VeloriseDaybreakSkillE");
+        LivingEntity directHit = hitEntity(event);
+        Vec3 windCenter = (directHit != null) ? directHit.position() : hit;
+        double radius = isSkillE ? (isNetherite ? 4.2D : 3.5D) : (isNetherite ? 2.0D : 1.7D);
         double boostScale = isNetherite ? 1.25D : 1.05D;
-        resolveWindBurst(level, hit, owner, hitEntity(event), baseDmg, attackU, radius, boostScale, pushScale, ArcaneStaffItem.Kind.DAYBREAK);
+        if (isSkillE) {
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, windCenter, windCenter.add(0.0D, 6.8D, 0.0D), 18, 0xFF5CE6C8);
+        } else {
+            com.velorise.staves.network.ModNetwork.sendElectricArc(level, windCenter, windCenter.add(0.0D, 4.8D, 0.0D), 14, 0xFF5CE6C8);
+        }
+        resolveWindBurst(level, windCenter, owner, directHit, baseDmg, attackU, radius, boostScale, pushScale, ArcaneStaffItem.Kind.DAYBREAK);
     }
 
     private static void resolveWind(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
@@ -916,19 +924,22 @@ public final class ArcaneStaffEvents {
         }
         checkEndCrystalsNear(level, hit, radius, owner);
 
+        boolean isDaybreak = (kind == ArcaneStaffItem.Kind.DAYBREAK);
+        boolean isLargeE = radius > 3.0D;
+        double windH = isLargeE ? 6.8D : 4.8D;
         if (directHit != null && directHit != owner) {
             ElementalGaugeManager.applyElement(level, directHit, Element.ANEMO, attackU, player, baseDmg);
             if (player != null) {
                 com.velorise.staves.advancement.ModAdvancements.trigger(
                         player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
             }
-            if (kind == ArcaneStaffItem.Kind.DAYBREAK) {
-                com.velorise.staves.network.ModNetwork.sendElectricArc(level, directHit.position(), directHit.position().add(0.0D, 2.4D, 0.0D), 12, 0xFF5CE6C8);
-            }
             if (!ElementalGaugeManager.isEntityFrozen(directHit)) {
+                float targetPush = isDaybreak ? (pushScale * 0.60F) : pushScale;
                 Vec3 diff = directHit.getBoundingBox().getCenter().subtract(hit);
                 Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * 0.65D * pushScale, 0.45D * pushScale, knock.z * 0.65D * pushScale));
+                double liftY = (isDaybreak ? (isLargeE ? 0.85D : 0.72D) : 0.45D) * targetPush;
+                double horizPush = isDaybreak ? 0.18D : 0.65D;
+                directHit.setDeltaMovement(directHit.getDeltaMovement().add(knock.x * horizPush * targetPush, liftY, knock.z * horizPush * targetPush));
                 directHit.hurtMarked = true;
                 if (directHit instanceof ServerPlayer sp) {
                     sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
@@ -937,18 +948,29 @@ public final class ArcaneStaffEvents {
         }
         checkEndCrystalsNear(level, hit, radius, owner);
 
-        AABB blastBox = new AABB(hit, hit).inflate(radius);
+        AABB blastBox = isDaybreak
+                ? new AABB(hit.x - radius, hit.y - 1.5D, hit.z - radius,
+                           hit.x + radius, hit.y + windH, hit.z + radius)
+                : new AABB(hit, hit).inflate(radius);
         for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, blastBox, e -> e.isAlive() && e != owner && e != directHit)) {
-            if (nearby.position().distanceToSqr(hit) <= radiusSqr) {
+            double dx = nearby.getX() - hit.x;
+            double dz = nearby.getZ() - hit.z;
+            boolean inZone = isDaybreak
+                    ? ((dx * dx + dz * dz) <= radiusSqr && nearby.getY() >= hit.y - 1.5D && nearby.getY() <= hit.y + windH)
+                    : (nearby.position().distanceToSqr(hit) <= radiusSqr);
+            if (inZone) {
                 ElementalGaugeManager.applyElement(level, nearby, Element.ANEMO, attackU, player, baseDmg);
                 if (player != null) {
                     com.velorise.staves.advancement.ModAdvancements.trigger(
                             player, com.velorise.staves.advancement.ModAdvancements.EVENT_TAKE_MY_BALL);
                 }
                 if (!ElementalGaugeManager.isEntityFrozen(nearby)) {
+                    float targetPush = isDaybreak ? (pushScale * 0.60F) : pushScale;
                     Vec3 diff = nearby.position().subtract(hit);
                     Vec3 knock = diff.lengthSqr() > 1.0E-4D ? diff.normalize() : new Vec3(0, 1, 0);
-                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * 0.65D * pushScale, 0.42D * pushScale, knock.z * 0.65D * pushScale));
+                    double liftY = (isDaybreak ? (isLargeE ? 0.78D : 0.56D) : 0.42D) * targetPush;
+                    double horizPush = isDaybreak ? 0.18D : 0.65D;
+                    nearby.setDeltaMovement(nearby.getDeltaMovement().add(knock.x * horizPush * targetPush, liftY, knock.z * horizPush * targetPush));
                     nearby.hurtMarked = true;
                     if (nearby instanceof ServerPlayer sp) {
                         sp.connection.send(new ClientboundSetEntityMotionPacket(sp));

@@ -87,7 +87,7 @@ public final class ZhongliVisualRenderer {
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
         float pt = mc.getFrameTime();
         float time = entity.tickCount + pt;
-        float idleLift = VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt) + RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
+        float idleLift = ClientAuraRenderer.getTotalLevitationOffsetY(entity, pt);
 
         poseStack.pushPose();
         if (idleLift > 0.001F) {
@@ -207,7 +207,7 @@ public final class ZhongliVisualRenderer {
         float dt = d.zhongliIdleLastMs > 0L ? Math.min(0.1F, Math.max(0.0F, (nowMs - d.zhongliIdleLastMs) / 1000.0F)) : 0.016F;
         d.zhongliIdleLastMs = nowMs;
         if (d.zhongliIdleMeteor) {
-            d.zhongliIdleFade = Math.min(1.0F, d.zhongliIdleFade + dt / 0.45F);
+            d.zhongliIdleFade = Math.min(1.0F, d.zhongliIdleFade + dt / 0.90F);
         } else {
             d.zhongliIdleFade = Math.max(0.0F, d.zhongliIdleFade - dt / 0.35F);
         }
@@ -254,7 +254,7 @@ public final class ZhongliVisualRenderer {
         float dt = d.zhongliIdleLastMs > 0L ? Math.min(0.1F, Math.max(0.0F, (nowMs - d.zhongliIdleLastMs) / 1000.0F)) : 0.016F;
         d.zhongliIdleLastMs = nowMs;
         if (d.zhongliIdleMeteor) {
-            d.zhongliIdleFade = Math.min(1.0F, d.zhongliIdleFade + dt / 0.45F);
+            d.zhongliIdleFade = Math.min(1.0F, d.zhongliIdleFade + dt / 0.90F);
         } else {
             d.zhongliIdleFade = Math.max(0.0F, d.zhongliIdleFade - dt / 0.35F);
         }
@@ -309,20 +309,25 @@ public final class ZhongliVisualRenderer {
         if (w <= 0.01F) return false;
         model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
         model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-        // Arms crossed across chest (matching Planet Befall Q stance)
-        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.28F);
-        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.22F);
+        // Regal crossed-arm & wide stance with subtle breathing & gentle sway
+        float breath = Mth.sin(ageInTicks * 0.09F);
+        float sway = Mth.sin(ageInTicks * 0.055F);
+        model.body.xRot = Mth.lerp(w, model.body.xRot, breath * 0.032F);
+        model.body.zRot = Mth.lerp(w, model.body.zRot, sway * 0.022F);
+        model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.28F + breath * 0.045F);
+        model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.22F + breath * 0.045F);
         model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.78F);
         model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.78F);
-        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.22F);
-        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F);
-        // Wide regal stance (legs apart)
-        model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.14F);
-        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.14F);
-        model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, 0.10F);
-        model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, -0.10F);
-        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.04F);
+        model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.22F + sway * 0.025F);
+        model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F + sway * 0.025F);
+        model.head.xRot = Mth.lerp(w, model.head.xRot, 0.10F + breath * 0.028F);
+        model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), sway * 0.055F);
+        model.head.zRot = Mth.lerp(w, model.head.zRot, sway * 0.022F);
         model.hat.copyFrom(model.head);
+        model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.22F);
+        model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.22F);
+        model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.05F - breath * 0.015F);
+        model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.05F + breath * 0.015F);
         return true;
     }
 
@@ -340,12 +345,18 @@ public final class ZhongliVisualRenderer {
                 int elapsed = Math.max(0, staff.getUseDuration(useStack) - entity.getUseItemRemainingTicks());
                 float w = WindGliderRenderer.smoothStep01(elapsed / 18.0F);
                 float tremor = Mth.sin(ageInTicks * 1.65F) * 0.032F * w;
-                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.32F + tremor);
-                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.32F - tremor);
-                model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.72F);
-                model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.72F);
-                model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.18F);
-                model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.18F);
+                model.rightArm.x = Mth.lerp(w, model.rightArm.x, -4.1F);
+                model.leftArm.x = Mth.lerp(w, model.leftArm.x, 4.1F);
+                model.rightArm.y = Mth.lerp(w, model.rightArm.y, 2.7F);
+                model.leftArm.y = Mth.lerp(w, model.leftArm.y, 2.7F);
+                model.rightArm.z = Mth.lerp(w, model.rightArm.z, -1.1F);
+                model.leftArm.z = Mth.lerp(w, model.leftArm.z, -1.1F);
+                model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.14F + tremor);
+                model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.06F - tremor);
+                model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.64F);
+                model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.64F);
+                model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.32F);
+                model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.32F);
                 model.head.xRot += 0.15F * w;
                 model.hat.copyFrom(model.head);
                 return true;
@@ -401,7 +412,9 @@ public final class ZhongliVisualRenderer {
             model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.78F);
             model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, -0.22F);
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, 0.22F);
-            model.head.xRot += 0.10F * w;
+            model.head.xRot = Mth.lerp(w, model.head.xRot, 0.10F);
+            model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.0F);
+            model.head.zRot = Mth.lerp(w, model.head.zRot, 0.0F);
             model.hat.copyFrom(model.head);
 
             model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.22F);
@@ -433,12 +446,8 @@ public final class ZhongliVisualRenderer {
             float s = Math.max(0.001F, 1.0F - w);
             poseStack.scale(s, s, s);
         } else if (entity.isUsingItem() && entity.getUseItem() == stack) {
-            int elapsed = Math.max(0, staff.getUseDuration(stack) - entity.getUseItemRemainingTicks());
-            float w = WindGliderRenderer.smoothStep01(elapsed / 18.0F);
-            float side = leftHand ? -1.0F : 1.0F;
-            poseStack.translate(side * 0.06F * w, 0.05F * w, 0.04F * w);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 28.0F * w));
-            poseStack.mulPose(Axis.XP.rotationDegrees(-22.0F * w));
+            poseStack.scale(0.0F, 0.0F, 0.0F);
+            return true;
         }
         return true;
     }
@@ -457,13 +466,7 @@ public final class ZhongliVisualRenderer {
     ) {
         if (effKind != ArcaneStaffItem.Kind.VORTEX) return false;
         if (player.isUsingItem() && player.getUseItem() == stack) {
-            int elapsed = Math.max(0, staff.getUseDuration(stack) - player.getUseItemRemainingTicks());
-            float w = WindGliderRenderer.smoothStep01((elapsed + partialTicks) / 18.0F);
-            float tremor = Mth.sin((player.tickCount + partialTicks) * 1.65F) * 0.010F * w;
-            poseStack.translate(-dir * 0.48F * w + tremor, 0.14F * w, -0.18F * w);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 14.0F * w));
-            poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F * w));
-            poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 12.0F * w));
+            poseStack.scale(0.0F, 0.0F, 0.0F);
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL && data != null) {

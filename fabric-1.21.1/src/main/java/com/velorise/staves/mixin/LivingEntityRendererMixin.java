@@ -35,6 +35,10 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
     @Inject(method = "render", at = @At("HEAD"))
     private void velorise$onRenderPre(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
         ClientAuraRenderer.applyFrozenPoseLock(livingEntity);
+        if (livingEntity != null && com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderFade(livingEntity) > 0.01F) {
+            livingEntity.yBodyRot = livingEntity.getYRot();
+            livingEntity.yBodyRotO = livingEntity.yRotO;
+        }
         velorise$bikePoseStack.push(FlamestriderBikeRenderer.pushRiderBikeTransform(livingEntity, partialTicks, poseStack));
     }
 

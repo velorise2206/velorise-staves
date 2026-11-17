@@ -70,6 +70,20 @@ public final class ClientAuraRenderer {
                         .setWriteMaskState(COLOR_WRITE)
                         .createCompositeState(false)
         );
+        public static final RenderType TRANSLUCENT_DEPTH_WRITE = RenderType.create(
+                "velorise_translucent_depth_write",
+                DefaultVertexFormat.POSITION_COLOR,
+                VertexFormat.Mode.QUADS,
+                1536,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                        .setShaderState(POSITION_COLOR_SHADER)
+                        .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+                        .setCullState(NO_CULL)
+                        .setWriteMaskState(COLOR_DEPTH_WRITE)
+                        .createCompositeState(false)
+        );
         public static final RenderType METEOR_SOLID = RenderType.create(
                 "velorise_meteor_solid",
                 DefaultVertexFormat.POSITION_COLOR,
@@ -131,6 +145,7 @@ public final class ClientAuraRenderer {
     }
 
     public static RenderType getTranslucentNoDepthWrite() { return ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE; }
+    public static RenderType getTranslucentDepthWrite() { return ShieldRenderTypes.TRANSLUCENT_DEPTH_WRITE; }
     public static RenderType getMeteorSolid() { return ShieldRenderTypes.METEOR_SOLID; }
     public static boolean isRenderingScreen() { return renderingScreen; }
     public static void setRenderingScreen(boolean rendering) { renderingScreen = rendering; }
@@ -191,6 +206,14 @@ public final class ClientAuraRenderer {
     public static boolean isLocalPlayerFrozen() { return ElementalReactionBadgeRenderer.isLocalPlayerFrozen(); }
     public static void tickFrozenPlayer() { ElementalReactionBadgeRenderer.tickFrozenPlayer(); }
     public static boolean handleFrozenPlayerTurn(Entity e, double y, double p) { return ElementalReactionBadgeRenderer.handleFrozenPlayerTurn(e, y, p); }
+    public static float getTotalLevitationOffsetY(Entity entity, float partialTick) {
+        return VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
+                + RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
+                + MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)
+                + NahidaVisualRenderer.getViewfinderCameraOffsetY(entity, partialTick)
+                + TsaritsaVisualRenderer.getBurstDpsLevitationOffsetY(entity, partialTick);
+    }
+
     public static float getFrozenCameraYaw(Entity e, float fb) { return ElementalReactionBadgeRenderer.getFrozenCameraYaw(e, fb); }
     public static float getFrozenCameraPitch(Entity e, float fb) { return ElementalReactionBadgeRenderer.getFrozenCameraPitch(e, fb); }
     public static void clearPyroInnateFire(LivingEntity e) { ElementalReactionBadgeRenderer.clearPyroInnateFire(e); }
@@ -211,6 +234,10 @@ public final class ClientAuraRenderer {
 
     public static void resetHumanoidPoseDefaults(HumanoidModel<?> model) {
         if (model == null) return;
+        model.rightArm.visible = true;
+        if (model instanceof net.minecraft.client.model.PlayerModel<?> pm) {
+            pm.rightSleeve.visible = true;
+        }
         if (model.crouching) {
             model.body.xRot = 0.5F;
             model.body.setPos(0.0F, 3.2F, 0.0F);
@@ -243,7 +270,7 @@ public final class ClientAuraRenderer {
     }
 
     public static void renderTsaritsaCrown(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
-        if (entity == null || ClientAuraTracker.isTsaritsaSpearStance(entity.getId())) return;
+        if (entity == null || (ClientAuraTracker.isTsaritsaSpearStance(entity.getId()) && !ClientAuraTracker.isTsaritsaIdle(entity.getId()))) return;
         TsaritsaVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
     }
 
@@ -281,16 +308,30 @@ public final class ClientAuraRenderer {
         if (TsaritsaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (VentiVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
+        if (TsaritsaVisualRenderer.applySpearStanceGlidePose(entity, model, activeAnim)) return;
 
         if (activeAnim <= 0 || data == null) return;
 
-        if (RaidenVisualRenderer.applyHumanoidAnimation(entity, model, ageInTicks, data, activeAnim, t)) return;
-        if (XilonenVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)) return;
-        if (NeuvilletteVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)) return;
-        if (MavuikaVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)) return;
-        if (VentiVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)) return;
-        if (NahidaVisualRenderer.applyActionHumanoidAnimation(model, ageInTicks, activeAnim, t)) return;
-        TsaritsaVisualRenderer.applyActionHumanoidAnimation(entity, model, activeAnim, t);
+        boolean ultiActive = (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW
+                || activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL
+                || activeAnim == ClientAuraTracker.ANIM_ZHONGLI_PLANET_BEFALL_FIRST
+                || activeAnim == ClientAuraTracker.ANIM_VORTEX_HOLD_BURST
+                || activeAnim == ClientAuraTracker.ANIM_VENTI_BURST
+                || activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST
+                || activeAnim == ClientAuraTracker.ANIM_MAVUIKA_BURST
+                || activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT
+                || activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
+        boolean handled = RaidenVisualRenderer.applyHumanoidAnimation(entity, model, ageInTicks, data, activeAnim, t)
+                || XilonenVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)
+                || NeuvilletteVisualRenderer.applyActionHumanoidAnimation(model, activeAnim, t)
+                || MavuikaVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)
+                || VentiVisualRenderer.applyBurstHumanoidAnimation(entity, model, activeAnim, t)
+                || NahidaVisualRenderer.applyActionHumanoidAnimation(model, ageInTicks, activeAnim, t)
+                || TsaritsaVisualRenderer.applyActionHumanoidAnimation(entity, model, activeAnim, t);
+        if (handled && ultiActive) {
+            model.head.yRot = 0.0F;
+            model.hat.copyFrom(model.head);
+        }
     }
 
     public static void applyThirdPersonStaffItemTransform(LivingEntity entity, ItemStack stack, ItemDisplayContext displayContext, boolean leftHand, PoseStack poseStack) {
@@ -320,7 +361,8 @@ public final class ClientAuraRenderer {
         if (ZhongliVisualRenderer.applyThirdPersonItemTransform(entity, stack, staff, effKind, leftHand, poseStack, data, activeAnim, now)) return;
         if (RaidenVisualRenderer.applyThirdPersonItemTransform(effKind, leftHand, poseStack, data, activeAnim, now)) return;
         MavuikaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack);
-        NahidaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, poseStack);
+        NahidaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, poseStack, activeAnim);
+        TsaritsaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack, activeAnim);
     }
 
     public static void applyFirstPersonStaffTransform(AbstractClientPlayer player, float partialTicks, InteractionHand hand, ItemStack stack, PoseStack poseStack) {
@@ -482,11 +524,16 @@ public final class ClientAuraRenderer {
 
         NahidaVisualRenderer.renderWorldArcs(poseStack, bufferSource, camPos, now);
         TsaritsaVisualRenderer.renderWorldArcs(poseStack, bufferSource, camPos, now);
+        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            if (arc.start != null && arc.end != null && arc.color == 0xFF5CE6C8) {
+                VentiVisualRenderer.renderUpdraftArc(arc, arc.start, arc.end, camPos, now, poseStack, bufferSource);
+            }
+        }
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.lightning());
         Matrix4f matrix = poseStack.last().pose();
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
-            if (arc.color == 0xFF5CE6C8 && VentiVisualRenderer.renderUpdraftArc(arc, arc.start, arc.end, camPos, now, poseStack, bufferSource)) {
+            if (arc.color == 0xFF5CE6C8) {
                 continue;
             }
             if (arc.fromEntityId == -3 || arc.fromEntityId == -5 || arc.fromEntityId == -6 || arc.fromEntityId == -7 || arc.fromEntityId == -8) continue;

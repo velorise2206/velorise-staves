@@ -15,6 +15,7 @@
     "GuiGraphicsMixin",
     "HumanoidModelMixin",
     "ItemInHandRendererMixin",
-    "LivingEntityRendererMixin"
+    "LivingEntityRendererMixin",
+    "GuiMixin"
   ]
 }

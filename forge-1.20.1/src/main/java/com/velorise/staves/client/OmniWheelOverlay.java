@@ -121,6 +121,8 @@ public final class OmniWheelOverlay {
     private static boolean wasXilonenDashKeyDown = false;
     private static int furinaAttackHoldTicks = 0;
     private static boolean furinaCaTriggeredThisHold = false;
+    private static int raidenAttackHoldTicks = 0;
+    private static boolean raidenCaTriggeredThisHold = false;
     private static int nahidaAttackHoldTicks = 0;
     private static boolean nahidaCaTriggeredThisHold = false;
     private static int queuedNahidaFastClicks = 0;
@@ -315,6 +317,32 @@ public final class OmniWheelOverlay {
         } else {
             furinaAttackHoldTicks = 0;
             furinaCaTriggeredThisHold = false;
+            raidenAttackHoldTicks = 0;
+            raidenCaTriggeredThisHold = false;
+        }
+
+        // Raiden Musou Hold Left-Click Charged Attack: 5-block dash + 5 trailing slashes
+        boolean holdingRaidenMusou = ClientAuraTracker.isRaidenMusouActive(mc.player.getId())
+                && ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
+        if (holdingRaidenMusou && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+            if (mc.options.keyAttack.isDown()) {
+                raidenAttackHoldTicks++;
+                if (raidenAttackHoldTicks >= 8 && !raidenCaTriggeredThisHold
+                        && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
+                    raidenCaTriggeredThisHold = true;
+                    ClientAuraTracker.localRaidenAttackHeld = true;
+                    ClientAuraTracker.triggerStaffAnimation(mc.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
+                    com.velorise.staves.network.ModNetwork.sendRaidenSlash(true);
+                }
+            } else {
+                raidenAttackHoldTicks = 0;
+                raidenCaTriggeredThisHold = false;
+                ClientAuraTracker.localRaidenAttackHeld = false;
+            }
+        } else {
+            raidenAttackHoldTicks = 0;
+            raidenCaTriggeredThisHold = false;
+            ClientAuraTracker.localRaidenAttackHeld = false;
         }
 
         // Reset Tsaritsa Hold E lock once Right-Click is released

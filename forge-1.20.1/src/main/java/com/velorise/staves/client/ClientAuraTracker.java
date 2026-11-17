@@ -39,6 +39,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_GLIDER_LOCKED = 31;
     public static final int ANIM_MAVUIKA_BURST = 32;
     public static final int ANIM_VENTI_BURST = 33;
+    public static final int ANIM_VENTI_SKILL_E = 66;
     public static final int ANIM_FURINA_BURST = 34;
     public static final int ANIM_LAYLA_BURST = 35;
     public static final int ANIM_XILONEN_JUMP_FLIP = 36;
@@ -151,6 +152,11 @@ public final class ClientAuraTracker {
         public boolean nahidaIdleSwing = false;
         public float nahidaIdleSwingFade = 0.0F;
         public long nahidaIdleSwingLastMs = 0L;
+        public float nahidaIdleYaw = 0.0F;
+        public boolean nahidaIdleYawSet = false;
+        public long nahidaWeaponHideUntil = 0L;
+        public float ultiYaw = 0.0F;
+        public boolean ultiYawSet = false;
         public boolean zhongliIdleMeteor = false;
         public float zhongliIdleFade = 0.0F;
         public long zhongliIdleLastMs = 0L;
@@ -184,14 +190,20 @@ public final class ClientAuraTracker {
         public boolean tsaritsaIdle = false;
         public float tsaritsaIdleFade = 0.0F;
         public long tsaritsaIdleLastMs = 0L;
+        public long tsaritsaIdleStartMs = 0L;
         public float tsaritsaIdleYaw = 0.0F;
         public boolean tsaritsaIdleYawSet = false;
         public boolean nahidaViewfinder = false;
+        public float tsaritsaSpearFade = 0.0F;
+        public long tsaritsaSpearLastMs = 0L;
+        public float nahidaViewfinderFade = 0.0F;
+        public long nahidaViewfinderLastMs = 0L;
         public long skandhaMarkedUntil = 0L;
         public int nahidaShrineMask = 0;
         public long nahidaShrineUntil = 0L;
         public double lastShrineStepX = Double.NaN;
         public double lastShrineStepZ = Double.NaN;
+        public double lastShrineStepY = Double.NaN;
         public long lastShrineStepMs = 0L;
         public int shrineStepVariant = 0;
 
@@ -534,6 +546,9 @@ public final class ClientAuraTracker {
         if (animType >= 4000 && animType <= 4002) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.nahidaIdleSwing = (animType == 4001);
+            if (!entry.nahidaIdleSwing) {
+                entry.nahidaIdleYawSet = false;
+            }
             entry.nahidaViewfinder = (animType == 4002);
             return;
         }
@@ -592,7 +607,13 @@ public final class ClientAuraTracker {
         }
         if (animType == 4060 || animType == 4061) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            boolean prevTsaIdle = entry.tsaritsaIdle;
             entry.tsaritsaIdle = (animType == 4061);
+            if (entry.tsaritsaIdle && !prevTsaIdle) {
+                entry.tsaritsaIdleStartMs = now;
+            } else if (!entry.tsaritsaIdle) {
+                entry.tsaritsaIdleStartMs = 0L;
+            }
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -681,7 +702,7 @@ public final class ClientAuraTracker {
             case ANIM_RAIDEN_EYE -> 420L;
             case ANIM_RAIDEN_DRAW -> 1600L;
             case ANIM_RAIDEN_SLASH -> (entry.raidenComboStep == 3 || entry.raidenComboStep == 4) ? 420L : 340L;
-            case ANIM_RAIDEN_CA -> 480L;
+            case ANIM_RAIDEN_CA -> 700L;
             case ANIM_ZHONGLI_PLANET_BEFALL -> 2800L;
             case ANIM_XILONEN_SKATE_DASH -> 480L;
             case ANIM_XILONEN_KICK_1 -> 380L;
@@ -691,6 +712,7 @@ public final class ClientAuraTracker {
             case ANIM_NEUVILLETTE_SKILL_E -> 550L;
             case ANIM_MAVUIKA_BURST -> 1700L;
             case ANIM_VENTI_BURST -> 2000L;
+            case ANIM_VENTI_SKILL_E -> 900L;
             case ANIM_FURINA_BURST -> 1800L;
             case ANIM_LAYLA_BURST -> 1600L;
             case ANIM_NAHIDA_NA_1, ANIM_NAHIDA_NA_2, ANIM_NAHIDA_NA_3 -> 380L;
@@ -965,7 +987,7 @@ public final class ClientAuraTracker {
             }
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && (!entry.nahidaIdleSwing && entry.nahidaIdleSwingFade <= 0.01F) && (!entry.zhongliIdleMeteor && entry.zhongliIdleFade <= 0.01F) && (!entry.raidenIdle && entry.raidenIdleFade <= 0.01F) && (!entry.mavuikaIdle && entry.mavuikaIdleFade <= 0.01F) && (entry.furinaIdleMode == 0 && entry.furinaIdleFade <= 0.01F) && (!entry.ventiIdle && entry.ventiIdleFade <= 0.01F) && (!entry.tsaritsaIdle && entry.tsaritsaIdleFade <= 0.01F) && !entry.nahidaViewfinder && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && (!entry.nahidaIdleSwing && entry.nahidaIdleSwingFade <= 0.01F) && (!entry.zhongliIdleMeteor && entry.zhongliIdleFade <= 0.01F) && (!entry.raidenIdle && entry.raidenIdleFade <= 0.01F) && (!entry.mavuikaIdle && entry.mavuikaIdleFade <= 0.01F) && (entry.furinaIdleMode == 0 && entry.furinaIdleFade <= 0.01F) && (!entry.ventiIdle && entry.ventiIdleFade <= 0.01F) && (!entry.tsaritsaIdle && entry.tsaritsaIdleFade <= 0.01F) && (!entry.nahidaViewfinder && entry.nahidaViewfinderFade <= 0.01F) && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.nahidaWeaponHideUntil + 550L <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -1289,7 +1311,7 @@ public final class ClientAuraTracker {
         boolean activeBurst = data.staffAnimType == ANIM_VENTI_BURST && now < data.staffAnimUntil;
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         boolean localPulling = mc.player != null && entityId == mc.player.getId()
-                && (localDaybreakBowPullTicks > 0 || ventiUltiHoldTicks > 0);
+                && (localDaybreakBowPullTicks > 0 || ventiUltiHoldTicks > 0 || mc.player.isUsingItem() || mc.player.swinging);
         if (activeBurst || localPulling) {
             data.ventiIdle = false;
             data.ventiIdleMode = 0;
@@ -1304,6 +1326,42 @@ public final class ClientAuraTracker {
         if (mc == null || mc.player == null || mc.level == null) return;
         AuraDisplayData d = DATA.get(mc.player.getId());
         if (d == null) return;
+        boolean movingOrActing = mc.player.isShiftKeyDown() || mc.player.isCrouching() || mc.player.isUsingItem() || mc.player.swinging
+                || !mc.player.onGround() || mc.player.getVehicle() != null
+                || (mc.player.input != null && (Math.abs(mc.player.input.forwardImpulse) > 0.01F || Math.abs(mc.player.input.leftImpulse) > 0.01F || mc.player.input.jumping));
+        long nowUlti = System.currentTimeMillis();
+        boolean inUlti = nowUlti < d.staffAnimUntil && (
+                d.staffAnimType == ANIM_RAIDEN_DRAW
+                || d.staffAnimType == ANIM_ZHONGLI_PLANET_BEFALL
+                || d.staffAnimType == ANIM_ZHONGLI_PLANET_BEFALL_FIRST
+                || d.staffAnimType == ANIM_VORTEX_HOLD_BURST
+                || d.staffAnimType == ANIM_VENTI_BURST
+                || d.staffAnimType == ANIM_NAHIDA_BURST
+                || d.staffAnimType == ANIM_MAVUIKA_BURST
+                || d.staffAnimType == ANIM_TSARITSA_BURST_SUPPORT
+                || d.staffAnimType == ANIM_TSARITSA_BURST_DPS
+        );
+        boolean isFirstPersonUlti = mc.options.getCameraType().isFirstPerson();
+        if (inUlti) {
+            if (isFirstPersonUlti || !d.ultiYawSet) {
+                d.ultiYaw = mc.player.getYRot();
+                d.ultiYawSet = true;
+            }
+            mc.player.yBodyRot = d.ultiYaw;
+            mc.player.yBodyRotO = d.ultiYaw;
+        } else {
+            d.ultiYawSet = false;
+        }
+        if (movingOrActing) {
+            d.tsaritsaIdle = false; d.tsaritsaIdleFade = 0.0F; d.tsaritsaIdleYawSet = false;
+            d.raidenIdle = false; d.raidenIdleFade = 0.0F; d.raidenIdleYawSet = false;
+            d.mavuikaIdle = false; d.mavuikaIdleFade = 0.0F; d.mavuikaIdleYawSet = false;
+            d.ventiIdle = false; d.ventiIdleFade = 0.0F; d.ventiIdleYawSet = false; d.ventiIdleMode = 0;
+            d.zhongliIdleMeteor = false; d.zhongliIdleFade = 0.0F; d.zhongliIdleYawSet = false;
+            d.furinaIdleMode = 0; d.furinaIdleFade = 0.0F; d.furinaIdleYawSet = false;
+            d.nahidaIdleSwing = false; d.nahidaIdleSwingFade = 0.0F; d.nahidaIdleYawSet = false;
+            return;
+        }
         boolean isFirstPerson = mc.options.getCameraType().isFirstPerson();
         if (isTsaritsaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
             if (isFirstPerson || !d.tsaritsaIdleYawSet) {
@@ -1364,6 +1422,16 @@ public final class ClientAuraTracker {
             mc.player.yBodyRotO = d.furinaIdleYaw;
         } else {
             d.furinaIdleYawSet = false;
+        }
+        if (isNahidaIdleSwing(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (isFirstPerson || !d.nahidaIdleYawSet) {
+                d.nahidaIdleYaw = mc.player.getYRot();
+                d.nahidaIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.nahidaIdleYaw;
+            mc.player.yBodyRotO = d.nahidaIdleYaw;
+        } else {
+            d.nahidaIdleYawSet = false;
         }
     }
 

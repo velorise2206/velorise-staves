@@ -54,6 +54,7 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
 
     public static void handle(ServerPlayer player, byte action) {
         if (player == null) return;
+        ArchonUltiManager.resetAllArchonIdleTimers(player);
         if (action != ACTION_TOGGLE_GLIDER
                 && action != ACTION_PLUNGE_ATTACK
                 && action != ACTION_SPIN_STOP

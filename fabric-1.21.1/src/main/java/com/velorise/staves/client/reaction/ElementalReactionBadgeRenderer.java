@@ -550,7 +550,7 @@ public final class ElementalReactionBadgeRenderer {
                     && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && data.laylaDreamsphereUntil <= now
                     && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now
                     && !data.tsaritsaCrownActive && data.tsaritsaSyncUntil <= now
-                    && (!data.nahidaIdleSwing && data.nahidaIdleSwingFade <= 0.01F) && (!data.zhongliIdleMeteor && data.zhongliIdleFade <= 0.01F) && (!data.raidenIdle && data.raidenIdleFade <= 0.01F) && (!data.mavuikaIdle && data.mavuikaIdleFade <= 0.01F) && (data.furinaIdleMode == 0 && data.furinaIdleFade <= 0.01F) && (!data.ventiIdle && data.ventiIdleFade <= 0.01F) && (!data.tsaritsaIdle && data.tsaritsaIdleFade <= 0.01F) && !data.nahidaViewfinder && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now
+                    && (!data.nahidaIdleSwing && data.nahidaIdleSwingFade <= 0.01F) && (!data.zhongliIdleMeteor && data.zhongliIdleFade <= 0.01F) && (!data.raidenIdle && data.raidenIdleFade <= 0.01F) && (!data.mavuikaIdle && data.mavuikaIdleFade <= 0.01F) && (data.furinaIdleMode == 0 && data.furinaIdleFade <= 0.01F) && (!data.ventiIdle && data.ventiIdleFade <= 0.01F) && (!data.tsaritsaIdle && data.tsaritsaIdleFade <= 0.01F) && (!data.nahidaViewfinder && data.nahidaViewfinderFade <= 0.01F) && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now && data.nahidaWeaponHideUntil + 550L <= now
                     && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
@@ -587,8 +587,7 @@ public final class ElementalReactionBadgeRenderer {
         if (display.isEmpty() && !omniInnate) return;
 
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
-        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
-                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
+        float idleLift = com.velorise.staves.client.ClientAuraRenderer.getTotalLevitationOffsetY(entity, pt);
         double height = (entity instanceof net.minecraft.world.entity.player.Player)
                 ? entity.getBbHeight() + 0.18D + idleLift
                 : entity.getBbHeight() + 0.28D + Math.min(0.5D, entity.getBbHeight() * 0.10D) + idleLift;

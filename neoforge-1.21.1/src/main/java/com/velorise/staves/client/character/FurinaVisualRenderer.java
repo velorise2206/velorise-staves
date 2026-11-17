@@ -26,13 +26,13 @@ public final class FurinaVisualRenderer {
         if (d.furinaIdleLastMs <= 0L) {
             d.furinaIdleLastMs = nowMs;
             if (d.furinaIdleMode > 0) {
-                d.furinaIdleFade = Math.min(1.0F, d.furinaIdleFade + 0.016F / 0.55F);
+                d.furinaIdleFade = Math.min(1.0F, d.furinaIdleFade + 0.016F / 1.10F);
             }
         } else if (nowMs > d.furinaIdleLastMs) {
             float dt = Math.min(0.1F, (nowMs - d.furinaIdleLastMs) / 1000.0F);
             d.furinaIdleLastMs = nowMs;
             if (d.furinaIdleMode > 0) {
-                d.furinaIdleFade = Math.min(1.0F, d.furinaIdleFade + dt / 0.55F);
+                d.furinaIdleFade = Math.min(1.0F, d.furinaIdleFade + dt / 1.10F);
             } else {
                 d.furinaIdleFade = Math.max(0.0F, d.furinaIdleFade - dt / 0.35F);
             }
@@ -52,84 +52,42 @@ public final class FurinaVisualRenderer {
                 ? Math.max(0.0F, (now - d.furinaIdleStartMs) / 1000.0F)
                 : ((entity.tickCount % 200) / 20.0F);
 
-        if (mode == 2) {
-            // Mode 2 Cycle: 10 seconds total
-            // 0.0 - 1.2s: sit down on bubble
-            // 1.2 - 4.5s: 6 cakes wheel in front
-            // 4.5 - 8.0s: pick 1 cake & eat
-            // 8.0 - 9.8s: stand back up
-            float cycleSec = elapsedSec % 10.0F;
-            float sitProg;
-            if (cycleSec < 1.2F) {
-                sitProg = WindGliderRenderer.smoothStep01(cycleSec / 1.2F);
-            } else if (cycleSec < 8.0F) {
-                sitProg = 1.0F;
-            } else if (cycleSec < 9.6F) {
-                sitProg = 1.0F - WindGliderRenderer.smoothStep01((cycleSec - 8.0F) / 1.6F);
-            } else {
-                sitProg = 0.0F;
-            }
+        // Seated on indented water bubble chair: crossed legs, left arm across waist, right hand resting on chin
+        float sitProg = WindGliderRenderer.smoothStep01(elapsedSec / 0.85F);
+        float bob = Mth.sin(ageInTicks * 0.12F) * 0.24F * w * sitProg;
+        float sitDropY = 4.5F * w * sitProg + bob;
+        model.body.y += sitDropY;
+        model.head.y += sitDropY;
+        model.hat.y += sitDropY;
+        model.rightArm.y += sitDropY;
+        model.leftArm.y += sitDropY;
+        model.rightLeg.y += sitDropY;
+        model.leftLeg.y += sitDropY;
 
-            float bob = Mth.sin(ageInTicks * 0.12F) * 0.30F * w * sitProg;
-            float sitDropY = 3.3F * w * sitProg + bob;
-            model.body.y += sitDropY;
-            model.head.y += sitDropY;
-            model.hat.y += sitDropY;
-            model.rightArm.y += sitDropY;
-            model.leftArm.y += sitDropY;
-            model.rightLeg.y += sitDropY;
-            model.leftLeg.y += sitDropY;
+        model.body.xRot = Mth.lerp(w * sitProg, model.body.xRot, 0.06F);
+        model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+        model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
 
-            model.body.xRot = Mth.lerp(w * sitProg, model.body.xRot, 0.08F);
-            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
-            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+        // Crossed thighs/legs seated gracefully on the bubble
+        model.rightLeg.xRot = Mth.lerp(w * sitProg, model.rightLeg.xRot, -1.48F);
+        model.leftLeg.xRot = Mth.lerp(w * sitProg, model.leftLeg.xRot, -1.28F);
+        model.rightLeg.yRot = Mth.lerp(w * sitProg, model.rightLeg.yRot, -0.34F);
+        model.leftLeg.yRot = Mth.lerp(w * sitProg, model.leftLeg.yRot, 0.14F);
+        model.rightLeg.zRot = Mth.lerp(w * sitProg, model.rightLeg.zRot, -0.18F);
+        model.leftLeg.zRot = Mth.lerp(w * sitProg, model.leftLeg.zRot, 0.08F);
 
-            // Seated leg pose
-            model.rightLeg.xRot = Mth.lerp(w * sitProg, model.rightLeg.xRot, -1.32F);
-            model.leftLeg.xRot = Mth.lerp(w * sitProg, model.leftLeg.xRot, -1.18F);
-            model.rightLeg.yRot = Mth.lerp(w * sitProg, model.rightLeg.yRot, 0.12F);
-            model.leftLeg.yRot = Mth.lerp(w * sitProg, model.leftLeg.yRot, -0.12F);
-
-            if (cycleSec >= 4.5F && cycleSec < 8.0F) {
-                // Eating phase: right arm brings cake to mouth, nibbles happily
-                float eatNibble = Mth.sin(ageInTicks * 0.45F) * 0.05F;
-                model.head.xRot = Mth.lerp(w * sitProg, model.head.xRot, 0.24F + eatNibble * 0.25F);
-                model.head.zRot = Mth.lerp(w * sitProg, model.head.zRot, 0.08F);
-                model.rightArm.xRot = Mth.lerp(w * sitProg, model.rightArm.xRot, -1.38F + eatNibble);
-                model.rightArm.yRot = Mth.lerp(w * sitProg, model.rightArm.yRot, -0.42F);
-                model.rightArm.zRot = Mth.lerp(w * sitProg, model.rightArm.zRot, 0.26F);
-                model.leftArm.xRot = Mth.lerp(w * sitProg, model.leftArm.xRot, -0.90F);
-                model.leftArm.yRot = Mth.lerp(w * sitProg, model.leftArm.yRot, 0.30F);
-                model.leftArm.zRot = Mth.lerp(w * sitProg, model.leftArm.zRot, -0.16F);
-            } else {
-                // Seated observing cakes or standing transition
-                float sway = Mth.sin(ageInTicks * 0.10F) * 0.08F;
-                model.head.xRot = Mth.lerp(w * sitProg, model.head.xRot, 0.15F);
-                model.head.zRot = Mth.lerp(w * sitProg, model.head.zRot, sway);
-                model.rightArm.xRot = Mth.lerp(w * sitProg, model.rightArm.xRot, -0.62F);
-                model.rightArm.yRot = Mth.lerp(w * sitProg, model.rightArm.yRot, -0.22F);
-                model.rightArm.zRot = Mth.lerp(w * sitProg, model.rightArm.zRot, 0.20F);
-                model.leftArm.xRot = Mth.lerp(w * sitProg, model.leftArm.xRot, -0.62F);
-                model.leftArm.yRot = Mth.lerp(w * sitProg, model.leftArm.yRot, 0.22F);
-                model.leftArm.zRot = Mth.lerp(w * sitProg, model.leftArm.zRot, -0.20F);
-            }
-        } else {
-            // Mode 1: Furina cradles Surintendante Chevalmarin with both hands, gently sways side-to-side
-            float sway = Mth.sin(ageInTicks * 0.12F);
-            model.body.yRot = Mth.lerp(w, model.body.yRot, 0.10F * sway);
-            model.head.zRot = Mth.lerp(w, model.head.zRot, 0.12F * sway);
-            model.body.zRot = Mth.lerp(w, model.body.zRot, 0.05F * sway);
-            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
-            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-
-            // Hands raised up in front of chest/chin holding the seahorse
-            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -1.25F);
-            model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.32F + sway * 0.06F);
-            model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.38F + sway * 0.08F);
-            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.25F);
-            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.32F + sway * 0.06F);
-            model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.38F + sway * 0.08F);
-        }
+        // Both normal arms resting naturally on her thighs/lap, head locked in 3rd-person
+        float sway = Mth.sin(ageInTicks * 0.10F) * 0.04F;
+        model.head.xRot = Mth.lerp(w * sitProg, model.head.xRot, 0.12F);
+        model.head.yRot = Mth.lerp(w * sitProg, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.0F);
+        model.head.zRot = Mth.lerp(w * sitProg, model.head.zRot, sway);
+        model.hat.copyFrom(model.head);
+        model.rightArm.xRot = Mth.lerp(w * sitProg, model.rightArm.xRot, -0.62F);
+        model.rightArm.yRot = Mth.lerp(w * sitProg, model.rightArm.yRot, -0.22F);
+        model.rightArm.zRot = Mth.lerp(w * sitProg, model.rightArm.zRot, -0.18F);
+        model.leftArm.xRot = Mth.lerp(w * sitProg, model.leftArm.xRot, -0.62F);
+        model.leftArm.yRot = Mth.lerp(w * sitProg, model.leftArm.yRot, 0.22F);
+        model.leftArm.zRot = Mth.lerp(w * sitProg, model.leftArm.zRot, 0.18F);
         return true;
     }
 
@@ -157,150 +115,153 @@ public final class FurinaVisualRenderer {
         poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
         poseStack.scale(fade, fade, fade);
 
-        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
-        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        // Bubble chair + rotating 6-cake Ferris wheel 1.5 blocks away (no real pet summons)
+        float sitProg = WindGliderRenderer.smoothStep01(elapsedSec / 0.85F);
+        float bob = -Mth.sin(time * 0.12F) * 0.025F * sitProg;
+        float wheelFade = fade * WindGliderRenderer.smoothStep01((elapsedSec - 0.35F) / 0.6F);
+        float wheelRadius = 0.44F;
+        float baseAngle = time * 0.045F;
 
-        if (mode == 2) {
-            // Mode 2: Bubble seat + 6 cakes wheel + cake eating
-            float cycleSec = elapsedSec % 10.0F;
-            float sitProg;
-            if (cycleSec < 1.2F) {
-                sitProg = WindGliderRenderer.smoothStep01(cycleSec / 1.2F);
-            } else if (cycleSec < 8.0F) {
-                sitProg = 1.0F;
-            } else if (cycleSec < 9.6F) {
-                sitProg = 1.0F - WindGliderRenderer.smoothStep01((cycleSec - 8.0F) / 1.6F);
-            } else {
-                sitProg = 0.0F;
-            }
-
-            float bob = Mth.sin(time * 0.12F) * 0.035F * sitProg;
-
-            // 1. Large translucent glowing Water Bubble seat underneath Furina
-            if (sitProg > 0.02F) {
+        // PASS 1 (Solid): Draw all 6 vivid miniature Fontaine cakes directly in front (1.5 blocks)
+        if (wheelFade > 0.02F) {
+            VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 1.05F + bob * 0.6F, 1.50F);
+            for (int k = 0; k < 6; k++) {
+                float angle = baseAngle + (float) (k * Math.PI * 2.0D / 6.0D);
+                float cx = Mth.cos(angle) * wheelRadius;
+                float cy = Mth.sin(angle) * wheelRadius;
                 poseStack.pushPose();
-                poseStack.translate(0.0F, 0.44F + bob, 0.0F);
-                poseStack.scale(sitProg, sitProg, sitProg);
-                drawWaterBubble(transVc, poseStack.last().pose(), 0.46F, 110, 215, 255, Math.round(145.0F * fade));
-                // Inner glowing star in bubble
-                drawCentralHydroStar(transVc, poseStack.last().pose(), 0.12F, time * 1.5F, 220, 245, 255, Math.round(180.0F * fade));
+                poseStack.translate(cx, cy, 0.0F);
+                poseStack.scale(0.76F, 0.76F, 0.76F);
+                poseStack.mulPose(Axis.YP.rotationDegrees(15.0F + k * 20.0F));
+                drawFontaineCake(solidVc, poseStack.last().pose(), k);
                 poseStack.popPose();
             }
+            poseStack.popPose();
+        }
 
-            // 2. Wheel of 6 Cakes in Water Bubbles rotating in vertical circle in front of Furina
-            if (cycleSec >= 1.0F && cycleSec < 4.8F) {
-                float wheelAlpha = 1.0F;
-                if (cycleSec < 1.6F) {
-                    wheelAlpha = WindGliderRenderer.smoothStep01((cycleSec - 1.0F) / 0.6F);
-                } else if (cycleSec > 4.2F) {
-                    wheelAlpha = 1.0F - WindGliderRenderer.smoothStep01((cycleSec - 4.2F) / 0.6F);
-                }
-                float wheelFade = fade * wheelAlpha;
-                if (wheelFade > 0.02F) {
-                    poseStack.pushPose();
-                    poseStack.translate(0.0F, 0.88F + bob * 0.8F, 0.52F);
-                    Matrix4f wMat = poseStack.last().pose();
+        // PASS 2 (Depth-Writing Translucent): Indented sapphire-cyan Water Bubble chair + Ferris wheel
+        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentDepthWrite());
 
-                    // Central hydro star core
-                    drawCentralHydroStar(transVc, wMat, 0.14F, time * 2.2F, 180, 235, 255, Math.round(210.0F * wheelFade));
-
-                    float wheelRadius = 0.38F;
-                    float baseAngle = time * 0.065F;
-                    for (int k = 0; k < 6; k++) {
-                        float angle = baseAngle + (float) (k * Math.PI * 2.0D / 6.0D);
-                        float cx = Mth.cos(angle) * wheelRadius;
-                        float cy = Mth.sin(angle) * wheelRadius;
-
-                        poseStack.pushPose();
-                        poseStack.translate(cx, cy, 0.0F);
-                        // Mini bubble surrounding cake
-                        drawWaterBubble(transVc, poseStack.last().pose(), 0.11F, 130, 220, 255, Math.round(135.0F * wheelFade));
-                        // 3D Miniature Fontaine Delicacy / Cake
-                        poseStack.scale(0.55F, 0.55F, 0.55F);
-                        poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.0F + k * 60.0F));
-                        drawFontaineCake(solidVc, poseStack.last().pose(), k);
-                        poseStack.popPose();
-                    }
-                    poseStack.popPose();
-                }
-            }
-
-            // 3. Furina takes 1 cake & eats it with crumbs / sparkles
-            if (cycleSec >= 4.5F && cycleSec < 8.0F) {
-                float eatFade = 1.0F;
-                if (cycleSec < 4.8F) {
-                    eatFade = WindGliderRenderer.smoothStep01((cycleSec - 4.5F) / 0.3F);
-                } else if (cycleSec > 7.6F) {
-                    eatFade = 1.0F - WindGliderRenderer.smoothStep01((cycleSec - 7.6F) / 0.4F);
-                }
-                float totalEatFade = fade * eatFade;
-                if (totalEatFade > 0.02F) {
-                    poseStack.pushPose();
-                    float eatNibble = Mth.sin(time * 0.45F) * 0.02F;
-                    poseStack.translate(0.08F, 1.25F + bob + eatNibble, 0.32F);
-                    poseStack.scale(0.52F * totalEatFade, 0.52F * totalEatFade, 0.52F * totalEatFade);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(35.0F + Mth.sin(time * 0.2F) * 10.0F));
-                    drawFontaineCake(solidVc, poseStack.last().pose(), 0); // Delicious strawberry shortcake
-                    poseStack.popPose();
-
-                    // Sweet crumbs / sparkling hydro stars falling down
-                    Matrix4f pMat = poseStack.last().pose();
-                    for (int c = 0; c < 4; c++) {
-                        float cAge = ((time * 0.05F + c * 0.25F) % 1.0F);
-                        float cx = 0.08F + (Mth.sin(c * 1.7F) * 0.08F);
-                        float cy = 1.22F + bob - cAge * 0.28F;
-                        float cz = 0.32F + (Mth.cos(c * 2.3F) * 0.08F);
-                        float cSize = 0.012F * (1.0F - cAge * 0.6F);
-                        int cAlpha = Math.max(15, Math.round(220.0F * totalEatFade * (1.0F - cAge)));
-                        ClientAuraRenderer.emitCrystalQuad(transVc, pMat,
-                                cx - cSize, cy, cz - cSize, 255, 235, 185, cAlpha,
-                                cx + cSize, cy, cz - cSize, 255, 235, 185, cAlpha,
-                                cx + cSize, cy + cSize, cz + cSize, 255, 195, 215, cAlpha,
-                                cx - cSize, cy + cSize, cz + cSize, 255, 195, 215, cAlpha);
-                    }
-                }
-            }
-        } else {
-            // Mode 1: Furina cradles Surintendante Chevalmarin with both hands, sways gently, seahorse squirts water
-            float sway = Mth.sin(time * 0.12F);
-            float hover = Mth.sin(time * 0.18F);
-
+        // 1. Indented Sapphire-Azure Water Bubble seat fitted to Furina's hips (no spinning star inside)
+        if (sitProg > 0.02F) {
             poseStack.pushPose();
-            // Position seahorse right between Furina's raised hands
-            poseStack.translate(sway * 0.05F, 1.20F + hover * 0.035F, 0.42F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(sway * 14.0F));
-            poseStack.scale(0.85F, 0.85F, 0.85F);
+            poseStack.translate(0.0F, 0.30F + bob, 0.02F);
+            poseStack.scale(sitProg, sitProg, sitProg);
+            drawIndentedSeatBubble(transVc, poseStack.last().pose(), 0.34F, fade);
+            poseStack.popPose();
+        }
 
-            // Draw 3D Surintendante Chevalmarin
-            drawChevalmarinModel(solidVc, transVc, poseStack, time);
+        // 2. Rotating Ferris Wheel Hydro structure & crisp-bordered 6 cake bubbles (1.5 blocks directly in front)
+        if (wheelFade > 0.02F) {
+            poseStack.pushPose();
+            poseStack.translate(0.0F, 1.05F + bob * 0.6F, 1.50F);
+            Matrix4f wMat = poseStack.last().pose();
 
-            // "cá ngựa phụt nước" - Playful water squirts arching out from the seahorse snout
-            int squirtCycle = Math.round(time) % 36;
-            if (squirtCycle < 18) {
-                float squirtProg = squirtCycle / 18.0F;
-                Matrix4f wMat = poseStack.last().pose();
-                for (int dDrop = 0; dDrop < 5; dDrop++) {
-                    float dropProg = Mth.clamp(squirtProg * 1.3F - dDrop * 0.12F, 0.0F, 1.0F);
-                    if (dropProg <= 0.01F || dropProg >= 0.98F) continue;
-                    float dropDist = dropProg * 0.58F;
-                    float dropY = 0.28F + Mth.sin(dropProg * (float) Math.PI * 0.85F) * 0.22F - dropProg * 0.15F;
-                    float dropZ = 0.16F + dropDist;
-                    float dropX = Mth.sin(time * 0.3F + dDrop) * 0.03F;
-                    float dropRad = 0.022F * (1.0F - dropProg * 0.4F);
-                    int dropAlpha = Math.max(15, Math.round(230.0F * fade * (1.0F - dropProg * 0.6F)));
+            // Delicate stationary Hydro hub dot (no spinning star blob)
+            float hubR = 0.042F;
+            int hubA = Math.max(20, Math.round(215.0F * wheelFade));
+            WindGliderRenderer.emitDoubleQuad(transVc, wMat,
+                    0.0F, -hubR, 0.0F, hubR, 0.0F, 0.0F, 0.0F, hubR, 0.0F, -hubR, 0.0F, 0.0F,
+                    225, 250, 255, hubA);
 
-                    ClientAuraRenderer.emitCrystalQuad(transVc, wMat,
-                            dropX - dropRad, dropY, dropZ - dropRad, 130, 225, 255, dropAlpha,
-                            dropX + dropRad, dropY, dropZ - dropRad, 130, 225, 255, dropAlpha,
-                            dropX + dropRad, dropY + dropRad * 1.5F, dropZ + dropRad, 210, 245, 255, dropAlpha,
-                            dropX - dropRad, dropY + dropRad * 1.5F, dropZ + dropRad, 210, 245, 255, dropAlpha);
-                }
+            // Double-layered Hydro wheel rim (soft outer sapphire glow + crisp inner cyan-white ring)
+            int rimOuterA = Math.max(12, Math.round(95.0F * wheelFade));
+            int rimInnerA = Math.max(20, Math.round(210.0F * wheelFade));
+            int rimSegs = 28;
+            for (int r = 0; r < rimSegs; r++) {
+                float ra0 = (float) (r * Math.PI * 2.0D / rimSegs);
+                float ra1 = (float) ((r + 1) * Math.PI * 2.0D / rimSegs);
+                float rOIn = wheelRadius - 0.018F, rOOut = wheelRadius + 0.018F;
+                WindGliderRenderer.emitDoubleQuad(transVc, wMat,
+                        Mth.cos(ra0) * rOIn, Mth.sin(ra0) * rOIn, 0.0F,
+                        Mth.cos(ra0) * rOOut, Mth.sin(ra0) * rOOut, 0.0F,
+                        Mth.cos(ra1) * rOOut, Mth.sin(ra1) * rOOut, 0.0F,
+                        Mth.cos(ra1) * rOIn, Mth.sin(ra1) * rOIn, 0.0F,
+                        75, 175, 255, rimOuterA);
+                float rIIn = wheelRadius - 0.007F, rIOut = wheelRadius + 0.007F;
+                WindGliderRenderer.emitDoubleQuad(transVc, wMat,
+                        Mth.cos(ra0) * rIIn, Mth.sin(ra0) * rIIn, 0.0F,
+                        Mth.cos(ra0) * rIOut, Mth.sin(ra0) * rIOut, 0.0F,
+                        Mth.cos(ra1) * rIOut, Mth.sin(ra1) * rIOut, 0.0F,
+                        Mth.cos(ra1) * rIIn, Mth.sin(ra1) * rIIn, 0.0F,
+                        215, 248, 255, rimInnerA);
             }
 
+            int spokeA = Math.max(15, Math.round(150.0F * wheelFade));
+            for (int k = 0; k < 6; k++) {
+                float angle = baseAngle + (float) (k * Math.PI * 2.0D / 6.0D);
+                float cx = Mth.cos(angle) * wheelRadius;
+                float cy = Mth.sin(angle) * wheelRadius;
+                float nx = -Mth.sin(angle) * 0.007F;
+                float ny = Mth.cos(angle) * 0.007F;
+                WindGliderRenderer.emitDoubleQuad(transVc, wMat,
+                        -nx, -ny, 0.0F,
+                        nx, ny, 0.0F,
+                        cx + nx, cy + ny, 0.0F,
+                        cx - nx, cy - ny, 0.0F,
+                        165, 232, 255, spokeA);
+
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, 0.0F);
+                // Very sheer translucent bubble interior so the cake pops + crisp glowing rim border
+                drawWaterBubble(transVc, poseStack.last().pose(), 0.135F, 95, 195, 255, Math.round(48.0F * wheelFade));
+                drawBubbleRimRing(transVc, poseStack.last().pose(), 0.136F, 215, 248, 255, Math.round(205.0F * wheelFade));
+                poseStack.popPose();
+            }
             poseStack.popPose();
         }
 
         poseStack.popPose();
+    }
+
+    private static void drawIndentedSeatBubble(VertexConsumer vc, Matrix4f mat, float radius, float fade) {
+        int segs = 16;
+        int rings = 8;
+        for (int i = 0; i < rings; i++) {
+            float phi0 = (float) (-Math.PI * 0.5D + Math.PI * i / rings);
+            float phi1 = (float) (-Math.PI * 0.5D + Math.PI * (i + 1) / rings);
+            float rawY0 = Mth.sin(phi0) * radius;
+            float rawY1 = Mth.sin(phi1) * radius;
+            float r0 = Mth.cos(phi0) * radius;
+            float r1 = Mth.cos(phi1) * radius;
+            // Flatten & dimple the top surface where Furina sits ("lõm xuống khi ngồi lên ở đít")
+            float y0 = (rawY0 > 0.0F) ? rawY0 * 0.62F - 0.055F * Mth.clamp(1.0F - (r0 / radius) * 1.15F, 0.0F, 1.0F) : rawY0 * 0.88F;
+            float y1 = (rawY1 > 0.0F) ? rawY1 * 0.62F - 0.055F * Mth.clamp(1.0F - (r1 / radius) * 1.15F, 0.0F, 1.0F) : rawY1 * 0.88F;
+            // Rich sapphire-azure bottom -> luminous cyan-blue mid -> pearlescent highlight top
+            float hFrac = Mth.clamp((i + 0.5F) / rings, 0.0F, 1.0F);
+            int cr = Math.round(Mth.lerp(hFrac, 52.0F, 195.0F));
+            int cg = Math.round(Mth.lerp(hFrac, 118.0F, 238.0F));
+            int cb = 255;
+            int ca = Math.max(15, Math.round(Mth.lerp(hFrac, 138.0F, 92.0F) * fade));
+            for (int j = 0; j < segs; j++) {
+                float theta0 = (float) (j * 2.0D * Math.PI / segs);
+                float theta1 = (float) ((j + 1) * 2.0D * Math.PI / segs);
+                WindGliderRenderer.emitDoubleQuad(vc, mat,
+                        Mth.cos(theta0) * r0, y0, Mth.sin(theta0) * r0,
+                        Mth.cos(theta1) * r0, y0, Mth.sin(theta1) * r0,
+                        Mth.cos(theta1) * r1, y1, Mth.sin(theta1) * r1,
+                        Mth.cos(theta0) * r1, y1, Mth.sin(theta0) * r1,
+                        cr, cg, cb, ca);
+            }
+        }
+    }
+
+    private static void drawBubbleRimRing(VertexConsumer vc, Matrix4f mat, float radius, int r, int g, int b, int alpha) {
+        int segs = 20;
+        float rIn = radius - 0.010F;
+        float rOut = radius + 0.008F;
+        for (int s = 0; s < segs; s++) {
+            float a0 = (float) (s * Math.PI * 2.0D / segs);
+            float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs);
+            WindGliderRenderer.emitDoubleQuad(vc, mat,
+                    Mth.cos(a0) * rIn,  Mth.sin(a0) * rIn,  0.0F,
+                    Mth.cos(a0) * rOut, Mth.sin(a0) * rOut, 0.0F,
+                    Mth.cos(a1) * rOut, Mth.sin(a1) * rOut, 0.0F,
+                    Mth.cos(a1) * rIn,  Mth.sin(a1) * rIn,  0.0F,
+                    r, g, b, alpha);
+        }
     }
 
     private static void drawWaterBubble(VertexConsumer vc, Matrix4f mat, float radius, int r, int g, int b, int alpha) {

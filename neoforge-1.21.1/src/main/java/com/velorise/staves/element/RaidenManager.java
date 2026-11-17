@@ -824,7 +824,7 @@ public final class RaidenManager {
             // ParticleTypes.ELECTRIC_SPARK removed
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
-        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.75F);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.70F);
         sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
     }
 
@@ -894,8 +894,7 @@ public final class RaidenManager {
         }
         EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
 
-        DustParticleOptions slashDust = new DustParticleOptions(new Vector3f(0.78F, 0.25F, 1.0F), isNetherite ? 1.4F : 1.1F);
-        level.sendParticles(slashDust, pos.x, pos.y, pos.z, 10, 0.4D, 0.3D, 0.4D, 0.02D);
+
         // ParticleTypes.ELECTRIC_SPARK removed
         sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
@@ -922,6 +921,7 @@ public final class RaidenManager {
             return 0.0F;
         }
         RAIDEN_LAST_MELEE_TICK.put(id, now);
+        cancelIdle(attacker);
         RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
         int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
         RAIDEN_NA_COMBO.put(id, isCharged ? 0 : ((comboStep + 1) % 5));
@@ -951,16 +951,15 @@ public final class RaidenManager {
         Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
         electrifyWaterAlongSlash(level, attacker, hitPos, isNetherite ? 4.5D : 3.5D, bonusDmg * 0.45F);
         sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.6F : 1.25F);
-        level.sendParticles(slash, hitPos.x, hitPos.y, hitPos.z, 10, 0.45D, 0.3D, 0.45D, 0.03D);
+
         // ParticleTypes.ELECTRIC_SPARK removed
-        level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
+        level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, isCharged ? 0.65F : 0.48F, isCharged ? 1.55F : 1.85F);
+        level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, isCharged ? 0.55F : 0.40F, isCharged ? 1.65F : 1.95F);
         return outDamage[0];
     }
 
     public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) {
         if (player == null || !player.isAlive()) return;
-        if (isCharged) return;
         if (!(player.level() instanceof ServerLevel level)) return;
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
@@ -975,6 +974,7 @@ public final class RaidenManager {
         long lastMelee = RAIDEN_LAST_MELEE_TICK.getOrDefault(id, -100L);
         if (now >= lastMelee && now - lastMelee <= 1L) return;
 
+        cancelIdle(player);
         RAIDEN_NEXT_SWING_TICK.put(id, now + (isCharged ? 11L : 8L));
         boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(mainHand);
         int comboStep = RAIDEN_NA_COMBO.getOrDefault(id, 0);
@@ -990,52 +990,143 @@ public final class RaidenManager {
         double reach = isCharged ? (isNetherite ? 9.5D : 7.5D) : ((isNetherite ? 5.25D : 3.75D) * finisherMult);
         Vec3 slashPos = player.getEyePosition().add(look.scale(reach * 0.55D)).add(0.0D, -0.25D, 0.0D);
 
-        IS_PROCESSING_RAIDEN_PROC.set(true);
-        try {
-            if (isCharged) {
-                java.util.Set<UUID> hitIds = new java.util.HashSet<>();
-                for (double frac : new double[]{0.35D, 0.75D}) {
-                    Vec3 boxCenter = player.getEyePosition().add(look.scale(reach * frac)).add(0.0D, -0.25D, 0.0D);
-                    AABB sweepBox = new AABB(boxCenter, boxCenter).inflate(2.4D, 1.85D, 2.4D);
-                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                        if (hitIds.add(target.getUUID())) {
-                            applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
-                        }
-                    }
-                }
-            } else {
-                Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
-                if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
-                else horiz = horiz.normalize();
-                Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
-                double forwardReach = 3.0D; // 3 blocks forward
-                double halfWidth = 2.5D;    // 5 blocks wide
-                AABB sweepBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.75D, halfWidth);
-                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                        e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                    Vec3 toTarget = target.position().subtract(player.position());
-                    double proj = toTarget.dot(horiz);
-                    double side = Math.abs(toTarget.dot(right));
-                    if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
-                    applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+        if (isCharged) {
+            cancelIdle(player);
+            RAIDEN_IFRAME_UNTIL.put(id, Math.max(RAIDEN_IFRAME_UNTIL.getOrDefault(id, 0L), now + 14L));
+            player.invulnerableTime = Math.max(player.invulnerableTime, 14);
+            RAIDEN_NEXT_SWING_TICK.put(id, now + 12L);
+            Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+            if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+            else horiz = horiz.normalize();
+            Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+            Vec3 startPos = player.position();
+
+            // Compute safe dash distance up to 10 blocks (2x), then glide smoothly (0..0.8 fast, 0.8..1.0 ease-out)
+            Vec3 curPos = startPos;
+            double safeDist = 0.0D;
+            for (int step = 1; step <= 20; step++) {
+                Vec3 nextPos = startPos.add(horiz.scale(step * 0.5D));
+                AABB testBox = player.getDimensions(player.getPose()).makeBoundingBox(nextPos);
+                if (level.noCollision(player, testBox)) {
+                    curPos = nextPos;
+                    safeDist = step * 0.5D;
+                } else {
+                    break;
                 }
             }
-        } finally {
-            IS_PROCESSING_RAIDEN_PROC.set(false);
-        }
+            Vec3 endPos = curPos;
+            final Vec3 dashHoriz = horiz;
+            final double totalDashDist = safeDist;
+            for (int tick = 0; tick < 5; tick++) {
+                final double p0 = tick / 5.0D;
+                final double p1 = (tick + 1) / 5.0D;
+                final double s0 = (p0 <= 0.8D) ? (p0 / 0.8D) * 0.88D : (0.88D + 0.12D * (1.0D - Math.pow(1.0D - (p0 - 0.8D) / 0.2D, 2.0D)));
+                final double s1 = (p1 <= 0.8D) ? (p1 / 0.8D) * 0.88D : (0.88D + 0.12D * (1.0D - Math.pow(1.0D - (p1 - 0.8D) / 0.2D, 2.0D)));
+                final double ds = totalDashDist * (s1 - s0);
+                final boolean isEnd = (tick == 4);
+                Runnable stepMove = () -> {
+                    if (!player.isAlive()) return;
+                    double vy = isEnd ? 0.0D : Math.max(player.getDeltaMovement().y * 0.4D, 0.03D);
+                    player.setDeltaMovement(dashHoriz.x * ds, vy, dashHoriz.z * ds);
+                    player.fallDistance = 0.0F;
+                    player.hurtMarked = true;
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(player));
+                };
+                if (tick == 0) {
+                    stepMove.run();
+                } else {
+                    ArchonUltiManager.scheduleBurstAction(player, tick, stepMove);
+                }
+            }
 
-        electrifyWaterAlongSlash(level, player, slashPos, isNetherite ? 4.5D : 3.5D, slashDmg * 0.45F);
-        sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-        if (isCharged) {
-            Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
-            sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
-            // ParticleTypes.ELECTRIC_SPARK removed
+            // Damage area: 5 blocks long (along dash) x 3 blocks wide (+/-1.5 blocks)
+            double dashLen = 10.0D;
+            double halfWidth = 1.5D;
+            AABB corridor = new AABB(startPos, startPos.add(horiz.scale(dashLen))).inflate(halfWidth, 2.0D, halfWidth);
+            IS_PROCESSING_RAIDEN_PROC.set(true);
+            try {
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, corridor,
+                        e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                    Vec3 toTarget = target.position().subtract(startPos);
+                    double proj = toTarget.dot(horiz);
+                    double side = Math.abs(toTarget.dot(right));
+                    if (proj >= -0.5D && proj <= dashLen + 0.5D && side <= halfWidth) {
+                        applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                    }
+                }
+            } finally {
+                IS_PROCESSING_RAIDEN_PROC.set(false);
+            }
+            electrifyWaterAlongSlash(level, player, startPos.lerp(endPos, 0.5D), 3.0D, slashDmg * 0.45F);
+            level.playSound(null, endPos.x, endPos.y, endPos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.70F, 1.35F);
+
+            // 5 continuous Electro slashes left behind 0.25s (5 ticks) after passing each spot along the dash path
+            final Vec3 finalHoriz = horiz;
+            boolean leftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+            for (int k = 0; k < 5; k++) {
+                final int slashIdx = k;
+                final double frac = 0.12D + k * 0.19D;
+                final Vec3 slashSpot = startPos.lerp(endPos, frac).add(0.0D, 1.05D, 0.0D);
+                int passTick = (int) Math.round(frac * 4.0D);
+                ArchonUltiManager.scheduleBurstAction(player, passTick + 5, () -> {
+                    if (!player.isAlive()) return;
+                    sendRaidenSlashArc(level, slashSpot, finalHoriz, slashIdx % 4, false, false, isNetherite ? 2.1D : 1.65D, leftArm);
+
+                    level.playSound(null, slashSpot.x, slashSpot.y, slashSpot.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.42F, 1.75F + slashIdx * 0.06F);
+                    level.playSound(null, slashSpot.x, slashSpot.y, slashSpot.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.36F, 1.85F + slashIdx * 0.05F);
+                });
+            }
+            return;
         }
-        DustParticleOptions slash = new DustParticleOptions(new Vector3f(0.84F, 0.32F, 1.0F), isNetherite ? 1.55F : 1.25F);
-        level.sendParticles(slash, slashPos.x, slashPos.y, slashPos.z, 8, 0.45D, 0.25D, 0.45D, 0.03D);
-        // ParticleTypes.ELECTRIC_SPARK removed
-        level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, isCharged ? 0.95F : 1.35F);
+        ArchonUltiManager.scheduleBurstAction(player, 2, () -> {
+            if (!player.isAlive()) return;
+            IS_PROCESSING_RAIDEN_PROC.set(true);
+            try {
+                if (isCharged) {
+                    java.util.Set<UUID> hitIds = new java.util.HashSet<>();
+                    for (double frac : new double[]{0.35D, 0.75D}) {
+                        Vec3 boxCenter = player.getEyePosition().add(look.scale(reach * frac)).add(0.0D, -0.25D, 0.0D);
+                        AABB sweepBox = new AABB(boxCenter, boxCenter).inflate(2.4D, 1.85D, 2.4D);
+                        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                                e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                            if (hitIds.add(target.getUUID())) {
+                                applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                            }
+                        }
+                    }
+                } else {
+                    Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
+                    if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+                    else horiz = horiz.normalize();
+                    Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+                    double forwardReach = 3.0D; // 3 blocks forward
+                    double halfWidth = 2.5D;    // 5 blocks wide
+                    AABB sweepBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.75D, halfWidth);
+                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                        Vec3 toTarget = target.position().subtract(player.position());
+                        double proj = toTarget.dot(horiz);
+                        double side = Math.abs(toTarget.dot(right));
+                        if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
+                        applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                    }
+                }
+            } finally {
+                IS_PROCESSING_RAIDEN_PROC.set(false);
+            }
+
+            electrifyWaterAlongSlash(level, player, slashPos, isNetherite ? 4.5D : 3.5D, slashDmg * 0.45F);
+            sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+            if (isCharged) {
+                Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
+                sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+                // ParticleTypes.ELECTRIC_SPARK removed
+            }
+
+            // ParticleTypes.ELECTRIC_SPARK removed
+            level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, isCharged ? 0.65F : 0.48F, isCharged ? 1.55F : 1.85F);
+            level.playSound(null, slashPos.x, slashPos.y, slashPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, isCharged ? 0.55F : 0.40F, isCharged ? 1.65F : 1.95F);
+        });
     }
 
     public static void tickRaidenState(MinecraftServer server, long serverNow) {
@@ -1089,6 +1180,7 @@ public final class RaidenManager {
     private static final class RaidenIdleState {
         net.minecraft.world.phys.Vec3 lastStillPos = net.minecraft.world.phys.Vec3.ZERO;
         int stillTicks = 0;
+        long lastActionTick = 0L;
         boolean idleActive = false;
         int lastSyncedCode = -1;
     }
@@ -1108,8 +1200,8 @@ public final class RaidenManager {
                 st.lastStillPos = player.position();
             }
             double distSq = player.position().distanceToSqr(st.lastStillPos);
-            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
-            if (canIdle && distSq < 0.16D) {
+            boolean canIdle = holding && (now - st.lastActionTick) >= 60L && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
+            if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60 && !st.idleActive) {
                     st.idleActive = true;
@@ -1123,6 +1215,21 @@ public final class RaidenManager {
             if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
                 st.lastSyncedCode = code;
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, code);
+            }
+        }
+    }
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        RaidenIdleState st = RAIDEN_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new RaidenIdleState());
+        if (st != null) {
+            st.stillTicks = 0;
+            st.lastActionTick = player.level().getGameTime();
+            st.lastStillPos = player.position();
+            if (st.idleActive || st.lastSyncedCode == 4021) {
+                st.idleActive = false;
+                st.lastSyncedCode = 4020;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 4020);
             }
         }
     }

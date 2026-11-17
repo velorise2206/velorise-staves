@@ -39,6 +39,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class ArchonUltiManager {
     private static final Map<UUID, Long> ZHONGLI_BURST_CD_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> VENTI_BURST_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> ZHONGLI_IFRAME_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> ULTI_IFRAME_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> FURINA_BURST_CD_UNTIL = new ConcurrentHashMap<>();
@@ -156,6 +157,7 @@ public final class ArchonUltiManager {
         if (!isPlayerGroundedForBurst(player)) {
             return;
         }
+        resetAllArchonIdleTimers(player);
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
@@ -204,6 +206,14 @@ public final class ArchonUltiManager {
             return;
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
+        ServerLevel level = player.serverLevel();
+        long now = level.getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        long cdUntil = VENTI_BURST_CD_UNTIL.getOrDefault(id, 0L);
+        if (now < cdUntil) {
+            sendMinimalistBurstCooldownAlert(player, Element.ANEMO, cdUntil - now);
+            return;
+        }
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK
                 && main.getItem() instanceof ArcaneStaffItem mainStaff) {
@@ -211,6 +221,10 @@ public final class ArchonUltiManager {
                     ? ArcaneStaffItem.getAbsorbedStaffForElement(main, Element.ANEMO)
                     : mainStaff;
             if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, main)) {
+                long baseCd = targetStaff.getDaybreakCooldownTicks(true);
+                long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
+                        ? Math.max(20L, Math.round(baseCd * 0.90D)) : baseCd;
+                VENTI_BURST_CD_UNTIL.put(id, now + cdTicks);
                 applyBurstRoot(player, 40);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
@@ -512,6 +526,9 @@ public final class ArchonUltiManager {
         level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ANCIENT_DEBRIS_BREAK, SoundSource.PLAYERS, 1.60F, 0.46F);
         level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.STONE_BREAK, SoundSource.PLAYERS, 1.70F, 0.45F);
         level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.PLAYERS, 1.60F, 0.50F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.45F, 0.36F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.WITHER_BREAK_BLOCK, SoundSource.PLAYERS, 1.50F, 0.42F);
+        level.playSound(null, impact.x, impact.y, impact.z, SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.20F, 0.45F);
     }
 
     /** Processes pending delayed Archon Burst impacts and 5-star Burst Root states on the server tick. */
@@ -573,6 +590,7 @@ public final class ArchonUltiManager {
     /** Clears per-player Archon Burst state on death, disconnect, or dimension reset. */
     public static void clearEntityState(UUID id) {
         ZHONGLI_BURST_CD_UNTIL.remove(id);
+        VENTI_BURST_CD_UNTIL.remove(id);
         ZHONGLI_IFRAME_UNTIL.remove(id);
         ULTI_IFRAME_UNTIL.remove(id);
         FURINA_BURST_CD_UNTIL.remove(id);
@@ -584,6 +602,7 @@ public final class ArchonUltiManager {
     /** Clears all transient Archon Burst timers and pending impacts on server stop. */
     public static void clearAll() {
         ZHONGLI_BURST_CD_UNTIL.clear();
+        VENTI_BURST_CD_UNTIL.clear();
         ZHONGLI_IFRAME_UNTIL.clear();
         ULTI_IFRAME_UNTIL.clear();
         FURINA_BURST_CD_UNTIL.clear();
@@ -591,5 +610,16 @@ public final class ArchonUltiManager {
         ZHONGLI_PENDING_BEFALL.clear();
         BURST_ROOT_STATES.clear();
         PENDING_BURST_ACTIONS.clear();
+    }
+
+    public static void resetAllArchonIdleTimers(@Nullable ServerPlayer player) {
+        if (player == null) return;
+        VentiManager.cancelIdle(player);
+        ZhongliManager.cancelIdle(player);
+        RaidenManager.cancelIdle(player);
+        NahidaManager.cancelIdle(player);
+        FurinaManager.cancelIdle(player);
+        MavuikaManager.cancelIdle(player);
+        TsaritsaManager.cancelIdle(player);
     }
 }

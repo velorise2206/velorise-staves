@@ -89,18 +89,52 @@ public final class NahidaVisualRenderer {
         if (d.nahidaIdleSwingLastMs <= 0L) {
             d.nahidaIdleSwingLastMs = nowMs;
             if (d.nahidaIdleSwing) {
-                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + 0.016F / 0.48F);
+                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + 0.016F / 0.96F);
             }
         } else if (nowMs > d.nahidaIdleSwingLastMs) {
             float dt = Math.min(0.1F, (nowMs - d.nahidaIdleSwingLastMs) / 1000.0F);
             d.nahidaIdleSwingLastMs = nowMs;
             if (d.nahidaIdleSwing) {
-                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + dt / 0.48F);
+                d.nahidaIdleSwingFade = Math.min(1.0F, d.nahidaIdleSwingFade + dt / 0.96F);
             } else {
                 d.nahidaIdleSwingFade = Math.max(0.0F, d.nahidaIdleSwingFade - dt / 0.35F);
             }
         }
         return WindGliderRenderer.smoothStep01(d.nahidaIdleSwingFade);
+    }
+
+    private static float stepViewfinderFade(ClientAuraTracker.AuraDisplayData d, long nowMs) {
+        if (d == null) return 0.0F;
+        if (d.nahidaViewfinderLastMs <= 0L) {
+            d.nahidaViewfinderLastMs = nowMs;
+            if (d.nahidaViewfinder) {
+                d.nahidaViewfinderFade = Math.min(1.0F, d.nahidaViewfinderFade + 0.016F / 0.42F);
+            }
+        } else if (nowMs > d.nahidaViewfinderLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.nahidaViewfinderLastMs) / 1000.0F);
+            d.nahidaViewfinderLastMs = nowMs;
+            if (d.nahidaViewfinder) {
+                d.nahidaViewfinderFade = Math.min(1.0F, d.nahidaViewfinderFade + dt / 0.42F);
+            } else {
+                d.nahidaViewfinderFade = Math.max(0.0F, d.nahidaViewfinderFade - dt / 0.42F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.nahidaViewfinderFade);
+    }
+
+    public static float getViewfinderFade(net.minecraft.world.entity.Entity entity) {
+        if (!(entity instanceof LivingEntity le)) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        if (d == null || (!d.nahidaViewfinder && d.nahidaViewfinderFade <= 0.001F)) return 0.0F;
+        return stepViewfinderFade(d, System.currentTimeMillis());
+    }
+
+    public static float getViewfinderCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
+        if (!(entity instanceof LivingEntity le)) return 0.0F;
+        float w = getViewfinderFade(entity);
+        if (w <= 0.001F) return 0.0F;
+        float hover = Mth.sin((le.tickCount + partialTick) * 0.12F);
+        return (0.48F + hover * 0.04F) * w;
     }
 
     public static float getSwingCameraPitchOffset(net.minecraft.world.entity.Entity entity, float partialTick) {
@@ -161,17 +195,43 @@ public final class NahidaVisualRenderer {
             model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -1.28F - 0.16F * sway);
             model.rightLeg.yRot = Mth.lerp(w, model.rightLeg.yRot, 0.08F);
             model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, -0.08F);
+            model.head.xRot = Mth.lerp(w, model.head.xRot, 0.08F + 0.04F * sway);
+            model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), 0.0F);
+            model.head.zRot = Mth.lerp(w, model.head.zRot, 0.05F * sway);
+            model.hat.copyFrom(model.head);
             return true;
         }
-        if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
-            model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
-            model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
-            model.rightArm.xRot = -1.52F + model.head.xRot * 0.75F;
-            model.leftArm.xRot = -1.52F + model.head.xRot * 0.75F;
-            model.rightArm.yRot = -0.28F + model.head.yRot * 0.5F;
-            model.leftArm.yRot = 0.28F + model.head.yRot * 0.5F;
-            model.rightArm.zRot = 0.18F;
-            model.leftArm.zRot = -0.18F;
+        float vfW = getViewfinderFade(entity);
+        if (vfW > 0.01F) {
+            float hover = Mth.sin(ageInTicks * 0.12F);
+            float liftY = -(0.48F + hover * 0.04F) * 16.0F * vfW;
+            model.head.y += liftY;
+            model.hat.y += liftY;
+            model.body.y += liftY;
+            model.rightArm.y += liftY;
+            model.leftArm.y += liftY;
+            model.rightLeg.y += liftY;
+            model.leftLeg.y += liftY;
+
+            if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
+                model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
+                model.leftArmPose = HumanoidModel.ArmPose.EMPTY;
+            }
+            model.rightArm.xRot = Mth.lerp(vfW, model.rightArm.xRot, -1.52F + model.head.xRot * 0.75F);
+            model.leftArm.xRot = Mth.lerp(vfW, model.leftArm.xRot, -1.52F + model.head.xRot * 0.75F);
+            model.rightArm.yRot = Mth.lerp(vfW, model.rightArm.yRot, -0.28F + model.head.yRot * 0.5F);
+            model.leftArm.yRot = Mth.lerp(vfW, model.leftArm.yRot, 0.28F + model.head.yRot * 0.5F);
+            model.rightArm.zRot = Mth.lerp(vfW, model.rightArm.zRot, 0.18F);
+            model.leftArm.zRot = Mth.lerp(vfW, model.leftArm.zRot, -0.18F);
+
+            model.head.yRot = Mth.lerp(vfW, model.head.yRot, 0.0F);
+            model.hat.copyFrom(model.head);
+            model.body.yRot = Mth.lerp(vfW, model.body.yRot, 0.0F);
+
+            model.leftLeg.xRot = Mth.lerp(vfW, model.leftLeg.xRot, 0.22F + hover * 0.05F);
+            model.rightLeg.xRot = Mth.lerp(vfW, model.rightLeg.xRot, 0.34F - hover * 0.05F);
+            model.leftLeg.zRot = Mth.lerp(vfW, model.leftLeg.zRot, -0.08F);
+            model.rightLeg.zRot = Mth.lerp(vfW, model.rightLeg.zRot, 0.08F);
             return true;
         }
         return false;
@@ -313,12 +373,27 @@ public final class NahidaVisualRenderer {
     public static boolean applyThirdPersonItemTransform(
             LivingEntity entity,
             ArcaneStaffItem.Kind effKind,
-            PoseStack poseStack
+            PoseStack poseStack,
+            int activeAnim
     ) {
         if (effKind != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
         if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
-            poseStack.scale(0.001F, 0.001F, 0.001F);
+            poseStack.scale(0.0F, 0.0F, 0.0F);
             return true;
+        }
+        long now = System.currentTimeMillis();
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        boolean isNaCa = (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4)
+                || activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA
+                || entity.swinging;
+        if (isNaCa && d != null) {
+            d.nahidaWeaponHideUntil = Math.max(d.nahidaWeaponHideUntil, now + 2000L);
+        }
+        if (d != null && d.nahidaWeaponHideUntil > 0L) {
+            if (now < d.nahidaWeaponHideUntil) {
+                poseStack.scale(0.0F, 0.0F, 0.0F);
+                return true;
+            }
         }
         return false;
     }
@@ -328,15 +403,17 @@ public final class NahidaVisualRenderer {
             HumanoidArm arm,
             PoseStack poseStack
     ) {
-        if (player == null || !ClientAuraTracker.isNahidaViewfinder(player.getId())) return false;
+        if (player == null) return false;
+        float vfW = getViewfinderFade(player);
+        if (vfW <= 0.01F) return false;
         ItemStack mainStack = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(mainStack) != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return false;
         float armDir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
-        // Like Zhongli Ulti 1st-person hands, lowered by half and opened outward by half
-        poseStack.translate(-armDir * 0.16F, -0.28F, -0.18F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 34.0F));
-        poseStack.mulPose(Axis.XP.rotationDegrees(22.0F));
-        poseStack.mulPose(Axis.YP.rotationDegrees(-armDir * 10.0F));
+        // Smoothly raise/lower first-person framing hands in sync with Nahida viewfinder levitation
+        poseStack.translate(-armDir * 0.16F * vfW, Mth.lerp(vfW, -0.65F, -0.28F), -0.18F * vfW);
+        poseStack.mulPose(Axis.ZP.rotationDegrees(armDir * 34.0F * vfW));
+        poseStack.mulPose(Axis.XP.rotationDegrees(22.0F * vfW));
+        poseStack.mulPose(Axis.YP.rotationDegrees(-armDir * 10.0F * vfW));
         return true;
     }
 
@@ -364,13 +441,16 @@ public final class NahidaVisualRenderer {
             poseStack.mulPose(Axis.XP.rotationDegrees(-15.0F * raise));
             return true;
         }
-        if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            poseStack.translate(-dir * 0.35F * (1.0F - t) + dir * 0.22F * t, -0.38F + 0.65F * t, -0.22F - 0.25F * t);
-            poseStack.mulPose(Axis.XP.rotationDegrees(-28.0F + 55.0F * t));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * (25.0F - 45.0F * t)));
-            return true;
+        boolean isNaCa = (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4)
+                || activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA;
+        if (isNaCa && data != null) {
+            data.nahidaWeaponHideUntil = Math.max(data.nahidaWeaponHideUntil, now + 2000L);
+        }
+        if (data != null && data.nahidaWeaponHideUntil > 0L) {
+            if (now < data.nahidaWeaponHideUntil) {
+                poseStack.scale(0.0F, 0.0F, 0.0F);
+                return true;
+            }
         }
         return false;
     }
@@ -399,8 +479,9 @@ public final class NahidaVisualRenderer {
             if (!isFirstPersonSelf && swingFade > 0.02F) {
                 ResourceLocation ropeTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_rope.png");
                 ResourceLocation seatTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_swing_seat.png");
+                float swingBodyYaw = (d != null && d.nahidaIdleYawSet) ? d.nahidaIdleYaw : bodyYaw;
                 poseStack.pushPose();
-                poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+                poseStack.mulPose(Axis.YP.rotationDegrees(-swingBodyYaw));
                 poseStack.translate(0.0F, 1.5F * (1.0F - swingFade), 0.0F);
                 poseStack.scale(swingFade, swingFade, swingFade);
                 renderNahidaIdleSwing3D(poseStack, buffer, time, ropeTex, seatTex, swingFade);
@@ -429,28 +510,39 @@ public final class NahidaVisualRenderer {
         }
 
         if (shrine && d != null) {
-            // Spawn world-anchored footstep Dendro flower-grass clumps (Image 1) whenever walking inside the Shrine of Maya
+            // Spawn world-anchored footstep Dendro flower-grass clumps fixedly at the spot just walked past with a slight offset
             double curX = entity.getX();
+            double curY = entity.getY();
             double curZ = entity.getZ();
-            if (Double.isNaN(d.lastShrineStepX) || Double.isNaN(d.lastShrineStepZ)) {
+            if (Double.isNaN(d.lastShrineStepX) || Double.isNaN(d.lastShrineStepZ) || Double.isNaN(d.lastShrineStepY)) {
                 d.lastShrineStepX = curX;
+                d.lastShrineStepY = curY;
                 d.lastShrineStepZ = curZ;
             } else {
                 double dx = curX - d.lastShrineStepX;
                 double dz = curZ - d.lastShrineStepZ;
                 boolean movedEnough = (dx * dx + dz * dz) >= 0.42D;
                 if (movedEnough && (now - d.lastShrineStepMs) >= 180L && entity.onGround()) {
+                    double prevX = d.lastShrineStepX;
+                    double prevY = d.lastShrineStepY;
+                    double prevZ = d.lastShrineStepZ;
                     d.lastShrineStepX = curX;
+                    d.lastShrineStepY = curY;
                     d.lastShrineStepZ = curZ;
                     d.lastShrineStepMs = now;
                     int varIdx = d.shrineStepVariant++;
-                    float sideSign = (varIdx & 1) == 0 ? 0.20F : -0.20F;
-                    float yawRad = (float) Math.toRadians(bodyYaw);
-                    double rightX = Math.cos(yawRad) * sideSign;
-                    double rightZ = Math.sin(yawRad) * sideSign;
-                    double fwdX = -Math.sin(yawRad);
-                    double fwdZ = Math.cos(yawRad);
-                    Vec3 footStart = new Vec3(curX + rightX, entity.getY(), curZ + rightZ);
+                    double moveLen = Math.sqrt(dx * dx + dz * dz);
+                    double fwdX = moveLen > 1.0E-4D ? (dx / moveLen) : -Math.sin(Math.toRadians(bodyYaw));
+                    double fwdZ = moveLen > 1.0E-4D ? (dz / moveLen) : Math.cos(Math.toRadians(bodyYaw));
+                    double rightUnitX = -fwdZ;
+                    double rightUnitZ = fwdX;
+                    float sideOffset = ((varIdx & 1) == 0 ? 0.24F : -0.24F) + ((varIdx % 3 - 1) * 0.06F);
+                    float alongOffset = ((varIdx % 5) - 2) * 0.05F;
+                    Vec3 footStart = new Vec3(
+                            prevX + rightUnitX * sideOffset + fwdX * alongOffset,
+                            prevY,
+                            prevZ + rightUnitZ * sideOffset + fwdZ * alongOffset
+                    );
                     Vec3 footEnd = footStart.add(fwdX, 0.0D, fwdZ);
                     ClientAuraTracker.addArc(-8, footStart, -8, footEnd, 36, 0x4E420000 | (varIdx & 7));
                 }
@@ -577,16 +669,16 @@ public final class NahidaVisualRenderer {
         poseStack.translate(sx, sy + 0.02F, sz);
         poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
 
-        // Primary lush 4-petal flower-grass clump sprouting at the footstep (scaled down 20%)
-        float mainW = 0.36F * 0.80F * fade;
-        float mainH = 0.68F * 0.80F * fade;
-        renderUnfurlingTexturedRibbon(grassVc, poseStack, mainW, mainH, grow, timeSec, 0.044F, variant * 0.9F, 8);
+        // Primary lush 4-petal flower-grass clump sprouting at the footstep (scaled to 60%)
+        float mainW = 0.36F * 0.80F * 0.60F * fade;
+        float mainH = 0.68F * 0.80F * 0.60F * fade;
+        renderUnfurlingTexturedRibbon(grassVc, poseStack, mainW, mainH, grow, timeSec, 0.044F * 0.60F, variant * 0.9F, 8);
 
-        // Secondary smaller companion sprout slightly offset (scaled down 20%)
+        // Secondary smaller companion sprout slightly offset (scaled to 60%)
         poseStack.pushPose();
-        poseStack.translate((variant % 2 == 0) ? 0.176F : -0.176F, 0.0F, -0.128F);
+        poseStack.translate(((variant % 2 == 0) ? 0.176F : -0.176F) * 0.60F, 0.0F, -0.128F * 0.60F);
         poseStack.mulPose(Axis.YP.rotationDegrees(38.0F));
-        renderUnfurlingTexturedRibbon(grassVc, poseStack, 0.24F * 0.80F * fade, 0.46F * 0.80F * fade, grow, timeSec, 0.036F, variant * 1.5F + 1.0F, 8);
+        renderUnfurlingTexturedRibbon(grassVc, poseStack, 0.24F * 0.80F * 0.60F * fade, 0.46F * 0.80F * 0.60F * fade, grow, timeSec, 0.036F * 0.60F, variant * 1.5F + 1.0F, 8);
         poseStack.popPose();
 
         poseStack.popPose();
@@ -636,11 +728,8 @@ public final class NahidaVisualRenderer {
         float minF = Mth.clamp(retractProg, 0.0F, 1.0F);
         float maxF = Mth.clamp(growProg, 0.0F, 1.0F);
         if (maxF - minF <= 0.015F) return;
-        for (int plane = 0; plane < 2; plane++) {
+        for (int plane = 0; plane < 1; plane++) {
             poseStack.pushPose();
-            if (plane == 1) {
-                poseStack.mulPose(Axis.YP.rotationDegrees(68.0F));
-            }
             PoseStack.Pose p = poseStack.last();
             for (int s = 0; s < slices; s++) {
                 float f0 = Mth.lerp(s / (float) slices, minF, maxF);
@@ -886,12 +975,6 @@ public final class NahidaVisualRenderer {
                             c1 * rOuter, 0.05F, s1 * rOuter,
                             c1 * rInner, 0.05F, s1 * rInner,
                             85, 255, 130, aMain);
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            c0 * rMid0, 0.05F, s0 * rMid0,
-                            c0 * rMid1, 0.05F, s0 * rMid1,
-                            c1 * rMid1, 0.05F, s1 * rMid1,
-                            c1 * rMid0, 0.05F, s1 * rMid0,
-                            235, 215, 95, aMain);
                 }
 
                 int pillars = 8;
@@ -1077,7 +1160,7 @@ public final class NahidaVisualRenderer {
                 double baseAngle = Math.atan2(hFwd.z, hFwd.x);
                 double arcSpan = Math.PI * 2.0D; // full 360-degree sweep matching body spin
                 double startAng = baseAngle + arcSpan * 0.5D; // reversed sweep direction
-                float eRadius = 2.0F;
+                float eRadius = 4.0F;
 
                 poseStack.pushPose();
                 poseStack.translate((float) (arc.start.x - camPos.x), (float) (arc.start.y - camPos.y), (float) (arc.start.z - camPos.z));
@@ -1199,5 +1282,70 @@ public final class NahidaVisualRenderer {
         vc.addVertex(mat, x1, y1, z1).setColor(255, 255, 255, alpha).setUv(u1, v1).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
         vc.addVertex(mat, x2, y2, z2).setColor(255, 255, 255, alpha).setUv(u2, v2).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
         vc.addVertex(mat, x3, y3, z3).setColor(255, 255, 255, alpha).setUv(u3, v3).setOverlay(overlay).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(pose, nx, ny, nz);
+    }
+
+    public static float getWeaponFadeAlpha(LivingEntity entity, ItemStack stack) {
+        if (entity == null || stack == null || stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem)) return 1.0F;
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) return 1.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        if (d == null || d.nahidaWeaponHideUntil <= 0L) return 1.0F;
+        long now = System.currentTimeMillis();
+        if (now < d.nahidaWeaponHideUntil) return 0.0F;
+        long elapsed = now - d.nahidaWeaponHideUntil;
+        if (elapsed >= 500L) return 1.0F;
+        return Mth.clamp(WindGliderRenderer.smoothStep01(elapsed / 500.0F), 0.02F, 1.0F);
+    }
+
+    public static MultiBufferSource wrapTranslucentBuffer(MultiBufferSource delegate, float alpha) {
+        return renderType -> new AlphaVertexConsumer(
+                delegate.getBuffer(RenderType.entityTranslucent(net.minecraft.world.inventory.InventoryMenu.BLOCK_ATLAS)),
+                alpha
+        );
+    }
+
+    private static final class AlphaVertexConsumer implements VertexConsumer {
+        private final VertexConsumer delegate;
+        private final float alpha;
+
+        private AlphaVertexConsumer(VertexConsumer delegate, float alpha) {
+            this.delegate = delegate;
+            this.alpha = Mth.clamp(alpha, 0.0F, 1.0F);
+        }
+
+        @Override
+        public VertexConsumer addVertex(float x, float y, float z) {
+            delegate.addVertex(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int r, int g, int b, int a) {
+            delegate.setColor(r, g, b, Mth.clamp(Math.round(a * alpha), 0, 255));
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            delegate.setUv(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            delegate.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            delegate.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            delegate.setNormal(x, y, z);
+            return this;
+        }
     }
 }

@@ -598,6 +598,9 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (!level.isClientSide() && player instanceof ServerPlayer spUse) {
+            com.velorise.staves.element.ArchonUltiManager.resetAllArchonIdleTimers(spUse);
+        }
         if (hand == InteractionHand.OFF_HAND && isGenshinCharacterWeapon(stack) && isGenshinCharacterWeapon(player.getMainHandItem())) {
             return InteractionResultHolder.fail(stack);
         }
@@ -757,7 +760,7 @@ public final class ArcaneStaffItem extends Item {
             case OMNI -> shootOmni(serverPlayer, stack);
             case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, isNetherite);
             case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, isNetherite);
-            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F);
+            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F, true);
             case ECHO, LIGHTNING, THOUSAND_BLAZING_SUNS, ENGULFING_LIGHTNING, THOUSAND_FLOATING_DREAMS, TSARITSA_BOW, TSARITSA_SPEAR -> false;
         };
 
@@ -873,7 +876,7 @@ public final class ArcaneStaffItem extends Item {
             case SPLENDOR -> castSplendorSummon(serverPlayer, stack);
             case GUARDIAN -> com.velorise.staves.element.NeuvilletteManager.castSkillE(serverPlayer, stack, effNeth);
             case PEAK_PATROL_SONG -> com.velorise.staves.element.XilonenManager.castYohualsScratch(serverPlayer, stack, effNeth);
-            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F);
+            case DAYBREAK -> shootDaybreakBreeze(serverPlayer, 1.0F, true);
             default -> false;
         };
         if (!activated) return InteractionResultHolder.fail(stack);
@@ -1502,16 +1505,24 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private boolean shootDaybreakBreeze(ServerPlayer player, float charge01) {
+        return shootDaybreakBreeze(player, charge01, false);
+    }
+
+    private boolean shootDaybreakBreeze(ServerPlayer player, float charge01, boolean isSkillE) {
         ServerLevel level = player.serverLevel();
         float c = net.minecraft.util.Mth.clamp(charge01, 0.15F, 1.0F);
         String tag = isNetherite ? "netherite_daybreak" : "daybreak";
-        spawnDaybreakWindCharge(level, player, tag, 0.0F, false, c);
+        spawnDaybreakWindCharge(level, player, tag, 0.0F, false, c, isSkillE);
         if (isNetherite) {
-            spawnDaybreakWindCharge(level, player, tag, -14.0F, true, c);
-            spawnDaybreakWindCharge(level, player, tag, 14.0F, true, c);
+            spawnDaybreakWindCharge(level, player, tag, -14.0F, true, c, isSkillE);
+            spawnDaybreakWindCharge(level, player, tag, 14.0F, true, c, isSkillE);
+        }
+        if (isSkillE) {
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_SKILL_E);
         }
         level.playSound(null, player.blockPosition(), SoundEvents.WIND_CHARGE_THROW, SoundSource.PLAYERS, 0.95F, (isNetherite ? 1.12F : 1.0F) + 0.18F * c);
         level.playSound(null, player.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, c >= 0.85F ? 0.55F : 0.40F, c >= 0.85F ? 1.35F : 1.20F);
+
         if (c < 0.50F) {
             com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_TSARITSA_BOW_NA);
         }
@@ -1519,6 +1530,10 @@ public final class ArcaneStaffItem extends Item {
     }
 
     private void spawnDaybreakWindCharge(ServerLevel level, ServerPlayer player, String tag, float yawOffsetDeg, boolean sideBolt, float charge01) {
+        spawnDaybreakWindCharge(level, player, tag, yawOffsetDeg, sideBolt, charge01, false);
+    }
+
+    private void spawnDaybreakWindCharge(ServerLevel level, ServerPlayer player, String tag, float yawOffsetDeg, boolean sideBolt, float charge01, boolean isSkillE) {
         float c = net.minecraft.util.Mth.clamp(charge01, 0.15F, 1.0F);
         float vel = 0.90F + 1.30F * c;
         double range = 20.0D + 16.0D * c;
@@ -1532,6 +1547,9 @@ public final class ArcaneStaffItem extends Item {
         projectile.addTag("velorise_daybreak_charge:" + Math.round(c * 100.0F));
         if (sideBolt) {
             projectile.addTag("velorise_daybreak_side");
+        }
+        if (isSkillE) {
+            projectile.addTag("velorise_daybreak_skill_e");
         }
         level.addFreshEntity(projectile);
     }
@@ -1598,14 +1616,8 @@ public final class ArcaneStaffItem extends Item {
         if (kind != Kind.DAYBREAK || ElementalResonanceManager.isOverloaded(player)) {
             return false;
         }
-        if (player.getCooldowns().isOnCooldown(this)) {
-            long remTicks = Math.max(20L, Math.round(player.getCooldowns().getCooldownPercent(this, 0.0F) * getDaybreakCooldownTicks(true)));
-            com.velorise.staves.element.ArchonUltiManager.sendMinimalistBurstCooldownAlert(player, Element.ANEMO, remTicks);
-            return false;
-        }
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         hurtStaffAndCheckBreak(stack, 2, player, hand);
-        ElementalResonanceManager.applyCooldown(player, this, getDaybreakCooldownTicks(true));
         player.awardStat(Stats.ITEM_USED.get(this));
         com.velorise.staves.element.ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
             if (player.isAlive()) {

@@ -65,10 +65,52 @@ public abstract class CameraMixin {
         if (!detached && entity != null) {
             float liftY = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
                     + com.velorise.staves.client.character.MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)
-                    + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick);
+                    + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderCameraOffsetY(entity, partialTick)
+                    + com.velorise.staves.client.character.TsaritsaVisualRenderer.getBurstDpsLevitationOffsetY(entity, partialTick);
             if (Math.abs(liftY) > 0.001F) {
                 net.minecraft.world.phys.Vec3 camPos = this.getPosition();
                 this.setPosition(camPos.x, camPos.y + liftY, camPos.z);
+            }
+        }
+        if (detached && !thirdPersonReverse && entity != null) {
+            float vfW = com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderFade(entity);
+            if (vfW > 0.001F) {
+                float yawRad = ((Camera) (Object) this).getYRot() * ((float) Math.PI / 180.0F);
+                double rightX = -Math.cos(yawRad);
+                double rightZ = -Math.sin(yawRad);
+                double shiftRight = 2.05D * vfW;
+                double shiftUp = 1.35D * vfW;
+                net.minecraft.world.phys.Vec3 pos = this.getPosition();
+                net.minecraft.world.phys.Vec3 targetPos = new net.minecraft.world.phys.Vec3(
+                        pos.x + rightX * shiftRight,
+                        pos.y + shiftUp,
+                        pos.z + rightZ * shiftRight
+                );
+                if (level instanceof net.minecraft.world.level.Level lvl) {
+                    double px = net.minecraft.util.Mth.lerp(partialTick, entity.xo, entity.getX());
+                    double py = net.minecraft.util.Mth.lerp(partialTick, entity.yo, entity.getY()) + entity.getEyeHeight();
+                    double pz = net.minecraft.util.Mth.lerp(partialTick, entity.zo, entity.getZ());
+                    net.minecraft.world.phys.Vec3 eyePos = new net.minecraft.world.phys.Vec3(px, py, pz);
+                    net.minecraft.world.phys.BlockHitResult hit = lvl.clip(new net.minecraft.world.level.ClipContext(
+                            eyePos, targetPos,
+                            net.minecraft.world.level.ClipContext.Block.VISUAL,
+                            net.minecraft.world.level.ClipContext.Fluid.NONE,
+                            entity
+                    ));
+                    if (hit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+                        net.minecraft.world.phys.Vec3 hitLoc = hit.getLocation();
+                        net.minecraft.world.phys.Vec3 dir = targetPos.subtract(eyePos);
+                        double len = dir.length();
+                        if (len > 1.0E-4D) {
+                            double safeDist = Math.max(0.25D, hitLoc.distanceTo(eyePos) - 0.18D);
+                            targetPos = eyePos.add(dir.scale(safeDist / len));
+                        } else {
+                            targetPos = hitLoc;
+                        }
+                    }
+                }
+                this.setPosition(targetPos.x, targetPos.y, targetPos.z);
             }
         }
     }

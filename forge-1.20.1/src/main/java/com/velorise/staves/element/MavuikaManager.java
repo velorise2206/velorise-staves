@@ -2121,9 +2121,9 @@ public final class MavuikaManager {
                 st.lastStillPos = player.position();
             }
             double distSq = player.position().distanceToSqr(st.lastStillPos);
-            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting()
                     && !(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
-            if (canIdle && distSq < 0.16D) {
+            if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60 && !st.idleActive) {
                     st.idleActive = true;
@@ -2137,6 +2137,20 @@ public final class MavuikaManager {
             if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
                 st.lastSyncedCode = code;
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, code);
+            }
+        }
+    }
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        MavuikaIdleState st = MAVUIKA_IDLE_STATES.get(player.getUUID());
+        if (st != null) {
+            st.stillTicks = 0;
+            st.lastStillPos = player.position();
+            if (st.idleActive || st.lastSyncedCode == 4031) {
+                st.idleActive = false;
+                st.lastSyncedCode = 4030;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 4030);
             }
         }
     }

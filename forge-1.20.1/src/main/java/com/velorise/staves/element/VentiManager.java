@@ -1115,8 +1115,8 @@ public final class VentiManager {
                 vst.lastStillPos = player.position();
             }
             double vDistSq = player.position().distanceToSqr(vst.lastStillPos);
-            boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
-            if (canVenti && vDistSq < 0.16D) {
+            boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
+            if (canVenti && vDistSq < 0.0025D) {
                 vst.stillTicks++;
                 if (vst.stillTicks == 60) {
                     vst.idleVariant = (vst.idleVariant + 1) % 2;

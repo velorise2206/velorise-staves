@@ -26,6 +26,7 @@ import org.joml.Quaternionf;
 
 public final class VentiVisualRenderer {
     private VentiVisualRenderer() {}
+    private static final java.util.Set<Integer> SKILL_E_WIND_ORB_IDS = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
     public static boolean hasDaybreakEquipped(LivingEntity entity) {
         return ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.DAYBREAK
@@ -277,6 +278,39 @@ public final class VentiVisualRenderer {
             ResourceLocation.withDefaultNamespace("textures/entity/projectiles/wind_charge.png");
 
     public static void renderVentiWindChargeOrbs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
+        Minecraft mcOrb = Minecraft.getInstance();
+        if (mcOrb.level != null) {
+            float ptOrb = mcOrb.getTimer().getGameTimeDeltaPartialTick(true);
+            for (net.minecraft.world.entity.Entity e : mcOrb.level.entitiesForRendering()) {
+                if (e instanceof net.minecraft.world.entity.projectile.windcharge.WindCharge wc && wc.isAlive()) {
+                    if (wc.tickCount <= 6 && wc.getOwner() != null) {
+                        ClientAuraTracker.AuraDisplayData od = ClientAuraTracker.get(wc.getOwner().getId());
+                        if (od != null && od.staffAnimType == ClientAuraTracker.ANIM_VENTI_SKILL_E && now < od.staffAnimUntil) {
+                            SKILL_E_WIND_ORB_IDS.add(wc.getId());
+                        }
+                    }
+                    if (SKILL_E_WIND_ORB_IDS.contains(wc.getId())) {
+                        Vec3 wp = wc.getPosition(ptOrb).add(0.0D, wc.getBbHeight() * 0.5D, 0.0D).subtract(camPos);
+                        float tSec = (wc.tickCount + ptOrb) * 0.05F;
+                        RenderType wt = RenderType.breezeWind(VENTI_WIND_CHARGE_TEX, (tSec * 0.9F) % 1.0F, 0.0F);
+                        VertexConsumer wVc = bufferSource.getBuffer(wt);
+                        float[] oScales = { 0.62F, 0.48F, 0.34F };
+                        for (int k = 0; k < 3; k++) {
+                            poseStack.pushPose();
+                            poseStack.translate(wp.x, wp.y, wp.z);
+                            poseStack.mulPose(Axis.XP.rotationDegrees(k * 42.0F - 30.0F));
+                            poseStack.mulPose(Axis.YP.rotationDegrees(tSec * (180.0F + k * 90.0F)));
+                            drawWindStreamBand(wVc, poseStack.last().pose(), oScales[k], 14, 155, 255, 228, 225);
+                            poseStack.popPose();
+                        }
+                        if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
+                            bs.endBatch(wt);
+                        }
+                    }
+                }
+            }
+            SKILL_E_WIND_ORB_IDS.removeIf(eid -> mcOrb.level.getEntity(eid) == null || !mcOrb.level.getEntity(eid).isAlive());
+        }
         boolean showHitbox = Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes();
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -2 || arc.start == null || arc.end == null) continue;
@@ -445,30 +479,37 @@ public final class VentiVisualRenderer {
             cg = (sg + 255) / 2;
             cb = (sb + 255) / 2;
         }
-        for (int s = 0; s < 6; s++) {
-            float yawTilt = s * 1.0472F + timeSec * (0.45F + s * 0.11F);
-            float pitchTilt = -0.95F + (s % 3) * 0.65F + Mth.sin(timeSec * 1.3F + s) * 0.25F;
+        boolean isStellarSwirl = (arc.color == 0xFF66E6FF);
+        int streamCount = isStellarSwirl ? 2 : 6;
+        int effStreamAlpha = isStellarSwirl ? Math.max(16, Math.round(streamAlpha * 0.65F)) : streamAlpha;
+        for (int s = 0; s < streamCount; s++) {
+            float yawTilt = s * (isStellarSwirl ? 3.1416F : 1.0472F) + timeSec * (0.45F + s * 0.11F);
+            float pitchTilt = isStellarSwirl ? (-0.18F + s * 0.36F) : (-0.95F + (s % 3) * 0.65F + Mth.sin(timeSec * 1.3F + s) * 0.25F);
             float cy = Mth.cos(yawTilt), sy = Mth.sin(yawTilt);
             float cp = Mth.cos(pitchTilt), sp = Mth.sin(pitchTilt);
             Vec3 uAxis = new Vec3(cy, 0.0D, sy);
             Vec3 nAxis = new Vec3(-sy * sp, cp, cy * sp);
             Vec3 vAxis = nAxis.cross(uAxis).normalize();
-            double rStream = baseRadius * (0.36D + 0.11D * s);
+            double rStream = isStellarSwirl ? (baseRadius * (0.55D + 0.25D * s)) : (baseRadius * (0.36D + 0.11D * s));
             float phaseStart = timeSec * (3.6F + s * 0.7F) * ((s % 2 == 0) ? 1.0F : -1.0F) + s * 1.9F;
-            float sweepRad = 2.85F;
+            float sweepRad = isStellarSwirl ? 2.20F : 2.85F;
             Vec3 prev = null;
             for (int seg = 0; seg <= 9; seg++) {
                 float f = seg / 9.0F;
                 float ang = phaseStart + f * sweepRad;
-                double waveR = rStream * (1.0D + 0.16D * Mth.sin(ang * 2.5F + timeSec * 5.0F + s));
-                double waveH = baseRadius * 0.16D * Mth.cos(ang * 1.8F - timeSec * 4.2F);
+                double waveR = isStellarSwirl ? rStream : (rStream * (1.0D + 0.16D * Mth.sin(ang * 2.5F + timeSec * 5.0F + s)));
+                double waveH = isStellarSwirl ? (baseRadius * 0.05D * Mth.cos(ang - timeSec * 3.0F)) : (baseRadius * 0.16D * Mth.cos(ang * 1.8F - timeSec * 4.2F));
                 Vec3 pt = cCam
                         .add(uAxis.scale(Math.cos(ang) * waveR))
                         .add(vAxis.scale(Math.sin(ang) * waveR))
                         .add(nAxis.scale(waveH));
                 if (prev != null) {
-                    ElementalReactionBadgeRenderer.drawQuadRibbon(consumer, matrix, prev, pt, nAxis, 0.045D + 0.020D * Math.sin(f * Math.PI), sr, sg, sb, streamAlpha);
-                    ElementalReactionBadgeRenderer.drawQuadRibbon(consumer, matrix, prev, pt, uAxis, 0.018D, cr, cg, cb, coreAlpha);
+                    if (isStellarSwirl) {
+                        ElementalReactionBadgeRenderer.drawQuadRibbon(consumer, matrix, prev, pt, nAxis, 0.022D + 0.010D * Math.sin(f * Math.PI), sr, sg, sb, effStreamAlpha);
+                    } else {
+                        ElementalReactionBadgeRenderer.drawQuadRibbon(consumer, matrix, prev, pt, nAxis, 0.045D + 0.020D * Math.sin(f * Math.PI), sr, sg, sb, effStreamAlpha);
+                        ElementalReactionBadgeRenderer.drawQuadRibbon(consumer, matrix, prev, pt, uAxis, 0.018D, cr, cg, cb, coreAlpha);
+                    }
                 }
                 prev = pt;
             }
@@ -517,24 +558,28 @@ public final class VentiVisualRenderer {
         poseStack.translate(base.x, base.y, base.z);
         Matrix4f mat = poseStack.last().pose();
 
-        // 3 ascending expanding Anemo wind rings lifting the target upward
-        for (int r = 0; r < 3; r++) {
-            float rp = Mth.clamp(prog * 1.25F - r * 0.14F, 0.0F, 1.0F);
+        // Multiple clean continuous circular Anemo wind rings pushing mobs upward
+        boolean isLargeE = height > 5.5D;
+        int ringCount = isLargeE ? 4 : 3;
+        float baseRad = isLargeE ? 2.40F : 1.15F;
+        float halfH = isLargeE ? 0.085F : 0.052F;
+        int segs = 24;
+        for (int r = 0; r < ringCount; r++) {
+            float rp = Mth.clamp(prog * 1.32F - r * 0.14F, 0.0F, 1.0F);
             if (rp <= 0.01F) continue;
             float ry = (float) (height * rp);
-            float rad = 0.45F + rp * 0.55F - r * 0.06F;
-            float spin = prog * 6.5F + r * 2.1F;
-            int segs = 16;
+            float rad = baseRad + rp * (isLargeE ? 1.40F : 0.65F) - r * 0.08F;
+            float spin = prog * 5.2F + r * 0.8F;
+            int rAlpha = Math.max(12, Math.round(alpha * (1.0F - r * 0.12F)));
             for (int s = 0; s < segs; s++) {
-                if ((s + r) % 4 == 3) continue;
                 float a0 = (float) (s * Math.PI * 2.0D / segs) + spin;
                 float a1 = (float) ((s + 1) * Math.PI * 2.0D / segs) + spin;
                 WindGliderRenderer.emitDoubleQuad(vc, mat,
-                        Mth.cos(a0) * rad, ry - 0.035F, Mth.sin(a0) * rad,
-                        Mth.cos(a1) * rad, ry - 0.035F, Mth.sin(a1) * rad,
-                        Mth.cos(a1) * rad, ry + 0.035F, Mth.sin(a1) * rad,
-                        Mth.cos(a0) * rad, ry + 0.035F, Mth.sin(a0) * rad,
-                        120, 255, 222, alpha);
+                        Mth.cos(a0) * rad, ry - halfH, Mth.sin(a0) * rad,
+                        Mth.cos(a1) * rad, ry - halfH, Mth.sin(a1) * rad,
+                        Mth.cos(a1) * rad, ry + halfH, Mth.sin(a1) * rad,
+                        Mth.cos(a0) * rad, ry + halfH, Mth.sin(a0) * rad,
+                        120, 255, 222, rAlpha);
             }
         }
         poseStack.popPose();
@@ -565,12 +610,13 @@ public final class VentiVisualRenderer {
         }
         if (arm == HumanoidArm.RIGHT) {
             float strum = Mth.sin(age * 0.26F);
-            poseStack.translate(-0.26F * w, 0.11F * w + strum * 0.055F * w, -0.14F * w);
+            poseStack.translate(-0.24F * w, 0.34F * w + strum * 0.045F * w, -0.04F * w);
             poseStack.mulPose(Axis.XP.rotationDegrees(-26.0F * w));
             poseStack.mulPose(Axis.YP.rotationDegrees(32.0F * w - strum * 8.0F * w));
             poseStack.mulPose(Axis.ZP.rotationDegrees(24.0F * w));
+            poseStack.scale(0.68F, 0.68F, 0.68F);
         } else {
-            poseStack.translate(0.16F * w, 0.02F * w, -0.12F * w);
+            poseStack.translate(-0.30F * w, 0.04F * w, -0.48F * w);
             poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * w));
             poseStack.mulPose(Axis.YP.rotationDegrees(-24.0F * w));
             poseStack.mulPose(Axis.ZP.rotationDegrees(-16.0F * w));
@@ -592,7 +638,10 @@ public final class VentiVisualRenderer {
     }
 
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
-        if (entity.isUsingItem() || entity.swinging) {
+        Minecraft mcChk = Minecraft.getInstance();
+        boolean localBowPull = mcChk.player != null && entity.getId() == mcChk.player.getId()
+                && (ClientAuraTracker.localDaybreakBowPullTicks > 0 || ClientAuraTracker.ventiUltiHoldTicks > 0);
+        if (entity.isUsingItem() || entity.swinging || localBowPull) {
             ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(entity.getId());
             if (dAct != null) {
                 dAct.ventiIdle = false;
@@ -631,10 +680,10 @@ public final class VentiVisualRenderer {
 
             model.body.xRot = Mth.lerp(w, model.body.xRot, -0.06F);
             model.body.zRot = Mth.lerp(w, model.body.zRot, 0.04F * hover);
-            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.18F + hover * 0.05F);
+            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, -1.18F);
             model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, 0.22F);
             model.leftArm.zRot = Mth.lerp(w, model.leftArm.zRot, -0.58F);
-            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.32F - hover * 0.04F);
+            model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, -0.32F);
             model.rightArm.yRot = Mth.lerp(w, model.rightArm.yRot, -0.18F);
             model.rightArm.zRot = Mth.lerp(w, model.rightArm.zRot, 0.52F);
             model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.14F);
@@ -642,8 +691,9 @@ public final class VentiVisualRenderer {
             model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.58F + hover * 0.06F);
             model.leftLeg.yRot = Mth.lerp(w, model.leftLeg.yRot, 0.12F);
             model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.08F);
-            model.head.zRot = Mth.lerp(w, model.head.zRot, -0.08F);
-            model.head.xRot = Mth.lerp(w, model.head.xRot, -0.05F);
+            model.head.zRot = Mth.lerp(w, model.head.zRot, -0.06F);
+            model.head.xRot = Mth.lerp(w, model.head.xRot, 0.14F);
+            model.head.yRot = Mth.lerp(w, Mth.clamp(model.head.yRot, -0.45F, 0.45F), -0.48F);
             model.hat.copyFrom(model.head);
             return true;
         }
@@ -678,7 +728,10 @@ public final class VentiVisualRenderer {
 
     public static void renderIdleEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         int id = entity.getId();
-        if (entity.isUsingItem() || entity.swinging) {
+        Minecraft mcChk = Minecraft.getInstance();
+        boolean localBowPull = mcChk.player != null && entity.getId() == mcChk.player.getId()
+                && (ClientAuraTracker.localDaybreakBowPullTicks > 0 || ClientAuraTracker.ventiUltiHoldTicks > 0);
+        if (entity.isUsingItem() || entity.swinging || localBowPull) {
             ClientAuraTracker.AuraDisplayData dAct = ClientAuraTracker.get(id);
             if (dAct != null) {
                 dAct.ventiIdle = false;
@@ -704,15 +757,15 @@ public final class VentiVisualRenderer {
         }
         poseStack.pushPose();
         if (isFirstPersonSelf) {
-            poseStack.translate(-0.16F, -0.16F + Mth.sin(time * 0.12F) * 0.010F, -0.46F);
+            poseStack.translate(-0.16F, -0.16F + Mth.sin(time * 0.12F) * 0.010F, -0.82F);
             poseStack.mulPose(Axis.YP.rotationDegrees(20.0F));
             poseStack.mulPose(Axis.ZP.rotationDegrees(10.0F));
             poseStack.scale(fade * 0.78F, fade * 0.78F, fade * 0.78F);
         } else {
             float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            poseStack.translate(0.14F, 1.12F + Mth.sin(time * 0.12F) * 0.018F, 0.34F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(-18.0F));
+            poseStack.translate(0.04F, 1.22F + Mth.sin(time * 0.12F) * 0.018F, 0.46F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(72.0F));
             poseStack.mulPose(Axis.ZP.rotationDegrees(14.0F));
             poseStack.scale(fade, fade, fade);
         }
@@ -787,7 +840,7 @@ public final class VentiVisualRenderer {
             float fade,
             boolean isFirstPersonSelf
     ) {
-        float hover = Mth.sin(time * 0.12F) * 0.045F;
+        float hover = -Mth.sin(time * 0.12F) * 0.047F;
         VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
 
         // 1. Mini Wind's Grand Ode Ulti Vortex scaled to fit cleanly in Venti's left hand
@@ -796,9 +849,10 @@ public final class VentiVisualRenderer {
             poseStack.translate(-0.22F, -0.06F + hover * 0.5F, -0.46F);
             poseStack.scale(fade * 0.78F, fade * 0.78F, fade * 0.78F);
         } else {
-            float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+            ClientAuraTracker.AuraDisplayData dOrb = ClientAuraTracker.get(entity.getId());
+            float bodyYaw = (dOrb != null && dOrb.ventiIdleYawSet) ? dOrb.ventiIdleYaw : Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
-            poseStack.translate(0.46F, 1.78F + hover, 0.28F);
+            poseStack.translate(0.36F, 1.72F + hover, 0.52F);
             poseStack.scale(fade, fade, fade);
         }
         float timeSec = time * 0.05F;
@@ -810,19 +864,54 @@ public final class VentiVisualRenderer {
         float[] speedY = { 105.0F, -155.0F, 210.0F, -270.0F };
         float[] tiltX = { 24.0F, -38.0F, 56.0F, -64.0F };
         float[] tiltZ = { 12.0F, 28.0F, -22.0F, 42.0F };
-        int[] alphas = { Math.max(15, Math.round(135.0F * fade)), Math.max(18, Math.round(170.0F * fade)), Math.max(22, Math.round(205.0F * fade)), Math.max(25, Math.round(235.0F * fade)) };
+        int[] alphas = { Math.max(15, Math.round(155.0F * fade)), Math.max(18, Math.round(190.0F * fade)), Math.max(22, Math.round(220.0F * fade)), Math.max(25, Math.round(248.0F * fade)) };
         for (int k = 0; k < 4; k++) {
             poseStack.pushPose();
             poseStack.mulPose(Axis.XP.rotationDegrees(tiltX[k]));
             poseStack.mulPose(Axis.ZP.rotationDegrees(tiltZ[k]));
             poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * speedY[k]));
             Matrix4f m = poseStack.last().pose();
-            drawWindStreamBand(windConsumer, m, scales[k], 16, 175, 255, 232, alphas[k]);
+            drawWindStreamBand(windConsumer, m, scales[k], 16, k >= 2 ? 235 : 205, 255, k >= 2 ? 250 : 242, alphas[k]);
             poseStack.popPose();
         }
         if (buffer instanceof MultiBufferSource.BufferSource bs) {
             bs.endBatch(windType);
         }
+        // Wind Charge burst/explosion swirl sphere using RenderType.breezeWind on a smooth sphere
+        float coreU = (timeSec * 0.65F) % 1.0F;
+        RenderType coreWindType = RenderType.breezeWind(VENTI_WIND_CHARGE_TEX, coreU, 0.0F);
+        VertexConsumer coreWindVc = buffer.getBuffer(coreWindType);
+        poseStack.pushPose();
+        float burstRad = (0.085F + 0.014F * Mth.sin(time * 0.14F)) * fade;
+        int coreA = Math.max(30, Math.round(225.0F * fade));
+        poseStack.mulPose(Axis.YP.rotationDegrees(time * 24.0F));
+        poseStack.mulPose(Axis.XP.rotationDegrees(time * 14.0F));
+        Matrix4f coreMat = poseStack.last().pose();
+        int cSegs = 12, cRings = 6;
+        for (int ci = 0; ci < cRings; ci++) {
+            float p0 = (float) (-Math.PI * 0.5D + Math.PI * ci / cRings);
+            float p1 = (float) (-Math.PI * 0.5D + Math.PI * (ci + 1) / cRings);
+            float y0 = Mth.sin(p0) * burstRad, y1 = Mth.sin(p1) * burstRad;
+            float r0 = Mth.cos(p0) * burstRad, r1 = Mth.cos(p1) * burstRad;
+            float v0 = ci / (float) cRings, v1 = (ci + 1) / (float) cRings;
+            for (int cj = 0; cj < cSegs; cj++) {
+                float t0 = (float) (cj * 2.0D * Math.PI / cSegs);
+                float t1 = (float) ((cj + 1) * 2.0D * Math.PI / cSegs);
+                float u0 = cj / (float) cSegs, u1 = (cj + 1) / (float) cSegs;
+                float x00 = Mth.cos(t0) * r0, z00 = Mth.sin(t0) * r0;
+                float x10 = Mth.cos(t1) * r0, z10 = Mth.sin(t1) * r0;
+                float x11 = Mth.cos(t1) * r1, z11 = Mth.sin(t1) * r1;
+                float x01 = Mth.cos(t0) * r1, z01 = Mth.sin(t0) * r1;
+                coreWindVc.addVertex(coreMat, x00, y0, z00).setColor(235, 255, 250, coreA).setUv(u0, v0).setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT).setNormal(0.0F, 1.0F, 0.0F);
+                coreWindVc.addVertex(coreMat, x10, y0, z10).setColor(235, 255, 250, coreA).setUv(u1, v0).setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT).setNormal(0.0F, 1.0F, 0.0F);
+                coreWindVc.addVertex(coreMat, x11, y1, z11).setColor(235, 255, 250, coreA).setUv(u1, v1).setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT).setNormal(0.0F, 1.0F, 0.0F);
+                coreWindVc.addVertex(coreMat, x01, y1, z01).setColor(235, 255, 250, coreA).setUv(u0, v1).setOverlay(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).setLight(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT).setNormal(0.0F, 1.0F, 0.0F);
+            }
+        }
+        if (buffer instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch(coreWindType);
+        }
+        poseStack.popPose();
         poseStack.popPose();
         transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
 

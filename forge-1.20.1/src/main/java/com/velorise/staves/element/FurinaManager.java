@@ -48,17 +48,12 @@ public final class FurinaManager {
                 st.lastStillPos = player.position();
             }
             double distSq = player.position().distanceToSqr(st.lastStillPos);
-            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
-            if (canIdle && distSq < 0.16D) {
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
+            if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60) {
                     if (st.activeCode == 4040) {
-                        boolean pneuma = ArcaneStaffItem.isSplendorPneuma(furinaStack);
-                        st.activeCode = pneuma ? 4042 : 4041;
-                        if (player.serverLevel() != null && !com.velorise.staves.entity.HydroSalonSummonEntity.hasActiveSummon(player)) {
-                            boolean isNetherite = furinaStack.getItem() instanceof ArcaneStaffItem staff && staff.isNetherite();
-                            com.velorise.staves.entity.HydroSalonSummonEntity.summonOrSwitchArkhe(player.serverLevel(), player, isNetherite, pneuma);
-                        }
+                        st.activeCode = 4042;
                     }
                 } else {
                     st.activeCode = 4040;
@@ -78,10 +73,11 @@ public final class FurinaManager {
     public static void cancelIdle(ServerPlayer player) {
         if (player == null) return;
         FurinaIdleState st = FURINA_IDLE_STATES.get(player.getUUID());
-        if (st != null && st.activeCode != 4040) {
-            st.activeCode = 4040;
+        if (st != null) {
             st.stillTicks = 0;
-            if (st.lastSyncedCode != 4040) {
+            st.lastStillPos = player.position();
+            if (st.activeCode != 4040 || st.lastSyncedCode != 4040) {
+                st.activeCode = 4040;
                 st.lastSyncedCode = 4040;
                 ModNetwork.sendStaffAnimation(player, 4040);
             }

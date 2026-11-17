@@ -511,7 +511,7 @@ public final class NahidaManager {
             else eHoriz = eHoriz.normalize();
             ModNetwork.sendElectricArc(level, player.position(), player.position().add(eHoriz), 13, 0x4E440000);
             final Vec3 castPos = player.position();
-            final double radius = 2.0D;
+            final double radius = 4.0D;
             ArchonUltiManager.scheduleBurstAction(player, 5, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
                 long hitNow = sl.getGameTime();
@@ -775,10 +775,10 @@ public final class NahidaManager {
             }
             double distFromAnchorSq = player.position().distanceToSqr(st.lastStillPos);
             boolean onGround = player.onGround();
-            boolean notAttacking = !player.isUsingItem() && !player.swinging && !st.holdingViewfinder && (now - st.lastActionTick) >= 30L;
+            boolean notAttacking = !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null && !st.holdingViewfinder && (now - st.lastActionTick) >= 30L;
 
             if (holdingNahida && onGround && notAttacking) {
-                if (distFromAnchorSq < 0.16D) { // within 0.4 blocks of anchor position
+                if (distFromAnchorSq < 0.0025D) { // instant cancel on movement
                     st.stillTicks++;
                     if (st.stillTicks >= 70 && !st.idleSwingActive) {
                         st.idleSwingActive = true;
@@ -872,6 +872,20 @@ public final class NahidaManager {
         if (force || shrineCode != st.lastSyncedShrineCode) {
             st.lastSyncedShrineCode = shrineCode;
             ModNetwork.sendStaffAnimation(player, shrineCode);
+        }
+    }
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        NahidaPlayerState st = PLAYER_STATES.get(player.getUUID());
+        if (st != null) {
+            st.stillTicks = 0;
+            st.lastStillPos = player.position();
+            if (st.idleSwingActive || st.lastSyncedPlayerCode == 4001) {
+                st.idleSwingActive = false;
+                st.lastSyncedPlayerCode = 4000;
+                ModNetwork.sendStaffAnimation(player, 4000);
+            }
         }
     }
 }

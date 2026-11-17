@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
@@ -31,6 +32,21 @@ public abstract class ItemInHandRendererMixin {
             float swingProgress,
             HumanoidArm side
     );
+
+    @ModifyVariable(
+            method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;ZLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private MultiBufferSource velorise$wrapTranslucentWeaponBuffer(
+            MultiBufferSource buffer,
+            LivingEntity entity,
+            ItemStack stack
+    ) {
+        float alpha = com.velorise.staves.client.character.NahidaVisualRenderer.getWeaponFadeAlpha(entity, stack);
+        if (alpha >= 0.995F) return buffer;
+        return com.velorise.staves.client.character.NahidaVisualRenderer.wrapTranslucentBuffer(buffer, alpha);
+    }
 
     @Inject(
             method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;ZLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",

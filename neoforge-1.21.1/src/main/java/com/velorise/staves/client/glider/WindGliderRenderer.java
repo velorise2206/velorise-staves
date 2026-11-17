@@ -113,7 +113,7 @@ public final class WindGliderRenderer {
 
         for (int side : new int[]{-1, 1}) {
             poseStack.pushPose();
-            poseStack.translate(side * 0.065F, 0.015F, 0.068F);
+            poseStack.translate(side * 0.045F, 0.025F, 0.032F);
             poseStack.mulPose(Axis.XP.rotationDegrees(62.0F + pitchBreath));
             poseStack.mulPose(Axis.ZP.rotationDegrees(side * (14.0F + waveInner)));
             poseStack.mulPose(Axis.YP.rotationDegrees(side * -13.0F));
@@ -170,6 +170,10 @@ public final class WindGliderRenderer {
             model.leftArm.yRot = 0.38F;
             model.rightArm.zRot = -0.20F;
             model.leftArm.zRot = 0.20F;
+            float pHipY = 12.0F * Mth.cos(0.36F);
+            float pHipZ = 12.0F * Mth.sin(0.36F);
+            model.rightLeg.setPos(-1.9F, pHipY, pHipZ);
+            model.leftLeg.setPos(1.9F, pHipY, pHipZ);
             model.rightLeg.xRot = 0.32F;
             model.leftLeg.xRot = 0.52F;
             model.head.xRot = 0.26F;
@@ -181,12 +185,16 @@ public final class WindGliderRenderer {
             model.body.xRot = 0.22F;
             model.body.yRot = 0.0F;
             model.body.zRot = 0.0F;
-            model.rightArm.xRot = -0.08F + breeze;
-            model.leftArm.xRot = -0.08F - breeze;
-            model.rightArm.yRot = -0.05F;
-            model.leftArm.yRot = 0.05F;
+            model.rightArm.xRot = 0.34F + breeze;
+            model.leftArm.xRot = 0.34F - breeze;
+            model.rightArm.yRot = 0.0F;
+            model.leftArm.yRot = 0.0F;
             model.rightArm.zRot = 1.38F + breeze;
             model.leftArm.zRot = -1.38F - breeze;
+            float gHipY = 12.0F * Mth.cos(0.22F);
+            float gHipZ = 12.0F * Mth.sin(0.22F);
+            model.rightLeg.setPos(-1.9F, gHipY, gHipZ);
+            model.leftLeg.setPos(1.9F, gHipY, gHipZ);
             model.rightLeg.xRot = 0.28F + breeze;
             model.leftLeg.xRot = 0.18F - breeze;
             model.rightLeg.zRot = 0.06F;
@@ -461,8 +469,7 @@ public final class WindGliderRenderer {
         float pt = mc.getTimer().getGameTimeDeltaPartialTick(true);
         float time = entity.tickCount + pt;
         float h = entity.getBbHeight();
-        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
-                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
+        float idleLift = com.velorise.staves.client.ClientAuraRenderer.getTotalLevitationOffsetY(entity, pt);
 
         poseStack.pushPose();
         poseStack.translate(0.0F, h + 1.15F + idleLift + 0.04F * Mth.sin(time * 0.12F), 0.0F);
@@ -515,8 +522,7 @@ public final class WindGliderRenderer {
         float time = entity.tickCount + pt;
         float h = entity.getBbHeight();
         float radius = Math.max(0.95F, h * 0.62F);
-        float idleLift = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, pt)
-                + com.velorise.staves.client.character.RaidenVisualRenderer.getLevitationCameraOffsetY(entity, pt);
+        float idleLift = com.velorise.staves.client.ClientAuraRenderer.getTotalLevitationOffsetY(entity, pt);
         float centerY = h * 0.50F + idleLift;
         float pulse = 1.0F + 0.025F * Mth.sin(time * 0.14F);
         float rSphere = radius * pulse;
@@ -706,14 +712,14 @@ public final class WindGliderRenderer {
         }
         if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON) {
             float w;
-            if (t < 0.18F) {
-                w = smoothStep01(t / 0.18F);
-            } else if (t < 0.75F) {
-                w = 1.0F;
+            if (t < 0.16F) {
+                w = smoothStep01(t / 0.16F);
+            } else if (t < 0.78F) {
+                w = 1.0F; // Crisp hold/pause at the peak
             } else {
-                w = 1.0F - smoothStep01((t - 0.75F) / 0.25F);
+                w = 1.0F - smoothStep01((t - 0.78F) / 0.22F);
             }
-            float curtsy = Mth.sin(Mth.clamp(t / 0.40F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
+            float curtsy = Mth.sin(Mth.clamp(t / 0.36F, 0.0F, 1.0F) * ((float) Math.PI * 0.5F));
 
             HumanoidArm castArm = resolveStaffArm(entity, ArcaneStaffItem.Kind.SPLENDOR);
             var mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
@@ -733,9 +739,10 @@ public final class WindGliderRenderer {
             mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.22F);
             mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.12F);
 
-            offPart.xRot = Mth.lerp(w, offPart.xRot, -0.85F);
-            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.75F);
-            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.65F);
+            // Raise left arm straight up toward the sky and hold briefly at peak
+            offPart.xRot = Mth.lerp(w, offPart.xRot, -3.05F);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, 0.0F);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.08F);
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) {
@@ -765,13 +772,14 @@ public final class WindGliderRenderer {
             model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.10F * bow);
             model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.10F * bow);
 
-            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.42F);
-            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.28F);
-            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.16F);
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, -0.55F);
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, -castDir * 0.22F);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.12F);
 
-            offPart.xRot = Mth.lerp(w, offPart.xRot, -0.75F);
-            offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.52F);
-            offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.38F);
+            // Keep offhand arm calm/still during Charged Attack
+            offPart.xRot = Mth.lerp(w, offPart.xRot, 0.0F);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, 0.0F);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, 0.0F);
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_FURINA_BURST) {
@@ -815,7 +823,7 @@ public final class WindGliderRenderer {
         float plantW = 0.0F;
         float downOffset = 0.0F;
         float targetPitchDeg = -103.0F;
-        if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
+        if ((activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON || activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
             if (t < 0.16F) {
@@ -829,14 +837,7 @@ public final class WindGliderRenderer {
             downOffset = slamDown * 0.14F;
             float armDeg = Mth.lerp(slamDown, -39.0F, -23.0F);
             targetPitchDeg = armDeg - 80.0F;
-        } else if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float w = (t < 0.12F) ? smoothStep01(t / 0.12F) : (t < 0.88F ? 1.0F : 1.0F - smoothStep01((t - 0.88F) / 0.12F));
-            float side = leftHand ? -1.0F : 1.0F;
-            poseStack.translate(side * 0.04F * w, -0.08F * w, 0.06F * w);
-            poseStack.mulPose(Axis.XP.rotationDegrees(28.0F * w));
-            poseStack.mulPose(Axis.YP.rotationDegrees(side * 14.0F * w));
+
         } else if (entity.isUsingItem() && entity.getUseItem() == stack) {
             int elapsed = Math.max(0, staff.getUseDuration(stack, entity) - entity.getUseItemRemainingTicks());
             if (elapsed >= 2) {
@@ -876,18 +877,7 @@ public final class WindGliderRenderer {
                     return true;
                 }
             }
-            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH && data != null) {
-                float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-                float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                float w = (t < 0.12F) ? smoothStep01(t / 0.12F) : (t < 0.88F ? 1.0F : 1.0F - smoothStep01((t - 0.88F) / 0.12F));
-                float dip = Mth.sin(t * (float) Math.PI);
-                poseStack.translate(-dir * 0.18F * w, (-0.12F - 0.06F * dip) * w, -0.14F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees((-22.0F - 12.0F * dip) * w));
-                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 16.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 10.0F * w));
-                return true;
-            }
-            if (activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON && data != null) {
+            if ((activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SUMMON || activeAnim == ClientAuraTracker.ANIM_SPLENDOR_SWITCH) && data != null) {
                 float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
                 float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
                 float w;

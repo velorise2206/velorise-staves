@@ -56,6 +56,7 @@ public class MavuikaActionPacket {
         ctx.enqueueWork(() -> {
             ServerPlayer player = ctx.getSender();
             if (player == null) return;
+            ArchonUltiManager.resetAllArchonIdleTimers(player);
             if (packet.action != ACTION_TOGGLE_GLIDER
                     && packet.action != ACTION_PLUNGE_ATTACK
                     && packet.action != ACTION_SPIN_STOP

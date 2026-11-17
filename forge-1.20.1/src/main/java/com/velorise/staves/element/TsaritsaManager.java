@@ -375,9 +375,9 @@ public final class TsaritsaManager {
      */
     public static void onStellarSwirlTriggered(ServerLevel level, LivingEntity primaryTarget, Player attacker, float swirlDamage) {
         Vec3 center = primaryTarget.position().add(0.0D, primaryTarget.getBbHeight() * 0.5D, 0.0D);
-        ModNetwork.sendVortexSphere(level, center, 5.5D, 35, 0xFF66E6FF);
-        level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y, center.z, 28, 2.4D, 0.8D, 2.4D, 0.05D);
-        level.sendParticles(ParticleTypes.END_ROD, center.x, center.y, center.z, 16, 2.0D, 0.6D, 2.0D, 0.04D);
+        ModNetwork.sendVortexSphere(level, center, 2.2D, 18, 0xFF66E6FF);
+        level.sendParticles(ParticleTypes.SNOWFLAKE, center.x, center.y, center.z, 8, 1.0D, 0.4D, 1.0D, 0.03D);
+        level.sendParticles(ParticleTypes.END_ROD, center.x, center.y, center.z, 4, 0.8D, 0.3D, 0.8D, 0.02D);
         level.playSound(null, center.x, center.y, center.z, SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.8F, 1.35F);
 
         // Lv.2 Stellar Vortex: gently pull nearby enemies inward & spread Stellar Cryo aura
@@ -528,24 +528,9 @@ public final class TsaritsaManager {
                 arcEnd = center.add(up.scale(-span * 1.05D)).add(fwd.scale(0.65D));
             }
         }
-        ModNetwork.sendElectricArc(level, arcStart, arcEnd, dur, arcColor);
-        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, player.position(), state.netherite ? 2 : 1);
-        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(center.x, player.getY(), center.z), state.netherite ? 3 : 2);
-        com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(arcEnd.x, player.getY(), arcEnd.z), state.netherite ? 2 : 1);
-
-        for (int i = 0; i <= 6; i++) {
-            double t = i / 6.0D;
-            Vec3 p = arcStart.lerp(arcEnd, t);
-            level.sendParticles(ParticleTypes.SNOWFLAKE, p.x, p.y, p.z, 1, 0.04D, 0.04D, 0.04D, 0.005D);
-        }
-
         if (step == 2) {
-            // Ground impact frost crystal burst at slam endpoint
-            level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 10, 0.25D, 0.10D, 0.25D, 0.04D);
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.4F);
-            level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.9F);
+                    SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.75F, 1.15F);
         } else {
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.85F, 1.35F + step * 0.15F);
@@ -553,25 +538,62 @@ public final class TsaritsaManager {
                     SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.75F, 1.2F + step * 0.2F);
         }
 
-        Vec3 centerPos = player.position().add(look.scale(2.2D)).add(0.0D, 0.8D, 0.0D);
-        AABB box = new AABB(centerPos.x - 2.6D, centerPos.y - 1.6D, centerPos.z - 2.6D,
-                centerPos.x + 2.6D, centerPos.y + 1.8D, centerPos.z + 2.6D);
-        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
-                e -> e != player && e.isAlive() && isValidCombatTarget(player, e));
-        for (LivingEntity target : targets) {
-            float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, baseDmg);
-            target.invulnerableTime = 0;
-            ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, step == 2 ? 1.5F : 1.0F);
-            if (step == 2) {
-                // Slam knockdown impulse
-                Vec3 push = target.position().subtract(player.position()).normalize().scale(0.35D).add(0.0D, 0.12D, 0.0D);
-                target.setDeltaMovement(target.getDeltaMovement().add(push));
-                target.hurtMarked = true;
-            }
-        }
-        for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(
-                net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
-            crystal.hurt(level.damageSources().playerAttack(player), baseDmg);
+        // Spear tip leads; slash arc & damage sweep sequentially across 4 segments along the arc path
+        int trailDelay = (step == 2) ? 3 : 1;
+        final float finalBaseDmg = baseDmg;
+        final Vec3 arcMid = arcStart.lerp(arcEnd, 0.5D).add(fwd.scale(0.38D));
+        final double hitRadius = state.netherite ? 1.55D : 1.35D;
+        final java.util.Set<UUID> hitTargets = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+        final java.util.Set<UUID> hitCrystals = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+        for (int seg = 0; seg < 4; seg++) {
+            final int segIdx = seg;
+            final double t0 = Math.max(0.0D, seg * 0.25D - 0.03D);
+            final double t1 = Math.min(1.0D, (seg + 1) * 0.25D);
+            final Vec3 segStart = evalQuadBezier(arcStart, arcMid, arcEnd, t0);
+            final Vec3 segEnd = evalQuadBezier(arcStart, arcMid, arcEnd, t1);
+            final Vec3 segMid = evalQuadBezier(arcStart, arcMid, arcEnd, (t0 + t1) * 0.5D);
+
+            ArchonUltiManager.scheduleBurstAction(player, trailDelay + segIdx, () -> {
+                if (!player.isAlive()) return;
+                ModNetwork.sendElectricArc(level, segStart, segEnd, Math.max(4, dur - segIdx), arcColor);
+                com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(segMid.x, player.getY(), segMid.z), state.netherite ? 2 : 1);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, segStart.x, segStart.y, segStart.z, 2, 0.06D, 0.06D, 0.06D, 0.008D);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, segEnd.x, segEnd.y, segEnd.z, 2, 0.06D, 0.06D, 0.06D, 0.008D);
+
+                if (step == 2 && segIdx == 3) {
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 10, 0.25D, 0.10D, 0.25D, 0.04D);
+                    level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.4F);
+                    level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.9F);
+                }
+
+                AABB box = new AABB(segStart, segEnd).minmax(new AABB(segMid, segMid)).inflate(hitRadius);
+                List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
+                        e -> e != player && e.isAlive() && isValidCombatTarget(player, e)
+                                && !hitTargets.contains(e.getUUID())
+                                && isTargetAlongSlashArc(e.getBoundingBox(), segStart, segMid, segEnd, hitRadius));
+                for (LivingEntity target : targets) {
+                    if (!hitTargets.add(target.getUUID())) continue;
+                    float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, finalBaseDmg);
+                    target.invulnerableTime = 0;
+                    ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, step == 2 ? 1.5F : 1.0F);
+                    if (step == 2) {
+                        Vec3 push = target.position().subtract(player.position()).normalize().scale(0.35D).add(0.0D, 0.12D, 0.0D);
+                        target.setDeltaMovement(target.getDeltaMovement().add(push));
+                        target.hurtMarked = true;
+                    }
+                }
+                for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(
+                        net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+                    if (!hitCrystals.contains(crystal.getUUID())
+                            && isTargetAlongSlashArc(crystal.getBoundingBox(), segStart, segMid, segEnd, hitRadius)
+                            && hitCrystals.add(crystal.getUUID())) {
+                        crystal.hurt(level.damageSources().playerAttack(player), finalBaseDmg);
+                    }
+                }
+            });
         }
     }
 
@@ -791,7 +813,7 @@ public final class TsaritsaManager {
         } else {
             // Variant 2: DPS Burst (Glorious Blessing / Spear Stance — erupts after 38t cast)
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
-            ArchonUltiManager.scheduleBurstAction(player, 38, () -> {
+            ArchonUltiManager.scheduleBurstAction(player, 26, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
                 com.velorise.staves.advancement.ModAdvancements.trigger(player, com.velorise.staves.advancement.ModAdvancements.EVENT_NO_LOVE_LEFT);
                 long eruptNow = sl.getGameTime();
@@ -804,15 +826,36 @@ public final class TsaritsaManager {
                 // Apply 10.0s cooldown lock onto all other ArcaneStaffItems in inventory (hotbar switching for food/blocks stays free!)
                 sealAllOtherStaves(player, DPS_BURST_SEAL_TICKS);
 
-                // Hurl Colossal Ice Spear impact -> Flat Ice Field + Central Polar Pillar at impact point
-                Vec3 eye = player.getEyePosition();
+                // Hurl Colossal Ice Spear straight down-forward aiming 5 blocks ahead
                 Vec3 look = player.getLookAngle().normalize();
-                BlockHitResult bhr = sl.clip(new ClipContext(eye, eye.add(look.scale(14.0D)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-                Vec3 spearImpact = bhr.getType() != HitResult.Type.MISS ? bhr.getLocation() : player.position().add(look.scale(6.0D));
+                Vec3 horizLook = new Vec3(look.x, 0.0D, look.z);
+                if (horizLook.lengthSqr() < 1.0E-4D) horizLook = Vec3.directionFromRotation(0.0F, player.getYRot());
+                else horizLook = horizLook.normalize();
+                Vec3 targetXZ = player.position().add(horizLook.scale(5.0D));
+                BlockHitResult groundHit = sl.clip(new ClipContext(
+                        new Vec3(targetXZ.x, player.getY() + 3.0D, targetXZ.z),
+                        new Vec3(targetXZ.x, player.getY() - 8.0D, targetXZ.z),
+                        ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player
+                ));
+                Vec3 spearImpact = groundHit.getType() != HitResult.Type.MISS ? groundHit.getLocation() : targetXZ;
                 state.dpsIceFieldCenter = spearImpact;
 
                 ModNetwork.sendTsaritsaPolarField(sl, spearImpact, 7.5D, DPS_BURST_SEAL_TICKS, 2);
-                ModNetwork.sendCryoArrow(sl, player.position().add(0.0D, 3.2D, 0.0D), spearImpact, 22, 3);
+                Vec3 throwOrigin = player.position().add(horizLook.x * 0.45D, 2.35D, horizLook.z * 0.45D);
+                ModNetwork.sendCryoArrow(sl, throwOrigin, spearImpact, 22, 3);
+                // 8 Cryo arrows raining straight down around the impact zone right after the spear throw
+                for (int a = 0; a < 8; a++) {
+                    final int arrowIdx = a;
+                    final double ang = (a * Math.PI * 2.0D / 8.0D) + (sl.random.nextDouble() - 0.5D) * 0.45D;
+                    final double dist = 1.6D + sl.random.nextDouble() * 3.4D;
+                    final Vec3 landPos = spearImpact.add(Math.cos(ang) * dist, 0.05D, Math.sin(ang) * dist);
+                    final Vec3 skyStart = landPos.add((sl.random.nextDouble() - 0.5D) * 0.8D, 7.5D + sl.random.nextDouble() * 2.0D, (sl.random.nextDouble() - 0.5D) * 0.8D);
+                    ArchonUltiManager.scheduleBurstAction(player, 2 + (arrowIdx / 2), () -> {
+                        if (!player.isAlive() || !(player.level() instanceof ServerLevel al)) return;
+                        ModNetwork.sendCryoArrow(al, skyStart, landPos, 16, 2);
+                        al.sendParticles(ParticleTypes.SNOWFLAKE, landPos.x, landPos.y + 0.2D, landPos.z, 10, 0.35D, 0.25D, 0.35D, 0.03D);
+                    });
+                }
                 sl.sendParticles(ParticleTypes.SNOWFLAKE, spearImpact.x, spearImpact.y + 0.5D, spearImpact.z,
                         70, 3.5D, 1.2D, 3.5D, 0.08D);
                 sl.sendParticles(ParticleTypes.END_ROD, spearImpact.x, spearImpact.y + 1.0D, spearImpact.z,
@@ -1181,8 +1224,8 @@ public final class TsaritsaManager {
                 st.lastStillPos = player.position();
             }
             double distSq = player.position().distanceToSqr(st.lastStillPos);
-            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && player.getVehicle() == null;
-            if (canIdle && distSq < 0.16D) {
+            boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
+            if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60 && !st.idleActive) {
                     st.idleActive = true;
@@ -1191,6 +1234,11 @@ public final class TsaritsaManager {
                 st.stillTicks = 0;
                 st.lastStillPos = player.position();
                 st.idleActive = false;
+            }
+            if (holding && isSpearStanceActive(player) && distSq >= 0.0012D && now % 2L == 0L && player.level() instanceof ServerLevel sl) {
+                double ox = (sl.random.nextDouble() - 0.5D) * 0.45D;
+                double oz = (sl.random.nextDouble() - 0.5D) * 0.45D;
+                sl.sendParticles(net.minecraft.core.particles.ParticleTypes.SNOWFLAKE, player.getX() + ox, player.getY() + 0.08D, player.getZ() + oz, 1, 0.04D, 0.02D, 0.04D, 0.01D);
             }
             int code = st.idleActive ? 4061 : 4060;
             if (code != st.lastSyncedCode || (st.idleActive && now % 20L == 0L)) {
@@ -1269,5 +1317,30 @@ public final class TsaritsaManager {
                 }
             }
         }
+    }
+
+    private static Vec3 evalQuadBezier(Vec3 a, Vec3 b, Vec3 c, double t) {
+        double omt = 1.0D - t;
+        return a.scale(omt * omt).add(b.scale(2.0D * omt * t)).add(c.scale(t * t));
+    }
+
+    private static boolean isTargetAlongSlashArc(AABB targetBox, Vec3 a, Vec3 b, Vec3 c, double radius) {
+        Vec3 center = targetBox.getCenter();
+        double halfH = Math.max(0.4D, targetBox.getYsize() * 0.5D);
+        double effRadSq = (radius + Math.max(targetBox.getXsize(), targetBox.getZsize()) * 0.45D);
+        effRadSq *= effRadSq;
+        for (int i = 0; i <= 8; i++) {
+            double t = i / 8.0D;
+            double omt = 1.0D - t;
+            Vec3 p = a.scale(omt * omt).add(b.scale(2.0D * omt * t)).add(c.scale(t * t));
+            double clampedY = Math.max(center.y - halfH, Math.min(center.y + halfH, p.y));
+            double dx = p.x - center.x;
+            double dy = p.y - clampedY;
+            double dz = p.z - center.z;
+            if (dx * dx + dy * dy + dz * dz <= effRadSq) {
+                return true;
+            }
+        }
+        return false;
     }
 }

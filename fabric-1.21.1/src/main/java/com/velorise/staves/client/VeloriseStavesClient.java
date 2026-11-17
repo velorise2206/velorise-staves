@@ -189,6 +189,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final boolean[] wasXilonenDashKeyDown = {false};
         final int[] furinaAttackHoldTicks = {0};
         final boolean[] furinaCaTriggeredThisHold = {false};
+        final boolean[] raidenCaTriggeredThisHold = {false};
         final int[] nahidaAttackHoldTicks = {0};
         final boolean[] nahidaCaTriggeredThisHold = {false};
         final int[] tsaritsaSpearHoldTick = {0};
@@ -224,6 +225,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ventiUltiFiredThisHold[0] = false;
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
+                raidenCaTriggeredThisHold[0] = false;
                 nahidaAttackHoldTicks[0] = 0;
                 nahidaCaTriggeredThisHold[0] = false;
                 tsaritsaSpearHoldTick[0] = 0;
@@ -305,6 +307,30 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             } else {
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
+            }
+
+            // Raiden Musou Hold Left-Click Charged Attack: 5-block dash + 5 trailing slashes
+            boolean holdingRaidenMusou = ClientAuraTracker.isRaidenMusouActive(client.player.getId())
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
+            if (holdingRaidenMusou && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
+                if (client.options.keyAttack.isDown()) {
+                    raidenAttackHoldTicks[0]++;
+                    if (raidenAttackHoldTicks[0] >= 8 && !raidenCaTriggeredThisHold[0]
+                            && ClientAuraTracker.tryConsumeLocalRaidenSwing(true)) {
+                        raidenCaTriggeredThisHold[0] = true;
+                        ClientAuraTracker.localRaidenAttackHeld = true;
+                        ClientAuraTracker.triggerStaffAnimation(client.player.getId(), ClientAuraTracker.ANIM_RAIDEN_CA);
+                        com.velorise.staves.network.ModNetwork.sendRaidenSlash(true);
+                    }
+                } else {
+                    raidenAttackHoldTicks[0] = 0;
+                    raidenCaTriggeredThisHold[0] = false;
+                    ClientAuraTracker.localRaidenAttackHeld = false;
+                }
+            } else {
+                raidenAttackHoldTicks[0] = 0;
+                raidenCaTriggeredThisHold[0] = false;
+                ClientAuraTracker.localRaidenAttackHeld = false;
             }
 
             if (!client.options.keyUse.isDown()) {

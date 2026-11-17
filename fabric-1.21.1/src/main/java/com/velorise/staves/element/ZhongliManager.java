@@ -144,8 +144,8 @@ public final class ZhongliManager {
                 st.lastStillPos = player.position();
             }
             double distSq = player.position().distanceToSqr(st.lastStillPos);
-            boolean canIdle = holdingZhongli && player.onGround() && !player.isUsingItem() && !player.swinging;
-            if (canIdle && distSq < 0.16D) {
+            boolean canIdle = holdingZhongli && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
+            if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
                 if (st.stillTicks >= 60 && !st.idleMeteorActive) {
                     st.idleMeteorActive = true;
@@ -1496,5 +1496,19 @@ public final class ZhongliManager {
         Map<Element, GaugeState> entityGauges = GAUGES.get(targetId);
         syncAuras(target, entityGauges != null ? entityGauges.keySet() : Collections.emptySet(), null, null, null);
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(target, petrifyTicks >= 95 ? 17 : 16);
+    }
+
+    public static void cancelIdle(ServerPlayer player) {
+        if (player == null) return;
+        ZhongliIdleState st = ZHONGLI_IDLE_STATES.get(player.getUUID());
+        if (st != null) {
+            st.stillTicks = 0;
+            st.lastStillPos = player.position();
+            if (st.idleMeteorActive || st.lastSyncedCode == 4011) {
+                st.idleMeteorActive = false;
+                st.lastSyncedCode = 4010;
+                com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 4010);
+            }
+        }
     }
 }
