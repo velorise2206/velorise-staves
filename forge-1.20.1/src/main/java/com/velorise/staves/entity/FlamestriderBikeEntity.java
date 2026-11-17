@@ -114,9 +114,9 @@ public class FlamestriderBikeEntity extends Entity {
     private int clientFinisherYawBlendTicks = 0;
     private static final double FRONT_WHEEL_PIVOT_OFFSET = 0.86D;
     private static final double REAR_WHEEL_OFFSET = 0.82D;
-    private static final double FRONT_WHEEL_INNER_RADIUS = 0.48D;
-    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 1.34m
-    private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 2.16m (R2/R1 = 4.5x)
+    private static final double FRONT_WHEEL_INNER_RADIUS = 1.45D;
+    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 2.31m
+    private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 3.13m (R2/R1 = 2.16x)
     private float spinOrbitAngle = 0.0F;
     private double spinOrbitRadius = 0.0D;
     private boolean clientWallClimbing = false;
@@ -1435,16 +1435,18 @@ public class FlamestriderBikeEntity extends Entity {
             this.clientWallClimbing = false;
             this.clientWallCrestTicks = 0;
             if (!clientWasSpinning && clientSpinOrbitGraceTicks <= 0) {
-                // Start with front wheel planted at the pivot (R1 = 0) at 12h while rear wheel is at 6h,
-                // then whip tail clockwise (6h -> 9h -> 12h) while smoothly expanding R1 -> 0.48m into concentric circles!
+                // Concentric Circular Motion / Off-center Rigid-Body Rotation:
+                // Place center pivot O at R1 = 1.45m ahead of the front wheel (2.31m ahead of bike center, well outside the 1.48m nose).
+                // On frame 0, target = spinPivot - 2.31m * F(targetYaw) == current bike pos (zero snap),
+                // and from tick 1 onward, Front Wheel orbits on the inner circle (R1 = 1.45m) while Rear Wheel orbits on the outer circle (R2 = 3.13m)!
                 double startRad = Math.toRadians(targetYaw);
                 spinStartYaw = targetYaw;
-                spinPivotX = this.getX() - Math.sin(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
-                spinPivotZ = this.getZ() + Math.cos(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
+                spinPivotX = this.getX() - Math.sin(startRad) * BIKE_CENTER_SPIN_RADIUS;
+                spinPivotZ = this.getZ() + Math.cos(startRad) * BIKE_CENTER_SPIN_RADIUS;
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
                 spinOrbitAngle = targetYaw;
-                spinOrbitRadius = FRONT_WHEEL_PIVOT_OFFSET;
+                spinOrbitRadius = BIKE_CENTER_SPIN_RADIUS;
                 clientContinuousSpinTicks = 0;
             } else {
                 spinPivotXO = spinPivotX;
@@ -1466,8 +1468,7 @@ public class FlamestriderBikeEntity extends Entity {
             if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(0.0D, 0.0D, stepZ))) {
                 spinPivotZ += stepZ;
             }
-            // Smoothly expand from front-wheel pivot (0.86m, R1=0) during 6h->9h->12h whip into full concentric orbit (1.34m, R1=0.48m, R2=2.16m)
-            spinOrbitRadius = Math.min(BIKE_CENTER_SPIN_RADIUS, spinOrbitRadius + (FRONT_WHEEL_INNER_RADIUS / 5.0D));
+            spinOrbitRadius = BIKE_CENTER_SPIN_RADIUS;
             // Advance bikeYaw by +24 deg/tick: rear wheel swings clockwise (6h -> 9h -> 12h -> 3h) around the front pivot!
             spinOrbitAngle = Mth.wrapDegrees(spinOrbitAngle + 24.0F);
             double yawRad = Math.toRadians(spinOrbitAngle);
