@@ -786,8 +786,6 @@ public final class ElementalGaugeManager {
         DendroCoreManager.checkReactionsNear(level, target.position(), 3.5D, attackElement, attacker);
         if (attackElement == Element.PYRO) {
             EnvironmentalBlockManager.applyPyroEnvironmentEffects(level, target.position(), 1.5D);
-        } else if (attackElement == Element.ELECTRO) {
-            EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, target.position(), 2.8D, attacker, effectiveDamage);
         }
 
         if (!physicalMelee) {

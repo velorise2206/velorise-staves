@@ -1931,15 +1931,12 @@ public final class ElementalReactionBadgeRenderer {
             normal = normal.normalize();
 
             int c = arc.color;
-            boolean isWaterArc = (c == 0xBF40FE);
-            int r = (c == 0 || c == 0xBF40FF || isWaterArc) ? 185 : ((c >> 16) & 0xFF);
-            int g = (c == 0 || c == 0xBF40FF || isWaterArc) ? 90 : ((c >> 8) & 0xFF);
-            int bCol = (c == 0 || c == 0xBF40FF || isWaterArc) ? 255 : (c & 0xFF);
-            double outerW = isWaterArc ? 0.034D : 0.02D;
-            double coreW = isWaterArc ? 0.012D : 0.007D;
+            int r = (c == 0 || c == 0xBF40FF || c == 0xBF40FE) ? 185 : ((c >> 16) & 0xFF);
+            int g = (c == 0 || c == 0xBF40FF || c == 0xBF40FE) ? 90 : ((c >> 8) & 0xFF);
+            int bCol = (c == 0 || c == 0xBF40FF || c == 0xBF40FE) ? 255 : (c & 0xFF);
 
-            drawQuadRibbon(consumer, matrix, a, b, normal, outerW, r, g, bCol, 230);
-            drawQuadRibbon(consumer, matrix, a, b, normal, coreW, 255, 255, 255, 255);
+            drawQuadRibbon(consumer, matrix, a, b, normal, 0.02D, r, g, bCol, 230);
+            drawQuadRibbon(consumer, matrix, a, b, normal, 0.007D, 255, 255, 255, 255);
         }
     }
 

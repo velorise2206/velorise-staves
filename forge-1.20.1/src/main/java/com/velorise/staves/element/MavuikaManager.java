@@ -1986,7 +1986,7 @@ public final class MavuikaManager {
                 changed = true;
             }
 
-            // 2B. Proximity Voltaic Arcing (ONLY when BOTH entities are physically submerged in water)
+            // 2B. Proximity Voltaic Arcing (1.0.0 behavior: ONLY when BOTH entities are physically submerged in water)
             if (entityGauges.containsKey(Element.ELECTRO) && isEntitySubmergedInWater(target) && (now % 10 == 0)) {
                 final LivingEntity srcTarget = target;
                 AABB arcBox = target.getBoundingBox().inflate(4.0D);
@@ -1998,11 +1998,11 @@ public final class MavuikaManager {
                             LAST_PROXIMITY_SHOCK.put(pairKey, now);
                             drawVoltaicArc(targetLevel, target, nearby);
                             targetLevel.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.6F, 1.8F);
-                            if (getInnateElement(nearby) != Element.ELECTRO && checkReactionIcd(nearby, ElementalReaction.ELECTRO_CHARGED, now)) {
-                                float nearEcDmg = applyMobElementalResistance(nearby, Element.ELECTRO, 1.0F);
-                                hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), nearEcDmg);
-                                Map<Element, GaugeState> nearGauges = GAUGES.getOrDefault(nearby.getUUID(), Collections.emptyMap());
-                                syncAuras(nearby, nearGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, nearEcDmg);
+                            applyElement(targetLevel, nearby, Element.ELECTRO, 1.0F, null, 1.0F);
+                            if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO) {
+                                float nearEcDmg = applyMobElementalResistance(target, Element.ELECTRO, 1.0F);
+                                hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), nearEcDmg);
+                                syncAuras(target, entityGauges.keySet(), Element.ELECTRO, Element.HYDRO, ElementalReaction.ELECTRO_CHARGED, nearEcDmg);
                             }
                             break;
                         }
@@ -2010,7 +2010,7 @@ public final class MavuikaManager {
                 }
             }
 
-            // 3. Electro-Charged periodic damage (every 20 ticks = 1 second, 0.5 heart = 1.0F damage, consuming 0.4U from both Hydro and Electro)
+            // 3. Electro-Charged periodic damage (1.0.0 behavior: every 20 ticks = 1 second, 0.5 heart = 1.0F damage, consuming 0.4U from both Hydro and Electro)
             if (entityGauges.containsKey(Element.HYDRO) && entityGauges.containsKey(Element.ELECTRO)
                     && !(innateSet.contains(Element.HYDRO) && innateSet.contains(Element.ELECTRO))) {
                 int counter = ELECTRO_CHARGE_TICK.getOrDefault(id, 0) + 1;
@@ -2037,18 +2037,10 @@ public final class MavuikaManager {
                     if (isEntitySubmergedInWater(target)) {
                         final LivingEntity srcTarget = target;
                         AABB chainBox = target.getBoundingBox().inflate(4.0D);
-                        int chained = 0;
                         for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
                             if (isEntitySubmergedInWater(nearby)) {
-                                if (chained++ >= 2) break;
                                 drawVoltaicArc(targetLevel, target, nearby);
-                                if (getInnateElement(nearby) != Element.ELECTRO && checkReactionIcd(nearby, ElementalReaction.ELECTRO_CHARGED, now)) {
-                                    float nearEcDmg = applyMobElementalResistance(nearby, Element.ELECTRO,
-                                            1.0F * getTransformativeMultiplier(ecEmLvl));
-                                    hurtWithPreAppliedElementalRes(nearby, ElementalDeathMessageHelper.createDamageSource(targetLevel, null, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), nearEcDmg);
-                                    Map<Element, GaugeState> nearGauges = GAUGES.getOrDefault(nearby.getUUID(), Collections.emptyMap());
-                                    syncAuras(nearby, nearGauges.keySet(), Element.HYDRO, Element.ELECTRO, ElementalReaction.ELECTRO_CHARGED, nearEcDmg);
-                                }
+                                applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
                             }
                         }
                     }

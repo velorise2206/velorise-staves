@@ -1048,25 +1048,7 @@ public final class EnvironmentalBlockManager {
 
         if (hitWater) {
             ServerPlayer spAttacker = attacker instanceof ServerPlayer sp ? sp : null;
-            ElectrifiedWaterManager.electrify(level, center, (int) Math.round(radius), 70, spAttacker, Math.max(1.0F, baseDamage * 0.25F));
-            level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.70F, 1.75F);
-            // ParticleTypes.ELECTRIC_SPARK removed
-
-            AABB box = new AABB(hitPos.x - radius - 1.5D, hitPos.y - 2.0D, hitPos.z - radius - 1.5D,
-                                hitPos.x + radius + 1.5D, hitPos.y + 3.0D, hitPos.z + radius + 1.5D);
-            List<LivingEntity> inWaterEntities = level.getEntitiesOfClass(LivingEntity.class, box, e ->
-                    e.isAlive() && !e.isSpectator() && (e.isInWaterOrRain() || e.isInWater()) && (attacker == null || !e.getUUID().equals(attacker.getUUID()))
-            );
-
-            for (LivingEntity victim : inWaterEntities) {
-                if (victim instanceof ServerPlayer sp && RaidenManager.isRaidenMusouActive(sp.getUUID(), level.getGameTime())) {
-                    continue;
-                }
-                float shockDmg = Math.max(1.5F, baseDamage * 0.40F);
-                victim.hurt(ElementalDeathMessageHelper.createDamageSource(level, attacker, ElementalReaction.ELECTRO_CHARGED, Element.ELECTRO), shockDmg);
-                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 1.0F, attacker instanceof ServerPlayer sp ? sp : null, shockDmg);
-                // ParticleTypes.ELECTRIC_SPARK removed
-            }
+            ElectrifiedWaterManager.electrify(level, center, Math.max(1.5D, radius), 70, spAttacker, 1.0F);
         }
 
         if (hitFireOrLava) {

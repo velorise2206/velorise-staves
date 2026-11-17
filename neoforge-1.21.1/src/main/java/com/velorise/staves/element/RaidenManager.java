@@ -859,7 +859,6 @@ public final class RaidenManager {
     public static void triggerRaidenEyeCoordinatedStrike(LivingEntity target, DamageSource source) {
         if (target == null || !target.isAlive() || !(target.level() instanceof ServerLevel level)) return;
         if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return;
-        if (Boolean.TRUE.equals(ElectrifiedWaterManager.IS_SHOCKING.get())) return;
         if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.getReaction() != null) return;
         ServerPlayer attacker = null;
         if (source.getEntity() instanceof ServerPlayer sp) attacker = sp;
