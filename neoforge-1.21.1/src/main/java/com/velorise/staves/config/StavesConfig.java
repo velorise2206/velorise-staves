@@ -66,6 +66,8 @@ public final class StavesConfig {
     public static final ModConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
     public static final ModConfigSpec.BooleanValue ENABLE_PLUNGE_ATTACK;
     public static final ModConfigSpec.BooleanValue ENABLE_WIND_GLIDER;
+    public static final ModConfigSpec.BooleanValue ENABLE_MAVUIKA_WALL_CLIMB;
+    public static final ModConfigSpec.DoubleValue MAVUIKA_BIKE_SPEED_MULTIPLIER;
     public static final ModConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
 
     // Innate Mutation Rules & Whitelist/Blacklist
@@ -94,6 +96,9 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue WIND_COOLDOWN;
     public static final ModConfigSpec.DoubleValue DAYBREAK_COOLDOWN;
     public static final ModConfigSpec.DoubleValue ENGULFING_LIGHTNING_COOLDOWN;
+    public static final ModConfigSpec.DoubleValue THOUSAND_FLOATING_DREAMS_COOLDOWN;
+    public static final ModConfigSpec.DoubleValue TSARITSA_BOW_COOLDOWN;
+    public static final ModConfigSpec.DoubleValue NIGHTS_FOCUS_COOLDOWN;
     public static final ModConfigSpec.DoubleValue OMNI_COOLDOWN;
     public static final ModConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_COOLDOWN;
     public static final ModConfigSpec.DoubleValue PEAK_PATROL_SONG_COOLDOWN;
@@ -119,6 +124,8 @@ public final class StavesConfig {
     public static final ModConfigSpec.DoubleValue OMNI_DAMAGE;
     public static final ModConfigSpec.DoubleValue THOUSAND_BLAZING_SUNS_DAMAGE;
     public static final ModConfigSpec.DoubleValue PEAK_PATROL_SONG_DAMAGE;
+    public static final ModConfigSpec.DoubleValue THOUSAND_FLOATING_DREAMS_DAMAGE;
+    public static final ModConfigSpec.DoubleValue TSARITSA_BOW_DAMAGE;
 
     // Durabilities
     public static final ModConfigSpec.IntValue DRAGONFIRE_DURABILITY_BASIC;
@@ -153,6 +160,16 @@ public final class StavesConfig {
     public static final ModConfigSpec.IntValue WEBCASTER_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue WIND_DURABILITY_BASIC;
     public static final ModConfigSpec.IntValue WIND_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue DAYBREAK_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue DAYBREAK_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue ENGULFING_LIGHTNING_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue ENGULFING_LIGHTNING_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue THOUSAND_FLOATING_DREAMS_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue THOUSAND_FLOATING_DREAMS_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue TSARITSA_BOW_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue TSARITSA_BOW_DURABILITY_NETHERITE;
+    public static final ModConfigSpec.IntValue NIGHTS_FOCUS_DURABILITY_BASIC;
+    public static final ModConfigSpec.IntValue NIGHTS_FOCUS_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue OMNI_DURABILITY_BASIC;
     public static final ModConfigSpec.IntValue OMNI_DURABILITY_NETHERITE;
     public static final ModConfigSpec.IntValue VOID_TRANSLOCATOR_DURABILITY_BASIC;
@@ -253,6 +270,12 @@ public final class StavesConfig {
         ENABLE_WIND_GLIDER = builder
             .comment("Enable Permanent Wind Glider flight and updraft soaring. Default: true")
             .define("enable_wind_glider", true);
+        ENABLE_MAVUIKA_WALL_CLIMB = builder
+            .comment("Enable Genshin-style vertical cliff and wall climbing while riding Mavuika's Flamestrider bike. Default: true")
+            .define("enable_mavuika_wall_climb", true);
+        MAVUIKA_BIKE_SPEED_MULTIPLIER = builder
+            .comment("Movement and wall-climbing speed multiplier for Mavuika's Flamestrider bike (0.5 to 3.0). Default: 1.0")
+            .defineInRange("mavuika_bike_speed_multiplier", 1.0D, 0.5D, 3.0D);
         INNATE_MUTATION_CHANCE = builder
             .comment("Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
             .defineInRange("innate_mutation_chance", 0.07D, 0.0D, 1.0D);
@@ -301,6 +324,9 @@ public final class StavesConfig {
         WIND_COOLDOWN = builder.defineInRange("wind_cooldown", 1.5D, 0.2D, 60.0D);
         DAYBREAK_COOLDOWN = builder.defineInRange("daybreak_cooldown", 2.0D, 0.5D, 60.0D);
         ENGULFING_LIGHTNING_COOLDOWN = builder.defineInRange("engulfing_lightning_cooldown", 10.0D, 0.5D, 60.0D);
+        THOUSAND_FLOATING_DREAMS_COOLDOWN = builder.defineInRange("thousand_floating_dreams_cooldown", 5.0D, 0.5D, 60.0D);
+        TSARITSA_BOW_COOLDOWN = builder.defineInRange("tsaritsa_bow_cooldown", 6.0D, 0.5D, 60.0D);
+        NIGHTS_FOCUS_COOLDOWN = builder.defineInRange("nights_focus_cooldown", 12.0D, 0.5D, 60.0D);
         OMNI_COOLDOWN = builder.defineInRange("omni_cooldown", 6.0D, 0.2D, 60.0D);
         builder.pop();
 
@@ -325,6 +351,8 @@ public final class StavesConfig {
         OMNI_DAMAGE = builder.defineInRange("omni_damage", 10.0D, 0.0D, 500.0D);
         THOUSAND_BLAZING_SUNS_DAMAGE = builder.defineInRange("thousand_blazing_suns_damage", 4.0D, 0.0D, 500.0D);
         PEAK_PATROL_SONG_DAMAGE = builder.defineInRange("peak_patrol_song_damage", 1.0D, 0.0D, 500.0D);
+        THOUSAND_FLOATING_DREAMS_DAMAGE = builder.defineInRange("thousand_floating_dreams_damage", 4.0D, 0.0D, 500.0D);
+        TSARITSA_BOW_DAMAGE = builder.defineInRange("tsaritsa_bow_damage", 4.5D, 0.0D, 500.0D);
         builder.pop();
 
         builder.comment("Item maximum durability values").push("durability");
@@ -360,6 +388,16 @@ public final class StavesConfig {
         WEBCASTER_DURABILITY_NETHERITE = builder.defineInRange("webcaster_netherite", 500, 10, 5000);
         WIND_DURABILITY_BASIC = builder.defineInRange("wind_basic", 140, 10, 5000);
         WIND_DURABILITY_NETHERITE = builder.defineInRange("wind_netherite", 500, 10, 5000);
+        DAYBREAK_DURABILITY_BASIC = builder.defineInRange("daybreak_basic", 150, 10, 5000);
+        DAYBREAK_DURABILITY_NETHERITE = builder.defineInRange("daybreak_netherite", 520, 10, 5000);
+        ENGULFING_LIGHTNING_DURABILITY_BASIC = builder.defineInRange("engulfing_lightning_basic", 160, 10, 5000);
+        ENGULFING_LIGHTNING_DURABILITY_NETHERITE = builder.defineInRange("engulfing_lightning_netherite", 520, 10, 5000);
+        THOUSAND_FLOATING_DREAMS_DURABILITY_BASIC = builder.defineInRange("thousand_floating_dreams_basic", 150, 10, 5000);
+        THOUSAND_FLOATING_DREAMS_DURABILITY_NETHERITE = builder.defineInRange("thousand_floating_dreams_netherite", 500, 10, 5000);
+        TSARITSA_BOW_DURABILITY_BASIC = builder.defineInRange("tsaritsa_bow_basic", 160, 10, 5000);
+        TSARITSA_BOW_DURABILITY_NETHERITE = builder.defineInRange("tsaritsa_bow_netherite", 520, 10, 5000);
+        NIGHTS_FOCUS_DURABILITY_BASIC = builder.defineInRange("nights_focus_basic", 150, 10, 5000);
+        NIGHTS_FOCUS_DURABILITY_NETHERITE = builder.defineInRange("nights_focus_netherite", 500, 10, 5000);
         OMNI_DURABILITY_BASIC = builder.defineInRange("omni_basic", 250, 10, 5000);
         OMNI_DURABILITY_NETHERITE = builder.defineInRange("omni_netherite", 900, 10, 5000);
         VOID_TRANSLOCATOR_DURABILITY_BASIC = builder.defineInRange("void_translocator_basic", 80, 10, 5000);
@@ -712,8 +750,8 @@ public final class StavesConfig {
             case OMNI -> OMNI_DAMAGE.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_DAMAGE.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_DAMAGE.get();
-            case THOUSAND_FLOATING_DREAMS -> 4.0D;
-            case TSARITSA_BOW, TSARITSA_SPEAR -> 4.5D;
+            case THOUSAND_FLOATING_DREAMS -> THOUSAND_FLOATING_DREAMS_DAMAGE.get();
+            case TSARITSA_BOW, TSARITSA_SPEAR -> TSARITSA_BOW_DAMAGE.get();
         };
     }
 
@@ -738,16 +776,17 @@ public final class StavesConfig {
             case EVOKER -> isNetherite ? EVOKER_DURABILITY_NETHERITE.get() : EVOKER_DURABILITY_BASIC.get();
             case VORTEX -> isNetherite ? VORTEX_DURABILITY_NETHERITE.get() : VORTEX_DURABILITY_BASIC.get();
             case LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
-            case FROST, NIGHTS_FOCUS -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
+            case FROST -> isNetherite ? FROSTBOLT_DURABILITY_NETHERITE.get() : FROSTBOLT_DURABILITY_BASIC.get();
+            case NIGHTS_FOCUS -> isNetherite ? NIGHTS_FOCUS_DURABILITY_NETHERITE.get() : NIGHTS_FOCUS_DURABILITY_BASIC.get();
             case WEB -> isNetherite ? WEBCASTER_DURABILITY_NETHERITE.get() : WEBCASTER_DURABILITY_BASIC.get();
             case WIND -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
-            case DAYBREAK -> isNetherite ? WIND_DURABILITY_NETHERITE.get() : WIND_DURABILITY_BASIC.get();
-            case ENGULFING_LIGHTNING -> isNetherite ? ARC_CASTER_DURABILITY_NETHERITE.get() : ARC_CASTER_DURABILITY_BASIC.get();
+            case DAYBREAK -> isNetherite ? DAYBREAK_DURABILITY_NETHERITE.get() : DAYBREAK_DURABILITY_BASIC.get();
+            case ENGULFING_LIGHTNING -> isNetherite ? ENGULFING_LIGHTNING_DURABILITY_NETHERITE.get() : ENGULFING_LIGHTNING_DURABILITY_BASIC.get();
             case OMNI -> isNetherite ? OMNI_DURABILITY_NETHERITE.get() : OMNI_DURABILITY_BASIC.get();
             case THOUSAND_BLAZING_SUNS -> isNetherite ? THOUSAND_BLAZING_SUNS_DURABILITY_NETHERITE.get() : THOUSAND_BLAZING_SUNS_DURABILITY_BASIC.get();
             case PEAK_PATROL_SONG -> isNetherite ? PEAK_PATROL_SONG_DURABILITY_NETHERITE.get() : PEAK_PATROL_SONG_DURABILITY_BASIC.get();
-            case THOUSAND_FLOATING_DREAMS -> isNetherite ? 500 : 150;
-            case TSARITSA_BOW, TSARITSA_SPEAR -> isNetherite ? 520 : 160;
+            case THOUSAND_FLOATING_DREAMS -> isNetherite ? THOUSAND_FLOATING_DREAMS_DURABILITY_NETHERITE.get() : THOUSAND_FLOATING_DREAMS_DURABILITY_BASIC.get();
+            case TSARITSA_BOW, TSARITSA_SPEAR -> isNetherite ? TSARITSA_BOW_DURABILITY_NETHERITE.get() : TSARITSA_BOW_DURABILITY_BASIC.get();
         };
     }
 
@@ -781,7 +820,7 @@ public final class StavesConfig {
             case VORTEX -> VORTEX_COOLDOWN.get();
             case LIGHTNING -> ARC_CASTER_COOLDOWN.get();
             case FROST -> FROSTBOLT_COOLDOWN.get();
-            case NIGHTS_FOCUS -> 12.0D;
+            case NIGHTS_FOCUS -> NIGHTS_FOCUS_COOLDOWN.get();
             case WEB -> WEBCASTER_COOLDOWN.get();
             case WIND -> WIND_COOLDOWN.get();
             case DAYBREAK -> DAYBREAK_COOLDOWN.get();
@@ -789,8 +828,8 @@ public final class StavesConfig {
             case OMNI -> OMNI_COOLDOWN.get();
             case THOUSAND_BLAZING_SUNS -> THOUSAND_BLAZING_SUNS_COOLDOWN.get();
             case PEAK_PATROL_SONG -> PEAK_PATROL_SONG_COOLDOWN.get();
-            case THOUSAND_FLOATING_DREAMS -> 5.0D;
-            case TSARITSA_BOW, TSARITSA_SPEAR -> 6.0D;
+            case THOUSAND_FLOATING_DREAMS -> THOUSAND_FLOATING_DREAMS_COOLDOWN.get();
+            case TSARITSA_BOW, TSARITSA_SPEAR -> TSARITSA_BOW_COOLDOWN.get();
         };
     }
 
@@ -866,6 +905,22 @@ public final class StavesConfig {
     public static boolean isEnableWindGlider() {
         SyncedData s = syncedServerData;
         return s != null ? s.enableWindGlider : ENABLE_WIND_GLIDER.get();
+    }
+
+    public static boolean isEnableMavuikaWallClimb() {
+        try {
+            return ENABLE_MAVUIKA_WALL_CLIMB == null || ENABLE_MAVUIKA_WALL_CLIMB.get();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public static double getMavuikaBikeSpeedMultiplier() {
+        try {
+            return MAVUIKA_BIKE_SPEED_MULTIPLIER != null ? MAVUIKA_BIKE_SPEED_MULTIPLIER.get() : 1.0D;
+        } catch (Exception e) {
+            return 1.0D;
+        }
     }
 
     public static final class MutationRules {

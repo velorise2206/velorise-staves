@@ -95,6 +95,10 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
 
         float yaw = Mth.rotLerp(partialTicks, entity.yRotO, entity.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
+        float climbPitch = Mth.lerp(partialTicks, entity.prevWallClimbPitch, entity.wallClimbPitch);
+        if (Math.abs(climbPitch) > 0.05F) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(climbPitch));
+        }
         float spinLean = Mth.lerp(partialTicks, entity.prevSpinLean, entity.spinLean);
         if (Math.abs(spinLean) > 0.05F) {
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
@@ -108,7 +112,8 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 bufferSource,
                 this.getFont(),
                 entity.isNetherite(),
-                entity.wheelSpinAngle,
+                entity.frontWheelSpinAngle,
+                entity.rearWheelSpinAngle,
                 (float) entity.getCurrentSpeedBlocksPerSec(),
                 (float) entity.getDistanceTraveledBlocks(),
                 entity.isGliding(),
@@ -130,6 +135,21 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             boolean gliding,
             boolean sprinting
     ) {
+        renderBikeMesh(poseStack, bufferSource, font, neth, wheelSpinAngle, wheelSpinAngle, speedBps, odoMeters, gliding, sprinting);
+    }
+
+    public static void renderBikeMesh(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            net.minecraft.client.gui.Font font,
+            boolean neth,
+            float frontWheelSpinAngle,
+            float rearWheelSpinAngle,
+            float speedBps,
+            float odoMeters,
+            boolean gliding,
+            boolean sprinting
+    ) {
         VertexConsumer vc = bufferSource.getBuffer(BIKE_RENDER_TYPE);
 
         // Rich multi-tone Flamestrider palette (Deep Maroon Nose, Crimson Armor, Molten Gold, Obsidian, Fiery Orange, Bright Amber)
@@ -141,9 +161,9 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         float flR = 1.00F, flG = 0.45F, flB = 0.06F;
         float amR = 1.00F, amG = 0.88F, amB = 0.26F;
 
-        // 1. Rear & Front Wheels (with chunky treads)
-        renderWheel(poseStack, vc, 0.0F, 0.34F, -0.82F, wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
-        renderWheel(poseStack, vc, 0.0F, 0.34F, 0.86F, wheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
+        // 1. Rear & Front Wheels (rear wheel rotates R2/R1 faster during concentric Donut Spin)
+        renderWheel(poseStack, vc, 0.0F, 0.34F, -0.82F, rearWheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
+        renderWheel(poseStack, vc, 0.0F, 0.34F, 0.86F, frontWheelSpinAngle, obR, obG, obB, crR, crG, crB, gdR, gdG, gdB, flR, flG, flB);
 
         // 2. Rear Swingarm, Sun-Emblem Hub, Engine Block & Radiator Vents
         drawBox(poseStack, vc, -0.18F, 0.30F, -0.82F, -0.11F, 0.40F, -0.30F, obR, obG, obB, 1.0F);
@@ -561,9 +581,10 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         }
         boolean spinning = bike.isSpinning();
         float spinLean = Mth.lerp(partialTicks, bike.prevSpinLean, bike.spinLean);
+        float climbPitch = Mth.lerp(partialTicks, bike.prevWallClimbPitch, bike.wallClimbPitch);
         int ultiT = bike.getUltiTicks();
         int naT = bike.getActiveNaTicks();
-        if (!spinning && Math.abs(spinLean) <= 0.05F && ultiT <= 0 && naT <= 0 && !bike.isGliding() && !bike.isPlunging()) {
+        if (!spinning && Math.abs(spinLean) <= 0.05F && Math.abs(climbPitch) <= 0.05F && ultiT <= 0 && naT <= 0 && !bike.isGliding() && !bike.isPlunging()) {
             return false;
         }
 
@@ -572,6 +593,9 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
 
         float yaw = Mth.rotLerp(partialTicks, bike.yRotO, bike.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
+        if (Math.abs(climbPitch) > 0.05F) {
+            poseStack.mulPose(Axis.XP.rotationDegrees(climbPitch));
+        }
         if (Math.abs(spinLean) > 0.05F) {
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
         }

@@ -533,6 +533,8 @@ public final class MavuikaManager {
                 drainPerTick = 0.45F;
                 if (bike.isDashingServer()) {
                     drainPerTick = 1.45F;
+                } else if (bike.isWallClimbing()) {
+                    drainPerTick = 0.65F; // 13 pts/s Genshin Flamestrider cliff climbing
                 } else if (bike.isInWater()) {
                     drainPerTick = 0.70F;
                 } else if (bike.isGliding()) {

@@ -112,8 +112,17 @@ public class FlamestriderBikeEntity extends Entity {
     private int lastSyncedServerNaStep = 0;
     private int lastSyncedServerNaTicks = 0;
     private int clientFinisherYawBlendTicks = 0;
+    private static final double FRONT_WHEEL_PIVOT_OFFSET = 0.86D;
+    private static final double REAR_WHEEL_OFFSET = 0.82D;
+    private static final double FRONT_WHEEL_INNER_RADIUS = 0.48D;
+    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 1.34m
+    private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 2.16m (R2/R1 = 4.5x)
     private float spinOrbitAngle = 0.0F;
     private double spinOrbitRadius = 0.0D;
+    private boolean clientWallClimbing = false;
+    private int clientWallCrestTicks = 0;
+    public float wallClimbPitch = 0.0F;
+    public float prevWallClimbPitch = 0.0F;
     private int clientDashTicks = 0;
     private int clientDashCooldownTicks = 0;
     private int clientDashChain = 0;
@@ -123,6 +132,8 @@ public class FlamestriderBikeEntity extends Entity {
     private boolean clientWasPlunging = false;
     private Vec3 clientDashVec = Vec3.ZERO;
     public float wheelSpinAngle = 0.0F;
+    public float frontWheelSpinAngle = 0.0F;
+    public float rearWheelSpinAngle = 0.0F;
     public float spinYawOffset = 0.0F;
     public float spinLean = 0.0F;
     public float prevSpinLean = 0.0F;
@@ -186,6 +197,22 @@ public class FlamestriderBikeEntity extends Entity {
 
     public void setGliding(boolean gliding) {
         this.entityData.set(DATA_GLIDING, gliding);
+    }
+
+    public boolean isWallClimbing() {
+        if (!com.velorise.staves.config.StavesConfig.isEnableMavuikaWallClimb()) {
+            return false;
+        }
+        if (this.level().isClientSide()) {
+            return this.clientWallClimbing;
+        }
+        if (this.isSpinning() || this.isPlunging() || this.getUltiTicks() > 8 || this.getActiveNaTicks() > 0) {
+            return false;
+        }
+        Vec3 fwd = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize();
+        boolean wallAhead = this.horizontalCollision
+                || !this.level().noCollision(this, this.getBoundingBox().move(fwd.x * 0.55D, 0.15D, fwd.z * 0.55D));
+        return wallAhead && this.getDeltaMovement().y > 0.20D;
     }
 
     public boolean isBikeSprinting() {
@@ -704,7 +731,8 @@ public class FlamestriderBikeEntity extends Entity {
 
         Vec3 forward = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize();
         Vec3 midPoint = this.position().add(0.0D, 0.4D, 0.0D);
-        Vec3 tailPoint = midPoint.subtract(forward.scale(1.15D));
+        Vec3 frontPoint = midPoint.add(forward.scale(FRONT_WHEEL_PIVOT_OFFSET));
+        Vec3 tailPoint = midPoint.subtract(forward.scale(REAR_WHEEL_OFFSET));
 
         AABB box = this.getBoundingBox().inflate(3.2D, 1.6D, 3.2D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
@@ -731,8 +759,9 @@ public class FlamestriderBikeEntity extends Entity {
             }
             sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.25F);
         }
-        // Donut flame tire trail at outer edge
-        sl.sendParticles(ParticleTypes.FLAME, tailPoint.x, this.getY() + 0.12D, tailPoint.z, 3, 0.12D, 0.04D, 0.12D, 0.02D);
+        // Concentric Donut flame tire trails: inner ring (front wheel) + outer ring (rear wheel)
+        sl.sendParticles(ParticleTypes.FLAME, frontPoint.x, this.getY() + 0.10D, frontPoint.z, 1, 0.05D, 0.02D, 0.05D, 0.01D);
+        sl.sendParticles(ParticleTypes.FLAME, tailPoint.x, this.getY() + 0.12D, tailPoint.z, 4, 0.12D, 0.04D, 0.12D, 0.02D);
         sl.sendParticles(ParticleTypes.SMOKE, tailPoint.x, this.getY() + 0.08D, tailPoint.z, 2, 0.10D, 0.02D, 0.10D, 0.01D);
     }
 
@@ -1207,8 +1236,26 @@ public class FlamestriderBikeEntity extends Entity {
 
     private void tickClientVisuals() {
         double horizSpeed = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
-        this.wheelSpinAngle += (float) (horizSpeed * 2.6F);
+        double climbSpeed = this.clientWallClimbing ? Math.max(0.0D, this.getY() - this.yo) : 0.0D;
+        float baseSpinDelta = (float) (Math.hypot(horizSpeed, climbSpeed) * 2.6F);
+        this.wheelSpinAngle += baseSpinDelta;
+        if (isSpinning()) {
+            double omega = Math.toRadians(24.0D);
+            double curR1 = Math.max(0.08D, this.spinOrbitRadius - FRONT_WHEEL_PIVOT_OFFSET);
+            double curR2 = Math.max(FRONT_WHEEL_PIVOT_OFFSET, this.spinOrbitRadius) + REAR_WHEEL_OFFSET;
+            this.frontWheelSpinAngle += (float) (omega * curR1 * 2.6D);
+            this.rearWheelSpinAngle += (float) (omega * curR2 * 2.6D);
+        } else {
+            this.frontWheelSpinAngle += baseSpinDelta;
+            this.rearWheelSpinAngle += baseSpinDelta;
+        }
         this.prevSpinLean = this.spinLean;
+        this.prevWallClimbPitch = this.wallClimbPitch;
+        float targetClimbPitch = this.clientWallClimbing ? -74.0F : 0.0F;
+        this.wallClimbPitch = Mth.lerp(this.clientWallClimbing ? 0.38F : 0.28F, this.wallClimbPitch, targetClimbPitch);
+        if (Math.abs(this.wallClimbPitch) < 0.05F) {
+            this.wallClimbPitch = 0.0F;
+        }
         if (this.clientFinisherYawBlendTicks > 0) {
             this.clientFinisherYawBlendTicks--;
         }
@@ -1301,10 +1348,17 @@ public class FlamestriderBikeEntity extends Entity {
         }
         clientWasPlunging = plungingNow;
 
-        // Double-jump Space in mid-air -> deploy wings; press Space again while gliding -> close wings & drop
+        // Double-jump Space in mid-air -> deploy wings; press Space while wall-climbing -> Wall Leap; press Space while gliding -> close wings & drop
         boolean jumping = this.level().isClientSide() && isLocalJumpDown();
         if (jumping && !clientWasJumping) {
-            if (onSurface) {
+            if (this.clientWallClimbing) {
+                this.clientWallClimbing = false;
+                this.clientWallCrestTicks = 4;
+                Vec3 fwdLeap = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
+                this.setDeltaMovement(fwdLeap.x * 0.42D, 0.64D, fwdLeap.z * 0.42D);
+                this.setOnGround(false);
+                clientJumpCooldownTicks = 10;
+            } else if (onSurface) {
                 if (clientJumpCooldownTicks <= 0 && clientPlungeRecoveryTicks <= 0) {
                     Vec3 curVel = this.getDeltaMovement();
                     Vec3 fwdBoost = Vec3.directionFromRotation(0.0F, targetYaw).normalize().scale(0.18D);
@@ -1350,13 +1404,14 @@ public class FlamestriderBikeEntity extends Entity {
         float strafe = rider.xxa;
         boolean sprintingNow = this.isBikeSprinting();
         double speed;
+        double cfgSpeedMult = com.velorise.staves.config.StavesConfig.getMavuikaBikeSpeedMultiplier();
         if (glidingNow) {
             double wingBoost = clientGlideBoostTicks > 0 ? 0.34D * (clientGlideBoostTicks / 12.0D) : 0.0D;
-            speed = (sprintingNow ? 0.74D : 0.64D) + wingBoost;
+            speed = ((sprintingNow ? 0.74D : 0.64D) + wingBoost) * cfgSpeedMult;
         } else if (canSkimWater && (waterHere || waterBelow)) {
-            speed = sprintingNow ? 0.72D : 0.58D;
+            speed = (sprintingNow ? 0.72D : 0.58D) * cfgSpeedMult;
         } else {
-            speed = sprintingNow ? 0.72D : 0.54D;
+            speed = (sprintingNow ? 0.72D : 0.54D) * cfgSpeedMult;
         }
         Vec3 inputVec = Vec3.ZERO;
         if (Math.abs(forward) > 0.01F || Math.abs(strafe) > 0.01F) {
@@ -1377,16 +1432,19 @@ public class FlamestriderBikeEntity extends Entity {
         double vy = prev.y;
 
         if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
+            this.clientWallClimbing = false;
+            this.clientWallCrestTicks = 0;
             if (!clientWasSpinning && clientSpinOrbitGraceTicks <= 0) {
-                // Anchor Donut center at Mavuika's exact current position (zero camera jump, zero forward snap)
+                // Start with front wheel planted at the pivot (R1 = 0) at 12h while rear wheel is at 6h,
+                // then whip tail clockwise (6h -> 9h -> 12h) while smoothly expanding R1 -> 0.48m into concentric circles!
+                double startRad = Math.toRadians(targetYaw);
                 spinStartYaw = targetYaw;
-                spinPivotX = this.getX();
-                spinPivotZ = this.getZ();
+                spinPivotX = this.getX() - Math.sin(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
+                spinPivotZ = this.getZ() + Math.cos(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
-                // Start angle so bikeYaw = (spinOrbitAngle + 195) matches targetYaw on frame 0 with zero rotation snap
-                spinOrbitAngle = Mth.wrapDegrees(targetYaw - 195.0F);
-                spinOrbitRadius = 0.0D;
+                spinOrbitAngle = targetYaw;
+                spinOrbitRadius = FRONT_WHEEL_PIVOT_OFFSET;
                 clientContinuousSpinTicks = 0;
             } else {
                 spinPivotXO = spinPivotX;
@@ -1402,34 +1460,37 @@ public class FlamestriderBikeEntity extends Entity {
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
-            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX + stepX - this.getX(), 0.0D, spinPivotZ - this.getZ()))) {
+            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(stepX, 0.0D, 0.0D))) {
                 spinPivotX += stepX;
             }
-            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX - this.getX(), 0.0D, spinPivotZ + stepZ - this.getZ()))) {
+            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(0.0D, 0.0D, stepZ))) {
                 spinPivotZ += stepZ;
             }
-            spinOrbitRadius = Math.min(1.65D, spinOrbitRadius + 0.33D);
-            spinOrbitAngle = (spinOrbitAngle + 24.0F) % 360.0F;
-            double orbitRad = Math.toRadians(spinOrbitAngle);
-            double cosO = Math.cos(orbitRad);
-            double sinO = Math.sin(orbitRad);
+            // Smoothly expand from front-wheel pivot (0.86m, R1=0) during 6h->9h->12h whip into full concentric orbit (1.34m, R1=0.48m, R2=2.16m)
+            spinOrbitRadius = Math.min(BIKE_CENTER_SPIN_RADIUS, spinOrbitRadius + (FRONT_WHEEL_INNER_RADIUS / 5.0D));
+            // Advance bikeYaw by +24 deg/tick: rear wheel swings clockwise (6h -> 9h -> 12h -> 3h) around the front pivot!
+            spinOrbitAngle = Mth.wrapDegrees(spinOrbitAngle + 24.0F);
+            double yawRad = Math.toRadians(spinOrbitAngle);
+            double sinYaw = Math.sin(yawRad);
+            double cosYaw = Math.cos(yawRad);
             double effectiveRadius = spinOrbitRadius;
             Vec3 pivotPos = new Vec3(spinPivotX, this.getY() + 0.65D, spinPivotZ);
-            Vec3 desiredOrbit = new Vec3(spinPivotX + cosO * effectiveRadius, this.getY() + 0.65D, spinPivotZ + sinO * effectiveRadius);
+            Vec3 desiredCenter = new Vec3(spinPivotX + sinYaw * effectiveRadius, this.getY() + 0.65D, spinPivotZ - cosYaw * effectiveRadius);
             net.minecraft.world.phys.BlockHitResult wallHit = this.level().clip(new net.minecraft.world.level.ClipContext(
-                    pivotPos, desiredOrbit,
+                    pivotPos, desiredCenter,
                     net.minecraft.world.level.ClipContext.Block.COLLIDER,
                     net.minecraft.world.level.ClipContext.Fluid.NONE,
                     this
             ));
             if (wallHit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
-                effectiveRadius = Math.max(0.35D, wallHit.getLocation().distanceTo(pivotPos) - 0.55D);
+                effectiveRadius = Math.max(0.25D, wallHit.getLocation().distanceTo(pivotPos) - 0.45D);
             }
-            double targetX = spinPivotX + cosO * effectiveRadius;
-            double targetZ = spinPivotZ + sinO * effectiveRadius;
+            // Place bike center at (FrontWheelPivot - Forward * effectiveRadius) so Front Wheel stays locked at (spinPivotX, spinPivotZ)
+            double targetX = spinPivotX + sinYaw * effectiveRadius;
+            double targetZ = spinPivotZ - cosYaw * effectiveRadius;
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
-            float bikeYaw = Mth.wrapDegrees(spinOrbitAngle + 195.0F);
+            float bikeYaw = spinOrbitAngle;
             this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
         } else {
@@ -1471,7 +1532,34 @@ public class FlamestriderBikeEntity extends Entity {
         }
 
         int ultiT = getUltiTicks();
+        Vec3 fwdClimbDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
+        boolean canWallClimb = com.velorise.staves.config.StavesConfig.isEnableMavuikaWallClimb()
+                && !spinningNow && !plungingNow && ultiT <= 8 && finNaT <= 0 && clientDashTicks <= 0;
+        boolean wallClimbingNow = false;
+        if (canWallClimb && forward > 0.05F) {
+            double probeDist = this.clientWallClimbing ? 0.68D : 0.52D;
+            boolean wallLow = this.horizontalCollision
+                    || !this.level().noCollision(this, this.getBoundingBox().move(fwdClimbDir.x * probeDist, 0.15D, fwdClimbDir.z * probeDist));
+            boolean wallHigh = !this.level().noCollision(this, this.getBoundingBox().move(fwdClimbDir.x * probeDist, 1.28D, fwdClimbDir.z * probeDist));
+            if (this.clientWallClimbing) {
+                if (wallLow) {
+                    wallClimbingNow = true;
+                } else {
+                    // Reached cliff top edge: vault smoothly onto the flat ledge
+                    this.clientWallCrestTicks = 5;
+                }
+            } else if (wallLow && (wallHigh || this.horizontalCollision)) {
+                wallClimbingNow = true;
+            }
+        }
+        this.clientWallClimbing = wallClimbingNow;
+        if (this.clientWallCrestTicks > 0) {
+            this.clientWallCrestTicks--;
+        }
+
         if (this.isPlunging()) {
+            this.clientWallClimbing = false;
+            this.clientWallCrestTicks = 0;
             clientGlideTicks = 0;
             if (getPlungeWindup() > 0) {
                 vx *= 0.15D;
@@ -1516,6 +1604,24 @@ public class FlamestriderBikeEntity extends Entity {
                 vz = Mth.lerp(0.35D, prev.z, inputVec.z);
                 vy = onSurface ? -0.04D : Math.max(-1.0D, prev.y - 0.08D);
             }
+        } else if (wallClimbingNow) {
+            clientGlideTicks = 0;
+            clientGlideBoostTicks = 0;
+            clientGlideCharges = 1;
+            double climbVy = (sprintingNow ? 0.56D : 0.42D) * cfgSpeedMult;
+            vx = fwdClimbDir.x * 0.24D + inputVec.x * 0.25D;
+            vz = fwdClimbDir.z * 0.24D + inputVec.z * 0.25D;
+            vy = climbVy;
+            this.setOnGround(false);
+            if (this.tickCount % 2 == 0) {
+                this.level().addParticle(ParticleTypes.FLAME,
+                        this.getX() + fwdClimbDir.x * 0.55D, this.getY() + 0.35D, this.getZ() + fwdClimbDir.z * 0.55D,
+                        0.0D, 0.08D, 0.0D);
+            }
+        } else if (this.clientWallCrestTicks > 0) {
+            vx = Mth.lerp(0.55D, vx, fwdClimbDir.x * 0.50D * cfgSpeedMult);
+            vz = Mth.lerp(0.55D, vz, fwdClimbDir.z * 0.50D * cfgSpeedMult);
+            vy = Math.max(vy, 0.16D);
         } else if (waterHere && canSkimWater) {
             vy = Math.max(vy, 0.14D); // Skim up to water surface
         } else if (waterBelow && canSkimWater && vy <= 0.0D && !glidingNow) {

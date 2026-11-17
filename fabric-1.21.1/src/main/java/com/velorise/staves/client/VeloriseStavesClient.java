@@ -90,6 +90,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         });
 
         net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OMNI_WHEEL_KEY);
+        net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OPEN_CONFIG_KEY);
         net.minecraft.client.KeyMapping mavuikaUltiKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
                 new net.minecraft.client.KeyMapping(
                         "key.velorise_staves.mavuika_ulti",
@@ -260,6 +261,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
             if (ClientAuraTracker.isFiveStarBurstRootActive(client.player.getId())) {
                 client.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+            }
+            while (OmniWheelOverlay.OPEN_CONFIG_KEY.consumeClick()) {
+                if (client.screen == null) {
+                    client.setScreen(new VeloriseConfigScreen(null));
+                }
             }
             while (mavuikaUltiKey.consumeClick()) {
                 if (client.player != null) {
@@ -496,7 +502,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     wasXilonenDashKeyDown[0] = client.options.keySprint.isDown() || client.options.keyUse.isDown();
                 } else {
                     boolean dashKeyDown = client.options.keySprint.isDown() || (client.options.keyUse.isDown() && !client.player.isShiftKeyDown());
-                    if (dashKeyDown && !wasXilonenDashKeyDown[0]) {
+                    if (dashKeyDown && !wasXilonenDashKeyDown[0]
+                            && (client.player.onGround() || ClientAuraTracker.isXilonenWallClimbing(client.player.getId()))) {
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_XILONEN_DASH);
                     }

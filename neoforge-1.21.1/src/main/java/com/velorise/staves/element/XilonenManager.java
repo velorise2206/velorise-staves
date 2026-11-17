@@ -58,6 +58,7 @@ public final class XilonenManager {
         public boolean skating = false;
         public boolean netherite = false;
         public float nightsoulPoints = 0.0F;
+        public long skateStartTick = 0L;
         public long skateUntilTick = 0L;
         public long lastDashTick = -100L;
         public int kickCombo = 0;
@@ -215,6 +216,7 @@ public final class XilonenManager {
         st.netherite = isNetherite || loadout.hasNetheriteXilonen();
         st.nightsoulPoints = 45.0F; // Starts at 45.0 / 90.0 Nightsoul points (~9.0s skate duration)
         long maxDurationTicks = st.netherite ? 260L : 190L; // ~9.0s Basic, ~13.0s Netherite (C1)
+        st.skateStartTick = now;
         st.skateUntilTick = now + maxDurationTicks;
         st.lastDashTick = now;
         st.kickCombo = 0;
@@ -233,6 +235,8 @@ public final class XilonenManager {
         long now = level.getGameTime();
         XilonenPlayerState st = STATES.get(player.getUUID());
         if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) return;
+        // Prevent mid-air dash flying exploit: Genshin Roller Skate Dash requires ground contact (or wall-climbing)
+        if (!player.onGround() && !st.wallClimbing) return;
         if (now >= st.lastDashTick && now - st.lastDashTick < 10L) return; // Require release & repress + 0.5s ICD (prevents hold-drain)
         st.lastDashTick = now;
 
@@ -273,7 +277,8 @@ public final class XilonenManager {
         } else {
             horiz = horiz.normalize();
         }
-        Vec3 lungeVel = new Vec3(horiz.x * speed, Math.max(0.12D, player.getDeltaMovement().y), horiz.z * speed);
+        double lungeVy = player.onGround() ? Math.max(0.06D, player.getDeltaMovement().y) : player.getDeltaMovement().y;
+        Vec3 lungeVel = new Vec3(horiz.x * speed, lungeVy, horiz.z * speed);
         player.setDeltaMovement(lungeVel);
         player.hasImpulse = true;
         player.connection.send(new ClientboundSetEntityMotionPacket(player));
@@ -395,7 +400,10 @@ public final class XilonenManager {
         st.nightsoulPoints = 0.0F;
         st.skateUntilTick = 0L;
         if (applyCooldown) {
-            int cdTicks = Math.max(20, (int) Math.round(StavesConfig.getStaffCooldownSeconds(ArcaneStaffItem.Kind.PEAK_PATROL_SONG) * 20.0D * StavesConfig.getCooldownMultiplier()));
+            long now = player.level().getGameTime();
+            int baseCdTicks = Math.max(20, (int) Math.round(StavesConfig.getStaffCooldownSeconds(ArcaneStaffItem.Kind.PEAK_PATROL_SONG) * 20.0D * StavesConfig.getCooldownMultiplier()));
+            long elapsed = st.skateStartTick > 0L ? Math.max(0L, now - st.skateStartTick) : 0L;
+            int cdTicks = Math.max(20, (int) (baseCdTicks - elapsed));
             for (ItemStack s : player.getInventory().items) {
                 if (!s.isEmpty() && s.getItem() instanceof ArcaneStaffItem staff) {
                     if (staff.kind() == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
@@ -662,9 +670,9 @@ public final class XilonenManager {
             boolean wantSkate = st.skating && now < st.skateUntilTick;
             AttributeModifier existing = spd.getModifier(SKATE_SPEED_ID);
             if (wantSkate) {
-                if (existing == null || Math.abs(existing.amount() - 0.65D) > 0.001D) {
+                if (existing == null || Math.abs(existing.amount() - 0.35D) > 0.001D) {
                     if (existing != null) spd.removeModifier(SKATE_SPEED_ID);
-                    spd.addTransientModifier(new AttributeModifier(SKATE_SPEED_ID, 0.65D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+                    spd.addTransientModifier(new AttributeModifier(SKATE_SPEED_ID, 0.35D, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
                 }
             } else if (existing != null) {
                 spd.removeModifier(SKATE_SPEED_ID);

@@ -773,5 +773,10 @@
   "codex.velorise_staves.staff.tsaritsa_bow": "§b[Cryo Archon — Tsaritsa]§r §eDual Stance (Bow ⇄ Spear):§r In §bBow Stance§r, §fTap Left-Click§r fires a §bCryo§r arrow; §fHold Left-Click§r charges a 2-stage Frostflake Arrow (0.8s Blooming Glacial Nova AoE that freezes water). §eHold Right-Click 0.7s (6s CD):§r Switches to §bSpear Stance§r (+20% Speed) with a 3-step §fLeft-Click§r glacial cleave combo that §bfreezes water§r along every slash! §eTap Right-Click (8s CD):§r Summons a §bRime-Pillar (12s)§r pulsing AoE §bCryo§r every 2s (4.5m➔6.0m) + §bCryo Shield§r. §bStellar Cryo Passive:§r §eElemental Mastery§r or §eElemental Resonance§r unlocks Lv.1–3 §bStellar Cryo§r (+15%/+30%/+50% DMG), upgrading §aSwirl§r & §dSuperconduct§r into §bStellar Swirl§r & §bStellar Conduct§r (switching weapons triggers §bStellar Punishment§r ice beams!). §bBurst [R] — Rime-Throne's Decree (15s CD, 2.0s I-frames):§r §bBow Stance§r casts a 12s blizzard domain (+team §eElemental Mastery§r); §bSpear Stance§r hurls the sky spear for massive AoE §bCryo§r + 4s §bFrozen§r and +50% Bow DMG for 10s!",
   "codex.velorise_staves.innate.card2.p2": "• §6Omni Element (Universal Wildcard):§r Dropped by §6Omni Mutated§r mobs (25%), crafted from all 7 Elements, or traded from mysterious §eWandering Traders§r! Can substitute for §eANY specific element§r when crafting §bElemental Staves & Rods§r, or imbue a Sword with §6OMNI§r on an Anvil.",
   "advancement.velorise_staves.where_is_he_from.title": "Where is he from ??",
-  "advancement.velorise_staves.where_is_he_from.desc": "Successfully trade for an elemental treasure from a mysterious Wandering Trader."
+  "advancement.velorise_staves.where_is_he_from.desc": "Successfully trade for an elemental treasure from a mysterious Wandering Trader.",
+  "key.velorise_staves.open_config": "Open Staves Configuration",
+  "config.velorise_staves.enable_mavuika_wall_climb": "Flamestrider Wall Climb",
+  "config.velorise_staves.enable_mavuika_wall_climb.desc": "Allow Mavuika's Flamestrider motorcycle to climb vertical cliffs and walls.",
+  "config.velorise_staves.mavuika_bike_speed": "Flamestrider Speed Mult",
+  "config.velorise_staves.mavuika_bike_speed.desc": "Movement and wall-climbing speed multiplier for Mavuika's Flamestrider motorcycle (Default: 1.0x)."
 }

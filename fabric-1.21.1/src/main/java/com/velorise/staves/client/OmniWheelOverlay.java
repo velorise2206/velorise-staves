@@ -38,6 +38,12 @@ public final class OmniWheelOverlay {
             GLFW.GLFW_KEY_TAB,
             "key.categories.velorise_staves"
     );
+    public static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
+            "key.velorise_staves.open_config",
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_O,
+            "key.categories.velorise_staves"
+    );
 
     private static final ResourceLocation[] SLOT_TEXTURES = new ResourceLocation[8];
     private static boolean wheelActive = false;
