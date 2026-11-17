@@ -104,7 +104,11 @@ public final class OmniWheelOverlay {
     private static boolean wasRidingBike = false;
     private static int bikeAttackHoldTicks = 0;
     private static boolean bikeSpinActive = false;
-    private static int bikeComboChainTicks = 0;
+    private static int bikeSpinReleaseWindowTicks = 0;
+    private static boolean bikeHeldThroughDash = false;
+    private static boolean bikeAutoSpinLatched = false;
+    private static int bikeSpinTapCount = 0;
+    private static int bikeDoubleTapWindowTicks = 0;
     private static boolean bikeDismountWaitAttackRelease = false;
     private static int queuedFastAttackClicks = 0;
     private static boolean ventiUltiFiredThisHold = false;
@@ -243,7 +247,11 @@ public final class OmniWheelOverlay {
             wasRidingBike = false;
             bikeAttackHoldTicks = 0;
             bikeSpinActive = false;
-            bikeComboChainTicks = 0;
+            bikeSpinReleaseWindowTicks = 0;
+            bikeHeldThroughDash = false;
+            bikeAutoSpinLatched = false;
+            bikeSpinTapCount = 0;
+            bikeDoubleTapWindowTicks = 0;
             queuedFastAttackClicks = 0;
             ClientAuraTracker.ventiUltiHoldTicks = 0;
             ventiUltiFiredThisHold = false;
@@ -591,40 +599,92 @@ public final class OmniWheelOverlay {
             while (mc.options.keyUse.consumeClick()) {
                 // Suppress item right-click re-triggers while riding bike
             }
-            if (bikeSpinActive || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0)) {
-                bikeComboChainTicks = Math.max(bikeComboChainTicks, 14);
-            } else if (bikeComboChainTicks > 0) {
-                bikeComboChainTicks--;
+            if (bikeSpinReleaseWindowTicks > 0) {
+                bikeSpinReleaseWindowTicks--;
+            }
+            if (bikeDoubleTapWindowTicks > 0) {
+                bikeDoubleTapWindowTicks--;
+                if (bikeDoubleTapWindowTicks == 0) {
+                    bikeSpinTapCount = 0;
+                }
+            }
+            if (mc.options.keyJump.isDown()) {
+                bikeAutoSpinLatched = false;
             }
             if (bike.getUltiTicks() > 8) {
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
-                bikeComboChainTicks = 0;
+                bikeSpinReleaseWindowTicks = 0;
+                bikeHeldThroughDash = false;
+                bikeAutoSpinLatched = false;
+                bikeSpinTapCount = 0;
+                bikeDoubleTapWindowTicks = 0;
             } else {
                 boolean attackDown = mc.options.keyAttack.isDown();
+                if (!attackDown && bikeHeldThroughDash) {
+                    bikeHeldThroughDash = false;
+                }
                 boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
-                boolean inComboChain = bikeComboChainTicks > 0 || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0);
-                int requiredHoldTicks = inComboChain ? 1 : 4;
+                // Only use 1-tick fast re-entry when re-holding out of an active Donut Spin ("(" / CCD) or holding continuously through a Dash ("CD")
+                boolean fastSpinReentry = bikeSpinReleaseWindowTicks > 0 || bikeHeldThroughDash
+                        || (bike.getNaStep() == 6 && bike.getNaTicks() > 0 && (bike.getNaTicks() >= 9 || bike.getNaTicks() <= 5));
+                int requiredHoldTicks = fastSpinReentry ? 1 : 6; // 6 ticks (300ms) hold from neutral so 1-5 tick clicks always perform Normal Attack!
                 if (attackDown) {
+                    if (bikeAttackHoldTicks == 0 && (bike.isSpinning() || bikeSpinReleaseWindowTicks > 0 || bikeAutoSpinLatched)) {
+                        // Player tapped/pressed Left-Click while spinning or in release grace window
+                        if (bikeAutoSpinLatched && bikeDoubleTapWindowTicks == 0) {
+                            // Deliberate new press while already hands-free spinning: unlatch on release to allow manual Finisher ("F")
+                            bikeAutoSpinLatched = false;
+                        } else {
+                            bikeSpinTapCount++;
+                            bikeDoubleTapWindowTicks = 10; // 0.5s window for double-tap
+                            if (bikeSpinTapCount >= 2) {
+                                // Genshin Hands-Free Continuous Charged Attack Tech (Double-Tap while spinning)
+                                bikeAutoSpinLatched = true;
+                            }
+                        }
+                    }
                     bikeAttackHoldTicks++;
                     if (!bikeSpinActive && !committedFinisherSlam && bikeAttackHoldTicks >= requiredHoldTicks) {
                         bikeSpinActive = true;
-                        bikeComboChainTicks = 14;
+                        if (bikeDoubleTapWindowTicks == 0 && !bikeAutoSpinLatched) {
+                            bikeSpinTapCount = 0;
+                            bikeDoubleTapWindowTicks = 10;
+                        }
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
                     }
                 } else if (bikeAttackHoldTicks > 0) {
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(bikeSpinActive
-                            ? com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP
-                            : com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    if (bikeSpinActive) {
+                        if (bikeAutoSpinLatched) {
+                            // Hands-Free Continuous Spin Latched: releasing Left-Click keeps spinning without triggering Finisher ("F")!
+                            bikeSpinReleaseWindowTicks = 8;
+                        } else {
+                            bikeSpinReleaseWindowTicks = 6; // 300ms re-hold window for "(" / CCD / double-tap
+                            if (bikeDoubleTapWindowTicks == 0) {
+                                bikeDoubleTapWindowTicks = 10;
+                            }
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                            bikeSpinActive = false;
+                        }
+                    } else {
+                        // Released before 6-tick hold threshold -> Normal Attack (N1..N5)!
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    }
                     bikeAttackHoldTicks = 0;
-                    bikeSpinActive = false;
                 } else if (attackClicks > 0) {
-                    // Ultra-fast tap pressed and released within the same client tick
-                    if (bike.isSpinning()) {
-                        // Quick re-tap "(" while spinning: pulse SPIN_START to keep spinning and reset cyclic hit
-                        bikeComboChainTicks = 14;
-                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
-                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                    // Ultra-fast click pressed and released within the same client tick
+                    if (bike.isSpinning() || bikeSpinReleaseWindowTicks > 0 || bikeAutoSpinLatched) {
+                        bikeSpinTapCount += attackClicks;
+                        bikeDoubleTapWindowTicks = 10;
+                        if (bikeSpinTapCount >= 2) {
+                            bikeAutoSpinLatched = true;
+                            bikeSpinActive = true;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                        } else {
+                            bikeSpinReleaseWindowTicks = 6;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                        }
                     } else {
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
                     }
@@ -635,9 +695,15 @@ public final class OmniWheelOverlay {
             boolean dashTriggered = sprintDown && !wasBikeDashDown && !bike.isOnDashCooldown();
             wasBikeDashDown = sprintDown;
             if (dashTriggered) {
+                boolean wasSpinningOrHolding = bikeSpinActive || bike.isSpinning() || bikeSpinReleaseWindowTicks > 0
+                        || bikeAutoSpinLatched || mc.options.keyAttack.isDown();
                 bike.triggerClientDash(mc.player);
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
-                bikeComboChainTicks = 14;
+                bikeHeldThroughDash = wasSpinningOrHolding && mc.options.keyAttack.isDown();
+                bikeSpinReleaseWindowTicks = wasSpinningOrHolding ? 7 : 0;
+                bikeAutoSpinLatched = false;
+                bikeSpinTapCount = 0;
+                bikeDoubleTapWindowTicks = 0;
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
             }
@@ -658,7 +724,11 @@ public final class OmniWheelOverlay {
             bikeSprintActive = false;
             bikeAttackHoldTicks = 0;
             bikeSpinActive = false;
-            bikeComboChainTicks = 0;
+            bikeSpinReleaseWindowTicks = 0;
+            bikeHeldThroughDash = false;
+            bikeAutoSpinLatched = false;
+            bikeSpinTapCount = 0;
+            bikeDoubleTapWindowTicks = 0;
             if (bikeDismountWaitAttackRelease) {
                 if (!mc.options.keyAttack.isDown()) {
                     bikeDismountWaitAttackRelease = false;

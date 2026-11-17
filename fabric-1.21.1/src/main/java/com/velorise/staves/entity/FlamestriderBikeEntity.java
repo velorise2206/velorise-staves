@@ -82,6 +82,9 @@ public class FlamestriderBikeEntity extends Entity {
     private int clientSpinOrbitGraceTicks = 0;
     private boolean pendingMountWhipDamage = false;
     private float spinStartYaw = 0.0F;
+    private int serverContinuousSpinTicks = 0;
+    private int serverSpinHitsSinceDash = 0;
+    private int clientContinuousSpinTicks = 0;
     private int naComboStep = 0;
     private long lastNaTick = -100L;
     private float pendingUltiDamage = 0.0F;
@@ -538,9 +541,16 @@ public class FlamestriderBikeEntity extends Entity {
             setBikeSprinting(sprintInputHeld && !holdingSuns && getUltiTicks() <= 8);
 
             if (holdingSuns) {
+                serverContinuousSpinTicks++;
                 serverSpinAngle = (serverSpinAngle + 24.0F) % 360.0F;
                 performDonutSweepHit(sl, sp, now);
+                // Genshin "CC" No-Finisher Combo Mechanic: spinning for 1 full rotation (~10 ticks or 2 C hits) resets the 2-dash cooldown
+                if (serverContinuousSpinTicks >= 9 || serverSpinHitsSinceDash >= 2) {
+                    this.serverDashCooldownUntil = -100L;
+                    this.serverDashChain = 0;
+                }
             } else {
+                serverContinuousSpinTicks = 0;
                 serverSpinAngle = 0.0F;
             }
             if (serverDashTicks > 0 || (!holdingSuns && isBikeSprinting())) {
@@ -591,7 +601,7 @@ public class FlamestriderBikeEntity extends Entity {
             double dTail = target.position().add(0.0D, target.getBbHeight() * 0.4D, 0.0D).distanceToSqr(tailPoint);
             if (dMid > 10.24D && dTail > 10.24D) continue; // 3.2m Donut Charged Attack Cyclic AoE radius
             long lastHit = spinHitCooldowns.getOrDefault(target.getId(), -100L);
-            if (now - lastHit < 11L) continue; // Hit once per ~0.55s cyclic revolution (or reset via Dash / Re-Hold)
+            if (now - lastHit < 9L) continue; // Hit at start (0t) and end (9t = 0.45s) of 1 full rotation ("CC")
             spinHitCooldowns.put(target.getId(), now);
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             sl.sendParticles(ParticleTypes.FLAME,
@@ -600,6 +610,11 @@ public class FlamestriderBikeEntity extends Entity {
             anyHit = true;
         }
         if (anyHit) {
+            serverSpinHitsSinceDash++;
+            if (serverSpinHitsSinceDash >= 2) {
+                this.serverDashCooldownUntil = -100L;
+                this.serverDashChain = 0;
+            }
             sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.25F);
         }
         // Donut flame tire trail at outer edge
@@ -1004,6 +1019,8 @@ public class FlamestriderBikeEntity extends Entity {
             }
         }
         lastSpinDamageTick = -100L;
+        serverSpinHitsSinceDash = 0;
+        serverContinuousSpinTicks = 0;
         dashHitCooldowns.clear();
         spinHitCooldowns.clear(); // Reset donut hit ICD so follow-up CA strikes immediately
         serverSpinAngle = 0.0F;
@@ -1195,46 +1212,44 @@ public class FlamestriderBikeEntity extends Entity {
 
         if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
             if (!clientWasSpinning && clientSpinOrbitGraceTicks <= 0) {
-                // Anchor Donut center R = 1.75m in front of Mavuika so she starts at 6 o'clock (her exact current spot, zero sideways snap)
+                // Anchor Donut center at Mavuika's exact current position (zero camera jump, zero forward snap)
                 spinStartYaw = targetYaw;
-                double startRad = Math.toRadians(spinStartYaw);
-                double fwdX = -Math.sin(startRad);
-                double fwdZ = Math.cos(startRad);
-                spinOrbitRadius = 1.75D;
-                spinPivotX = this.getX() + fwdX * spinOrbitRadius;
-                spinPivotZ = this.getZ() + fwdZ * spinOrbitRadius;
+                spinPivotX = this.getX();
+                spinPivotZ = this.getZ();
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
-                spinOrbitAngle = 0.0F;
+                // Start angle so bikeYaw = (spinOrbitAngle + 195) matches targetYaw on frame 0 with zero rotation snap
+                spinOrbitAngle = Mth.wrapDegrees(targetYaw - 195.0F);
+                spinOrbitRadius = 0.0D;
+                clientContinuousSpinTicks = 0;
             } else {
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
             }
+            clientContinuousSpinTicks++;
+            if (clientContinuousSpinTicks >= 9) {
+                // Completing 1 full Donut rotation ("CC") resets the 2-dash cooldown on client for infinite "CCD CC CD CC"
+                this.clientDashCooldownTicks = 0;
+                this.clientDashChain = 0;
+                this.clientDashWindowTicks = 0;
+            }
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
-            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(stepX, 0.0D, 0.0D))) {
+            if (Math.abs(stepX) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX + stepX - this.getX(), 0.0D, spinPivotZ - this.getZ()))) {
                 spinPivotX += stepX;
             }
-            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(0.0D, 0.0D, stepZ))) {
+            if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(spinPivotX - this.getX(), 0.0D, spinPivotZ + stepZ - this.getZ()))) {
                 spinPivotZ += stepZ;
             }
-            spinOrbitRadius = 1.75D;
+            spinOrbitRadius = Math.min(1.65D, spinOrbitRadius + 0.33D);
             spinOrbitAngle = (spinOrbitAngle + 24.0F) % 360.0F;
-            double startRad = Math.toRadians(spinStartYaw);
-            double fwdX = -Math.sin(startRad);
-            double fwdZ = Math.cos(startRad);
-            double rightX = -Math.cos(startRad);
-            double rightZ = -Math.sin(startRad);
-            double phaseRad = Math.toRadians(spinOrbitAngle);
-            double cosP = Math.cos(phaseRad);
-            double sinP = Math.sin(phaseRad);
-            // 0 deg = 6 o'clock (-fwd), 90 deg = 3 o'clock (+right), 180 deg = 12 o'clock (+fwd), 270 deg = 9 o'clock (-right)
-            double dirX = -fwdX * cosP + rightX * sinP;
-            double dirZ = -fwdZ * cosP + rightZ * sinP;
+            double orbitRad = Math.toRadians(spinOrbitAngle);
+            double cosO = Math.cos(orbitRad);
+            double sinO = Math.sin(orbitRad);
             double effectiveRadius = spinOrbitRadius;
             Vec3 pivotPos = new Vec3(spinPivotX, this.getY() + 0.65D, spinPivotZ);
-            Vec3 desiredOrbit = new Vec3(spinPivotX + dirX * effectiveRadius, this.getY() + 0.65D, spinPivotZ + dirZ * effectiveRadius);
+            Vec3 desiredOrbit = new Vec3(spinPivotX + cosO * effectiveRadius, this.getY() + 0.65D, spinPivotZ + sinO * effectiveRadius);
             net.minecraft.world.phys.BlockHitResult wallHit = this.level().clip(new net.minecraft.world.level.ClipContext(
                     pivotPos, desiredOrbit,
                     net.minecraft.world.level.ClipContext.Block.COLLIDER,
@@ -1244,14 +1259,15 @@ public class FlamestriderBikeEntity extends Entity {
             if (wallHit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
                 effectiveRadius = Math.max(0.35D, wallHit.getLocation().distanceTo(pivotPos) - 0.55D);
             }
-            double targetX = spinPivotX + dirX * effectiveRadius;
-            double targetZ = spinPivotZ + dirZ * effectiveRadius;
+            double targetX = spinPivotX + cosO * effectiveRadius;
+            double targetZ = spinPivotZ + sinO * effectiveRadius;
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
-            float bikeYaw = Mth.wrapDegrees(spinStartYaw - spinOrbitAngle + 55.0F);
+            float bikeYaw = Mth.wrapDegrees(spinOrbitAngle + 195.0F);
             this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
         } else {
+            clientContinuousSpinTicks = 0;
             if (clientDashTicks > 0 || getUltiTicks() > 6) {
                 clientSpinOrbitGraceTicks = 0;
                 spinOrbitRadius = 0.0D;
@@ -1260,8 +1276,8 @@ public class FlamestriderBikeEntity extends Entity {
             } else {
                 spinOrbitRadius = 0.0D;
             }
-            spinPivotXO = spinPivotX;
-            spinPivotZO = spinPivotZ;
+            spinPivotXO = this.getX();
+            spinPivotZO = this.getZ();
         }
         clientWasSpinning = spinningNow;
 
@@ -1315,11 +1331,11 @@ public class FlamestriderBikeEntity extends Entity {
             }
             this.setOnGround(false);
         } else if (finNaT > 6) {
-            // Converge from any Donut release angle straight onto the front-center target axis (spinPivot + fwd * 0.35D)
+            // Converge from any Donut release angle straight onto the front-center target axis (spinPivot + fwd * 0.85D)
             Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
             if (finNaT >= 9) {
-                double goalX = spinPivotX + fwdDir.x * 0.35D;
-                double goalZ = spinPivotZ + fwdDir.z * 0.35D;
+                double goalX = spinPivotX + fwdDir.x * 0.85D;
+                double goalZ = spinPivotZ + fwdDir.z * 0.85D;
                 double toGoalX = goalX - this.getX();
                 double toGoalZ = goalZ - this.getZ();
                 double distGoal = Math.hypot(toGoalX, toGoalZ);
