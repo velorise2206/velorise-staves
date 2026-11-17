@@ -109,7 +109,9 @@ public final class OmniWheelOverlay {
     private static boolean wasRidingBike = false;
     private static int bikeAttackHoldTicks = 0;
     private static boolean bikeSpinActive = false;
+    private static int bikeComboChainTicks = 0;
     private static boolean bikeDismountWaitAttackRelease = false;
+    private static int queuedFastAttackClicks = 0;
     private static boolean ventiUltiFiredThisHold = false;
     private static boolean neuvilletteLeftHoldSent = false;
     private static boolean wasAirJumpDown = false;
@@ -145,6 +147,9 @@ public final class OmniWheelOverlay {
         if (!event.isAttack()) return;
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null && (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease)) {
+            if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
+                queuedFastAttackClicks++;
+            }
             event.setSwingHand(false);
             event.setCanceled(true);
             return;
@@ -244,6 +249,8 @@ public final class OmniWheelOverlay {
                 wasRidingBike = false;
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
+                bikeComboChainTicks = 0;
+                queuedFastAttackClicks = 0;
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
                 ventiUltiFiredThisHold = false;
                 furinaAttackHoldTicks = 0;
@@ -576,19 +583,39 @@ public final class OmniWheelOverlay {
                     wasRidingBike = true;
                     bikeMountWaitRelease = mc.options.keyUse.isDown();
                     bikeDismountWaitAttackRelease = false;
+                    queuedFastAttackClicks = 0;
                 }
                 if (bikeMountWaitRelease && !mc.options.keyUse.isDown()) {
                     bikeMountWaitRelease = false;
                 }
-                if (bike.isFinisherPlaying()) {
+                int attackClicks = queuedFastAttackClicks;
+                queuedFastAttackClicks = 0;
+                while (mc.options.keyAttack.consumeClick()) {
+                    // Suppress melee swing/block-breaking while riding bike, but count fast taps
+                    attackClicks++;
+                }
+                while (mc.options.keyUse.consumeClick()) {
+                    // Suppress item right-click re-triggers while riding bike
+                }
+                if (bikeSpinActive || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0)) {
+                    bikeComboChainTicks = Math.max(bikeComboChainTicks, 14);
+                } else if (bikeComboChainTicks > 0) {
+                    bikeComboChainTicks--;
+                }
+                if (bike.getUltiTicks() > 8) {
                     bikeAttackHoldTicks = 0;
                     bikeSpinActive = false;
+                    bikeComboChainTicks = 0;
                 } else {
                     boolean attackDown = mc.options.keyAttack.isDown();
+                    boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                    boolean inComboChain = bikeComboChainTicks > 0 || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0);
+                    int requiredHoldTicks = inComboChain ? 1 : 4;
                     if (attackDown) {
                         bikeAttackHoldTicks++;
-                        if (!bikeSpinActive && bikeAttackHoldTicks >= 5) {
+                        if (!bikeSpinActive && !committedFinisherSlam && bikeAttackHoldTicks >= requiredHoldTicks) {
                             bikeSpinActive = true;
+                            bikeComboChainTicks = 14;
                             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_SPIN_START);
                         }
                     } else if (bikeAttackHoldTicks > 0) {
@@ -597,13 +624,15 @@ public final class OmniWheelOverlay {
                                 : com.velorise.staves.network.MavuikaActionPacket.ACTION_BIKE_NA);
                         bikeAttackHoldTicks = 0;
                         bikeSpinActive = false;
+                    } else if (attackClicks > 0) {
+                        if (bike.isSpinning()) {
+                            bikeComboChainTicks = 14;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_SPIN_START);
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_SPIN_STOP);
+                        } else {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_BIKE_NA);
+                        }
                     }
-                }
-                while (mc.options.keyAttack.consumeClick()) {
-                    // Suppress melee swing/block-breaking while riding bike
-                }
-                while (mc.options.keyUse.consumeClick()) {
-                    // Suppress item right-click re-triggers while riding bike
                 }
                 boolean useHeld = !bikeMountWaitRelease && mc.options.keyUse.isDown();
                 boolean sprintDown = mc.options.keySprint.isDown() || useHeld;
@@ -612,6 +641,7 @@ public final class OmniWheelOverlay {
                 if (dashTriggered) {
                     bike.triggerClientDash(mc.player);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DASH_CANCEL);
+                    bikeComboChainTicks = 14;
                     bikeAttackHoldTicks = 0;
                     bikeSpinActive = false;
                 }
@@ -632,6 +662,7 @@ public final class OmniWheelOverlay {
                 bikeSprintActive = false;
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
+                bikeComboChainTicks = 0;
                 if (bikeDismountWaitAttackRelease) {
                     if (!mc.options.keyAttack.isDown()) {
                         bikeDismountWaitAttackRelease = false;

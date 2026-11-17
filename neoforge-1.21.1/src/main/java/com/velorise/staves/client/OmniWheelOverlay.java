@@ -104,6 +104,7 @@ public final class OmniWheelOverlay {
     private static boolean wasRidingBike = false;
     private static int bikeAttackHoldTicks = 0;
     private static boolean bikeSpinActive = false;
+    private static int bikeComboChainTicks = 0;
     private static boolean bikeDismountWaitAttackRelease = false;
     private static int queuedFastAttackClicks = 0;
     private static boolean ventiUltiFiredThisHold = false;
@@ -242,6 +243,7 @@ public final class OmniWheelOverlay {
             wasRidingBike = false;
             bikeAttackHoldTicks = 0;
             bikeSpinActive = false;
+            bikeComboChainTicks = 0;
             queuedFastAttackClicks = 0;
             ClientAuraTracker.ventiUltiHoldTicks = 0;
             ventiUltiFiredThisHold = false;
@@ -589,15 +591,25 @@ public final class OmniWheelOverlay {
             while (mc.options.keyUse.consumeClick()) {
                 // Suppress item right-click re-triggers while riding bike
             }
-            if (bike.getUltiTicks() > 8 || (bike.getNaStep() == 6 && bike.getNaTicks() > 4)) {
+            if (bikeSpinActive || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0)) {
+                bikeComboChainTicks = Math.max(bikeComboChainTicks, 14);
+            } else if (bikeComboChainTicks > 0) {
+                bikeComboChainTicks--;
+            }
+            if (bike.getUltiTicks() > 8) {
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
+                bikeComboChainTicks = 0;
             } else {
                 boolean attackDown = mc.options.keyAttack.isDown();
+                boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                boolean inComboChain = bikeComboChainTicks > 0 || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0);
+                int requiredHoldTicks = inComboChain ? 1 : 4;
                 if (attackDown) {
                     bikeAttackHoldTicks++;
-                    if (!bikeSpinActive && bikeAttackHoldTicks >= 5) {
+                    if (!bikeSpinActive && !committedFinisherSlam && bikeAttackHoldTicks >= requiredHoldTicks) {
                         bikeSpinActive = true;
+                        bikeComboChainTicks = 14;
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
                     }
                 } else if (bikeAttackHoldTicks > 0) {
@@ -608,7 +620,14 @@ public final class OmniWheelOverlay {
                     bikeSpinActive = false;
                 } else if (attackClicks > 0) {
                     // Ultra-fast tap pressed and released within the same client tick
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    if (bike.isSpinning()) {
+                        // Quick re-tap "(" while spinning: pulse SPIN_START to keep spinning and reset cyclic hit
+                        bikeComboChainTicks = 14;
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                    } else {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                    }
                 }
             }
             boolean useHeld = !bikeMountWaitRelease && mc.options.keyUse.isDown();
@@ -618,6 +637,7 @@ public final class OmniWheelOverlay {
             if (dashTriggered) {
                 bike.triggerClientDash(mc.player);
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
+                bikeComboChainTicks = 14;
                 bikeAttackHoldTicks = 0;
                 bikeSpinActive = false;
             }
@@ -638,6 +658,7 @@ public final class OmniWheelOverlay {
             bikeSprintActive = false;
             bikeAttackHoldTicks = 0;
             bikeSpinActive = false;
+            bikeComboChainTicks = 0;
             if (bikeDismountWaitAttackRelease) {
                 if (!mc.options.keyAttack.isDown()) {
                     bikeDismountWaitAttackRelease = false;

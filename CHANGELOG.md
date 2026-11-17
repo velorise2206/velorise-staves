@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.0.2] - Unreleased (Audit, Xilonen Jump Flip & Cross-Loader Optimization)
+
+### Fixed
+- **Mavuika Genshin-Authentic Flamestrider Combo (`CCD CD F CD CD( F CDCD(`) (`FlamestriderBikeEntity`, `OmniWheelOverlay`, `VeloriseStavesClient`)**:
+  - Added a 4-tick (`200ms`) Donut Continuation Grace Window (`spinReleaseGraceTicks`) plus early Finisher windup re-hold cancel (`naTicks >= 9`) so releasing and quickly re-holding Left-Click (`(` / Continuous CA tech) seamlessly continues Donut Spin and immediately triggers a new Charged Attack Cyclic (`C`) hit without forcing the Finisher (`F`) jump.
+  - Separated Dash Ram hit cooldowns (`dashHitCooldowns`) from Donut Spin hit cooldowns (`spinHitCooldowns`) so Dash Cancels (`D`) never lock out the follow-up Charged Attack (`C`) hit in `CCD` / `CD` strings.
+  - Added `bikeComboChainTicks` (`requiredHoldTicks = 1` during active Donut/Dash/Finisher chains), tight 3-tick (`0.55D`) combat step-dash during Charged Attack cancels so the bike stays in melee range, post-Finisher recovery cancel (`FDC` / `F -> CD`), and automatic 2-dash cooldown refresh upon landing Finisher (`F`).
+- **Xilonen Skate Jump 360° Front Flip (`ClientAuraTracker`, `FlamestriderBikeRenderer`, `XilonenVisualRenderer`)**:
+  - Replaced unanchored `((rider.tickCount + partialTicks) * 30.0F) % 360.0F` rotation with normalized jump-progress tracking (`XILONEN_JUMP_FLIP_DURATION_MS = 740L`, matching `vy = 0.58D` ~15-tick airtime on flat ground) and smooth easing (`easedFlip * 360.0F`) so Xilonen completes **exactly 1 single 360° flip** right as she lands.
+  - Added a `350ms` duplicate server-echo guard in `ClientAuraTracker.triggerStaffAnimation` so server broadcast packets do not reset `xilonenJumpFlipStartTime` 1–3 ticks after client takeoff.
+  - Fixed mid-air limb untucking at the jump apex (`-0.45D <= dy <= 0.15D`) in `XilonenVisualRenderer.applySkateStrideAndWallClimb` by blending the gymnastic tuck (`Mth.sin(flipProg * PI)`) continuously across the entire flip progress.
+- **Cross-Loader Parity & Combat Logic (`RaidenManager`, `ElementalGaugeManager`, `MavuikaManager`, `FlamestriderBikeEntity`, `VentiVisualRenderer`)**:
+  - Restored 100% SHA-256 parity across all 20 shared classes in `build-all.ps1` (`RaidenManager.java` line 863 `erds.getReaction() != null`).
+  - Fixed `ElementalGaugeManager` line 955 in `neoforge-1.21.1` and `fabric-1.21.1` to check `isTouchingEnvironmentalFireBlock(target)` instead of residual `isOnFire() / getRemainingFireTicks()`, preventing infinite Pyro gauge re-injection after Overloaded/Vaporize/Melt extinguish.
+  - Synced dual-innate `enforceInnateLock`, Mavuika Fighting Spirit / Crucible of Death and Life / 2-dash chain cooldown / spin-lean interpolation, and Venti 3D Burst Vortex wind stream bands in `forge-1.20.1`.
+- **Memory Leak Prevention & Render Optimization (`VeloriseStavesClient`, `ClientAuraTracker`, `ClientAuraRenderer`, `VentiVisualRenderer`, `EnvironmentalBlockManager`, `ArcaneStaffEvents`)**:
+  - Added missing 100-tick `ClientAuraTracker.pruneStale` and `ElementalReactionBadgeRenderer.pruneStaleFrozenStates` calls in `fabric-1.21.1/VeloriseStavesClient.java`, and included `MAVUIKA_STATES` and `RAIDEN_STATES` in `pruneStale`.
+  - Cleared static renderer caches (`WindGliderRenderer`, `VentiVisualRenderer`, `TsaritsaVisualRenderer`, `MavuikaVisualRenderer`) on client disconnect/world unload and cleared per-player manager maps + transient attribute modifiers (`XilonenManager`, `NahidaManager`) on server disconnect/dimension change.
+  - Skipped per-frame `entitiesForRendering()` iteration in `VentiVisualRenderer` when no Skill E wind orb is active and reduced redundant `level.getEntity()` lookups in `ClientAuraRenderer`.
+
+
 All notable changes to **Velorise's Staves** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

@@ -177,6 +177,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final boolean[] wasRidingBike = {false};
         final int[] bikeAttackHoldTicks = {0};
         final boolean[] bikeSpinActive = {false};
+        final int[] bikeComboChainTicks = {0};
         final int[] raidenAttackHoldTicks = {0};
         final boolean[] ventiUltiFiredThisHold = {false};
         final boolean[] neuvilletteLeftHoldSent = {false};
@@ -223,6 +224,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 wasRidingBike[0] = false;
                 bikeAttackHoldTicks[0] = 0;
                 bikeSpinActive[0] = false;
+                bikeComboChainTicks[0] = 0;
                 queuedFastAttackClicks[0] = 0;
                 raidenAttackHoldTicks[0] = 0;
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
@@ -608,15 +610,25 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 while (client.options.keyUse.consumeClick()) {
                     // Suppress item right-click re-triggers while riding bike
                 }
-                if (bike.getUltiTicks() > 8 || (bike.getNaStep() == 6 && bike.getNaTicks() > 4)) {
+                if (bikeSpinActive[0] || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0)) {
+                    bikeComboChainTicks[0] = Math.max(bikeComboChainTicks[0], 14);
+                } else if (bikeComboChainTicks[0] > 0) {
+                    bikeComboChainTicks[0]--;
+                }
+                if (bike.getUltiTicks() > 8) {
                     bikeAttackHoldTicks[0] = 0;
                     bikeSpinActive[0] = false;
+                    bikeComboChainTicks[0] = 0;
                 } else {
                     boolean attackDown = client.options.keyAttack.isDown();
+                    boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                    boolean inComboChain = bikeComboChainTicks[0] > 0 || bike.isSpinning() || (bike.getNaStep() == 6 && bike.getNaTicks() > 0);
+                    int requiredHoldTicks = inComboChain ? 1 : 4;
                     if (attackDown) {
                         bikeAttackHoldTicks[0]++;
-                        if (!bikeSpinActive[0] && bikeAttackHoldTicks[0] >= 5) {
+                        if (!bikeSpinActive[0] && !committedFinisherSlam && bikeAttackHoldTicks[0] >= requiredHoldTicks) {
                             bikeSpinActive[0] = true;
+                            bikeComboChainTicks[0] = 14;
                             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
                         }
                     } else if (bikeAttackHoldTicks[0] > 0) {
@@ -627,7 +639,13 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         bikeSpinActive[0] = false;
                     } else if (attackClicks > 0) {
                         // Ultra-fast tap pressed and released within the same client tick
-                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                        if (bike.isSpinning()) {
+                            bikeComboChainTicks[0] = 14;
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                        } else {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
+                        }
                     }
                 }
                 boolean useHeld = !bikeMountWaitRelease[0] && client.options.keyUse.isDown();
@@ -637,6 +655,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (dashTriggered) {
                     bike.triggerClientDash(client.player);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
+                    bikeComboChainTicks[0] = 14;
                     bikeAttackHoldTicks[0] = 0;
                     bikeSpinActive[0] = false;
                 }
@@ -657,6 +676,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 bikeSprintActive[0] = false;
                 bikeAttackHoldTicks[0] = 0;
                 bikeSpinActive[0] = false;
+                bikeComboChainTicks[0] = 0;
                 if (bikeDismountWaitAttackRelease[0]) {
                     if (!client.options.keyAttack.isDown()) {
                         bikeDismountWaitAttackRelease[0] = false;
