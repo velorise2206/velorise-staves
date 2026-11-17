@@ -591,6 +591,15 @@ public final class ArchonUltiManager {
         LAYLA_BURST_CD_UNTIL.remove(id);
         BURST_ROOT_STATES.remove(id);
         PENDING_BURST_ACTIONS.removeIf(p -> p.casterId().equals(id));
+        ZHONGLI_PENDING_BEFALL.removeIf(p -> p.casterId().equals(id));
+    }
+
+    /** Clears only position-locked root/pending cast actions when a player changes dimensions, preserving cooldowns. */
+    public static void clearDimensionBoundState(UUID id) {
+        if (id == null) return;
+        BURST_ROOT_STATES.remove(id);
+        PENDING_BURST_ACTIONS.removeIf(p -> p.casterId().equals(id));
+        ZHONGLI_PENDING_BEFALL.removeIf(p -> p.casterId().equals(id));
     }
 
     /** Clears all transient Archon Burst timers and pending impacts on server stop. */

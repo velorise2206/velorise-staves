@@ -88,6 +88,7 @@ public final class NahidaManager {
         public long lastTriKarmaProcTick = -100L;
         public long shrineUntilTick = 0L;
         public Vec3 shrineCenter = Vec3.ZERO;
+        public net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> shrineDimension = net.minecraft.world.level.Level.OVERWORLD;
         public double shrineRadius = 12.0D;
         public boolean shrineNetherite = false;
         public int shrinePyroCount = 0;
@@ -139,7 +140,7 @@ public final class NahidaManager {
     public static void clearPlayerState(UUID playerId) {
         if (playerId == null) return;
         PLAYER_STATES.remove(playerId);
-        SKANDHA_MARKS.entrySet().removeIf(e -> playerId.equals(e.getValue().ownerId));
+        SKANDHA_MARKS.entrySet().removeIf(e -> playerId.equals(e.getKey()) || playerId.equals(e.getValue().ownerId));
     }
 
     public static void clearPlayerState(ServerPlayer player) {
@@ -765,6 +766,7 @@ public final class NahidaManager {
             long eruptNow = sl.getGameTime();
             st.shrineUntilTick = eruptNow + totalDurationTicks;
             st.shrineCenter = player.position();
+            st.shrineDimension = sl.dimension();
             st.shrineRadius = isNeth ? 22.5D : 18.0D; // 1.5x Shrine of Maya radius (18m Basic, 22.5m Netherite)
             st.shrineNetherite = isNeth;
             st.shrinePyroCount = fPyro;
@@ -790,6 +792,7 @@ public final class NahidaManager {
 
     public static boolean isEntityInsideShrine(@Nullable LivingEntity entity, @Nullable NahidaPlayerState st, long now) {
         if (entity == null || st == null || now >= st.shrineUntilTick || st.shrineCenter == null) return false;
+        if (st.shrineDimension != null && entity.level() != null && !st.shrineDimension.equals(entity.level().dimension())) return false;
         double dx = entity.getX() - st.shrineCenter.x;
         double dz = entity.getZ() - st.shrineCenter.z;
         double dy = entity.getY() - st.shrineCenter.y;
@@ -869,7 +872,7 @@ public final class NahidaManager {
             }
 
             // 2. Ambient Shrine of Maya particles
-            if (now < st.shrineUntilTick && now % 10L == 0L) {
+            if (now < st.shrineUntilTick && level.dimension().equals(st.shrineDimension) && now % 10L == 0L) {
                 for (int i = 0; i < 16; i++) {
                     double ang = (Math.PI * 2.0D * i) / 16.0D + (now * 0.02D);
                     double rx = st.shrineCenter.x + Math.cos(ang) * st.shrineRadius;

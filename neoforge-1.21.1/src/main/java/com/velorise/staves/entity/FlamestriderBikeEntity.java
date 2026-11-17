@@ -102,6 +102,16 @@ public class FlamestriderBikeEntity extends Entity {
     private double spinPivotZ = 0.0D;
     private double spinPivotXO = 0.0D;
     private double spinPivotZO = 0.0D;
+    private double camAnchorOffsetX = 0.0D;
+    private double camAnchorOffsetZ = 0.0D;
+    private double camAnchorOffsetXO = 0.0D;
+    private double camAnchorOffsetZO = 0.0D;
+    private int clientNaStep = 0;
+    private int clientNaTicks = 0;
+    private int clientNaTotalTicks = 14;
+    private int lastSyncedServerNaStep = 0;
+    private int lastSyncedServerNaTicks = 0;
+    private int clientFinisherYawBlendTicks = 0;
     private float spinOrbitAngle = 0.0F;
     private double spinOrbitRadius = 0.0D;
     private int clientDashTicks = 0;
@@ -203,7 +213,7 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     public boolean isFinisherPlaying() {
-        return this.pendingFinisher || (getNaStep() == 6 && getNaTicks() > 0);
+        return this.pendingFinisher || (getActiveNaStep() == 6 && getActiveNaTicks() > 0);
     }
 
     public boolean isSpinInputHeld() {
@@ -215,7 +225,17 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     public boolean isSpinCameraAnchored() {
-        return (this.clientWasSpinning || this.clientSpinOrbitGraceTicks > 0) && this.spinOrbitRadius > 0.05D;
+        return (this.clientWasSpinning && this.spinOrbitRadius > 0.05D)
+                || Math.hypot(this.camAnchorOffsetX, this.camAnchorOffsetZ) > 0.005D
+                || Math.hypot(this.camAnchorOffsetXO, this.camAnchorOffsetZO) > 0.005D;
+    }
+
+    public double getSpinCameraOffsetX(float partialTick) {
+        return Mth.lerp(partialTick, this.camAnchorOffsetXO, this.camAnchorOffsetX);
+    }
+
+    public double getSpinCameraOffsetZ(float partialTick) {
+        return Mth.lerp(partialTick, this.camAnchorOffsetZO, this.camAnchorOffsetZ);
     }
 
     public double getSpinPivotX() {
@@ -227,11 +247,11 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     public double getSpinPivotX(float partialTick) {
-        return Mth.lerp(partialTick, this.spinPivotXO, this.spinPivotX);
+        return Mth.lerp(partialTick, this.xo, this.getX()) + getSpinCameraOffsetX(partialTick);
     }
 
     public double getSpinPivotZ(float partialTick) {
-        return Mth.lerp(partialTick, this.spinPivotZO, this.spinPivotZ);
+        return Mth.lerp(partialTick, this.zo, this.getZ()) + getSpinCameraOffsetZ(partialTick);
     }
 
     public int getUltiTicks() {
@@ -244,6 +264,100 @@ public class FlamestriderBikeEntity extends Entity {
 
     public int getNaTicks() {
         return this.entityData.get(DATA_NA_TICKS);
+    }
+
+    public int getActiveNaStep() {
+        if (this.level().isClientSide() && this.clientNaTicks > 0 && this.clientNaStep > 0) {
+            return this.clientNaStep;
+        }
+        return this.entityData.get(DATA_NA_STEP);
+    }
+
+    public int getActiveNaTicks() {
+        if (this.level().isClientSide() && this.clientNaTicks > 0) {
+            return this.clientNaTicks;
+        }
+        return this.entityData.get(DATA_NA_TICKS);
+    }
+
+    public float getSmoothNaTicks(float partialTick) {
+        int ticks = getActiveNaTicks();
+        if (ticks <= 0) {
+            return 0.0F;
+        }
+        return Math.max(0.0F, (float) ticks - partialTick);
+    }
+
+    public float getFinisherProgress(float partialTick) {
+        if (getActiveNaStep() != 6) {
+            return 0.0F;
+        }
+        float naTf = getSmoothNaTicks(partialTick);
+        float total = Math.max(1.0F, (float) (this.clientNaTotalTicks > 0 ? this.clientNaTotalTicks : 14));
+        return Mth.clamp(1.0F - (naTf / total), 0.0F, 1.0F);
+    }
+
+    public void triggerClientFinisher(Player rider) {
+        if (this.pendingDiscardAfterFinisher || this.isPlunging() || this.getUltiTicks() > 8) {
+            return;
+        }
+        this.setSpinning(false);
+        this.clientNaStep = 6;
+        this.clientNaTicks = 14;
+        this.clientNaTotalTicks = 14;
+        this.clientFinisherYawBlendTicks = 7;
+    }
+
+    public void cancelClientFinisherToSpin() {
+        if (this.clientNaStep == 6 && this.clientNaTicks >= 9) {
+            this.clientNaStep = 0;
+            this.clientNaTicks = 0;
+            this.clientFinisherYawBlendTicks = 0;
+        }
+    }
+
+    public boolean shouldOverrideFirstPersonCamera() {
+        return this.isSpinning() || this.clientFinisherYawBlendTicks > 0
+                || (getActiveNaStep() == 6 && getActiveNaTicks() > 0);
+    }
+
+    public float getFirstPersonCameraYaw(float partialTick, float playerCameraYaw) {
+        float bikeYaw = Mth.rotLerp(partialTick, this.yRotO, this.getYRot());
+        if (this.isSpinning()) {
+            return bikeYaw;
+        }
+        if (getActiveNaStep() == 6 && getActiveNaTicks() > 0) {
+            float p = getFinisherProgress(partialTick);
+            if (p < 0.65F) {
+                float u = p / 0.65F;
+                float smooth = u * u * (3.0F - 2.0F * u);
+                float blend = 1.0F - smooth;
+                return playerCameraYaw + Mth.wrapDegrees(bikeYaw - playerCameraYaw) * blend;
+            }
+        }
+        if (this.clientFinisherYawBlendTicks > 0) {
+            float blend = Mth.clamp((this.clientFinisherYawBlendTicks - partialTick) / 7.0F, 0.0F, 1.0F);
+            float smooth = blend * blend * (3.0F - 2.0F * blend);
+            return playerCameraYaw + Mth.wrapDegrees(bikeYaw - playerCameraYaw) * smooth;
+        }
+        return playerCameraYaw;
+    }
+
+    public float getFirstPersonFinisherPitchOffset(float partialTick) {
+        if (this.isSpinning() || getActiveNaStep() != 6 || getActiveNaTicks() <= 0) {
+            return 0.0F;
+        }
+        float p = getFinisherProgress(partialTick);
+        if (p < 0.36F) {
+            float e = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+            return -6.0F * e;
+        } else if (p < 0.72F) {
+            float e = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
+            return Mth.lerp(e, -6.0F, 7.5F);
+        } else {
+            float e = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
+            return Mth.lerp(e, 7.5F, 0.0F);
+        }
     }
 
     public boolean isDashingServer() {
@@ -414,7 +528,7 @@ public class FlamestriderBikeEntity extends Entity {
                     this.spinInputHeld = false;
                     setSpinning(false);
                     this.entityData.set(DATA_NA_STEP, 6);
-                    this.entityData.set(DATA_NA_TICKS, 16);
+                    this.entityData.set(DATA_NA_TICKS, 14);
                     this.pendingFinisher = true;
                     this.pendingDiscardAfterFinisher = true;
                     sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.45F);
@@ -918,11 +1032,18 @@ public class FlamestriderBikeEntity extends Entity {
                 return;
             }
             if (wasSpinningOrGrace && !this.isFinisherPlaying()) {
-                // Start 4-tick (200ms) Donut Continuation Grace Window:
-                // Bike keeps spinning smoothly during these 4 ticks. If player re-holds Left-Click ("(" tech),
-                // Donut Spin continues without ever triggering Finisher! If player keeps Left-Click released,
-                // Finisher ("F") launches seamlessly (and remains re-hold cancelable during its early windup ticks 14..9).
-                this.spinReleaseGraceTicks = 4;
+                // Launch Finisher ("F") immediately with zero release delay; early windup ticks (14..9) remain
+                // seamlessly re-hold cancelable back into Donut Spin if player presses Left-Click again ("(" tech).
+                this.spinReleaseGraceTicks = 0;
+                setSpinning(false);
+                this.serverSpinAngle = 0.0F;
+                this.entityData.set(DATA_NA_STEP, 6);
+                this.entityData.set(DATA_NA_TICKS, 14);
+                this.pendingFinisher = true;
+                if (this.level() instanceof ServerLevel sl) {
+                    sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.65F, 1.40F);
+                    sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.75F, 1.20F);
+                }
             } else {
                 this.spinReleaseGraceTicks = 0;
                 this.serverSpinAngle = 0.0F;
@@ -1071,8 +1192,16 @@ public class FlamestriderBikeEntity extends Entity {
             clientDashCooldownTicks = 5; // Quick 2nd dash follow-up for CCD CD F
         }
         this.clientSpinOrbitGraceTicks = 0;
+        this.clientNaStep = 0;
+        this.clientNaTicks = 0;
+        this.clientFinisherYawBlendTicks = 0;
+        this.camAnchorOffsetX = 0.0D;
+        this.camAnchorOffsetZ = 0.0D;
+        this.camAnchorOffsetXO = 0.0D;
+        this.camAnchorOffsetZO = 0.0D;
         Vec3 forward = Vec3.directionFromRotation(0.0F, rider.getYRot()).normalize();
         this.clientDashVec = forward.scale(combatCancel ? 0.55D : 1.15D);
+        this.yRotO = this.getYRot();
         this.setYRot(rider.getYRot());
     }
 
@@ -1080,36 +1209,73 @@ public class FlamestriderBikeEntity extends Entity {
         double horizSpeed = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
         this.wheelSpinAngle += (float) (horizSpeed * 2.6F);
         this.prevSpinLean = this.spinLean;
+        if (this.clientFinisherYawBlendTicks > 0) {
+            this.clientFinisherYawBlendTicks--;
+        }
+        int srvStep = this.entityData.get(DATA_NA_STEP);
+        int srvTicks = this.entityData.get(DATA_NA_TICKS);
         if (isSpinning()) {
+            this.clientNaStep = 0;
+            this.clientNaTicks = 0;
+            this.clientFinisherYawBlendTicks = 0;
             this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
             this.spinLean = Mth.lerp(0.42F, this.spinLean, 24.0F);
         } else {
+            if (srvStep > 0 && srvTicks > 0) {
+                boolean newServerCombo = this.clientNaStep != srvStep
+                        || this.clientNaTicks <= 0
+                        || (srvStep != 6 && srvTicks > this.lastSyncedServerNaTicks + 1);
+                if (newServerCombo) {
+                    this.clientNaStep = srvStep;
+                    this.clientNaTicks = srvTicks;
+                    this.clientNaTotalTicks = (srvStep == 6 || srvStep == 5) ? 14 : 10;
+                    if (srvStep == 6) {
+                        this.clientFinisherYawBlendTicks = Math.max(this.clientFinisherYawBlendTicks, 7);
+                    }
+                } else if (this.clientNaTicks > 0) {
+                    this.clientNaTicks--;
+                }
+            } else if (this.clientNaTicks > 0) {
+                this.clientNaTicks--;
+                if (this.clientNaTicks == 0) {
+                    this.clientNaStep = 0;
+                }
+            }
             this.spinYawOffset = 0.0F;
-            this.spinLean = Mth.lerp(0.28F, this.spinLean, 0.0F);
+            this.spinLean = Mth.lerp(0.32F, this.spinLean, 0.0F);
             if (Math.abs(this.spinLean) < 0.05F) {
                 this.spinLean = 0.0F;
             }
         }
+        this.lastSyncedServerNaStep = srvStep;
+        this.lastSyncedServerNaTicks = srvTicks;
     }
 
     private void tickLocalControl(Player rider) {
         boolean spinningNow = this.isSpinning();
         float targetYaw = rider.getYRot();
-        int finNaT = getNaStep() == 6 ? getNaTicks() : 0;
+        int finNaT = getActiveNaStep() == 6 ? getActiveNaTicks() : 0;
         if (finNaT == 6) {
             this.clientDashCooldownTicks = 0;
             this.clientDashChain = 0;
             this.clientDashWindowTicks = 0;
         }
         if (!spinningNow) {
-            if (finNaT > 0) {
-                // Rapidly align out of any Donut angle straight into the front-center Finisher direction
-                this.yRotO = this.getYRot();
-                this.setYRot(Mth.rotLerp(finNaT > 8 ? 0.60F : 0.80F, this.getYRot(), targetYaw));
+            this.yRotO = this.getYRot();
+            if (finNaT > 0 || this.clientFinisherYawBlendTicks > 0) {
+                // Smoothly rotate out of any Donut orbit angle into the front-center Finisher direction
+                float nextYaw = Mth.rotLerp(finNaT >= 8 ? 0.46F : 0.68F, this.getYRot(), targetYaw);
+                if (Math.abs(Mth.wrapDegrees(targetYaw - nextYaw)) < 0.5F) {
+                    nextYaw = targetYaw;
+                }
+                this.setYRot(nextYaw);
             } else {
-                // Align bike heading directly with rider's camera yaw
-                this.setYRot(targetYaw);
-                this.yRotO = targetYaw;
+                // Preserve yRotO from previous tick so partialTick rotLerp never snaps
+                float nextYaw = Mth.rotLerp(0.72F, this.getYRot(), targetYaw);
+                if (Math.abs(Mth.wrapDegrees(targetYaw - nextYaw)) < 0.5F) {
+                    nextYaw = targetYaw;
+                }
+                this.setYRot(nextYaw);
             }
         }
 
@@ -1273,11 +1439,12 @@ public class FlamestriderBikeEntity extends Entity {
                 spinOrbitRadius = 0.0D;
             } else if (clientSpinOrbitGraceTicks > 0) {
                 clientSpinOrbitGraceTicks--;
+                spinOrbitRadius *= 0.60D;
             } else {
                 spinOrbitRadius = 0.0D;
             }
-            spinPivotXO = this.getX();
-            spinPivotZO = this.getZ();
+            spinPivotXO = spinPivotX;
+            spinPivotZO = spinPivotZ;
         }
         clientWasSpinning = spinningNow;
 
@@ -1330,28 +1497,24 @@ public class FlamestriderBikeEntity extends Entity {
                 vy = -0.26D - diveProgress * 0.48D;
             }
             this.setOnGround(false);
-        } else if (finNaT > 6) {
-            // Converge from any Donut release angle straight onto the front-center target axis (spinPivot + fwd * 0.85D)
+        } else if (finNaT > 0) {
+            // Smooth forward leap & downward slam along rider's look direction without pulling backward toward old Donut pivot
             Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
             if (finNaT >= 9) {
-                double goalX = spinPivotX + fwdDir.x * 0.85D;
-                double goalZ = spinPivotZ + fwdDir.z * 0.85D;
-                double toGoalX = goalX - this.getX();
-                double toGoalZ = goalZ - this.getZ();
-                double distGoal = Math.hypot(toGoalX, toGoalZ);
-                if ((spinPivotX != 0.0D || spinPivotZ != 0.0D) && distGoal > 0.05D && distGoal < 4.5D) {
-                    vx = Mth.clamp(toGoalX * 0.38D + fwdDir.x * 0.14D, -0.68D, 0.68D);
-                    vz = Mth.clamp(toGoalZ * 0.38D + fwdDir.z * 0.14D, -0.68D, 0.68D);
-                } else {
-                    vx = fwdDir.x * 0.30D;
-                    vz = fwdDir.z * 0.30D;
-                }
-                vy = 0.25D;
+                double forwardSpeed = 0.34D;
+                vx = Mth.lerp(0.45D, prev.x, fwdDir.x * forwardSpeed + inputVec.x * 0.25D);
+                vz = Mth.lerp(0.45D, prev.z, fwdDir.z * forwardSpeed + inputVec.z * 0.25D);
+                float liftProgress = Mth.clamp((14.0F - finNaT) / 5.0F, 0.0F, 1.0F);
+                vy = Mth.lerp(liftProgress, 0.28D, 0.05D);
                 this.setOnGround(false);
+            } else if (finNaT >= 5) {
+                vx = Mth.lerp(0.40D, prev.x, fwdDir.x * 0.24D + inputVec.x * 0.22D);
+                vz = Mth.lerp(0.40D, prev.z, fwdDir.z * 0.24D + inputVec.z * 0.22D);
+                vy = onSurface ? -0.04D : Math.max(-0.78D, prev.y - 0.16D);
             } else {
-                vx = prev.x * 0.55D + fwdDir.x * 0.10D;
-                vz = prev.z * 0.55D + fwdDir.z * 0.10D;
-                vy = Math.min(prev.y - 0.15D, -0.36D);
+                vx = Mth.lerp(0.35D, prev.x, inputVec.x);
+                vz = Mth.lerp(0.35D, prev.z, inputVec.z);
+                vy = onSurface ? -0.04D : Math.max(-1.0D, prev.y - 0.08D);
             }
         } else if (waterHere && canSkimWater) {
             vy = Math.max(vy, 0.14D); // Skim up to water surface
@@ -1366,8 +1529,24 @@ public class FlamestriderBikeEntity extends Entity {
             vy = -0.04D; // Keep downward contact so Entity.move() preserves onGround = true
         }
 
+        this.camAnchorOffsetXO = this.camAnchorOffsetX;
+        this.camAnchorOffsetZO = this.camAnchorOffsetZ;
         this.setDeltaMovement(vx, vy, vz);
         this.move(MoverType.SELF, this.getDeltaMovement());
+        if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
+            this.camAnchorOffsetX = this.spinPivotX - this.getX();
+            this.camAnchorOffsetZ = this.spinPivotZ - this.getZ();
+        } else if (clientDashTicks > 0 || getUltiTicks() > 6) {
+            this.camAnchorOffsetX = 0.0D;
+            this.camAnchorOffsetZ = 0.0D;
+        } else {
+            this.camAnchorOffsetX *= 0.56D;
+            this.camAnchorOffsetZ *= 0.56D;
+            if (Math.hypot(this.camAnchorOffsetX, this.camAnchorOffsetZ) < 0.004D) {
+                this.camAnchorOffsetX = 0.0D;
+                this.camAnchorOffsetZ = 0.0D;
+            }
+        }
 
         if (waterHere || waterBelow) {
             if (Math.hypot(vx, vz) > 0.1D && this.tickCount % 2 == 0) {

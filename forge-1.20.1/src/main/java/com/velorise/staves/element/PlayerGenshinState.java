@@ -148,11 +148,24 @@ public final class PlayerGenshinState {
 
     public static void onEntityRemoved(Entity entity) {
         if (entity != null) {
+            if (entity instanceof ServerPlayer sp && sp.getRemovalReason() == Entity.RemovalReason.CHANGED_DIMENSION) {
+                onPlayerChangedDimension(sp);
+                return;
+            }
             STATES.remove(entity.getUUID());
             if (entity instanceof LivingEntity living) {
                 ElementalGaugeManager.clearEntityState(living);
             }
         }
+    }
+
+    public static void onPlayerChangedDimension(ServerPlayer player) {
+        if (player == null) return;
+        UUID id = player.getUUID();
+        ArchonUltiManager.clearDimensionBoundState(id);
+        ArchonUltiManager.resetAllArchonIdleTimers(player);
+        NeuvilletteManager.clearPlayerState(id);
+        PlungeAndGliderManager.clearPlayerState(id);
     }
 
     public static void clearAll() {

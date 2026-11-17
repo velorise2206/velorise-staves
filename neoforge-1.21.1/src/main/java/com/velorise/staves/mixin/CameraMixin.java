@@ -28,10 +28,10 @@ public abstract class CameraMixin {
             double bikeX = Mth.lerp(partialTick, bike.xo, bike.getX());
             double bikeY = Mth.lerp(partialTick, bike.yo, bike.getY());
             double bikeZ = Mth.lerp(partialTick, bike.zo, bike.getZ());
-            double pivotX = bike.getSpinPivotX(partialTick);
-            double pivotZ = bike.getSpinPivotZ(partialTick);
-            double dx = pivotX - bikeX;
-            double dz = pivotZ - bikeZ;
+            double dx = bike.getSpinCameraOffsetX(partialTick);
+            double dz = bike.getSpinCameraOffsetZ(partialTick);
+            double pivotX = bikeX + dx;
+            double pivotZ = bikeZ + dz;
             Vec3 pos = this.getPosition();
             Vec3 targetPos = new Vec3(pos.x + dx, pos.y, pos.z + dz);
             if (level instanceof net.minecraft.world.level.Level lvl) {

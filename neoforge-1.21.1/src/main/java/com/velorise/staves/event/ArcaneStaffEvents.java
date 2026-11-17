@@ -1052,7 +1052,7 @@ public final class ArcaneStaffEvents {
     @SubscribeEvent
     public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer player && !player.level().isClientSide()) {
-            com.velorise.staves.element.PlayerGenshinState.onEntityRemoved(player);
+            com.velorise.staves.element.PlayerGenshinState.onPlayerChangedDimension(player);
         }
     }
 

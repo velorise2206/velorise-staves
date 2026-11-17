@@ -161,6 +161,10 @@ public final class ZhongliManager {
     public static void clearPlayerState(UUID playerId) {
         if (playerId != null) {
             ZHONGLI_IDLE_STATES.remove(playerId);
+            JADE_SHIELD_UNTIL.remove(playerId);
+            JADE_SHIELD_NETHERITE.remove(playerId);
+            PETRIFIED_UNTIL.remove(playerId);
+            NIGHTS_FOCUS_PROJECTILES.removeIf(p -> p.owner != null && playerId.equals(p.owner.getUUID()));
         }
     }
 

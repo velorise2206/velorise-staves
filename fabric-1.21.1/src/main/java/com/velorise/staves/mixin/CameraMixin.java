@@ -34,10 +34,10 @@ public abstract class CameraMixin {
             double bikeX = net.minecraft.util.Mth.lerp(partialTick, bike.xo, bike.getX());
             double bikeY = net.minecraft.util.Mth.lerp(partialTick, bike.yo, bike.getY());
             double bikeZ = net.minecraft.util.Mth.lerp(partialTick, bike.zo, bike.getZ());
-            double pivotX = bike.getSpinPivotX(partialTick);
-            double pivotZ = bike.getSpinPivotZ(partialTick);
-            double dx = pivotX - bikeX;
-            double dz = pivotZ - bikeZ;
+            double dx = bike.getSpinCameraOffsetX(partialTick);
+            double dz = bike.getSpinCameraOffsetZ(partialTick);
+            double pivotX = bikeX + dx;
+            double pivotZ = bikeZ + dz;
             net.minecraft.world.phys.Vec3 pos = this.getPosition();
             net.minecraft.world.phys.Vec3 targetPos = new net.minecraft.world.phys.Vec3(pos.x + dx, pos.y, pos.z + dz);
             if (level instanceof net.minecraft.world.level.Level lvl) {
@@ -134,11 +134,13 @@ public abstract class CameraMixin {
         }
         float yaw = ClientAuraRenderer.getFrozenCameraYaw(entity, this.yRot);
         float pitch = ClientAuraRenderer.getFrozenCameraPitch(entity, this.xRot);
+        float bikePitchOffset = 0.0F;
         if (!detached && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike
-                && bike.isSpinning()) {
-            yaw = net.minecraft.util.Mth.rotLerp(partialTick, bike.yRotO, bike.getYRot());
+                && bike.shouldOverrideFirstPersonCamera()) {
+            yaw = bike.getFirstPersonCameraYaw(partialTick, yaw);
+            bikePitchOffset = bike.getFirstPersonFinisherPitchOffset(partialTick);
         }
-        float swingPitch = !detached ? com.velorise.staves.client.character.NahidaVisualRenderer.getSwingCameraPitchOffset(entity, partialTick) : 0.0F;
+        float swingPitch = (!detached ? com.velorise.staves.client.character.NahidaVisualRenderer.getSwingCameraPitchOffset(entity, partialTick) : 0.0F) + bikePitchOffset;
         if (yaw != this.yRot || pitch != this.xRot || Math.abs(swingPitch) > 0.001F) {
             this.setRotation(yaw, pitch + swingPitch);
         }

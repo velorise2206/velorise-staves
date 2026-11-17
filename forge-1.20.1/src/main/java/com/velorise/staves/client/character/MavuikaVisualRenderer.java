@@ -295,8 +295,8 @@ public final class MavuikaVisualRenderer {
 
         float pt = Minecraft.getInstance().getFrameTime();
         int ultiT = bike.getUltiTicks();
-        int step = bike.getNaStep();
-        int naT = bike.getNaTicks();
+        int step = bike.getActiveNaStep();
+        int naT = bike.getActiveNaTicks();
         if (ultiT > 0) {
             float ultiTf = Math.max(0.0F, (float) ultiT - pt);
             handleArm.xRot = -0.96F;
@@ -354,36 +354,33 @@ public final class MavuikaVisualRenderer {
         handleArm.xRot = -0.94F;
         handleArm.yRot = 0.10F * dir;
         handleArm.zRot = -0.10F * dir;
-        float naTf = Math.max(0.0F, (float) naT - pt);
+        float naTf = bike.getSmoothNaTicks(pt);
         if (step == 6 && naT > 0) {
-            if (naTf > 10.5F) {
-                float w = WindGliderRenderer.smoothStep01((14.0F - naTf) / 3.5F);
-                model.body.xRot = Mth.lerp(w, 0.28F, 0.10F);
-                model.body.yRot = 0.22F * w * dir;
-                weaponArm.xRot = Mth.lerp(w, -1.15F, -2.75F);
-                weaponArm.yRot = Mth.lerp(w, -0.16F, -0.20F) * dir;
-                weaponArm.zRot = Mth.lerp(w, 0.05F, -0.22F) * dir;
-            } else if (naTf > 6.5F) {
-                float c = WindGliderRenderer.smoothStep01((10.5F - naTf) / 4.0F);
-                model.body.xRot = Mth.lerp(c, 0.10F, 0.24F);
-                model.body.yRot = Mth.lerp(c, 0.22F, -0.28F) * dir;
-                weaponArm.xRot = Mth.lerp(c, -2.75F, -1.55F);
-                weaponArm.yRot = Mth.lerp(c, -0.20F, -1.05F) * dir;
-                weaponArm.zRot = Mth.lerp(c, -0.22F, -0.18F) * dir;
-            } else if (naTf > 2.0F) {
-                float s = WindGliderRenderer.smoothStep01((6.5F - naTf) / 4.5F);
-                model.body.xRot = Mth.lerp(s, 0.24F, 0.34F);
-                model.body.yRot = Mth.lerp(s, -0.28F, -0.36F) * dir;
-                weaponArm.xRot = Mth.lerp(s, -1.55F, -0.78F);
-                weaponArm.yRot = Mth.lerp(s, -1.05F, 1.05F) * dir;
-                weaponArm.zRot = Mth.lerp(s, -0.18F, 0.72F) * dir;
+            float p = bike.getFinisherProgress(pt);
+            if (p < 0.36F) {
+                // Phase 1: Continuous rise from Donut Spin / riding posture up to overhead apex
+                float w = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+                model.body.xRot = Mth.lerp(w, 0.26F, 0.08F);
+                model.body.yRot = Mth.lerp(w, -0.22F, 0.26F) * dir;
+                weaponArm.xRot = Mth.lerp(w, -0.95F, -2.68F);
+                weaponArm.yRot = Mth.lerp(w, -0.75F, -0.52F) * dir;
+                weaponArm.zRot = Mth.lerp(w, 0.32F, -0.26F) * dir;
+            } else if (p < 0.72F) {
+                // Phase 2: Single unbroken accelerated overhead slam cleave all the way through impact
+                float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
+                model.body.xRot = Mth.lerp(s, 0.08F, 0.34F);
+                model.body.yRot = Mth.lerp(s, 0.26F, -0.36F) * dir;
+                weaponArm.xRot = Mth.lerp(s, -2.68F, -0.78F);
+                weaponArm.yRot = Mth.lerp(s, -0.52F, 1.02F) * dir;
+                weaponArm.zRot = Mth.lerp(s, -0.26F, 0.70F) * dir;
             } else {
-                float r = WindGliderRenderer.smoothStep01((2.0F - naTf) / 2.0F);
+                // Phase 3: Smooth recovery back to neutral handlebar posture
+                float r = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
                 model.body.xRot = Mth.lerp(r, 0.34F, 0.28F);
                 model.body.yRot = Mth.lerp(r, -0.36F, 0.0F) * dir;
                 weaponArm.xRot = Mth.lerp(r, -0.78F, -1.15F);
-                weaponArm.yRot = Mth.lerp(r, 1.05F, -0.16F) * dir;
-                weaponArm.zRot = Mth.lerp(r, 0.72F, 0.05F) * dir;
+                weaponArm.yRot = Mth.lerp(r, 1.02F, -0.16F) * dir;
+                weaponArm.zRot = Mth.lerp(r, 0.70F, 0.05F) * dir;
             }
         } else if (step == 7 && naT > 0) {
             // Hold E Mount 180-deg tail whip: counterbalance torso & sweep sword wide
@@ -459,14 +456,14 @@ public final class MavuikaVisualRenderer {
             PoseStack poseStack
     ) {
         if (entity.getVehicle() instanceof FlamestriderBikeEntity bike
-                && bike.getUltiTicks() <= 0 && !bike.isSpinning() && bike.getNaTicks() <= 0 && !bike.isPlunging()) {
+                && bike.getUltiTicks() <= 0 && !bike.isSpinning() && bike.getActiveNaTicks() <= 0 && !bike.isPlunging()) {
             poseStack.scale(0.0F, 0.0F, 0.0F);
             return true;
         }
         if (effKind != ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) return false;
         if (!(entity.getVehicle() instanceof FlamestriderBikeEntity bike)) return false;
         int ultiT = bike.getUltiTicks();
-        int naT = bike.getNaTicks();
+        int naT = bike.getActiveNaTicks();
         boolean activeAttack = ultiT > 0 || naT > 0 || bike.isSpinning() || bike.isPlunging();
         float sign = leftHand ? -1.0F : 1.0F;
         if (!activeAttack) {
@@ -494,28 +491,29 @@ public final class MavuikaVisualRenderer {
         }
         if (ultiT <= 0 && naT > 0 && !bike.isSpinning() && !bike.isPlunging()) {
             float pt = Minecraft.getInstance().getFrameTime();
-            int step = bike.getNaStep();
+            int step = bike.getActiveNaStep();
             float total = (step == 6 || step == 5) ? 14.0F : 10.0F;
-            float nt = Mth.clamp(1.0F - ((naT - pt) / total), 0.0F, 1.0F);
+            float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(pt) / total), 0.0F, 1.0F);
             if (step == 6) {
-                if (nt < 0.25F) {
-                    float w = WindGliderRenderer.smoothStep01(nt / 0.25F);
-                    poseStack.translate(0.0F, 0.14F * w, -0.06F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -8.0F, -38.0F)));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(48.0F * sign * w));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(-14.0F * sign * w));
-                } else if (nt < 0.50F) {
-                    float u = WindGliderRenderer.smoothStep01((nt - 0.25F) / 0.25F);
-                    poseStack.translate(0.0F, Mth.lerp(u, 0.14F, 0.06F), Mth.lerp(u, -0.06F, -0.14F));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(u, -38.0F, -25.0F)));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(u, 48.0F, 82.0F) * sign));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(u, -14.0F, -28.0F) * sign));
+                float p = bike.getFinisherProgress(pt);
+                if (p < 0.36F) {
+                    float w = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+                    poseStack.translate(Mth.lerp(w, 0.04F, 0.0F) * sign, Mth.lerp(w, -0.04F, 0.14F), Mth.lerp(w, -0.12F, -0.10F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -20.0F, -34.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(w, 64.0F, 76.0F) * sign));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(w, -24.0F, -26.0F) * sign));
+                } else if (p < 0.72F) {
+                    float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
+                    poseStack.translate(0.0F, Mth.lerp(s, 0.14F, -0.04F), Mth.lerp(s, -0.10F, -0.16F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -34.0F, -48.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(s, 76.0F, 80.0F) * sign));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -26.0F, 28.0F) * sign));
                 } else {
-                    float s = WindGliderRenderer.smoothStep01(Mth.clamp((nt - 0.50F) / 0.38F, 0.0F, 1.0F));
-                    poseStack.translate(0.0F, Mth.lerp(s, 0.06F, -0.04F), -0.16F);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -25.0F, -48.0F)));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(78.0F * sign));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -28.0F, 28.0F) * sign));
+                    float r = 1.0F - (0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI));
+                    poseStack.translate(0.0F, -0.04F * r, -0.16F * r);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-48.0F * r));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F * sign * r));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(28.0F * sign * r));
                 }
             } else if (step == 3 || step == 4 || step == 7) {
                 float dirSign = (step == 3 ? -1.0F : 1.0F) * sign;
@@ -646,41 +644,55 @@ public final class MavuikaVisualRenderer {
                 }
                 return true;
             }
-            int naT = bike.getNaTicks();
-            if (bike.isSpinning() || (naT <= 0 && !bike.isPlunging())) {
+            int naT = bike.getActiveNaTicks();
+            if (bike.isSpinning()) {
+                float spinBob = Mth.sin(((float) bike.tickCount + partialTicks) * 0.65F) * 0.025F;
+                poseStack.translate(dir * 0.14F, -0.12F + spinBob, -0.18F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-24.0F));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 54.0F));
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 12.0F));
+                return true;
+            }
+            if (naT <= 0 && !bike.isPlunging()) {
                 poseStack.scale(0.0F, 0.0F, 0.0F);
                 return true;
             }
             if (naT > 0) {
-                int step = bike.getNaStep();
+                int step = bike.getActiveNaStep();
                 float total = (step == 6 || step == 5) ? 14.0F : 10.0F;
-                float nt = Mth.clamp(1.0F - ((naT - partialTicks) / total), 0.0F, 1.0F);
+                float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(partialTicks) / total), 0.0F, 1.0F);
                 float w = Mth.sin(nt * (float) Math.PI);
                 if (step == 6) {
-                    if (nt < 0.25F) {
-                        float lift = WindGliderRenderer.smoothStep01(nt / 0.25F);
-                        poseStack.translate(dir * Mth.lerp(lift, 0.08F, 0.04F), Mth.lerp(lift, 0.16F, 0.42F), Mth.lerp(lift, -0.10F, -0.18F));
-                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(lift, -14.0F, -8.0F)));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(lift, 18.0F, 28.0F)));
-                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(lift, 4.0F, 6.0F)));
-                    } else if (nt < 0.48F) {
-                        float u = WindGliderRenderer.smoothStep01((nt - 0.25F) / 0.23F);
-                        poseStack.translate(dir * Mth.lerp(u, 0.04F, -0.38F), Mth.lerp(u, 0.42F, 0.22F), Mth.lerp(u, -0.18F, -0.24F));
-                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(u, -8.0F, -34.0F)));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(u, 28.0F, 72.0F)));
-                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(u, 6.0F, 18.0F)));
-                    } else if (nt < 0.84F) {
-                        float s = WindGliderRenderer.smoothStep01((nt - 0.48F) / 0.36F);
-                        poseStack.translate(dir * Mth.lerp(s, -0.38F, 0.42F), Mth.lerp(s, 0.22F, -0.18F), -0.24F - 0.12F * Mth.sin(s * (float) Math.PI));
-                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -34.0F, -54.0F)));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s, 72.0F, -76.0F)));
-                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(s, 18.0F, -24.0F)));
+                    float p = bike.getFinisherProgress(partialTicks);
+                    if (p < 0.36F) {
+                        // Continuous lift from Donut Spin posture to overhead windup apex
+                        float lift = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+                        poseStack.translate(
+                                dir * Mth.lerp(lift, 0.14F, -0.32F),
+                                Mth.lerp(lift, -0.12F, 0.36F),
+                                Mth.lerp(lift, -0.18F, -0.24F)
+                        );
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(lift, -24.0F, -28.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(lift, 54.0F, 68.0F)));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(lift, 12.0F, 16.0F)));
+                    } else if (p < 0.76F) {
+                        // Unbroken diagonal-overhead cleave slam across the screen
+                        float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.40F) * (float) Math.PI);
+                        poseStack.translate(
+                                dir * Mth.lerp(s, -0.32F, 0.40F),
+                                Mth.lerp(s, 0.36F, -0.20F),
+                                -0.24F - 0.12F * Mth.sin(s * (float) Math.PI)
+                        );
+                        poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -28.0F, -54.0F)));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s, 68.0F, -74.0F)));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(s, 16.0F, -22.0F)));
                     } else {
-                        float r = 1.0F - WindGliderRenderer.smoothStep01((nt - 0.84F) / 0.16F);
-                        poseStack.translate(dir * 0.42F * r, -0.18F * r, -0.24F * r);
+                        // Smooth follow-through fade
+                        float r = 1.0F - (0.5F - 0.5F * Mth.cos(((p - 0.76F) / 0.24F) * (float) Math.PI));
+                        poseStack.translate(dir * 0.40F * r, -0.20F * r, -0.24F * r);
                         poseStack.mulPose(Axis.XP.rotationDegrees(-54.0F * r));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 76.0F * r));
-                        poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 24.0F * r));
+                        poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 74.0F * r));
+                        poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 22.0F * r));
                     }
                 } else if (step == 1) {
                     poseStack.translate(dir * Mth.lerp(nt, 0.34F, -0.34F), Mth.lerp(nt, 0.26F, -0.26F), -0.22F * w);
@@ -1042,9 +1054,15 @@ public final class MavuikaVisualRenderer {
         }
         long prevLow = (long) st[3];
         long curLow = nowMs & 0xFFFFFFL;
-        float dt = ((curLow - prevLow) & 0xFFFFFFL) / 1000.0F;
-        dt = Mth.clamp(dt, 0.001F, 0.08F);
-        float alpha = 1.0F - (float) Math.exp(-16.0F * dt);
+        long diffMs = (curLow - prevLow) & 0xFFFFFFL;
+        if (diffMs == 0L) {
+            weaponArm.xRot = st[0];
+            weaponArm.yRot = st[1];
+            weaponArm.zRot = st[2];
+            return;
+        }
+        float dt = Mth.clamp(diffMs / 1000.0F, 0.001F, 0.08F);
+        float alpha = 1.0F - (float) Math.exp(-32.0F * dt);
         st[0] = Mth.lerp(alpha, st[0], weaponArm.xRot);
         st[1] = Mth.lerp(alpha, st[1], weaponArm.yRot);
         st[2] = Mth.lerp(alpha, st[2], weaponArm.zRot);

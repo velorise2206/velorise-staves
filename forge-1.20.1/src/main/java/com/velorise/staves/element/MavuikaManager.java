@@ -1642,12 +1642,11 @@ public final class MavuikaManager {
         LAYLA_DREAMSPHERE_UNTIL.remove(id);
         LAYLA_DREAMSPHERE_NETHERITE.remove(id);
         LAYLA_DREAMSPHERE_NEXT_SHOT.remove(id);
-        MAVUIKA_AURA_UNTIL.remove(id);
-        MAVUIKA_AURA_NETHERITE.remove(id);
-        MAVUIKA_AURA_NEXT_STRIKE.remove(id);
-        MAVUIKA_NIGHTSOUL_POINTS.remove(id);
-        MAVUIKA_LAST_NIGHTSOUL_TICK.remove(id);
-        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(id);
+        clearPlayerState(id);
+        if (!entity.level().isClientSide() && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+            entity.stopRiding();
+            bike.discard();
+        }
         RAIDEN_EYE_UNTIL.remove(id);
         RAIDEN_EYE_NETHERITE.remove(id);
         RAIDEN_EYE_NEXT_PROC.remove(id);
@@ -1691,6 +1690,21 @@ public final class MavuikaManager {
             }
             com.velorise.staves.network.ModNetwork.sendAuraSync(entity, Collections.emptyList(), null, null, null, 0.0F, 0);
         }
+    }
+
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId == null) return;
+        MAVUIKA_AURA_UNTIL.remove(playerId);
+        MAVUIKA_AURA_NETHERITE.remove(playerId);
+        MAVUIKA_AURA_NEXT_STRIKE.remove(playerId);
+        MAVUIKA_NIGHTSOUL_POINTS.remove(playerId);
+        MAVUIKA_NIGHTSOUL_FUEL.remove(playerId);
+        MAVUIKA_CRUCIBLE_UNTIL.remove(playerId);
+        MAVUIKA_CRUCIBLE_POINTS.remove(playerId);
+        MAVUIKA_LAST_NIGHTSOUL_TICK.remove(playerId);
+        MAVUIKA_SKILL_COOLDOWN_UNTIL.remove(playerId);
+        MAVUIKA_ULTI_COOLDOWN_UNTIL.remove(playerId);
+        MAVUIKA_IDLE_STATES.remove(playerId);
     }
 
     public static void clearAllInternal() {
@@ -1739,8 +1753,12 @@ public final class MavuikaManager {
         MAVUIKA_AURA_NETHERITE.clear();
         MAVUIKA_AURA_NEXT_STRIKE.clear();
         MAVUIKA_NIGHTSOUL_POINTS.clear();
+        MAVUIKA_NIGHTSOUL_FUEL.clear();
+        MAVUIKA_CRUCIBLE_UNTIL.clear();
+        MAVUIKA_CRUCIBLE_POINTS.clear();
         MAVUIKA_LAST_NIGHTSOUL_TICK.clear();
         MAVUIKA_SKILL_COOLDOWN_UNTIL.clear();
+        MAVUIKA_ULTI_COOLDOWN_UNTIL.clear();
         RAIDEN_EYE_UNTIL.clear();
         RAIDEN_EYE_NETHERITE.clear();
         RAIDEN_EYE_NEXT_PROC.clear();

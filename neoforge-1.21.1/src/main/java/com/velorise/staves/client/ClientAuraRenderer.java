@@ -290,10 +290,13 @@ public final class ClientAuraRenderer {
         } else if (mc.player != null && event.getCamera().getEntity() == mc.player && !event.getCamera().isDetached()) {
             float pt = (float) event.getPartialTick();
             if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike
-                    && (bike.isSpinning() || Math.abs(bike.spinLean) > 0.1F)) {
-                if (bike.isSpinning()) {
-                    float bikeYaw = net.minecraft.util.Mth.rotLerp(pt, bike.yRotO, bike.getYRot());
-                    event.setYaw(bikeYaw);
+                    && (bike.shouldOverrideFirstPersonCamera() || Math.abs(bike.spinLean) > 0.1F)) {
+                if (bike.shouldOverrideFirstPersonCamera()) {
+                    event.setYaw(bike.getFirstPersonCameraYaw(pt, event.getYaw()));
+                    float finPitch = bike.getFirstPersonFinisherPitchOffset(pt);
+                    if (Math.abs(finPitch) > 0.001F) {
+                        event.setPitch(event.getPitch() + finPitch);
+                    }
                 }
                 float leanRoll = net.minecraft.util.Mth.lerp(pt, bike.prevSpinLean, bike.spinLean);
                 event.setRoll(event.getRoll() - leanRoll * 0.45F);

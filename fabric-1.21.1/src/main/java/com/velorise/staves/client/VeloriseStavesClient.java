@@ -643,9 +643,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     if (!attackDown && bikeHeldThroughDash[0]) {
                         bikeHeldThroughDash[0] = false;
                     }
-                    boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                    boolean committedFinisherSlam = bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 5 && bike.getActiveNaTicks() <= 8;
                     boolean fastSpinReentry = bikeSpinReleaseWindowTicks[0] > 0 || bikeHeldThroughDash[0]
-                            || (bike.getNaStep() == 6 && bike.getNaTicks() > 0 && (bike.getNaTicks() >= 9 || bike.getNaTicks() <= 5));
+                            || (bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 0 && (bike.getActiveNaTicks() >= 9 || bike.getActiveNaTicks() <= 5));
                     int requiredHoldTicks = fastSpinReentry ? 1 : 6;
                     if (attackDown) {
                         if (bikeAttackHoldTicks[0] == 0 && (bike.isSpinning() || bikeSpinReleaseWindowTicks[0] > 0 || bikeAutoSpinLatched[0])) {
@@ -666,6 +666,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                                 bikeSpinTapCount[0] = 0;
                                 bikeDoubleTapWindowTicks[0] = 10;
                             }
+                            bike.cancelClientFinisherToSpin();
                             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
                         }
                     } else if (bikeAttackHoldTicks[0] > 0) {
@@ -677,6 +678,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                                 if (bikeDoubleTapWindowTicks[0] == 0) {
                                     bikeDoubleTapWindowTicks[0] = 10;
                                 }
+                                bike.triggerClientFinisher(client.player);
                                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
                                 bikeSpinActive[0] = false;
                             }

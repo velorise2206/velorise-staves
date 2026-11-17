@@ -624,10 +624,10 @@ public final class OmniWheelOverlay {
                 if (!attackDown && bikeHeldThroughDash) {
                     bikeHeldThroughDash = false;
                 }
-                boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                boolean committedFinisherSlam = bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 5 && bike.getActiveNaTicks() <= 8;
                 // Only use 1-tick fast re-entry when re-holding out of an active Donut Spin ("(" / CCD) or holding continuously through a Dash ("CD")
                 boolean fastSpinReentry = bikeSpinReleaseWindowTicks > 0 || bikeHeldThroughDash
-                        || (bike.getNaStep() == 6 && bike.getNaTicks() > 0 && (bike.getNaTicks() >= 9 || bike.getNaTicks() <= 5));
+                        || (bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 0 && (bike.getActiveNaTicks() >= 9 || bike.getActiveNaTicks() <= 5));
                 int requiredHoldTicks = fastSpinReentry ? 1 : 6; // 6 ticks (300ms) hold from neutral so 1-5 tick clicks always perform Normal Attack!
                 if (attackDown) {
                     if (bikeAttackHoldTicks == 0 && (bike.isSpinning() || bikeSpinReleaseWindowTicks > 0 || bikeAutoSpinLatched)) {
@@ -651,7 +651,8 @@ public final class OmniWheelOverlay {
                             bikeSpinTapCount = 0;
                             bikeDoubleTapWindowTicks = 10;
                         }
-                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                        bike.cancelClientFinisherToSpin();
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
                     }
                 } else if (bikeAttackHoldTicks > 0) {
                     if (bikeSpinActive) {
@@ -663,7 +664,8 @@ public final class OmniWheelOverlay {
                             if (bikeDoubleTapWindowTicks == 0) {
                                 bikeDoubleTapWindowTicks = 10;
                             }
-                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                            bike.triggerClientFinisher(mc.player);
+                                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
                             bikeSpinActive = false;
                         }
                     } else {

@@ -70,6 +70,7 @@ public final class TsaritsaManager {
         // Support Burst & Seal state
         public long supportBurstUntilTick = 0L;
         public Vec3 supportDomeCenter = Vec3.ZERO;
+        public net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> supportDomeDimension = net.minecraft.world.level.Level.OVERWORLD;
         public long supportSealUntilTick = 0L;
         public boolean supportUnsealReady = false;
         public boolean wasHoldingTsaritsaLastTick = false;
@@ -116,7 +117,7 @@ public final class TsaritsaManager {
             boolean isNetherite
     ) {}
 
-    private static final List<PendingArrowStrike> PENDING_ARROWS = new ArrayList<>();
+    private static final List<PendingArrowStrike> PENDING_ARROWS = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     private TsaritsaManager() {}
 
@@ -792,6 +793,7 @@ public final class TsaritsaManager {
                 state.azureCrownUntilTick = Math.max(state.azureCrownUntilTick, eruptNow + SUPPORT_BURST_DURATION_TICKS);
                 state.supportBurstUntilTick = eruptNow + SUPPORT_BURST_DURATION_TICKS;
                 state.supportDomeCenter = player.position();
+                state.supportDomeDimension = sl.dimension();
                 state.supportSealUntilTick = eruptNow + 160L; // 8.0s Seal, shortened by Stellar Reactions
                 state.supportUnsealReady = true;
 
@@ -971,13 +973,18 @@ public final class TsaritsaManager {
 
         // Tick staggered converging Cryo Arrows (bypassing Minecraft iframes via sequential waves)
         if (!PENDING_ARROWS.isEmpty()) {
-            Iterator<PendingArrowStrike> arrowIt = PENDING_ARROWS.iterator();
-            while (arrowIt.hasNext()) {
-                PendingArrowStrike pending = arrowIt.next();
+            for (PendingArrowStrike pending : PENDING_ARROWS) {
+                ServerPlayer owner = level.getServer().getPlayerList().getPlayer(pending.playerId);
+                if (owner == null || !owner.isAlive()) {
+                    PENDING_ARROWS.remove(pending);
+                    continue;
+                }
+                if (owner.level() != level) {
+                    continue;
+                }
                 if (now >= pending.triggerTick) {
-                    arrowIt.remove();
-                    ServerPlayer owner = level.getServer().getPlayerList().getPlayer(pending.playerId);
-                    if (owner != null && owner.isAlive() && owner.level() == level) {
+                    PENDING_ARROWS.remove(pending);
+                    if (true) {
                         ModNetwork.sendCryoArrow(level, pending.origin, pending.impactPos, 14, 2);
                         level.playSound(null, pending.impactPos.x, pending.impactPos.y, pending.impactPos.z,
                                 SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 1.0F, 1.55F);
@@ -1033,7 +1040,7 @@ public final class TsaritsaManager {
             }
 
             // Ambient snow & starlight during Support Burst dome
-            if (now < state.supportBurstUntilTick && now % 10L == 0L) {
+            if (now < state.supportBurstUntilTick && level.dimension().equals(state.supportDomeDimension) && now % 10L == 0L) {
                 level.sendParticles(ParticleTypes.SNOWFLAKE,
                         state.supportDomeCenter.x, state.supportDomeCenter.y + 3.2D, state.supportDomeCenter.z,
                         18, 5.5D, 1.5D, 5.5D, 0.02D);
@@ -1195,12 +1202,14 @@ public final class TsaritsaManager {
         PLAYER_STATES.remove(playerId);
         POLESTAR_FIELDS.remove(playerId);
         TSARITSA_IDLE_STATES.remove(playerId);
+        PENDING_ARROWS.removeIf(a -> playerId.equals(a.playerId) || playerId.equals(a.targetId));
     }
 
     public static void clearAll() {
         PLAYER_STATES.clear();
         POLESTAR_FIELDS.clear();
         TSARITSA_IDLE_STATES.clear();
+        PENDING_ARROWS.clear();
     }
 
     private static final class TsaritsaIdleState {

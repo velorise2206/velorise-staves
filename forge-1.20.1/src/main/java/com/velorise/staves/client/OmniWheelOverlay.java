@@ -630,9 +630,9 @@ public final class OmniWheelOverlay {
                     if (!attackDown && bikeHeldThroughDash) {
                         bikeHeldThroughDash = false;
                     }
-                    boolean committedFinisherSlam = bike.getNaStep() == 6 && bike.getNaTicks() > 5 && bike.getNaTicks() <= 8;
+                    boolean committedFinisherSlam = bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 5 && bike.getActiveNaTicks() <= 8;
                     boolean fastSpinReentry = bikeSpinReleaseWindowTicks > 0 || bikeHeldThroughDash
-                            || (bike.getNaStep() == 6 && bike.getNaTicks() > 0 && (bike.getNaTicks() >= 9 || bike.getNaTicks() <= 5));
+                            || (bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 0 && (bike.getActiveNaTicks() >= 9 || bike.getActiveNaTicks() <= 5));
                     int requiredHoldTicks = fastSpinReentry ? 1 : 6;
                     if (attackDown) {
                         if (bikeAttackHoldTicks == 0 && (bike.isSpinning() || bikeSpinReleaseWindowTicks > 0 || bikeAutoSpinLatched)) {
@@ -653,6 +653,7 @@ public final class OmniWheelOverlay {
                                 bikeSpinTapCount = 0;
                                 bikeDoubleTapWindowTicks = 10;
                             }
+                            bike.cancelClientFinisherToSpin();
                             com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_SPIN_START);
                         }
                     } else if (bikeAttackHoldTicks > 0) {
@@ -664,6 +665,7 @@ public final class OmniWheelOverlay {
                                 if (bikeDoubleTapWindowTicks == 0) {
                                     bikeDoubleTapWindowTicks = 10;
                                 }
+                                bike.triggerClientFinisher(mc.player);
                                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_SPIN_STOP);
                                 bikeSpinActive = false;
                             }

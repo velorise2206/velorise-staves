@@ -93,14 +93,14 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
     ) {
         poseStack.pushPose();
 
-        float yaw = Mth.lerp(partialTicks, entity.yRotO, entity.getYRot());
+        float yaw = Mth.rotLerp(partialTicks, entity.yRotO, entity.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
         float spinLean = Mth.lerp(partialTicks, entity.prevSpinLean, entity.spinLean);
         if (Math.abs(spinLean) > 0.05F) {
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
         }
         int ultiT = entity.getUltiTicks();
-        int naT = entity.getNaTicks();
+        int naT = entity.getActiveNaTicks();
         applyActionTransforms(entity, ultiT, naT, partialTicks, poseStack);
 
         renderBikeMesh(
@@ -452,8 +452,8 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         }
 
         if (naT > 0 && !entity.isSpinning()) {
-            int step = entity.getNaStep();
-            float naTf = Math.max(0.0F, (float) naT - partialTicks);
+            int step = entity.getActiveNaStep();
+            float naTf = entity.getSmoothNaTicks(partialTicks);
             if (step == 1) {
                 float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
                 float s = p * p * (3.0F - 2.0F * p);
@@ -496,31 +496,29 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 poseStack.translate(0.0D, Math.sin(p * Math.PI) * 0.88D, 0.0D);
                 poseStack.mulPose(Axis.XP.rotationDegrees(s * 360.0F));
             } else if (step == 6) {
-                // Genshin Charged Attack Final (Finisher): straight centered leap & overhead slam
+                // Genshin Charged Attack Final (Finisher): continuous C1 leap & overhead slam arc
+                float p = entity.getFinisherProgress(partialTicks);
+                float jumpArc = (p < 0.72F) ? Mth.sin((p / 0.72F) * (float) Math.PI) * 0.42F : 0.0F;
+                float surgeZ = Mth.sin(p * (float) Math.PI) * 0.16F;
+                poseStack.translate(0.0D, jumpArc, surgeZ);
                 float yawWhip;
                 float pitch;
                 float roll;
-                if (naTf > 6.5F) {
-                    float w = Mth.clamp((14.0F - naTf) / 7.5F, 0.0F, 1.0F);
-                    float sw = w * w * (3.0F - 2.0F * w);
-                    float jumpArc = (float) Math.sin(sw * Math.PI * 0.85F) * 0.42F;
-                    yawWhip = Mth.lerp(sw, 0.0F, -8.0F);
-                    pitch = Mth.lerp(sw, 0.0F, -22.0F);
-                    roll = Mth.lerp(sw, 0.0F, -8.0F);
-                    poseStack.translate(0.0D, jumpArc, Math.sin(sw * Math.PI) * 0.16D);
-                } else if (naTf > 2.0F) {
-                    float s = Mth.clamp((6.5F - naTf) / 4.5F, 0.0F, 1.0F);
-                    float ss = s * s * (3.0F - 2.0F * s);
-                    float dropY = (1.0F - ss) * 0.20F;
-                    yawWhip = Mth.lerp(ss, -8.0F, 10.0F);
-                    pitch = Mth.lerp(ss, -22.0F, 14.0F);
-                    roll = Mth.lerp(ss, -8.0F, 10.0F);
-                    poseStack.translate(0.0D, dropY, 0.0D);
+                if (p < 0.36F) {
+                    float e = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+                    yawWhip = Mth.lerp(e, 0.0F, -8.0F);
+                    pitch = Mth.lerp(e, 0.0F, -22.0F);
+                    roll = Mth.lerp(e, 0.0F, -8.0F);
+                } else if (p < 0.72F) {
+                    float e = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
+                    yawWhip = Mth.lerp(e, -8.0F, 10.0F);
+                    pitch = Mth.lerp(e, -22.0F, 14.0F);
+                    roll = Mth.lerp(e, -8.0F, 10.0F);
                 } else {
-                    float r = Mth.clamp((2.0F - naTf) / 2.0F, 0.0F, 1.0F);
-                    yawWhip = Mth.lerp(r, 10.0F, 0.0F);
-                    pitch = Mth.lerp(r, 14.0F, 0.0F);
-                    roll = Mth.lerp(r, 10.0F, 0.0F);
+                    float e = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
+                    yawWhip = Mth.lerp(e, 10.0F, 0.0F);
+                    pitch = Mth.lerp(e, 14.0F, 0.0F);
+                    roll = Mth.lerp(e, 10.0F, 0.0F);
                 }
                 poseStack.mulPose(Axis.YP.rotationDegrees(yawWhip));
                 poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
@@ -564,7 +562,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         boolean spinning = bike.isSpinning();
         float spinLean = Mth.lerp(partialTicks, bike.prevSpinLean, bike.spinLean);
         int ultiT = bike.getUltiTicks();
-        int naT = bike.getNaTicks();
+        int naT = bike.getActiveNaTicks();
         if (!spinning && Math.abs(spinLean) <= 0.05F && ultiT <= 0 && naT <= 0 && !bike.isGliding() && !bike.isPlunging()) {
             return false;
         }
@@ -572,7 +570,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         poseStack.pushPose();
         poseStack.translate(0.0D, -0.55D, 0.0D);
 
-        float yaw = Mth.lerp(partialTicks, bike.yRotO, bike.getYRot());
+        float yaw = Mth.rotLerp(partialTicks, bike.yRotO, bike.getYRot());
         poseStack.mulPose(Axis.YP.rotationDegrees(-yaw));
         if (Math.abs(spinLean) > 0.05F) {
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
@@ -580,7 +578,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
 
         applyActionTransforms(bike, ultiT, naT, partialTicks, poseStack);
 
-        float bodyYaw = Mth.lerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
+        float bodyYaw = Mth.rotLerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
         poseStack.mulPose(Axis.YP.rotationDegrees(bodyYaw));
         poseStack.translate(0.0D, 0.55D, 0.0D);
         return true;
