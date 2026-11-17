@@ -26,7 +26,7 @@ public abstract class CameraMixin {
     ) {
         if (entity != null && entity.getVehicle() instanceof FlamestriderBikeEntity bike && bike.isSpinCameraAnchored()) {
             double bikeX = Mth.lerp(partialTick, bike.xo, bike.getX());
-            double bikeY = Mth.lerp(partialTick, bike.yo, bike.getY());
+            double eyeY = Mth.lerp(partialTick, entity.yo, entity.getY()) + entity.getEyeHeight();
             double bikeZ = Mth.lerp(partialTick, bike.zo, bike.getZ());
             double dx = bike.getSpinCameraOffsetX(partialTick);
             double dz = bike.getSpinCameraOffsetZ(partialTick);
@@ -35,7 +35,7 @@ public abstract class CameraMixin {
             Vec3 pos = this.getPosition();
             Vec3 targetPos = new Vec3(pos.x + dx, pos.y, pos.z + dz);
             if (level instanceof net.minecraft.world.level.Level lvl) {
-                Vec3 pivotEye = new Vec3(pivotX, bikeY + entity.getEyeHeight(), pivotZ);
+                Vec3 pivotEye = new Vec3(pivotX, eyeY, pivotZ);
                 net.minecraft.world.phys.BlockHitResult hit = lvl.clip(new net.minecraft.world.level.ClipContext(
                         pivotEye, targetPos,
                         net.minecraft.world.level.ClipContext.Block.VISUAL,

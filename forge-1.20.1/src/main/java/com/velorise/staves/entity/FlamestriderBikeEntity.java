@@ -106,6 +106,8 @@ public class FlamestriderBikeEntity extends Entity {
     private double camAnchorOffsetZ = 0.0D;
     private double camAnchorOffsetXO = 0.0D;
     private double camAnchorOffsetZO = 0.0D;
+    private double spinCamIntroStartX = 0.0D;
+    private double spinCamIntroStartZ = 0.0D;
     private int clientNaStep = 0;
     private int clientNaTicks = 0;
     private int clientNaTotalTicks = 14;
@@ -351,6 +353,14 @@ public class FlamestriderBikeEntity extends Entity {
     public float getFirstPersonCameraYaw(float partialTick, float playerCameraYaw) {
         float bikeYaw = Mth.rotLerp(partialTick, this.yRotO, this.getYRot());
         if (this.isSpinning()) {
+            float spinTicks = this.clientContinuousSpinTicks <= 0
+                    ? 0.0F
+                    : (this.clientContinuousSpinTicks - 1.0F) + partialTick;
+            if (spinTicks < 5.0F) {
+                float u = Mth.clamp(spinTicks / 5.0F, 0.0F, 1.0F);
+                float smooth = u * u * (3.0F - 2.0F * u);
+                return playerCameraYaw + Mth.wrapDegrees(bikeYaw - playerCameraYaw) * smooth;
+            }
             return bikeYaw;
         }
         if (getActiveNaStep() == 6 && getActiveNaTicks() > 0) {
@@ -1223,11 +1233,9 @@ public class FlamestriderBikeEntity extends Entity {
         this.clientSpinOrbitGraceTicks = 0;
         this.clientNaStep = 0;
         this.clientNaTicks = 0;
-        this.clientFinisherYawBlendTicks = 0;
-        this.camAnchorOffsetX = 0.0D;
-        this.camAnchorOffsetZ = 0.0D;
-        this.camAnchorOffsetXO = 0.0D;
-        this.camAnchorOffsetZO = 0.0D;
+        this.clientFinisherYawBlendTicks = combatCancel ? 7 : 0;
+        this.spinCamIntroStartX = 0.0D;
+        this.spinCamIntroStartZ = 0.0D;
         Vec3 forward = Vec3.directionFromRotation(0.0F, rider.getYRot()).normalize();
         this.clientDashVec = forward.scale(combatCancel ? 0.55D : 1.15D);
         this.yRotO = this.getYRot();
@@ -1266,7 +1274,9 @@ public class FlamestriderBikeEntity extends Entity {
             this.clientNaTicks = 0;
             this.clientFinisherYawBlendTicks = 0;
             this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
-            this.spinLean = Mth.lerp(0.42F, this.spinLean, 24.0F);
+            float leanLerp = this.clientContinuousSpinTicks <= 1 ? 0.20F
+                    : (this.clientContinuousSpinTicks == 2 ? 0.30F : 0.42F);
+            this.spinLean = Mth.lerp(leanLerp, this.spinLean, 24.0F);
         } else {
             if (srvStep > 0 && srvTicks > 0) {
                 boolean newServerCombo = this.clientNaStep != srvStep
@@ -1431,23 +1441,30 @@ public class FlamestriderBikeEntity extends Entity {
         double vz = Mth.lerp(0.35D, prev.z, inputVec.z);
         double vy = prev.y;
 
-        if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
+        boolean spinningActive = spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6;
+        double prevAnchorWorldX = this.getX() + this.camAnchorOffsetX;
+        double prevAnchorWorldZ = this.getZ() + this.camAnchorOffsetZ;
+        if (spinningActive) {
             this.clientWallClimbing = false;
             this.clientWallCrestTicks = 0;
-            if (!clientWasSpinning && clientSpinOrbitGraceTicks <= 0) {
-                // Concentric Circular Motion / Off-center Rigid-Body Rotation:
-                // Place center pivot O at R1 = 1.45m ahead of the front wheel (2.31m ahead of bike center, well outside the 1.48m nose).
-                // On frame 0, target = spinPivot - 2.31m * F(targetYaw) == current bike pos (zero snap),
-                // and from tick 1 onward, Front Wheel orbits on the inner circle (R1 = 1.45m) while Rear Wheel orbits on the outer circle (R2 = 3.13m)!
-                double startRad = Math.toRadians(targetYaw);
-                spinStartYaw = targetYaw;
-                spinPivotX = this.getX() - Math.sin(startRad) * BIKE_CENTER_SPIN_RADIUS;
-                spinPivotZ = this.getZ() + Math.cos(startRad) * BIKE_CENTER_SPIN_RADIUS;
+            if (!clientWasSpinning) {
+                // Concentric Circular Motion with Expanding Inner Front-Wheel Orbit:
+                // At frame 0, inner orbit radius R1 starts at 0.0m (pivot O is right at the planted front wheel, 0.86m ahead of bike center),
+                // so target = spinPivot - 0.86m * F(startYaw) == current bike pos (zero snap).
+                // As spinning progresses, the front-wheel inner orbit circle smoothly expands from 0.0m to FRONT_WHEEL_INNER_RADIUS (1.45m),
+                // expanding total bike-center orbit radius from 0.86m to BIKE_CENTER_SPIN_RADIUS (2.31m).
+                float startYaw = this.getYRot();
+                double startRad = Math.toRadians(startYaw);
+                spinStartYaw = startYaw;
+                spinPivotX = this.getX() - Math.sin(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
+                spinPivotZ = this.getZ() + Math.cos(startRad) * FRONT_WHEEL_PIVOT_OFFSET;
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
-                spinOrbitAngle = targetYaw;
-                spinOrbitRadius = BIKE_CENTER_SPIN_RADIUS;
+                spinOrbitAngle = startYaw;
+                spinOrbitRadius = FRONT_WHEEL_PIVOT_OFFSET;
                 clientContinuousSpinTicks = 0;
+                this.spinCamIntroStartX = prevAnchorWorldX - spinPivotX;
+                this.spinCamIntroStartZ = prevAnchorWorldZ - spinPivotZ;
             } else {
                 spinPivotXO = spinPivotX;
                 spinPivotZO = spinPivotZ;
@@ -1468,9 +1485,13 @@ public class FlamestriderBikeEntity extends Entity {
             if (Math.abs(stepZ) > 1.0E-5D && this.level().noCollision(this, this.getBoundingBox().move(0.0D, 0.0D, stepZ))) {
                 spinPivotZ += stepZ;
             }
-            spinOrbitRadius = BIKE_CENTER_SPIN_RADIUS;
-            // Advance bikeYaw by +24 deg/tick: rear wheel swings clockwise (6h -> 9h -> 12h -> 3h) around the front pivot!
-            spinOrbitAngle = Mth.wrapDegrees(spinOrbitAngle + 24.0F);
+            double innerExpandProg = Mth.clamp(clientContinuousSpinTicks / 12.0D, 0.0D, 1.0D);
+            double smoothInnerExpand = 0.5D * (1.0D - Math.cos(Math.PI * innerExpandProg));
+            double currentInnerRadius = FRONT_WHEEL_INNER_RADIUS * smoothInnerExpand;
+            spinOrbitRadius = FRONT_WHEEL_PIVOT_OFFSET + currentInnerRadius;
+            // Smoothly ramp angular speed on the first 2 ticks (12 -> 18 -> 24 deg/tick) before full 24 deg/tick Donut sweep
+            float angleStep = clientContinuousSpinTicks == 1 ? 12.0F : (clientContinuousSpinTicks == 2 ? 18.0F : 24.0F);
+            spinOrbitAngle = Mth.wrapDegrees(spinOrbitAngle + angleStep);
             double yawRad = Math.toRadians(spinOrbitAngle);
             double sinYaw = Math.sin(yawRad);
             double cosYaw = Math.cos(yawRad);
@@ -1495,7 +1516,12 @@ public class FlamestriderBikeEntity extends Entity {
             this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
         } else {
+            if (clientWasSpinning) {
+                this.clientFinisherYawBlendTicks = Math.max(this.clientFinisherYawBlendTicks, 7);
+            }
             clientContinuousSpinTicks = 0;
+            this.spinCamIntroStartX = 0.0D;
+            this.spinCamIntroStartZ = 0.0D;
             if (clientDashTicks > 0 || getUltiTicks() > 6) {
                 clientSpinOrbitGraceTicks = 0;
                 spinOrbitRadius = 0.0D;
@@ -1508,7 +1534,7 @@ public class FlamestriderBikeEntity extends Entity {
             spinPivotXO = spinPivotX;
             spinPivotZO = spinPivotZ;
         }
-        clientWasSpinning = spinningNow;
+        clientWasSpinning = spinningActive;
 
         if (clientPlungeRecoveryTicks > 0 && clientDashTicks <= 0 && !this.isPlunging()) {
             vx *= 0.45D;
@@ -1640,15 +1666,19 @@ public class FlamestriderBikeEntity extends Entity {
         this.camAnchorOffsetZO = this.camAnchorOffsetZ;
         this.setDeltaMovement(vx, vy, vz);
         this.move(MoverType.SELF, this.getDeltaMovement());
-        if (spinningNow && clientDashTicks <= 0 && getUltiTicks() <= 6) {
-            this.camAnchorOffsetX = this.spinPivotX - this.getX();
-            this.camAnchorOffsetZ = this.spinPivotZ - this.getZ();
-        } else if (clientDashTicks > 0 || getUltiTicks() > 6) {
-            this.camAnchorOffsetX = 0.0D;
-            this.camAnchorOffsetZ = 0.0D;
+        if (spinningActive) {
+            // Smoothly lerp the world-space camera focus from the initial bike position into spinPivot over 10 ticks (0.5s)
+            // using a C1-continuous cosine ease-in-out curve while keeping circular orbit cancellation at 100% from frame 0.
+            double introWeight = clientContinuousSpinTicks >= 10
+                    ? 0.0D
+                    : 0.5D * (1.0D + Math.cos(Math.PI * clientContinuousSpinTicks / 10.0D));
+            double anchorWorldX = this.spinPivotX + this.spinCamIntroStartX * introWeight;
+            double anchorWorldZ = this.spinPivotZ + this.spinCamIntroStartZ * introWeight;
+            this.camAnchorOffsetX = anchorWorldX - this.getX();
+            this.camAnchorOffsetZ = anchorWorldZ - this.getZ();
         } else {
-            this.camAnchorOffsetX *= 0.56D;
-            this.camAnchorOffsetZ *= 0.56D;
+            this.camAnchorOffsetX *= 0.64D;
+            this.camAnchorOffsetZ *= 0.64D;
             if (Math.hypot(this.camAnchorOffsetX, this.camAnchorOffsetZ) < 0.004D) {
                 this.camAnchorOffsetX = 0.0D;
                 this.camAnchorOffsetZ = 0.0D;

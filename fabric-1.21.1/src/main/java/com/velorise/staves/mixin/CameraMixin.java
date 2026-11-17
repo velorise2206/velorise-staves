@@ -32,7 +32,7 @@ public abstract class CameraMixin {
     ) {
         if (entity != null && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike && bike.isSpinCameraAnchored()) {
             double bikeX = net.minecraft.util.Mth.lerp(partialTick, bike.xo, bike.getX());
-            double bikeY = net.minecraft.util.Mth.lerp(partialTick, bike.yo, bike.getY());
+            double eyeY = net.minecraft.util.Mth.lerp(partialTick, entity.yo, entity.getY()) + entity.getEyeHeight();
             double bikeZ = net.minecraft.util.Mth.lerp(partialTick, bike.zo, bike.getZ());
             double dx = bike.getSpinCameraOffsetX(partialTick);
             double dz = bike.getSpinCameraOffsetZ(partialTick);
@@ -41,7 +41,7 @@ public abstract class CameraMixin {
             net.minecraft.world.phys.Vec3 pos = this.getPosition();
             net.minecraft.world.phys.Vec3 targetPos = new net.minecraft.world.phys.Vec3(pos.x + dx, pos.y, pos.z + dz);
             if (level instanceof net.minecraft.world.level.Level lvl) {
-                net.minecraft.world.phys.Vec3 pivotEye = new net.minecraft.world.phys.Vec3(pivotX, bikeY + entity.getEyeHeight(), pivotZ);
+                net.minecraft.world.phys.Vec3 pivotEye = new net.minecraft.world.phys.Vec3(pivotX, eyeY, pivotZ);
                 net.minecraft.world.phys.BlockHitResult hit = lvl.clip(new net.minecraft.world.level.ClipContext(
                         pivotEye, targetPos,
                         net.minecraft.world.level.ClipContext.Block.VISUAL,
