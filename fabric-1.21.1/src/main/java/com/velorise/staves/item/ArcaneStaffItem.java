@@ -94,6 +94,12 @@ public final class ArcaneStaffItem extends Item {
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
         PLAYER_BURSTS.clear();
+        SPLENDOR_SWITCHED_THIS_HOLD.clear();
+        SPLENDOR_LAST_SWITCH_TIME.clear();
+        GUARDIAN_INSTANT_PLAYERS.clear();
+        LAST_OMNI_CRAFT_SNAPSHOT.clear();
+        LAST_OMNI_CRAFT_DURABILITY.clear();
+        LAST_DAYBREAK_SHOT.clear();
         OmniOrbEntity.clearCycleCache();
     }
 
@@ -101,6 +107,12 @@ public final class ArcaneStaffItem extends Item {
         if (playerId == null) return;
         ACTIVE_CHANNELING.remove(playerId);
         PLAYER_BURSTS.remove(playerId);
+        SPLENDOR_SWITCHED_THIS_HOLD.remove(playerId);
+        SPLENDOR_LAST_SWITCH_TIME.remove(playerId);
+        GUARDIAN_INSTANT_PLAYERS.remove(playerId);
+        LAST_OMNI_CRAFT_SNAPSHOT.remove(playerId);
+        LAST_OMNI_CRAFT_DURABILITY.remove(playerId);
+        LAST_DAYBREAK_SHOT.remove(playerId);
     }
 
     public enum Kind {

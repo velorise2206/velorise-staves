@@ -135,12 +135,22 @@ public final class ArcaneStaffItem extends Item {
 
     public static void clearAll() {
         ACTIVE_CHANNELING.clear();
+        SPLENDOR_SWITCHED_THIS_HOLD.clear();
+        SPLENDOR_LAST_SWITCH_TIME.clear();
+        LAST_OMNI_CRAFT_SNAPSHOT.clear();
+        LAST_OMNI_CRAFT_DURABILITY.clear();
+        LAST_DAYBREAK_SHOT.clear();
         OmniOrbEntity.clearCycleCache();
     }
 
     public static void clearPlayerState(UUID playerId) {
         if (playerId == null) return;
         ACTIVE_CHANNELING.remove(playerId);
+        SPLENDOR_SWITCHED_THIS_HOLD.remove(playerId);
+        SPLENDOR_LAST_SWITCH_TIME.remove(playerId);
+        LAST_OMNI_CRAFT_SNAPSHOT.remove(playerId);
+        LAST_OMNI_CRAFT_DURABILITY.remove(playerId);
+        LAST_DAYBREAK_SHOT.remove(playerId);
     }
 
     public static boolean isOmniStaff(ItemStack stack) {

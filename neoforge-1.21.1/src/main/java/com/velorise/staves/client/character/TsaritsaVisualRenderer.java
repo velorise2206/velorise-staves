@@ -27,6 +27,10 @@ public final class TsaritsaVisualRenderer {
     private TsaritsaVisualRenderer() {}
     private static final java.util.Map<Integer, float[]> TSARITSA_FP_CAM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
 
+    public static void clearClientCaches() {
+        TSARITSA_FP_CAM_SMOOTH.clear();
+    }
+
     public static boolean isTsaritsaPulling(LivingEntity entity, ItemStack stack) {
         if (entity == null || stack == null || stack.isEmpty()) return false;
         if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.TSARITSA_BOW) return false;

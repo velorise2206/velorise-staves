@@ -28,6 +28,10 @@ public final class VentiVisualRenderer {
     private VentiVisualRenderer() {}
     private static final java.util.Set<Integer> SKILL_E_WIND_ORB_IDS = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
+    public static void clearClientCaches() {
+        SKILL_E_WIND_ORB_IDS.clear();
+    }
+
     public static boolean hasDaybreakEquipped(LivingEntity entity) {
         return ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.DAYBREAK
                 || ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.DAYBREAK;
@@ -279,7 +283,7 @@ public final class VentiVisualRenderer {
 
     public static void renderVentiWindChargeOrbs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         Minecraft mcOrb = Minecraft.getInstance();
-        if (mcOrb.level != null) {
+        if (mcOrb.level != null && (!SKILL_E_WIND_ORB_IDS.isEmpty() || (now - ClientAuraTracker.lastVentiSkillETimeMs) <= 2500L)) {
             float ptOrb = mcOrb.getTimer().getGameTimeDeltaPartialTick(true);
             for (net.minecraft.world.entity.Entity e : mcOrb.level.entitiesForRendering()) {
                 if (e instanceof net.minecraft.world.entity.projectile.windcharge.WindCharge wc && wc.isAlive()) {

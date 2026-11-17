@@ -142,6 +142,12 @@ public final class NahidaManager {
         SKANDHA_MARKS.entrySet().removeIf(e -> playerId.equals(e.getValue().ownerId));
     }
 
+    public static void clearPlayerState(ServerPlayer player) {
+        if (player == null) return;
+        setViewfinderKnockbackRes(player, false);
+        clearPlayerState(player.getUUID());
+    }
+
     public static boolean isHoldingNahida(@Nullable Player player) {
         return !getHeldNahidaStack(player).isEmpty();
     }

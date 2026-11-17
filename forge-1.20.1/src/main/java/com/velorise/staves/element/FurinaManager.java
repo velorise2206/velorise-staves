@@ -28,6 +28,16 @@ public final class FurinaManager {
 
     private static final Map<UUID, FurinaIdleState> FURINA_IDLE_STATES = new ConcurrentHashMap<>();
 
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) {
+            FURINA_IDLE_STATES.remove(playerId);
+        }
+    }
+
+    public static void clearAll() {
+        FURINA_IDLE_STATES.clear();
+    }
+
     public static void tickIdle(MinecraftServer server, long now) {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {

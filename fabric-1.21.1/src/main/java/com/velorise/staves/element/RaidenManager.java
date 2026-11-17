@@ -1187,6 +1187,16 @@ public final class RaidenManager {
 
     private static final java.util.Map<java.util.UUID, RaidenIdleState> RAIDEN_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
 
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) {
+            RAIDEN_IDLE_STATES.remove(playerId);
+        }
+    }
+
+    public static void clearAll() {
+        RAIDEN_IDLE_STATES.clear();
+    }
+
     public static void tickIdle(MinecraftServer server, long now) {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {

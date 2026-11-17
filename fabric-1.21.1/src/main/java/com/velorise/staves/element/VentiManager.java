@@ -119,9 +119,16 @@ public final class VentiManager {
     public static final java.util.List<SourcewaterDroplet> SOURCEWATER_DROPLETS = new java.util.concurrent.CopyOnWriteArrayList<>();
     public static final java.util.List<DaybreakVortexField> DAYBREAK_VORTICES = new java.util.concurrent.CopyOnWriteArrayList<>();
 
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) {
+            VENTI_IDLE_STATES.remove(playerId);
+        }
+    }
+
     public static void clearAll() {
         SOURCEWATER_DROPLETS.clear();
         DAYBREAK_VORTICES.clear();
+        VENTI_IDLE_STATES.clear();
     }
 
     public static final class DaybreakVortexField {

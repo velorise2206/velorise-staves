@@ -981,6 +981,11 @@ public final class WindGliderRenderer {
     private static final java.util.Map<Integer, Integer> LAST_USE_TICKS = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<Integer, ArcaneStaffItem.Kind> LAST_USE_KIND = new java.util.concurrent.ConcurrentHashMap<>();
 
+    public static void clearClientCaches() {
+        LAST_USE_TICKS.clear();
+        LAST_USE_KIND.clear();
+    }
+
     public static void pollClientUseTransitions(LivingEntity entity) {
         if (entity == null) return;
         int id = entity.getId();

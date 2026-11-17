@@ -952,7 +952,7 @@ public final class ElementalGaugeManager {
             if (!hasInnate && !targetGauges.containsKey(Element.HYDRO)) {
                 targetGauges.put(Element.HYDRO, createAuraGauge(target, Element.HYDRO, 1.25F));
             }
-        } else if (target.isInLava() || target.isOnFire() || target.getRemainingFireTicks() > 0) {
+        } else if (isTouchingEnvironmentalFireBlock(target)) {
             if (!hasInnate && !targetGauges.containsKey(Element.ELECTRO)) {
                 if (!targetGauges.containsKey(Element.PYRO)) {
                     targetGauges.put(Element.PYRO, createAuraGauge(target, Element.PYRO, 1.25F));

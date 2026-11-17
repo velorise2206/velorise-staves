@@ -158,6 +158,12 @@ public final class ZhongliManager {
         }
     }
 
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) {
+            ZHONGLI_IDLE_STATES.remove(playerId);
+        }
+    }
+
     public static void clearAll() {
         PENDING_EVOKER_CONSTRUCTS.clear();
         NIGHTS_FOCUS_PROJECTILES.clear();

@@ -312,6 +312,7 @@ public final class EnvironmentalBlockManager {
             LAST_LIGHTNING_ROD_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 40L);
             LAST_TESLA_COIL_ZAP.entrySet().removeIf(e -> serverNow < e.getValue() || (serverNow - e.getValue()) > 100L);
             TESLA_COIL_OVERCHARGE_UNTIL.entrySet().removeIf(e -> serverNow >= e.getValue() || (e.getValue() - serverNow) > 1200L);
+            PLAYER_TESLA_SCAN_CACHE.entrySet().removeIf(e -> serverNow < e.getValue().lastScanTick() || (serverNow - e.getValue().lastScanTick()) > 200L);
         }
 
         for (ServerLevel level : server.getAllLevels()) {
@@ -524,8 +525,10 @@ public final class EnvironmentalBlockManager {
         BlockPos min = BlockPos.containing(entityBox.minX - 1.0D, entityBox.minY - 1.0D, entityBox.minZ - 1.0D);
         BlockPos max = BlockPos.containing(entityBox.maxX + 1.0D, entityBox.maxY + 1.0D, entityBox.maxZ + 1.0D);
 
+        boolean sameChunk = (min.getX() >> 4) == (max.getX() >> 4) && (min.getZ() >> 4) == (max.getZ() >> 4);
+
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-            if (!level.hasChunkAt(p)) continue;
+            if (!sameChunk && !level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
             if (st.is(Blocks.OBSERVER) && st.hasProperty(ObserverBlock.POWERED) && st.getValue(ObserverBlock.POWERED)) {
                 // Vanilla Observer outputs Redstone strictly from its back face (FACING.getOpposite())
@@ -569,8 +572,10 @@ public final class EnvironmentalBlockManager {
         boolean touchingSlimeOrHoney = false;
         boolean touchingSoulCampfire = false;
         BlockPos amethystZapPos = null;
+        boolean sameChunk = (min.getX() >> 4) == (max.getX() >> 4) && (min.getZ() >> 4) == (max.getZ() >> 4);
+
         for (BlockPos p : BlockPos.betweenClosed(min, max)) {
-            if (!level.hasChunkAt(p)) continue;
+            if (!sameChunk && !level.hasChunkAt(p)) continue;
             BlockState st = level.getBlockState(p);
             if (isBlockFormRedstoneLightningSource(st)) {
                 touchingRedstone = true;

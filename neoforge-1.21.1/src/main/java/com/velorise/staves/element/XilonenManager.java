@@ -96,6 +96,24 @@ public final class XilonenManager {
         CRYSTALLIZE_SCROLL_BUFFS.remove(playerId);
     }
 
+    public static void clearPlayerState(ServerPlayer player) {
+        if (player == null) return;
+        AttributeInstance spd = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (spd != null) spd.removeModifier(SKATE_SPEED_ID);
+        AttributeInstance stepAttr = player.getAttribute(Attributes.STEP_HEIGHT);
+        if (stepAttr != null) stepAttr.removeModifier(SKATE_STEP_ID);
+        AttributeInstance kb = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+        if (kb != null) kb.removeModifier(C1_KB_RES_ID);
+        AttributeInstance hp = player.getAttribute(Attributes.MAX_HEALTH);
+        if (hp != null && hp.getModifier(C2_HYDRO_HP_ID) != null) {
+            hp.removeModifier(C2_HYDRO_HP_ID);
+            if (player.getHealth() > player.getMaxHealth()) {
+                player.setHealth(player.getMaxHealth());
+            }
+        }
+        clearPlayerState(player.getUUID());
+    }
+
     public static boolean isHoldingXilonen(Player player) {
         if (player == null) return false;
         ItemStack main = player.getMainHandItem();

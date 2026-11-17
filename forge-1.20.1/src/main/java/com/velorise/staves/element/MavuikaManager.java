@@ -235,17 +235,15 @@ public final class MavuikaManager {
         ServerLevel level = player.serverLevel();
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
+        float maxFuel = isNetherite ? 120.0F : 80.0F; // Genshin C0: 80, C1 (Netherite): 120 max Nightsoul points
         MAVUIKA_AURA_UNTIL.put(id, now + 400L);
-        MAVUIKA_NIGHTSOUL_FUEL.put(id, 80.0F);
+        MAVUIKA_NIGHTSOUL_FUEL.put(id, maxFuel);
         MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
         MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
         long cdTicks = Math.max(300L, cooldownTicks > 0 ? cooldownTicks : 300L);
         MAVUIKA_SKILL_COOLDOWN_UNTIL.put(id, now + cdTicks);
-        if (isNetherite && !MAVUIKA_LAST_NIGHTSOUL_TICK.containsKey(id)) {
-            MAVUIKA_LAST_NIGHTSOUL_TICK.put(id, now);
-        }
-        float pts = isNetherite ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
-        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 800, pts, isNetherite);
+        float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, Math.round(maxFuel * 10.0F), pts, isNetherite);
         for (int a = 0; a < 12; a++) {
             double ang = a * (Math.PI * 2.0D / 12.0D);
             double px = player.getX() + Math.cos(ang) * 0.9D;
@@ -253,6 +251,14 @@ public final class MavuikaManager {
             level.sendParticles(ParticleTypes.FLAME, px, player.getY() + 1.05D, pz, 2, 0.05D, 0.12D, 0.05D, 0.02D);
         }
         level.playSound(null, player.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.85F, 1.1F);
+    }
+
+    public static boolean isMavuikaInCombat(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return false;
+        ServerLevel level = player.serverLevel();
+        AABB nearBox = player.getBoundingBox().inflate(14.0D, 6.0D, 14.0D);
+        return !level.getEntitiesOfClass(LivingEntity.class, nearBox,
+                e -> e.isAlive() && !e.isRemoved() && !(e instanceof Player) && !isPassiveAquaticOrAmbient(e)).isEmpty();
     }
 
     public static void consumeMavuikaNightsoulFuel(ServerPlayer player, float amount) {
@@ -263,7 +269,39 @@ public final class MavuikaManager {
         Float cur = MAVUIKA_NIGHTSOUL_FUEL.get(id);
         if (cur == null || cur <= 0.0F) return;
         float next = Math.max(0.0F, cur - amount);
+        float drained = cur - next;
         MAVUIKA_NIGHTSOUL_FUEL.put(id, next);
+        if (drained > 0.0F && isMavuikaInCombat(player)) {
+            boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id, false);
+            float fsEfficiency = neth ? 1.25F : 1.0F;
+            float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+            MAVUIKA_NIGHTSOUL_POINTS.put(id, Math.min(10.0F, curPts + drained * 0.05F * fsEfficiency));
+        }
+    }
+
+    public static void addMavuikaNormalAttackFightingSpirit(ServerPlayer player) {
+        if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        UUID id = player.getUUID();
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        ItemStack main = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
+        boolean holdingMain = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
+        boolean holdingOff = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
+        if (!holdingMain && !holdingOff && !isMavuikaAuraActive(id, now)) return;
+        long lastNaFs = MAVUIKA_LAST_NA_FS_TICK.getOrDefault(id, -100L);
+        if (now >= lastNaFs && now - lastNaFs < 2L) return; // Genshin A1 passive: 0.1s ICD
+        MAVUIKA_LAST_NA_FS_TICK.put(id, now);
+        boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id,
+                (holdingMain && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main))
+                        || (holdingOff && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(off)));
+        float fsEfficiency = neth ? 1.25F : 1.0F;
+        float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+        float updated = Math.min(10.0F, curPts + 0.075F * fsEfficiency);
+        if (updated != curPts) {
+            MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
+            int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
+            com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, updated, neth);
+        }
     }
 
     public static boolean isMavuikaAuraActive(UUID id, long now) {
@@ -341,8 +379,25 @@ public final class MavuikaManager {
         return (int) Math.max(0L, MAVUIKA_ULTI_COOLDOWN_UNTIL.getOrDefault(sp.getUUID(), 0L) - now);
     }
 
+    public static float getMavuikaCrucibleNaBonusMultiplier(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return 0.0F;
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (now >= MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return 0.0F;
+        return MAVUIKA_CRUCIBLE_POINTS.getOrDefault(id, 0.0F) * 0.051F;
+    }
+
+    public static float getMavuikaCrucibleChargedBonusMultiplier(ServerPlayer player) {
+        if (player == null || player.level().isClientSide()) return 0.0F;
+        long now = player.serverLevel().getServer().overworld().getGameTime();
+        UUID id = player.getUUID();
+        if (now >= MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L)) return 0.0F;
+        return MAVUIKA_CRUCIBLE_POINTS.getOrDefault(id, 0.0F) * 0.102F;
+    }
+
     public static void triggerMavuikaUlti(ServerPlayer player) {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
+        if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
         ItemStack off = player.getOffhandItem();
         ItemStack sunsStack = ItemStack.EMPTY;
@@ -353,6 +408,7 @@ public final class MavuikaManager {
             sunsStack = off;
         }
         if (sunsStack.isEmpty()) return;
+        boolean isNetherite = com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(sunsStack);
 
         UUID id = player.getUUID();
         ServerLevel level = player.serverLevel();
@@ -366,24 +422,26 @@ public final class MavuikaManager {
         if (pts < 5.0F) return;
         MAVUIKA_ULTI_COOLDOWN_UNTIL.put(id, now + 360L);
         float clampedPts = Math.min(10.0F, pts);
-        float baseScale = (float) (StavesConfig.getStaffBasicDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
-                / Math.max(0.001D, StavesConfig.getDefaultBasicDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)));
-        float ultiDmg = (10.0F + ((clampedPts - 5.0F) / 5.0F) * 10.0F) * baseScale;
+        float baseDmg = StavesConfig.getStaffBaseDamage(com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, isNetherite);
+        float ultiDmg = baseDmg * (4.00F + clampedPts * 0.29F);
 
         MAVUIKA_NIGHTSOUL_POINTS.put(id, 0.0F);
         if (!isMavuikaAuraActive(id, now)) {
             MAVUIKA_AURA_UNTIL.put(id, now + 140L);
-            MAVUIKA_AURA_NETHERITE.put(id, true);
+            MAVUIKA_AURA_NETHERITE.put(id, isNetherite);
             MAVUIKA_AURA_NEXT_STRIKE.put(id, now + 20L);
+        } else {
+            MAVUIKA_AURA_UNTIL.put(id, Math.max(MAVUIKA_AURA_UNTIL.getOrDefault(id, 0L), now + 140L));
         }
 
         MAVUIKA_NIGHTSOUL_FUEL.put(id, Math.max(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F), 60.0F));
         if (!(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
-            summonAndMountFlamestrider(player, true, 0, false);
+            summonAndMountFlamestrider(player, isNetherite, 0, false);
         }
         ArchonUltiManager.grantUltiIframe(player, 34); // 1.7s Genshin Q I-frames
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
         MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 140L); // Genshin Q: 7s Crucible of Death and Life (no Nightsoul drain)
+        MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
             bike.startUltiSlam(ultiDmg);
         } else {
@@ -391,7 +449,9 @@ public final class MavuikaManager {
         }
 
         int rem = Math.round(MAVUIKA_NIGHTSOUL_FUEL.getOrDefault(id, 0.0F) * 10.0F);
-        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, 0.0F, true);
+        com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, 0.0F, isNetherite);
+        com.velorise.staves.advancement.ModAdvancements.trigger(player,
+                com.velorise.staves.advancement.ModAdvancements.EVENT_RAT_FROM_THE_SKY);
     }
 
     public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) {
@@ -458,7 +518,7 @@ public final class MavuikaManager {
                             bike.discard();
                         }
                     }
-                    float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
+                    float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                     com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
                     applyMavuikaDismountOrRemainingCooldown(player);
                 }
@@ -492,7 +552,14 @@ public final class MavuikaManager {
                     drainPerTick = 0.55F;
                 }
             }
+            float prevFuel = fuel;
             fuel = Math.max(0.0F, fuel - drainPerTick);
+            float drained = prevFuel - fuel;
+            if (drained > 0.0F && isMavuikaInCombat(player)) {
+                float fsEfficiency = neth ? 1.25F : 1.0F;
+                float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
+                MAVUIKA_NIGHTSOUL_POINTS.put(id, Math.min(10.0F, curPts + drained * 0.05F * fsEfficiency));
+            }
             MAVUIKA_NIGHTSOUL_FUEL.put(id, fuel);
             if (fuel <= 0.01F) {
                 MAVUIKA_NIGHTSOUL_FUEL.remove(id);
@@ -504,7 +571,7 @@ public final class MavuikaManager {
                         bike.discard();
                     }
                 }
-                float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
+                float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                 com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, pts, neth);
                 applyMavuikaDismountOrRemainingCooldown(player);
                 continue;
@@ -534,24 +601,9 @@ public final class MavuikaManager {
                 }
             }
 
-            if (neth) {
-                long lastNs = MAVUIKA_LAST_NIGHTSOUL_TICK.getOrDefault(id, 0L);
-                if (serverNow - lastNs >= 20L) {
-                    MAVUIKA_LAST_NIGHTSOUL_TICK.put(id, serverNow);
-                    AABB nearBox = player.getBoundingBox().inflate(14.0D, 6.0D, 14.0D);
-                    boolean hasMobNear = !level.getEntitiesOfClass(LivingEntity.class, nearBox,
-                            e -> e.isAlive() && !e.isRemoved() && !(e instanceof Player) && !isPassiveAquaticOrAmbient(e)).isEmpty();
-                    if (hasMobNear) {
-                        float cur = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
-                        float updated = Math.min(10.0F, cur + 0.5F);
-                        MAVUIKA_NIGHTSOUL_POINTS.put(id, updated);
-                    }
-                }
-            }
-
             if (serverNow % 2L == 0L) {
                 int rem = Math.max(1, Math.round(fuel * 10.0F));
-                float pts = neth ? MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F) : 0.0F;
+                float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
                 com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, rem, pts, neth);
             }
         }
@@ -1622,6 +1674,14 @@ public final class MavuikaManager {
         ArchonUltiManager.clearEntityState(id);
         NahidaManager.clearPlayerState(id);
         TsaritsaManager.clearPlayer(id);
+        XilonenManager.clearPlayerState(id);
+        NeuvilletteManager.clearPlayerState(id);
+        PlungeAndGliderManager.clearPlayerState(id);
+        FurinaManager.clearPlayerState(id);
+        ZhongliManager.clearPlayerState(id);
+        RaidenManager.clearPlayerState(id);
+        VentiManager.clearPlayerState(id);
+        MAVUIKA_IDLE_STATES.remove(id);
         PETRIFIED_UNTIL.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
@@ -1633,6 +1693,8 @@ public final class MavuikaManager {
         }
         if (!entity.level().isClientSide()) {
             if (entity instanceof ServerPlayer sp) {
+                XilonenManager.clearPlayerState(sp);
+                NahidaManager.clearPlayerState(sp);
                 CrystallizeShardManager.clearPlayerShield(sp);
                 ElementalResonanceManager.clearPlayerState(sp.getUUID());
             }
@@ -1726,6 +1788,9 @@ public final class MavuikaManager {
         TRADER_LAST_CUSTOMER.clear();
         ZhongliManager.clearAll();
         VentiManager.clearAll();
+        FurinaManager.clearAll();
+        RaidenManager.clearAll();
+        MAVUIKA_IDLE_STATES.clear();
     }
 
     public static void tickActiveEntityGauges(MinecraftServer server, long serverNow) {

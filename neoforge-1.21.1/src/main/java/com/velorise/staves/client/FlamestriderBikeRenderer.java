@@ -510,15 +510,13 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
      */
     public static boolean pushRiderBikeTransform(net.minecraft.world.entity.LivingEntity rider, float partialTicks, PoseStack poseStack) {
         if (!(rider.getVehicle() instanceof FlamestriderBikeEntity bike)) {
-            if (ClientAuraTracker.isXilonenSkating(rider.getId())
-                    && ClientAuraTracker.isXilonenJumpFlipping(rider.getId())
-                    && !rider.onGround()
-                    && !ClientAuraTracker.isXilonenWallClimbing(rider.getId())
-                    && !ClientAuraTracker.isPlunging(rider.getId())
-                    && !ClientAuraTracker.isGliding(rider.getId())) {
+            float flipProg = ClientAuraTracker.getXilonenJumpFlipProgress(rider.getId());
+            if (flipProg >= 0.0F && !rider.onGround()) {
                 poseStack.pushPose();
                 float bodyYaw = Mth.rotLerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
-                float flipDeg = ((rider.tickCount + partialTicks) * 30.0F) % 360.0F;
+                // Smooth single 360-degree front flip anchored to jump start time (~740ms), finishing at 360 deg right on landing
+                float easedFlip = Mth.clamp(flipProg * (1.12F - 0.12F * flipProg), 0.0F, 1.0F);
+                float flipDeg = easedFlip * 360.0F;
                 poseStack.translate(0.0D, 0.90D, 0.0D);
                 poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
                 poseStack.mulPose(Axis.XP.rotationDegrees(flipDeg));

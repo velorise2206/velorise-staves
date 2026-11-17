@@ -888,10 +888,12 @@ public final class ElementalGaugeManager {
         float catEmMult = getCatalyzeMultiplier(emLevel);
 
         EnumSet<Element> innateElements = getInnateElements(target);
-        if (!innateElements.isEmpty()) {
+        boolean hasInnate = !innateElements.isEmpty();
+        if (hasInnate) {
             if (innateElements.contains(attackElement)) {
                 for (Element inn : innateElements) {
-                    if ((inn.isAura() || isMutatedInnate(target)) && !targetGauges.containsKey(inn)) {
+                    if ((inn.isAura() || isMutatedInnate(target) || (inn == Element.ELECTRO && target instanceof Creeper c && c.isPowered()))
+                            && !targetGauges.containsKey(inn)) {
                         targetGauges.put(inn, new GaugeState(inn, 1.25F));
                     }
                 }
@@ -900,43 +902,32 @@ public final class ElementalGaugeManager {
                 return;
             }
 
-            for (Element inn : innateElements) {
-                if ((inn.isAura() || isMutatedInnate(target) || (inn == Element.ELECTRO && target instanceof Creeper c && c.isPowered()))
-                        && !targetGauges.containsKey(inn)) {
-                    targetGauges.put(inn, new GaugeState(inn, 1.25F));
-                }
-            }
-
             if (innateElements.contains(Element.ANEMO) && (attackElement == Element.PYRO || attackElement == Element.HYDRO || attackElement == Element.ELECTRO || attackElement == Element.CRYO)) {
-                boolean hasReactiveAura = findPrimaryReactiveAura(targetGauges, attackElement) != null;
                 if (checkReactionIcd(target, ElementalReaction.SWIRL, now)) {
+                    float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SWIRL);
                     float removedU = Math.min(1.0F, attackU * 0.5F);
-                    if (!hasReactiveAura) {
-                        float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.SWIRL);
-                        executeReactionEffect(level, target, ElementalReaction.SWIRL, attackElement, removedU, attacker, dmgMult);
-                        syncAuras(target, Collections.singleton(Element.ANEMO), attackElement, Element.ANEMO, ElementalReaction.SWIRL, resDmg);
-                        return;
-                    }
                     executeReactionEffect(level, target, ElementalReaction.SWIRL, attackElement, removedU, attacker, dmgMult);
+                    enforceInnateLock(target, targetGauges, targetId, innateElements, now);
+                    syncAuras(target, targetGauges.keySet(), attackElement, Element.ANEMO, ElementalReaction.SWIRL, resDmg);
+                    return;
                 }
             } else if (innateElements.contains(Element.GEO) && (attackElement == Element.PYRO || attackElement == Element.HYDRO || attackElement == Element.ELECTRO || attackElement == Element.CRYO)) {
                 if (checkReactionIcd(target, ElementalReaction.CRYSTALLIZE, now)) {
-                    executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, attackElement, 0.5F, attacker, dmgMult);
+                    float removedU = Math.min(1.0F, attackU * 0.5F);
+                    executeReactionEffect(level, target, ElementalReaction.CRYSTALLIZE, attackElement, removedU, attacker, dmgMult);
                 }
-                if (attackElement == Element.PYRO && (target.isOnFire() || target.getRemainingFireTicks() > 0 || target.isInLava())) {
-                    if (targetGauges.containsKey(Element.PYRO)) {
-                        targetGauges.get(Element.PYRO).refresh(attackU);
-                    } else {
+                if (attackElement == Element.PYRO && targetGauges.containsKey(Element.DENDRO)) {
+                    if (!targetGauges.containsKey(Element.PYRO)) {
                         targetGauges.put(Element.PYRO, new GaugeState(Element.PYRO, attackU));
                     }
                 }
-                if (!targetGauges.containsKey(Element.DENDRO) && findPrimaryReactiveAura(targetGauges, attackElement) == null) {
+                if (!targetGauges.containsKey(Element.DENDRO) && innateElements.size() == 1) {
                     float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut, ElementalReaction.CRYSTALLIZE);
+                    enforceInnateLock(target, targetGauges, targetId, innateElements, now);
                     syncAuras(target, targetGauges.keySet(), attackElement, Element.GEO, ElementalReaction.CRYSTALLIZE, resDmg);
                     return;
                 }
-            } else if (innateElements.contains(Element.GEO) && attackElement == Element.DENDRO
-                    && findPrimaryReactiveAura(targetGauges, attackElement) == null) {
+            } else if (innateElements.contains(Element.GEO) && attackElement == Element.DENDRO && innateElements.size() == 1) {
                 if (targetGauges.containsKey(Element.DENDRO)) {
                     targetGauges.get(Element.DENDRO).refresh(attackU);
                 } else {
@@ -945,6 +936,13 @@ public final class ElementalGaugeManager {
                 float resDmg = dealOrDeferDamage(level, target, attacker, effectiveDamage, attackElement, meleeOut);
                 syncAuras(target, targetGauges.keySet(), Element.GEO, Element.DENDRO, null, resDmg);
                 return;
+            }
+
+            for (Element ie : innateElements) {
+                if ((ie.isAura() || isMutatedInnate(target) || (ie == Element.ELECTRO && target instanceof Creeper c && c.isPowered()))
+                        && !targetGauges.containsKey(ie)) {
+                    targetGauges.put(ie, new GaugeState(ie, 1.25F));
+                }
             }
         }
 
@@ -1653,12 +1651,16 @@ public static void tick(MinecraftServer server) {
     public static long getMavuikaSkillRemainingTicks(UUID id, long now) { return MavuikaManager.getMavuikaSkillRemainingTicks(id, now); }
     public static void applyMavuikaDismountOrRemainingCooldown(ServerPlayer player) { MavuikaManager.applyMavuikaDismountOrRemainingCooldown(player); }
     public static void activateMavuikaSunAura(ServerPlayer player, boolean isNetherite, int cooldownTicks) { MavuikaManager.activateMavuikaSunAura(player, isNetherite, cooldownTicks); }
+    public static boolean isMavuikaInCombat(ServerPlayer player) { return MavuikaManager.isMavuikaInCombat(player); }
     public static void consumeMavuikaNightsoulFuel(ServerPlayer player, float amount) { MavuikaManager.consumeMavuikaNightsoulFuel(player, amount); }
+    public static void addMavuikaNormalAttackFightingSpirit(ServerPlayer player) { MavuikaManager.addMavuikaNormalAttackFightingSpirit(player); }
     public static boolean isMavuikaAuraActive(UUID id, long now) { return MavuikaManager.isMavuikaAuraActive(id, now); }
     public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks) { MavuikaManager.summonAndMountFlamestrider(player, isNetherite, cooldownTicks); }
     public static void summonAndMountFlamestrider(ServerPlayer player, boolean isNetherite, int cooldownTicks, boolean dealCastSweep) { MavuikaManager.summonAndMountFlamestrider(player, isNetherite, cooldownTicks, dealCastSweep); }
     public static void toggleMavuikaBike(ServerPlayer player) { MavuikaManager.toggleMavuikaBike(player); }
     public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) { return MavuikaManager.getMavuikaUltiCooldownTicks(target); }
+    public static float getMavuikaCrucibleNaBonusMultiplier(ServerPlayer player) { return MavuikaManager.getMavuikaCrucibleNaBonusMultiplier(player); }
+    public static float getMavuikaCrucibleChargedBonusMultiplier(ServerPlayer player) { return MavuikaManager.getMavuikaCrucibleChargedBonusMultiplier(player); }
     public static void triggerMavuikaUlti(ServerPlayer player) { MavuikaManager.triggerMavuikaUlti(player); }
     public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) { MavuikaManager.executeMavuikaUltiImpact(level, player, ultiDmg); }
     public static void tickMavuikaSunAura(MinecraftServer server, long serverNow) { MavuikaManager.tickMavuikaSunAura(server, serverNow); }

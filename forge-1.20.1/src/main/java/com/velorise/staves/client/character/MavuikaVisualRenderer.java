@@ -34,6 +34,11 @@ import java.util.Locale;
 public final class MavuikaVisualRenderer {
     private static final java.util.Map<Integer, float[]> BIKE_FP_CAM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
     private static final java.util.Map<Integer, float[]> BIKE_ARM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void clearClientCaches() {
+        BIKE_FP_CAM_SMOOTH.clear();
+        BIKE_ARM_SMOOTH.clear();
+    }
     private MavuikaVisualRenderer() {}
 
     public static void renderMavuikaVirtualHelmet(

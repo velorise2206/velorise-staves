@@ -81,6 +81,24 @@ public final class XilonenManager {
         CRYSTALLIZE_SCROLL_BUFFS.remove(playerId);
     }
 
+    public static void clearPlayerState(ServerPlayer player) {
+        if (player == null) return;
+        AttributeInstance spd = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (spd != null) spd.removeModifier(SKATE_SPEED_UUID);
+        AttributeInstance stepAttr = player.getAttribute(net.minecraftforge.common.ForgeMod.STEP_HEIGHT_ADDITION.get());
+        if (stepAttr != null) stepAttr.removeModifier(SKATE_STEP_UUID);
+        AttributeInstance kb = player.getAttribute(Attributes.KNOCKBACK_RESISTANCE);
+        if (kb != null) kb.removeModifier(C1_KB_RES_UUID);
+        AttributeInstance hp = player.getAttribute(Attributes.MAX_HEALTH);
+        if (hp != null && hp.getModifier(C2_HYDRO_HP_UUID) != null) {
+            hp.removeModifier(C2_HYDRO_HP_UUID);
+            if (player.getHealth() > player.getMaxHealth()) {
+                player.setHealth(player.getMaxHealth());
+            }
+        }
+        clearPlayerState(player.getUUID());
+    }
+
     public static boolean isHoldingXilonen(Player player) {
         if (player == null) return false;
         ItemStack main = player.getMainHandItem();

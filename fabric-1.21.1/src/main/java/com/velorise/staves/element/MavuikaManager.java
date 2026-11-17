@@ -1658,6 +1658,14 @@ public final class MavuikaManager {
         ArchonUltiManager.clearEntityState(id);
         NahidaManager.clearPlayerState(id);
         TsaritsaManager.clearPlayer(id);
+        XilonenManager.clearPlayerState(id);
+        NeuvilletteManager.clearPlayerState(id);
+        PlungeAndGliderManager.clearPlayerState(id);
+        FurinaManager.clearPlayerState(id);
+        ZhongliManager.clearPlayerState(id);
+        RaidenManager.clearPlayerState(id);
+        VentiManager.clearPlayerState(id);
+        MAVUIKA_IDLE_STATES.remove(id);
         PETRIFIED_UNTIL.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
@@ -1669,6 +1677,8 @@ public final class MavuikaManager {
         }
         if (!entity.level().isClientSide()) {
             if (entity instanceof ServerPlayer sp) {
+                XilonenManager.clearPlayerState(sp);
+                NahidaManager.clearPlayerState(sp);
                 CrystallizeShardManager.clearPlayerShield(sp);
                 ElementalResonanceManager.clearPlayerState(sp.getUUID());
             }
@@ -1762,6 +1772,9 @@ public final class MavuikaManager {
         TRADER_LAST_CUSTOMER.clear();
         ZhongliManager.clearAll();
         VentiManager.clearAll();
+        FurinaManager.clearAll();
+        RaidenManager.clearAll();
+        MAVUIKA_IDLE_STATES.clear();
     }
 
     public static void tickActiveEntityGauges(MinecraftServer server, long serverNow) {

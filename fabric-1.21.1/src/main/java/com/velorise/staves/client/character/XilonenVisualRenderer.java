@@ -157,6 +157,22 @@ public final class XilonenVisualRenderer {
             model.leftArm.xRot = -1.25F + climb * 0.45F;
             return true;
         }
+        float flipProg = ClientAuraTracker.getXilonenJumpFlipProgress(entity.getId());
+        if (flipProg >= 0.0F && !entity.onGround()) {
+            float tuck = Mth.sin(flipProg * (float) Math.PI);
+            float stride = Mth.sin(ageInTicks * 0.38F) * (1.0F - tuck);
+            model.body.xRot = Mth.lerp(tuck, 0.18F, 0.32F);
+            model.body.yRot = stride * 0.14F;
+            model.rightLeg.xRot = Mth.lerp(tuck, stride * 0.52F, -0.85F);
+            model.leftLeg.xRot = Mth.lerp(tuck, -stride * 0.52F, -0.85F);
+            model.rightLeg.zRot = Mth.lerp(tuck, 0.12F, 0.06F);
+            model.leftLeg.zRot = Mth.lerp(tuck, -0.12F, -0.06F);
+            model.rightArm.xRot = Mth.lerp(tuck, -stride * 0.42F - 0.15F, -1.05F);
+            model.leftArm.xRot = Mth.lerp(tuck, stride * 0.42F - 0.15F, -1.05F);
+            model.rightArm.zRot = Mth.lerp(tuck, 0.18F, 0.22F);
+            model.leftArm.zRot = Mth.lerp(tuck, -0.18F, -0.22F);
+            return true;
+        }
         double dy = entity.getDeltaMovement().y;
         if (!entity.onGround() && (dy < -0.45D || dy > 0.15D)) {
             model.body.xRot = 0.30F;

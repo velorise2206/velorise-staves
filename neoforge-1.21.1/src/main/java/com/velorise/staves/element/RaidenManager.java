@@ -860,7 +860,7 @@ public final class RaidenManager {
         if (target == null || !target.isAlive() || !(target.level() instanceof ServerLevel level)) return;
         if (Boolean.TRUE.equals(IS_PROCESSING_RAIDEN_PROC.get())) return;
         if (Boolean.TRUE.equals(ElectrifiedWaterManager.IS_SHOCKING.get())) return;
-        if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource) return;
+        if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds && erds.getReaction() != null) return;
         ServerPlayer attacker = null;
         if (source.getEntity() instanceof ServerPlayer sp) attacker = sp;
         else if (source.getDirectEntity() instanceof ServerPlayer sp) attacker = sp;
@@ -1186,6 +1186,16 @@ public final class RaidenManager {
     }
 
     private static final java.util.Map<java.util.UUID, RaidenIdleState> RAIDEN_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) {
+            RAIDEN_IDLE_STATES.remove(playerId);
+        }
+    }
+
+    public static void clearAll() {
+        RAIDEN_IDLE_STATES.clear();
+    }
 
     public static void tickIdle(MinecraftServer server, long now) {
         if (server == null) return;

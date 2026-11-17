@@ -161,6 +161,9 @@ public final class ArcaneStaffEvents {
         }
         if (!event.getEntity().level().isClientSide()) {
             ElementalGaugeManager.recordPreAttackStrength(event.getEntity(), event.getEntity().getAttackStrengthScale(0.5F));
+            if (event.getEntity() instanceof ServerPlayer sp && event.getTarget() instanceof LivingEntity) {
+                ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
+            }
         }
     }
 

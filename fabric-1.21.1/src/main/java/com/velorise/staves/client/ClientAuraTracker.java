@@ -43,6 +43,8 @@ public final class ClientAuraTracker {
     public static final int ANIM_FURINA_BURST = 34;
     public static final int ANIM_LAYLA_BURST = 35;
     public static final int ANIM_XILONEN_JUMP_FLIP = 36;
+    public static final long XILONEN_JUMP_FLIP_DURATION_MS = 740L;
+    public static volatile long lastVentiSkillETimeMs = 0L;
 
     // Nahida (Thousand Floating Dreams)
     public static final int ANIM_NAHIDA_NA_1 = 40;
@@ -440,6 +442,8 @@ public final class ClientAuraTracker {
         if (level == null) return;
         long now = System.currentTimeMillis();
         DATA.entrySet().removeIf(e -> level.getEntity(e.getKey()) == null);
+        MAVUIKA_STATES.entrySet().removeIf(e -> level.getEntity(e.getKey()) == null);
+        RAIDEN_STATES.entrySet().removeIf(e -> level.getEntity(e.getKey()) == null);
         ACTIVE_ARCS.removeIf(a -> now >= a.expireTime);
         FLOATING_TEXTS.removeIf(t -> now >= t.until);
     }
@@ -462,8 +466,12 @@ public final class ClientAuraTracker {
         }
         if (animType == ANIM_XILONEN_JUMP_FLIP) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            // Ignore duplicate server echo packet if the client already started this jump flip within the last 350ms
+            if (now < entry.xilonenJumpFlipUntil && (now - entry.xilonenJumpFlipStartTime) >= 0L && (now - entry.xilonenJumpFlipStartTime) < 350L) {
+                return;
+            }
             entry.xilonenJumpFlipStartTime = now;
-            entry.xilonenJumpFlipUntil = now + 550L;
+            entry.xilonenJumpFlipUntil = now + XILONEN_JUMP_FLIP_DURATION_MS;
             return;
         }
         if (animType == ANIM_GLIDER_START || animType == ANIM_GLIDER_STOP) {
@@ -733,6 +741,9 @@ public final class ClientAuraTracker {
             case ANIM_TSARITSA_UNSEAL -> 650L;
             default -> 600L;
         };
+        if (animType == ANIM_VENTI_SKILL_E) {
+            lastVentiSkillETimeMs = now;
+        }
         if (animType == ANIM_VENTI_BURST) {
             entry.ventiIdle = false;
             entry.ventiIdleFade = 0.0F;
@@ -1180,11 +1191,28 @@ public final class ClientAuraTracker {
         return data != null && data.xilonenSkating && data.xilonenWallClimbing && System.currentTimeMillis() < data.xilonenSkateSyncUntil;
     }
 
-    public static boolean isXilonenJumpFlipping(int entityId) {
+    public static float getXilonenJumpFlipProgress(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
+        if (data == null || !data.xilonenSkating || data.xilonenWallClimbing || data.plunging || data.gliding) {
+            return -1.0F;
+        }
         long now = System.currentTimeMillis();
-        return data != null && data.xilonenSkating && !data.xilonenWallClimbing
-                && !data.plunging && !data.gliding && now < data.xilonenJumpFlipUntil;
+        if (now >= data.xilonenJumpFlipUntil || data.xilonenJumpFlipStartTime <= 0L) {
+            return -1.0F;
+        }
+        long elapsed = now - data.xilonenJumpFlipStartTime;
+        if (elapsed < 0L) return 0.0F;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (elapsed > 120L && mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le && le.onGround()) {
+            data.xilonenJumpFlipUntil = 0L;
+            return -1.0F;
+        }
+        float totalMs = Math.max(1.0F, (float) (data.xilonenJumpFlipUntil - data.xilonenJumpFlipStartTime));
+        return net.minecraft.util.Mth.clamp(elapsed / totalMs, 0.0F, 1.0F);
+    }
+
+    public static boolean isXilonenJumpFlipping(int entityId) {
+        return getXilonenJumpFlipProgress(entityId) >= 0.0F;
     }
 
     public static boolean hasXilonenSourceSamples(int entityId) {
@@ -1512,6 +1540,11 @@ public final class ClientAuraTracker {
         localTsaritsaHoldELocked = false;
         localTsaritsaBowPullTicks = 0;
         localDaybreakBowPullTicks = 0;
+        lastVentiSkillETimeMs = 0L;
+        com.velorise.staves.client.glider.WindGliderRenderer.clearClientCaches();
+        com.velorise.staves.client.character.VentiVisualRenderer.clearClientCaches();
+        com.velorise.staves.client.character.TsaritsaVisualRenderer.clearClientCaches();
+        com.velorise.staves.client.character.MavuikaVisualRenderer.clearClientCaches();
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

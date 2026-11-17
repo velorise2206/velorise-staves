@@ -28,6 +28,10 @@ public final class VentiVisualRenderer {
     private VentiVisualRenderer() {}
     private static final java.util.Set<Integer> SKILL_E_WIND_ORB_IDS = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
+    public static void clearClientCaches() {
+        SKILL_E_WIND_ORB_IDS.clear();
+    }
+
     public static boolean hasDaybreakEquipped(LivingEntity entity) {
         return ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.DAYBREAK
                 || ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.DAYBREAK;
@@ -306,7 +310,7 @@ public final class VentiVisualRenderer {
 
     public static void renderVentiWindChargeOrbs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         Minecraft mcOrb = Minecraft.getInstance();
-        if (mcOrb.level != null) {
+        if (mcOrb.level != null && (!SKILL_E_WIND_ORB_IDS.isEmpty() || (now - ClientAuraTracker.lastVentiSkillETimeMs) <= 2500L)) {
             float ptOrb = mcOrb.getFrameTime();
             for (net.minecraft.world.entity.Entity e : mcOrb.level.entitiesForRendering()) {
                 if (e instanceof com.velorise.staves.entity.WindChargeEntity wc && wc.isAlive()) {
@@ -329,19 +333,55 @@ public final class VentiVisualRenderer {
             }
             SKILL_E_WIND_ORB_IDS.removeIf(eid -> mcOrb.level.getEntity(eid) == null || !mcOrb.level.getEntity(eid).isAlive());
         }
-        if (!Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes()) return;
+        boolean showHitbox = Minecraft.getInstance().getEntityRenderDispatcher().shouldRenderHitBoxes();
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.fromEntityId != -2 || arc.start == null || arc.end == null) continue;
             float baseRadius = (float) Math.max(1.0D, arc.end.x);
-            float hcx = (float) (arc.start.x - camPos.x);
-            float hcy = (float) (arc.start.y - camPos.y) - 1.0F;
-            float hcz = (float) (arc.start.z - camPos.z);
+            float cx = (float) (arc.start.x - camPos.x);
+            float cy = (float) (arc.start.y - camPos.y);
+            float cz = (float) (arc.start.z - camPos.z);
+            float fadeIn = Mth.clamp((now - arc.startTime) / 220.0F, 0.0F, 1.0F);
+            float fadeOut = Mth.clamp((arc.expireTime - now) / 320.0F, 0.0F, 1.0F);
+            float fade = Math.min(fadeIn, fadeOut);
+            float timeSec = (now - arc.startTime) * 0.001F;
             int r = 175, g = 255, b = 232;
             if (arc.color != 0 && arc.color != 0xFF66FFD8) {
                 r = (arc.color >> 16) & 0xFF;
                 g = (arc.color >> 8) & 0xFF;
                 b = arc.color & 0xFF;
             }
+            VertexConsumer windVc = bufferSource.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
+            float[] scales = { baseRadius * 0.88F, baseRadius * 0.72F, baseRadius * 0.56F, baseRadius * 0.42F };
+            float[] speedY = { 105.0F, -155.0F, 210.0F, -270.0F };
+            float[] tiltX = { 24.0F, -38.0F, 56.0F, -64.0F };
+            float[] tiltZ = { 12.0F, 28.0F, -22.0F, 42.0F };
+            int[] alphas = { Math.round(115.0F * fade), Math.round(150.0F * fade), Math.round(185.0F * fade), Math.round(215.0F * fade) };
+            for (int k = 0; k < 4; k++) {
+                poseStack.pushPose();
+                poseStack.translate(cx, cy, cz);
+                poseStack.mulPose(Axis.XP.rotationDegrees(tiltX[k]));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(tiltZ[k]));
+                poseStack.mulPose(Axis.YP.rotationDegrees(timeSec * speedY[k]));
+                Matrix4f m = poseStack.last().pose();
+                float rad = scales[k];
+                int bandSegs = 18;
+                int alpha = Math.max(12, alphas[k]);
+                for (int s = 0; s < bandSegs; s++) {
+                    float a0 = (float) (s * Math.PI * 2.0D / bandSegs);
+                    float a1 = (float) ((s + 1) * Math.PI * 2.0D / bandSegs);
+                    WindGliderRenderer.emitDoubleQuad(windVc, m,
+                            Mth.cos(a0) * rad, -0.06F * rad, Mth.sin(a0) * rad,
+                            Mth.cos(a1) * rad, -0.06F * rad, Mth.sin(a1) * rad,
+                            Mth.cos(a1) * rad,  0.06F * rad, Mth.sin(a1) * rad,
+                            Mth.cos(a0) * rad,  0.06F * rad, Mth.sin(a0) * rad,
+                            r, g, b, alpha);
+                }
+                poseStack.popPose();
+            }
+            if (!showHitbox) continue;
+            float hcx = cx;
+            float hcy = cy - 1.0F;
+            float hcz = cz;
             VertexConsumer lineConsumer = bufferSource.getBuffer(RenderType.lines());
             net.minecraft.client.renderer.LevelRenderer.renderLineBox(
                     poseStack, lineConsumer,

@@ -1191,13 +1191,16 @@ public final class TsaritsaManager {
     }
 
     public static void clearPlayer(UUID playerId) {
+        if (playerId == null) return;
         PLAYER_STATES.remove(playerId);
         POLESTAR_FIELDS.remove(playerId);
+        TSARITSA_IDLE_STATES.remove(playerId);
     }
 
     public static void clearAll() {
         PLAYER_STATES.clear();
         POLESTAR_FIELDS.clear();
+        TSARITSA_IDLE_STATES.clear();
     }
 
     private static final class TsaritsaIdleState {

@@ -711,11 +711,13 @@ public final class ClientAuraRenderer {
                 continue;
             }
             if (arc.fromEntityId == -3 || arc.fromEntityId == -5 || arc.fromEntityId == -6 || arc.fromEntityId == -7 || arc.fromEntityId == -8) continue;
-            Vec3 startPos = (arc.fromEntityId >= 0 && mc.level.getEntity(arc.fromEntityId) != null)
-                    ? mc.level.getEntity(arc.fromEntityId).position().add(0, mc.level.getEntity(arc.fromEntityId).getBbHeight() * 0.45D, 0)
+            net.minecraft.world.entity.Entity fromEnt = arc.fromEntityId >= 0 ? mc.level.getEntity(arc.fromEntityId) : null;
+            net.minecraft.world.entity.Entity toEnt = arc.toEntityId >= 0 ? mc.level.getEntity(arc.toEntityId) : null;
+            Vec3 startPos = fromEnt != null
+                    ? fromEnt.position().add(0.0D, fromEnt.getBbHeight() * 0.45D, 0.0D)
                     : arc.start;
-            Vec3 endPos = (arc.toEntityId >= 0 && mc.level.getEntity(arc.toEntityId) != null)
-                    ? mc.level.getEntity(arc.toEntityId).position().add(0, mc.level.getEntity(arc.toEntityId).getBbHeight() * 0.45D, 0)
+            Vec3 endPos = toEnt != null
+                    ? toEnt.position().add(0.0D, toEnt.getBbHeight() * 0.45D, 0.0D)
                     : arc.end;
             if (startPos == null || endPos == null) continue;
             if (VentiVisualRenderer.renderVortexStreamArc(arc, startPos, endPos, camPos, now, consumer, matrix)) continue;

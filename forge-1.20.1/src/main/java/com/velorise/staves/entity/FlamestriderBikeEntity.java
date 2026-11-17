@@ -66,6 +66,8 @@ public class FlamestriderBikeEntity extends Entity {
 
     private long lastSpinDamageTick = -100L;
     private long lastDashTick = -100L;
+    private long serverDashCooldownUntil = -100L;
+    private int serverDashChain = 0;
     private int serverDashTicks = 0;
     private int serverDashIframeTicks = 0;
     private long lastNaTick = -100L;
@@ -93,6 +95,8 @@ public class FlamestriderBikeEntity extends Entity {
     private double spinOrbitRadius = 0.0D;
     private int clientDashTicks = 0;
     private int clientDashCooldownTicks = 0;
+    private int clientDashChain = 0;
+    private int clientDashWindowTicks = 0;
     private int clientJumpCooldownTicks = 0;
     private int clientPlungeRecoveryTicks = 0;
     private boolean clientWasPlunging = false;
@@ -323,6 +327,12 @@ public class FlamestriderBikeEntity extends Entity {
         if (this.clientDashCooldownTicks > 0) {
             this.clientDashCooldownTicks--;
         }
+        if (this.clientDashWindowTicks > 0) {
+            this.clientDashWindowTicks--;
+            if (this.clientDashWindowTicks == 0) {
+                this.clientDashChain = 0;
+            }
+        }
 
         if (!this.level().isClientSide()) {
             tickServer();
@@ -495,7 +505,8 @@ public class FlamestriderBikeEntity extends Entity {
 
     private void performDonutSweepHit(ServerLevel sl, ServerPlayer sp, long now) {
         boolean neth = isNetherite();
-        float dmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth);
+        float dmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth)
+                * (1.0F + ElementalGaugeManager.getMavuikaCrucibleChargedBonusMultiplier(sp));
         float units = neth ? 1.5F : 1.0F;
 
         Vec3 forward = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize();
@@ -630,7 +641,8 @@ public class FlamestriderBikeEntity extends Entity {
      */
     private void executeChargedFinisher(ServerLevel sl, ServerPlayer sp) {
         boolean neth = isNetherite();
-        float dmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth) * 1.8F;
+        float dmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth)
+                * (1.8F + ElementalGaugeManager.getMavuikaCrucibleChargedBonusMultiplier(sp));
         float units = neth ? 2.0F : 1.5F;
 
         Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
@@ -722,7 +734,7 @@ public class FlamestriderBikeEntity extends Entity {
             case 5 -> 1.6F;
             default -> 1.0F;
         };
-        float dmg = baseDmg * mult;
+        float dmg = baseDmg * (mult + ElementalGaugeManager.getMavuikaCrucibleNaBonusMultiplier(sp));
         float units = neth ? 1.5F : 1.0F;
 
         Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
@@ -735,7 +747,9 @@ public class FlamestriderBikeEntity extends Entity {
         );
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
                 e -> e.isAlive() && !e.isRemoved() && e != sp);
+        boolean anyHit = false;
         for (LivingEntity target : targets) {
+            anyHit = true;
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
             if (kb.lengthSqr() > 1.0E-4D) {
@@ -744,6 +758,9 @@ public class FlamestriderBikeEntity extends Entity {
             }
             sl.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + target.getBbHeight() * 0.5D, target.getZ(),
                     10, 0.25D, 0.25D, 0.25D, 0.05D);
+        }
+        if (anyHit) {
+            ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
         }
 
         Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);

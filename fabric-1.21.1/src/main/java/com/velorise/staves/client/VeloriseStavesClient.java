@@ -199,6 +199,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             ClientAuraRenderer.tickFrozenPlayer();
             OmniWheelOverlay.tick(client);
             if (client.player != null) {
+                if (client.level != null && client.player.tickCount % 100 == 0) {
+                    ClientAuraTracker.pruneStale(client.level);
+                    com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.pruneStaleFrozenStates(client.level);
+                }
                 com.velorise.staves.item.ArcaneStaffItem.tickCraftingMenuOmniPreview(client.player);
                 int curSlot = client.player.getInventory().selected;
                 if (lastSelectedHotbarSlot[0] != -1 && curSlot != lastSelectedHotbarSlot[0]) {
