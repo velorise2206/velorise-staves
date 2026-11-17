@@ -281,7 +281,11 @@ public final class CharacterVoiceManager {
                 double x = entity != null ? entity.getX() : (mc.player != null ? mc.player.getX() : 0.0D);
                 double y = entity != null ? entity.getY() : (mc.player != null ? mc.player.getY() : 0.0D);
                 double z = entity != null ? entity.getZ() : (mc.player != null ? mc.player.getZ() : 0.0D);
-                SoundEvent se = getSound(VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_ORDER_EN);
+                String lang = getEffectiveVoiceLanguage("zhongli");
+                Object chosen = "zh_cn".equals(lang)
+                        ? VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_ORDER_CN
+                        : VeloriseStavesMod.VOICE_ZHONGLI_Q_BURST_ORDER_EN;
+                SoundEvent se = getSound(chosen);
                 if (se != null) {
                     float vol = Math.max(0.85F, getVoiceVolume());
                     mc.level.playLocalSound(x, y, z, se, SoundSource.PLAYERS, vol, 1.0F, false);

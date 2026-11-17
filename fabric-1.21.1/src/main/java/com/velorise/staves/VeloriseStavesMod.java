@@ -51,6 +51,7 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final SoundEvent VOICE_ZHONGLI_E_HOLD_CN = registerSound("voice_zhongli_e_hold_cn");
     public static final SoundEvent VOICE_ZHONGLI_Q_BURST_EN = registerSound("voice_zhongli_q_burst_en");
     public static final SoundEvent VOICE_ZHONGLI_Q_BURST_ORDER_EN = registerSound("voice_zhongli_q_burst_order_en");
+    public static final SoundEvent VOICE_ZHONGLI_Q_BURST_ORDER_CN = registerSound("voice_zhongli_q_burst_order_cn");
     public static final SoundEvent VOICE_ZHONGLI_Q_BURST_CN = registerSound("voice_zhongli_q_burst_cn");
 
     // Basic Combat Staves
@@ -275,7 +276,7 @@ public final class VeloriseStavesMod implements ModInitializer {
 
     public static final CreativeModeTab TAB = FabricItemGroup.builder()
         .title(Component.translatable("itemGroup.velorise_staves"))
-        .icon(() -> new ItemStack(NETHERITE_DRAGONFIRE_SCEPTER))
+        .icon(() -> new ItemStack(ELEMENTAL_CODEX))
         .displayItems((parameters, output) -> {
             // Guidebook
             output.accept(ELEMENTAL_CODEX);

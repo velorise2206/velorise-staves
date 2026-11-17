@@ -51,6 +51,12 @@
       "velorise_staves:voice/zhongli/q_burst_en_3"
     ]
   },
+  "voice_zhongli_q_burst_order_cn": {
+    "subtitle": "subtitles.velorise_staves.voice_zhongli_q_burst",
+    "sounds": [
+      "velorise_staves:voice/zhongli/q_burst_cn_3"
+    ]
+  },
   "voice_zhongli_q_burst_cn": {
     "subtitle": "subtitles.velorise_staves.voice_zhongli_q_burst",
     "sounds": [
