@@ -61,6 +61,9 @@ public final class XilonenManager {
         public long skateStartTick = 0L;
         public long skateUntilTick = 0L;
         public long lastDashTick = -100L;
+        public int dashChain = 0;
+        public long dashWindowUntil = 0L;
+        public long dashCooldownUntil = 0L;
         public int kickCombo = 0;
         public long lastKickTick = -100L;
         public boolean wallClimbing = false;
@@ -219,6 +222,9 @@ public final class XilonenManager {
         st.skateStartTick = now;
         st.skateUntilTick = now + maxDurationTicks;
         st.lastDashTick = now;
+        st.dashChain = 0;
+        st.dashWindowUntil = 0L;
+        st.dashCooldownUntil = now + 10L;
         st.kickCombo = 0;
         st.wallClimbing = false;
         st.activeSamples.clear();
@@ -237,8 +243,21 @@ public final class XilonenManager {
         if (st == null || !st.skating || now >= st.skateUntilTick || st.nightsoulPoints <= 0.01F) return;
         // Prevent mid-air dash flying exploit: Genshin Roller Skate Dash requires ground contact (or wall-climbing)
         if (!player.onGround() && !st.wallClimbing) return;
-        if (now >= st.lastDashTick && now - st.lastDashTick < 10L) return; // Require release & repress + 0.5s ICD (prevents hold-drain)
+        if (now < st.dashCooldownUntil) return;
+        if (now > st.dashWindowUntil) st.dashChain = 0;
         st.lastDashTick = now;
+        st.dashChain = 0;
+        st.dashWindowUntil = 0L;
+        st.dashCooldownUntil = now + 10L;
+        st.dashChain++;
+        if (st.dashChain >= 2) {
+            st.dashChain = 0;
+            st.dashWindowUntil = 0L;
+            st.dashCooldownUntil = now + 30L; // 1.5s Genshin-accurate cooldown after 2nd consecutive dash
+        } else {
+            st.dashWindowUntil = now + 28L;
+            st.dashCooldownUntil = now + 5L; // Quick 2nd dash follow-up
+        }
 
         float dashCost = 4.0F * (st.netherite ? 0.70F : 1.0F);
         float consumed = Math.min(st.nightsoulPoints, dashCost);

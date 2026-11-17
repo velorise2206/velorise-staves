@@ -964,7 +964,7 @@ public final class VentiManager {
                 if (vst.stillTicks == 60) {
                     vst.idleVariant = (vst.idleVariant + 1) % 2;
                     if (vst.idleVariant == 0) {
-                        vst.songIndex = (vst.songIndex + 1) % 4;
+                        vst.songIndex = (vst.songIndex + 1) % 2;
                     }
                 }
                 if (vst.stillTicks >= 60) {
@@ -991,32 +991,57 @@ public final class VentiManager {
                 vst.lastSyncedCode = vst.activeCode;
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
             }
-            if (vst.activeCode == 4051 && vst.stillTicks >= 60 && (vst.stillTicks - 60) % 4 == 0) {
-                int[][] melodies = {
-                    // 1. Mondstadt Breeze (Gentle Anemo Arpeggio)
-                    {13, 17, 20, 22, 20, 17, 15, -1, 13, 15, 17, 20, 17, 15, 13, -1,
-                     10, 13, 17, 20, 18, 17, 15, 13, -1, 15, 17, 20, 22, 24, 22, 20,
-                     17, 15, 13, -1, 17, 20, 22, 20, 17, 15, 13, 10, 13, -1, -1, -1},
-                    // 2. Dawn Winery Ballad (Lyrical Pentatonic)
-                    {12, 14, 16, 19, 21, 19, 16, -1, 14, 16, 19, 16, 14, 12, -1, -1,
-                     9, 12, 14, 16, 19, 16, 14, 12, -1, 14, 16, 19, 21, 24, 21, 19,
-                     16, 14, 12, -1, 19, 21, 19, 16, 14, 12, 9, 12, -1, -1, -1, -1},
-                    // 3. Starfell Serenade (Uplifting Bard Melody)
-                    {15, 19, 22, 24, 22, 19, 17, -1, 15, 17, 19, 22, 19, 17, 15, -1,
-                     12, 15, 19, 22, 20, 19, 17, 15, -1, 17, 19, 22, 24, 27, 24, 22,
-                     19, 17, 15, -1, 22, 20, 19, 17, 15, 12, 15, -1, -1, -1, -1, -1},
-                    // 4. Windblume Waltz (Bright Spring Tune)
-                    {17, 21, 24, 21, 19, 17, -1, 14, 17, 21, 19, 17, 14, -1, 12, 14,
-                     17, 19, 21, 19, 17, 14, -1, 17, 19, 21, 24, 26, 24, 21, 19, 17,
-                     14, 12, 14, -1, 17, 21, 24, 21, 19, 17, 14, 17, -1, -1, -1, -1}
+            if (vst.activeCode == 4051 && vst.stillTicks >= 60) {
+                // {note, durationTicks} pairs for expressive rhythm (2t fast runs, 3-4t normal, 6-8t held notes)
+                int[][][] melodies = {
+                    // 1. Venti's Theme (Bard's Adventure / A New Day with Hope)
+                    {
+                        {17,3},{20,3},{22,3},{24,7}, {22,2},{20,3},{17,3},{15,6},
+                        {17,3},{20,3},{22,3},{20,3},{17,2},{15,3},{12,7},
+                        {15,3},{17,3},{20,3},{22,3},{24,7}, {22,2},{20,3},{17,6},
+                        {17,3},{20,3},{22,3},{24,5}, {22,2},{24,3},{27,6},{24,6},
+                        {22,2},{20,3},{17,3},{15,3},{17,3},{20,6},
+                        // Chorus
+                        {24,4},{24,2},{22,3},{20,3},{22,3},{24,7}, {27,4},{24,3},{22,3},{20,3},{17,6},
+                        {20,2},{22,2},{24,3},{27,6},{24,3},{22,3},{20,3},{17,3},{15,6},
+                        {17,3},{20,3},{22,3},{20,3},{17,3},{15,3},{12,8}, {17,8}
+                    },
+                    // 2. Furina Execution (Sinner's Finale / La Vaguelette)
+                    {
+                        {13,4},{18,4},{20,4},{21,8}, {20,3},{18,3},{17,3},{18,7},
+                        {13,4},{14,3},{13,3},{11,3},{9,3},{8,3},{6,8},
+                        {13,4},{18,4},{20,4},{21,7}, {20,3},{21,3},{23,6},{21,7},
+                        {20,3},{18,3},{17,3},{18,3},{20,7},
+                        // Chorus
+                        {25,5},{25,3},{23,3},{21,3},{20,3},{21,8}, {23,4},{21,3},{20,3},{18,3},{17,7},
+                        {18,3},{20,3},{21,4},{25,7},{23,3},{21,3},{20,3},{18,3},{17,7},
+                        {13,4},{18,4},{20,4},{21,6},{20,3},{18,3},{17,4},{18,10}
+                    }
                 };
-                int[] melody = melodies[Math.floorMod(vst.songIndex, melodies.length)];
-                int noteIdx = ((vst.stillTicks - 60) / 4) % melody.length;
-                int note = melody[noteIdx];
-                if (note >= 0 && player.level() instanceof ServerLevel sl) {
-                    float pitch = (float) Math.pow(2.0D, (note - 12) / 12.0D);
-                    sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
-                            SoundEvents.NOTE_BLOCK_HARP.get(), SoundSource.PLAYERS, 0.45F, pitch);
+                int[][] song = melodies[Math.floorMod(vst.songIndex, melodies.length)];
+                int elapsed = vst.stillTicks - 60;
+                int acc = 0;
+                boolean played = false;
+                for (int[] pair : song) {
+                    if (elapsed == acc) {
+                        int note = pair[0];
+                        if (note >= 0 && player.level() instanceof ServerLevel sl) {
+                            float pitch = (float) Math.pow(2.0D, (note - 12) / 12.0D);
+                            sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                                    SoundEvents.NOTE_BLOCK_HARP.get(), SoundSource.PLAYERS, 0.55F, pitch);
+                            if (pair[1] >= 6) {
+                                sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                                        SoundEvents.NOTE_BLOCK_FLUTE.get(), SoundSource.PLAYERS, 0.25F, pitch);
+                            }
+                        }
+                        played = true;
+                        break;
+                    }
+                    acc += pair[1];
+                }
+                if (!played && elapsed >= acc) {
+                    vst.activeCode = 4050;
+                    vst.stillTicks = 0;
                 }
             }
 

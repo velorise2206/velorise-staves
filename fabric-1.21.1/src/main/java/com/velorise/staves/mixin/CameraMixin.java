@@ -12,6 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Camera.class)
 public abstract class CameraMixin {
+    private float neuvilletteCamFade = 0.0F;
+    private long neuvilletteCamLastNs = 0L;
     @Shadow
     private float yRot;
     @Shadow
@@ -80,6 +82,21 @@ public abstract class CameraMixin {
         }
         if (detached && !thirdPersonReverse && entity != null) {
             float vfW = com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderFade(entity);
+            long nowNs = System.nanoTime();
+            float dtCam = neuvilletteCamLastNs == 0L ? 0.016F : Math.min(0.05F, (nowNs - neuvilletteCamLastNs) / 1_000_000_000.0F);
+            neuvilletteCamLastNs = nowNs;
+            boolean neuvAiming = vfW <= 0.001F && com.velorise.staves.client.ClientAuraTracker.isNeuvilletteChargingOrFiring(entity.getId());
+            neuvilletteCamFade = neuvAiming
+                    ? Math.min(1.0F, neuvilletteCamFade + dtCam / 0.18F)
+                    : Math.max(0.0F, neuvilletteCamFade - dtCam / 0.18F);
+            if (neuvilletteCamFade > 0.001F) {
+                float neuvW = neuvilletteCamFade * neuvilletteCamFade * (3.0F - 2.0F * neuvilletteCamFade);
+                float yawRad = ((Camera) (Object) this).getYRot() * ((float) Math.PI / 180.0F);
+                double rightX = -Math.cos(yawRad);
+                double rightZ = -Math.sin(yawRad);
+                net.minecraft.world.phys.Vec3 pos = this.getPosition();
+                this.setPosition(pos.x + rightX * (2.05D * neuvW), pos.y + (1.35D * neuvW), pos.z + rightZ * (2.05D * neuvW));
+            }
             if (vfW > 0.001F) {
                 float yawRad = ((Camera) (Object) this).getYRot() * ((float) Math.PI / 180.0F);
                 double rightX = -Math.cos(yawRad);

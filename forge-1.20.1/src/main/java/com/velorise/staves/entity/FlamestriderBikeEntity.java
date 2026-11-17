@@ -116,11 +116,11 @@ public class FlamestriderBikeEntity extends Entity {
     private int clientFinisherYawBlendTicks = 0;
     private static final double FRONT_WHEEL_PIVOT_OFFSET = 0.86D;
     private static final double REAR_WHEEL_OFFSET = 0.82D;
-    private static final double FRONT_WHEEL_INNER_RADIUS = 1.45D;
-    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 2.31m
-    private static final float DONUT_FULL_ROTATION_TICKS = 8.4F; // 0.42s (8.4 ticks at 20 TPS) per 1 full 360° Donut loop
-    private static final float DONUT_DEG_PER_TICK = 360.0F / DONUT_FULL_ROTATION_TICKS; // 42.857143 deg/tick
-    private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 3.13m (R2/R1 = 2.16x)
+    private static final double FRONT_WHEEL_INNER_RADIUS = 2.05D;
+    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 2.91m
+    private static final float DONUT_FULL_ROTATION_TICKS = 11.0F; // 0.55s (11.0 ticks at 20 TPS) per 1 full 360° Donut loop
+    private static final float DONUT_DEG_PER_TICK = 360.0F / DONUT_FULL_ROTATION_TICKS; // 32.727 deg/tick
+    private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 3.73m (7.46m outer diameter)
     private float spinOrbitAngle = 0.0F;
     private double spinOrbitRadius = 0.0D;
     private boolean clientWallClimbing = false;
@@ -131,6 +131,7 @@ public class FlamestriderBikeEntity extends Entity {
     private int clientDashCooldownTicks = 0;
     private int clientDashChain = 0;
     private int clientDashWindowTicks = 0;
+    private int clientPostDoubleDashFinisherTicks = 0;
     private int clientJumpCooldownTicks = 0;
     private int clientPlungeRecoveryTicks = 0;
     private boolean clientWasPlunging = false;
@@ -767,6 +768,10 @@ public class FlamestriderBikeEntity extends Entity {
                         executeMountWhipImpact(sl, sp);
                     }
                 } else if (pendingFinisher && curStep == 6 && nextNa == 6) {
+                    if (!this.onGround() && !this.isInWater() && this.tickCount % 16 != 0) {
+                        this.entityData.set(DATA_NA_TICKS, 7);
+                        return;
+                    }
                     pendingFinisher = false;
                     executeChargedFinisher(sl, sp);
                 } else if (!pendingFinisher && !pendingDiscardAfterFinisher && curStep == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
@@ -954,7 +959,7 @@ public class FlamestriderBikeEntity extends Entity {
         spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.3D, this.getZ(), 42, 1.8D, 0.35D, 1.8D, 0.12D);
         sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.25D, this.getZ(), 16, 1.2D, 0.25D, 1.2D, 0.04D);
-        sl.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.9F, 1.15F);
+        // Ulti slam explosion sound removed per user request
     }
 
     public void triggerMountWhip() {
@@ -1345,10 +1350,14 @@ public class FlamestriderBikeEntity extends Entity {
         if (clientDashChain >= 2) {
             clientDashChain = 0;
             clientDashWindowTicks = 0;
-            clientDashCooldownTicks = 15; // 0.75s stagger after 2nd consecutive dash
+            clientDashCooldownTicks = 30; // 1.5s Genshin-accurate cooldown after 2nd consecutive dash
+            if (combatCancel) {
+                clientPostDoubleDashFinisherTicks = 11; // 3t dash + 8t NAx2 buffer window before auto-Finisher
+            }
         } else {
             clientDashWindowTicks = 28;
             clientDashCooldownTicks = 5; // Quick 2nd dash follow-up for CCD CD F
+            clientPostDoubleDashFinisherTicks = 0;
         }
         this.clientSpinOrbitGraceTicks = 0;
         this.clientNaStep = 0;
@@ -1436,6 +1445,14 @@ public class FlamestriderBikeEntity extends Entity {
             this.clientDashCooldownTicks = 0;
             this.clientDashChain = 0;
             this.clientDashWindowTicks = 0;
+        }
+        if (this.clientPostDoubleDashFinisherTicks > 0) {
+            if (this.clientNaStep >= 1 && this.clientNaStep <= 5) {
+                this.clientPostDoubleDashFinisherTicks = 0;
+            } else if (--this.clientPostDoubleDashFinisherTicks == 0) {
+                this.triggerClientFinisher(rider);
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 5);
+            }
         }
         if (!spinningNow) {
             this.yRotO = this.getYRot();
@@ -1589,12 +1606,6 @@ public class FlamestriderBikeEntity extends Entity {
                 spinPivotZO = spinPivotZ;
             }
             clientContinuousSpinTicks++;
-            if (clientContinuousSpinTicks >= 8) {
-                // Completing 1 full 0.42s Donut rotation ("CC", ~8.4 ticks) resets the 2-dash cooldown on client for infinite "CCD CC CD CC"
-                this.clientDashCooldownTicks = 0;
-                this.clientDashChain = 0;
-                this.clientDashWindowTicks = 0;
-            }
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
@@ -1609,7 +1620,10 @@ public class FlamestriderBikeEntity extends Entity {
             double currentInnerRadius = FRONT_WHEEL_INNER_RADIUS * smoothInnerExpand;
             spinOrbitRadius = FRONT_WHEEL_PIVOT_OFFSET + currentInnerRadius;
             // Full 360° Donut loop in 0.42s (8.4 ticks -> 42.857143 deg/tick)
-            float angleStep = DONUT_DEG_PER_TICK;
+            float spinEaseIn = clientContinuousSpinTicks <= 3
+                    ? (0.45F + 0.55F * (clientContinuousSpinTicks / 3.0F))
+                    : 1.0F;
+            float angleStep = DONUT_DEG_PER_TICK * spinEaseIn;
             spinOrbitAngle = Mth.wrapDegrees(spinOrbitAngle + angleStep);
             double yawRad = Math.toRadians(spinOrbitAngle);
             double sinYaw = Math.sin(yawRad);

@@ -496,7 +496,7 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 float s = p * p * (3.0F - 2.0F * p);
                 float swing = Mth.sin(p * (float) Math.PI);
                 poseStack.translate(0.0F, swing * 0.10F, 0.72F);
-                poseStack.mulPose(Axis.YP.rotationDegrees((1.0F - s) * 180.0F));
+                poseStack.mulPose(Axis.YP.rotationDegrees((1.0F - s) * 360.0F));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(26.0F * swing));
                 poseStack.mulPose(Axis.XP.rotationDegrees(12.0F * swing));
                 poseStack.translate(0.0F, 0.0F, -0.72F);
