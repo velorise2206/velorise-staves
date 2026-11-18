@@ -42,7 +42,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
   - Can substitute for **any** of the 7 elements in staff crafting recipes, repair any staff in an Anvil, imbue any sword, convert a non-Archon staff into an **Omni Staff**, or **tame an Omni-Innate animal**!
 
 ### 2. Elemental Rods & 1.20.1 Backport Recipes
-- **`frost_rod` (Cryo), `hydro_rod` (Hydro), `geo_rod` (Geo), `breeze_rod` (Anemo), `blaze_rod` (Pyro):**
+- **`cryo_rod` (Cryo), `electro_rod` (Electro), `hydro_rod` (Hydro), `geo_rod` (Geo), `breeze_rod` (Anemo), `blaze_rod` (Pyro):**
   - Any rod can be transmuted into another elemental rod (shapeless recipe: **Any Rod + Target Elemental Essence ➔ Target Rod**).
   - **Wind Charge Crafting:** `1 Anemo/Omni Element ➔ 4 Wind Charges` (allowing full Wind Staff & Daybreak Chronicles crafting even on Forge 1.20.1 or peaceful worlds!).
 

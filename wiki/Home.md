@@ -28,15 +28,15 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
    - How to imbue any sword with an element, craft/upgrade the **Omni Staff**, swap absorbed non-Archon staves/Trident/Void Translocator, and understand the **7 Archons Restriction (`!isArchon()`)**.
 6. **[Configuration Guide (TOML & In-Game GUI)](Configuration-Guide.md)**
    - Full reference for all server/client TOML settings (`mechanics`, `elemental_gauge`, `scaling`, `gameplay`, `audio`, `innate_mutation`, `cooldowns`, `damage`, `durability`), Co-Op dynamic mob scaling, and live server-to-client Codex sync.
-7. **[FAQ, Keybinds & Mod Compatibility](FAQ-and-Compatibility.md)**
-   - Frequently asked questions, full keybind list, and compatibility details for **JEI/REI/EMI**, **Jade/Waila**, **Iris/Oculus Shaders**, **Sodium/Embeddium**, and **First-Person Model** mods.
+7. **[FAQ, Keybinds, Resource Packs & Compatibility](FAQ-and-Compatibility.md)**
+   - Frequently asked questions, full keybind list, **Resource Pack Guide (Custom Wind Glider Textures & Character Voice Packs)**, and compatibility details for **JEI/REI/EMI**, **Jade/Waila**, **Iris/Oculus Shaders**, **Sodium/Embeddium**, and **First-Person Model** mods.
 
 
 ---
 
 ## Reworked & Upgraded Non-Archon Staves (Progression & Combat Update)
 
-- **Electro Rod (`velorise_staves:electro_rod`)**: 4th custom Elemental Rod (alongside `frost_rod`, `hydro_rod`, `geo_rod`) with 10 bidirectional rod conversion recipes (`blaze`, `breeze`, `frost`, `geo`, `hydro` ⇄ `electro_rod`), used to craft **Arc Caster** and **Dragonfire Scepter**.
+- **Electro Rod (`velorise_staves:electro_rod`) & Cryo Rod (`velorise_staves:cryo_rod`)**: Custom Elemental Rods (alongside `hydro_rod`, `geo_rod`, vanilla `blaze_rod`, and `breeze_rod`) with bidirectional rod conversion recipes (`blaze`, `breeze`, `cryo`, `geo`, `hydro` ⇄ `electro_rod`), recolored directly on the classic vanilla Blaze Rod shape.
 - **Updated Archon Progression Recipes**:
   - **Nahida (`thousand_floating_dreams`)**: Slot 5 requires `#velorise_staves:dendro_staves` (non-Archon Dendro staff).
   - **Raiden Shogun (`engulfing_lightning`)**: Slots 2, 3, 4 = `electro_element` / `omni_element`; Slots 5, 7 = `#velorise_staves:electro_staves` (non-Archon Electro staves).
@@ -60,5 +60,5 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
   - **Wither Carapace (`<= 50% Max HP`)**: Holding `Wither Scepter` in main hand or offhand while at or below `50%` HP grants **100% immunity to all incoming projectiles**.
   - **Withering Contagion**: Enemies marked by `Wither Scepter` that die within `8.0s` detonate in a **`3.0m` Wither + Dendro cloud** (`1.5❤`➔`2.25❤`, `1.5U` Dendro + Wither II `80t`).
 - **Shulker Seeker (`SHULKER`)**:
-  - **3rd-Shot Gravity Slam**: The 3rd shot in the 3-shot burst rapidly launches the hit target upward (`+0.78Y`) and `0.5s` later **slams them violently into the ground (`-1.45Y`)** for **`2.5m` AoE Electro damage** (`2.5❤`➔`3.75❤`, `2.0U` Electro).
-  - **Shulker Shell Guard**: Holding `Shulker Seeker` in the **Main Hand** reduces all incoming damage by **-30%** (**-40%** on Netherite).
+  - **Left-Click Attack & 3rd-Shot Gravity Slam**: Fires a 3-shot homing Shulker bullet salvo; the 3rd shot launches the target upward (`+0.78Y`) and `0.5s` later **slams them violently into the ground (`-1.45Y`)** for **`2.5m` AoE Electro damage** (`2.5❤`➔`3.75❤`, `2.0U` Electro).
+  - **Right-Click Portable Shulker Chest & Shell Guard**: Opens an integrated **27-slot** portable storage chest (`54` scrollable slots when upgraded to **Netherite**, keeping a compact 3-row UI with scrollbar). While the storage chest is open, incoming damage is reduced by **-30%** (**-40%** on Netherite).
