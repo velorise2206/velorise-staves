@@ -247,6 +247,12 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     }
                 }
                 lastSelectedHotbarSlot[0] = curSlot;
+                if (ClientAuraTracker.isSlotSwitchLocked(client.player.getId())) {
+                    while (client.options.keySwapOffhand.consumeClick()) {
+                    }
+                    while (client.options.keyDrop.consumeClick()) {
+                    }
+                }
             } else {
                 lastSelectedHotbarSlot[0] = -1;
             }

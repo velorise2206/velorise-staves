@@ -658,7 +658,7 @@ public final class ClientAuraTracker {
             entry.dragonfireIdleFade = 0.0F;
             entry.staffAnimType = animType;
             entry.staffAnimStartTime = now;
-            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 2500L : 1850L);
+            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 4000L : 3400L);
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -1225,7 +1225,28 @@ public final class ClientAuraTracker {
     }
 
     public static boolean isSlotSwitchLocked(int entityId) {
-        return isUltiCastActive(entityId) || isRaidenSlashingOrBursting(entityId);
+        if (isUltiCastActive(entityId) || isRaidenSlashingOrBursting(entityId)) {
+            return true;
+        }
+        AuraDisplayData data = DATA.get(entityId);
+        if (data == null) return false;
+        long now = System.currentTimeMillis();
+        if (now >= data.staffAnimUntil || data.staffAnimType <= 0) return false;
+        int anim = data.staffAnimType;
+        if (anim == ANIM_PLUNGE_START || anim == ANIM_PLUNGE_END
+                || anim == ANIM_GLIDER_START || anim == ANIM_GLIDER_STOP
+                || anim == ANIM_GLIDER_UNLOCKED || anim == ANIM_GLIDER_LOCKED
+                || anim == ANIM_DRAGONFIRE_PET_OFF || anim == ANIM_DRAGONFIRE_PET_ON
+                || anim == ANIM_DRAGONFIRE_IDLE_ON) {
+            return false;
+        }
+        if (anim == ANIM_DRAGONFIRE_ULTI_SKYFALL) {
+            return (now - data.staffAnimStartTime) < 2150L;
+        }
+        if (anim == ANIM_DRAGONFIRE_ULTI_SWEEP) {
+            return (now - data.staffAnimStartTime) < 1550L;
+        }
+        return true;
     }
 
 
@@ -1302,7 +1323,7 @@ public final class ClientAuraTracker {
     }
 
     public static void interruptActiveAnimations(int entityId) {
-        if (isUltiCastActive(entityId)) {
+        if (isSlotSwitchLocked(entityId)) {
             return;
         }
         AuraDisplayData data = DATA.get(entityId);

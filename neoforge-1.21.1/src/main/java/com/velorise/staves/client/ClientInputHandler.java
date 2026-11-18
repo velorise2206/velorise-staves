@@ -226,6 +226,12 @@ public final class ClientInputHandler {
                 }
             }
             lastSelectedHotbarSlot = curSlot;
+            if (ClientAuraTracker.isSlotSwitchLocked(mc.player.getId())) {
+                while (mc.options.keySwapOffhand.consumeClick()) {
+                }
+                while (mc.options.keyDrop.consumeClick()) {
+                }
+            }
         } else {
             lastSelectedHotbarSlot = -1;
         }
