@@ -82,14 +82,14 @@ Minimal `pack.mcmeta` example (`1.21.1`):
 }
 ```
 
-### 2. Changing the Wind Glider Texture (*Đổi Texture Phong Chi Dực*)
+### 2. Changing the Wind Glider Texture
 - Place your custom PNG wing sheet inside `assets/velorise_staves/textures/entity/`:
   - Default config (`use_32px_glider_texture = false`): override **`wind_glider.png`**.
   - HD config (`use_32px_glider_texture = true`): override **`wind_glider_32px.png`**.
 - Wing UV region is the top-left **`20×16`** pixels on a standard **`64×32`** canvas (`u = 0..11` inner wing panel, `u = 11..20` outer wing tip, `v = 0..16`).
 - Enable the Resource Pack in **Options ➔ Resource Packs** (`F3 + T` reloads textures immediately).
 
-### 3. Custom Character Voice Pack (*Tự Lồng Tiếng Nhân Vật*)
+### 3. Custom Character Voice Pack
 - **Audio Format Requirement:** All voice files must be encoded as **Ogg Vorbis (`.ogg`)**, **Mono**, **44100 Hz** (Minecraft's sound engine requires Mono for directional 3D world playback).
 - **UI Detection (`CharacterVoiceScreen`):** The mod automatically scans `assets/velorise_staves/sounds/voice/<charId>/*.ogg` for any of the 10 characters (`zhongli`, `raiden`, `venti`, `nahida`, `furina`, `neuvillette`, `mavuika`, `xilonen`, `tsaritsa`, `layla`) and marks a language as **`Available`** whenever a filename contains language tokens:
   - English (`en_us`): `_en` or `_en_us` (or `en/...`)
