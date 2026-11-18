@@ -225,7 +225,7 @@ public final class ElectrifiedWaterManager {
         AABB box = new AABB(center).inflate(radius + 0.5D, 1.0D, radius + 0.5D);
         List<LivingEntity> inWaterMobs = level.getEntitiesOfClass(LivingEntity.class, box,
                 e -> e.isAlive() && (e.isInWaterOrRain() || isWaterAt(level, e.blockPosition())));
-        shockEntities(level, center, attacker, inWaterMobs, null);
+        shockEntities(level, center, attacker, inWaterMobs, new HashSet<>());
     }
 
     private static void shockEntities(ServerLevel level, BlockPos center, @Nullable ServerPlayer attacker, List<LivingEntity> inWaterMobs, Set<UUID> shockedThisTick) {
@@ -238,7 +238,7 @@ public final class ElectrifiedWaterManager {
                 if (attacker != null && ElementalGaugeManager.isRaidenProtectedAlly(attacker, victim)) continue;
                 // Innate Electro beings are immune to electrified water shocks
                 if (ElementalGaugeManager.hasInnateElement(victim, Element.ELECTRO)) continue;
-                if (shockedThisTick.add(victim.getUUID())) {
+                if (shockedThisTick == null || shockedThisTick.add(victim.getUUID())) {
                     ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, 1.0F);
                     MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, centerVec, Element.ELECTRO, Element.HYDRO);
                 }
