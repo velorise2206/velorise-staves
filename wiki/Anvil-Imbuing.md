@@ -20,6 +20,11 @@ Place any vanilla or modded **Sword** in the **Left Anvil Slot** and any **Eleme
 
 The **Omni Staff** (`omni_staff` / `netherite_omni_staff`) is a modular master weapon that stores **one absorbed weapon per Element (`Pyro, Hydro, Anemo, Electro, Dendro, Cryo, Geo`)**.
 
+### How to Craft an Omni Element (`omni_element`)
+Combine all **7 Elemental Essences** (*Cryo, Hydro, Anemo, Pyro, Dendro, Geo, Electro*) in a Shapeless Crafting Table recipe:
+
+![Omni Element Crafting Recipe](images/omni_element_recipe.png)
+
 ### How to Create an Omni Staff
 1. **Method A — Crafting Table (`recipe/omni_staff.json`):**
    - Combine **1 Non-Archon Staff from each of the 7 elemental tags** (`#pyro_staves`, `#hydro_staves`, `#anemo_staves`, `#electro_staves`, `#dendro_staves`, `#cryo_staves`, `#geo_staves`) + **1 Diamond Sword** (`S`).

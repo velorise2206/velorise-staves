@@ -39,6 +39,19 @@ public final class MavuikaVisualRenderer {
         BIKE_FP_CAM_SMOOTH.clear();
         BIKE_ARM_SMOOTH.clear();
     }
+    private static final ResourceLocation MAVUIKA_HELMET_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/mavuika_helmet_texture.png");
+    private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> helmetModel;
+
+    private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> getOrBakeHelmetModel() {
+        if (helmetModel == null) {
+            helmetModel = new com.velorise.staves.client.model.MavuikaHelmetModel<>(
+                    com.velorise.staves.client.model.MavuikaHelmetModel.createBodyLayer().bakeRoot()
+            );
+        }
+        return helmetModel;
+    }
+
     private MavuikaVisualRenderer() {}
 
     public static void renderMavuikaVirtualHelmet(
@@ -72,32 +85,12 @@ public final class MavuikaVisualRenderer {
         poseStack.translate(0.0F, -1.501F, 0.0F);
         humanoid.head.translateAndRotate(poseStack);
 
-        Matrix4f mat = poseStack.last().pose();
-        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
-
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.285F, -0.545F, -0.285F, 0.285F, -0.445F, 0.285F, crR, crG, crB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.065F, -0.585F, -0.305F, 0.065F, -0.445F, 0.265F, gdR, gdG, gdB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.032F, -0.605F, -0.260F, 0.032F, -0.580F, 0.180F, flR, flG, flB, 255);
-
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.285F, -0.445F, 0.220F, 0.285F, 0.015F, 0.290F, obR, obG, obB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.295F, -0.445F, -0.245F, -0.242F, 0.015F, 0.285F, obR, obG, obB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, 0.242F, -0.445F, -0.245F, 0.295F, 0.015F, 0.285F, obR, obG, obB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.312F, -0.410F, -0.140F, -0.285F, -0.180F, 0.250F, crR, crG, crB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, 0.285F, -0.410F, -0.140F, 0.312F, -0.180F, 0.250F, crR, crG, crB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.322F, -0.360F, -0.060F, -0.305F, -0.240F, 0.270F, gdR, gdG, gdB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, 0.305F, -0.360F, -0.060F, 0.322F, -0.240F, 0.270F, gdR, gdG, gdB, 255);
-
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.285F, -0.135F, -0.305F, 0.285F, 0.025F, -0.180F, obR, obG, obB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.185F, -0.115F, -0.318F, 0.185F, 0.010F, -0.295F, crR, crG, crB, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.095F, -0.045F, -0.324F, 0.095F, 0.018F, -0.305F, gdR, gdG, gdB, 255);
-
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.275F, -0.435F, -0.302F, 0.275F, -0.135F, -0.245F, flR, flG, flB, 238);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.235F, -0.335F, -0.310F, 0.235F, -0.215F, -0.295F, 255, 228, 88, 248);
-        ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.290F, -0.455F, -0.312F, 0.290F, -0.415F, -0.240F, gdR, gdG, gdB, 255);
+        VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(MAVUIKA_HELMET_TEXTURE));
+        getOrBakeHelmetModel().renderToBuffer(poseStack, vc, 0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
 
         poseStack.popPose();
         if (buffer instanceof MultiBufferSource.BufferSource bs) {
-            bs.endBatch(ClientAuraRenderer.getMeteorSolid());
+            bs.endBatch(RenderType.entityTranslucent(MAVUIKA_HELMET_TEXTURE));
         }
     }
 

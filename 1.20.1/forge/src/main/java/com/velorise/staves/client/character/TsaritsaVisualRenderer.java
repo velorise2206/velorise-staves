@@ -26,6 +26,18 @@ import org.joml.Matrix4f;
 public final class TsaritsaVisualRenderer {
     private TsaritsaVisualRenderer() {}
     private static final java.util.Map<Integer, float[]> TSARITSA_FP_CAM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final ResourceLocation TSARITSA_THRONE_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/tsaritsa_ice_throne.png");
+    private static com.velorise.staves.client.model.TsaritsaIceThroneModel<net.minecraft.world.entity.Entity> throneModel;
+
+    private static com.velorise.staves.client.model.TsaritsaIceThroneModel<net.minecraft.world.entity.Entity> getOrBakeThroneModel() {
+        if (throneModel == null) {
+            throneModel = new com.velorise.staves.client.model.TsaritsaIceThroneModel<>(
+                    com.velorise.staves.client.model.TsaritsaIceThroneModel.createBodyLayer().bakeRoot()
+            );
+        }
+        return throneModel;
+    }
 
     public static void clearClientCaches() {
         TSARITSA_FP_CAM_SMOOTH.clear();
@@ -1209,200 +1221,14 @@ public final class TsaritsaVisualRenderer {
         poseStack.translate(0.0F, 0.0F, -0.08F);
         poseStack.scale(fade, fade, fade);
 
-        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
-        Matrix4f mat = poseStack.last().pose();
-
-        // 1. Stepped Frosted Obsidian & Glacial-Blue Dais + Seat + Corner Ice Spikes
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.70F, 0.0F, -0.60F, 0.70F, 0.07F, 0.50F, 28, 56, 102, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.58F, 0.07F, -0.52F, 0.58F, 0.14F, 0.40F, 48, 104, 175, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.45F, 0.14F, -0.44F, 0.45F, 0.28F, 0.28F, 62, 138, 212, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.42F, 0.28F, -0.41F, 0.42F, 0.34F, 0.27F, 175, 236, 255, 255);
-        // Front seat diamond frost crest
+        // 1-3. Blockbench 3D Tsaritsa Ice Throne Model
         poseStack.pushPose();
-        poseStack.translate(0.0F, 0.24F, 0.29F);
-        drawPointedStar(solidVc, poseStack.last().pose(), 0.13F, 0.16F, 0.045F, 0.025F, 220, 248, 255, 135, 215, 255, 255);
-        poseStack.popPose();
-        // 4 Sharp corner crystal spikes on the dais
-        for (int sx : new int[]{-1, 1}) {
-            for (int sz : new int[]{-1, 1}) {
-                poseStack.pushPose();
-                poseStack.translate(sx * 0.64F, 0.06F, sz < 0 ? -0.54F : 0.44F);
-                poseStack.mulPose(Axis.XP.rotationDegrees(sz < 0 ? -18.0F : 16.0F));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-sx * 20.0F));
-                drawIceSpire(solidVc, poseStack.last().pose(), 0.065F, 0.065F, 0.14F, 0.34F, 48, 112, 188, 135, 218, 255, 240, 253, 255, 255);
-                poseStack.popPose();
-            }
-        }
-
-        // 2. Spiky Armrests with Sharp Pointed Crystal Claws & Downward Icicles
-        for (int side : new int[]{-1, 1}) {
-            float ax0 = side < 0 ? -0.55F : 0.39F;
-            float ax1 = side < 0 ? -0.39F : 0.55F;
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0, 0.14F, -0.40F, ax1, 0.86F, 0.30F, 46, 108, 182, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, ax0 - side * 0.02F, 0.83F, -0.38F, ax1 - side * 0.02F, 0.89F, 0.34F, 175, 236, 255, 255);
-            // Side embossed/recessed relief border & diagonal chevron trim
-            float sxIn = side * 0.548F;
-            float sxMid = side * 0.562F;
-            float sxOut = side * 0.576F;
-            float sMin = Math.min(sxIn, sxMid), sMax = Math.max(sxIn, sxMid);
-            float rMin = Math.min(sxMid, sxOut), rMax = Math.max(sxMid, sxOut);
-            // Recessed deep-ice inner panel
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, sMin, 0.22F, -0.32F, sMax, 0.76F, 0.22F, 26, 64, 126, 255);
-            // Raised beveled outer border strips
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, rMin, 0.18F, -0.37F, rMax, 0.80F, -0.32F, 165, 228, 255, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, rMin, 0.18F,  0.22F, rMax, 0.80F,  0.27F, 165, 228, 255, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, rMin, 0.76F, -0.37F, rMax, 0.81F,  0.27F, 195, 244, 255, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, rMin, 0.18F, -0.37F, rMax, 0.23F,  0.27F, 135, 210, 250, 255);
-            // Raised central vertical & diamond relief rib on each side
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, rMin, 0.23F, -0.068F, rMax, 0.76F, -0.032F, 145, 220, 255, 255);
-            poseStack.pushPose();
-            poseStack.translate(side * 0.574F, 0.49F, -0.05F);
-            poseStack.mulPose(Axis.YP.rotationDegrees(side * 90.0F));
-            drawPointedStar(solidVc, poseStack.last().pose(), 0.095F, 0.14F, 0.028F, 0.024F, 225, 250, 255, 135, 218, 255, 255);
-            poseStack.popPose();
-            // 3 sharp pointed crystal claws per armrest
-            float[][] claws = new float[][]{
-                {side * 0.47F, 0.88F, 0.32F, 34.0F, -side * 12.0F, 0.055F, 0.36F},
-                {side * 0.53F, 0.82F, 0.14F, 18.0F, -side * 32.0F, 0.050F, 0.32F},
-                {side * 0.55F, 0.68F, -0.06F, 8.0F, -side * 46.0F, 0.045F, 0.28F}
-            };
-            for (float[] cl : claws) {
-                poseStack.pushPose();
-                poseStack.translate(cl[0], cl[1], cl[2]);
-                poseStack.mulPose(Axis.XP.rotationDegrees(cl[3]));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(cl[4]));
-                drawIceSpire(solidVc, poseStack.last().pose(), cl[5], cl[5], cl[6] * 0.45F, cl[6],
-                        72, 162, 232, 160, 230, 255, 245, 254, 255, 255);
-                poseStack.popPose();
-            }
-            // Downward icicle spike under front armrest corner
-            poseStack.pushPose();
-            poseStack.translate(side * 0.48F, 0.82F, 0.32F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(180.0F));
-            drawIceSpire(solidVc, poseStack.last().pose(), 0.042F, 0.042F, 0.10F, 0.26F,
-                    65, 148, 222, 155, 225, 255, 235, 252, 255, 255);
-            poseStack.popPose();
-        }
-
-        // 3. Tall Gothic Pointed Cryo Backrest (Sharp Faceted Spires + Translucent Arch + Lattice + Apex Star)
-        // Lower backrest frame
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.48F, 0.28F, -0.46F, 0.48F, 1.38F, -0.35F, 44, 102, 174, 255);
-        // Embossed/recessed 3D stepped gothic relief & beveled border trim on the rear backrest (no boxy grid)
-        // Outer stepped beveled pilasters & crown arch trim
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.488F, 0.28F, -0.474F, -0.415F, 1.38F, -0.454F, 155, 224, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat,  0.415F, 0.28F, -0.474F,  0.488F, 1.38F, -0.454F, 155, 224, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.488F, 1.32F, -0.476F,  0.488F, 1.39F, -0.454F, 195, 244, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.488F, 0.28F, -0.474F,  0.488F, 0.35F, -0.454F, 125, 202, 248, 255);
-        // Recessed deep glacial inner bay
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.415F, 0.35F, -0.464F,  0.415F, 1.32F, -0.454F, 24, 58, 118, 255);
-        // Raised inner stepped bevel ridge
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.355F, 0.41F, -0.472F,  0.355F, 1.26F, -0.464F, 52, 120, 198, 255);
-        // Recessed inner gothic core
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.295F, 0.47F, -0.466F,  0.295F, 1.20F, -0.462F, 28, 72, 142, 255);
-        // Raised central vertical spine molding & stepped diamond pedestal
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.032F, 0.36F, -0.482F,  0.032F, 1.36F, -0.466F, 185, 238, 255, 255);
-        // Raised chevron V-relief ribs & embossed side corner brackets
-        for (int side : new int[]{-1, 1}) {
-            poseStack.pushPose();
-            poseStack.translate(side * 0.17F, 0.72F, -0.478F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 32.0F));
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.020F, -0.26F, -0.010F, 0.020F, 0.26F, 0.010F, 165, 230, 255, 255);
-            poseStack.popPose();
-
-            poseStack.pushPose();
-            poseStack.translate(side * 0.17F, 1.06F, -0.478F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 32.0F));
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.020F, -0.24F, -0.010F, 0.020F, 0.24F, 0.010F, 195, 244, 255, 255);
-            poseStack.popPose();
-
-            // Raised corner relief studs
-            poseStack.pushPose();
-            poseStack.translate(side * 0.45F, 1.35F, -0.482F);
-            drawPointedStar(solidVc, poseStack.last().pose(), 0.055F, 0.055F, 0.022F, 0.022F, 230, 252, 255, 145, 225, 255, 255);
-            poseStack.popPose();
-        }
-        // Central raised 3D Cryo medallion crest
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 0.89F, -0.488F);
-        drawPointedStar(solidVc, poseStack.last().pose(), 0.16F, 0.22F, 0.042F, 0.032F, 235, 252, 255, 155, 230, 255, 255);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(45.0F));
-        drawPointedStar(solidVc, poseStack.last().pose(), 0.10F, 0.10F, 0.026F, 0.026F, 200, 245, 255, 255, 255, 255, 255);
-        poseStack.popPose();
-        // Translucent glacial inner pane for the central gothic arch
-        VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());
-        ClientAuraRenderer.emitCrystalQuad(transVc, mat,
-                -0.34F, 0.64F, -0.345F, 130, 215, 255, 155,
-                 0.34F, 0.64F, -0.345F, 130, 215, 255, 155,
-                 0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
-                -0.26F, 1.56F, -0.345F, 185, 238, 255, 175);
-        ClientAuraRenderer.emitCrystalQuad(transVc, mat,
-                -0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
-                 0.26F, 1.56F, -0.345F, 185, 238, 255, 175,
-                 0.0F,  2.54F, -0.345F, 240, 253, 255, 210,
-                 0.0F,  2.54F, -0.345F, 240, 253, 255, 210);
-        solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
-        // Frost filigree lattice ribs inside the central arch
-        for (int side : new int[]{-1, 1}) {
-            poseStack.pushPose();
-            poseStack.translate(side * 0.25F, 1.48F, -0.34F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 16.0F));
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.025F, 0.0F, -0.025F, 0.025F, 1.06F, 0.025F, 195, 244, 255, 255);
-            poseStack.popPose();
-
-            poseStack.pushPose();
-            poseStack.translate(0.0F, 1.15F, -0.34F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * 34.0F));
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, poseStack.last().pose(), -0.018F, -0.36F, -0.018F, 0.018F, 0.36F, 0.018F, 175, 236, 255, 255);
-            poseStack.popPose();
-        }
-
-        // Tall central needle spire at the gothic apex
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 1.38F, -0.40F);
-        drawIceSpire(solidVc, poseStack.last().pose(), 0.15F, 0.095F, 0.56F, 1.30F,
-                58, 138, 218, 150, 226, 255, 245, 254, 255, 255);
-        poseStack.popPose();
-
-        // 2 Symmetrical flanking sharp-pointed crystal spires (forming 3-spire silhouette: 1 center + 2 side spires)
-        float[][] spires = new float[][]{
-            {-0.40F, 1.18F, -0.39F, -4.0F,  6.0F, 0.115F, 1.08F},
-            { 0.40F, 1.18F, -0.39F, -4.0F, -6.0F, 0.115F, 1.08F}
-        };
-        for (float[] sp : spires) {
-            poseStack.pushPose();
-            poseStack.translate(sp[0], sp[1], sp[2]);
-            poseStack.mulPose(Axis.XP.rotationDegrees(sp[3]));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(sp[4]));
-            drawIceSpire(solidVc, poseStack.last().pose(), sp[5], sp[5] * 0.85F, sp[6] * 0.44F, sp[6],
-                    54, 132, 212, 148, 224, 255, 242, 253, 255, 255);
-            poseStack.popPose();
-        }
-
-        // Rear-facing jagged crystal buttress spines (detailed back view)
-        float[][] rearSpines = new float[][]{
-            { 0.0F,  0.96F, -0.45F, -48.0F,  0.0F, 0.075F, 0.46F},
-            {-0.26F, 0.84F, -0.44F, -42.0F, 18.0F, 0.060F, 0.38F},
-            { 0.26F, 0.84F, -0.44F, -42.0F,-18.0F, 0.060F, 0.38F},
-            { 0.0F,  0.48F, -0.44F, -62.0F,  0.0F, 0.065F, 0.34F}
-        };
-        for (float[] rs : rearSpines) {
-            poseStack.pushPose();
-            poseStack.translate(rs[0], rs[1], rs[2]);
-            poseStack.mulPose(Axis.XP.rotationDegrees(rs[3]));
-            poseStack.mulPose(Axis.ZP.rotationDegrees(rs[4]));
-            drawIceSpire(solidVc, poseStack.last().pose(), rs[5], rs[5], rs[6] * 0.42F, rs[6],
-                    42, 98, 172, 125, 208, 252, 232, 250, 255, 255);
-            poseStack.popPose();
-        }
-
-        // Glowing Pointed 8-Ray Cryo Star / Snowflake at Throne Apex
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 2.74F, -0.40F);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(time * 0.08F) * 6.0F));
-        Matrix4f starMat = poseStack.last().pose();
-        drawPointedStar(solidVc, starMat, 0.20F, 0.28F, 0.048F, 0.042F, 235, 252, 255, 165, 232, 255, 255);
-        poseStack.mulPose(Axis.ZP.rotationDegrees(45.0F));
-        drawPointedStar(solidVc, poseStack.last().pose(), 0.13F, 0.13F, 0.032F, 0.032F, 200, 245, 255, 255, 255, 255, 255);
+        float throneScale = 0.72F;
+        poseStack.scale(-throneScale, -throneScale, throneScale);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.translate(0.0F, -1.50F, 0.0F);
+        VertexConsumer throneVc = buffer.getBuffer(RenderType.entityTranslucent(TSARITSA_THRONE_TEXTURE));
+        getOrBakeThroneModel().renderToBuffer(poseStack, throneVc, 0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
 
         // 4. Thin Floating Royal Ice Desk (NO support legs underneath, gently levitating!)
@@ -1410,7 +1236,7 @@ public final class TsaritsaVisualRenderer {
         renderFloatingDeskAndItems(poseStack, buffer, writeTime3p, deskBob, false);
 
         // 5. Orbiting Pointed Cryo Crystal Shards around the throne
-        solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
+        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
         for (int i = 0; i < 4; i++) {
             float ang = (float) (time * 0.06D + i * Math.PI * 0.5D);
             poseStack.pushPose();

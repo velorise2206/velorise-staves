@@ -56,22 +56,22 @@ public final class XilonenVisualRenderer {
             poseStack.scale(-entityScale, -entityScale, entityScale);
             poseStack.translate(0.0F, -1.501F, 0.0F);
 
-            VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.METEOR_SOLID);
-            ModelPart[] legs = {humanoid.rightLeg, humanoid.leftLeg};
-            for (ModelPart leg : legs) {
-                poseStack.pushPose();
-                leg.translateAndRotate(poseStack);
-                Matrix4f mat = poseStack.last().pose();
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.150F, 0.520F, -0.165F, 0.150F, 0.720F, 0.160F, 36, 28, 38, 255);
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.158F, 0.560F, -0.215F, 0.158F, 0.735F, 0.165F, 245, 192, 45, 255);
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.166F, 0.590F, -0.150F, 0.166F, 0.650F, 0.120F, 65, 238, 224, 255);
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.135F, 0.720F, -0.210F, 0.135F, 0.815F, -0.075F, 255, 215, 55, 255);
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.135F, 0.720F,  0.035F, 0.135F, 0.815F,  0.165F, 255, 215, 55, 255);
-                poseStack.popPose();
-            }
+            float wheelSpin = entity.getDeltaMovement().horizontalDistanceSqr() > 4.0E-4D ? (-time * 0.65F) : 0.0F;
+            VertexConsumer skateVc = buffer.getBuffer(net.minecraft.client.renderer.RenderType.entityCutoutNoCull(com.velorise.staves.client.model.XilonenSkatesModel.TEXTURE));
+
+            poseStack.pushPose();
+            humanoid.rightLeg.translateAndRotate(poseStack);
+            com.velorise.staves.client.model.XilonenSkatesModel.renderRightSkate(poseStack, skateVc, wheelSpin, 0xF000F0);
+            poseStack.popPose();
+
+            poseStack.pushPose();
+            humanoid.leftLeg.translateAndRotate(poseStack);
+            com.velorise.staves.client.model.XilonenSkatesModel.renderLeftSkate(poseStack, skateVc, wheelSpin, 0xF000F0);
+            poseStack.popPose();
+
             poseStack.popPose();
             if (buffer instanceof MultiBufferSource.BufferSource bs) {
-                bs.endBatch(ClientAuraRenderer.ShieldRenderTypes.METEOR_SOLID);
+                bs.endBatch(net.minecraft.client.renderer.RenderType.entityCutoutNoCull(com.velorise.staves.client.model.XilonenSkatesModel.TEXTURE));
             }
         }
 

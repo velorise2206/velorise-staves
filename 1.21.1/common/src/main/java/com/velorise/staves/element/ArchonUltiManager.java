@@ -381,10 +381,10 @@ public final class ArchonUltiManager {
                 ? downHit.getLocation()
                 : targetPoint;
         Vec3 horizRight = new Vec3(-horizFwd.z, 0.0D, horizFwd.x);
-        double backFromPlayer = 5.2D;
+        double backFromPlayer = 2.14D;
         Vec3 skyStart = new Vec3(
                 player.getX() - horizFwd.x * backFromPlayer + horizRight.x * 0.45D,
-                player.getY() + 17.5D,
+                player.getY() + 12.25D,
                 player.getZ() - horizFwd.z * backFromPlayer + horizRight.z * 0.45D
         );
 

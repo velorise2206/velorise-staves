@@ -30,6 +30,19 @@ import org.joml.Matrix4f;
  * - 360-degree pirouette hop, viewfinder framing HUD & poses
  */
 public final class NahidaVisualRenderer {
+    private static final ResourceLocation SHRINE_OF_MAYA_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/shrine_of_maya.png");
+    private static com.velorise.staves.client.model.ShrineOfMayaModel<net.minecraft.world.entity.Entity> shrineModel;
+
+    private static com.velorise.staves.client.model.ShrineOfMayaModel<net.minecraft.world.entity.Entity> getOrBakeShrineModel() {
+        if (shrineModel == null) {
+            shrineModel = new com.velorise.staves.client.model.ShrineOfMayaModel<>(
+                    com.velorise.staves.client.model.ShrineOfMayaModel.createBodyLayer().bakeRoot()
+            );
+        }
+        return shrineModel;
+    }
+
     private NahidaVisualRenderer() {}
 
     public static boolean renderViewfinderHud(GuiGraphics guiGraphics, Minecraft mc) {
@@ -165,7 +178,7 @@ public final class NahidaVisualRenderer {
         if (anim < ClientAuraTracker.ANIM_NAHIDA_NA_1 || anim > ClientAuraTracker.ANIM_NAHIDA_NA_4) return 0.0F;
         float totalMs = Math.max(1.0F, (float) (d.staffAnimUntil - d.staffAnimStartTime));
         float t = Mth.clamp((nowMs - d.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-        return Mth.sin(t * (float) Math.PI) * 0.24F;
+        return Mth.sin(t * (float) Math.PI) * 0.10F;
     }
 
     public static float getViewfinderCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
@@ -178,7 +191,7 @@ public final class NahidaVisualRenderer {
         }
         float platW = getNaPlatformFade(entity);
         float hopY = platW > 0.001F ? getNaPlatformHopY(le) * platW : 0.0F;
-        return vfOff + (platW > 0.001F ? 0.34F * platW + hopY : 0.0F);
+        return vfOff + (platW > 0.001F ? 0.14F * platW + hopY : 0.0F);
     }
 
     public static float getSwingCameraPitchOffset(net.minecraft.world.entity.Entity entity, float partialTick) {
@@ -281,7 +294,7 @@ public final class NahidaVisualRenderer {
         float platW = getNaPlatformFade(entity);
         if (platW > 0.005F) {
             float hopY = getNaPlatformHopY(entity) * platW;
-            float liftY = -(0.34F * platW + hopY) * 16.0F;
+            float liftY = -(0.14F * platW + hopY) * 16.0F;
             model.head.y += liftY;
             model.hat.y += liftY;
             model.body.y += liftY;
@@ -399,14 +412,9 @@ public final class NahidaVisualRenderer {
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_CA) {
-            float w = (t < 0.20F) ? WindGliderRenderer.smoothStep01(t / 0.20F) : (t < 0.70F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.70F) / 0.30F));
-            model.body.xRot = Mth.lerp(t, 0.08F, -0.12F);
-            model.body.yRot = Mth.lerp(t, -0.22F, 0.25F);
             model.rightArm.xRot = Mth.lerp(t, 0.20F, -1.85F);
             model.rightArm.yRot = Mth.lerp(t, -0.65F, 0.45F);
             model.rightArm.zRot = Mth.lerp(t, -0.45F, 0.35F);
-            model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, 0.45F);
-            model.leftArm.yRot = Mth.lerp(w, model.leftArm.yRot, -0.32F);
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_NAHIDA_BURST) {
@@ -534,9 +542,7 @@ public final class NahidaVisualRenderer {
         if (platFade > 0.01F && !isFirstPersonSelf) {
             ResourceLocation keycapTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_keycap_tile.png");
             ResourceLocation starTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_ground_star.png");
-            float hopY = getNaPlatformHopY(entity) * platFade;
             poseStack.pushPose();
-            poseStack.translate(0.0F, Math.max(0.02F, 0.36F * platFade - 0.14F + hopY * 0.45F), 0.0F);
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             renderHopscotchKeycap3D(poseStack, buffer, keycapTex, 0.56F * platFade, 0.14F * platFade, platFade);
             VertexConsumer starVc = buffer.getBuffer(RenderType.entityCutoutNoCull(starTex));
@@ -1012,107 +1018,18 @@ public final class NahidaVisualRenderer {
                 float fadeOut = Mth.clamp((arc.expireTime - now) / 450.0F, 0.0F, 1.0F);
                 float fade = Math.min(fadeIn, fadeOut);
                 float timeSec = (now - arc.startTime) * 0.001F;
-                int aMain = Math.max(20, Math.round(165.0F * fade));
-                int aTrim = Math.max(25, Math.round(220.0F * fade));
+                float modelScale = radius / 11.375F;
+                float domeApexY = 16.2F;
+                int alphaByte = Math.max(16, Math.round(230.0F * fade));
+                int modelColor = (alphaByte << 24) | 0x00FFFFFF;
 
-                VertexConsumer vc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
                 poseStack.pushPose();
                 poseStack.translate(cx, cy, cz);
-                Matrix4f mat = poseStack.last().pose();
-
-                int floorSegs = 32;
-                float rOuter = radius * 0.96F;
-                float rInner = radius * 0.88F;
-                float rMid1 = radius * 0.52F;
-                float rMid0 = radius * 0.46F;
-                for (int i = 0; i < floorSegs; i++) {
-                    float a0 = (float) (i * Math.PI * 2.0D / floorSegs) + timeSec * 0.25F;
-                    float a1 = (float) ((i + 1) * Math.PI * 2.0D / floorSegs) + timeSec * 0.25F;
-                    float c0 = Mth.cos(a0), s0 = Mth.sin(a0);
-                    float c1 = Mth.cos(a1), s1 = Mth.sin(a1);
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            c0 * rInner, 0.05F, s0 * rInner,
-                            c0 * rOuter, 0.05F, s0 * rOuter,
-                            c1 * rOuter, 0.05F, s1 * rOuter,
-                            c1 * rInner, 0.05F, s1 * rInner,
-                            85, 255, 130, aMain);
-                }
-
-                int pillars = 8;
-                float pRadius = radius * 0.86F;
-                float pillarH = 9.3F; // Task 12: Scaled 1.5x (from 6.2F -> 9.3F)
-                float domeApexY = 16.2F; // Task 12: Scaled 1.5x (from 10.8F -> 16.2F)
-                for (int p = 0; p < pillars; p++) {
-                    float ang = (float) (p * Math.PI * 2.0D / pillars);
-                    float nextAng = (float) ((p + 1) * Math.PI * 2.0D / pillars);
-                    float midAng = (ang + nextAng) * 0.5F;
-                    float px = Mth.cos(ang) * pRadius;
-                    float pz = Mth.sin(ang) * pRadius;
-                    float nx = Mth.cos(nextAng) * pRadius;
-                    float nz = Mth.sin(nextAng) * pRadius;
-                    float mx = Mth.cos(midAng) * pRadius;
-                    float mz = Mth.sin(midAng) * pRadius;
-
-                    ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, px - 0.54F, 0.02F, pz - 0.54F, px + 0.54F, 0.72F, pz + 0.54F, 240, 205, 85, aTrim);
-                    ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, px - 0.33F, 0.72F, pz - 0.33F, px + 0.33F, pillarH - 0.63F, pz + 0.33F, 68, 235, 115, aMain);
-                    ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, px - 0.57F, pillarH - 0.63F, pz - 0.57F, px + 0.57F, pillarH, pz + 0.57F, 245, 215, 95, aTrim);
-
-                    float archPeakY = pillarH + 2.025F;
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            px, pillarH, pz,
-                            mx, archPeakY, mz,
-                            mx, archPeakY + 0.33F, mz,
-                            px, pillarH + 0.33F, pz,
-                            240, 212, 92, aTrim);
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            mx, archPeakY, mz,
-                            nx, pillarH, nz,
-                            nx, pillarH + 0.33F, nz,
-                            mx, archPeakY + 0.33F, mz,
-                            240, 212, 92, aTrim);
-
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            mx - 0.18F, archPeakY - 0.675F, mz - 0.18F,
-                            mx + 0.18F, archPeakY - 0.675F, mz + 0.18F,
-                            mx + 0.03F, archPeakY, mz + 0.03F,
-                            mx - 0.03F, archPeakY, mz - 0.03F,
-                            95, 255, 145, aTrim);
-                    WindGliderRenderer.renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 0.975F, mz, 0.15F, 85, 255, 130, aTrim);
-                    WindGliderRenderer.renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 1.35F, mz, 0.12F, 120, 255, 160, aTrim);
-                    WindGliderRenderer.renderFourLeafCloverXZ(vc, mat, mx, archPeakY - 1.725F, mz, 0.09F, 215, 255, 185, aTrim);
-
-                    float midR = pRadius * 0.54F;
-                    float midY = pillarH + 3.9F;
-                    float mx0 = Mth.cos(ang) * midR, mz0 = Mth.sin(ang) * midR;
-                    float mx1 = Mth.cos(nextAng) * midR, mz1 = Mth.sin(nextAng) * midR;
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            px, pillarH, pz,
-                            nx, pillarH, nz,
-                            mx1, midY, mz1,
-                            mx0, midY, mz0,
-                            65, 235, 115, Math.max(18, aMain / 2));
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            mx0, midY, mz0,
-                            mx1, midY, mz1,
-                            0.0F, domeApexY, 0.0F,
-                            0.0F, domeApexY, 0.0F,
-                            95, 255, 145, Math.max(22, (aMain * 2) / 3));
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            px - 0.12F, pillarH, pz - 0.12F,
-                            px + 0.12F, pillarH, pz + 0.12F,
-                            mx0 + 0.09F, midY, mz0 + 0.09F,
-                            mx0 - 0.09F, midY, mz0 - 0.09F,
-                            250, 225, 110, aTrim);
-                    WindGliderRenderer.emitDoubleQuad(vc, mat,
-                            mx0 - 0.09F, midY, mz0 - 0.09F,
-                            mx0 + 0.09F, midY, mz0 + 0.09F,
-                            0.06F, domeApexY, 0.06F,
-                            -0.06F, domeApexY, -0.06F,
-                            250, 225, 110, aTrim);
-                }
-
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.36F, domeApexY - 0.225F, -0.36F, 0.36F, domeApexY + 2.175F, 0.36F, 245, 220, 95, aTrim);
-                ZhongliVisualRenderer.drawJadeArmorBox(vc, mat, -0.18F, domeApexY + 2.175F, -0.18F, 0.18F, domeApexY + 3.525F, 0.18F, 120, 255, 155, aTrim);
+                poseStack.scale(-modelScale, -modelScale, modelScale);
+                poseStack.translate(0.0F, -1.50F, 0.0F);
+                VertexConsumer shrineVc = bufferSource.getBuffer(RenderType.entityTranslucent(SHRINE_OF_MAYA_TEXTURE));
+                VertexConsumer fadedShrineVc = new VerticalFadeVertexConsumer(shrineVc, cy, domeApexY * modelScale);
+                getOrBakeShrineModel().renderToBufferWithBaseFade(poseStack, shrineVc, fadedShrineVc, 0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, modelColor);
                 poseStack.popPose();
 
                 VertexConsumer skVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
@@ -1407,6 +1324,73 @@ public final class NahidaVisualRenderer {
         public VertexConsumer setNormal(float x, float y, float z) {
             delegate.setNormal(x, y, z);
             return this;
+        }
+    }
+
+    private static final class VerticalFadeVertexConsumer implements VertexConsumer {
+        private final VertexConsumer delegate;
+        private final float fadeStartY;
+        private final float fadeRange;
+        private float lastY;
+
+        private VerticalFadeVertexConsumer(VertexConsumer delegate, float fadeStartY, float fadeRange) {
+            this.delegate = delegate;
+            this.fadeStartY = fadeStartY;
+            this.fadeRange = Math.max(0.001F, fadeRange);
+        }
+
+        private float alphaFactor(float y) {
+            float norm = Mth.clamp((y - fadeStartY) / fadeRange, 0.0F, 1.0F);
+            if (norm <= 0.5F) {
+                return 0.20F * (norm / 0.5F);
+            }
+            float upper = (norm - 0.5F) / 0.5F;
+            return 0.20F + 0.80F * (upper * upper * (3.0F - 2.0F * upper));
+        }
+
+        @Override
+        public VertexConsumer addVertex(float x, float y, float z) {
+            this.lastY = y;
+            delegate.addVertex(x, y, z);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setColor(int r, int g, int b, int a) {
+            delegate.setColor(r, g, b, Math.round(a * alphaFactor(lastY)));
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv(float u, float v) {
+            delegate.setUv(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv1(int u, int v) {
+            delegate.setUv1(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setUv2(int u, int v) {
+            delegate.setUv2(u, v);
+            return this;
+        }
+
+        @Override
+        public VertexConsumer setNormal(float x, float y, float z) {
+            delegate.setNormal(x, y, z);
+            return this;
+        }
+
+        @Override
+        public void addVertex(float x, float y, float z, int color, float u, float v, int packedOverlay, int packedLight, float normalX, float normalY, float normalZ) {
+            int origA = (color >>> 24) & 0xFF;
+            int fadedA = Math.round(origA * alphaFactor(y));
+            int fadedColor = (fadedA << 24) | (color & 0x00FFFFFF);
+            delegate.addVertex(x, y, z, fadedColor, u, v, packedOverlay, packedLight, normalX, normalY, normalZ);
         }
     }
 }
