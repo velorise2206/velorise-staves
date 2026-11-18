@@ -107,16 +107,16 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         net.minecraft.client.KeyMapping plungeAttackKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
                 new net.minecraft.client.KeyMapping(
                         "key.velorise_staves.plunge_attack",
-                        com.mojang.blaze3d.platform.InputConstants.Type.MOUSE,
-                        org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                        com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+                        org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN,
                         "key.categories.velorise_staves"
                 )
         );
         net.minecraft.client.KeyMapping windGliderKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
                 new net.minecraft.client.KeyMapping(
                         "key.velorise_staves.wind_glider",
-                        com.mojang.blaze3d.platform.InputConstants.Type.MOUSE,
-                        org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_RIGHT,
+                        com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
+                        org.lwjgl.glfw.GLFW.GLFW_KEY_UNKNOWN,
                         "key.categories.velorise_staves"
                 )
         );
@@ -575,7 +575,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     }
                 }
                 wasAirJumpDown[0] = jumpDown;
-                boolean useDown = windGliderKey.isDown();
+                net.minecraft.client.KeyMapping activeGliderKey = windGliderKey.isUnbound() ? client.options.keyUse : windGliderKey;
+                boolean useDown = activeGliderKey.isDown();
                 if (useDown && !wasAirUseDown[0]
                         && (ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(client.player))
                         && !client.player.onGround() && !wasOnGround[0]
@@ -585,9 +586,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         && (client.hitResult == null || client.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.MISS)
                         && com.velorise.staves.element.PlungeAndGliderManager.canRightClickToggleGlider(client.player)) {
                     ClientAuraTracker.localWindGliderUnlocked = true;
-                    while (windGliderKey.consumeClick()) {
+                    while (activeGliderKey.consumeClick()) {
                     }
-                    if (windGliderKey.same(client.options.keyUse)) {
+                    if (activeGliderKey != client.options.keyUse && activeGliderKey.same(client.options.keyUse)) {
                         while (client.options.keyUse.consumeClick()) {
                         }
                     }
@@ -641,12 +642,13 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     client.player.fallDistance = 0.0F;
                 }
 
-                boolean atkDown = plungeAttackKey.isDown();
+                net.minecraft.client.KeyMapping activePlungeKey = plungeAttackKey.isUnbound() ? client.options.keyAttack : plungeAttackKey;
+                boolean atkDown = activePlungeKey.isDown();
                 if (atkDown && !wasAirAttackDown[0] && !holdingGuardian
                         && com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
-                    while (plungeAttackKey.consumeClick()) {
+                    while (activePlungeKey.consumeClick()) {
                     }
-                    if (plungeAttackKey.same(client.options.keyAttack)) {
+                    if (activePlungeKey != client.options.keyAttack && activePlungeKey.same(client.options.keyAttack)) {
                         while (client.options.keyAttack.consumeClick()) {
                         }
                     }

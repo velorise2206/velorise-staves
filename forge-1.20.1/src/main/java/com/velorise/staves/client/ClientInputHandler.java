@@ -60,15 +60,15 @@ public final class ClientInputHandler {
 
     public static final KeyMapping PLUNGE_ATTACK_KEY = new KeyMapping(
             "key.velorise_staves.plunge_attack",
-            InputConstants.Type.MOUSE,
-            GLFW.GLFW_MOUSE_BUTTON_LEFT,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_UNKNOWN,
             "key.categories.velorise_staves"
     );
 
     public static final KeyMapping WIND_GLIDER_KEY = new KeyMapping(
             "key.velorise_staves.wind_glider",
-            InputConstants.Type.MOUSE,
-            GLFW.GLFW_MOUSE_BUTTON_RIGHT,
+            InputConstants.Type.KEYSYM,
+            GLFW.GLFW_KEY_UNKNOWN,
             "key.categories.velorise_staves"
     );
     private static boolean wasBikeDashDown = false;
@@ -527,7 +527,8 @@ public final class ClientInputHandler {
                 }
             }
             wasAirJumpDown = jumpDown;
-            boolean useDown = WIND_GLIDER_KEY.isDown();
+            KeyMapping activeGliderKey = WIND_GLIDER_KEY.isUnbound() ? mc.options.keyUse : WIND_GLIDER_KEY;
+            boolean useDown = activeGliderKey.isDown();
             if (useDown && !wasAirUseDown
                     && (ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(mc.player))
                     && !mc.player.onGround() && !wasOnGround
@@ -537,9 +538,9 @@ public final class ClientInputHandler {
                     && (mc.hitResult == null || mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.MISS)
                     && com.velorise.staves.element.PlungeAndGliderManager.canRightClickToggleGlider(mc.player)) {
                 ClientAuraTracker.localWindGliderUnlocked = true;
-                while (WIND_GLIDER_KEY.consumeClick()) {
+                while (activeGliderKey.consumeClick()) {
                 }
-                if (WIND_GLIDER_KEY.same(mc.options.keyUse)) {
+                if (activeGliderKey != mc.options.keyUse && activeGliderKey.same(mc.options.keyUse)) {
                     while (mc.options.keyUse.consumeClick()) {
                     }
                 }
@@ -592,12 +593,13 @@ public final class ClientInputHandler {
                 mc.player.fallDistance = 0.0F;
             }
 
-            boolean atkDown = PLUNGE_ATTACK_KEY.isDown();
+            KeyMapping activePlungeKey = PLUNGE_ATTACK_KEY.isUnbound() ? mc.options.keyAttack : PLUNGE_ATTACK_KEY;
+            boolean atkDown = activePlungeKey.isDown();
             if (atkDown && !wasAirAttackDown && !holdingGuardian
                     && com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
-                while (PLUNGE_ATTACK_KEY.consumeClick()) {
+                while (activePlungeKey.consumeClick()) {
                 }
-                if (PLUNGE_ATTACK_KEY.same(mc.options.keyAttack)) {
+                if (activePlungeKey != mc.options.keyAttack && activePlungeKey.same(mc.options.keyAttack)) {
                     while (mc.options.keyAttack.consumeClick()) {
                         // Suppress vanilla air swing when initiating plunge
                     }
