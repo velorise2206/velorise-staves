@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "El viento sopla fuerte hoy",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "Desbloquea tu Planeador del Viento llevando 3 Esencias Anemo en tu inventario",
+  "config.velorise_staves.enable_custom_dash": "Activar Impulso de Carrera Genshin",
+  "config.velorise_staves.enable_custom_dash.desc": "Activa el impulso rápido de esquiva al estilo Genshin al presionar la tecla de correr.",
+  "config.velorise_staves.enable_custom_stamina": "Activar Sistema de Aguante Genshin",
+  "config.velorise_staves.enable_custom_stamina.desc": "Activa la barra de aguante Genshin (100 base -> 170 Nether -> 240 End) para correr y planear.",
+  "key.velorise_staves.plunge_attack": "Ataque Descendente",
+  "key.velorise_staves.wind_glider": "Desplegar Planeador del Viento",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ Bendición del Nether: ¡Aguante máximo aumentado a 170!",
+  "message.velorise_staves.stamina_end_unlocked": "✦ Bendición del End: ¡Aguante máximo aumentado a 240!"
 }

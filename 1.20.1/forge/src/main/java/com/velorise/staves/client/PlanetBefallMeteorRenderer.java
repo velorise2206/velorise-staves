@@ -21,7 +21,7 @@ import org.joml.Matrix4f;
  */
 public final class PlanetBefallMeteorRenderer {
     private static final ResourceLocation ROCK_TEXTURE =
-            new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/planet_befall_rock.png");
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/stone_stele.png");
 
     private PlanetBefallMeteorRenderer() {
     }

@@ -1364,10 +1364,6 @@ public final class ArcaneStaffItem extends Item {
         return stack;
     }
 
-    private int getStaffUseElapsedTicks(int timeLeft) {
-        return 72000 - timeLeft;
-    }
-
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
         if (kind == Kind.OMNI) {
@@ -2206,10 +2202,6 @@ public final class ArcaneStaffItem extends Item {
         return rayEnd(player, range, ClipContext.Block.COLLIDER);
     }
 
-    private static Vec3 rayEndOutline(ServerPlayer player, double range) {
-        return rayEnd(player, range, ClipContext.Block.OUTLINE);
-    }
-
     private static Vec3 rayEnd(ServerPlayer player, double range, ClipContext.Block blockMode) {
         Vec3 start = player.getEyePosition();
         Vec3 end = start.add(player.getLookAngle().scale(range));
@@ -2610,7 +2602,7 @@ public final class ArcaneStaffItem extends Item {
             return true;
         }
         if (effKind == Kind.ENGULFING_LIGHTNING && entity.level().isClientSide()
-                && entity == net.minecraft.client.Minecraft.getInstance().player
+                && com.velorise.staves.client.ClientAuraTracker.isLocalPlayer(entity)
                 && com.velorise.staves.client.ClientAuraTracker.isRaidenMusouActive(entity.getId())) {
             return true;
         }

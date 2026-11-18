@@ -31,6 +31,9 @@ import org.joml.Matrix4f;
  * - Dominus Lapidis Hold/Tap/Burst & Planet Befall 1st-person and 3rd-person animations
  */
 public final class ZhongliVisualRenderer {
+    private static final ResourceLocation PLANET_BEFALL_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/planet_befall_charge.png");
+
     private ZhongliVisualRenderer() {}
 
     public static void drawJadeArmorBox(
@@ -289,7 +292,7 @@ public final class ZhongliVisualRenderer {
     }
 
     public static void renderChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation meteorTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/planet_befall_charge.png");
+        ResourceLocation meteorTex = PLANET_BEFALL_CHARGE_TEX;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();

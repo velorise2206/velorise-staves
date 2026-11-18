@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "오늘은 바람이 꽤 불어오네",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "인벤토리에 바람 원소 정수 3개를 소지하여 바람의 날개를 해금하세요",
+  "config.velorise_staves.enable_custom_dash": "원신 대시 추진 활성화",
+  "config.velorise_staves.enable_custom_dash.desc": "달리기 키를 누를 때 원신 스타일의 빠른 회피 대시를 발동합니다.",
+  "config.velorise_staves.enable_custom_stamina": "원신 스태미나 시스템 활성화",
+  "config.velorise_staves.enable_custom_stamina.desc": "달리기 및 활강 시 원신 스태미나 게이지(기본 100 -> 네더 170 -> 엔드 240)를 활성화합니다.",
+  "key.velorise_staves.plunge_attack": "낙하 공격",
+  "key.velorise_staves.wind_glider": "바람의 날개 펼치기",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ 네더의 축복: 최대 스태미나가 170으로 증가했습니다!",
+  "message.velorise_staves.stamina_end_unlocked": "✦ 엔드의 축복: 최대 스태미나가 240으로 증가했습니다!"
 }

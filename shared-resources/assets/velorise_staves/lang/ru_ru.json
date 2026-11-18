@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "Сегодня сильный ветер",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "Разблокируйте Ветряной планер, собрав 3 эссенции Анемо в инвентаре",
+  "config.velorise_staves.enable_custom_dash": "Включить рывок в стиле Genshin",
+  "config.velorise_staves.enable_custom_dash.desc": "Включает быстрый рывок уклонения при нажатии клавиши спринта.",
+  "config.velorise_staves.enable_custom_stamina": "Включить систему выносливости Genshin",
+  "config.velorise_staves.enable_custom_stamina.desc": "Включает шкалу выносливости Genshin (100 базовая -> 170 Незер -> 240 Энд) для бега и планирования.",
+  "key.velorise_staves.plunge_attack": "Атака в падении",
+  "key.velorise_staves.wind_glider": "Раскрыть ветряной планер",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ Благословение Незера: Максимальная выносливость увеличена до 170!",
+  "message.velorise_staves.stamina_end_unlocked": "✦ Благословение Энда: Максимальная выносливость увеличена до 240!"
 }

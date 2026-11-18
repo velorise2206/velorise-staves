@@ -173,19 +173,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static void handleWallClimbState(ServerPlayer player, boolean active) {
-        if (player == null) return;
-        if (active && (!StavesConfig.isEnableWallClimb() || !player.isAlive() || player.isSpectator()
-                || player.getVehicle() != null || player.getAbilities().flying || player.isInWater() || player.isInLava())) {
-            active = false;
-        }
-        AirState st = STATES.computeIfAbsent(player.getUUID(), k -> new AirState());
-        st.wallClimbing = active;
-        if (active) {
-            player.fallDistance = 0.0F;
-        }
-        ModNetwork.sendStaffAnimation(player, active
-                ? com.velorise.staves.client.ClientAuraTracker.ANIM_STEVE_WALL_CLIMB_ON
-                : com.velorise.staves.client.ClientAuraTracker.ANIM_STEVE_WALL_CLIMB_OFF);
+        // Wall climbing removed per user request
     }
 
     public static boolean canHoldPlungeWeapon(Player player) {

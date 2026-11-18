@@ -3,88 +3,27 @@ package com.velorise.staves.element;
 import static com.velorise.staves.element.ElementalGaugeManager.*;
 import static com.velorise.staves.element.PlayerGenshinState.*;
 
-import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import org.joml.Vector3f;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ambient.AmbientCreature;
-import net.minecraft.world.entity.animal.Bee;
-import net.minecraft.world.entity.animal.IronGolem;
-import net.minecraft.world.entity.animal.MushroomCow;
-import net.minecraft.world.entity.animal.PolarBear;
-import net.minecraft.world.entity.animal.SnowGolem;
-import net.minecraft.world.entity.animal.WaterAnimal;
-import net.minecraft.world.entity.animal.armadillo.Armadillo;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Blaze;
-import net.minecraft.world.entity.monster.CaveSpider;
-import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.monster.Drowned;
-import net.minecraft.world.entity.monster.ElderGuardian;
-import net.minecraft.world.entity.monster.EnderMan;
-import net.minecraft.world.entity.monster.Endermite;
-import net.minecraft.world.entity.monster.Ghast;
-import net.minecraft.world.entity.monster.Guardian;
-import net.minecraft.world.entity.monster.Husk;
-import net.minecraft.world.entity.monster.MagmaCube;
-import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.entity.monster.Ravager;
-import net.minecraft.world.entity.monster.Shulker;
-import net.minecraft.world.entity.monster.Slime;
-import net.minecraft.world.entity.monster.Stray;
-import net.minecraft.world.entity.monster.Strider;
-import net.minecraft.world.entity.monster.Vex;
-import net.minecraft.world.entity.monster.WitherSkeleton;
-import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.monster.ZombifiedPiglin;
-import net.minecraft.world.entity.monster.Bogged;
-import net.minecraft.world.entity.monster.breeze.Breeze;
 import net.minecraft.world.entity.monster.warden.Warden;
-import net.minecraft.world.entity.projectile.EvokerFangs;
-import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.AreaEffectCloud;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.NeutralMob;
-import net.minecraft.world.entity.animal.AbstractGolem;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Enemy;
-import net.minecraft.world.entity.npc.Npc;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
@@ -93,10 +32,8 @@ import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
-import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -976,7 +913,7 @@ public final class VentiManager {
                         vst.songIndex = (vst.songIndex + 1) % 2;
                     }
                 }
-                if (vst.stillTicks >= 400) {
+                if (vst.stillTicks >= 200) {
                     if (vst.idleVariant == 1) {
                         // Levitation idle hovers for ~5s (ticks 400..500) then gently descends
                         if (vst.stillTicks <= 500) {
@@ -1000,7 +937,7 @@ public final class VentiManager {
                 vst.lastSyncedCode = vst.activeCode;
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
             }
-            if (vst.activeCode == 4051 && vst.stillTicks >= 400) {
+            if (vst.activeCode == 4051 && vst.stillTicks >= 200) {
                 // {note, durationTicks} pairs for expressive rhythm (2t fast runs, 3-4t normal, 6-8t held notes)
                 int[][][] melodies = {
                     // 1. Venti's Theme (Bard's Adventure / A New Day with Hope)

@@ -43,8 +43,11 @@ public class RaidenSyncPacket {
 
     public static void handle(RaidenSyncPacket packet, Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
-        ctx.enqueueWork(() -> ClientAuraTracker.updateRaiden(
-                packet.entityId, packet.eyeRemainingTicks, packet.musouRemainingTicks, packet.resolve, packet.netherite, packet.burstCooldownTicks
+        ctx.enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                net.minecraftforge.api.distmarker.Dist.CLIENT,
+                () -> () -> ClientAuraTracker.updateRaiden(
+                        packet.entityId, packet.eyeRemainingTicks, packet.musouRemainingTicks, packet.resolve, packet.netherite, packet.burstCooldownTicks
+                )
         ));
         ctx.setPacketHandled(true);
     }

@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "今日は風が強いね",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "インベントリに風元素エッセンスを3個所持して風の翼を解放する",
+  "config.velorise_staves.enable_custom_dash": "原神ダッシュを有効化",
+  "config.velorise_staves.enable_custom_dash.desc": "ダッシュキーを押した際に原神スタイルの高速ステップ回避を発動します。",
+  "config.velorise_staves.enable_custom_stamina": "原神スタミナシステムを有効化",
+  "config.velorise_staves.enable_custom_stamina.desc": "ダッシュや滑空に原神スタイルのスタミナゲージ（初期100 → ネザー170 → エンド240）を使用します。",
+  "key.velorise_staves.plunge_attack": "落下攻撃",
+  "key.velorise_staves.wind_glider": "風の翼を展開",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ ネザーの祝福：最大スタミナが 170 に上昇しました！",
+  "message.velorise_staves.stamina_end_unlocked": "✦ エンドの祝福：最大スタミナが 240 に上昇しました！"
 }

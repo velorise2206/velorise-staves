@@ -66,16 +66,17 @@ public class ElectricArcPacket {
     }
 
     public static void handle(ElectricArcPacket packet, Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(() -> {
-            ClientAuraTracker.addArc(
-                    packet.fromEntityId,
-                    new Vec3(packet.startX, packet.startY, packet.startZ),
-                    packet.toEntityId,
-                    new Vec3(packet.endX, packet.endY, packet.endZ),
-                    packet.durationTicks,
-                    packet.color
-            );
-        });
+        ctx.get().enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                net.minecraftforge.api.distmarker.Dist.CLIENT,
+                () -> () -> ClientAuraTracker.addArc(
+                        packet.fromEntityId,
+                        new Vec3(packet.startX, packet.startY, packet.startZ),
+                        packet.toEntityId,
+                        new Vec3(packet.endX, packet.endY, packet.endZ),
+                        packet.durationTicks,
+                        packet.color
+                )
+        ));
         ctx.get().setPacketHandled(true);
     }
 }

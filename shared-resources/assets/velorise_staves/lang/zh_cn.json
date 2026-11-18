@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "今天的风儿甚是喧嚣",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "在背包中携带 3 个风元素精华以解锁风之翼",
+  "config.velorise_staves.enable_custom_dash": "启用原神冲刺突进",
+  "config.velorise_staves.enable_custom_dash.desc": "按下疾跑键时触发原神风格的快速闪避冲刺。",
+  "config.velorise_staves.enable_custom_stamina": "启用原神体力系统",
+  "config.velorise_staves.enable_custom_stamina.desc": "启用原神风格体力条（基础 100 -> 下界 170 -> 末地 240）用于冲刺与滑翔。",
+  "key.velorise_staves.plunge_attack": "下落攻击",
+  "key.velorise_staves.wind_glider": "展开风之翼",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ 下界赐福：最大体力上限提升至 170！",
+  "message.velorise_staves.stamina_end_unlocked": "✦ 末地赐福：最大体力上限提升至 240！"
 }

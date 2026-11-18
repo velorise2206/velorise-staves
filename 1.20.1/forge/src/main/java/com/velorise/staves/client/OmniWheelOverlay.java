@@ -25,10 +25,8 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.client.event.RenderGuiOverlayEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.joml.Matrix4f;
@@ -54,29 +52,6 @@ public final class OmniWheelOverlay {
     private static boolean suppressedUntilRelease = false;
     private static int hoveredSlot = -1;
     private static long lastDaybreakClientShotMs = 0L;
-
-    private static final java.lang.reflect.Field MISS_TIME_FIELD;
-    static {
-        java.lang.reflect.Field f = null;
-        try {
-            f = Minecraft.class.getDeclaredField("missTime");
-            f.setAccessible(true);
-        } catch (Throwable t1) {
-            try {
-                f = Minecraft.class.getDeclaredField("f_91084_");
-                f.setAccessible(true);
-            } catch (Throwable ignored) {}
-        }
-        MISS_TIME_FIELD = f;
-    }
-
-    private static void resetMissTime(Minecraft mc) {
-        if (mc != null && MISS_TIME_FIELD != null) {
-            try {
-                MISS_TIME_FIELD.setInt(mc, 0);
-            } catch (Throwable ignored) {}
-        }
-    }
 
     static {
         SLOT_TEXTURES[0] = new ResourceLocation(VeloriseStavesMod.MODID, "textures/element/omni.png");

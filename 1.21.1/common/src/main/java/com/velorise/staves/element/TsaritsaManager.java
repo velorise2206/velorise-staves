@@ -4,9 +4,7 @@ import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -23,7 +21,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -1225,7 +1222,7 @@ public final class TsaritsaManager {
             boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 400 && !st.idleActive) {
+                if (st.stillTicks >= 200 && !st.idleActive) {
                     st.idleActive = true;
                 }
             } else {

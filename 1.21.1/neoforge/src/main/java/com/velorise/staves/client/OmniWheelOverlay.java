@@ -25,9 +25,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
-import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
@@ -54,24 +52,6 @@ public final class OmniWheelOverlay {
     private static boolean suppressedUntilRelease = false;
     private static int hoveredSlot = -1;
     private static long lastDaybreakClientShotMs = 0L;
-
-    private static final java.lang.reflect.Field MISS_TIME_FIELD;
-    static {
-        java.lang.reflect.Field f = null;
-        try {
-            f = Minecraft.class.getDeclaredField("missTime");
-            f.setAccessible(true);
-        } catch (Throwable ignored) {}
-        MISS_TIME_FIELD = f;
-    }
-
-    private static void resetMissTime(Minecraft mc) {
-        if (mc != null && MISS_TIME_FIELD != null) {
-            try {
-                MISS_TIME_FIELD.setInt(mc, 0);
-            } catch (Throwable ignored) {}
-        }
-    }
 
     static {
         SLOT_TEXTURES[0] = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/element/omni.png");

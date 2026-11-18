@@ -32,6 +32,22 @@ import org.joml.Matrix4f;
 public final class NahidaVisualRenderer {
     private static final ResourceLocation SHRINE_OF_MAYA_TEXTURE =
             new ResourceLocation("velorise_staves", "textures/entity/shrine_of_maya.png");
+    private static final ResourceLocation KEYCAP_TILE_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_keycap_tile.png");
+    private static final ResourceLocation GROUND_STAR_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_ground_star.png");
+    private static final ResourceLocation SWING_ROPE_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_swing_rope.png");
+    private static final ResourceLocation SWING_SEAT_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_swing_seat.png");
+    private static final ResourceLocation SEED_OF_SKANDHA_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/seed_of_skandha.png");
+    private static final ResourceLocation SHRINE_STEP_GRASS_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_shrine_step_grass.png");
+    private static final ResourceLocation VINE_FLOWER_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_vine_flower.png");
+    private static final ResourceLocation HEART_VINE_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/nahida_heart_vine.png");
     private static com.velorise.staves.client.model.ShrineOfMayaModel<net.minecraft.world.entity.Entity> shrineModel;
 
     private static com.velorise.staves.client.model.ShrineOfMayaModel<net.minecraft.world.entity.Entity> getOrBakeShrineModel() {
@@ -540,8 +556,8 @@ public final class NahidaVisualRenderer {
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
 
         if (platFade > 0.01F && !isFirstPersonSelf) {
-            ResourceLocation keycapTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_keycap_tile.png");
-            ResourceLocation starTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_ground_star.png");
+            ResourceLocation keycapTex = KEYCAP_TILE_TEXTURE;
+            ResourceLocation starTex = GROUND_STAR_TEXTURE;
             poseStack.pushPose();
             poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
             renderHopscotchKeycap3D(poseStack, buffer, keycapTex, 0.56F * platFade, 0.14F * platFade, platFade);
@@ -554,8 +570,8 @@ public final class NahidaVisualRenderer {
         if (idleSwing) {
             float swingFade = stepIdleSwingFade(d, now);
             if (!isFirstPersonSelf && swingFade > 0.02F) {
-                ResourceLocation ropeTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_swing_rope.png");
-                ResourceLocation seatTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_swing_seat.png");
+                ResourceLocation ropeTex = SWING_ROPE_TEXTURE;
+                ResourceLocation seatTex = SWING_SEAT_TEXTURE;
                 float swingBodyYaw = (d != null && d.nahidaIdleYawSet) ? d.nahidaIdleYaw : bodyYaw;
                 poseStack.pushPose();
                 poseStack.mulPose(Axis.YP.rotationDegrees(-swingBodyYaw));
@@ -568,7 +584,7 @@ public final class NahidaVisualRenderer {
         }
 
         if (skandha) {
-            ResourceLocation skandhaTex = new ResourceLocation("velorise_staves", "textures/entity/seed_of_skandha.png");
+            ResourceLocation skandhaTex = SEED_OF_SKANDHA_TEXTURE;
             VertexConsumer skVc = buffer.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
             poseStack.pushPose();
             poseStack.translate(0.0F, entity.getBbHeight() * 0.58F + Mth.sin(time * 0.14F) * 0.04F, 0.0F);
@@ -728,7 +744,7 @@ public final class NahidaVisualRenderer {
         else horiz = horiz.normalize();
         float yawDeg = (float) Math.toDegrees(Math.atan2(-horiz.x, horiz.z)) + (variant - 3) * 18.0F;
 
-        ResourceLocation stepGrassTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_shrine_step_grass.png");
+        ResourceLocation stepGrassTex = SHRINE_STEP_GRASS_TEXTURE;
         VertexConsumer grassVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(stepGrassTex));
 
         float sx = (float) (arc.start.x - camPos.x);
@@ -912,10 +928,8 @@ public final class NahidaVisualRenderer {
         else horiz = horiz.normalize();
         float yawDeg = (float) Math.toDegrees(Math.atan2(-horiz.x, horiz.z));
 
-        ResourceLocation keycapTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_keycap_tile.png");
-        ResourceLocation starTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_ground_star.png");
-        ResourceLocation vineTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_vine_flower.png");
-        ResourceLocation heartTex = new ResourceLocation("velorise_staves", "textures/entity/nahida_heart_vine.png");
+        ResourceLocation vineTex = VINE_FLOWER_TEXTURE;
+        ResourceLocation heartTex = HEART_VINE_TEXTURE;
 
         float sx = (float) (arc.start.x - camPos.x);
         float sy = (float) (arc.start.y - camPos.y);
@@ -934,7 +948,7 @@ public final class NahidaVisualRenderer {
                 default -> new float[][]{ {-0.88F, 3.10F, 1.48F, 0.0F}, {0.0F, 4.15F, 1.92F, 0.8F}, {0.88F, 3.25F, 1.56F, 1.6F} };
             };
 
-            VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(starTex));
+            VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(GROUND_STAR_TEXTURE));
             for (float[] st : stemLayout) {
                 renderGroundStarSeal(starVc, poseStack, st[0], 0.03F, st[1], (0.44F + 0.28F * grow) * fade, timeSec * 30.0F + st[3] * 25.0F);
             }
@@ -962,7 +976,7 @@ public final class NahidaVisualRenderer {
         } else {
             // Step 4 Finisher: Grand Twin-Scroll Heart of Vines Arch + 2 Side Vine-Flowers + Ground Blossom Scatter (1.5x extended)
             float burstZ = 4.88F;
-            VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(starTex));
+            VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(GROUND_STAR_TEXTURE));
             renderGroundStarSeal(starVc, poseStack, 0.0F, 0.035F, burstZ, (1.10F + 0.52F * grow) * fade, timeSec * 22.0F);
             renderGroundStarSeal(starVc, poseStack, -1.25F, 0.03F, burstZ - 0.80F, (0.48F + 0.24F * grow) * fade, -timeSec * 35.0F);
             renderGroundStarSeal(starVc, poseStack,  1.25F, 0.03F, burstZ - 0.80F, (0.48F + 0.24F * grow) * fade,  timeSec * 35.0F);
@@ -1005,7 +1019,7 @@ public final class NahidaVisualRenderer {
     public static void renderWorldArcs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        ResourceLocation skandhaTex = new ResourceLocation("velorise_staves", "textures/entity/seed_of_skandha.png");
+        ResourceLocation skandhaTex = SEED_OF_SKANDHA_TEXTURE;
 
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.start == null || arc.end == null) continue;

@@ -28,6 +28,17 @@ import org.joml.Matrix4f;
  * Genshin stamina gauge, and Shulker target lock-on indicator.
  */
 public final class StaffHudRenderer {
+    private static final ResourceLocation FURINA_PNEUMA_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/furina_pneuma_charge.png");
+    private static final ResourceLocation FURINA_OUSIA_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/furina_ousia_charge.png");
+    private static final ResourceLocation GHASTFIRE_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/ghastfire_charge.png");
+    private static final ResourceLocation ARC_CASTER_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/arc_caster_charge.png");
+    private static final ResourceLocation ECHO_CHARGE_TEX =
+            ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/echo_charge.png");
+
     private StaffHudRenderer() {}
 
     public static void renderGenericChargeBar(GuiGraphics guiGraphics, ArcaneStaffItem staff, float pct) {
@@ -109,10 +120,9 @@ public final class StaffHudRenderer {
     }
 
     public static void renderFurinaChargeHud(GuiGraphics guiGraphics, ItemStack stack, int sw, int sh, float pct) {
-        String texPath = ArcaneStaffItem.isSplendorPneuma(stack)
-                ? "textures/gui/furina_pneuma_charge.png"
-                : "textures/gui/furina_ousia_charge.png";
-        ResourceLocation furinaTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, texPath);
+        ResourceLocation furinaTex = ArcaneStaffItem.isSplendorPneuma(stack)
+                ? FURINA_PNEUMA_CHARGE_TEX
+                : FURINA_OUSIA_CHARGE_TEX;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();
@@ -172,7 +182,7 @@ public final class StaffHudRenderer {
     }
 
     public static void renderGhastfireChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation ghastTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/ghastfire_charge.png");
+        ResourceLocation ghastTex = GHASTFIRE_CHARGE_TEX;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();
@@ -191,7 +201,7 @@ public final class StaffHudRenderer {
     }
 
     public static void renderArcCasterChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation arcTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/arc_caster_charge.png");
+        ResourceLocation arcTex = ARC_CASTER_CHARGE_TEX;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();
@@ -209,7 +219,7 @@ public final class StaffHudRenderer {
     }
 
     public static void renderEchoChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation echoTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/echo_charge.png");
+        ResourceLocation echoTex = ECHO_CHARGE_TEX;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();

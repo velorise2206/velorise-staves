@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.math.Axis;
-import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.entity.HydroSalonSummonEntity;
 import net.minecraft.client.model.AllayModel;
 import net.minecraft.client.model.SpiderModel;

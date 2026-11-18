@@ -784,5 +784,15 @@
   "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
   "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
   "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
-  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "advancement.velorise_staves.the_wind_is_strong_today.title": "Le vent souffle fort aujourd'hui",
+  "advancement.velorise_staves.the_wind_is_strong_today.desc": "Débloquez votre Planeur de Vent en portant 3 Essences Anémo dans votre inventaire",
+  "config.velorise_staves.enable_custom_dash": "Activer l'Impulsion de Ruée Genshin",
+  "config.velorise_staves.enable_custom_dash.desc": "Active la ruée d'esquive rapide style Genshin lorsque vous appuyez sur la touche de sprint.",
+  "config.velorise_staves.enable_custom_stamina": "Activer le Système d'Endurance Genshin",
+  "config.velorise_staves.enable_custom_stamina.desc": "Active la jauge d'endurance Genshin (100 base -> 170 Nether -> 240 End) pour le sprint et le planeur.",
+  "key.velorise_staves.plunge_attack": "Attaque Plongeante",
+  "key.velorise_staves.wind_glider": "Déployer le Planeur de Vent",
+  "message.velorise_staves.stamina_nether_unlocked": "✦ Bénédiction du Nether : Endurance maximale augmentée à 170 !",
+  "message.velorise_staves.stamina_end_unlocked": "✦ Bénédiction de l'End : Endurance maximale augmentée à 240 !"
 }

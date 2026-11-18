@@ -25,9 +25,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -63,6 +61,11 @@ public final class ArchonUltiManager {
     ) {}
 
     private static final List<PendingPlanetBefall> ZHONGLI_PENDING_BEFALL = new CopyOnWriteArrayList<>();
+
+    private static final DustParticleOptions ZHONGLI_GOLD_AURA_DUST = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
+    private static final DustParticleOptions ZHONGLI_GOLD_BURST_STD = new DustParticleOptions(new Vector3f(0.96F, 0.74F, 0.22F), 1.8F);
+    private static final DustParticleOptions ZHONGLI_GOLD_BURST_NETH = new DustParticleOptions(new Vector3f(0.96F, 0.74F, 0.22F), 2.2F);
+    private static final DustParticleOptions ZHONGLI_BASALT_BURST_DUST = new DustParticleOptions(new Vector3f(0.24F, 0.18F, 0.12F), 1.6F);
 
     private ArchonUltiManager() {}
 
@@ -404,7 +407,7 @@ public final class ArchonUltiManager {
         ModNetwork.sendPlanetBefallMeteor(level, player.getId(), skyStart, impactPos, (float) aoeRadius, 56);
         ZHONGLI_PENDING_BEFALL.add(new PendingPlanetBefall(level, id, impactPos, isNetherite, aoeRadius, meteorDmg, petrifyTicks, now + 50L));
 
-        DustParticleOptions goldAura = new DustParticleOptions(new Vector3f(0.95F, 0.72F, 0.20F), 1.4F);
+        DustParticleOptions goldAura = ZHONGLI_GOLD_AURA_DUST;
         level.sendParticles(goldAura, player.getX(), player.getY() + 1.0D, player.getZ(), 14, 0.4D, 0.35D, 0.4D, 0.02D);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.85F, 0.70F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.85F, 0.55F);
@@ -453,8 +456,8 @@ public final class ArchonUltiManager {
             }
         }
 
-        DustParticleOptions goldBurst = new DustParticleOptions(new Vector3f(0.96F, 0.74F, 0.22F), pending.isNetherite() ? 2.2F : 1.8F);
-        DustParticleOptions basaltBurst = new DustParticleOptions(new Vector3f(0.24F, 0.18F, 0.12F), 1.6F);
+        DustParticleOptions goldBurst = pending.isNetherite() ? ZHONGLI_GOLD_BURST_NETH : ZHONGLI_GOLD_BURST_STD;
+        DustParticleOptions basaltBurst = ZHONGLI_BASALT_BURST_DUST;
         net.minecraft.core.particles.BlockParticleOption deepslateDebris =
                 new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState());
         net.minecraft.core.particles.BlockParticleOption stoneDebris =

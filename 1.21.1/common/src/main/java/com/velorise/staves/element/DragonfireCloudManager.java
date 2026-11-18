@@ -7,7 +7,6 @@ import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -582,7 +581,7 @@ public final class DragonfireCloudManager {
             st.lastStillPos = player.position();
             if (stoodStill) {
                 st.stillTicks++;
-                if (st.stillTicks >= 400 && !st.idleActive) {
+                if (st.stillTicks >= 200 && !st.idleActive) {
                     st.idleActive = true;
                     ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_IDLE_ON);
                 }

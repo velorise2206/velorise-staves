@@ -3,95 +3,30 @@ package com.velorise.staves.element;
 import static com.velorise.staves.element.ElementalGaugeManager.*;
 import static com.velorise.staves.element.PlayerGenshinState.*;
 
-import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import org.joml.Vector3f;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ambient.AmbientCreature;
-import net.minecraft.world.entity.animal.Bee;
-import net.minecraft.world.entity.animal.IronGolem;
-import net.minecraft.world.entity.animal.MushroomCow;
-import net.minecraft.world.entity.animal.PolarBear;
-import net.minecraft.world.entity.animal.SnowGolem;
-import net.minecraft.world.entity.animal.WaterAnimal;
-import net.minecraft.world.entity.animal.axolotl.Axolotl;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
-import net.minecraft.world.entity.boss.wither.WitherBoss;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Blaze;
-import net.minecraft.world.entity.monster.CaveSpider;
 import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.monster.Drowned;
-import net.minecraft.world.entity.monster.ElderGuardian;
-import net.minecraft.world.entity.monster.EnderMan;
-import net.minecraft.world.entity.monster.Endermite;
-import net.minecraft.world.entity.monster.Ghast;
 import net.minecraft.world.entity.monster.Guardian;
-import net.minecraft.world.entity.monster.Husk;
-import net.minecraft.world.entity.monster.MagmaCube;
-import net.minecraft.world.entity.monster.Phantom;
-import net.minecraft.world.entity.monster.Ravager;
-import net.minecraft.world.entity.monster.Shulker;
-import net.minecraft.world.entity.monster.Slime;
-import net.minecraft.world.entity.monster.Stray;
-import net.minecraft.world.entity.monster.Strider;
-import net.minecraft.world.entity.monster.Vex;
-import net.minecraft.world.entity.monster.WitherSkeleton;
-import net.minecraft.world.entity.monster.Zoglin;
-import net.minecraft.world.entity.monster.ZombifiedPiglin;
-import net.minecraft.world.entity.monster.warden.Warden;
-import net.minecraft.world.entity.projectile.EvokerFangs;
-import net.minecraft.world.entity.projectile.FireworkRocketEntity;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.entity.AreaEffectCloud;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.NeutralMob;
-import net.minecraft.world.entity.animal.AbstractGolem;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Enemy;
-import net.minecraft.world.entity.npc.Npc;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.PotionItem;
-import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
-import net.minecraft.world.item.alchemy.Potions;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.CampfireBlock;
-import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -108,6 +43,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class RaidenManager {
     private RaidenManager() {}
+    private static final DustParticleOptions RAIDEN_EYE_DUST_STD = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), 1.25F);
+    private static final DustParticleOptions RAIDEN_EYE_DUST_NETH = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), 1.6F);
+    private static final DustParticleOptions RAIDEN_CHARGE_DUST_STD = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.25F);
+    private static final DustParticleOptions RAIDEN_CHARGE_DUST_NETH = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.5F);
+    private static final DustParticleOptions RAIDEN_SLASH_DUST_STD = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.7F);
+    private static final DustParticleOptions RAIDEN_SLASH_DUST_NETH = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 2.1F);
+    private static final DustParticleOptions RAIDEN_AURA_DUST_STD = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 1.05F);
+    private static final DustParticleOptions RAIDEN_AURA_DUST_NETH = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 1.3F);
 
     public static void notifyOmniImmuneEnvironmental(ServerLevel level, LivingEntity target) {
         if (level == null || target == null || !target.isAlive()) return;
@@ -711,7 +654,7 @@ public final class RaidenManager {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
 
-        DustParticleOptions electroDust = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), isNetherite ? 1.6F : 1.25F);
+        DustParticleOptions electroDust = isNetherite ? RAIDEN_EYE_DUST_NETH : RAIDEN_EYE_DUST_STD;
         for (int i = 0; i < 24; i++) {
             double angle = (Math.PI * 2.0D * i) / 24.0D;
             double px = center.x + Math.cos(angle) * (radius * 0.6D);
@@ -754,7 +697,7 @@ public final class RaidenManager {
         RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 28L);
         RAIDEN_PENDING_HITOTACHI_MULT.put(id, resolveMult);
 
-        DustParticleOptions chargeGlow = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 1.5F : 1.25F);
+        DustParticleOptions chargeGlow = isNetherite ? RAIDEN_CHARGE_DUST_NETH : RAIDEN_CHARGE_DUST_STD;
         level.sendParticles(chargeGlow, player.getX(), player.getY() + 1.15D, player.getZ(), 12, 0.28D, 0.25D, 0.28D, 0.02D);
         // ParticleTypes.ELECTRIC_SPARK removed
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 0.9F, 1.4F);
@@ -806,7 +749,7 @@ public final class RaidenManager {
         }
         electrifyWaterAlongSlash(level, player, slashCenter, aoeRadius, hitotachiDmg * 0.35F);
 
-        DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
+        DustParticleOptions violetSlash = isNetherite ? RAIDEN_SLASH_DUST_NETH : RAIDEN_SLASH_DUST_STD;
         Vec3 right = new Vec3(-look.z, 0.0D, look.x);
         if (right.lengthSqr() < 1.0E-4D) right = new Vec3(1.0D, 0.0D, 0.0D);
         else right = right.normalize();
@@ -1137,7 +1080,7 @@ public final class RaidenManager {
                     }
                     if (serverNow % 3 == 0 && player.level() instanceof ServerLevel sl) {
                         boolean neth = RAIDEN_MUSOU_NETHERITE.getOrDefault(id, false);
-                        DustParticleOptions aura = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), neth ? 1.3F : 1.05F);
+                        DustParticleOptions aura = neth ? RAIDEN_AURA_DUST_NETH : RAIDEN_AURA_DUST_STD;
                         sl.sendParticles(aura, player.getX(), player.getY() + 1.05D, player.getZ(), 3, 0.35D, 0.4D, 0.35D, 0.01D);
                         sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 1.05D, player.getZ(), 1, 0.25D, 0.35D, 0.25D, 0.01D);
                         // ParticleTypes.ELECTRIC_SPARK removed
@@ -1193,7 +1136,7 @@ public final class RaidenManager {
             boolean canIdle = holding && (now - st.lastActionTick) >= 400L && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 400 && !st.idleActive) {
+                if (st.stillTicks >= 200 && !st.idleActive) {
                     st.idleActive = true;
                 }
             } else {

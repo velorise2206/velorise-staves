@@ -1,6 +1,5 @@
 package com.velorise.staves.entity;
 
-import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
@@ -27,7 +26,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -1335,7 +1333,7 @@ public class FlamestriderBikeEntity extends Entity {
         }
         boolean combatCancel = this.isSpinning() || this.spinOrbitRadius > 0.05D
                 || (getNaStep() == 6 && getNaTicks() > 0)
-                || (this.level().isClientSide() && net.minecraft.client.Minecraft.getInstance().options.keyAttack.isDown());
+                || (this.level().isClientSide() && ClientInputAccess.isAttackDown());
         clientDashChain++;
         clientDashTicks = combatCancel ? 3 : 5;
         if (clientDashChain >= 2) {
@@ -1844,6 +1842,18 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     private static boolean isLocalJumpDown() {
-        return net.minecraft.client.Minecraft.getInstance().options.keyJump.isDown();
+        return ClientInputAccess.isJumpDown();
+    }
+
+    private static final class ClientInputAccess {
+        static boolean isAttackDown() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null && mc.options != null && mc.options.keyAttack.isDown();
+        }
+
+        static boolean isJumpDown() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null && mc.options != null && mc.options.keyJump.isDown();
+        }
     }
 }

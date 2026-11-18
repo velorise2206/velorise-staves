@@ -3,7 +3,6 @@ package com.velorise.staves.entity;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.element.Element;
 import com.velorise.staves.element.ElementalGaugeManager;
-import com.velorise.staves.element.ElementalResonanceManager;
 import com.velorise.staves.item.ArcaneStaffItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

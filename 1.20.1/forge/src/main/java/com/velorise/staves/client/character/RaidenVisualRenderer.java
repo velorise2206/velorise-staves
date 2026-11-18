@@ -7,7 +7,6 @@ import com.velorise.staves.client.ClientAuraRenderer;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.client.glider.WindGliderRenderer;
 import com.velorise.staves.item.ArcaneStaffItem;
-import com.velorise.staves.network.ModNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,7 +19,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -34,6 +32,10 @@ import java.util.Locale;
  */
 public final class RaidenVisualRenderer {
     private static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT;
+    private static final ResourceLocation RAIDEN_CHAKRA_RING_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/raiden_chakra_ring.png");
+    private static final ResourceLocation RAIDEN_EYE_AURA_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/raiden_eye_aura.png");
     private static int raidenAttackHoldTicks = 0;
 
     private RaidenVisualRenderer() {}
@@ -70,7 +72,7 @@ public final class RaidenVisualRenderer {
                 || ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
         if (!isIdle && holdingRaiden && (resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F)) {
             float resolveFrac = (musouTicks > 0.0F || isIdle) ? 1.0F : Mth.clamp(resolve / 60.0F, 0.0F, 1.0F);
-            ResourceLocation ringTex = new ResourceLocation("velorise_staves", "textures/entity/raiden_chakra_ring.png");
+            ResourceLocation ringTex = RAIDEN_CHAKRA_RING_TEXTURE;
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(ringTex));
             poseStack.pushPose();
             poseStack.translate(0.0F, entity.getBbHeight() * 0.76F + liftOffset, 0.0F);
@@ -150,7 +152,7 @@ public final class RaidenVisualRenderer {
         }
 
         if (eyeTicks > 0.0F || isIdle) {
-            ResourceLocation eyeTex = new ResourceLocation("velorise_staves", "textures/entity/raiden_eye_aura.png");
+            ResourceLocation eyeTex = RAIDEN_EYE_AURA_TEXTURE;
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(eyeTex));
             poseStack.pushPose();
             poseStack.translate(0.0F, entity.getBbHeight() + 0.36F + liftOffset + 0.04F * Mth.sin(time * 0.14F), 0.0F);

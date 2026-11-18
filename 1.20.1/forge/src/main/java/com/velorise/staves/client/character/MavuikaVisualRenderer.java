@@ -25,7 +25,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -41,6 +40,10 @@ public final class MavuikaVisualRenderer {
     }
     private static final ResourceLocation MAVUIKA_HELMET_TEXTURE =
             new ResourceLocation("velorise_staves", "textures/entity/mavuika_helmet_texture.png");
+    private static final ResourceLocation MAVUIKA_SUN_AURA_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/mavuika_sun_aura.png");
+    private static final ResourceLocation MAVUIKA_SUN_CHARGE_TEXTURE =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_sun_charge.png");
     private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> helmetModel;
 
     private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> getOrBakeHelmetModel() {
@@ -107,7 +110,7 @@ public final class MavuikaVisualRenderer {
         float time = entity.tickCount + pt;
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
 
-        ResourceLocation sunTex = new ResourceLocation("velorise_staves", "textures/entity/mavuika_sun_aura.png");
+        ResourceLocation sunTex = MAVUIKA_SUN_AURA_TEXTURE;
         VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(sunTex));
         poseStack.pushPose();
         poseStack.translate(0.0F, entity.getBbHeight() * 0.72F, 0.0F);
@@ -137,7 +140,7 @@ public final class MavuikaVisualRenderer {
     }
 
     public static void renderChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation sunsTex = new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_sun_charge.png");
+        ResourceLocation sunsTex = MAVUIKA_SUN_CHARGE_TEXTURE;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();

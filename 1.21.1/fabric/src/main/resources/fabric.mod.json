@@ -9,7 +9,8 @@
   ],
   "contact": {
     "homepage": "https://github.com/velorise2206/velorise-staves",
-    "sources": "https://github.com/velorise2206/velorise-staves"
+    "sources": "https://github.com/velorise2206/velorise-staves",
+    "issues": "https://github.com/velorise2206/velorise-staves/issues"
   },
   "license": "All Rights Reserved",
   "icon": "logo.png",
@@ -36,7 +37,7 @@
   ],
   "depends": {
     "fabricloader": ">=0.16.0",
-    "minecraft": "=${minecraft_version}",
+    "minecraft": "~1.21.1",
     "java": ">=21",
     "fabric-api": "*"
   },

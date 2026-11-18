@@ -39,8 +39,11 @@ public class MavuikaSyncPacket {
 
     public static void handle(MavuikaSyncPacket packet, Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
-        ctx.enqueueWork(() -> ClientAuraTracker.updateMavuika(
-                packet.entityId, packet.auraRemainingTicks, packet.nightsoulPoints, packet.netherite, packet.ultiCooldownTicks
+        ctx.enqueueWork(() -> net.minecraftforge.fml.DistExecutor.unsafeRunWhenOn(
+                net.minecraftforge.api.distmarker.Dist.CLIENT,
+                () -> () -> ClientAuraTracker.updateMavuika(
+                        packet.entityId, packet.auraRemainingTicks, packet.nightsoulPoints, packet.netherite, packet.ultiCooldownTicks
+                )
         ));
         ctx.setPacketHandled(true);
     }

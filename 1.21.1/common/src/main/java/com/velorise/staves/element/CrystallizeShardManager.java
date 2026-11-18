@@ -3,7 +3,6 @@ package com.velorise.staves.element;
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.effect.ModMobEffects;
 import com.velorise.staves.network.ModNetwork;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -87,18 +86,6 @@ public final class CrystallizeShardManager {
         return switch (element) {
             case PYRO, HYDRO, ELECTRO, CRYO -> VeloriseStavesMod.getCrystallizeShardItem(element);
             default -> null;
-        };
-    }
-
-    private static ChatFormatting getTeamColor(Element element) {
-        return switch (element) {
-            case PYRO -> ChatFormatting.RED;
-            case HYDRO -> ChatFormatting.AQUA;
-            case ELECTRO -> ChatFormatting.LIGHT_PURPLE;
-            case CRYO -> ChatFormatting.WHITE;
-            case DENDRO -> ChatFormatting.GREEN;
-            case ANEMO -> ChatFormatting.DARK_AQUA;
-            case GEO -> ChatFormatting.GOLD;
         };
     }
 

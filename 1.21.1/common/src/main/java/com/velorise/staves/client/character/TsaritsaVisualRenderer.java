@@ -28,6 +28,8 @@ public final class TsaritsaVisualRenderer {
     private static final java.util.Map<Integer, float[]> TSARITSA_FP_CAM_SMOOTH = new java.util.concurrent.ConcurrentHashMap<>();
     private static final ResourceLocation TSARITSA_THRONE_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/tsaritsa_ice_throne.png");
+    private static final ResourceLocation CRYO_ARROW_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/projectiles/cryo_arrow.png");
     private static com.velorise.staves.client.model.TsaritsaIceThroneModel<net.minecraft.world.entity.Entity> throneModel;
 
     private static com.velorise.staves.client.model.TsaritsaIceThroneModel<net.minecraft.world.entity.Entity> getOrBakeThroneModel() {
@@ -519,7 +521,7 @@ public final class TsaritsaVisualRenderer {
     public static void renderWorldArcs(PoseStack poseStack, MultiBufferSource bufferSource, Vec3 camPos, long now) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return;
-        ResourceLocation cryoArrowTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/projectiles/cryo_arrow.png");
+        ResourceLocation cryoArrowTex = CRYO_ARROW_TEXTURE;
 
         for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
             if (arc.start == null || arc.end == null) continue;
@@ -1017,34 +1019,43 @@ public final class TsaritsaVisualRenderer {
         ClientAuraRenderer.emitCrystalQuad(vc, mat, rx, 0.0F, -rz, rMid, gMid, bMid, alpha, rx, 0.0F, rz, rMid, gMid, bMid, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha, 0.0F, -halfH, 0.0F, rTip, gTip, bTip, alpha);
     }
 
-    private static void drawPointedStar(
+    private static void drawThroneTexturedBox(
             VertexConsumer vc, Matrix4f mat,
-            float armLen, float topLen, float thick, float depth,
-            int rOut, int gOut, int bOut,
-            int rCore, int gCore, int bCore,
-            int alpha
+            float x0, float y0, float z0, float x1, float y1, float z1,
+            float u0, float v0, float u1, float v1
     ) {
-        // Vertical & horizontal needle rays (4-point star with elongated upper spire)
-        float[][] rays = new float[][]{
-            {0.0F, topLen, -thick, 0.0F, thick, 0.0F},
-            {0.0F, -armLen, thick, 0.0F, -thick, 0.0F},
-            {armLen, 0.0F, 0.0F, thick, 0.0F, -thick},
-            {-armLen, 0.0F, 0.0F, -thick, 0.0F, thick}
-        };
-        for (float[] r : rays) {
-            float tx = r[0], ty = r[1], ax = r[2], ay = r[3], bx = r[4], by = r[5];
-            // Front & back diamond faces
-            ClientAuraRenderer.emitCrystalQuad(vc, mat,
-                    ax, ay, 0.0F, rCore, gCore, bCore, alpha,
-                    0.0F, 0.0F, depth, rCore, gCore, bCore, alpha,
-                    bx, by, 0.0F, rCore, gCore, bCore, alpha,
-                    tx, ty, 0.0F, rOut, gOut, bOut, alpha);
-            ClientAuraRenderer.emitCrystalQuad(vc, mat,
-                    bx, by, 0.0F, rCore, gCore, bCore, alpha,
-                    0.0F, 0.0F, -depth, rCore, gCore, bCore, alpha,
-                    ax, ay, 0.0F, rCore, gCore, bCore, alpha,
-                    tx, ty, 0.0F, rOut, gOut, bOut, alpha);
-        }
+        int ov = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        int lt = 0xF000F0;
+        // Top (+Y)
+        vc.addVertex(mat, x0, y1, z0).setColor(255, 255, 255, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, x0, y1, z1).setColor(255, 255, 255, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, x1, y1, z1).setColor(255, 255, 255, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 1.0F, 0.0F);
+        vc.addVertex(mat, x1, y1, z0).setColor(255, 255, 255, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 1.0F, 0.0F);
+        // Bottom (-Y)
+        vc.addVertex(mat, x0, y0, z1).setColor(215, 230, 245, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, -1.0F, 0.0F);
+        vc.addVertex(mat, x0, y0, z0).setColor(215, 230, 245, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, -1.0F, 0.0F);
+        vc.addVertex(mat, x1, y0, z0).setColor(215, 230, 245, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, -1.0F, 0.0F);
+        vc.addVertex(mat, x1, y0, z1).setColor(215, 230, 245, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, -1.0F, 0.0F);
+        // North (-Z)
+        vc.addVertex(mat, x1, y1, z0).setColor(235, 244, 255, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat, x1, y0, z0).setColor(235, 244, 255, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat, x0, y0, z0).setColor(235, 244, 255, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, -1.0F);
+        vc.addVertex(mat, x0, y1, z0).setColor(235, 244, 255, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, -1.0F);
+        // South (+Z)
+        vc.addVertex(mat, x0, y1, z1).setColor(245, 250, 255, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat, x0, y0, z1).setColor(245, 250, 255, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat, x1, y0, z1).setColor(245, 250, 255, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, 1.0F);
+        vc.addVertex(mat, x1, y1, z1).setColor(245, 250, 255, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(0.0F, 0.0F, 1.0F);
+        // West (-X)
+        vc.addVertex(mat, x0, y1, z0).setColor(235, 244, 255, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(-1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x0, y0, z0).setColor(235, 244, 255, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(-1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x0, y0, z1).setColor(235, 244, 255, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(-1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x0, y1, z1).setColor(235, 244, 255, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(-1.0F, 0.0F, 0.0F);
+        // East (+X)
+        vc.addVertex(mat, x1, y1, z1).setColor(235, 244, 255, 255).setUv(u1, v0).setOverlay(ov).setLight(lt).setNormal(1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x1, y0, z1).setColor(235, 244, 255, 255).setUv(u1, v1).setOverlay(ov).setLight(lt).setNormal(1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x1, y0, z0).setColor(235, 244, 255, 255).setUv(u0, v1).setOverlay(ov).setLight(lt).setNormal(1.0F, 0.0F, 0.0F);
+        vc.addVertex(mat, x1, y1, z0).setColor(235, 244, 255, 255).setUv(u0, v0).setOverlay(ov).setLight(lt).setNormal(1.0F, 0.0F, 0.0F);
     }
 
     private static void renderFloatingDeskAndItems(
@@ -1062,15 +1073,19 @@ public final class TsaritsaVisualRenderer {
             poseStack.translate(0.0F, deskBob, 0.0F);
         }
         Matrix4f dMat = poseStack.last().pose();
-        // Sleek thin floating ice slab (only 0.032F thick!) + crisp bright-cyan outer rim
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.76F, 0.836F, -0.26F, 0.76F, 0.864F, 0.26F, 72, 152, 224, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, dMat, -0.785F, 0.844F, -0.282F, 0.785F, 0.868F, 0.282F, 195, 244, 255, 255);
+        // Wider & thicker floating ice slab textured with the Tsaritsa throne ice pattern + frosted outer rim
+        VertexConsumer deskTexVc = buffer.getBuffer(RenderType.entityTranslucent(TSARITSA_THRONE_TEXTURE));
+        drawThroneTexturedBox(deskTexVc, dMat, -0.86F, 0.768F, -0.34F, 0.86F, 0.864F, 0.34F,
+                79.0F / 128.0F, 20.0F / 128.0F, 95.0F / 128.0F, 35.0F / 128.0F);
+        drawThroneTexturedBox(deskTexVc, dMat, -0.885F, 0.804F, -0.365F, 0.885F, 0.868F, 0.365F,
+                34.0F / 128.0F, 48.0F / 128.0F, 48.0F / 128.0F, 62.0F / 128.0F);
+        solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
 
         // 4 sharp tiny crystal corner tips on the floating desk
         for (int sx : new int[]{-1, 1}) {
             for (int sz : new int[]{-1, 1}) {
                 poseStack.pushPose();
-                poseStack.translate(sx * 0.785F, 0.856F, sz * 0.282F);
+                poseStack.translate(sx * 0.885F, 0.836F, sz * 0.365F);
                 poseStack.mulPose(Axis.ZP.rotationDegrees(-sx * 90.0F));
                 drawIceSpire(solidVc, poseStack.last().pose(), 0.018F, 0.018F, 0.03F, 0.085F,
                         155, 228, 255, 210, 248, 255, 250, 255, 255, 255);

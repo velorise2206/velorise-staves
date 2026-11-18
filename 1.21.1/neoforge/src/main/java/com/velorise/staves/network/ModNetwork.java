@@ -20,7 +20,7 @@ public final class ModNetwork {
             if (payload.durationTicks() == -4) {
                 com.velorise.staves.client.ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
             }
-            if (net.minecraft.client.Minecraft.getInstance().isSameThread()) {
+            if (com.velorise.staves.client.ClientAuraTracker.isOnClientMainThread()) {
                 AuraSyncPayload.handleClient(payload);
             } else {
                 context.enqueueWork(() -> AuraSyncPayload.handleClient(payload));

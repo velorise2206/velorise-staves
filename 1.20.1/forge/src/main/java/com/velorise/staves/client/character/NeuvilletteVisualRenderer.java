@@ -28,6 +28,9 @@ import org.joml.Matrix4f;
  * - Equitable Judgment channeling, Skill E, and Burst humanoid & first-person poses
  */
 public final class NeuvilletteVisualRenderer {
+    private static final net.minecraft.resources.ResourceLocation GUARDIAN_CHARGE_TEXTURE =
+            new net.minecraft.resources.ResourceLocation("velorise_staves", "textures/gui/guardian_head_charge.png");
+
     private NeuvilletteVisualRenderer() {}
 
     public static boolean renderChannelingHud(GuiGraphics guiGraphics, Minecraft mc) {
@@ -46,7 +49,7 @@ public final class NeuvilletteVisualRenderer {
     }
 
     private static void renderGuardianChargeIcon(GuiGraphics guiGraphics, int sw, int sh, float pct, boolean firingOrFull) {
-        net.minecraft.resources.ResourceLocation guardTex = new net.minecraft.resources.ResourceLocation("velorise_staves", "textures/gui/guardian_head_charge.png");
+        net.minecraft.resources.ResourceLocation guardTex = GUARDIAN_CHARGE_TEXTURE;
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         com.mojang.blaze3d.systems.RenderSystem.enableBlend();

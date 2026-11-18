@@ -11,8 +11,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
@@ -209,6 +207,8 @@ public final class XilonenVisualRenderer {
         if (activeAnim == ClientAuraTracker.ANIM_XILONEN_SKATE_DASH) {
             float dash = Mth.sin(t * (float) Math.PI);
             model.body.xRot = 0.32F * dash;
+            model.head.xRot = Mth.lerp(dash, model.head.xRot, 0.5236F);
+            model.hat.copyFrom(model.head);
             model.rightLeg.xRot = -0.65F * dash;
             model.leftLeg.xRot = 0.55F * dash;
             model.rightArm.xRot = -0.85F * dash;

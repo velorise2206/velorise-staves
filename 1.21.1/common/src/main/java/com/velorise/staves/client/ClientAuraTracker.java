@@ -521,7 +521,7 @@ public final class ClientAuraTracker {
         ACTIVE_ARCS.add(arc);
     }
 
-    public static void pruneStale(net.minecraft.client.multiplayer.ClientLevel level) {
+    public static void pruneStale(net.minecraft.world.level.Level level) {
         if (level == null) return;
         long now = System.currentTimeMillis();
         DATA.entrySet().removeIf(e -> level.getEntity(e.getKey()) == null);
@@ -806,9 +806,9 @@ public final class ClientAuraTracker {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.laylaDreamsphereStartMs = now;
             entry.laylaDreamsphereUntil = now + 12500L;
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            if (mc.level != null) {
-                net.minecraft.world.entity.Entity caster = mc.level.getEntity(entityId);
+            net.minecraft.world.level.Level clientLevel = ClientAccess.getClientLevel();
+            if (clientLevel != null) {
+                net.minecraft.world.entity.Entity caster = clientLevel.getEntity(entityId);
                 if (caster != null) {
                     entry.laylaDreamsphereAnchorPos = caster.position().add(0.0D, 2.75D, 0.0D);
                 }
@@ -990,7 +990,7 @@ public final class ClientAuraTracker {
             double posZ
     ) {
         long now = System.currentTimeMillis();
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
         if (reaction == ElementalReaction.CRYSTALLIZE && elements.isEmpty() && trigger == null) {
             // Dedicated Crystallize / Jade Shield sync packet from server: do NOT overwrite active Aura or show dual icons!
             AuraDisplayData shieldEntry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
@@ -1000,18 +1000,18 @@ public final class ClientAuraTracker {
             } else {
                 shieldEntry.jadeShieldUntil = 0L;
             }
-            if (mc.player != null && mc.player.getId() == entityId) {
+            if (localPlayer != null && localPlayer.getId() == entityId) {
                 if (reactedAura != null) {
                     activeCrystallizeShield = reactedAura;
                     crystallizeShieldAppliedTime = now;
                     crystallizeShieldUntil = now + (durationTicks > 0 ? (long) durationTicks * 50L : 15000L);
                     if (reactedAura != Element.GEO) {
-                        ModMobEffects.removeAllShieldsExcept(mc.player, reactedAura);
+                        ModMobEffects.removeAllShieldsExcept(localPlayer, reactedAura);
                     }
                 } else {
                     activeCrystallizeShield = null;
                     crystallizeShieldUntil = 0L;
-                    ModMobEffects.removeAllShields(mc.player);
+                    ModMobEffects.removeAllShields(localPlayer);
                 }
             }
             return;
@@ -1022,14 +1022,15 @@ public final class ClientAuraTracker {
         }
         if (durationTicks == -4) {
             silentDrainUntil = now + 400L;
-            if (mc.player != null && mc.player.getId() == entityId) {
-                mc.player.setHealth(damage);
-                mc.player.invulnerableTime = 0;
-                mc.player.hurtTime = 0;
-                mc.player.hurtDuration = 0;
+            if (localPlayer != null && localPlayer.getId() == entityId) {
+                localPlayer.setHealth(damage);
+                localPlayer.invulnerableTime = 0;
+                localPlayer.hurtTime = 0;
+                localPlayer.hurtDuration = 0;
             }
-            if (mc.level != null) {
-                net.minecraft.world.entity.Entity ent = mc.level.getEntity(entityId);
+            net.minecraft.world.level.Level clientLvl = ClientAccess.getClientLevel();
+            if (clientLvl != null) {
+                net.minecraft.world.entity.Entity ent = clientLvl.getEntity(entityId);
                 if (ent instanceof net.minecraft.world.entity.LivingEntity le) {
                     le.setHealth(damage);
                     le.invulnerableTime = 0;
@@ -1041,14 +1042,15 @@ public final class ClientAuraTracker {
         }
         if (durationTicks == -3) {
             if (damage > 0.0F) {
-                if (mc.player != null && entityId == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
+                if (localPlayer != null && entityId == localPlayer.getId() && ClientAccess.isFirstPerson()) {
                     return;
                 }
                 double bx = posX;
                 double by = posY;
                 double bz = posZ;
                 if (!hasPos || Double.isNaN(bx) || Double.isNaN(by) || Double.isNaN(bz)) {
-                    net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
+                    net.minecraft.world.level.Level clientLvl = ClientAccess.getClientLevel();
+                    net.minecraft.world.entity.Entity e = clientLvl != null ? clientLvl.getEntity(entityId) : null;
                     if (e != null) {
                         bx = e.getX();
                         by = e.getY() + e.getBbHeight() + 0.35D + Math.min(0.6D, e.getBbHeight() * 0.12D);
@@ -1100,7 +1102,8 @@ public final class ClientAuraTracker {
         double resolvedY = posY;
         double resolvedZ = posZ;
         if (!hasPos || Double.isNaN(resolvedX) || Double.isNaN(resolvedY) || Double.isNaN(resolvedZ)) {
-            net.minecraft.world.entity.Entity e = mc.level != null ? mc.level.getEntity(entityId) : null;
+            net.minecraft.world.level.Level clientLvl = ClientAccess.getClientLevel();
+            net.minecraft.world.entity.Entity e = clientLvl != null ? clientLvl.getEntity(entityId) : null;
             if (e != null) {
                 resolvedX = e.getX();
                 resolvedY = e.getY() + e.getBbHeight() + 0.35D + Math.min(0.6D, e.getBbHeight() * 0.12D);
@@ -1181,8 +1184,8 @@ public final class ClientAuraTracker {
         if (!graceActive && !entity.isSpectator() && !(entity instanceof net.minecraft.world.entity.player.Player p && p.isCreative()) && entity.getAbsorptionAmount() <= 0.01F) {
             return false;
         }
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.player != null && entity.getId() == mc.player.getId() && activeCrystallizeShield == Element.GEO && now < crystallizeShieldUntil) {
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
+        if (localPlayer != null && entity.getId() == localPlayer.getId() && activeCrystallizeShield == Element.GEO && now < crystallizeShieldUntil) {
             return true;
         }
         AuraDisplayData data = DATA.get(entity.getId());
@@ -1405,8 +1408,8 @@ public final class ClientAuraTracker {
         }
         long elapsed = now - data.xilonenJumpFlipStartTime;
         if (elapsed < 0L) return 0.0F;
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (elapsed > 120L && mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le && le.onGround()) {
+        net.minecraft.world.level.Level clientLevel = ClientAccess.getClientLevel();
+        if (elapsed > 120L && clientLevel != null && clientLevel.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le && le.onGround()) {
             data.xilonenJumpFlipUntil = 0L;
             return -1.0F;
         }
@@ -1447,8 +1450,9 @@ public final class ClientAuraTracker {
         if (data != null && System.currentTimeMillis() < data.staffAnimUntil && data.staffAnimType == ANIM_MAVUIKA_BURST) {
             return true;
         }
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.Entity ent
+        net.minecraft.world.level.Level clientLevel = ClientAccess.getClientLevel();
+        net.minecraft.world.entity.Entity ent = clientLevel != null ? clientLevel.getEntity(entityId) : null;
+        if (ent != null
                 && ent.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike
                 && bike.getUltiTicks() > 0) {
             return true;
@@ -1472,8 +1476,8 @@ public final class ClientAuraTracker {
     public static boolean isGliding(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         if (data == null || !data.gliding) return false;
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
+        net.minecraft.world.level.Level clientLevel = ClientAccess.getClientLevel();
+        if (clientLevel != null && clientLevel.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
             if (le.onGround() || le.isInWater() || le.isInLava() || le.getVehicle() != null
                     || (le instanceof net.minecraft.world.entity.player.Player p && p.getAbilities().flying)) {
                 data.gliding = false;
@@ -1486,8 +1490,8 @@ public final class ClientAuraTracker {
     public static boolean isPlunging(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         if (data == null || !data.plunging) return false;
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.level != null && mc.level.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
+        net.minecraft.world.level.Level clientLevel = ClientAccess.getClientLevel();
+        if (clientLevel != null && clientLevel.getEntity(entityId) instanceof net.minecraft.world.entity.LivingEntity le) {
             if (le.onGround() || le.isInWater() || le.isInLava() || le.getVehicle() != null
                     || (le instanceof net.minecraft.world.entity.player.Player p && (p.getAbilities().flying || com.velorise.staves.element.ElementalGaugeManager.isStandingOnWaterSurface(p)))) {
                 data.plunging = false;
@@ -1549,20 +1553,8 @@ public final class ClientAuraTracker {
         localSteveWallClimbing = false;
     }
 
-    private static boolean isPlayerFacingWallForClimb(net.minecraft.client.player.LocalPlayer player) {
-        if (player == null || player.level() == null) return false;
-        double yawRad = Math.toRadians(player.getYRot());
-        double fx = -Math.sin(yawRad);
-        double fz = Math.cos(yawRad);
-        net.minecraft.world.phys.AABB frontLower = player.getBoundingBox().move(fx * 0.28D, 0.25D, fz * 0.28D);
-        net.minecraft.world.phys.AABB frontUpper = player.getBoundingBox().move(fx * 0.28D, 1.05D, fz * 0.28D);
-        boolean lowerSolid = !player.level().noCollision(player, frontLower);
-        boolean upperSolid = !player.level().noCollision(player, frontUpper);
-        return lowerSolid && (player.horizontalCollision || upperSolid);
-    }
-
     public static void tickLocalStaminaAndDash(
-            net.minecraft.client.player.LocalPlayer player,
+            net.minecraft.world.entity.player.Player player,
             boolean sprintKeyDown,
             byte toggleGliderAction,
             byte dashAction
@@ -1633,8 +1625,8 @@ public final class ClientAuraTracker {
                 triggerStaffAnimation(pid, ANIM_DASH_IMPULSE);
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(dashAction);
 
-                float fwdIn = player.input != null ? player.input.forwardImpulse : 0.0F;
-                float leftIn = player.input != null ? player.input.leftImpulse : 0.0F;
+                float fwdIn = ClientAccess.getForwardImpulse(player);
+                float leftIn = ClientAccess.getLeftImpulse(player);
                 double yawRad = Math.toRadians(player.getYRot());
                 double fwdX = -Math.sin(yawRad);
                 double fwdZ = Math.cos(yawRad);
@@ -1661,7 +1653,7 @@ public final class ClientAuraTracker {
         wasSprintKeyDownForDash = sprintKeyDown;
 
         if (customDash && sprintKeyDown && !blocked && (!customStamina || creative || !localStaminaExhausted)
-                && player.input != null && player.input.forwardImpulse > 0.01F && !player.isShiftKeyDown()) {
+                && ClientAccess.getForwardImpulse(player) > 0.01F && !player.isShiftKeyDown()) {
             player.setSprinting(true);
         }
 
@@ -1748,9 +1740,9 @@ public final class ClientAuraTracker {
         if (data == null) return false;
         long now = System.currentTimeMillis();
         boolean activeBurst = data.staffAnimType == ANIM_VENTI_BURST && now < data.staffAnimUntil;
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        boolean localPulling = mc.player != null && entityId == mc.player.getId()
-                && (localDaybreakBowPullTicks > 0 || ventiUltiHoldTicks > 0 || mc.player.isUsingItem() || mc.player.swinging);
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
+        boolean localPulling = localPlayer != null && entityId == localPlayer.getId()
+                && (localDaybreakBowPullTicks > 0 || ventiUltiHoldTicks > 0 || localPlayer.isUsingItem() || localPlayer.swinging);
         if (activeBurst || localPulling) {
             data.ventiIdle = false;
             data.ventiIdleMode = 0;
@@ -1761,13 +1753,18 @@ public final class ClientAuraTracker {
         return data.ventiIdle || data.ventiIdleFade > 0.01F;
     }
 
-    public static void syncIdleLockedYaw(net.minecraft.client.Minecraft mc) {
-        if (mc == null || mc.player == null || mc.level == null) return;
-        AuraDisplayData d = DATA.get(mc.player.getId());
+    public static void syncIdleLockedYaw(Object mcObj) {
+        if (mcObj == null) return;
+        ClientAccess.syncIdleLockedYawInternal();
+    }
+
+    private static void syncIdleLockedYawWithPlayer(net.minecraft.world.entity.player.Player localPlayer, boolean isFirstPerson, boolean hasMovementInput) {
+        if (localPlayer == null || localPlayer.level() == null) return;
+        AuraDisplayData d = DATA.get(localPlayer.getId());
         if (d == null) return;
-        boolean movingOrActing = mc.player.isShiftKeyDown() || mc.player.isCrouching() || mc.player.isUsingItem() || mc.player.swinging
-                || !mc.player.onGround() || mc.player.getVehicle() != null
-                || (mc.player.input != null && (Math.abs(mc.player.input.forwardImpulse) > 0.01F || Math.abs(mc.player.input.leftImpulse) > 0.01F || mc.player.input.jumping));
+        boolean movingOrActing = localPlayer.isShiftKeyDown() || localPlayer.isCrouching() || localPlayer.isUsingItem() || localPlayer.swinging
+                || !localPlayer.onGround() || localPlayer.getVehicle() != null
+                || hasMovementInput;
         long nowUlti = System.currentTimeMillis();
         boolean inUlti = nowUlti < d.staffAnimUntil && (
                 d.staffAnimType == ANIM_RAIDEN_DRAW
@@ -1780,14 +1777,14 @@ public final class ClientAuraTracker {
                 || d.staffAnimType == ANIM_TSARITSA_BURST_SUPPORT
                 || d.staffAnimType == ANIM_TSARITSA_BURST_DPS
         );
-        boolean isFirstPersonUlti = mc.options.getCameraType().isFirstPerson();
+        boolean isFirstPersonUlti = isFirstPerson;
         if (inUlti) {
             if (isFirstPersonUlti || !d.ultiYawSet) {
-                d.ultiYaw = mc.player.getYRot();
+                d.ultiYaw = localPlayer.getYRot();
                 d.ultiYawSet = true;
             }
-            mc.player.yBodyRot = d.ultiYaw;
-            mc.player.yBodyRotO = d.ultiYaw;
+            localPlayer.yBodyRot = d.ultiYaw;
+            localPlayer.yBodyRotO = d.ultiYaw;
         } else {
             d.ultiYawSet = false;
         }
@@ -1802,84 +1799,83 @@ public final class ClientAuraTracker {
             d.dragonfireIdle = false; d.dragonfireIdleFade = 0.0F; d.dragonfireIdleYawSet = false;
             return;
         }
-        boolean isFirstPerson = mc.options.getCameraType().isFirstPerson();
-        if (isTsaritsaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isTsaritsaIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.tsaritsaIdleYawSet) {
-                d.tsaritsaIdleYaw = mc.player.getYRot();
+                d.tsaritsaIdleYaw = localPlayer.getYRot();
                 d.tsaritsaIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.tsaritsaIdleYaw;
-            mc.player.yBodyRotO = d.tsaritsaIdleYaw;
+            localPlayer.yBodyRot = d.tsaritsaIdleYaw;
+            localPlayer.yBodyRotO = d.tsaritsaIdleYaw;
         } else {
             d.tsaritsaIdleYawSet = false;
         }
-        if (isRaidenIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isRaidenIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.raidenIdleYawSet) {
-                d.raidenIdleYaw = mc.player.getYRot();
+                d.raidenIdleYaw = localPlayer.getYRot();
                 d.raidenIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.raidenIdleYaw;
-            mc.player.yBodyRotO = d.raidenIdleYaw;
+            localPlayer.yBodyRot = d.raidenIdleYaw;
+            localPlayer.yBodyRotO = d.raidenIdleYaw;
         } else {
             d.raidenIdleYawSet = false;
         }
-        if (isMavuikaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isMavuikaIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.mavuikaIdleYawSet) {
-                d.mavuikaIdleYaw = mc.player.getYRot();
+                d.mavuikaIdleYaw = localPlayer.getYRot();
                 d.mavuikaIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.mavuikaIdleYaw;
-            mc.player.yBodyRotO = d.mavuikaIdleYaw;
+            localPlayer.yBodyRot = d.mavuikaIdleYaw;
+            localPlayer.yBodyRotO = d.mavuikaIdleYaw;
         } else {
             d.mavuikaIdleYawSet = false;
         }
-        if (isVentiIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isVentiIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.ventiIdleYawSet) {
-                d.ventiIdleYaw = mc.player.getYRot();
+                d.ventiIdleYaw = localPlayer.getYRot();
                 d.ventiIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.ventiIdleYaw;
-            mc.player.yBodyRotO = d.ventiIdleYaw;
+            localPlayer.yBodyRot = d.ventiIdleYaw;
+            localPlayer.yBodyRotO = d.ventiIdleYaw;
         } else {
             d.ventiIdleYawSet = false;
         }
-        if (isZhongliIdleMeteor(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isZhongliIdleMeteor(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.zhongliIdleYawSet) {
-                d.zhongliIdleYaw = mc.player.getYRot();
+                d.zhongliIdleYaw = localPlayer.getYRot();
                 d.zhongliIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.zhongliIdleYaw;
-            mc.player.yBodyRotO = d.zhongliIdleYaw;
+            localPlayer.yBodyRot = d.zhongliIdleYaw;
+            localPlayer.yBodyRotO = d.zhongliIdleYaw;
         } else {
             d.zhongliIdleYawSet = false;
         }
-        if (isFurinaIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isFurinaIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.furinaIdleYawSet) {
-                d.furinaIdleYaw = mc.player.getYRot();
+                d.furinaIdleYaw = localPlayer.getYRot();
                 d.furinaIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.furinaIdleYaw;
-            mc.player.yBodyRotO = d.furinaIdleYaw;
+            localPlayer.yBodyRot = d.furinaIdleYaw;
+            localPlayer.yBodyRotO = d.furinaIdleYaw;
         } else {
             d.furinaIdleYawSet = false;
         }
-        if (isNahidaIdleSwing(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isNahidaIdleSwing(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (isFirstPerson || !d.nahidaIdleYawSet) {
-                d.nahidaIdleYaw = mc.player.getYRot();
+                d.nahidaIdleYaw = localPlayer.getYRot();
                 d.nahidaIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.nahidaIdleYaw;
-            mc.player.yBodyRotO = d.nahidaIdleYaw;
+            localPlayer.yBodyRot = d.nahidaIdleYaw;
+            localPlayer.yBodyRotO = d.nahidaIdleYaw;
         } else {
             d.nahidaIdleYawSet = false;
         }
-        if (isDragonfireIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+        if (isDragonfireIdle(localPlayer.getId()) && !localPlayer.isUsingItem() && !localPlayer.swinging) {
             if (!d.dragonfireIdleYawSet) {
-                d.dragonfireIdleYaw = mc.player.getYRot();
+                d.dragonfireIdleYaw = localPlayer.getYRot();
                 d.dragonfireIdleYawSet = true;
             }
-            mc.player.yBodyRot = d.dragonfireIdleYaw;
-            mc.player.yBodyRotO = d.dragonfireIdleYaw;
+            localPlayer.yBodyRot = d.dragonfireIdleYaw;
+            localPlayer.yBodyRotO = d.dragonfireIdleYaw;
         } else {
             d.dragonfireIdleYawSet = false;
         }
@@ -1892,8 +1888,8 @@ public final class ClientAuraTracker {
         boolean activeAction = data.staffAnimType >= ANIM_TSARITSA_BOW_NA
                 && data.staffAnimType <= ANIM_TSARITSA_UNSEAL
                 && now < data.staffAnimUntil;
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        boolean localCharging = mc.player != null && entityId == mc.player.getId()
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
+        boolean localCharging = localPlayer != null && entityId == localPlayer.getId()
                 && (localTsaritsaBowPullTicks > 0 || localTsaritsaHoldETicks > 0);
         if (activeAction || localCharging) {
             data.tsaritsaIdle = false;
@@ -1971,15 +1967,71 @@ public final class ClientAuraTracker {
         com.velorise.staves.client.character.TsaritsaVisualRenderer.clearClientCaches();
         com.velorise.staves.client.character.MavuikaVisualRenderer.clearClientCaches();
         com.velorise.staves.client.character.DragonfireVisualRenderer.clearClientCaches();
+        com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.resetFrozenClientState();
+    }
+
+    public static boolean isOnClientMainThread() {
+        return ClientAccess.isSameThread();
+    }
+
+    public static boolean isLocalPlayer(@Nullable net.minecraft.world.entity.Entity entity) {
+        return entity != null && entity.level().isClientSide() && ClientAccess.getLocalPlayer() == entity;
+    }
+
+    private static final class ClientAccess {
+        static @Nullable net.minecraft.world.entity.player.Player getLocalPlayer() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null ? mc.player : null;
+        }
+
+        static @Nullable net.minecraft.world.level.Level getClientLevel() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null ? mc.level : null;
+        }
+
+        static boolean isSameThread() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null && mc.isSameThread();
+        }
+
+        static boolean isFirstPerson() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null && mc.options != null && mc.options.getCameraType().isFirstPerson();
+        }
+
+        static float getForwardImpulse(net.minecraft.world.entity.player.Player player) {
+            if (player instanceof net.minecraft.client.player.LocalPlayer lp && lp.input != null) {
+                return lp.input.forwardImpulse;
+            }
+            return 0.0F;
+        }
+
+        static float getLeftImpulse(net.minecraft.world.entity.player.Player player) {
+            if (player instanceof net.minecraft.client.player.LocalPlayer lp && lp.input != null) {
+                return lp.input.leftImpulse;
+            }
+            return 0.0F;
+        }
+
+        static void syncIdleLockedYawInternal() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc == null || mc.player == null || mc.level == null) return;
+            boolean hasMove = mc.player.input != null
+                    && (Math.abs(mc.player.input.forwardImpulse) > 0.01F
+                    || Math.abs(mc.player.input.leftImpulse) > 0.01F
+                    || mc.player.input.jumping);
+            boolean firstPerson = mc.options != null && mc.options.getCameraType().isFirstPerson();
+            syncIdleLockedYawWithPlayer(mc.player, firstPerson, hasMove);
+        }
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.player == null) return null;
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
+        if (localPlayer == null) return null;
         if (activeCrystallizeShield != null) {
             long now = System.currentTimeMillis();
             boolean graceActive = (now - crystallizeShieldAppliedTime) < 1500L;
-            boolean depleted = !graceActive && !mc.player.isCreative() && mc.player.getAbsorptionAmount() <= 0.0F;
+            boolean depleted = !graceActive && !localPlayer.isCreative() && localPlayer.getAbsorptionAmount() <= 0.0F;
             if (now >= crystallizeShieldUntil || depleted) {
                 activeCrystallizeShield = null;
                 return null;
@@ -1990,9 +2042,9 @@ public final class ClientAuraTracker {
     }
 
     public static @Nullable Element getActiveCrystallizeShield() {
-        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        if (mc.player == null) return null;
-        Element mobShield = ModMobEffects.getActiveShield(mc.player);
+        net.minecraft.world.entity.player.Player localPlayer = ClientAccess.getLocalPlayer();
+        if (localPlayer == null) return null;
+        Element mobShield = ModMobEffects.getActiveShield(localPlayer);
         if (mobShield != null) {
             if (activeCrystallizeShield != mobShield || crystallizeShieldUntil <= System.currentTimeMillis()) {
                 activeCrystallizeShield = mobShield;

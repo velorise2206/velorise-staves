@@ -174,7 +174,7 @@ public class AuraSyncPacket {
                     if (this.durationTicks == -4) {
                         com.velorise.staves.client.ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
                     }
-                    if (net.minecraft.client.Minecraft.getInstance().isSameThread()) {
+                    if (com.velorise.staves.client.ClientAuraTracker.isOnClientMainThread()) {
                         ClientPacketHandler.handleAuraSync(this);
                     } else {
                         ctx.enqueueWork(() -> ClientPacketHandler.handleAuraSync(this));

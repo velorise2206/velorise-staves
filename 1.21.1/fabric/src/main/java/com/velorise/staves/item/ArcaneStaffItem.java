@@ -118,6 +118,10 @@ public final class ArcaneStaffItem extends Item {
         LAST_OMNI_CRAFT_SNAPSHOT.remove(playerId);
         LAST_OMNI_CRAFT_DURABILITY.remove(playerId);
         LAST_DAYBREAK_SHOT.remove(playerId);
+        CompoundTag pData = FABRIC_PERSISTENT_DATA.get(playerId);
+        if (pData != null && pData.isEmpty()) {
+            FABRIC_PERSISTENT_DATA.remove(playerId);
+        }
     }
 
     public enum Kind {
@@ -1368,10 +1372,6 @@ public final class ArcaneStaffItem extends Item {
         return stack;
     }
 
-    private int getStaffUseElapsedTicks(int timeLeft) {
-        return 72000 - timeLeft;
-    }
-
     @Override
     public void releaseUsing(ItemStack stack, Level level, LivingEntity entity, int timeLeft) {
         if (kind == Kind.OMNI) {
@@ -2213,10 +2213,6 @@ public final class ArcaneStaffItem extends Item {
 
     private static Vec3 rayEnd(ServerPlayer player, double range) {
         return rayEnd(player, range, ClipContext.Block.COLLIDER);
-    }
-
-    private static Vec3 rayEndOutline(ServerPlayer player, double range) {
-        return rayEnd(player, range, ClipContext.Block.OUTLINE);
     }
 
     private static Vec3 rayEnd(ServerPlayer player, double range, ClipContext.Block blockMode) {

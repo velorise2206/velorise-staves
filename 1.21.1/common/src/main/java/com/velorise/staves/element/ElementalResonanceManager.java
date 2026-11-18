@@ -2,7 +2,6 @@ package com.velorise.staves.element;
 
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.config.StavesConfig;
-import com.velorise.staves.entity.OmniOrbEntity;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.particles.ParticleTypes;
@@ -133,6 +132,7 @@ public final class ElementalResonanceManager {
         LAST_STAFF_SWAP_TICK.clear();
         OMNI_GLOBAL_CD_UNTIL.clear();
         LAST_OVERLOAD_WARN_MS.clear();
+        SHULKER_SHOOT_CD_UNTIL.clear();
     }
 
     public static void clearClientState() {
@@ -214,6 +214,7 @@ public final class ElementalResonanceManager {
         LAST_STAFF_SWAP_TICK.remove(playerId);
         OMNI_GLOBAL_CD_UNTIL.remove(playerId);
         LAST_OVERLOAD_WARN_MS.remove(playerId);
+        SHULKER_SHOOT_CD_UNTIL.remove(playerId);
     }
 
     private static List<ItemStack> buildPrioritySlotOrder(Inventory inv) {

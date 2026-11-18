@@ -3,12 +3,9 @@ package com.velorise.staves.element;
 import com.velorise.staves.config.StavesConfig;
 import com.velorise.staves.item.ArcaneStaffItem;
 import com.velorise.staves.network.ModNetwork;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,7 +21,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CocoaBlock;
@@ -33,7 +29,6 @@ import net.minecraft.world.level.block.NetherWartBlock;
 import net.minecraft.world.level.block.SweetBerryBushBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
@@ -43,7 +38,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -774,7 +768,7 @@ public final class NahidaManager {
             if (holdingNahida && onGround && notAttacking) {
                 if (distFromAnchorSq < 0.0025D) { // instant cancel on movement
                     st.stillTicks++;
-                    if (st.stillTicks >= 400 && !st.idleSwingActive) {
+                    if (st.stillTicks >= 200 && !st.idleSwingActive) {
                         st.idleSwingActive = true;
                         st.lastStillPos = player.position(); // lock anchor exactly here
                         syncPlayerStateToClients(player, st, now, true);

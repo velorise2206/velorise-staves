@@ -90,7 +90,9 @@ public final class ElementalReactionBadgeRenderer {
         }
     }
 
-    private static final Map<Integer, FrozenRenderState> FROZEN_RENDER_STATES = new HashMap<>();
+    private static final Map<Integer, FrozenRenderState> FROZEN_RENDER_STATES = new java.util.concurrent.ConcurrentHashMap<>();
+    private static List<ItemEntity> cachedClientShards = java.util.Collections.emptyList();
+    private static long lastClientShardScanTick = -1L;
     private static boolean wasJumpKeyDown = false;
     private static long lastStruggleSendTime = 0L;
     private static long struggleShakeUntil = 0L;
@@ -165,6 +167,8 @@ public final class ElementalReactionBadgeRenderer {
 
     public static void resetFrozenClientState() {
         FROZEN_RENDER_STATES.clear();
+        cachedClientShards = java.util.Collections.emptyList();
+        lastClientShardScanTick = -1L;
         hasFrozenCam = false;
         wasFrozenFirstPerson = false;
     }
@@ -1636,14 +1640,18 @@ public final class ElementalReactionBadgeRenderer {
         if (mc.level == null || mc.player == null) return;
 
         Vec3 camPos = camera.getPosition();
-        AABB searchBox = new AABB(
-                camPos.x - 48.0D, camPos.y - 32.0D, camPos.z - 48.0D,
-                camPos.x + 48.0D, camPos.y + 32.0D, camPos.z + 48.0D
-        );
-
-        List<ItemEntity> shards = mc.level.getEntitiesOfClass(ItemEntity.class, searchBox, item ->
-                item.isAlive() && getCrystallizeShardElement(item.getItem()) != null
-        );
+        long clientTick = mc.level.getGameTime();
+        if (clientTick != lastClientShardScanTick) {
+            lastClientShardScanTick = clientTick;
+            AABB searchBox = new AABB(
+                    camPos.x - 48.0D, camPos.y - 32.0D, camPos.z - 48.0D,
+                    camPos.x + 48.0D, camPos.y + 32.0D, camPos.z + 48.0D
+            );
+            cachedClientShards = mc.level.getEntitiesOfClass(ItemEntity.class, searchBox, item ->
+                    item.isAlive() && getCrystallizeShardElement(item.getItem()) != null
+            );
+        }
+        List<ItemEntity> shards = cachedClientShards;
 
         if (shards.isEmpty()) return;
 

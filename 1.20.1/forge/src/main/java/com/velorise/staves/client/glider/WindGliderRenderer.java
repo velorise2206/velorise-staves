@@ -1,6 +1,5 @@
 package com.velorise.staves.client.glider;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -8,14 +7,10 @@ import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.client.ClientAuraRenderer;
 import com.velorise.staves.client.ClientAuraTracker;
 import com.velorise.staves.config.StavesConfig;
-import com.velorise.staves.element.Element;
 import com.velorise.staves.item.ArcaneStaffItem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -26,9 +21,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
 /**
@@ -38,6 +31,10 @@ import org.joml.Matrix4f;
  */
 public final class WindGliderRenderer {
     public static final int FULL_BRIGHT = LightTexture.FULL_BRIGHT;
+    private static final ResourceLocation WIND_GLIDER_TEX_16 =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/wind_glider.png");
+    private static final ResourceLocation WIND_GLIDER_TEX_32 =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/entity/wind_glider_32px.png");
 
     private WindGliderRenderer() {}
 
@@ -104,7 +101,7 @@ public final class WindGliderRenderer {
         float entityScale = 1.0F;
         float time = entity.tickCount + partialTicks;
 
-        ResourceLocation gliderTex = new ResourceLocation(VeloriseStavesMod.MODID, StavesConfig.isUse32pxGliderTexture() ? "textures/entity/wind_glider_32px.png" : "textures/entity/wind_glider.png");
+        ResourceLocation gliderTex = StavesConfig.isUse32pxGliderTexture() ? WIND_GLIDER_TEX_32 : WIND_GLIDER_TEX_16;
         VertexConsumer vc = buffer.getBuffer(RenderType.entityCutoutNoCull(gliderTex));
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
@@ -225,7 +222,7 @@ public final class WindGliderRenderer {
             if (dashData.dashPoseFade > 0.01F && !model.crouching) {
                 float w = smoothStep01(dashData.dashPoseFade);
                 model.body.xRot = Mth.lerp(w, model.body.xRot, 0.42F);
-                model.head.xRot = Mth.lerp(w, model.head.xRot, 0.24F);
+                model.head.xRot = Mth.lerp(w, model.head.xRot, 0.5236F);
                 model.hat.copyFrom(model.head);
                 model.rightArm.xRot = Mth.lerp(w, model.rightArm.xRot, 0.92F);
                 model.leftArm.xRot = Mth.lerp(w, model.leftArm.xRot, 0.82F);
@@ -798,23 +795,6 @@ public final class WindGliderRenderer {
         return false;
     }
 
-
-    private static void emitBox3D(
-            VertexConsumer vc, Matrix4f mat,
-            float x0, float y0, float z0,
-            float x1, float y1, float z1,
-            int r, int g, int b, int a
-    ) {
-        // Top & Bottom
-        emitDoubleQuad(vc, mat, x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, r, g, b, a);
-        emitDoubleQuad(vc, mat, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, r, g, b, a);
-        // Front & Back
-        emitDoubleQuad(vc, mat, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, r, g, b, a);
-        emitDoubleQuad(vc, mat, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, r, g, b, a);
-        // Left & Right
-        emitDoubleQuad(vc, mat, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, r, g, b, a);
-        emitDoubleQuad(vc, mat, x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
-    }
 
     /**
      * Renders a 3D Ender Dragon model of configurable wingspan (1.0 block for Mini Pet/Idle,

@@ -293,22 +293,6 @@ public final class FurinaVisualRenderer {
         }
     }
 
-    private static void drawCentralHydroStar(VertexConsumer vc, Matrix4f mat, float size, float spin, int r, int g, int b, int alpha) {
-        int rays = 8;
-        for (int i = 0; i < rays; i++) {
-            float a0 = spin + (float) (i * Math.PI * 2.0D / rays);
-            float a1 = spin + (float) ((i + 1) * Math.PI * 2.0D / rays);
-            float rOut = (i % 2 == 0) ? size : size * 0.38F;
-            float rNext = ((i + 1) % 2 == 0) ? size : size * 0.38F;
-            WindGliderRenderer.emitDoubleQuad(vc, mat,
-                    0.0F, 0.0F, 0.0F,
-                    Mth.cos(a0) * rOut, Mth.sin(a0) * rOut, 0.0F,
-                    Mth.cos(a1) * rNext, Mth.sin(a1) * rNext, 0.0F,
-                    0.0F, 0.0F, 0.0F,
-                    r, g, b, alpha);
-        }
-    }
-
     private static void drawFontaineCake(VertexConsumer vc, Matrix4f mat, int cakeIdx) {
         switch (cakeIdx % 6) {
             case 0 -> {
@@ -350,34 +334,4 @@ public final class FurinaVisualRenderer {
         }
     }
 
-    private static void drawChevalmarinModel(VertexConsumer solidVc, VertexConsumer transVc, PoseStack poseStack, float time) {
-        Matrix4f mat = poseStack.last().pose();
-
-        // 1. Cerulean seahorse torso & curled tail
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.075F, -0.16F, -0.065F, 0.075F, 0.08F, 0.065F, 55, 155, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.055F, 0.08F, -0.055F, 0.055F, 0.22F, 0.055F, 75, 175, 255, 255);
-        // Snout pointing forward
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.035F, 0.12F, 0.055F, 0.035F, 0.18F, 0.16F, 95, 195, 255, 255);
-        // Cute big eyes
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.060F, 0.14F, 0.01F, -0.054F, 0.19F, 0.045F, 25, 35, 75, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, 0.054F, 0.14F, 0.01F, 0.060F, 0.19F, 0.045F, 25, 35, 75, 255);
-        // Curled tail
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.045F, -0.26F, -0.035F, 0.045F, -0.16F, 0.035F, 45, 135, 245, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.035F, -0.32F, 0.01F, 0.035F, -0.24F, 0.085F, 45, 135, 245, 255);
-
-        // 2. Translucent fluttering dorsal fin
-        float finFlutter = Mth.sin(time * 0.4F) * 0.02F;
-        ClientAuraRenderer.emitCrystalQuad(transVc, mat,
-                0.0F, -0.12F, -0.065F, 185, 235, 255, 205,
-                0.0F, -0.12F, -0.15F + finFlutter, 185, 235, 255, 205,
-                0.0F, 0.06F, -0.13F + finFlutter, 220, 245, 255, 225,
-                0.0F, 0.06F, -0.065F, 220, 245, 255, 225);
-
-        // 3. Cute 3D Maid Ribbon Bow on top of head
-        // Center pearl knot
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.035F, 0.22F, -0.025F, 0.035F, 0.27F, 0.025F, 245, 250, 255, 255);
-        // Left & right bow wings
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.12F, 0.21F, -0.02F, -0.035F, 0.28F, 0.02F, 65, 165, 255, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, 0.035F, 0.21F, -0.02F, 0.12F, 0.28F, 0.02F, 65, 165, 255, 255);
-    }
 }

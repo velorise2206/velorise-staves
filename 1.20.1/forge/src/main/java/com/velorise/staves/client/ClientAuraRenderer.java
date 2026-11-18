@@ -115,8 +115,11 @@ public final class ClientAuraRenderer {
                         .setWriteMaskState(COLOR_DEPTH_WRITE)
                         .createCompositeState(false)
         );
+        private static final java.util.Map<ResourceLocation, RenderType> PETRIFIED_STONE_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+        private static final java.util.Map<ResourceLocation, RenderType> PETRIFIED_CRACK_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+
         public static RenderType getPetrifiedStone(ResourceLocation texture) {
-            return RenderType.create(
+            return PETRIFIED_STONE_CACHE.computeIfAbsent(texture, tex -> RenderType.create(
                     "velorise_petrified_stone",
                     DefaultVertexFormat.NEW_ENTITY,
                     VertexFormat.Mode.QUADS,
@@ -125,7 +128,7 @@ public final class ClientAuraRenderer {
                     false,
                     RenderType.CompositeState.builder()
                             .setShaderState(RENDERTYPE_ENTITY_CUTOUT_NO_CULL_SHADER)
-                            .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
+                            .setTextureState(new RenderStateShard.TextureStateShard(tex, false, false))
                             .setTransparencyState(NO_TRANSPARENCY)
                             .setCullState(NO_CULL)
                             .setLightmapState(LIGHTMAP)
@@ -134,10 +137,10 @@ public final class ClientAuraRenderer {
                             .setWriteMaskState(COLOR_DEPTH_WRITE)
                             .setLayeringState(POLYGON_OFFSET_LAYERING)
                             .createCompositeState(true)
-            );
+            ));
         }
         public static RenderType getPetrifiedCrack(ResourceLocation texture) {
-            return RenderType.create(
+            return PETRIFIED_CRACK_CACHE.computeIfAbsent(texture, tex -> RenderType.create(
                     "velorise_petrified_crack",
                     DefaultVertexFormat.NEW_ENTITY,
                     VertexFormat.Mode.QUADS,
@@ -146,7 +149,7 @@ public final class ClientAuraRenderer {
                     true,
                     RenderType.CompositeState.builder()
                             .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_SHADER)
-                            .setTextureState(new RenderStateShard.TextureStateShard(texture, false, false))
+                            .setTextureState(new RenderStateShard.TextureStateShard(tex, false, false))
                             .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
                             .setCullState(NO_CULL)
                             .setLightmapState(LIGHTMAP)
@@ -155,7 +158,7 @@ public final class ClientAuraRenderer {
                             .setWriteMaskState(COLOR_WRITE)
                             .setLayeringState(VIEW_OFFSET_Z_LAYERING)
                             .createCompositeState(true)
-            );
+            ));
         }
         public static final RenderType CROSSHAIR_CONTRAST = RenderType.create(
                 "velorise_crosshair_contrast",

@@ -102,6 +102,10 @@ public class GeoFangPillarEntity extends Entity {
     public static final float WAVE_GEO_UNITS = BASIC_WAVE_GEO_UNITS;
 
     private static final Vector3f GEO_GOLD_COLOR = new Vector3f(0.96F, 0.76F, 0.22F);
+    private static final DustParticleOptions GEO_GOLD_DUST_115 = new DustParticleOptions(GEO_GOLD_COLOR, 1.15F);
+    private static final DustParticleOptions GEO_GOLD_DUST_120 = new DustParticleOptions(GEO_GOLD_COLOR, 1.20F);
+    private static final DustParticleOptions GEO_GOLD_DUST_135 = new DustParticleOptions(GEO_GOLD_COLOR, 1.35F);
+    private static final DustParticleOptions GEO_GOLD_DUST_150 = new DustParticleOptions(GEO_GOLD_COLOR, 1.50F);
 
     public static final ThreadLocal<Boolean> IS_GEO_PULSE = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -567,7 +571,7 @@ public class GeoFangPillarEntity extends Entity {
             if (this.ageTicks == 0) {
                 sl.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
                         SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 0.75F);
-                sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.35F),
+                sl.sendParticles(GEO_GOLD_DUST_135,
                         this.getX(), this.getY() + 0.4D, this.getZ(), 14, 0.45D, 0.35D, 0.45D, 0.04D);
             }
         }
@@ -1244,7 +1248,7 @@ public class GeoFangPillarEntity extends Entity {
         ServerLevel sl = (ServerLevel) this.level();
         sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.STONE_HIT, SoundSource.BLOCKS, 0.9F, 0.85F + sl.random.nextFloat() * 0.25F);
-        sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.15F),
+        sl.sendParticles(GEO_GOLD_DUST_115,
                 this.getX(), this.getY() + centerH, this.getZ(), 7, 0.35D, isNetherite() ? 0.65D : 0.35D, 0.35D, 0.02D);
 
         if (nextHp <= 0.0F) {
@@ -1287,7 +1291,7 @@ public class GeoFangPillarEntity extends Entity {
         double centerH = getConstructCenterHeight();
         level.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                 SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.05F);
-        level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
+        level.sendParticles(GEO_GOLD_DUST_120,
                 projectile.getX(), projectile.getY(), projectile.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
         this.hurt(level.damageSources().thrown(projectile, projectile.getOwner()), dmg);
         return true;
@@ -1333,7 +1337,7 @@ public class GeoFangPillarEntity extends Entity {
                     double centerH = construct.getConstructCenterHeight();
                     level.playSound(null, construct.getX(), construct.getY() + centerH, construct.getZ(),
                             SoundEvents.SHIELD_BLOCK, SoundSource.BLOCKS, 0.9F, 1.0F);
-                    level.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.2F),
+                    level.sendParticles(GEO_GOLD_DUST_120,
                             construct.getX(), construct.getY() + centerH, construct.getZ(),
                             10, 0.4D, construct.isStoneStele() ? 1.1D : (construct.isNetherite() ? 0.6D : 0.35D), 0.4D, 0.03D);
                     return true;
@@ -1373,7 +1377,7 @@ public class GeoFangPillarEntity extends Entity {
             double spreadY = isNetherite() ? 0.8D : 0.45D;
             sl.playSound(null, this.getX(), this.getY() + centerH, this.getZ(),
                     SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.1F, 0.85F);
-            sl.sendParticles(new DustParticleOptions(GEO_GOLD_COLOR, 1.5F),
+            sl.sendParticles(GEO_GOLD_DUST_150,
                     this.getX(), this.getY() + centerH, this.getZ(), 24, 0.45D, spreadY, 0.45D, 0.06D);
             sl.sendParticles(ParticleTypes.WAX_ON,
                     this.getX(), this.getY() + centerH, this.getZ(), 10, 0.4D, spreadY, 0.4D, 0.04D);

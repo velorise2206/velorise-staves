@@ -93,6 +93,7 @@ public final class DragonfireVisualRenderer {
         public Vec3 lastTargetSeenPos = null;
         public float lastTargetHeight = 1.8F;
         public long lastTargetSeenMs = 0L;
+        public long lastTargetScanMs = 0L;
         public Vec3 mouthWorldPos = Vec3.ZERO;
         public boolean initialized = false;
         public long lastUpdateNs = 0L;
@@ -599,6 +600,12 @@ public final class DragonfireVisualRenderer {
                 return le;
             }
         }
+
+        long nowMs = System.currentTimeMillis();
+        if (nowMs - pose.lastTargetScanMs < 150L) {
+            return null;
+        }
+        pose.lastTargetScanMs = nowMs;
 
         double maxScanSqr = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
         LivingEntity best = null;
