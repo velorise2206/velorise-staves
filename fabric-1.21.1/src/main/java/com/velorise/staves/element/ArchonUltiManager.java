@@ -308,6 +308,7 @@ public final class ArchonUltiManager {
         long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO) ? 216L : 240L;
         LAYLA_BURST_CD_UNTIL.put(id, now + cdTicks);
         grantUltiIframe(player, 32); // 1.6s I-frame
+        applyBurstRoot(player, 24);
         ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_LAYLA_BURST);
         ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, hand);
 

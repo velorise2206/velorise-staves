@@ -37,42 +37,32 @@ public final class NeuvilletteVisualRenderer {
         float pct = nd.neuvilletteFiringBeam
                 ? Mth.clamp(1.0F - (nd.neuvilletteBeamElapsed / 60.0F), 0.05F, 1.0F)
                 : Mth.clamp(nd.neuvilletteChargeProgress / 60.0F, 0.0F, 1.0F);
-        int sw = guiGraphics.guiWidth();
-        int sh = guiGraphics.guiHeight();
-        float cx = sw * 0.5F;
-        float cy = sh * 0.5F;
-        Matrix4f mat = guiGraphics.pose().last().pose();
-        VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
-        WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.0F, 15.0F, 0.0F, 360.0F, 32, 10, 26, 48, 145);
-        if (pct > 0.005F) {
-            float halfDeg = 180.0F * pct;
-            int segs = Math.max(2, Math.round(16 * pct));
-            int r = nd.neuvilletteFiringBeam ? 175 : 85;
-            int g = nd.neuvilletteFiringBeam ? 250 : 225;
-            int b = 255;
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F, 90.0F + halfDeg, segs, r, g, b, 240);
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F - halfDeg, 90.0F, segs, r, g, b, 240);
-        }
-        guiGraphics.flush();
+        renderGuardianChargeIcon(guiGraphics, guiGraphics.guiWidth(), guiGraphics.guiHeight(), pct, nd.neuvilletteFiringBeam);
         return true;
     }
 
     public static void renderUseChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        float cx = sw * 0.5F;
-        float cy = sh * 0.5F;
-        Matrix4f mat = guiGraphics.pose().last().pose();
-        VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
-        WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.0F, 15.0F, 0.0F, 360.0F, 32, 10, 26, 48, 145);
-        if (pct > 0.005F) {
-            float halfDeg = 180.0F * pct;
-            int segs = Math.max(2, Math.round(16 * pct));
-            int r = pct >= 1.0F ? 175 : 85;
-            int g = pct >= 1.0F ? 250 : 225;
-            int b = 255;
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F, 90.0F + halfDeg, segs, r, g, b, 240);
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 12.3F, 14.7F, 90.0F - halfDeg, 90.0F, segs, r, g, b, 240);
+        renderGuardianChargeIcon(guiGraphics, sw, sh, pct, pct >= 1.0F);
+    }
+
+    private static void renderGuardianChargeIcon(GuiGraphics guiGraphics, int sw, int sh, float pct, boolean firingOrFull) {
+        net.minecraft.resources.ResourceLocation guardTex = net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(
+                com.velorise.staves.VeloriseStavesMod.MODID, "textures/gui/guardian_head_charge.png");
+        int iconX = sw / 2 - 8;
+        int iconY = sh / 2 + 12;
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(0.32F, 0.34F, 0.38F, 0.58F);
+        guiGraphics.blit(guardTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
+
+        float clamped = Mth.clamp(pct, 0.0F, 1.0F);
+        if (clamped > 0.005F) {
+            int fillH = Math.max(1, Math.round(16 * clamped));
+            int topY = iconY + (16 - fillH);
+            float pulse = firingOrFull ? (0.90F + 0.10F * Mth.sin(System.currentTimeMillis() * 0.032F)) : 1.0F;
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(pulse, pulse, 1.0F, 1.0F);
+            guiGraphics.blit(guardTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
         }
-        guiGraphics.flush();
+        com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     public static boolean applyChannelingHumanoidPose(LivingEntity entity, HumanoidModel<?> model, int activeAnim) {
@@ -208,7 +198,10 @@ public final class NeuvilletteVisualRenderer {
             Vec3 right = look.cross(worldUp).normalize();
             Vec3 up = right.cross(look).normalize();
 
-            Vec3 muzzle = eye.add(look.scale(0.85D)).add(0.0D, -0.18D, 0.0D);
+            double armSign = (entity.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT) ? 1.0D : -1.0D;
+            Vec3 muzzle = isLocalFirstPerson
+                    ? eye.add(look.scale(0.85D)).add(right.scale(armSign * 0.30D)).add(up.scale(-0.16D))
+                    : eye.add(look.scale(0.85D)).add(0.0D, -0.18D, 0.0D);
             if (consumer == null) {
                 consumer = bufferSource.getBuffer(RenderType.lightning());
             }

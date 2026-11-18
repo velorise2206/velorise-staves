@@ -139,7 +139,7 @@ public final class ZhongliManager {
             boolean canIdle = holdingZhongli && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 60 && !st.idleMeteorActive) {
+                if (st.stillTicks >= 400 && !st.idleMeteorActive) {
                     st.idleMeteorActive = true;
                 }
             } else {

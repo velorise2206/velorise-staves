@@ -21,6 +21,10 @@ public class MinecraftMixin {
     @Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
     private void velorise$suppressBikeStartAttack(CallbackInfoReturnable<Boolean> cir) {
         if (this.player == null) return;
+        if (com.velorise.staves.client.ClientAuraTracker.isUltiCastActive(this.player.getId())) {
+            cir.setReturnValue(false);
+            return;
+        }
         if (this.player.getVehicle() instanceof FlamestriderBikeEntity) {
             cir.setReturnValue(false);
             return;
@@ -72,9 +76,20 @@ public class MinecraftMixin {
         }
     }
 
+    @Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
+    private void velorise$suppressUltiStartUseItem(CallbackInfo ci) {
+        if (this.player != null && com.velorise.staves.client.ClientAuraTracker.isUltiCastActive(this.player.getId())) {
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "continueAttack", at = @At("HEAD"), cancellable = true)
     private void velorise$suppressBikeContinueAttack(boolean leftClick, CallbackInfo ci) {
         if (this.player == null) return;
+        if (com.velorise.staves.client.ClientAuraTracker.isUltiCastActive(this.player.getId())) {
+            ci.cancel();
+            return;
+        }
         ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(this.player.getMainHandItem());
         if (this.player.getVehicle() instanceof FlamestriderBikeEntity
                 || NeuvilletteManager.isHoldingGuardianLens(this.player)

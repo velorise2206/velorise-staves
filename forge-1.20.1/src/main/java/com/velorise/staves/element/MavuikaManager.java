@@ -1799,6 +1799,7 @@ public final class MavuikaManager {
         RaidenManager.clearAll();
         com.velorise.staves.entity.HydroSalonSummonEntity.clearAll();
         com.velorise.staves.item.ArcaneStaffItem.clearAll();
+        com.velorise.staves.advancement.ModAdvancements.clearAll();
         MAVUIKA_IDLE_STATES.clear();
     }
 
@@ -2196,7 +2197,7 @@ public final class MavuikaManager {
                     && !(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 60 && !st.idleActive) {
+                if (st.stillTicks >= 400 && !st.idleActive) {
                     st.idleActive = true;
                 }
             } else {

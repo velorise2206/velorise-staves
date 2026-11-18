@@ -27,15 +27,15 @@ public abstract class KeyboardInputMixin extends Input {
                 this.shiftKeyDown = false;
                 mc.options.keyShift.setDown(false);
                 mc.player.setShiftKeyDown(false);
-                if (com.velorise.staves.client.ClientAuraTracker.isFiveStarBurstRootActive(mc.player.getId())) {
-                    this.forwardImpulse = 0.0F;
-                    this.leftImpulse = 0.0F;
-                    this.up = false;
-                    this.down = false;
-                    this.left = false;
-                    this.right = false;
-                    this.jumping = false;
-                }
+                mc.player.setSprinting(false);
+                mc.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                this.forwardImpulse = 0.0F;
+                this.leftImpulse = 0.0F;
+                this.up = false;
+                this.down = false;
+                this.left = false;
+                this.right = false;
+                this.jumping = false;
             }
         }
     }

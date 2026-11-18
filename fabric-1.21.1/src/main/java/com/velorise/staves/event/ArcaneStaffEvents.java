@@ -44,11 +44,31 @@ public final class ArcaneStaffEvents {
     private static final String TAG_PREFIX_KIND = "velorise:kind:";
     private static final String TAG_PREFIX_RANGE = "velorise:range:";
     private static final String TAG_PREFIX_ORIGIN = "velorise:origin:";
+    private static final String TAG_PREFIX_SHULKER_TARGET = "velorise:shulker_target:";
 
     private ArcaneStaffEvents() {}
 
     public static void markKind(Projectile projectile, String kind) {
         projectile.addTag(TAG_PREFIX_KIND + kind);
+    }
+
+    public static void markShulkerTarget(Projectile projectile, java.util.UUID targetId) {
+        if (targetId != null) {
+            projectile.addTag(TAG_PREFIX_SHULKER_TARGET + targetId);
+        }
+    }
+
+    public static @Nullable java.util.UUID getShulkerTarget(Projectile projectile) {
+        for (String tag : projectile.getTags()) {
+            if (tag.startsWith(TAG_PREFIX_SHULKER_TARGET)) {
+                try {
+                    return java.util.UUID.fromString(tag.substring(TAG_PREFIX_SHULKER_TARGET.length()));
+                } catch (IllegalArgumentException ignored) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 
     public static void markRange(Projectile projectile, Vec3 origin, double maxRange) {
@@ -110,9 +130,86 @@ public final class ArcaneStaffEvents {
                 level.sendParticles(ParticleTypes.SNOWFLAKE, freezeLoc.x, freezeLoc.y + 0.15D, freezeLoc.z, 18, 0.35D, 0.1D, 0.35D, 0.03D);
                 level.playSound(null, freezeLoc.x, freezeLoc.y, freezeLoc.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.7F, 1.5F);
                 projectile.discard();
+                return;
+            }
+        }
+
+        if (projectile instanceof net.minecraft.world.entity.projectile.ShulkerBullet bullet
+                && ("shulker".equals(kind) || "netherite_shulker".equals(kind))) {
+            java.util.UUID targetId = getShulkerTarget(bullet);
+            if (targetId != null) {
+                Entity targetEnt = level.getEntity(targetId);
+                if (targetEnt instanceof LivingEntity target && target.isAlive() && !target.isSpectator()) {
+                    double speed = bullet.getTags().contains("velorise_staves:finale_shot") ? 0.85D : 0.68D;
+                    Vec3 bPos = bullet.position();
+                    Vec3 aimPos = target.getBoundingBox().getCenter().add(target.getDeltaMovement().scale(0.35D));
+                    BlockHitResult los = level.clip(new ClipContext(bPos, aimPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, bullet));
+                    Vec3 steerTarget = (los.getType() == HitResult.Type.MISS)
+                            ? aimPos
+                            : findNextAStarWaypoint(level, bullet.blockPosition(), BlockPos.containing(aimPos), 160);
+                    Vec3 steerDir = steerTarget.subtract(bPos);
+                    if (steerDir.lengthSqr() > 1.0E-5D) {
+                        bullet.setDeltaMovement(steerDir.normalize().scale(speed));
+                        bullet.hurtMarked = true;
+                    }
+                }
             }
         }
     }
+
+    private static Vec3 findNextAStarWaypoint(ServerLevel level, BlockPos start, BlockPos goal, int maxNodes) {
+        if (start.equals(goal)) return Vec3.atCenterOf(goal);
+        java.util.PriorityQueue<AStarNode> open = new java.util.PriorityQueue<>(java.util.Comparator.comparingDouble(n -> n.f));
+        java.util.Map<BlockPos, Double> bestG = new java.util.HashMap<>();
+        java.util.Map<BlockPos, BlockPos> cameFrom = new java.util.HashMap<>();
+        double h0 = Math.sqrt(start.distSqr(goal));
+        open.add(new AStarNode(start, 0.0D, h0));
+        bestG.put(start, 0.0D);
+
+        BlockPos closest = start;
+        double closestH = h0;
+        int explored = 0;
+        int[][] dirs = {
+                {1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1},
+                {1,1,0},{-1,1,0},{0,1,1},{0,1,-1},{1,-1,0},{-1,-1,0},{0,-1,1},{0,-1,-1}
+        };
+
+        while (!open.isEmpty() && explored < maxNodes) {
+            AStarNode cur = open.poll();
+            if (cur.pos.equals(goal)) {
+                closest = goal;
+                break;
+            }
+            explored++;
+            if (cur.g > bestG.getOrDefault(cur.pos, Double.MAX_VALUE) + 1.0E-4D) continue;
+            for (int[] d : dirs) {
+                BlockPos next = cur.pos.offset(d[0], d[1], d[2]);
+                if (!next.equals(goal) && !level.getBlockState(next).getCollisionShape(level, next).isEmpty()) {
+                    continue;
+                }
+                double stepCost = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+                double ng = cur.g + stepCost;
+                if (ng < bestG.getOrDefault(next, Double.MAX_VALUE)) {
+                    bestG.put(next, ng);
+                    cameFrom.put(next, cur.pos);
+                    double nh = Math.sqrt(next.distSqr(goal));
+                    if (nh < closestH) {
+                        closestH = nh;
+                        closest = next;
+                    }
+                    open.add(new AStarNode(next, ng, ng + nh * 1.15D));
+                }
+            }
+        }
+        if (closest.equals(start)) return Vec3.atCenterOf(goal);
+        BlockPos step = closest;
+        while (cameFrom.containsKey(step) && !cameFrom.get(step).equals(start)) {
+            step = cameFrom.get(step);
+        }
+        return Vec3.atCenterOf(step);
+    }
+
+    private record AStarNode(BlockPos pos, double g, double f) {}
 
     public static boolean onProjectileHit(Projectile projectile, HitResult hitResult) {
         if (!(projectile.level() instanceof ServerLevel level)) return false;
@@ -633,6 +730,9 @@ public final class ArcaneStaffEvents {
                 if (directHit instanceof ServerPlayer sp) {
                     sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
                 }
+                if (isDaybreak && player != null) {
+                    com.velorise.staves.advancement.ModAdvancements.recordVentiWindLaunch(player, directHit);
+                }
             }
         }
 
@@ -664,6 +764,9 @@ public final class ArcaneStaffEvents {
                     nearby.hurtMarked = true;
                     if (nearby instanceof ServerPlayer sp) {
                         sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                    }
+                    if (isDaybreak && player != null) {
+                        com.velorise.staves.advancement.ModAdvancements.recordVentiWindLaunch(player, nearby);
                     }
                 }
             }

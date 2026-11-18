@@ -77,6 +77,9 @@ public final class StavesConfig {
     public static final BooleanValue SHOW_DAMAGE_NUMBERS = defineBool("elemental_gauge", "show_damage_numbers", true);
     public static final BooleanValue ENABLE_PLUNGE_ATTACK = defineBool("gameplay", "enable_plunge_attack", true);
     public static final BooleanValue ENABLE_WIND_GLIDER = defineBool("gameplay", "enable_wind_glider", true);
+    public static final BooleanValue ENABLE_CUSTOM_STAMINA = defineBool("gameplay", "enable_custom_stamina", true);
+    public static final BooleanValue ENABLE_CUSTOM_DASH = defineBool("gameplay", "enable_custom_dash", true);
+    public static final BooleanValue ENABLE_WALL_CLIMB = defineBool("gameplay", "enable_wall_climb", true);
     public static final BooleanValue ENABLE_MAVUIKA_WALL_CLIMB = defineBool("gameplay", "enable_mavuika_wall_climb", true);
     public static final DoubleValue MAVUIKA_BIKE_SPEED_MULTIPLIER = defineDouble("gameplay", "mavuika_bike_speed_multiplier", 1.0D, 0.5D, 3.0D);
     public static final DoubleValue INNATE_MUTATION_CHANCE = defineDouble("elemental_gauge", "innate_mutation_chance", 0.07D, 0.0D, 1.0D);
@@ -360,6 +363,12 @@ public final class StavesConfig {
                 writer.write("enable_plunge_attack = " + ENABLE_PLUNGE_ATTACK.get() + "\n");
                 writer.write("# Enable Permanent Wind Glider flight and updraft soaring\n");
                 writer.write("enable_wind_glider = " + ENABLE_WIND_GLIDER.get() + "\n");
+                writer.write("# Enable Genshin-style stamina (100 Overworld -> 170 Nether -> 240 End milestones)\n");
+                writer.write("enable_custom_stamina = " + ENABLE_CUSTOM_STAMINA.get() + "\n");
+                writer.write("# Enable Genshin-style quick Dash impulse with i-frames on Sprint (Ctrl) press\n");
+                writer.write("enable_custom_dash = " + ENABLE_CUSTOM_DASH.get() + "\n");
+                writer.write("# Enable universal Genshin-style climbing on vertical walls for all characters (costs Stamina)\n");
+                writer.write("enable_wall_climb = " + ENABLE_WALL_CLIMB.get() + "\n");
                 writer.write("# Enable Genshin-style vertical cliff & wall climbing while riding Mavuika's Flamestrider bike\n");
                 writer.write("enable_mavuika_wall_climb = " + ENABLE_MAVUIKA_WALL_CLIMB.get() + "\n");
                 writer.write("# Movement & climbing speed multiplier for Mavuika's Flamestrider bike (0.5 to 3.0)\n");
@@ -417,6 +426,9 @@ public final class StavesConfig {
         public final double[] staffDamages;
         public final boolean enablePlungeAttack;
         public final boolean enableWindGlider;
+        public final boolean enableCustomStamina;
+        public final boolean enableCustomDash;
+        public final boolean enableWallClimb;
 
         public SyncedData(
                 double damageMultiplier,
@@ -439,7 +451,10 @@ public final class StavesConfig {
                 int maxStavesInInventory,
                 double[] staffDamages,
                 boolean enablePlungeAttack,
-                boolean enableWindGlider
+                boolean enableWindGlider,
+                boolean enableCustomStamina,
+                boolean enableCustomDash,
+                boolean enableWallClimb
         ) {
             this.damageMultiplier = damageMultiplier;
             this.cooldownMultiplier = cooldownMultiplier;
@@ -462,6 +477,9 @@ public final class StavesConfig {
             this.staffDamages = staffDamages;
             this.enablePlungeAttack = enablePlungeAttack;
             this.enableWindGlider = enableWindGlider;
+            this.enableCustomStamina = enableCustomStamina;
+            this.enableCustomDash = enableCustomDash;
+            this.enableWallClimb = enableWallClimb;
         }
 
         public void write(net.minecraft.network.FriendlyByteBuf buf) {
@@ -492,6 +510,9 @@ public final class StavesConfig {
             }
             buf.writeBoolean(enablePlungeAttack);
             buf.writeBoolean(enableWindGlider);
+            buf.writeBoolean(enableCustomStamina);
+            buf.writeBoolean(enableCustomDash);
+            buf.writeBoolean(enableWallClimb);
         }
 
         public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
@@ -532,7 +553,10 @@ public final class StavesConfig {
             }
             boolean plungeOn = buf.isReadable() ? buf.readBoolean() : true;
             boolean gliderOn = buf.isReadable() ? buf.readBoolean() : true;
-            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs, plungeOn, gliderOn);
+            boolean customStamina = buf.isReadable() ? buf.readBoolean() : true;
+            boolean customDash = buf.isReadable() ? buf.readBoolean() : true;
+            boolean wallClimb = buf.isReadable() ? buf.readBoolean() : true;
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs, plungeOn, gliderOn, customStamina, customDash, wallClimb);
         }
     }
 
@@ -579,7 +603,10 @@ public final class StavesConfig {
                 MAX_STAVES_IN_INVENTORY.get(),
                 dmgs,
                 ENABLE_PLUNGE_ATTACK.get(),
-                ENABLE_WIND_GLIDER.get()
+                ENABLE_WIND_GLIDER.get(),
+                ENABLE_CUSTOM_STAMINA.get(),
+                ENABLE_CUSTOM_DASH.get(),
+                ENABLE_WALL_CLIMB.get()
         );
     }
 
@@ -867,6 +894,20 @@ public final class StavesConfig {
     public static boolean isEnableWindGlider() {
         SyncedData s = syncedServerData;
         return s != null ? s.enableWindGlider : ENABLE_WIND_GLIDER.get();
+    }
+
+    public static boolean isEnableCustomStamina() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.enableCustomStamina : ENABLE_CUSTOM_STAMINA.get();
+    }
+
+    public static boolean isEnableCustomDash() {
+        SyncedData s = syncedServerData;
+        return s != null ? s.enableCustomDash : ENABLE_CUSTOM_DASH.get();
+    }
+
+    public static boolean isEnableWallClimb() {
+        return false;
     }
 
     public static boolean isEnableMavuikaWallClimb() {

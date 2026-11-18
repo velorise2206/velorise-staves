@@ -776,5 +776,13 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Permite que la motocicleta Pirotrono de Mavuika escale paredes y acantilados verticales.",
   "config.velorise_staves.mavuika_bike_speed": "Velocidad de Pirotrono",
   "config.velorise_staves.mavuika_bike_speed.desc": "Multiplicador de velocidad de movimiento y escalada para la moto de Mavuika (Predet.: 1.0x).",
-  "item.velorise_staves.electro_rod": "Vara Electro"
+  "item.velorise_staves.electro_rod": "Vara Electro",
+  "config.velorise_staves.voice_char_lang.en_us": "EN",
+  "config.velorise_staves.voice_char_lang.zh_cn": "CN",
+  "config.velorise_staves.voice_char_lang.ja_jp": "JP",
+  "config.velorise_staves.enable_wall_climb": "Wall Climb",
+  "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
+  "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
 }

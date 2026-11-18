@@ -776,5 +776,13 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "마비카의 바이크를 타고 수직 절벽과 벽을 등반할 수 있게 합니다.",
   "config.velorise_staves.mavuika_bike_speed": "바이크 속도 배율",
   "config.velorise_staves.mavuika_bike_speed.desc": "마비카 바이크의 이동 및 벽 등반 속도 배율 (기본값: 1.0x).",
-  "item.velorise_staves.electro_rod": "번개 막대"
+  "item.velorise_staves.electro_rod": "번개 막대",
+  "config.velorise_staves.voice_char_lang.en_us": "EN",
+  "config.velorise_staves.voice_char_lang.zh_cn": "CN",
+  "config.velorise_staves.voice_char_lang.ja_jp": "JP",
+  "config.velorise_staves.enable_wall_climb": "Wall Climb",
+  "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
+  "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
 }

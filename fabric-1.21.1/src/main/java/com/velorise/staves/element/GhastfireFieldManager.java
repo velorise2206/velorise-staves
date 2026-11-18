@@ -12,16 +12,18 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Manages active Ghastfire lingering AreaEffectClouds (5s fire fields).
  * Instead of dense continuous random particles, renders expanding square Pyro flame waves
- * synchronized with a 1.0s (20 ticks) pulse that applies Pyro (1.0U), burns entities inside,
- * triggers Burgeon on nearby Dendro Cores, and mines Amethyst Clusters via Overloaded.
+ * synchronized with a 1.0s (20 ticks) progressive wave front that applies Pyro (1.0U) as it
+ * reaches each target, triggers Burgeon on nearby Dendro Cores, and mines Amethyst Clusters.
  */
 public final class GhastfireFieldManager {
     public static class FieldEntry {
@@ -31,6 +33,8 @@ public final class GhastfireFieldManager {
         public final boolean isNetherite;
         public final float radius;
         public final long startTick;
+        public int lastWaveIndex = -1;
+        public final Set<UUID> hitInCurrentWave = new HashSet<>();
 
         public FieldEntry(AreaEffectCloud cloud, ServerLevel level, @Nullable UUID ownerId, boolean isNetherite, float radius, long startTick) {
             this.cloud = cloud;
@@ -74,9 +78,14 @@ public final class GhastfireFieldManager {
             AreaEffectCloud cloud = entry.cloud;
             float radius = entry.radius;
             long age = Math.max(0L, now - entry.startTick);
+            int waveIdx = (int) (age / 20L);
             int phase = (int) (age % 20L);
+            if (waveIdx != entry.lastWaveIndex) {
+                entry.lastWaveIndex = waveIdx;
+                entry.hitInCurrentWave.clear();
+            }
 
-            // Expanding Pyro square wave animation synchronized with the 20-tick (1.0s) aura application pulse
+            // Expanding Pyro square wave animation synchronized with the 20-tick (1.0s) expanding ring hit front
             if (phase % 2 == 0) {
                 double progress = (double) (phase + 2) / 20.0D;
                 double halfExtent = radius * progress;
@@ -86,34 +95,40 @@ public final class GhastfireFieldManager {
                 );
             }
 
-            // Every 20 ticks (1.0s) when the square wave completes its expansion, apply Pyro (1.0U) pulse
+            ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
+            Vec3 centerPos = cloud.position();
+
             if (age > 0L && phase == 0) {
-                ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
+                DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.PYRO, owner);
+                EnvironmentalBlockManager.checkPyroAmethystMining(level, centerPos, radius);
+                level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.FIRE_AMBIENT, SoundSource.PLAYERS, 0.7F, 1.05F);
+            }
+
+            if (age >= 20L) {
+                double rPrev = Math.max(0.0D, ((double) phase / 20.0D - 0.15D) * radius);
+                double rCurr = ((double) (phase + 1) / 20.0D) * radius + 0.35D;
                 float damage = entry.isNetherite ? 2.25F : 1.5F;
                 float pulseU = entry.isNetherite ? 1.5F : 1.0F;
-                Vec3 centerPos = cloud.position();
-
-                // 1. Burn and apply Pyro (1.0U) to all entities inside the square fire field
                 AABB box = new AABB(
                         centerPos.x - radius, centerPos.y - 1.0D, centerPos.z - radius,
                         centerPos.x + radius, centerPos.y + 2.0D, centerPos.z + radius
                 );
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                    boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
-                            || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
-                    if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
-                        target.igniteForSeconds(3);
+                    if (entry.hitInCurrentWave.contains(target.getUUID())) continue;
+                    double sqDist = Math.max(Math.abs(target.getX() - centerPos.x), Math.abs(target.getZ() - centerPos.z)) - target.getBbWidth() * 0.5D;
+                    if (sqDist >= rPrev - 0.35D && sqDist <= rCurr) {
+                        entry.hitInCurrentWave.add(target.getUUID());
+                        boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
+                                || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
+                        if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
+                            target.igniteForSeconds(3);
+                        }
+                        ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, pulseU, owner, damage);
+                        MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.PYRO, null);
+                        level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
                     }
-                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.PYRO, pulseU, owner, damage);
-                    MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.PYRO, null);
-                    level.sendParticles(ParticleTypes.FLAME, target.getX(), target.getY() + 0.5D, target.getZ(), 4, 0.2D, 0.2D, 0.2D, 0.03D);
                 }
-
-                // 2. Detonate any Dendro Cores in the fire field (Burgeon) & mine Amethyst Clusters (Overloaded)
-                DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.PYRO, owner);
-                EnvironmentalBlockManager.checkPyroAmethystMining(level, centerPos, radius);
-                level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.FIRE_AMBIENT, SoundSource.PLAYERS, 0.7F, 1.05F);
             }
         }
     }

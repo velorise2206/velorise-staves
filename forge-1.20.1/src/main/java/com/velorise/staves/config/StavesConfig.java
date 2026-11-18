@@ -67,6 +67,9 @@ public final class StavesConfig {
     public static final ForgeConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
     public static final ForgeConfigSpec.BooleanValue ENABLE_PLUNGE_ATTACK;
     public static final ForgeConfigSpec.BooleanValue ENABLE_WIND_GLIDER;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_CUSTOM_STAMINA;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_CUSTOM_DASH;
+    public static final ForgeConfigSpec.BooleanValue ENABLE_WALL_CLIMB;
     public static final ForgeConfigSpec.BooleanValue ENABLE_MAVUIKA_WALL_CLIMB;
     public static final ForgeConfigSpec.DoubleValue MAVUIKA_BIKE_SPEED_MULTIPLIER;
     public static final ForgeConfigSpec.DoubleValue INNATE_MUTATION_CHANCE;
@@ -274,6 +277,15 @@ public final class StavesConfig {
         ENABLE_WIND_GLIDER = builder
             .comment("Enable Permanent Wind Glider flight and updraft soaring. Default: true")
             .define("enable_wind_glider", true);
+        ENABLE_CUSTOM_STAMINA = builder
+            .comment("Enable Genshin-style stamina (100 Overworld -> 170 Nether -> 240 End milestones). Default: true")
+            .define("enable_custom_stamina", true);
+        ENABLE_CUSTOM_DASH = builder
+            .comment("Enable Genshin-style quick Dash impulse with i-frames on Sprint (Ctrl) press. Default: true")
+            .define("enable_custom_dash", true);
+        ENABLE_WALL_CLIMB = builder
+            .comment("Enable universal Genshin-style climbing on vertical walls for all characters (costs Stamina). Default: true")
+            .define("enable_wall_climb", true);
         ENABLE_MAVUIKA_WALL_CLIMB = builder
             .comment("Enable Genshin-style vertical cliff and wall climbing while riding Mavuika's Flamestrider bike. Default: true")
             .define("enable_mavuika_wall_climb", true);
@@ -469,6 +481,9 @@ public final class StavesConfig {
         public final double[] staffDamages;
         public final boolean enablePlungeAttack;
         public final boolean enableWindGlider;
+        public final boolean enableCustomStamina;
+        public final boolean enableCustomDash;
+        public final boolean enableWallClimb;
 
         public SyncedData(
                 double damageMultiplier,
@@ -491,7 +506,10 @@ public final class StavesConfig {
                 int maxStavesInInventory,
                 double[] staffDamages,
                 boolean enablePlungeAttack,
-                boolean enableWindGlider
+                boolean enableWindGlider,
+                boolean enableCustomStamina,
+                boolean enableCustomDash,
+                boolean enableWallClimb
         ) {
             this.damageMultiplier = damageMultiplier;
             this.cooldownMultiplier = cooldownMultiplier;
@@ -514,6 +532,9 @@ public final class StavesConfig {
             this.staffDamages = staffDamages;
             this.enablePlungeAttack = enablePlungeAttack;
             this.enableWindGlider = enableWindGlider;
+            this.enableCustomStamina = enableCustomStamina;
+            this.enableCustomDash = enableCustomDash;
+            this.enableWallClimb = enableWallClimb;
         }
 
         public void write(net.minecraft.network.FriendlyByteBuf buf) {
@@ -544,6 +565,9 @@ public final class StavesConfig {
             }
             buf.writeBoolean(enablePlungeAttack);
             buf.writeBoolean(enableWindGlider);
+            buf.writeBoolean(enableCustomStamina);
+            buf.writeBoolean(enableCustomDash);
+            buf.writeBoolean(enableWallClimb);
         }
 
         public static SyncedData read(net.minecraft.network.FriendlyByteBuf buf) {
@@ -584,7 +608,10 @@ public final class StavesConfig {
             }
             boolean plungeOn = buf.isReadable() ? buf.readBoolean() : true;
             boolean gliderOn = buf.isReadable() ? buf.readBoolean() : true;
-            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs, plungeOn, gliderOn);
+            boolean customStamina = buf.isReadable() ? buf.readBoolean() : true;
+            boolean customDash = buf.isReadable() ? buf.readBoolean() : true;
+            boolean wallClimb = buf.isReadable() ? buf.readBoolean() : true;
+            return new SyncedData(dmgMult, cdMult, vBasic, vNeth, vCd, mCd, mCh, cds, dBasic, dNeth, vdBasic, vdNeth, mdBasic, mdNeth, egtOn, mutChance, resOn, maxCap, dmgs, plungeOn, gliderOn, customStamina, customDash, wallClimb);
         }
     }
 
@@ -631,7 +658,10 @@ public final class StavesConfig {
                 MAX_STAVES_IN_INVENTORY.get(),
                 dmgs,
                 ENABLE_PLUNGE_ATTACK.get(),
-                ENABLE_WIND_GLIDER.get()
+                ENABLE_WIND_GLIDER.get(),
+                ENABLE_CUSTOM_STAMINA.get(),
+                ENABLE_CUSTOM_DASH.get(),
+                ENABLE_WALL_CLIMB.get()
         );
     }
 
@@ -919,6 +949,30 @@ public final class StavesConfig {
     public static boolean isEnableWindGlider() {
         SyncedData s = syncedServerData;
         return s != null ? s.enableWindGlider : ENABLE_WIND_GLIDER.get();
+    }
+
+    public static boolean isEnableCustomStamina() {
+        SyncedData s = syncedServerData;
+        if (s != null) return s.enableCustomStamina;
+        try {
+            return ENABLE_CUSTOM_STAMINA == null || ENABLE_CUSTOM_STAMINA.get();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public static boolean isEnableCustomDash() {
+        SyncedData s = syncedServerData;
+        if (s != null) return s.enableCustomDash;
+        try {
+            return ENABLE_CUSTOM_DASH == null || ENABLE_CUSTOM_DASH.get();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public static boolean isEnableWallClimb() {
+        return false;
     }
 
     public static boolean isEnableMavuikaWallClimb() {

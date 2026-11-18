@@ -960,16 +960,16 @@ public final class VentiManager {
             boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canVenti && vDistSq < 0.0025D) {
                 vst.stillTicks++;
-                if (vst.stillTicks == 60) {
+                if (vst.stillTicks == 400) {
                     vst.idleVariant = (vst.idleVariant + 1) % 2;
                     if (vst.idleVariant == 0) {
                         vst.songIndex = (vst.songIndex + 1) % 2;
                     }
                 }
-                if (vst.stillTicks >= 60) {
+                if (vst.stillTicks >= 400) {
                     if (vst.idleVariant == 1) {
-                        // Levitation idle hovers for ~5s (ticks 60..160) then gently descends
-                        if (vst.stillTicks <= 160) {
+                        // Levitation idle hovers for ~5s (ticks 400..500) then gently descends
+                        if (vst.stillTicks <= 500) {
                             vst.activeCode = 4052;
                         } else {
                             vst.activeCode = 4050;
@@ -990,7 +990,7 @@ public final class VentiManager {
                 vst.lastSyncedCode = vst.activeCode;
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
             }
-            if (vst.activeCode == 4051 && vst.stillTicks >= 60) {
+            if (vst.activeCode == 4051 && vst.stillTicks >= 400) {
                 // {note, durationTicks} pairs for expressive rhythm (2t fast runs, 3-4t normal, 6-8t held notes)
                 int[][][] melodies = {
                     // 1. Venti's Theme (Bard's Adventure / A New Day with Hope)

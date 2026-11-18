@@ -7,7 +7,9 @@ import com.velorise.staves.item.SwordImbueHelper;
 import com.velorise.staves.network.ModNetwork;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,6 +21,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -32,6 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class PlungeAndGliderManager {
     public static final String TAG_WIND_GLIDER_UNLOCKED = "VeloriseWindGliderUnlocked";
+    public static final String TAG_STAMINA_NETHER_UNLOCKED = "VeloriseStaminaNether";
+    public static final String TAG_STAMINA_END_UNLOCKED = "VeloriseStaminaEnd";
 
     public static final class AirState {
         public boolean gliding = false;
@@ -41,18 +46,24 @@ public final class PlungeAndGliderManager {
         public double plungeStartY = 0.0D;
         public long plungeStartedTick = 0L;
         public long plungeLandedTick = -100L;
+        public boolean wallClimbing = false;
     }
 
     private static final Map<UUID, AirState> STATES = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> LAST_DASH_TICK = new ConcurrentHashMap<>();
 
     private PlungeAndGliderManager() {}
 
     public static void clearAll() {
         STATES.clear();
+        LAST_DASH_TICK.clear();
     }
 
     public static void clearPlayerState(UUID playerId) {
-        if (playerId != null) STATES.remove(playerId);
+        if (playerId != null) {
+            STATES.remove(playerId);
+            LAST_DASH_TICK.remove(playerId);
+        }
     }
 
     public static boolean isPlunging(Player player) {
@@ -99,14 +110,70 @@ public final class PlungeAndGliderManager {
         if (oldPlayer.getTags().contains(TAG_WIND_GLIDER_UNLOCKED)) {
             newPlayer.addTag(TAG_WIND_GLIDER_UNLOCKED);
         }
+        if (oldPlayer.getTags().contains(TAG_STAMINA_NETHER_UNLOCKED)) {
+            newPlayer.addTag(TAG_STAMINA_NETHER_UNLOCKED);
+        }
+        if (oldPlayer.getTags().contains(TAG_STAMINA_END_UNLOCKED)) {
+            newPlayer.addTag(TAG_STAMINA_END_UNLOCKED);
+        }
+    }
+
+    public static void checkStaminaMilestones(ServerPlayer player) {
+        if (player == null || player.serverLevel().getServer() == null) return;
+        ResourceKey<Level> dim = player.serverLevel().dimension();
+        var tags = player.getTags();
+        if (dim == Level.NETHER && !tags.contains(TAG_STAMINA_NETHER_UNLOCKED)) {
+            player.addTag(TAG_STAMINA_NETHER_UNLOCKED);
+            ModNetwork.sendStaffAnimation(player, tags.contains(TAG_STAMINA_END_UNLOCKED)
+                    ? com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_240
+                    : com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_170);
+            if (StavesConfig.isEnableCustomStamina()) {
+                player.displayClientMessage(Component.translatable("message.velorise_staves.stamina_nether_unlocked"), true);
+                player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.35F);
+            }
+        } else if (dim == Level.END && !tags.contains(TAG_STAMINA_END_UNLOCKED)) {
+            player.addTag(TAG_STAMINA_NETHER_UNLOCKED);
+            player.addTag(TAG_STAMINA_END_UNLOCKED);
+            ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_240);
+            if (StavesConfig.isEnableCustomStamina()) {
+                player.displayClientMessage(Component.translatable("message.velorise_staves.stamina_end_unlocked"), true);
+                player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.0F, 1.55F);
+            }
+        }
     }
 
     public static void syncPlayerOnJoinOrRespawn(ServerPlayer player) {
         if (player == null) return;
-        boolean unlocked = player.getTags().contains(TAG_WIND_GLIDER_UNLOCKED);
+        checkStaminaMilestones(player);
+        var tags = player.getTags();
+        boolean unlocked = tags.contains(TAG_WIND_GLIDER_UNLOCKED);
         ModNetwork.sendStaffAnimation(player, unlocked
                 ? com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_UNLOCKED
                 : com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_LOCKED);
+        int tierAnim = tags.contains(TAG_STAMINA_END_UNLOCKED)
+                ? com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_240
+                : (tags.contains(TAG_STAMINA_NETHER_UNLOCKED)
+                        ? com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_170
+                        : com.velorise.staves.client.ClientAuraTracker.ANIM_STAMINA_TIER_100);
+        ModNetwork.sendStaffAnimation(player, tierAnim);
+    }
+
+    public static void handlePlayerDash(ServerPlayer player) {
+        if (!StavesConfig.isEnableCustomDash() || player == null || !player.isAlive() || player.isSpectator()) return;
+        if (player.getVehicle() != null || player.getAbilities().flying) return;
+        ServerLevel level = player.serverLevel();
+        if (level.getServer() == null) return;
+        long now = level.getServer().overworld().getGameTime();
+        long prev = LAST_DASH_TICK.getOrDefault(player.getUUID(), -100L);
+        if (now - prev < 2L) return;
+        LAST_DASH_TICK.put(player.getUUID(), now);
+
+        ArchonUltiManager.grantUltiIframe(player, 7);
+        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_DASH_IMPULSE);
+        level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.45F, 1.55F);
+        level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.15D, player.getZ(),
+                4, 0.22D, 0.08D, 0.22D, 0.04D);
     }
 
     public static boolean canHoldPlungeWeapon(Player player) {
@@ -122,6 +189,9 @@ public final class PlungeAndGliderManager {
             return !isWindGliderUnlocked(player);
         }
         if (item instanceof ArcaneStaffItem) {
+            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SHULKER) {
+                return true;
+            }
             return !player.getCooldowns().isOnCooldown(item) && !ElementalResonanceManager.isOverloaded(player);
         }
         if (item instanceof com.velorise.staves.item.MagicMirrorItem
@@ -241,6 +311,10 @@ public final class PlungeAndGliderManager {
         }
     }
 
+    public static void handleWallClimbState(ServerPlayer player, boolean climbing) {
+        // Wall climbing removed per user request
+    }
+
     public static void handleStartPlunge(ServerPlayer player) {
         if (!StavesConfig.isEnablePlungeAttack()) return;
         if (player == null || !player.isAlive() || player.isSpectator()) return;
@@ -304,12 +378,22 @@ public final class PlungeAndGliderManager {
         if (server == null) return;
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
+            checkStaminaMilestones(player);
             if (now % 40L == 0L) {
                 syncPlayerOnJoinOrRespawn(player);
             }
             AirState st = STATES.get(player.getUUID());
             if (st == null) continue;
             ServerLevel level = player.serverLevel();
+
+            if (st.wallClimbing) {
+                if (!StavesConfig.isEnableWallClimb() || player.onGround() || player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
+                    st.wallClimbing = false;
+                    ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_STEVE_WALL_CLIMB_OFF);
+                } else {
+                    player.fallDistance = 0.0F;
+                }
+            }
 
             if (st.gliding) {
                 if (player.isFallFlying()) {

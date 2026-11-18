@@ -107,6 +107,11 @@ public final class ClientInputHandler {
     private static int tsaritsaSpearHoldTick = 0;
     private static int lastSelectedHotbarSlot = -1;
 
+    public static float getFurinaCaHoldProgress() {
+        if (furinaAttackHoldTicks <= 0 || furinaCaTriggeredThisHold) return 0.0F;
+        return net.minecraft.util.Mth.clamp(furinaAttackHoldTicks / 10.0F, 0.0F, 1.0F);
+    }
+
     @Mod.EventBusSubscriber(modid = VeloriseStavesMod.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static final class ModBusEvents {
         @SubscribeEvent
@@ -121,8 +126,13 @@ public final class ClientInputHandler {
 
     @SubscribeEvent
     public static void onInteractionKeyTriggered(InputEvent.InteractionKeyMappingTriggered event) {
-        if (!event.isAttack()) return;
         Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null && ClientAuraTracker.isUltiCastActive(mc.player.getId())) {
+            event.setSwingHand(false);
+            event.setCanceled(true);
+            return;
+        }
+        if (!event.isAttack()) return;
         if (mc.player != null && (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease)) {
             if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
                 queuedFastAttackClicks++;
@@ -236,6 +246,45 @@ public final class ClientInputHandler {
             } else {
                 lastSelectedHotbarSlot = -1;
             }
+            if (mc.player != null) {
+                if (ClientAuraTracker.isGliding(mc.player.getId())
+                        && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
+                        && !mc.player.getAbilities().flying && mc.player.getVehicle() == null) {
+                    boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(mc.player);
+                    boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(mc.player);
+                    double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
+                    double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
+                    double maxSpeed = 0.42D * speedMult;
+                    double accel = 0.055D * speedMult;
+
+                    net.minecraft.world.phys.Vec3 vel = mc.player.getDeltaMovement();
+                    double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
+                    net.minecraft.world.phys.Vec3 look = mc.player.getLookAngle();
+                    net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
+                    double vx = vel.x;
+                    double vz = vel.z;
+                    if (horiz.lengthSqr() > 1.0E-4D && (mc.player.zza > 0.01F || mc.screen != null || Math.hypot(vx, vz) > 0.08D)) {
+                        horiz = horiz.normalize();
+                        vx = vx * 0.86D + horiz.x * accel;
+                        vz = vz * 0.86D + horiz.z * accel;
+                        double hs = Math.hypot(vx, vz);
+                        if (hs > maxSpeed) {
+                            vx = vx / hs * maxSpeed;
+                            vz = vz / hs * maxSpeed;
+                        }
+                    }
+                    mc.player.setDeltaMovement(vx, dy, vz);
+                    mc.player.fallDistance = 0.0F;
+                }
+                if (mc.screen != null) {
+                    ClientAuraTracker.tickLocalStaminaAndDash(
+                            mc.player,
+                            false,
+                            com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER,
+                            com.velorise.staves.network.MavuikaActionPacket.ACTION_PLAYER_DASH
+                    );
+                }
+            }
             if (mc.player == null || mc.screen != null) {
                 wasBikeDashDown = false;
                 bikeSprintActive = false;
@@ -272,9 +321,38 @@ public final class ClientInputHandler {
             mc.player.attackAnim = 0.0F;
             mc.player.oAttackAnim = 0.0F;
         }
-        if (ClientAuraTracker.isFiveStarBurstRootActive(mc.player.getId())) {
+        if (ClientAuraTracker.isUltiCastActive(mc.player.getId())) {
             mc.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+            mc.player.setSprinting(false);
+            if (mc.player.input != null) {
+                mc.player.input.forwardImpulse = 0.0F;
+                mc.player.input.leftImpulse = 0.0F;
+                mc.player.input.up = false;
+                mc.player.input.down = false;
+                mc.player.input.left = false;
+                mc.player.input.right = false;
+                mc.player.input.jumping = false;
+                mc.player.input.shiftKeyDown = false;
+            }
+            while (mc.options.keyAttack.consumeClick()) {}
+            while (mc.options.keyUse.consumeClick()) {}
+            while (mc.options.keyPickItem.consumeClick()) {}
+            while (mc.options.keyJump.consumeClick()) {}
+            while (mc.options.keySprint.consumeClick()) {}
+            while (mc.options.keyShift.consumeClick()) {}
+            while (mc.options.keyUp.consumeClick()) {}
+            while (mc.options.keyDown.consumeClick()) {}
+            while (mc.options.keyLeft.consumeClick()) {}
+            while (mc.options.keyRight.consumeClick()) {}
+            while (MAVUIKA_ULTI_KEY.consumeClick()) {}
+            return;
         }
+        ClientAuraTracker.tickLocalStaminaAndDash(
+                mc.player,
+                mc.options.keySprint.isDown(),
+                com.velorise.staves.network.MavuikaActionPacket.ACTION_TOGGLE_GLIDER,
+                com.velorise.staves.network.MavuikaActionPacket.ACTION_PLAYER_DASH
+        );
         while (OPEN_CONFIG_KEY.consumeClick()) {
             if (mc.screen == null) {
                 mc.setScreen(new VeloriseConfigScreen(null));
@@ -569,36 +647,6 @@ public final class ClientInputHandler {
                 wasCreativeFlying = false;
             } else if (mc.player.getAbilities().flying && !ClientAuraTracker.isGliding(mc.player.getId())) {
                 wasCreativeFlying = true;
-            }
-
-            if (ClientAuraTracker.isGliding(mc.player.getId())
-                    && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
-                    && !mc.player.getAbilities().flying) {
-                boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(mc.player);
-                boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(mc.player);
-                double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
-                double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
-                double maxSpeed = 0.42D * speedMult;
-                double accel = 0.055D * speedMult;
-
-                net.minecraft.world.phys.Vec3 vel = mc.player.getDeltaMovement();
-                double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
-                net.minecraft.world.phys.Vec3 look = mc.player.getLookAngle();
-                net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
-                double vx = vel.x;
-                double vz = vel.z;
-                if (horiz.lengthSqr() > 1.0E-4D && (mc.player.zza > 0.01F || Math.hypot(vx, vz) > 0.08D)) {
-                    horiz = horiz.normalize();
-                    vx = vx * 0.86D + horiz.x * accel;
-                    vz = vz * 0.86D + horiz.z * accel;
-                    double hs = Math.hypot(vx, vz);
-                    if (hs > maxSpeed) {
-                        vx = vx / hs * maxSpeed;
-                        vz = vz / hs * maxSpeed;
-                    }
-                }
-                mc.player.setDeltaMovement(vx, dy, vz);
-                mc.player.fallDistance = 0.0F;
             }
 
             KeyMapping activePlungeKey = PLUNGE_ATTACK_KEY.isUnbound() ? mc.options.keyAttack : PLUNGE_ATTACK_KEY;

@@ -776,5 +776,13 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Позволяет мотоциклу Мавуики взбираться по вертикальным скалам и стенам.",
   "config.velorise_staves.mavuika_bike_speed": "Скорость Пламехода",
   "config.velorise_staves.mavuika_bike_speed.desc": "Множитель скорости движения и подъёма по стенам для мотоцикла Мавуики (По умолч.: 1.0x).",
-  "item.velorise_staves.electro_rod": "Электро стержень"
+  "item.velorise_staves.electro_rod": "Электро стержень",
+  "config.velorise_staves.voice_char_lang.en_us": "EN",
+  "config.velorise_staves.voice_char_lang.zh_cn": "CN",
+  "config.velorise_staves.voice_char_lang.ja_jp": "JP",
+  "config.velorise_staves.enable_wall_climb": "Wall Climb",
+  "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
+  "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
 }

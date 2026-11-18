@@ -1,0 +1,26 @@
+{
+  "parent": "velorise_staves:take_my_ball",
+  "display": {
+    "icon": {
+      "item": "velorise_staves:the_daybreak_chronicles"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.the_wind_is_strong_today.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.the_wind_is_strong_today.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "the_wind_is_strong_today": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "the_wind_is_strong_today"
+      }
+    }
+  }
+}

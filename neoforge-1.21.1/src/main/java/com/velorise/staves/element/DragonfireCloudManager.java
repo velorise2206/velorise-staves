@@ -38,10 +38,12 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -61,6 +63,8 @@ public final class DragonfireCloudManager {
         public final boolean isNetherite;
         public final float radius;
         public final long startTick;
+        public int lastWaveIndex = -1;
+        public final Set<UUID> hitInCurrentWave = new HashSet<>();
 
         public CloudEntry(AreaEffectCloud cloud, ServerLevel level, @Nullable UUID ownerId, boolean isNetherite, float radius, long startTick) {
             this.cloud = cloud;
@@ -313,6 +317,7 @@ public final class DragonfireCloudManager {
             DRAGONFIRE_PET_POS.remove(id);
             DRAGONFIRE_PET_NEXT_ATK.remove(id);
             ArchonUltiManager.grantUltiIframe(player, 44);
+            ArchonUltiManager.applyBurstRoot(player, 17);
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SKYFALL);
 
             Vec3 launchPos = player.position().add(0.0D, 1.5D, 0.0D);
@@ -357,61 +362,67 @@ public final class DragonfireCloudManager {
                 sl.sendParticles(ParticleTypes.DRAGON_BREATH, impactPos.x, impactPos.y + 0.5D, impactPos.z, 65, halfExt * 0.45D, 0.4D, halfExt * 0.45D, 0.08D);
                 sl.sendParticles(ParticleTypes.END_ROD, impactPos.x, impactPos.y + 0.8D, impactPos.z, 28, halfExt * 0.4D, 0.5D, halfExt * 0.4D, 0.06D);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, impactPos.x, impactPos.y + 0.4D, impactPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.4F, 0.55F);
-                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.1F, 0.45F);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.4F, 0.50F);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.PLAYERS, 1.3F, 0.45F);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.BASALT_BREAK, SoundSource.PLAYERS, 1.2F, 0.48F);
                 sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 1.2F, 0.75F);
-                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 0.85F);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 0.75F);
                 sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 1.0F, 0.80F);
             });
         } else {
-            // Variant 2: Sweeping Strafe (Giant Dragon swoops in a curved arc skimming a 5m wide x 20m long corridor)
-            ArchonUltiManager.grantUltiIframe(player, 24);
+            // Variant 2: Sweeping Strafe (Giant Dragon swoops in a curved arc skimming a 5m wide x 20m long corridor over 1.00s / 20t)
+            ArchonUltiManager.grantUltiIframe(player, 32);
+            ArchonUltiManager.applyBurstRoot(player, 30);
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SWEEP);
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 1.0F, 0.90F);
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.PLAYERS, 1.1F, 0.85F);
 
-            ArchonUltiManager.scheduleBurstAction(player, 8, () -> {
-                if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
-                Vec3 origin = player.position();
-                Vec3 curLook = player.getLookAngle();
-                Vec3 fwd = new Vec3(curLook.x, 0.0D, curLook.z);
-                if (fwd.lengthSqr() < 1.0E-4D) fwd = lockedFwd;
-                else fwd = fwd.normalize();
+            final Vec3 origin = player.position();
+            final Vec3 sweepFwd = lockedFwd;
+            final double length = finalIsNeth ? 24.0D : 20.0D; // 20 blocks long (24m Netherite)
+            final double halfWidth = finalIsNeth ? 3.0D : 2.5D; // 5 blocks wide (6m Netherite)
+            final float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
+            final float sweepDmg = (finalIsNeth ? 18.0F : 12.0F) * scale;
+            final float gaugeU = finalIsNeth ? 3.5F : 3.0F;
+            final java.util.Set<UUID> hitTargets = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
-                double length = finalIsNeth ? 24.0D : 20.0D; // 20 blocks long (24m Netherite)
-                double halfWidth = finalIsNeth ? 3.0D : 2.5D; // 5 blocks wide (6m Netherite)
-                float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
-                float sweepDmg = (finalIsNeth ? 18.0F : 12.0F) * scale;
-                float gaugeU = finalIsNeth ? 3.5F : 3.0F;
-
-                Vec3 end = origin.add(fwd.scale(length));
-                AABB corridorBox = new AABB(origin, end).inflate(halfWidth + 1.0D, 2.5D, halfWidth + 1.0D);
-                for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, corridorBox,
-                        e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
-                    Vec3 rel = target.position().subtract(origin);
-                    double along = rel.x * fwd.x + rel.z * fwd.z;
-                    if (along < -0.5D || along > length + 0.5D) continue;
-                    double perpX = rel.x - fwd.x * along;
-                    double perpZ = rel.z - fwd.z * along;
-                    double perpDist = Math.sqrt(perpX * perpX + perpZ * perpZ);
-                    if (perpDist <= halfWidth + target.getBbWidth() * 0.5D) {
-                        target.invulnerableTime = 0;
-                        ElementalGaugeManager.applyElementBypassIcd(sl, target, Element.ELECTRO, gaugeU, player, sweepDmg);
+            for (int sliceTick = 2; sliceTick <= 20; sliceTick += 2) {
+                final double prevAlong = Math.max(-0.5D, ((sliceTick - 2) / 20.0D) * length - 1.5D);
+                final double curAlong = Math.min(length + 0.5D, (sliceTick / 20.0D) * length + 1.5D);
+                final int st = sliceTick;
+                ArchonUltiManager.scheduleBurstAction(player, sliceTick, () -> {
+                    if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
+                    Vec3 segStart = origin.add(sweepFwd.scale(Math.max(0.0D, prevAlong)));
+                    Vec3 segEnd = origin.add(sweepFwd.scale(Math.min(length, curAlong)));
+                    AABB segBox = new AABB(segStart, segEnd).inflate(halfWidth + 1.0D, 3.0D, halfWidth + 1.0D);
+                    for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, segBox,
+                            e -> e.isAlive() && !e.isSpectator() && e != player && !player.isAlliedTo(e))) {
+                        if (hitTargets.contains(target.getUUID())) continue;
+                        Vec3 rel = target.position().subtract(origin);
+                        double along = rel.x * sweepFwd.x + rel.z * sweepFwd.z;
+                        if (along < prevAlong || along > curAlong) continue;
+                        double perpX = rel.x - sweepFwd.x * along;
+                        double perpZ = rel.z - sweepFwd.z * along;
+                        double perpDist = Math.sqrt(perpX * perpX + perpZ * perpZ);
+                        if (perpDist <= halfWidth + target.getBbWidth() * 0.5D) {
+                            hitTargets.add(target.getUUID());
+                            target.invulnerableTime = 0;
+                            ElementalGaugeManager.applyElementBypassIcd(sl, target, Element.ELECTRO, gaugeU, player, sweepDmg);
+                        }
                     }
-                }
 
-                for (double d = 1.0D; d <= length; d += 1.5D) {
-                    Vec3 pt = origin.add(fwd.scale(d));
-                    sl.sendParticles(ParticleTypes.DRAGON_BREATH, pt.x, pt.y + 0.5D, pt.z, 10, halfWidth * 0.45D, 0.25D, halfWidth * 0.45D, 0.05D);
-                    sl.sendParticles(ParticleTypes.END_ROD, pt.x, pt.y + 0.8D, pt.z, 3, halfWidth * 0.35D, 0.2D, halfWidth * 0.35D, 0.03D);
+                    double midAlong = Math.max(0.5D, Math.min(length, (st / 20.0D) * length));
+                    Vec3 pt = origin.add(sweepFwd.scale(midAlong));
+                    sl.sendParticles(ParticleTypes.DRAGON_BREATH, pt.x, pt.y + 0.5D, pt.z, 12, halfWidth * 0.45D, 0.25D, halfWidth * 0.45D, 0.05D);
+                    sl.sendParticles(ParticleTypes.END_ROD, pt.x, pt.y + 0.8D, pt.z, 4, halfWidth * 0.35D, 0.2D, halfWidth * 0.35D, 0.03D);
                     ElectrifiedWaterManager.electrify(sl, BlockPos.containing(pt), halfWidth + 0.5D, 80, player, 1.0F);
                     DendroCoreManager.checkReactionsNear(sl, pt, halfWidth + 0.5D, Element.ELECTRO, player);
-                }
-                sl.playSound(null, origin.x + fwd.x * 5.0D, origin.y, origin.z + fwd.z * 5.0D,
-                        SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 1.05F, 0.90F);
-                sl.playSound(null, origin.x + fwd.x * 5.0D, origin.y, origin.z + fwd.z * 5.0D,
-                        SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.85F, 1.15F);
-            });
+                    if (st == 10) {
+                        sl.playSound(null, pt.x, pt.y, pt.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 1.05F, 0.90F);
+                        sl.playSound(null, pt.x, pt.y, pt.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.85F, 1.15F);
+                    }
+                });
+            }
         }
     }
 
@@ -519,7 +530,7 @@ public final class DragonfireCloudManager {
                 double orbitAng = (serverNow * 0.07D);
                 Vec3 desiredOrbit = player.position().add(Math.cos(orbitAng) * 1.55D, 1.45D + Math.sin(serverNow * 0.12D) * 0.18D, Math.sin(orbitAng) * 1.55D);
                 Vec3 curPetPos = DRAGONFIRE_PET_POS.getOrDefault(id, desiredOrbit);
-                if (curPetPos.distanceToSqr(player.position()) > 324.0D) { // > 18m away: teleport to master like Furina summons
+                if (curPetPos.distanceToSqr(player.position()) > 1024.0D) { // > 32m away: teleport to master
                     curPetPos = desiredOrbit;
                     level.sendParticles(ParticleTypes.PORTAL, curPetPos.x, curPetPos.y, curPetPos.z, 12, 0.25D, 0.25D, 0.25D, 0.05D);
                     level.playSound(null, BlockPos.containing(curPetPos), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.55F, 1.45F);
@@ -539,12 +550,14 @@ public final class DragonfireCloudManager {
                 long nextAtk = DRAGONFIRE_PET_NEXT_ATK.getOrDefault(id, 0L);
                 if (serverNow >= nextAtk) {
                     DRAGONFIRE_PET_NEXT_ATK.put(id, serverNow + 40L); // Attack every 2.0s (40 ticks)
-                    LivingEntity target = findNearestMiniDragonTarget(level, player, 12.0D);
+                    LivingEntity target = findNearestMiniDragonTarget(level, player, 20.0D);
                     if (target != null) {
                         boolean isNeth = DRAGONFIRE_PET_NETHERITE.getOrDefault(id, false);
                         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, isNeth);
                         float petDmg = (isNeth ? 3.0F : 2.0F) * scale; // 1.0 heart Basic / 1.5 hearts Netherite
                         Vec3 targetCenter = target.getBoundingBox().getCenter();
+                        double petAngle = (serverNow * 0.065D) % (Math.PI * 2.0D);
+                        ModNetwork.sendElectricArc(level, new Vec3(player.getId(), target.getId(), petAngle), targetCenter, 10, 0xFFDF00FF);
                         ModNetwork.sendElectricArc(level, curPetPos, targetCenter, 10, 0xFFD05CE3);
                         level.sendParticles(ParticleTypes.DRAGON_BREATH, targetCenter.x, targetCenter.y, targetCenter.z, 6, 0.2D, 0.2D, 0.2D, 0.02D);
                         level.playSound(null, BlockPos.containing(curPetPos), SoundEvents.ENDER_DRAGON_SHOOT, SoundSource.PLAYERS, 0.45F, 1.65F);
@@ -553,7 +566,7 @@ public final class DragonfireCloudManager {
                 }
             }
 
-            // B. Dragonfire 3D Idle Animation (standing still 3.0s while holding Dragonfire Scepter)
+            // B. Dragonfire 3D Idle Animation (standing still 20.0s while holding Dragonfire Scepter)
             boolean holdingDragonfire = isHoldingDragonfireWeapon(player);
             DragonfireIdleState st = DRAGONFIRE_IDLE_STATES.computeIfAbsent(id, k -> new DragonfireIdleState());
             boolean stoodStill = holdingDragonfire
@@ -569,7 +582,7 @@ public final class DragonfireCloudManager {
             st.lastStillPos = player.position();
             if (stoodStill) {
                 st.stillTicks++;
-                if (st.stillTicks >= 60 && !st.idleActive) {
+                if (st.stillTicks >= 400 && !st.idleActive) {
                     st.idleActive = true;
                     ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_IDLE_ON);
                 }
@@ -779,7 +792,12 @@ public final class DragonfireCloudManager {
             AreaEffectCloud cloud = entry.cloud;
             float radius = entry.radius;
             long age = Math.max(0L, now - entry.startTick);
+            int waveIdx = (int) (age / 20L);
             int phase = (int) (age % 20L);
+            if (waveIdx != entry.lastWaveIndex) {
+                entry.lastWaveIndex = waveIdx;
+                entry.hitInCurrentWave.clear();
+            }
 
             if (phase % 2 == 0) {
                 double progress = (double) (phase + 2) / 20.0D;
@@ -790,27 +808,36 @@ public final class DragonfireCloudManager {
                 );
             }
 
+            BlockPos center = cloud.blockPosition();
+            ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
+            Vec3 centerPos = cloud.position();
+
             if (age > 0L && phase == 0) {
-                BlockPos center = cloud.blockPosition();
-                ServerPlayer owner = entry.ownerId != null ? level.getServer().getPlayerList().getPlayer(entry.ownerId) : null;
+                ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
+                DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.ELECTRO, owner);
+                level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.45F, 1.75F);
+            }
+
+            // Skip wave 0 because initial impact damage was already applied; damage progressively as ring expands on wave >= 1
+            if (age >= 20L) {
+                double rPrev = Math.max(0.0D, ((double) phase / 20.0D - 0.15D) * radius);
+                double rCurr = ((double) (phase + 1) / 20.0D) * radius + 0.35D;
                 float damage = entry.isNetherite ? 2.7F : 1.8F;
                 float pulseU = entry.isNetherite ? 1.5F : 1.0F;
-
-                ElectrifiedWaterManager.electrify(level, center, radius + 0.5D, 25, owner, 1.0F);
-
-                Vec3 centerPos = cloud.position();
                 AABB box = new AABB(
                         centerPos.x - radius, centerPos.y - 1.0D, centerPos.z - radius,
                         centerPos.x + radius, centerPos.y + 2.0D, centerPos.z + radius
                 );
                 for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e.isAlive() && !e.isRemoved() && !e.isSpectator() && !(e instanceof Player p && p.isCreative()))) {
-                    ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, pulseU, owner, damage);
-                    MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.ELECTRO, null);
+                    if (entry.hitInCurrentWave.contains(target.getUUID())) continue;
+                    double sqDist = Math.max(Math.abs(target.getX() - centerPos.x), Math.abs(target.getZ() - centerPos.z)) - target.getBbWidth() * 0.5D;
+                    if (sqDist >= rPrev - 0.35D && sqDist <= rCurr) {
+                        entry.hitInCurrentWave.add(target.getUUID());
+                        ElementalGaugeManager.applyElementBypassIcd(level, target, Element.ELECTRO, pulseU, owner, damage);
+                        MobHazardAvoidanceManager.reportReactionOrHazard(target, owner, centerPos, Element.ELECTRO, null);
+                    }
                 }
-
-                DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.ELECTRO, owner);
-                level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.45F, 1.75F);
             }
         }
     }

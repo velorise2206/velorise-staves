@@ -598,6 +598,18 @@ public final class ArcaneStaffItem extends Item {
         if (hand == InteractionHand.OFF_HAND && isGenshinCharacterWeapon(stack)) {
             return InteractionResultHolder.pass(stack);
         }
+        // Shulker Seeker portable bag opens freely anytime regardless of cooldown or Overloaded
+        if (this.kind == Kind.SHULKER || (this.kind == Kind.OMNI && getEffectiveKind(stack) == Kind.SHULKER)) {
+            if (level.isClientSide()) {
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+            if (player instanceof ServerPlayer sp) {
+                boolean effNeth = this.isNetherite;
+                com.velorise.staves.inventory.ShulkerStaffMenu.open(sp, stack, hand, effNeth);
+                return InteractionResultHolder.consume(stack);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
         if (ElementalResonanceManager.isOnSwapCooldown(player)) {
             return InteractionResultHolder.fail(stack);
         }
@@ -789,10 +801,20 @@ public final class ArcaneStaffItem extends Item {
     public InteractionResultHolder<ItemStack> useDelegatedFromOmni(
             Level level, Player player, InteractionHand hand, ItemStack stack, ArcaneStaffItem omniOwner
     ) {
+        boolean effNeth = omniOwner.isNetherite() || this.isNetherite;
+        if (kind == Kind.SHULKER) {
+            if (level.isClientSide()) {
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+            if (player instanceof ServerPlayer sp) {
+                com.velorise.staves.inventory.ShulkerStaffMenu.open(sp, stack, hand, effNeth);
+                return InteractionResultHolder.consume(stack);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
         if (ElementalResonanceManager.isOnSwapCooldown(player) || ElementalResonanceManager.checkAndNotifyOverloaded(player)) {
             return InteractionResultHolder.fail(stack);
         }
-        boolean effNeth = omniOwner.isNetherite() || this.isNetherite;
         if (!level.isClientSide() && player instanceof ServerPlayer sp && kind != Kind.TSARITSA_BOW && kind != Kind.TSARITSA_SPEAR) {
             if (com.velorise.staves.element.TsaritsaManager.tryTriggerStellarPunishment(sp)) {
                 return InteractionResultHolder.sidedSuccess(stack, false);
@@ -1483,8 +1505,11 @@ public final class ArcaneStaffItem extends Item {
 
     public boolean triggerShulkerFromLeftClick(ServerPlayer player, ItemStack mainStack) {
         if (player == null || mainStack.isEmpty()) return false;
-        if (player.getCooldowns().isOnCooldown(mainStack.getItem())) return false;
         boolean isOmni = (this.kind == Kind.OMNI);
+        if (isOmni ? player.getCooldowns().isOnCooldown(mainStack.getItem())
+                : ElementalResonanceManager.isShulkerShootOnCooldown(player)) {
+            return false;
+        }
         ArcaneStaffItem shulkerStaff = isOmni
                 ? getAbsorbedStaffForElement(mainStack, Element.ELECTRO)
                 : this;
@@ -1576,27 +1601,25 @@ public final class ArcaneStaffItem extends Item {
     }
 
     /**
-     * Fires 1 homing Shulker Bullet per right-click (2-shot sequential burst / double-tap).
+     * Fires 1 smart A* homing Shulker Bullet per left-click (2-shot sequential burst / double-tap).
      */
     private boolean shootShulker(ServerPlayer player) {
         ServerLevel level = player.serverLevel();
         double range = 30.0D;
-        LivingEntity target = findTarget(player, range, 1.5D);
+        LivingEntity target = findShulkerAimTarget(player, range, 2.0D);
         String kindTag = isNetherite ? "netherite_shulker" : "shulker";
         Vec3 direction = player.getLookAngle().normalize();
         Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
-        ShulkerBullet projectile;
+        ShulkerBullet projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
         boolean finale = isThirdBurstShot(player);
+        prepareProjectile(projectile, player, kindTag, range, finale ? (0.85F) : 0.68F, direction);
+        projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
         if (target != null) {
-            projectile = new ShulkerBullet(level, player, target, Direction.Axis.Y);
-            projectile.moveTo(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z, player.getYRot(), player.getXRot());
-            projectile.setDeltaMovement(direction.scale(finale ? 0.78D : 0.55D));
-            projectile.getPersistentData().putString(ArcaneStaffEvents.TAG_KIND, kindTag);
-            ArcaneStaffEvents.markRange(projectile, player.position(), range);
-        } else {
-            projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
-            prepareProjectile(projectile, player, kindTag, range, finale ? (1.25F * 1.35F) : 1.25F, direction);
-            projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
+            projectile.getPersistentData().putUUID("VeloriseShulkerTarget", target.getUUID());
+            Vec3 toTarget = target.getBoundingBox().getCenter().subtract(projectile.position());
+            if (toTarget.lengthSqr() > 1.0E-4D) {
+                projectile.setDeltaMovement(toTarget.normalize().scale(finale ? 0.85D : 0.68D));
+            }
         }
         if (finale) {
             projectile.addTag("velorise_staves:finale_shot");
@@ -1605,6 +1628,27 @@ public final class ArcaneStaffItem extends Item {
         level.addFreshEntity(projectile);
         level.playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, 0.8F, 1.15F);
         return true;
+    }
+
+    public static @Nullable LivingEntity findShulkerAimTarget(Player player, double range, double beamRadius) {
+        if (player == null || player.level() == null) return null;
+        Vec3 start = player.getEyePosition();
+        Vec3 direction = player.getLookAngle().normalize();
+        AABB search = player.getBoundingBox().expandTowards(direction.scale(range)).inflate(beamRadius + 2.0D);
+        return player.level().getEntitiesOfClass(LivingEntity.class, search,
+                target -> target.isAlive()
+                        && target != player
+                        && !target.isSpectator()
+                        && !player.isAlliedTo(target)
+                        && !(target instanceof net.minecraft.world.entity.npc.AbstractVillager)
+                        && !(target instanceof Player p && p.isCreative())
+                        && player.hasLineOfSight(target))
+            .stream()
+            .filter(target -> distanceFromRay(start, direction, target.getBoundingBox().getCenter(), range)
+                <= beamRadius + target.getBbWidth() * 0.5D)
+            .min(Comparator.comparingDouble(target -> distanceFromRay(start, direction, target.getBoundingBox().getCenter(), range)
+                + projection(start, direction, target.getBoundingBox().getCenter()) * 0.08D))
+            .orElse(null);
     }
 
     private boolean shootWind(ServerPlayer player) {

@@ -75,6 +75,23 @@ public final class ClientAuraTracker {
     public static final int ANIM_DRAGONFIRE_IDLE_ON = 4072;
     public static final int ANIM_DRAGONFIRE_ULTI_SKYFALL = 4073;
     public static final int ANIM_DRAGONFIRE_ULTI_SWEEP = 4074;
+    public static final int ANIM_STEVE_WALL_CLIMB_ON = 4080;
+    public static final int ANIM_STEVE_WALL_CLIMB_OFF = 4081;
+    public static final int ANIM_STAMINA_TIER_100 = 86;
+    public static final int ANIM_STAMINA_TIER_170 = 87;
+    public static final int ANIM_STAMINA_TIER_240 = 88;
+    public static final int ANIM_DASH_IMPULSE = 89;
+
+    public static volatile float localMaxStamina = 100.0F;
+    public static volatile float localStamina = 100.0F;
+    public static volatile int localStaminaRegenDelayTicks = 0;
+    public static volatile boolean localStaminaExhausted = false;
+    public static volatile int localStaminaFullHideTicks = 0;
+    private static boolean wasSprintKeyDownForDash = false;
+    private static int localDashCooldownTicks = 0;
+    private static int localDashChainCount = 0;
+    private static int localDashChainResetTicks = 0;
+    private static boolean localSteveWallClimbing = false;
 
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
@@ -120,7 +137,15 @@ public final class ClientAuraTracker {
         public long jadeShieldUntil = 0L;
         public long nightsFocusUntil = 0L;
         public long laylaDreamsphereUntil = 0L;
+        public long laylaDreamsphereStartMs = 0L;
+        public net.minecraft.world.phys.Vec3 laylaDreamsphereAnchorPos = null;
         public long dragonfirePetUntil = 0L;
+        public long dragonfirePetAttackUntilMs = 0L;
+        public int dragonfirePetTargetId = -1;
+        public net.minecraft.world.phys.Vec3 dragonfirePetAttackTarget = null;
+        public float dragonfirePetOrbitAngle = 0.0F;
+        public long dragonfirePetOrbitLastMs = 0L;
+        public net.minecraft.world.phys.Vec3 dragonfirePetMouthWorldPos = null;
         public boolean dragonfireIdle = false;
         public float dragonfireIdleFade = 0.0F;
         public long dragonfireIdleStartMs = 0L;
@@ -128,6 +153,12 @@ public final class ClientAuraTracker {
         public boolean dragonfireIdleYawSet = false;
         public float dragonfireUltiYaw = 0.0F;
         public boolean dragonfireUltiYawSet = false;
+        public long nahidaNaPlatformUntilMs = 0L;
+        public float nahidaNaPlatformFade = 0.0F;
+        public long nahidaNaPlatformLastMs = 0L;
+        public boolean steveWallClimbing = false;
+        public float steveWallClimbFade = 0.0F;
+        public long steveWallClimbLastMs = 0L;
         public int nightsFocusStars = 0;
         public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
@@ -158,6 +189,7 @@ public final class ClientAuraTracker {
         public long xilonenSamplesUntil = 0L;
         public boolean gliding = false;
         public boolean plunging = false;
+        public float dashPoseFade = 0.0F;
         public long neuvilletteActiveUntil = 0L;
         public boolean neuvilletteFiringBeam = false;
         public int neuvilletteChargeProgress = 0;
@@ -422,6 +454,17 @@ public final class ClientAuraTracker {
 
     public static void addArc(int fromId, net.minecraft.world.phys.Vec3 start, int toId, net.minecraft.world.phys.Vec3 end, int durationTicks, int color) {
         long now = System.currentTimeMillis();
+        if (color == 0xFFDF00FF && start != null) {
+            int ownerId = (int) Math.round(start.x);
+            int tgtId = (int) Math.round(start.y);
+            if (ownerId > 0) {
+                AuraDisplayData entry = DATA.computeIfAbsent(ownerId, k -> new AuraDisplayData());
+                entry.dragonfirePetAttackUntilMs = now + 450L;
+                entry.dragonfirePetTargetId = tgtId;
+                entry.dragonfirePetAttackTarget = end;
+            }
+            return;
+        }
         long nextExpire = now + (durationTicks > 0 ? (long) durationTicks * 50L : 400L);
         if ((fromId == -2 || fromId == -5 || fromId == -6) && start != null) {
             for (ActiveArc existing : ACTIVE_ARCS) {
@@ -441,9 +484,35 @@ public final class ClientAuraTracker {
         }
         ActiveArc arc = new ActiveArc();
         boolean isNahidaWorldVfx = ((color & 0xFFFF0000) == 0x4E410000) || ((color & 0xFFFF0000) == 0x4E420000);
-        arc.fromEntityId = isNahidaWorldVfx ? -8 : fromId;
-        arc.start = start;
-        arc.toEntityId = isNahidaWorldVfx ? -8 : toId;
+        int resolvedFromId = isNahidaWorldVfx ? -8 : fromId;
+        net.minecraft.world.phys.Vec3 resolvedStart = start;
+        int resolvedToId = isNahidaWorldVfx ? -8 : toId;
+        if (color == 0xFFD05CE3 && start != null) {
+            int bestOwner = -1;
+            int bestTargetId = -1;
+            net.minecraft.world.phys.Vec3 bestMouth = null;
+            for (Map.Entry<Integer, AuraDisplayData> e : DATA.entrySet()) {
+                AuraDisplayData d = e.getValue();
+                if (d != null && now <= d.dragonfirePetAttackUntilMs) {
+                    bestOwner = e.getKey();
+                    bestTargetId = d.dragonfirePetTargetId;
+                    bestMouth = d.dragonfirePetMouthWorldPos;
+                    break;
+                }
+            }
+            if (bestOwner > 0) {
+                resolvedFromId = -10000 - bestOwner;
+                if (bestMouth != null) {
+                    resolvedStart = bestMouth;
+                }
+                if (bestTargetId > 0) {
+                    resolvedToId = bestTargetId;
+                }
+            }
+        }
+        arc.fromEntityId = resolvedFromId;
+        arc.start = resolvedStart;
+        arc.toEntityId = resolvedToId;
         arc.end = end;
         arc.startTime = now;
         arc.expireTime = nextExpire;
@@ -475,6 +544,31 @@ public final class ClientAuraTracker {
         }
         if (animType == ANIM_GLIDER_LOCKED) {
             localWindGliderUnlocked = false;
+            return;
+        }
+        if (animType == ANIM_STAMINA_TIER_100) {
+            localMaxStamina = 100.0F;
+            if (localStamina > 100.0F) localStamina = 100.0F;
+            return;
+        }
+        if (animType == ANIM_STAMINA_TIER_170) {
+            boolean upgraded = localMaxStamina < 170.0F;
+            localMaxStamina = 170.0F;
+            if (upgraded) {
+                localStamina = 170.0F;
+                localStaminaExhausted = false;
+                localStaminaFullHideTicks = 60;
+            }
+            return;
+        }
+        if (animType == ANIM_STAMINA_TIER_240) {
+            boolean upgraded = localMaxStamina < 240.0F;
+            localMaxStamina = 240.0F;
+            if (upgraded) {
+                localStamina = 240.0F;
+                localStaminaExhausted = false;
+                localStaminaFullHideTicks = 60;
+            }
             return;
         }
         if (animType == ANIM_XILONEN_JUMP_FLIP) {
@@ -670,7 +764,12 @@ public final class ClientAuraTracker {
             entry.dragonfireUltiYawSet = false;
             entry.staffAnimType = animType;
             entry.staffAnimStartTime = now;
-            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 850L : 900L);
+            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 850L : 1500L);
+            return;
+        }
+        if (animType == ANIM_STEVE_WALL_CLIMB_ON || animType == ANIM_STEVE_WALL_CLIMB_OFF) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.steveWallClimbing = (animType == ANIM_STEVE_WALL_CLIMB_ON);
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -704,7 +803,15 @@ public final class ClientAuraTracker {
         }
         if (animType == ANIM_LAYLA_DREAMSPHERE) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.laylaDreamsphereStartMs = now;
             entry.laylaDreamsphereUntil = now + 12500L;
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.level != null) {
+                net.minecraft.world.entity.Entity caster = mc.level.getEntity(entityId);
+                if (caster != null) {
+                    entry.laylaDreamsphereAnchorPos = caster.position().add(0.0D, 2.75D, 0.0D);
+                }
+            }
             return;
         }
         if (animType >= 10 && animType <= 14) {
@@ -734,6 +841,9 @@ public final class ClientAuraTracker {
             return;
         }
         AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+        if (animType >= ANIM_NAHIDA_NA_1 && animType <= ANIM_NAHIDA_NA_4) {
+            entry.nahidaNaPlatformUntilMs = now + 950L;
+        }
         if (animType == ANIM_XILONEN_SKATE_DASH) {
             entry.xilonenJumpFlipUntil = 0L;
         }
@@ -788,6 +898,7 @@ public final class ClientAuraTracker {
             case ANIM_TSARITSA_BURST_DPS -> 2000L;
             case ANIM_TSARITSA_PUNISHMENT -> 520L;
             case ANIM_TSARITSA_UNSEAL -> 650L;
+            case ANIM_DASH_IMPULSE -> 380L;
             default -> 600L;
         };
         if (animType == ANIM_VENTI_SKILL_E) {
@@ -1047,7 +1158,7 @@ public final class ClientAuraTracker {
             }
         }
 
-        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && (!entry.nahidaIdleSwing && entry.nahidaIdleSwingFade <= 0.01F) && (!entry.zhongliIdleMeteor && entry.zhongliIdleFade <= 0.01F) && (!entry.raidenIdle && entry.raidenIdleFade <= 0.01F) && (!entry.mavuikaIdle && entry.mavuikaIdleFade <= 0.01F) && (entry.furinaIdleMode == 0 && entry.furinaIdleFade <= 0.01F) && (!entry.ventiIdle && entry.ventiIdleFade <= 0.01F) && (!entry.tsaritsaIdle && entry.tsaritsaIdleFade <= 0.01F) && (!entry.nahidaViewfinder && entry.nahidaViewfinderFade <= 0.01F) && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.nahidaWeaponHideUntil + 550L <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
+        if (entry.elements.isEmpty() && entry.permanentInnateElements.isEmpty() && entry.permanentInnateElement == null && !entry.permanentOmniInnate && !entry.isFrozen && entry.jadeShieldUntil <= now && entry.nightsFocusUntil <= now && entry.staffAnimUntil <= now && !entry.gliding && !entry.plunging && !entry.xilonenSkating && entry.xilonenSamplesUntil <= now && entry.neuvilletteActiveUntil <= now && entry.dragonfirePetUntil <= now && (!entry.dragonfireIdle && entry.dragonfireIdleFade <= 0.01F) && (!entry.nahidaIdleSwing && entry.nahidaIdleSwingFade <= 0.01F) && (!entry.zhongliIdleMeteor && entry.zhongliIdleFade <= 0.01F) && (!entry.raidenIdle && entry.raidenIdleFade <= 0.01F) && (!entry.mavuikaIdle && entry.mavuikaIdleFade <= 0.01F) && (entry.furinaIdleMode == 0 && entry.furinaIdleFade <= 0.01F) && (!entry.ventiIdle && entry.ventiIdleFade <= 0.01F) && (!entry.tsaritsaIdle && entry.tsaritsaIdleFade <= 0.01F) && (!entry.nahidaViewfinder && entry.nahidaViewfinderFade <= 0.01F) && entry.skandhaMarkedUntil <= now && entry.nahidaShrineUntil <= now && entry.nahidaWeaponHideUntil + 550L <= now && entry.tsaritsaSyncUntil <= now && entry.reactionUntil <= now && entry.dualUntil <= now && entry.damageUntil <= now) {
             DATA.remove(entityId);
         }
     }
@@ -1249,14 +1360,16 @@ public final class ClientAuraTracker {
                 || anim == ANIM_GLIDER_START || anim == ANIM_GLIDER_STOP
                 || anim == ANIM_GLIDER_UNLOCKED || anim == ANIM_GLIDER_LOCKED
                 || anim == ANIM_DRAGONFIRE_PET_OFF || anim == ANIM_DRAGONFIRE_PET_ON
-                || anim == ANIM_DRAGONFIRE_IDLE_ON) {
+                || anim == ANIM_DRAGONFIRE_IDLE_ON
+                || anim == ANIM_DASH_IMPULSE
+                || anim == ANIM_STAMINA_TIER_100 || anim == ANIM_STAMINA_TIER_170 || anim == ANIM_STAMINA_TIER_240) {
             return false;
         }
         if (anim == ANIM_DRAGONFIRE_ULTI_SKYFALL) {
             return (now - data.staffAnimStartTime) < 850L;
         }
         if (anim == ANIM_DRAGONFIRE_ULTI_SWEEP) {
-            return (now - data.staffAnimStartTime) < 900L;
+            return (now - data.staffAnimStartTime) < 1500L;
         }
         return true;
     }
@@ -1399,19 +1512,200 @@ public final class ClientAuraTracker {
         return data != null && System.currentTimeMillis() < data.laylaDreamsphereUntil;
     }
 
+    public static java.util.Collection<AuraDisplayData> getAllDisplayData() {
+        return DATA.values();
+    }
+
     public static boolean isFiveStarBurstRootActive(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         if (data == null || System.currentTimeMillis() >= data.staffAnimUntil) return false;
         int anim = data.staffAnimType;
         return anim == ANIM_ZHONGLI_PLANET_BEFALL
+                || anim == ANIM_ZHONGLI_PLANET_BEFALL_FIRST
+                || anim == ANIM_VORTEX_HOLD_BURST
                 || anim == ANIM_VENTI_BURST
                 || anim == ANIM_NAHIDA_BURST
                 || anim == ANIM_FURINA_BURST
                 || anim == ANIM_NEUVILLETTE_BURST
                 || anim == ANIM_RAIDEN_DRAW
                 || anim == ANIM_XILONEN_BURST
+                || anim == ANIM_MAVUIKA_BURST
+                || anim == ANIM_LAYLA_BURST
                 || anim == ANIM_TSARITSA_BURST_SUPPORT
-                || anim == ANIM_TSARITSA_BURST_DPS;
+                || anim == ANIM_TSARITSA_BURST_DPS
+                || anim == ANIM_DRAGONFIRE_ULTI_SKYFALL
+                || anim == ANIM_DRAGONFIRE_ULTI_SWEEP;
+    }
+
+    public static void resetLocalStaminaState() {
+        localStamina = localMaxStamina;
+        localStaminaRegenDelayTicks = 0;
+        localStaminaExhausted = false;
+        localStaminaFullHideTicks = 0;
+        wasSprintKeyDownForDash = false;
+        localDashCooldownTicks = 0;
+        localDashChainCount = 0;
+        localDashChainResetTicks = 0;
+        localSteveWallClimbing = false;
+    }
+
+    private static boolean isPlayerFacingWallForClimb(net.minecraft.client.player.LocalPlayer player) {
+        if (player == null || player.level() == null) return false;
+        double yawRad = Math.toRadians(player.getYRot());
+        double fx = -Math.sin(yawRad);
+        double fz = Math.cos(yawRad);
+        net.minecraft.world.phys.AABB frontLower = player.getBoundingBox().move(fx * 0.28D, 0.25D, fz * 0.28D);
+        net.minecraft.world.phys.AABB frontUpper = player.getBoundingBox().move(fx * 0.28D, 1.05D, fz * 0.28D);
+        boolean lowerSolid = !player.level().noCollision(player, frontLower);
+        boolean upperSolid = !player.level().noCollision(player, frontUpper);
+        return lowerSolid && (player.horizontalCollision || upperSolid);
+    }
+
+    public static void tickLocalStaminaAndDash(
+            net.minecraft.client.player.LocalPlayer player,
+            boolean sprintKeyDown,
+            byte toggleGliderAction,
+            byte dashAction
+    ) {
+        if (player == null || !player.isAlive() || player.isSpectator()) {
+            wasSprintKeyDownForDash = false;
+            localDashChainCount = 0;
+            localDashChainResetTicks = 0;
+            if (localSteveWallClimbing) {
+                localSteveWallClimbing = false;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 30);
+            }
+            return;
+        }
+        if (localDashCooldownTicks > 0) {
+            localDashCooldownTicks--;
+        }
+        if (localDashChainResetTicks > 0) {
+            localDashChainResetTicks--;
+            if (localDashChainResetTicks == 0) {
+                localDashChainCount = 0;
+            }
+        }
+
+        boolean customStamina = com.velorise.staves.config.StavesConfig.isEnableCustomStamina();
+        boolean customDash = com.velorise.staves.config.StavesConfig.isEnableCustomDash();
+        boolean creative = player.isCreative();
+        int pid = player.getId();
+
+        if (!customStamina) {
+            localStamina = localMaxStamina;
+            localStaminaExhausted = false;
+            localStaminaRegenDelayTicks = 0;
+            localStaminaFullHideTicks = 0;
+        }
+
+        boolean blocked = isUltiCastActive(pid)
+                || isFrozen(pid)
+                || player.getVehicle() != null
+                || isPlunging(pid)
+                || isGliding(pid)
+                || isXilonenSkating(pid)
+                || isNeuvilletteChargingOrFiring(pid)
+                || player.getAbilities().flying
+                || player.isUsingItem();
+
+        if (customDash && sprintKeyDown && !wasSprintKeyDownForDash && !blocked && localDashCooldownTicks <= 0
+                && (player.onGround() || player.isInWater())) {
+            boolean enoughStamina = !customStamina || creative || (!localStaminaExhausted && localStamina >= 18.0F);
+            if (enoughStamina) {
+                if (customStamina && !creative) {
+                    localStamina = Math.max(0.0F, localStamina - 18.0F);
+                    localStaminaRegenDelayTicks = 30;
+                    if (localStamina <= 0.01F) {
+                        localStamina = 0.0F;
+                        localStaminaExhausted = true;
+                    }
+                }
+                localDashChainCount++;
+                if (localDashChainCount >= 2) {
+                    localDashChainCount = 0;
+                    localDashChainResetTicks = 0;
+                    localDashCooldownTicks = 16;
+                } else {
+                    localDashChainResetTicks = 28;
+                    localDashCooldownTicks = 3;
+                }
+                triggerStaffAnimation(pid, ANIM_DASH_IMPULSE);
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(dashAction);
+
+                float fwdIn = player.input != null ? player.input.forwardImpulse : 0.0F;
+                float leftIn = player.input != null ? player.input.leftImpulse : 0.0F;
+                double yawRad = Math.toRadians(player.getYRot());
+                double fwdX = -Math.sin(yawRad);
+                double fwdZ = Math.cos(yawRad);
+                double leftX = Math.cos(yawRad);
+                double leftZ = Math.sin(yawRad);
+                double dirX = fwdX * fwdIn + leftX * leftIn;
+                double dirZ = fwdZ * fwdIn + leftZ * leftIn;
+                double len = Math.hypot(dirX, dirZ);
+                if (len < 1.0E-4D) {
+                    dirX = fwdX;
+                    dirZ = fwdZ;
+                } else {
+                    dirX /= len;
+                    dirZ /= len;
+                }
+                double dashSpeed = player.isInWater() ? 0.44D : 0.72D;
+                net.minecraft.world.phys.Vec3 curVel = player.getDeltaMovement();
+                player.setDeltaMovement(dirX * dashSpeed, Math.max(curVel.y, 0.0D), dirZ * dashSpeed);
+                if (!customStamina || creative || !localStaminaExhausted) {
+                    player.setSprinting(true);
+                }
+            }
+        }
+        wasSprintKeyDownForDash = sprintKeyDown;
+
+        if (customDash && sprintKeyDown && !blocked && (!customStamina || creative || !localStaminaExhausted)
+                && player.input != null && player.input.forwardImpulse > 0.01F && !player.isShiftKeyDown()) {
+            player.setSprinting(true);
+        }
+
+        if (customStamina && !creative) {
+            boolean glidingNow = isGliding(pid) && !player.onGround() && !player.getAbilities().flying && player.getVehicle() == null;
+            boolean sprintingNow = !glidingNow && player.isSprinting() && !player.getAbilities().flying
+                    && player.getVehicle() == null && !isXilonenSkating(pid) && !blocked;
+            if (glidingNow) {
+                float drain = com.velorise.staves.element.VentiManager.hasVentiWeapon(player) ? 0.15F : 0.30F;
+                localStamina = Math.max(0.0F, localStamina - drain);
+                localStaminaRegenDelayTicks = 25;
+                if (localStamina <= 0.0F) {
+                    localStamina = 0.0F;
+                    localStaminaExhausted = true;
+                    stopGliding(pid);
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(toggleGliderAction);
+                }
+            } else if (sprintingNow) {
+                localStamina = Math.max(0.0F, localStamina - 0.45F);
+                localStaminaRegenDelayTicks = 25;
+                if (localStamina <= 0.0F) {
+                    localStamina = 0.0F;
+                    localStaminaExhausted = true;
+                    player.setSprinting(false);
+                }
+            } else {
+                if (localStaminaRegenDelayTicks > 0) {
+                    localStaminaRegenDelayTicks--;
+                } else if (localStamina < localMaxStamina) {
+                    localStamina = Math.min(localMaxStamina, localStamina + 1.25F);
+                }
+                if (localStaminaExhausted && localStamina >= 20.0F) {
+                    localStaminaExhausted = false;
+                }
+            }
+            if (localStaminaExhausted) {
+                player.setSprinting(false);
+            }
+            if (localStamina < localMaxStamina - 0.01F) {
+                localStaminaFullHideTicks = 35;
+            } else if (localStaminaFullHideTicks > 0) {
+                localStaminaFullHideTicks--;
+            }
+        }
     }
 
     public static boolean isNeuvilletteChargingOrFiring(int entityId) {
@@ -1664,6 +1958,8 @@ public final class ClientAuraTracker {
         localOverloaded = false;
         localStaffCount = 0;
         localWindGliderUnlocked = false;
+        localMaxStamina = 100.0F;
+        resetLocalStaminaState();
         localTsaritsaHoldETicks = 0;
         localTsaritsaHoldELocked = false;
         localTsaritsaBowPullTicks = 0;
@@ -1673,6 +1969,7 @@ public final class ClientAuraTracker {
         com.velorise.staves.client.character.VentiVisualRenderer.clearClientCaches();
         com.velorise.staves.client.character.TsaritsaVisualRenderer.clearClientCaches();
         com.velorise.staves.client.character.MavuikaVisualRenderer.clearClientCaches();
+        com.velorise.staves.client.character.DragonfireVisualRenderer.clearClientCaches();
     }
 
     public static @Nullable Element getTrackedCrystallizeShield() {

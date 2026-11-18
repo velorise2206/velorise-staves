@@ -2,13 +2,19 @@ package com.velorise.staves.advancement;
 
 import com.velorise.staves.VeloriseStavesMod;
 import com.velorise.staves.item.ArcaneStaffItem;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ModAdvancements {
     public static final String EVENT_FIRST_REACTION = "first_reaction";
@@ -37,6 +43,7 @@ public final class ModAdvancements {
     public static final String EVENT_BROKEN_CONTRACT = "broken_contract";
     public static final String EVENT_WEB_DEVELOPER = "web_developer";
     public static final String EVENT_TAKE_MY_BALL = "take_my_ball";
+    public static final String EVENT_THE_WIND_IS_STRONG_TODAY = "the_wind_is_strong_today";
     public static final String EVENT_GEO_ARCHITECT = "geo_architect";
     public static final String EVENT_HIDDEN_PYRO = "hidden_pyro";
     public static final String EVENT_HIDDEN_HYDRO = "hidden_hydro";
@@ -68,6 +75,87 @@ public final class ModAdvancements {
         try {
             VeloriseStavesMod.ADVANCEMENT_TRIGGER.get().trigger(player, event);
         } catch (Exception ignored) {}
+    }
+
+    private static final class VentiLaunchRecord {
+        final UUID casterId;
+        final ResourceKey<Level> dimension;
+        final double startY;
+        long expireTick;
+        boolean leftGround;
+
+        VentiLaunchRecord(UUID casterId, ResourceKey<Level> dimension, double startY, long expireTick) {
+            this.casterId = casterId;
+            this.dimension = dimension;
+            this.startY = startY;
+            this.expireTick = expireTick;
+            this.leftGround = false;
+        }
+    }
+
+    private static final Map<Integer, VentiLaunchRecord> VENTI_LAUNCH_TRACKER = new ConcurrentHashMap<>();
+
+    public static void clearAll() {
+        VENTI_LAUNCH_TRACKER.clear();
+    }
+
+    public static void recordVentiWindLaunch(@Nullable ServerPlayer caster, @Nullable LivingEntity target) {
+        if (caster == null || target == null || !target.isAlive() || target == caster || caster.level().isClientSide()) {
+            return;
+        }
+        if (!(target.level() instanceof ServerLevel targetLevel) || targetLevel.getServer() == null) {
+            return;
+        }
+        long now = targetLevel.getServer().overworld().getGameTime();
+        int entityId = target.getId();
+        VentiLaunchRecord existing = VENTI_LAUNCH_TRACKER.get(entityId);
+        double curY = target.getY();
+        if (existing == null || now > existing.expireTick || existing.dimension != targetLevel.dimension() || target.onGround()) {
+            existing = new VentiLaunchRecord(caster.getUUID(), targetLevel.dimension(), curY, now + 240L);
+            VENTI_LAUNCH_TRACKER.put(entityId, existing);
+        } else {
+            existing.expireTick = now + 240L;
+        }
+        if (curY - existing.startY >= 75.0D) {
+            VENTI_LAUNCH_TRACKER.remove(entityId);
+            trigger(caster, EVENT_THE_WIND_IS_STRONG_TODAY);
+        }
+    }
+
+    public static void tickVentiWindLaunches(@Nullable MinecraftServer server, long serverNow) {
+        if (server == null || VENTI_LAUNCH_TRACKER.isEmpty()) return;
+        for (Map.Entry<Integer, VentiLaunchRecord> entry : VENTI_LAUNCH_TRACKER.entrySet()) {
+            Integer entityId = entry.getKey();
+            VentiLaunchRecord rec = entry.getValue();
+            if (serverNow > rec.expireTick) {
+                VENTI_LAUNCH_TRACKER.remove(entityId, rec);
+                continue;
+            }
+            ServerLevel lvl = server.getLevel(rec.dimension);
+            if (lvl == null) {
+                VENTI_LAUNCH_TRACKER.remove(entityId, rec);
+                continue;
+            }
+            Entity entity = lvl.getEntity(entityId);
+            if (!(entity instanceof LivingEntity living) || !living.isAlive()) {
+                VENTI_LAUNCH_TRACKER.remove(entityId, rec);
+                continue;
+            }
+            if (!living.onGround() || living.getDeltaMovement().y > 0.08D) {
+                rec.leftGround = true;
+            }
+            if (living.getY() - rec.startY >= 75.0D) {
+                VENTI_LAUNCH_TRACKER.remove(entityId, rec);
+                ServerPlayer caster = server.getPlayerList().getPlayer(rec.casterId);
+                if (caster != null) {
+                    trigger(caster, EVENT_THE_WIND_IS_STRONG_TODAY);
+                }
+                continue;
+            }
+            if (rec.leftGround && living.onGround() && living.getDeltaMovement().y <= 0.01D) {
+                VENTI_LAUNCH_TRACKER.remove(entityId, rec);
+            }
+        }
     }
 
     public static void handleLivingDeath(@Nullable LivingEntity entity) {

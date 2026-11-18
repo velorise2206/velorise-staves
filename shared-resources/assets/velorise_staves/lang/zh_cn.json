@@ -776,5 +776,13 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "允许玛薇卡的焚曜千阳驰轮车像原神一样垂直攀爬峭壁与墙面。",
   "config.velorise_staves.mavuika_bike_speed": "驰轮车速度倍率",
   "config.velorise_staves.mavuika_bike_speed.desc": "玛薇卡驰轮车的行驶与攀岩速度倍率（默认：1.0x）。",
-  "item.velorise_staves.electro_rod": "雷之杖杆"
+  "item.velorise_staves.electro_rod": "雷之杖杆",
+  "config.velorise_staves.voice_char_lang.en_us": "EN",
+  "config.velorise_staves.voice_char_lang.zh_cn": "CN",
+  "config.velorise_staves.voice_char_lang.ja_jp": "JP",
+  "config.velorise_staves.enable_wall_climb": "Wall Climb",
+  "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
+  "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
 }

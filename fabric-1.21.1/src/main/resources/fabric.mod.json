@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "velorise_staves",
   "version": "${version}",
-  "name": "Velorise's Staves",
+  "name": "Velorise's Staves & Elements",
   "description": "Vanilla-friendly magic staves and utility artifacts powered by durability and cooldowns.",
   "authors": [
     "hungbbdzz"

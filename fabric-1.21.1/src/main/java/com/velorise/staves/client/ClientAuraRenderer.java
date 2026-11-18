@@ -6,6 +6,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.client.character.DragonfireVisualRenderer;
+import com.velorise.staves.client.character.LaylaVisualRenderer;
 import com.velorise.staves.client.character.MavuikaVisualRenderer;
 import com.velorise.staves.client.character.NahidaVisualRenderer;
 import com.velorise.staves.client.character.NeuvilletteVisualRenderer;
@@ -141,6 +143,36 @@ public final class ClientAuraRenderer {
                             .createCompositeState(true)
             );
         }
+        public static final RenderType CROSSHAIR_CONTRAST = RenderType.create(
+                "velorise_crosshair_contrast",
+                DefaultVertexFormat.POSITION_COLOR,
+                VertexFormat.Mode.QUADS,
+                1536,
+                false,
+                true,
+                RenderType.CompositeState.builder()
+                        .setShaderState(POSITION_COLOR_SHADER)
+                        .setTransparencyState(new RenderStateShard.TransparencyStateShard(
+                                "crosshair_invert",
+                                () -> {
+                                    RenderSystem.enableBlend();
+                                    RenderSystem.blendFuncSeparate(
+                                            com.mojang.blaze3d.platform.GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR,
+                                            com.mojang.blaze3d.platform.GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR,
+                                            com.mojang.blaze3d.platform.GlStateManager.SourceFactor.ONE,
+                                            com.mojang.blaze3d.platform.GlStateManager.DestFactor.ZERO
+                                    );
+                                },
+                                () -> {
+                                    RenderSystem.defaultBlendFunc();
+                                    RenderSystem.disableBlend();
+                                }
+                        ))
+                        .setCullState(NO_CULL)
+                        .setDepthTestState(LEQUAL_DEPTH_TEST)
+                        .setWriteMaskState(COLOR_WRITE)
+                        .createCompositeState(false)
+        );
         private ShieldRenderTypes(String n, Runnable s, Runnable c) { super(n, s, c); }
     }
 
@@ -306,7 +338,7 @@ public final class ClientAuraRenderer {
         if (FurinaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (VentiVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
-        if (WindGliderRenderer.applyDragonfireIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (DragonfireVisualRenderer.applyDragonfireIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (VentiVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (TsaritsaVisualRenderer.applySpearStanceGlidePose(entity, model, activeAnim)) return;
@@ -413,7 +445,7 @@ public final class ClientAuraRenderer {
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, mainArm, poseStack)) return true;
         if (NahidaVisualRenderer.setupFirstPersonCameraArmPose(player, mainArm, poseStack)) return true;
         if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, mainArm, poseStack)) return true;
-        if (WindGliderRenderer.setupFirstPersonDragonfireIdleArmPose(player, partialTicks, mainArm, poseStack)) return true;
+        if (DragonfireVisualRenderer.setupFirstPersonDragonfireIdleArmPose(player, partialTicks, mainArm, poseStack)) return true;
         return ZhongliVisualRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack);
     }
 
@@ -451,7 +483,7 @@ public final class ClientAuraRenderer {
     }
 
     public static void renderNightsFocusBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
-        if (!renderingScreen) WindGliderRenderer.renderNightsFocusBarrier(entity, poseStack, buffer);
+        if (!renderingScreen) com.velorise.staves.client.character.LaylaVisualRenderer.renderNightsFocusBarrier(entity, poseStack, buffer);
     }
 
     public static void render(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
@@ -470,6 +502,7 @@ public final class ClientAuraRenderer {
         VentiVisualRenderer.renderIdleEffects(entity, poseStack, buffer);
         TsaritsaVisualRenderer.renderEntityEffects(entity, poseStack, buffer);
         XilonenVisualRenderer.renderXilonenDjBooth(entity, poseStack, buffer);
+        DragonfireVisualRenderer.renderThirdPersonDragonfire(entity, poseStack, buffer);
         ElementalReactionBadgeRenderer.renderReactionBadges(entity, poseStack, buffer);
     }
 
@@ -486,7 +519,7 @@ public final class ClientAuraRenderer {
         ElementalReactionBadgeRenderer.renderCrystallizeShieldHud(guiGraphics, mc);
         ElementalReactionBadgeRenderer.renderResonanceHud(guiGraphics, mc);
         ElementalReactionBadgeRenderer.renderFreezeStruggleHud(guiGraphics, mc);
-        WindGliderRenderer.renderChargeProgressHud(guiGraphics, mc);
+        StaffHudRenderer.renderChargeProgressHud(guiGraphics, mc);
         MavuikaVisualRenderer.renderMavuikaNightsoulHud(guiGraphics, mc);
         XilonenVisualRenderer.renderXilonenNightsoulHud(guiGraphics, mc);
         RaidenVisualRenderer.renderRaidenHud(guiGraphics, mc);
@@ -521,7 +554,9 @@ public final class ClientAuraRenderer {
         XilonenVisualRenderer.renderFirstPersonXilonenDjBooth(poseStack, bufferSource, camPos, now);
         TsaritsaVisualRenderer.renderFirstPersonIdleDesk(poseStack, bufferSource, camPos, now);
         ZhongliVisualRenderer.renderFirstPersonIdleMeteor(poseStack, bufferSource, camPos, now);
-        WindGliderRenderer.renderFirstPersonWorldDragonfire(poseStack, bufferSource, camPos);
+        DragonfireVisualRenderer.renderFirstPersonWorldDragonfire(poseStack, bufferSource, camPos);
+        LaylaVisualRenderer.renderWorldLaylaDreamspheres(poseStack, bufferSource, camPos);
+        StaffHudRenderer.renderShulkerTargetLockWorld(poseStack, bufferSource, camPos);
 
         if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
         ClientAuraTracker.ACTIVE_ARCS.removeIf(arc -> now >= arc.expireTime);
@@ -554,7 +589,7 @@ public final class ClientAuraRenderer {
             if (VentiVisualRenderer.renderVortexStreamArc(arc, startPos, endPos, camPos, now, consumer, matrix)) continue;
             if (MavuikaVisualRenderer.renderSlashArc(arc, startPos, endPos, camPos, now, consumer, matrix)) continue;
             if (RaidenVisualRenderer.renderSlashArc(arc, startPos, endPos, camPos, now, consumer, matrix)) continue;
-            if (WindGliderRenderer.renderStarProjectileArc(arc, startPos, endPos, camPos, now, poseStack, consumer, matrix)) continue;
+            if (LaylaVisualRenderer.renderStarProjectileArc(arc, startPos, endPos, camPos, now, poseStack, consumer, matrix)) continue;
             ElementalReactionBadgeRenderer.renderGenericLightningArc(arc, startPos, endPos, camPos, now, consumer, matrix);
         }
         if (bufferSource instanceof MultiBufferSource.BufferSource bs) {

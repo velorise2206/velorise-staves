@@ -153,8 +153,8 @@ public final class XilonenVisualRenderer {
             model.body.xRot = -0.18F;
             model.rightLeg.xRot = -0.65F + climb * 0.55F;
             model.leftLeg.xRot = -0.65F - climb * 0.55F;
-            model.rightArm.xRot = -1.25F - climb * 0.45F;
-            model.leftArm.xRot = -1.25F + climb * 0.45F;
+            model.rightArm.xRot = 0.10F;
+            model.leftArm.xRot = 0.10F;
             return true;
         }
         float flipProg = ClientAuraTracker.getXilonenJumpFlipProgress(entity.getId());

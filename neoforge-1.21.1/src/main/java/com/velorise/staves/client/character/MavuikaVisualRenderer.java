@@ -143,7 +143,7 @@ public final class MavuikaVisualRenderer {
     }
 
     public static void renderChargeHud(GuiGraphics guiGraphics, int sw, int sh, float pct) {
-        ResourceLocation sunsTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/sun_charge.png");
+        ResourceLocation sunsTex = ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "textures/gui/mavuika_sun_charge.png");
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();

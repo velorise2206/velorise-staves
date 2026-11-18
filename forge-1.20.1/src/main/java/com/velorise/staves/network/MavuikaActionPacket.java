@@ -37,6 +37,9 @@ public class MavuikaActionPacket {
     public static final byte ACTION_DAYBREAK_CA = 25;
     public static final byte ACTION_DAYBREAK_CA_FULL = 26;
     public static final byte ACTION_DRAGONFIRE_NA = 27;
+    public static final byte ACTION_PLAYER_DASH = 28;
+    public static final byte ACTION_STEVE_WALL_CLIMB_START = 29;
+    public static final byte ACTION_STEVE_WALL_CLIMB_STOP = 30;
 
     private final byte action;
 
@@ -60,6 +63,9 @@ public class MavuikaActionPacket {
             ArchonUltiManager.resetAllArchonIdleTimers(player);
             if (packet.action != ACTION_TOGGLE_GLIDER
                     && packet.action != ACTION_PLUNGE_ATTACK
+                    && packet.action != ACTION_PLAYER_DASH
+                    && packet.action != ACTION_STEVE_WALL_CLIMB_START
+                    && packet.action != ACTION_STEVE_WALL_CLIMB_STOP
                     && packet.action != ACTION_SPIN_STOP
                     && packet.action != ACTION_SPRINT_STOP
                     && packet.action != ACTION_NEUVILLETTE_CA_STOP
@@ -128,6 +134,10 @@ public class MavuikaActionPacket {
                 com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 1.0F);
             } else if (packet.action == ACTION_DRAGONFIRE_NA) {
                 com.velorise.staves.element.DragonfireCloudManager.handleLeftClickOrb(player);
+            } else if (packet.action == ACTION_PLAYER_DASH) {
+                com.velorise.staves.element.PlungeAndGliderManager.handlePlayerDash(player);
+            } else if (packet.action == ACTION_STEVE_WALL_CLIMB_START || packet.action == ACTION_STEVE_WALL_CLIMB_STOP) {
+                com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbState(player, packet.action == ACTION_STEVE_WALL_CLIMB_START);
             }
         });
         ctx.setPacketHandled(true);

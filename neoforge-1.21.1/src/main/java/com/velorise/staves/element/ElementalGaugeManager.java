@@ -1584,6 +1584,7 @@ public static void tick(MinecraftServer server) {
         tickDaybreakVortices(server, serverNow);
         XilonenManager.tick(server, serverNow);
         PlungeAndGliderManager.tick(server, serverNow);
+        com.velorise.staves.advancement.ModAdvancements.tickVentiWindLaunches(server, serverNow);
         NeuvilletteManager.tick(server, serverNow);
         NahidaManager.tick(server, serverNow);
         ZhongliManager.tick(server, serverNow);

@@ -147,7 +147,7 @@ public final class ElementalResonanceManager {
         ArcaneStaffItem.Kind kind = ArcaneStaffItem.getEffectiveKind(stack);
         if (kind == null) return false;
         return switch (kind) {
-            case GHASTFIRE, ECHO, LIGHTNING, GUARDIAN, DAYBREAK, TSARITSA_BOW, TSARITSA_SPEAR -> true;
+            case SHULKER, GHASTFIRE, ECHO, LIGHTNING, GUARDIAN, DAYBREAK, TSARITSA_BOW, TSARITSA_SPEAR -> true;
             default -> false;
         };
     }
@@ -491,6 +491,13 @@ public final class ElementalResonanceManager {
         return true;
     }
 
+    private static final Map<UUID, Long> SHULKER_SHOOT_CD_UNTIL = new ConcurrentHashMap<>();
+
+    public static boolean isShulkerShootOnCooldown(@Nullable Player player) {
+        if (player == null || player.level().isClientSide()) return false;
+        return player.level().getGameTime() < SHULKER_SHOOT_CD_UNTIL.getOrDefault(player.getUUID(), 0L);
+    }
+
     /**
      * Applies staff/artifact cooldown with Anemo Resonance -10% reduction and tracks active staff cooldowns for Electro Resonance.
      */
@@ -498,7 +505,14 @@ public final class ElementalResonanceManager {
         int finalTicks = hasResonance(player, ResonanceType.ANEMO)
                 ? Math.max(1, (int) Math.round(baseTicks * 0.90D))
                 : Math.max(1, baseTicks);
-        player.getCooldowns().addCooldown(item, finalTicks);
+        if (item instanceof ArcaneStaffItem staff && staff.kind() == ArcaneStaffItem.Kind.SHULKER) {
+            // Never lock Shulker Staff with vanilla ItemCooldowns so the portable chest always opens freely
+            if (!player.level().isClientSide()) {
+                SHULKER_SHOOT_CD_UNTIL.put(player.getUUID(), player.level().getGameTime() + finalTicks);
+            }
+        } else {
+            player.getCooldowns().addCooldown(item, finalTicks);
+        }
         if (!player.level().isClientSide() && item instanceof ArcaneStaffItem staff) {
             RECORDED_STAFF_COOLDOWNS
                     .computeIfAbsent(player.getUUID(), k -> new ConcurrentHashMap<>())

@@ -1225,7 +1225,7 @@ public final class TsaritsaManager {
             boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 60 && !st.idleActive) {
+                if (st.stillTicks >= 400 && !st.idleActive) {
                     st.idleActive = true;
                 }
             } else {

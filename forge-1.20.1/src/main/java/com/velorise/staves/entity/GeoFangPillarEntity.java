@@ -891,6 +891,9 @@ public class GeoFangPillarEntity extends Entity {
     }
 
     private boolean isOwnerOrAlly(LivingEntity target, @Nullable Entity owner) {
+        if (target instanceof net.minecraft.world.entity.npc.AbstractVillager) {
+            return true;
+        }
         if (this.ownerUUID != null && target.getUUID().equals(this.ownerUUID)) {
             return true;
         }
@@ -903,6 +906,23 @@ public class GeoFangPillarEntity extends Entity {
         return target instanceof net.minecraft.world.entity.monster.Vex vex && vex.getOwner() == owner;
     }
 
+    private static boolean isHostileTauntableMob(Mob mob, @Nullable Entity owner) {
+        if (mob instanceof net.minecraft.world.entity.npc.Npc
+                || mob instanceof net.minecraft.world.entity.npc.AbstractVillager
+                || mob instanceof net.minecraft.world.entity.animal.Animal
+                || mob instanceof net.minecraft.world.entity.animal.WaterAnimal
+                || mob instanceof net.minecraft.world.entity.TamableAnimal) {
+            return false;
+        }
+        if (mob instanceof net.minecraft.world.entity.monster.Enemy) {
+            return true;
+        }
+        if (mob instanceof NeutralMob neutral && neutral.isAngry()) {
+            return true;
+        }
+        return owner != null && mob.getTarget() == owner;
+    }
+
     /**
      * Redirects a hit mob's hostility away from the pillar's owner and lures it toward this construct.
      */
@@ -911,7 +931,7 @@ public class GeoFangPillarEntity extends Entity {
         if (!(target instanceof Mob mob) || !mob.isAlive() || mob.isRemoved() || ElementalGaugeManager.isEntityFrozen(mob)) {
             return;
         }
-        if (isOwnerOrAlly(mob, owner)) {
+        if (isOwnerOrAlly(mob, owner) || !isHostileTauntableMob(mob, owner)) {
             return;
         }
         this.tauntedMobs.add(mob.getUUID());
@@ -994,7 +1014,7 @@ public class GeoFangPillarEntity extends Entity {
         while (it.hasNext()) {
             UUID mobId = it.next();
             Entity e = level.getEntity(mobId);
-            if (!(e instanceof Mob mob) || !mob.isAlive() || mob.isRemoved()) {
+            if (!(e instanceof Mob mob) || !mob.isAlive() || mob.isRemoved() || !isHostileTauntableMob(mob, owner)) {
                 it.remove();
                 this.lastTauntAttackTime.remove(mobId);
                 continue;

@@ -231,15 +231,6 @@ public final class NahidaManager {
         float baseScale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, isNeth);
         int step = st.naComboStep;
 
-        // Cute hopscotch bounce when on ground
-        if (player.onGround()) {
-            Vec3 dv = player.getDeltaMovement();
-            double hopY = (step == 4) ? 0.30D : 0.22D;
-            player.setDeltaMovement(dv.x * 1.05D, Math.max(dv.y, hopY), dv.z * 1.05D);
-            player.hasImpulse = true;
-            player.connection.send(new ClientboundSetEntityMotionPacket(player));
-        }
-
         int animCode = switch (step) {
             case 1 -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_1;
             case 2 -> com.velorise.staves.client.ClientAuraTracker.ANIM_NAHIDA_NA_2;
@@ -257,9 +248,9 @@ public final class NahidaManager {
         }
         Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
 
-        double forwardReach = 5.0D;
-        double halfWidth = 1.0D; // 2 blocks wide x 5 blocks forward
-        AABB naHitBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.2D, halfWidth);
+        double forwardReach = 7.5D;
+        double halfWidth = 1.15D;
+        AABB naHitBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.35D, halfWidth);
         List<LivingEntity> naTargets = level.getEntitiesOfClass(LivingEntity.class, naHitBox,
                 e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
 
@@ -267,7 +258,7 @@ public final class NahidaManager {
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 1.5F : 1.0F;
 
-            ModNetwork.sendElectricArc(level, player.position(), player.position().add(horiz.scale(3.6D)), 16, 0x4E410000 | step);
+            ModNetwork.sendElectricArc(level, player.position(), player.position().add(horiz.scale(5.4D)), 16, 0x4E410000 | step);
 
             for (LivingEntity target : naTargets) {
                 Vec3 toTarget = target.position().subtract(player.position());
@@ -281,8 +272,8 @@ public final class NahidaManager {
             level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.75F, 1.25F + step * 0.12F);
             level.playSound(null, player.blockPosition(), SoundEvents.AZALEA_LEAVES_PLACE, SoundSource.PLAYERS, 0.85F, 1.15F + step * 0.10F);
         } else {
-            // Step 4 Finisher: Heart of Vines + 4-Petal Dendro Flower AoE Burst (2 blocks wide x 5 blocks forward)
-            Vec3 burstCenter = player.position().add(horiz.scale(3.6D));
+            // Step 4 Finisher: Heart of Vines + 4-Petal Dendro Flower AoE Burst (1.5x extended forward reach)
+            Vec3 burstCenter = player.position().add(horiz.scale(5.4D));
             float dmg = 1.0F; // Fixed 0.5 heart damage
             float gaugeU = isNeth ? 2.0F : 1.5F;
 
@@ -329,8 +320,8 @@ public final class NahidaManager {
             horiz = horiz.normalize();
         }
         Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
-        // 3x3x3 box in front of player, starting 1 block away (forward 1.0 .. 4.0)
-        Vec3 center = player.position().add(horiz.scale(3.5D)).add(0.0D, 2.5D, 0.0D);
+        // 1.5x extended forward reach (3.5 -> 5.25 ahead, 2.0..7.5 forward band)
+        Vec3 center = player.position().add(horiz.scale(5.25D)).add(0.0D, 2.5D, 0.0D);
         ModNetwork.sendElectricArc(level, player.position(), center, 13, 0x4E430000);
 
         InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
@@ -343,14 +334,14 @@ public final class NahidaManager {
         final Vec3 fCenter = center;
         ArchonUltiManager.scheduleBurstAction(player, 8, () -> {
             if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
-            AABB box = new AABB(fCenter.x - 1.5D, fCenter.y - 1.5D, fCenter.z - 1.5D,
-                    fCenter.x + 1.5D, fCenter.y + 1.5D, fCenter.z + 1.5D);
+            AABB box = new AABB(fCenter.x - 2.25D, fCenter.y - 1.5D, fCenter.z - 2.25D,
+                    fCenter.x + 2.25D, fCenter.y + 1.5D, fCenter.z + 2.25D);
             for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, box,
                     e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e))) {
                 Vec3 toTarget = target.position().subtract(fPlayerPos);
                 double proj = toTarget.dot(fHoriz);
                 double side = Math.abs(toTarget.dot(fRight));
-                if (proj < 2.0D || proj > 5.0D || side > 1.5D) continue;
+                if (proj < 2.0D || proj > 7.5D || side > 2.25D) continue;
                 target.invulnerableTime = 0;
                 ElementalGaugeManager.applyElementBypassIcd(sl, target, Element.DENDRO, gaugeU, player, caDmg);
             }
@@ -830,7 +821,7 @@ public final class NahidaManager {
             if (holdingNahida && onGround && notAttacking) {
                 if (distFromAnchorSq < 0.0025D) { // instant cancel on movement
                     st.stillTicks++;
-                    if (st.stillTicks >= 70 && !st.idleSwingActive) {
+                    if (st.stillTicks >= 400 && !st.idleSwingActive) {
                         st.idleSwingActive = true;
                         st.lastStillPos = player.position(); // lock anchor exactly here
                         syncPlayerStateToClients(player, st, now, true);

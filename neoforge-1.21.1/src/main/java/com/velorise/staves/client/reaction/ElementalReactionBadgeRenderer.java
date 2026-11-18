@@ -550,6 +550,7 @@ public final class ElementalReactionBadgeRenderer {
                     && data.staffAnimUntil <= now && data.jadeShieldUntil <= now && data.nightsFocusUntil <= now && data.laylaDreamsphereUntil <= now
                     && !data.xilonenSkating && data.xilonenSamplesUntil <= now && !data.gliding && !data.plunging && data.neuvilletteActiveUntil <= now
                     && !data.tsaritsaCrownActive && data.tsaritsaSyncUntil <= now
+                    && data.dragonfirePetUntil <= now && (!data.dragonfireIdle && data.dragonfireIdleFade <= 0.01F)
                     && (!data.nahidaIdleSwing && data.nahidaIdleSwingFade <= 0.01F) && (!data.zhongliIdleMeteor && data.zhongliIdleFade <= 0.01F) && (!data.raidenIdle && data.raidenIdleFade <= 0.01F) && (!data.mavuikaIdle && data.mavuikaIdleFade <= 0.01F) && (data.furinaIdleMode == 0 && data.furinaIdleFade <= 0.01F) && (!data.ventiIdle && data.ventiIdleFade <= 0.01F) && (!data.tsaritsaIdle && data.tsaritsaIdleFade <= 0.01F) && (!data.nahidaViewfinder && data.nahidaViewfinderFade <= 0.01F) && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now && data.nahidaWeaponHideUntil + 550L <= now
                     && !data.isFrozen && !hasInnate && !omniInnate) {
                 ClientAuraTracker.remove(entity.getId());
@@ -1892,7 +1893,15 @@ public final class ElementalReactionBadgeRenderer {
         double dist = diff.length();
         if (dist < 0.05D) return;
 
-        if (arc.points.isEmpty() || (now - arc.lastJitterTime) >= 70L) {
+        boolean mouthMoved = false;
+        if (arc.fromEntityId <= -10000 && !arc.points.isEmpty()) {
+            org.joml.Vector3f first = arc.points.get(0);
+            double dx = first.x - startPos.x;
+            double dy = first.y - startPos.y;
+            double dz = first.z - startPos.z;
+            mouthMoved = (dx * dx + dy * dy + dz * dz) > 1.0E-4D;
+        }
+        if (arc.points.isEmpty() || mouthMoved || (now - arc.lastJitterTime) >= 70L) {
             arc.points.clear();
             int segs = Math.max(3, (int) Math.round(dist * 1.5D));
             Vec3 dir = diff.normalize();

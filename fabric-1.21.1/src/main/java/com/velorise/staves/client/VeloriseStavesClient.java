@@ -21,6 +21,13 @@ public final class VeloriseStavesClient implements ClientModInitializer {
     private static int queuedDaybreakFastClicks = 0;
     private static int queuedDragonfireFastClicks = 0;
     private static long lastDragonfireClientShotMs = 0L;
+    private static int furinaCaHoldTicks = 0;
+    private static boolean furinaCaHoldTriggered = false;
+
+    public static float getFurinaCaHoldProgress() {
+        if (furinaCaHoldTicks <= 0 || furinaCaHoldTriggered) return 0.0F;
+        return net.minecraft.util.Mth.clamp(furinaCaHoldTicks / 10.0F, 0.0F, 1.0F);
+    }
 
     public static void recordFastAttackClick(com.velorise.staves.item.ArcaneStaffItem.Kind effKind) {
         if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
@@ -262,6 +269,45 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             } else {
                 lastSelectedHotbarSlot[0] = -1;
             }
+            if (client.player != null) {
+                if (ClientAuraTracker.isGliding(client.player.getId())
+                        && !client.player.onGround() && !client.player.isInWater() && !client.player.isInLava()
+                        && !client.player.getAbilities().flying && client.player.getVehicle() == null) {
+                    boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(client.player);
+                    boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(client.player);
+                    double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
+                    double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
+                    double maxSpeed = 0.42D * speedMult;
+                    double accel = 0.055D * speedMult;
+
+                    net.minecraft.world.phys.Vec3 vel = client.player.getDeltaMovement();
+                    double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
+                    net.minecraft.world.phys.Vec3 look = client.player.getLookAngle();
+                    net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
+                    double vx = vel.x;
+                    double vz = vel.z;
+                    if (horiz.lengthSqr() > 1.0E-4D && (client.player.zza > 0.01F || client.screen != null || Math.hypot(vx, vz) > 0.08D)) {
+                        horiz = horiz.normalize();
+                        vx = vx * 0.86D + horiz.x * accel;
+                        vz = vz * 0.86D + horiz.z * accel;
+                        double hs = Math.hypot(vx, vz);
+                        if (hs > maxSpeed) {
+                            vx = vx / hs * maxSpeed;
+                            vz = vz / hs * maxSpeed;
+                        }
+                    }
+                    client.player.setDeltaMovement(vx, dy, vz);
+                    client.player.fallDistance = 0.0F;
+                }
+                if (client.screen != null) {
+                    ClientAuraTracker.tickLocalStaminaAndDash(
+                            client.player,
+                            false,
+                            com.velorise.staves.network.MavuikaActionPayload.ACTION_TOGGLE_GLIDER,
+                            com.velorise.staves.network.MavuikaActionPayload.ACTION_PLAYER_DASH
+                    );
+                }
+            }
             if (client.player == null || client.screen != null) {
                 wasBikeDashDown[0] = false;
                 bikeSprintActive[0] = false;
@@ -280,6 +326,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ventiUltiFiredThisHold[0] = false;
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
+                furinaCaHoldTicks = 0;
+                furinaCaHoldTriggered = false;
                 raidenCaTriggeredThisHold[0] = false;
                 nahidaAttackHoldTicks[0] = 0;
                 nahidaCaTriggeredThisHold[0] = false;
@@ -300,9 +348,38 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 client.player.attackAnim = 0.0F;
                 client.player.oAttackAnim = 0.0F;
             }
-            if (ClientAuraTracker.isFiveStarBurstRootActive(client.player.getId())) {
+            if (client.player != null && ClientAuraTracker.isUltiCastActive(client.player.getId())) {
                 client.player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                client.player.setSprinting(false);
+                if (client.player.input != null) {
+                    client.player.input.forwardImpulse = 0.0F;
+                    client.player.input.leftImpulse = 0.0F;
+                    client.player.input.up = false;
+                    client.player.input.down = false;
+                    client.player.input.left = false;
+                    client.player.input.right = false;
+                    client.player.input.jumping = false;
+                    client.player.input.shiftKeyDown = false;
+                }
+                while (client.options.keyAttack.consumeClick()) {}
+                while (client.options.keyUse.consumeClick()) {}
+                while (client.options.keyPickItem.consumeClick()) {}
+                while (client.options.keyJump.consumeClick()) {}
+                while (client.options.keySprint.consumeClick()) {}
+                while (client.options.keyShift.consumeClick()) {}
+                while (client.options.keyUp.consumeClick()) {}
+                while (client.options.keyDown.consumeClick()) {}
+                while (client.options.keyLeft.consumeClick()) {}
+                while (client.options.keyRight.consumeClick()) {}
+                while (mavuikaUltiKey.consumeClick()) {}
+                return;
             }
+            ClientAuraTracker.tickLocalStaminaAndDash(
+                    client.player,
+                    client.options.keySprint.isDown(),
+                    com.velorise.staves.network.MavuikaActionPayload.ACTION_TOGGLE_GLIDER,
+                    com.velorise.staves.network.MavuikaActionPayload.ACTION_PLAYER_DASH
+            );
             while (OmniWheelOverlay.OPEN_CONFIG_KEY.consumeClick()) {
                 if (client.screen == null) {
                     client.setScreen(new VeloriseConfigScreen(null));
@@ -357,18 +434,24 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             if (holdingFurina && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && client.player.onGround()) {
                 if (client.options.keyAttack.isDown()) {
                     furinaAttackHoldTicks[0]++;
+                    furinaCaHoldTicks = furinaAttackHoldTicks[0];
                     if (furinaAttackHoldTicks[0] >= 10 && !furinaCaTriggeredThisHold[0]) {
                         furinaCaTriggeredThisHold[0] = true;
+                        furinaCaHoldTriggered = true;
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_FURINA_CA_SWITCH);
                     }
                 } else {
                     furinaAttackHoldTicks[0] = 0;
                     furinaCaTriggeredThisHold[0] = false;
+                    furinaCaHoldTicks = 0;
+                    furinaCaHoldTriggered = false;
                 }
             } else {
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
+                furinaCaHoldTicks = 0;
+                furinaCaHoldTriggered = false;
             }
 
             // Raiden Musou Hold Left-Click Charged Attack: 5-block dash + 5 trailing slashes
@@ -625,36 +708,6 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     wasCreativeFlying[0] = false;
                 } else if (client.player.getAbilities().flying && !ClientAuraTracker.isGliding(client.player.getId())) {
                     wasCreativeFlying[0] = true;
-                }
-
-                if (ClientAuraTracker.isGliding(client.player.getId())
-                        && !client.player.onGround() && !client.player.isInWater() && !client.player.isInLava()
-                        && !client.player.getAbilities().flying) {
-                    boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(client.player);
-                    boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(client.player);
-                    double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
-                    double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
-                    double maxSpeed = 0.42D * speedMult;
-                    double accel = 0.055D * speedMult;
-
-                    net.minecraft.world.phys.Vec3 vel = client.player.getDeltaMovement();
-                    double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
-                    net.minecraft.world.phys.Vec3 look = client.player.getLookAngle();
-                    net.minecraft.world.phys.Vec3 horiz = new net.minecraft.world.phys.Vec3(look.x, 0.0D, look.z);
-                    double vx = vel.x;
-                    double vz = vel.z;
-                    if (horiz.lengthSqr() > 1.0E-4D && (client.player.zza > 0.01F || Math.hypot(vx, vz) > 0.08D)) {
-                        horiz = horiz.normalize();
-                        vx = vx * 0.86D + horiz.x * accel;
-                        vz = vz * 0.86D + horiz.z * accel;
-                        double hs = Math.hypot(vx, vz);
-                        if (hs > maxSpeed) {
-                            vx = vx / hs * maxSpeed;
-                            vz = vz / hs * maxSpeed;
-                        }
-                    }
-                    client.player.setDeltaMovement(vx, dy, vz);
-                    client.player.fallDistance = 0.0F;
                 }
 
                 net.minecraft.client.KeyMapping activePlungeKey = plungeAttackKey.isUnbound() ? client.options.keyAttack : plungeAttackKey;

@@ -266,7 +266,7 @@ public final class FurinaManager {
             boolean canIdle = holding && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canIdle && distSq < 0.0025D) {
                 st.stillTicks++;
-                if (st.stillTicks >= 60) {
+                if (st.stillTicks >= 400) {
                     if (st.activeCode == 4040) {
                         st.activeCode = 4042;
                     }

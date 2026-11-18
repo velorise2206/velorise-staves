@@ -129,12 +129,56 @@ public final class NahidaVisualRenderer {
         return stepViewfinderFade(d, System.currentTimeMillis());
     }
 
+    public static float getNaPlatformFade(net.minecraft.world.entity.Entity entity) {
+        if (!(entity instanceof LivingEntity le)) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(le.getId());
+        if (d == null) return 0.0F;
+        long nowMs = System.currentTimeMillis();
+        boolean active = nowMs < d.nahidaNaPlatformUntilMs && !d.nahidaViewfinder && !d.nahidaIdleSwing;
+        if (!active && d.nahidaNaPlatformFade <= 0.001F) {
+            d.nahidaNaPlatformFade = 0.0F;
+            d.nahidaNaPlatformLastMs = nowMs;
+            return 0.0F;
+        }
+        if (d.nahidaNaPlatformLastMs <= 0L) {
+            d.nahidaNaPlatformLastMs = nowMs;
+            if (active) d.nahidaNaPlatformFade = Math.min(1.0F, d.nahidaNaPlatformFade + 0.016F / 0.16F);
+        } else if (nowMs > d.nahidaNaPlatformLastMs) {
+            float dt = Math.min(0.1F, (nowMs - d.nahidaNaPlatformLastMs) / 1000.0F);
+            d.nahidaNaPlatformLastMs = nowMs;
+            if (active) {
+                d.nahidaNaPlatformFade = Math.min(1.0F, d.nahidaNaPlatformFade + dt / 0.16F);
+            } else {
+                d.nahidaNaPlatformFade = Math.max(0.0F, d.nahidaNaPlatformFade - dt / 0.45F);
+            }
+        }
+        return WindGliderRenderer.smoothStep01(d.nahidaNaPlatformFade);
+    }
+
+    public static float getNaPlatformHopY(LivingEntity entity) {
+        if (entity == null) return 0.0F;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        if (d == null) return 0.0F;
+        long nowMs = System.currentTimeMillis();
+        if (nowMs >= d.staffAnimUntil) return 0.0F;
+        int anim = d.staffAnimType;
+        if (anim < ClientAuraTracker.ANIM_NAHIDA_NA_1 || anim > ClientAuraTracker.ANIM_NAHIDA_NA_4) return 0.0F;
+        float totalMs = Math.max(1.0F, (float) (d.staffAnimUntil - d.staffAnimStartTime));
+        float t = Mth.clamp((nowMs - d.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+        return Mth.sin(t * (float) Math.PI) * 0.24F;
+    }
+
     public static float getViewfinderCameraOffsetY(net.minecraft.world.entity.Entity entity, float partialTick) {
         if (!(entity instanceof LivingEntity le)) return 0.0F;
         float w = getViewfinderFade(entity);
-        if (w <= 0.001F) return 0.0F;
-        float hover = Mth.sin((le.tickCount + partialTick) * 0.12F);
-        return (0.48F + hover * 0.04F) * w;
+        float vfOff = 0.0F;
+        if (w > 0.001F) {
+            float hover = Mth.sin((le.tickCount + partialTick) * 0.12F);
+            vfOff = (0.48F + hover * 0.04F) * w;
+        }
+        float platW = getNaPlatformFade(entity);
+        float hopY = platW > 0.001F ? getNaPlatformHopY(le) * platW : 0.0F;
+        return vfOff + (platW > 0.001F ? 0.34F * platW + hopY : 0.0F);
     }
 
     public static float getSwingCameraPitchOffset(net.minecraft.world.entity.Entity entity, float partialTick) {
@@ -233,6 +277,18 @@ public final class NahidaVisualRenderer {
             model.leftLeg.zRot = Mth.lerp(vfW, model.leftLeg.zRot, -0.08F);
             model.rightLeg.zRot = Mth.lerp(vfW, model.rightLeg.zRot, 0.08F);
             return true;
+        }
+        float platW = getNaPlatformFade(entity);
+        if (platW > 0.005F) {
+            float hopY = getNaPlatformHopY(entity) * platW;
+            float liftY = -(0.34F * platW + hopY) * 16.0F;
+            model.head.y += liftY;
+            model.hat.y += liftY;
+            model.body.y += liftY;
+            model.rightArm.y += liftY;
+            model.leftArm.y += liftY;
+            model.rightLeg.y += liftY;
+            model.leftLeg.y += liftY;
         }
         return false;
     }
@@ -464,8 +520,9 @@ public final class NahidaVisualRenderer {
         boolean skandha = ClientAuraTracker.hasSkandhaMark(id);
         boolean shrine = ClientAuraTracker.hasNahidaShrine(id);
         boolean nahidaAnim = (activeAnim >= ClientAuraTracker.ANIM_NAHIDA_NA_1 && activeAnim <= ClientAuraTracker.ANIM_NAHIDA_NA_4);
+        float platFade = getNaPlatformFade(entity);
 
-        if (!idleSwing && !skandha && !shrine && !nahidaAnim) return;
+        if (!idleSwing && !skandha && !shrine && !nahidaAnim && platFade <= 0.01F) return;
 
         Minecraft mc = Minecraft.getInstance();
         boolean isFirstPersonSelf = mc.player != null && id == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
@@ -473,6 +530,20 @@ public final class NahidaVisualRenderer {
         float time = entity.tickCount + pt;
         float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
         VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+
+        if (platFade > 0.01F && !isFirstPersonSelf) {
+            ResourceLocation keycapTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_keycap_tile.png");
+            ResourceLocation starTex = ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/nahida_ground_star.png");
+            float hopY = getNaPlatformHopY(entity) * platFade;
+            poseStack.pushPose();
+            poseStack.translate(0.0F, Math.max(0.02F, 0.36F * platFade - 0.14F + hopY * 0.45F), 0.0F);
+            poseStack.mulPose(Axis.YP.rotationDegrees(-bodyYaw));
+            renderHopscotchKeycap3D(poseStack, buffer, keycapTex, 0.56F * platFade, 0.14F * platFade, platFade);
+            VertexConsumer starVc = buffer.getBuffer(RenderType.entityCutoutNoCull(starTex));
+            renderGroundStarSeal(starVc, poseStack, 0.0F, 0.15F * platFade, 0.0F, 0.72F * platFade, time * 3.5F);
+            poseStack.popPose();
+            vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+        }
 
         if (idleSwing) {
             float swingFade = stepIdleSwingFade(d, now);
@@ -590,12 +661,6 @@ public final class NahidaVisualRenderer {
                          ropeHalfW, ropeTopY, 0.0F, u1, 0.0F,
                         -ropeHalfW, ropeTopY, 0.0F, u0, 0.0F,
                         0.0F, 0.0F, 1.0F);
-                WindGliderRenderer.emitWingQuad(ropeVc, p,
-                        -ropeHalfW, ropeTopY, 0.0F, u0, 0.0F,
-                         ropeHalfW, ropeTopY, 0.0F, u1, 0.0F,
-                         ropeHalfW, ropeBotY, 0.0F, u1, 1.0F,
-                        -ropeHalfW, ropeBotY, 0.0F, u0, 1.0F,
-                        0.0F, 0.0F, -1.0F);
                 poseStack.popPose();
             }
             poseStack.popPose();
@@ -613,7 +678,6 @@ public final class NahidaVisualRenderer {
             poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
             PoseStack.Pose p = poseStack.last();
             WindGliderRenderer.emitWingQuad(seatVc, p, -sx, -sz, 0.0F, 0.0F, 1.0F, sx, -sz, 0.0F, 1.0F, 1.0F, sx, sz, 0.0F, 1.0F, 0.0F, -sx, sz, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
-            WindGliderRenderer.emitWingQuad(seatVc, p, -sx, sz, 0.0F, 0.0F, 0.0F, sx, sz, 0.0F, 1.0F, 0.0F, sx, -sz, 0.0F, 1.0F, 1.0F, -sx, -sz, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
             poseStack.popPose();
         }
 
@@ -709,7 +773,6 @@ public final class NahidaVisualRenderer {
         poseStack.mulPose(Axis.XP.rotationDegrees(90.0F));
         PoseStack.Pose p = poseStack.last();
         WindGliderRenderer.emitWingQuad(topVc, p, -topHalf, -topHalf, 0.0F, 0.0F, 1.0F, topHalf, -topHalf, 0.0F, 1.0F, 1.0F, topHalf, topHalf, 0.0F, 1.0F, 0.0F, -topHalf, topHalf, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F);
-        WindGliderRenderer.emitWingQuad(topVc, p, -topHalf, topHalf, 0.0F, 0.0F, 0.0F, topHalf, topHalf, 0.0F, 1.0F, 0.0F, topHalf, -topHalf, 0.0F, 1.0F, 1.0F, -topHalf, -topHalf, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, -1.0F);
         poseStack.popPose();
     }
 
@@ -852,24 +915,22 @@ public final class NahidaVisualRenderer {
         float sy = (float) (arc.start.y - camPos.y);
         float sz = (float) (arc.start.z - camPos.z);
 
-        // 1. Anchored 3D Hopscotch Keycap Tile at hop origin (arc.start)
+        // 1. Anchored forward attack origin (pedestal is rendered once under entity in renderEntityEffects)
         poseStack.pushPose();
         poseStack.translate(sx, sy, sz);
         poseStack.mulPose(Axis.YP.rotationDegrees(-yawDeg));
-        float keyBounce = 0.14F + 0.08F * Mth.sin(prog * (float) Math.PI);
-        renderHopscotchKeycap3D(poseStack, bufferSource, keycapTex, 0.62F * fade, keyBounce * fade, fade);
 
-        // 2. Sprouting Curved Pixel-Art Vine-Flowers & Step 4 Heart of Vines Arch along attack path
+        // 2. Sprouting Curved Pixel-Art Vine-Flowers & Step 4 Heart of Vines Arch along 1.5x extended attack path
         if (step <= 3) {
             float[][] stemLayout = switch (step) {
-                case 1 -> new float[][]{ {0.0F, 1.85F, 1.55F, 0.0F} };
-                case 2 -> new float[][]{ {-0.55F, 1.70F, 1.40F, 0.0F}, {0.52F, 2.35F, 1.75F, 1.1F} };
-                default -> new float[][]{ {-0.78F, 2.05F, 1.48F, 0.0F}, {0.0F, 2.75F, 1.92F, 0.8F}, {0.78F, 2.15F, 1.56F, 1.6F} };
+                case 1 -> new float[][]{ {0.0F, 2.75F, 1.55F, 0.0F} };
+                case 2 -> new float[][]{ {-0.62F, 2.55F, 1.40F, 0.0F}, {0.58F, 3.55F, 1.75F, 1.1F} };
+                default -> new float[][]{ {-0.88F, 3.10F, 1.48F, 0.0F}, {0.0F, 4.15F, 1.92F, 0.8F}, {0.88F, 3.25F, 1.56F, 1.6F} };
             };
 
             VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(starTex));
             for (float[] st : stemLayout) {
-                renderGroundStarSeal(starVc, poseStack, st[0], 0.03F, st[1], (0.38F + 0.24F * grow) * fade, timeSec * 30.0F + st[3] * 25.0F);
+                renderGroundStarSeal(starVc, poseStack, st[0], 0.03F, st[1], (0.44F + 0.28F * grow) * fade, timeSec * 30.0F + st[3] * 25.0F);
             }
 
             VertexConsumer vineVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(vineTex));
@@ -877,7 +938,7 @@ public final class NahidaVisualRenderer {
                 poseStack.pushPose();
                 poseStack.translate(st[0], 0.03F, st[1]);
                 poseStack.mulPose(Axis.YP.rotationDegrees(Mth.sin(timeSec * 3.0F + st[3]) * 12.0F));
-                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.52F, st[2], grow, retract, timeSec, 0.11F, st[3], 10);
+                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.56F, st[2], grow, retract, timeSec, 0.11F, st[3], 10);
                 poseStack.popPose();
             }
 
@@ -885,29 +946,29 @@ public final class NahidaVisualRenderer {
             VertexConsumer petalVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
             for (int pIdx = 0; pIdx < step + 2; pIdx++) {
                 float ang = pIdx * 2.1F + timeSec * 2.4F;
-                float pr = 0.45F + (pIdx % 2) * 0.42F;
+                float pr = 0.50F + (pIdx % 2) * 0.45F;
                 float px = Mth.cos(ang) * pr;
-                float pz = 1.45F + pIdx * 0.45F + Mth.sin(ang) * 0.25F;
+                float pz = 2.15F + pIdx * 0.68F + Mth.sin(ang) * 0.25F;
                 float py = 0.18F + prog * (0.65F + (pIdx % 3) * 0.22F);
                 float pHalf = (0.14F + (pIdx % 2) * 0.05F) * fade;
                 renderGroundStarSeal(petalVc, poseStack, px, py, pz, pHalf, timeSec * 85.0F + pIdx * 45.0F);
             }
         } else {
-            // Step 4 Finisher: Grand Twin-Scroll Heart of Vines Arch + 2 Side Vine-Flowers + Ground Blossom Scatter
-            float burstZ = 3.25F;
+            // Step 4 Finisher: Grand Twin-Scroll Heart of Vines Arch + 2 Side Vine-Flowers + Ground Blossom Scatter (1.5x extended)
+            float burstZ = 4.88F;
             VertexConsumer starVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(starTex));
-            renderGroundStarSeal(starVc, poseStack, 0.0F, 0.035F, burstZ, (0.95F + 0.45F * grow) * fade, timeSec * 22.0F);
-            renderGroundStarSeal(starVc, poseStack, -1.15F, 0.03F, burstZ - 0.55F, (0.42F + 0.20F * grow) * fade, -timeSec * 35.0F);
-            renderGroundStarSeal(starVc, poseStack,  1.15F, 0.03F, burstZ - 0.55F, (0.42F + 0.20F * grow) * fade,  timeSec * 35.0F);
+            renderGroundStarSeal(starVc, poseStack, 0.0F, 0.035F, burstZ, (1.10F + 0.52F * grow) * fade, timeSec * 22.0F);
+            renderGroundStarSeal(starVc, poseStack, -1.25F, 0.03F, burstZ - 0.80F, (0.48F + 0.24F * grow) * fade, -timeSec * 35.0F);
+            renderGroundStarSeal(starVc, poseStack,  1.25F, 0.03F, burstZ - 0.80F, (0.48F + 0.24F * grow) * fade,  timeSec * 35.0F);
 
 // NA4 vertical light beam removed
 
             // Side curved vine-flowers flanking the Heart Arch
             VertexConsumer vineVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(vineTex));
-            for (float side : new float[]{-1.15F, 1.15F}) {
+            for (float side : new float[]{-1.25F, 1.25F}) {
                 poseStack.pushPose();
-                poseStack.translate(side, 0.03F, burstZ - 0.55F);
-                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.48F, 1.65F, grow, retract, timeSec, 0.09F, side, 10);
+                poseStack.translate(side, 0.03F, burstZ - 0.80F);
+                renderUnfurlingRetractingRibbon(vineVc, poseStack, 0.52F, 1.75F, grow, retract, timeSec, 0.09F, side, 10);
                 poseStack.popPose();
             }
 
@@ -915,18 +976,18 @@ public final class NahidaVisualRenderer {
             VertexConsumer heartVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(heartTex));
             poseStack.pushPose();
             poseStack.translate(0.0F, 0.05F, burstZ);
-            float heartHalfW = (1.35F + 0.25F * grow) * fade;
-            float heartH = 2.85F * fade;
+            float heartHalfW = (1.50F + 0.30F * grow) * fade;
+            float heartH = 3.05F * fade;
             renderUnfurlingRetractingRibbon(heartVc, poseStack, heartHalfW, heartH, grow, retract, timeSec, 0.05F, 0.0F, 12);
             poseStack.popPose();
 
-            // Ground-scattered & rising waffle 4-petal clovers (matching Image 4 foreground & ground sparkles)
+            // Ground-scattered & rising waffle 4-petal clovers
             VertexConsumer petalVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(skandhaTex));
             for (int k = 0; k < 8; k++) {
                 float ang = (float) (k * Math.PI * 0.25D + 0.35D);
-                float rad = 1.05F + (k % 3) * 0.65F;
+                float rad = 1.15F + (k % 3) * 0.72F;
                 float gx = Mth.cos(ang) * rad;
-                float gz = 1.65F + Mth.sin(ang) * rad;
+                float gz = 2.45F + Mth.sin(ang) * rad;
                 float gy = 0.05F + (k % 2) * (0.25F * prog);
                 float gHalf = (0.18F + (k % 3) * 0.06F) * fade * grow;
                 renderGroundStarSeal(petalVc, poseStack, gx, gy, gz, gHalf, timeSec * 60.0F + k * 45.0F);
@@ -1079,8 +1140,8 @@ public final class NahidaVisualRenderer {
                 poseStack.pushPose();
                 poseStack.translate(cx, cy, cz);
                 if (caProg < 0.62F) {
-                    // Phase 1: Box opens and grows larger until explosion
-                    float boxScale = 0.15F + 1.05F * WindGliderRenderer.smoothStep01(caProg / 0.62F);
+                    // Phase 1: Box opens and grows larger until explosion (1.5x scaled frame)
+                    float boxScale = 0.22F + 1.45F * WindGliderRenderer.smoothStep01(caProg / 0.62F);
                     float h = 1.15F * boxScale;
                     VertexConsumer vc = bufferSource.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
                     Matrix4f mat = poseStack.last().pose();

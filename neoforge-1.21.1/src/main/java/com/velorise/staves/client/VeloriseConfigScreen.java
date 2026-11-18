@@ -32,39 +32,39 @@ public class VeloriseConfigScreen extends Screen {
         int colGap = 12;
         int leftColX = centerX - colWidth - (colGap / 2);
         int rightColX = centerX + (colGap / 2);
-        int startY = 28;
-        int rowHeight = 22;
+        int startY = 20;
+        int rowHeight = 19;
 
         // Row 1: Overhead Icons (Left) & Reaction Text (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.overhead_icons.desc")))
-                .create(leftColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.overhead_icons"), (btn, val) -> {
+                .create(leftColX, startY, colWidth, 18, Component.translatable("config.velorise_staves.overhead_icons"), (btn, val) -> {
                     StavesConfig.SHOW_OVERHEAD_ELEMENT_ICONS.set(val);
                 }));
 
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_REACTION_TEXT.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.reaction_text.desc")))
-                .create(rightColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.reaction_text"), (btn, val) -> {
+                .create(rightColX, startY, colWidth, 18, Component.translatable("config.velorise_staves.reaction_text"), (btn, val) -> {
                     StavesConfig.SHOW_REACTION_TEXT.set(val);
                 }));
 
         // Row 2: Damage Numbers (Left) & Particles (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_DAMAGE_NUMBERS.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.damage_numbers.desc")))
-                .create(leftColX, startY + rowHeight, colWidth, 20, Component.translatable("config.velorise_staves.damage_numbers"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight, colWidth, 18, Component.translatable("config.velorise_staves.damage_numbers"), (btn, val) -> {
                     StavesConfig.SHOW_DAMAGE_NUMBERS.set(val);
                 }));
 
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.SHOW_ELEMENTAL_PARTICLES.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.particles.desc")))
-                .create(rightColX, startY + rowHeight, colWidth, 20, Component.translatable("config.velorise_staves.particles"), (btn, val) -> {
+                .create(rightColX, startY + rowHeight, colWidth, 18, Component.translatable("config.velorise_staves.particles"), (btn, val) -> {
                     StavesConfig.SHOW_ELEMENTAL_PARTICLES.set(val);
                 }));
 
         // Row 3: EGT System (Left) & Mutate Rate (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_ELEMENTAL_GAUGE.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.egt_system.desc")))
-                .create(leftColX, startY + rowHeight * 2, colWidth, 20, Component.translatable("config.velorise_staves.egt_system"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight * 2, colWidth, 18, Component.translatable("config.velorise_staves.egt_system"), (btn, val) -> {
                     StavesConfig.ENABLE_ELEMENTAL_GAUGE.set(val);
                 }));
 
@@ -76,7 +76,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(mutateRates)
                 .withInitialValue(initialRate)
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.mutate_rate.desc")))
-                .create(rightColX, startY + rowHeight * 2, colWidth, 20, Component.translatable("config.velorise_staves.mutate_rate"), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 2, colWidth, 18, Component.translatable("config.velorise_staves.mutate_rate"), (btn, val) -> {
                     StavesConfig.INNATE_MUTATION_CHANCE.set(val);
                 }));
 
@@ -89,7 +89,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(dmgMults)
                 .withInitialValue(initialDmg)
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.damage_mult.desc")))
-                .create(leftColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.damage_mult"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight * 3, colWidth, 18, Component.translatable("config.velorise_staves.damage_mult"), (btn, val) -> {
                     StavesConfig.DAMAGE_MULTIPLIER.set(val);
                     this.saveLocalConfig();
                 }));
@@ -102,7 +102,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(cdMults)
                 .withInitialValue(initialCd)
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.cooldown_mult.desc")))
-                .create(rightColX, startY + rowHeight * 3, colWidth, 20, Component.translatable("config.velorise_staves.cooldown_mult"), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 3, colWidth, 18, Component.translatable("config.velorise_staves.cooldown_mult"), (btn, val) -> {
                     StavesConfig.COOLDOWN_MULTIPLIER.set(val);
                     this.saveLocalConfig();
                 }));
@@ -110,7 +110,7 @@ public class VeloriseConfigScreen extends Screen {
         // Row 5: Elemental Resonance (Left) & Max Staves Cap (Right)
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_ELEMENTAL_RESONANCE.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.resonance.desc")))
-                .create(leftColX, startY + rowHeight * 4, colWidth, 20, Component.translatable("config.velorise_staves.resonance"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight * 4, colWidth, 18, Component.translatable("config.velorise_staves.resonance"), (btn, val) -> {
                     StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(val);
                     this.saveLocalConfig();
                 }));
@@ -122,7 +122,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(maxStavesOpts)
                 .withInitialValue(initialCap)
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.max_staves.desc")))
-                .create(rightColX, startY + rowHeight * 4, colWidth, 20, Component.translatable("config.velorise_staves.max_staves"), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 4, colWidth, 18, Component.translatable("config.velorise_staves.max_staves"), (btn, val) -> {
                     StavesConfig.MAX_STAVES_IN_INVENTORY.set(val);
                     this.saveLocalConfig();
                 }));
@@ -132,7 +132,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(List.of(false, true))
                 .withInitialValue(StavesConfig.isUse32pxTextures())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.texture_res.desc")))
-                .create(centerX - 100, startY + rowHeight * 5, 200, 20, Component.translatable("config.velorise_staves.texture_res"), (btn, val) -> {
+                .create(centerX - 100, startY + rowHeight * 5, 200, 18, Component.translatable("config.velorise_staves.texture_res"), (btn, val) -> {
                     StavesConfig.USE_32PX_TEXTURES.set(val);
                     StavesConfig.USE_32PX_ELEMENT_ICONS.set(val);
                     StavesConfig.USE_32PX_GLIDER_TEXTURE.set(val);
@@ -142,14 +142,14 @@ public class VeloriseConfigScreen extends Screen {
         // Row 7: Universal Plunge Attack & Wind Glider Toggles
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_PLUNGE_ATTACK.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_plunge.desc")))
-                .create(leftColX, startY + rowHeight * 6, colWidth, 20, Component.translatable("config.velorise_staves.enable_plunge"), (btn, val) -> {
+                .create(leftColX, startY + rowHeight * 6, colWidth, 18, Component.translatable("config.velorise_staves.enable_plunge"), (btn, val) -> {
                     StavesConfig.ENABLE_PLUNGE_ATTACK.set(val);
                     this.saveLocalConfig();
                 }));
 
         this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_WIND_GLIDER.get())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_glider.desc")))
-                .create(rightColX, startY + rowHeight * 6, colWidth, 20, Component.translatable("config.velorise_staves.enable_glider"), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 6, colWidth, 18, Component.translatable("config.velorise_staves.enable_glider"), (btn, val) -> {
                     StavesConfig.ENABLE_WIND_GLIDER.set(val);
                     this.saveLocalConfig();
                 }));
@@ -160,19 +160,34 @@ public class VeloriseConfigScreen extends Screen {
             if (this.minecraft != null) {
                 this.minecraft.setScreen(new CharacterVoiceScreen(this));
             }
-        }).bounds(leftColX, startY + rowHeight * 7, colWidth, 20).build());
+        }).bounds(leftColX, startY + rowHeight * 7, colWidth, 18).build());
 
         this.addRenderableWidget(CycleButton.<String>builder(val -> Component.translatable("config.velorise_staves.voice_master_mode." + val))
                 .withValues(List.of("all", "self_only", "disabled"))
                 .withInitialValue(com.velorise.staves.audio.CharacterVoiceManager.getMasterMode())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_master_mode.desc")))
-                .create(rightColX, startY + rowHeight * 7, colWidth, 20, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
+                .create(rightColX, startY + rowHeight * 7, colWidth, 18, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
                     com.velorise.staves.audio.CharacterVoiceManager.setMasterMode(val);
+                }));
+
+        // Row 9: Genshin Stamina (100 -> 240) & Ctrl Dash Toggles
+        this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_CUSTOM_STAMINA.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_custom_stamina.desc")))
+                .create(leftColX, startY + rowHeight * 8, colWidth, 18, Component.translatable("config.velorise_staves.enable_custom_stamina"), (btn, val) -> {
+                    StavesConfig.ENABLE_CUSTOM_STAMINA.set(val);
+                    this.saveLocalConfig();
+                }));
+
+        this.addRenderableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_CUSTOM_DASH.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_custom_dash.desc")))
+                .create(rightColX, startY + rowHeight * 8, colWidth, 18, Component.translatable("config.velorise_staves.enable_custom_dash"), (btn, val) -> {
+                    StavesConfig.ENABLE_CUSTOM_DASH.set(val);
+                    this.saveLocalConfig();
                 }));
 
         // Bottom Row: Elemental Codex Guide (Left), Reset Defaults (Center), Done (Right)
         int btnW = 98;
-        int bottomY = startY + rowHeight * 8 + 4;
+        int bottomY = startY + rowHeight * 9 + 4;
 
         this.addRenderableWidget(Button.builder(Component.translatable("config.velorise_staves.open_codex"), btn -> {
             this.saveLocalConfig();
@@ -193,6 +208,9 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.ENABLE_ELEMENTAL_RESONANCE.set(true);
             StavesConfig.ENABLE_PLUNGE_ATTACK.set(true);
             StavesConfig.ENABLE_WIND_GLIDER.set(true);
+            StavesConfig.ENABLE_CUSTOM_STAMINA.set(true);
+            StavesConfig.ENABLE_CUSTOM_DASH.set(true);
+            StavesConfig.ENABLE_WALL_CLIMB.set(true);
             StavesConfig.MAX_STAVES_IN_INVENTORY.set(4);
             StavesConfig.INNATE_MUTATION_CHANCE.set(0.07D);
             StavesConfig.OMNI_MUTATION_SHARE.set(0.143D);

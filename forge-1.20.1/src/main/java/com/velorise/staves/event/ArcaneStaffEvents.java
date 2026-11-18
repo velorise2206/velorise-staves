@@ -518,9 +518,83 @@ public final class ArcaneStaffEvents {
                         continue;
                     }
                 }
+                if (projectile instanceof net.minecraft.world.entity.projectile.ShulkerBullet bullet
+                        && ("shulker".equals(kindTag) || "netherite_shulker".equals(kindTag))
+                        && bullet.getPersistentData().hasUUID("VeloriseShulkerTarget")) {
+                    java.util.UUID targetId = bullet.getPersistentData().getUUID("VeloriseShulkerTarget");
+                    Entity targetEnt = level.getEntity(targetId);
+                    if (targetEnt instanceof LivingEntity target && target.isAlive() && !target.isSpectator()) {
+                        double speed = bullet.getTags().contains("velorise_staves:finale_shot") ? 0.85D : 0.68D;
+                        Vec3 bPos = bullet.position();
+                        Vec3 aimPos = target.getBoundingBox().getCenter().add(target.getDeltaMovement().scale(0.35D));
+                        BlockHitResult los = level.clip(new ClipContext(bPos, aimPos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, bullet));
+                        Vec3 steerTarget = (los.getType() == HitResult.Type.MISS)
+                                ? aimPos
+                                : findNextAStarWaypoint(level, bullet.blockPosition(), BlockPos.containing(aimPos), 160);
+                        Vec3 dir = steerTarget.subtract(bPos);
+                        if (dir.lengthSqr() > 1.0E-5D) {
+                            bullet.setDeltaMovement(dir.normalize().scale(speed));
+                            bullet.hurtMarked = true;
+                        }
+                    }
+                }
             }
         }
     }
+
+    private static Vec3 findNextAStarWaypoint(ServerLevel level, BlockPos start, BlockPos goal, int maxNodes) {
+        if (start.equals(goal)) return Vec3.atCenterOf(goal);
+        java.util.PriorityQueue<AStarNode> open = new java.util.PriorityQueue<>(java.util.Comparator.comparingDouble(n -> n.f));
+        java.util.Map<BlockPos, Double> bestG = new java.util.HashMap<>();
+        java.util.Map<BlockPos, BlockPos> cameFrom = new java.util.HashMap<>();
+        double h0 = Math.sqrt(start.distSqr(goal));
+        open.add(new AStarNode(start, 0.0D, h0));
+        bestG.put(start, 0.0D);
+
+        BlockPos closest = start;
+        double closestH = h0;
+        int explored = 0;
+        int[][] dirs = {
+                {1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1},
+                {1,1,0},{-1,1,0},{0,1,1},{0,1,-1},{1,-1,0},{-1,-1,0},{0,-1,1},{0,-1,-1}
+        };
+
+        while (!open.isEmpty() && explored < maxNodes) {
+            AStarNode cur = open.poll();
+            if (cur.pos.equals(goal)) {
+                closest = goal;
+                break;
+            }
+            explored++;
+            if (cur.g > bestG.getOrDefault(cur.pos, Double.MAX_VALUE) + 1.0E-4D) continue;
+            for (int[] d : dirs) {
+                BlockPos next = cur.pos.offset(d[0], d[1], d[2]);
+                if (!next.equals(goal) && !level.getBlockState(next).getCollisionShape(level, next).isEmpty()) {
+                    continue;
+                }
+                double stepCost = Math.sqrt(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]);
+                double ng = cur.g + stepCost;
+                if (ng < bestG.getOrDefault(next, Double.MAX_VALUE)) {
+                    bestG.put(next, ng);
+                    cameFrom.put(next, cur.pos);
+                    double nh = Math.sqrt(next.distSqr(goal));
+                    if (nh < closestH) {
+                        closestH = nh;
+                        closest = next;
+                    }
+                    open.add(new AStarNode(next, ng, ng + nh * 1.15D));
+                }
+            }
+        }
+        if (closest.equals(start)) return Vec3.atCenterOf(goal);
+        BlockPos step = closest;
+        while (cameFrom.containsKey(step) && !cameFrom.get(step).equals(start)) {
+            step = cameFrom.get(step);
+        }
+        return Vec3.atCenterOf(step);
+    }
+
+    private record AStarNode(BlockPos pos, double g, double f) {}
 
     private static void resolveDragonfire(ServerLevel level, Vec3 hit, Entity owner, boolean isNetherite) {
         AreaEffectCloud cloud = new AreaEffectCloud(level, hit.x, hit.y, hit.z);
@@ -985,6 +1059,9 @@ public final class ArcaneStaffEvents {
                 if (directHit instanceof ServerPlayer sp) {
                     sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
                 }
+                if (isDaybreak && player != null) {
+                    com.velorise.staves.advancement.ModAdvancements.recordVentiWindLaunch(player, directHit);
+                }
             }
         }
         checkEndCrystalsNear(level, hit, radius, owner);
@@ -1015,6 +1092,9 @@ public final class ArcaneStaffEvents {
                     nearby.hurtMarked = true;
                     if (nearby instanceof ServerPlayer sp) {
                         sp.connection.send(new ClientboundSetEntityMotionPacket(sp));
+                    }
+                    if (isDaybreak && player != null) {
+                        com.velorise.staves.advancement.ModAdvancements.recordVentiWindLaunch(player, nearby);
                     }
                 }
             }

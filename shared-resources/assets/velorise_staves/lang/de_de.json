@@ -775,5 +775,13 @@
   "config.velorise_staves.enable_mavuika_wall_climb": "Flammenläufer-Wandklettern",
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Ermöglicht Mavuikas Flammenläufer-Motorrad das senkrechte Erklettern von Klippen und Wänden.",
   "config.velorise_staves.mavuika_bike_speed": "Flammenläufer-Tempo",
-  "config.velorise_staves.mavuika_bike_speed.desc": "Geschwindigkeitsmultiplikator für Mavuikas Flammenläufer-Motorrad (Standard: 1.0x)."
+  "config.velorise_staves.mavuika_bike_speed.desc": "Geschwindigkeitsmultiplikator für Mavuikas Flammenläufer-Motorrad (Standard: 1.0x).",
+  "config.velorise_staves.voice_char_lang.en_us": "EN",
+  "config.velorise_staves.voice_char_lang.zh_cn": "CN",
+  "config.velorise_staves.voice_char_lang.ja_jp": "JP",
+  "config.velorise_staves.enable_wall_climb": "Wall Climb",
+  "config.velorise_staves.enable_wall_climb.desc": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina).",
+  "config.velorise_staves.wall_climb.on": "Wall Climb: ON",
+  "config.velorise_staves.wall_climb.off": "Wall Climb: OFF",
+  "config.velorise_staves.tooltip.wall_climb": "Enables Genshin-style vertical wall climbing when pressing forward against walls (consumes Stamina)."
 }
