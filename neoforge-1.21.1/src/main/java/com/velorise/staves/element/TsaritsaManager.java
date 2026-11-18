@@ -127,15 +127,11 @@ public final class TsaritsaManager {
 
     public static boolean isHoldingTsaritsaWeapon(Player player) {
         if (player == null) return false;
-        ItemStack main = player.getMainHandItem();
-        if (isTsaritsaItem(main)) return true;
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
-        return isTsaritsaItem(player.getOffhandItem());
+        return isTsaritsaItem(player.getMainHandItem());
     }
 
     public static InteractionHand getActiveTsaritsaHand(Player player) {
-        if (player != null && isTsaritsaItem(player.getMainHandItem())) return InteractionHand.MAIN_HAND;
-        return InteractionHand.OFF_HAND;
+        return InteractionHand.MAIN_HAND;
     }
 
     public static boolean isTsaritsaItem(ItemStack stack) {
@@ -149,10 +145,6 @@ public final class TsaritsaManager {
         ItemStack main = player.getMainHandItem();
         if (isTsaritsaItem(main)) {
             return ArcaneStaffItem.getEffectiveNetherite(main);
-        }
-        ItemStack off = player.getOffhandItem();
-        if (isTsaritsaItem(off)) {
-            return ArcaneStaffItem.getEffectiveNetherite(off);
         }
         return false;
     }
@@ -1225,10 +1217,7 @@ public final class TsaritsaManager {
             TsaritsaIdleState st = TSARITSA_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new TsaritsaIdleState());
             ItemStack main = player.getMainHandItem();
             ArcaneStaffItem.Kind mk = ArcaneStaffItem.getEffectiveKind(main);
-            ArcaneStaffItem.Kind ok = ArcaneStaffItem.getEffectiveKind(player.getOffhandItem());
-            boolean holding = (mk == ArcaneStaffItem.Kind.TSARITSA_BOW || mk == ArcaneStaffItem.Kind.TSARITSA_SPEAR)
-                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                    && (ok == ArcaneStaffItem.Kind.TSARITSA_BOW || ok == ArcaneStaffItem.Kind.TSARITSA_SPEAR));
+            boolean holding = (mk == ArcaneStaffItem.Kind.TSARITSA_BOW || mk == ArcaneStaffItem.Kind.TSARITSA_SPEAR);
             if (st.lastStillPos == null || st.lastStillPos.equals(Vec3.ZERO)) {
                 st.lastStillPos = player.position();
             }

@@ -306,6 +306,7 @@ public final class ClientAuraRenderer {
         if (FurinaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (VentiVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyIdleHumanoidPose(entity, model, ageInTicks)) return;
+        if (WindGliderRenderer.applyDragonfireIdleHumanoidPose(entity, model, ageInTicks)) return;
         if (TsaritsaVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (VentiVisualRenderer.applyBowPullHumanoidPose(entity, model)) return;
         if (TsaritsaVisualRenderer.applySpearStanceGlidePose(entity, model, activeAnim)) return;
@@ -347,7 +348,8 @@ public final class ClientAuraRenderer {
                 || ventiIdleActive
                 || tsaritsaIdleActive
                 || idleChk.nahidaIdleSwing || idleChk.nahidaIdleSwingFade > 0.05F
-                || ((idleChk.zhongliIdleMeteor || idleChk.zhongliIdleFade > 0.05F) && !entity.isUsingItem() && !entity.swinging))) {
+                || ((idleChk.zhongliIdleMeteor || idleChk.zhongliIdleFade > 0.05F) && !entity.isUsingItem() && !entity.swinging)
+                || ((idleChk.dragonfireIdle || idleChk.dragonfireIdleFade > 0.05F) && !entity.isUsingItem() && !entity.swinging))) {
             poseStack.scale(0.0F, 0.0F, 0.0F);
             return;
         }
@@ -376,7 +378,8 @@ public final class ClientAuraRenderer {
         boolean fpZhongliIdle = fpIdle != null && (fpIdle.zhongliIdleMeteor || fpIdle.zhongliIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging;
         boolean fpMavuikaIdle = fpIdle != null && (fpIdle.mavuikaIdle || fpIdle.mavuikaIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging && !(player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity);
         boolean fpFurinaIdle = fpIdle != null && (fpIdle.furinaIdleMode > 0 || fpIdle.furinaIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging;
-        if (fpIdle != null && (fpVentiIdle || fpIdle.raidenIdle || fpIdle.raidenIdleFade > 0.05F || fpTsaritsaIdle || fpIdle.nahidaIdleSwing || fpIdle.nahidaIdleSwingFade > 0.05F || fpZhongliIdle || fpMavuikaIdle || fpFurinaIdle)) {
+        boolean fpDragonfireIdle = fpIdle != null && (fpIdle.dragonfireIdle || fpIdle.dragonfireIdleFade > 0.05F) && !player.isUsingItem() && !player.swinging;
+        if (fpIdle != null && (fpVentiIdle || fpIdle.raidenIdle || fpIdle.raidenIdleFade > 0.05F || fpTsaritsaIdle || fpIdle.nahidaIdleSwing || fpIdle.nahidaIdleSwingFade > 0.05F || fpZhongliIdle || fpMavuikaIdle || fpFurinaIdle || fpDragonfireIdle)) {
             poseStack.scale(0.0F, 0.0F, 0.0F);
             return;
         }
@@ -403,7 +406,6 @@ public final class ClientAuraRenderer {
         VentiVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         RaidenVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         TsaritsaVisualRenderer.renderIdleThrone(player, poseStack, buffer);
-        WindGliderRenderer.renderDragonfireEffects(player, poseStack, buffer);
     }
 
     public static boolean setupFirstPersonVortexMainArmPose(AbstractClientPlayer player, float partialTicks, HumanoidArm mainArm, PoseStack poseStack) {
@@ -411,6 +413,7 @@ public final class ClientAuraRenderer {
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, mainArm, poseStack)) return true;
         if (NahidaVisualRenderer.setupFirstPersonCameraArmPose(player, mainArm, poseStack)) return true;
         if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, mainArm, poseStack)) return true;
+        if (WindGliderRenderer.setupFirstPersonDragonfireIdleArmPose(player, partialTicks, mainArm, poseStack)) return true;
         return ZhongliVisualRenderer.setupFirstPersonVortexMainArmPose(player, partialTicks, mainArm, poseStack);
     }
 
@@ -518,6 +521,7 @@ public final class ClientAuraRenderer {
         XilonenVisualRenderer.renderFirstPersonXilonenDjBooth(poseStack, bufferSource, camPos, now);
         TsaritsaVisualRenderer.renderFirstPersonIdleDesk(poseStack, bufferSource, camPos, now);
         ZhongliVisualRenderer.renderFirstPersonIdleMeteor(poseStack, bufferSource, camPos, now);
+        WindGliderRenderer.renderFirstPersonWorldDragonfire(poseStack, bufferSource, camPos);
 
         if (ClientAuraTracker.ACTIVE_ARCS.isEmpty()) return;
         ClientAuraTracker.ACTIVE_ARCS.removeIf(arc -> now >= arc.expireTime);

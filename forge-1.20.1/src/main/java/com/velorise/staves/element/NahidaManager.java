@@ -143,13 +143,6 @@ public final class NahidaManager {
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
             return main;
         }
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) {
-            return ItemStack.EMPTY;
-        }
-        ItemStack off = player.getOffhandItem();
-        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
-            return off;
-        }
         return ItemStack.EMPTY;
     }
 

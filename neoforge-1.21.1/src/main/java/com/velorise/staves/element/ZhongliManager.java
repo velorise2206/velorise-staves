@@ -128,10 +128,7 @@ public final class ZhongliManager {
 
     private static boolean isHoldingZhongli(@Nullable Player player) {
         if (player == null) return false;
-        ItemStack main = player.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.VORTEX) return true;
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
-        return ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.VORTEX;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.VORTEX;
     }
 
     public static void tick(MinecraftServer server, long now) {

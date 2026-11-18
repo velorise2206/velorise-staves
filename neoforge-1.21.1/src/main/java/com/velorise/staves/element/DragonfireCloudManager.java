@@ -151,11 +151,7 @@ public final class DragonfireCloudManager {
 
     public static boolean isHoldingDragonfireWeapon(@Nullable Player player) {
         if (player == null) return false;
-        if (ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.DRAGONFIRE) {
-            return true;
-        }
-        return !ArcaneStaffItem.isGenshinCharacterWeapon(player.getMainHandItem())
-                && ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.DRAGONFIRE;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.DRAGONFIRE;
     }
 
     private static boolean stackGrantsDragonfireGlider(ItemStack stack) {
@@ -280,20 +276,10 @@ public final class DragonfireCloudManager {
 
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
-        boolean isNeth;
-        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.DRAGONFIRE) {
-            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else if (!ArcaneStaffItem.isGenshinCharacterWeapon(stack)) {
-            hand = InteractionHand.OFF_HAND;
-            stack = player.getOffhandItem();
-            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.DRAGONFIRE) {
-                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-            } else {
-                return;
-            }
-        } else {
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.DRAGONFIRE) {
             return;
         }
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
 
         ServerLevel level = player.serverLevel();
         if (level.getServer() == null) return;
@@ -337,21 +323,21 @@ public final class DragonfireCloudManager {
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.PLAYERS, 1.1F, 1.45F);
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 0.9F, 1.25F);
 
-            ArchonUltiManager.scheduleBurstAction(player, 40, () -> {
+            ArchonUltiManager.scheduleBurstAction(player, 12, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
                 Vec3 curLook = player.getLookAngle();
                 Vec3 fwd = new Vec3(curLook.x, 0.0D, curLook.z);
                 if (fwd.lengthSqr() < 1.0E-4D) fwd = lockedFwd;
                 else fwd = fwd.normalize();
 
-                // 4 blocks in front of the player, 7x7 square AoE (half-extent = 3.5m, or 4.25m on Netherite)
-                Vec3 rawTarget = player.position().add(fwd.scale(4.0D)); // Center of the 7x7 zone 4 blocks ahead
+                // 5.5 blocks in front of the player, 10x10 square AoE (half-extent = 5.0m, or 6.0m on Netherite)
+                Vec3 rawTarget = player.position().add(fwd.scale(5.5D)); // Center of the 10x10 zone ahead
                 BlockHitResult downHit = sl.clip(new ClipContext(
                         rawTarget.add(0.0D, 4.0D, 0.0D), rawTarget.subtract(0.0D, 8.0D, 0.0D),
                         ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
                 Vec3 impactPos = downHit.getType() == HitResult.Type.BLOCK ? downHit.getLocation() : rawTarget;
 
-                double halfExt = finalIsNeth ? 4.25D : 3.5D; // 7x7 blocks base (8.5x8.5 Netherite)
+                double halfExt = finalIsNeth ? 6.0D : 5.0D; // 10x10 blocks base (12x12 Netherite)
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
                 float diveDmg = (finalIsNeth ? 24.0F : 16.0F) * scale;
                 float gaugeU = finalIsNeth ? 4.0F : 3.5F;
@@ -371,18 +357,20 @@ public final class DragonfireCloudManager {
                 sl.sendParticles(ParticleTypes.DRAGON_BREATH, impactPos.x, impactPos.y + 0.5D, impactPos.z, 65, halfExt * 0.45D, 0.4D, halfExt * 0.45D, 0.08D);
                 sl.sendParticles(ParticleTypes.END_ROD, impactPos.x, impactPos.y + 0.8D, impactPos.z, 28, halfExt * 0.4D, 0.5D, halfExt * 0.4D, 0.06D);
                 sl.sendParticles(ParticleTypes.EXPLOSION_EMITTER, impactPos.x, impactPos.y + 0.4D, impactPos.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.4F, 0.55F);
+                sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ANVIL_LAND, SoundSource.PLAYERS, 1.1F, 0.45F);
                 sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 1.2F, 0.75F);
                 sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 1.0F, 0.85F);
                 sl.playSound(null, impactPos.x, impactPos.y, impactPos.z, SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 1.0F, 0.80F);
             });
         } else {
-            // Variant 2: Sweeping Strafe (Giant Dragon swoops in a curved arc skimming a 3m wide x 10m long corridor)
-            ArchonUltiManager.grantUltiIframe(player, 36);
+            // Variant 2: Sweeping Strafe (Giant Dragon swoops in a curved arc skimming a 5m wide x 20m long corridor)
+            ArchonUltiManager.grantUltiIframe(player, 24);
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SWEEP);
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.PLAYERS, 1.0F, 0.90F);
             level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.PLAYERS, 1.1F, 0.85F);
 
-            ArchonUltiManager.scheduleBurstAction(player, 14, () -> {
+            ArchonUltiManager.scheduleBurstAction(player, 8, () -> {
                 if (!player.isAlive() || !(player.level() instanceof ServerLevel sl)) return;
                 Vec3 origin = player.position();
                 Vec3 curLook = player.getLookAngle();
@@ -390,7 +378,7 @@ public final class DragonfireCloudManager {
                 if (fwd.lengthSqr() < 1.0E-4D) fwd = lockedFwd;
                 else fwd = fwd.normalize();
 
-                double length = finalIsNeth ? 12.0D : 10.0D; // 10 blocks long (12m Netherite)
+                double length = finalIsNeth ? 24.0D : 20.0D; // 20 blocks long (24m Netherite)
                 double halfWidth = finalIsNeth ? 3.0D : 2.5D; // 5 blocks wide (6m Netherite)
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
                 float sweepDmg = (finalIsNeth ? 18.0F : 12.0F) * scale;
@@ -542,7 +530,7 @@ public final class DragonfireCloudManager {
 
                 DragonfireIdleState idleSt = DRAGONFIRE_IDLE_STATES.get(id);
                 boolean inIdle = idleSt != null && idleSt.idleActive;
-                if (serverNow % 40L == 0L) {
+                if (serverNow % 20L == 0L) {
                     ModNetwork.sendStaffAnimation(player, inIdle
                             ? ClientAuraTracker.ANIM_DRAGONFIRE_IDLE_ON
                             : ClientAuraTracker.ANIM_DRAGONFIRE_PET_ON);

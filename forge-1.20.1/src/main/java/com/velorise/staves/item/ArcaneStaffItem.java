@@ -282,9 +282,6 @@ public final class ArcaneStaffItem extends Item {
         if (isGenshinCharacterWeapon(player.getMainHandItem())) {
             return InteractionHand.MAIN_HAND;
         }
-        if (isGenshinCharacterWeapon(player.getOffhandItem())) {
-            return InteractionHand.OFF_HAND;
-        }
         return null;
     }
 
@@ -535,11 +532,6 @@ public final class ArcaneStaffItem extends Item {
         ArcaneStaffItem staff = null;
         if (stack.getItem() instanceof ArcaneStaffItem s && getEffectiveKind(stack) == Kind.SPLENDOR) {
             staff = (s.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : s;
-        } else if (!isGenshinCharacterWeapon(stack)) {
-            stack = player.getOffhandItem();
-            if (stack.getItem() instanceof ArcaneStaffItem so && getEffectiveKind(stack) == Kind.SPLENDOR) {
-                staff = (so.kind() == Kind.OMNI) ? getOmniAbsorbedStaff(stack, getOmniActiveElement(stack)) : so;
-            }
         }
         if (staff == null) return;
         long now = player.level().getGameTime();
@@ -707,7 +699,7 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
-                    case GHASTFIRE -> SoundEvents.GHAST_WARN;
+                    case GHASTFIRE -> SoundEvents.BLAZE_AMBIENT;
                     case VORTEX -> SoundEvents.DEEPSLATE_STEP;
                     case SPLENDOR -> SoundEvents.AMETHYST_BLOCK_RESONATE;
                     case DAYBREAK -> VeloriseStavesMod.WIND_CHARGE_THROW_SOUND.get();
@@ -716,7 +708,7 @@ public final class ArcaneStaffItem extends Item {
                 float cuePitch = switch (kind) {
                     case ECHO -> 0.85F;
                     case LIGHTNING -> 1.5F;
-                    case GHASTFIRE -> 0.9F;
+                    case GHASTFIRE -> 0.75F;
                     case VORTEX -> 0.75F;
                     case SPLENDOR, DAYBREAK -> 1.15F;
                     default -> 1.25F;
@@ -851,7 +843,7 @@ public final class ArcaneStaffItem extends Item {
                 SoundEvent cueSound = switch (kind) {
                     case ECHO -> SoundEvents.WARDEN_SONIC_CHARGE;
                     case LIGHTNING -> SoundEvents.LIGHTNING_BOLT_THUNDER;
-                    case GHASTFIRE -> SoundEvents.GHAST_WARN;
+                    case GHASTFIRE -> SoundEvents.BLAZE_AMBIENT;
                     case VORTEX -> SoundEvents.DEEPSLATE_STEP;
                     case SPLENDOR -> SoundEvents.AMETHYST_BLOCK_RESONATE;
                     case DAYBREAK -> com.velorise.staves.VeloriseStavesMod.WIND_CHARGE_THROW_SOUND.get();
@@ -1257,6 +1249,10 @@ public final class ArcaneStaffItem extends Item {
             return;
         }
         if (kind == Kind.GHASTFIRE) {
+            int elapsed = 72000 - count;
+            if (elapsed == 30) {
+                serverLevel.playSound(null, player.blockPosition(), SoundEvents.GHAST_WARN, SoundSource.PLAYERS, 0.95F, 0.95F);
+            }
             return;
         }
         if (kind == Kind.DAYBREAK) {
@@ -1710,9 +1706,7 @@ public final class ArcaneStaffItem extends Item {
         LAST_DAYBREAK_SHOT.put(player.getUUID(), now);
         ItemStack stack = player.getMainHandItem();
         if (getEffectiveKind(stack) != Kind.DAYBREAK) {
-            if (isGenshinCharacterWeapon(stack)) return;
-            stack = player.getOffhandItem();
-            if (getEffectiveKind(stack) != Kind.DAYBREAK) return;
+            return;
         }
         if (!(stack.getItem() instanceof ArcaneStaffItem heldStaff)) return;
         ArcaneStaffItem daybreakStaff = heldStaff.kind() == Kind.OMNI
@@ -1720,8 +1714,7 @@ public final class ArcaneStaffItem extends Item {
                 : heldStaff;
         if (daybreakStaff == null) return;
         if (daybreakStaff.shootDaybreakBreeze(player, charge01)) {
-            InteractionHand hand = player.getOffhandItem() == stack ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
-            hurtStaffAndCheckBreak(stack, 1, player, hand);
+            hurtStaffAndCheckBreak(stack, 1, player, InteractionHand.MAIN_HAND);
             player.awardStat(Stats.ITEM_USED.get(heldStaff));
         }
     }

@@ -162,13 +162,9 @@ public final class ArchonUltiManager {
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         if (ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        boolean mainIsGenshin = isGenshinCharacterWeapon(main);
-        InteractionHand activeHand = mainIsGenshin ? InteractionHand.MAIN_HAND : (isGenshinCharacterWeapon(off) ? InteractionHand.OFF_HAND : null);
-        if (activeHand == null) return;
+        if (!isGenshinCharacterWeapon(main)) return;
 
-        ItemStack activeStack = player.getItemInHand(activeHand);
-        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(activeStack);
+        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(main);
         if (effKind == null) return;
         switch (effKind) {
             case THOUSAND_BLAZING_SUNS -> ElementalGaugeManager.triggerMavuikaUlti(player);
@@ -232,22 +228,6 @@ public final class ArchonUltiManager {
             }
             return;
         }
-        if (isGenshinCharacterWeapon(main)) return;
-        ItemStack off = player.getOffhandItem();
-        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.DAYBREAK
-                && off.getItem() instanceof ArcaneStaffItem offStaff) {
-            ArcaneStaffItem targetStaff = offStaff.kind() == ArcaneStaffItem.Kind.OMNI
-                    ? ArcaneStaffItem.getAbsorbedStaffForElement(off, Element.ANEMO)
-                    : offStaff;
-            if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, off)) {
-                long baseCd = targetStaff.getDaybreakCooldownTicks(true);
-                long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
-                        ? Math.max(20L, Math.round(baseCd * 0.90D)) : baseCd;
-                VENTI_BURST_CD_UNTIL.put(id, now + cdTicks);
-                applyBurstRoot(player, 40);
-                ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
-            }
-        }
     }
 
     /** Furina [R] Burst: Let the People Rejoice (15s CD, 1.6s I-frames, AoE Hydro stage burst + Universal Revelry Fanfare). */
@@ -256,20 +236,10 @@ public final class ArchonUltiManager {
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
-        boolean isNeth;
-        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
-            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else if (!isGenshinCharacterWeapon(stack)) {
-            hand = InteractionHand.OFF_HAND;
-            stack = player.getOffhandItem();
-            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.SPLENDOR) {
-                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-            } else {
-                return;
-            }
-        } else {
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.SPLENDOR) {
             return;
         }
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
 
         ServerLevel level = player.serverLevel();
         long now = level.getServer().overworld().getGameTime();
@@ -320,20 +290,10 @@ public final class ArchonUltiManager {
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
-        boolean isNeth;
-        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
-            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else if (!isGenshinCharacterWeapon(stack)) {
-            hand = InteractionHand.OFF_HAND;
-            stack = player.getOffhandItem();
-            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
-                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-            } else {
-                return;
-            }
-        } else {
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.NIGHTS_FOCUS) {
             return;
         }
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
 
         ServerLevel level = player.serverLevel();
         long now = level.getServer().overworld().getGameTime();
@@ -379,20 +339,10 @@ public final class ArchonUltiManager {
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         InteractionHand hand = InteractionHand.MAIN_HAND;
         ItemStack stack = player.getMainHandItem();
-        boolean isNeth;
-        if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
-            isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-        } else if (!isGenshinCharacterWeapon(stack)) {
-            hand = InteractionHand.OFF_HAND;
-            stack = player.getOffhandItem();
-            if (ArcaneStaffItem.getEffectiveKind(stack) == ArcaneStaffItem.Kind.VORTEX) {
-                isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
-            } else {
-                return;
-            }
-        } else {
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.VORTEX) {
             return;
         }
+        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(stack);
         activateZhongliPlanetBefall(player, stack, hand, isNeth);
     }
 

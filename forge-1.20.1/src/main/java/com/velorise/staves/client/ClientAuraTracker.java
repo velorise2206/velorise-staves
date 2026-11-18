@@ -124,6 +124,10 @@ public final class ClientAuraTracker {
         public boolean dragonfireIdle = false;
         public float dragonfireIdleFade = 0.0F;
         public long dragonfireIdleStartMs = 0L;
+        public float dragonfireIdleYaw = 0.0F;
+        public boolean dragonfireIdleYawSet = false;
+        public float dragonfireUltiYaw = 0.0F;
+        public boolean dragonfireUltiYawSet = false;
         public int nightsFocusStars = 0;
         public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
@@ -638,14 +642,20 @@ public final class ClientAuraTracker {
             if (animType == ANIM_DRAGONFIRE_PET_OFF) {
                 entry.dragonfirePetUntil = 0L;
                 entry.dragonfireIdle = false;
+                entry.dragonfireIdleYawSet = false;
             } else if (animType == ANIM_DRAGONFIRE_PET_ON) {
                 entry.dragonfirePetUntil = now + 31000L;
                 entry.dragonfireIdle = false;
+                entry.dragonfireIdleYawSet = false;
             } else {
                 if (!entry.dragonfireIdle) {
                     entry.dragonfireIdleStartMs = now;
+                    entry.dragonfireIdleYawSet = false;
                 }
                 entry.dragonfireIdle = true;
+                if (entry.dragonfirePetUntil > now) {
+                    entry.dragonfirePetUntil = Math.max(entry.dragonfirePetUntil, now + 5000L);
+                }
             }
             return;
         }
@@ -656,9 +666,11 @@ public final class ClientAuraTracker {
             }
             entry.dragonfireIdle = false;
             entry.dragonfireIdleFade = 0.0F;
+            entry.dragonfireIdleYawSet = false;
+            entry.dragonfireUltiYawSet = false;
             entry.staffAnimType = animType;
             entry.staffAnimStartTime = now;
-            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 4000L : 3400L);
+            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 850L : 900L);
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -1241,12 +1253,20 @@ public final class ClientAuraTracker {
             return false;
         }
         if (anim == ANIM_DRAGONFIRE_ULTI_SKYFALL) {
-            return (now - data.staffAnimStartTime) < 2150L;
+            return (now - data.staffAnimStartTime) < 850L;
         }
         if (anim == ANIM_DRAGONFIRE_ULTI_SWEEP) {
-            return (now - data.staffAnimStartTime) < 1550L;
+            return (now - data.staffAnimStartTime) < 900L;
         }
         return true;
+    }
+
+    public static float getDragonfireSkyfallShakeIntensity(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data == null || data.staffAnimType != ANIM_DRAGONFIRE_ULTI_SKYFALL) return 0.0F;
+        long elapsed = System.currentTimeMillis() - data.staffAnimStartTime;
+        if (elapsed < 560L || elapsed > 950L) return 0.0F;
+        return 1.0F - (float) (elapsed - 560L) / 390.0F;
     }
 
 
@@ -1485,7 +1505,7 @@ public final class ClientAuraTracker {
             d.zhongliIdleMeteor = false; d.zhongliIdleFade = 0.0F; d.zhongliIdleYawSet = false;
             d.furinaIdleMode = 0; d.furinaIdleFade = 0.0F; d.furinaIdleYawSet = false;
             d.nahidaIdleSwing = false; d.nahidaIdleSwingFade = 0.0F; d.nahidaIdleYawSet = false;
-            d.dragonfireIdle = false; d.dragonfireIdleFade = 0.0F;
+            d.dragonfireIdle = false; d.dragonfireIdleFade = 0.0F; d.dragonfireIdleYawSet = false;
             return;
         }
         boolean isFirstPerson = mc.options.getCameraType().isFirstPerson();
@@ -1558,6 +1578,16 @@ public final class ClientAuraTracker {
             mc.player.yBodyRotO = d.nahidaIdleYaw;
         } else {
             d.nahidaIdleYawSet = false;
+        }
+        if (isDragonfireIdle(mc.player.getId()) && !mc.player.isUsingItem() && !mc.player.swinging) {
+            if (!d.dragonfireIdleYawSet) {
+                d.dragonfireIdleYaw = mc.player.getYRot();
+                d.dragonfireIdleYawSet = true;
+            }
+            mc.player.yBodyRot = d.dragonfireIdleYaw;
+            mc.player.yBodyRotO = d.dragonfireIdleYaw;
+        } else {
+            d.dragonfireIdleYawSet = false;
         }
     }
 

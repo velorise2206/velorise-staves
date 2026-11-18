@@ -163,8 +163,17 @@ public abstract class CameraMixin {
             bikePitchOffset = bike.getFirstPersonFinisherPitchOffset(partialTick);
         }
         float swingPitch = (!detached ? com.velorise.staves.client.character.NahidaVisualRenderer.getSwingCameraPitchOffset(entity, partialTick) : 0.0F) + bikePitchOffset;
-        if (yaw != this.yRot || pitch != this.xRot || Math.abs(swingPitch) > 0.001F) {
-            this.setRotation(yaw, pitch + swingPitch);
+        float dragonShake = com.velorise.staves.client.ClientAuraTracker.getDragonfireSkyfallShakeIntensity(entity.getId());
+        float shakePitch = 0.0F;
+        float shakeYaw = 0.0F;
+        if (dragonShake > 0.001F) {
+            double t = System.currentTimeMillis() * 0.055D;
+            float env = dragonShake * dragonShake;
+            shakePitch = (float) ((Math.sin(t * 2.1D) * 0.7D + Math.sin(t * 5.3D) * 0.3D) * 3.8D * env);
+            shakeYaw = (float) ((Math.cos(t * 1.7D) * 0.65D + Math.sin(t * 4.1D) * 0.35D) * 2.4D * env);
+        }
+        if (yaw != this.yRot || pitch != this.xRot || Math.abs(swingPitch) > 0.001F || dragonShake > 0.001F) {
+            this.setRotation(yaw + shakeYaw, pitch + swingPitch + shakePitch);
         }
     }
 }

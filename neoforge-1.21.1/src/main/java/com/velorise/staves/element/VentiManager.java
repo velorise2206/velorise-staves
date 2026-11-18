@@ -962,8 +962,7 @@ public final class VentiManager {
 
             // Venti (DAYBREAK)
             ArchonStillState vst = VENTI_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new ArchonStillState());
-            boolean holdingVenti = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK
-                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main) && ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.DAYBREAK);
+            boolean holdingVenti = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.DAYBREAK;
             if (vst.lastStillPos == null || vst.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
                 vst.lastStillPos = player.position();
             }

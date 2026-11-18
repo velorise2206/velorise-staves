@@ -39,6 +39,8 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
     - **Cyclic Donut Charged Attack (`Hold Left-Click` while riding):** Spins the Flamestrider around its front wheel pivot (`3.2m` cyclic Pyro AoE every `10t`). Releasing Left-Click after spinning unleashes the **Charged Finisher** forward slam.
     - **Sprint Dash & `CD CD CC` Cancel Tech (`[Sprint]` while riding):** Executes a high-speed ram dash (`10t` I-frames, damages enemies in path, costs `3.0` Fuel). Supports a **2-dash chain** (`5t` gap between 1st & 2nd dash, then `1.5s` / `30t` cooldown). **Pro Tech (`CD CD CC`):** Spinning in Donut Charged Attack for `>= 8 ticks` (`0.4s`) **immediately resets the Dash cooldown and chain counter on both Client and Server**, enabling seamless Charged-Dash cancel loops!
     - **Mid-Air Plunge Slam (`Left-Click` in midair on bike):** Slams the motorcycle straight down, detonating a `4.0m` Pyro shockwave on landing.
+  > [!TIP]
+  > **Camera Recommendation:** Play in **Third-Person Perspective (`F5`)** while riding the Flamestrider Motorcycle (especially during Cyclic Donut Charged Attack spins and `CD CD CC` dash-cancel combos). In First-Person view, the camera spins continuously with the bike's rapid 360° rotations and can cause motion sickness or dizziness.
 - **Elemental Burst — *Hour of Burning Skies* (`[R]` Key):**
   - Grants `1.7s` (`34t`) I-frames and leaps high on the Flamestrider to deliver **Sunfell Slice** (`5.0❤` Basic / `10.0❤` Netherite base AoE Pyro, amplified up to **2.0×** by **Fighting Spirit** stacks `0–10`).
   - Activates **Crucible of Death and Life** for `7.0s` (`140t`), cutting all Nightsoul Fuel consumption by **50%** and increasing attack speed and damage.

@@ -284,16 +284,13 @@ public final class MavuikaManager {
         UUID id = player.getUUID();
         long now = player.serverLevel().getServer().overworld().getGameTime();
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
         boolean holdingMain = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
-        boolean holdingOff = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
-        if (!holdingMain && !holdingOff && !isMavuikaAuraActive(id, now)) return;
+        if (!holdingMain && !isMavuikaAuraActive(id, now)) return;
         long lastNaFs = MAVUIKA_LAST_NA_FS_TICK.getOrDefault(id, -100L);
         if (now >= lastNaFs && now - lastNaFs < 2L) return; // Genshin A1 passive: 0.1s ICD
         MAVUIKA_LAST_NA_FS_TICK.put(id, now);
         boolean neth = MAVUIKA_AURA_NETHERITE.getOrDefault(id,
-                (holdingMain && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main))
-                        || (holdingOff && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(off)));
+                holdingMain && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main));
         float fsEfficiency = neth ? 1.25F : 1.0F;
         float curPts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
         float updated = Math.min(10.0F, curPts + 0.075F * fsEfficiency);
@@ -350,18 +347,12 @@ public final class MavuikaManager {
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        ItemStack matched = ItemStack.EMPTY;
-        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            matched = main;
-        } else if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            matched = off;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) != com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            return;
         }
-        if (matched.isEmpty()) return;
         long now = player.serverLevel().getServer().overworld().getGameTime();
         if (!isMavuikaAuraActive(player.getUUID(), now) && isMavuikaOnCooldown(player.getUUID(), now)) return;
-        summonAndMountFlamestrider(player, com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(matched), 300);
+        summonAndMountFlamestrider(player, com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main), 300);
     }
 
     public static int getMavuikaUltiCooldownTicks(net.minecraft.world.entity.Entity target) {
@@ -390,16 +381,10 @@ public final class MavuikaManager {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        ItemStack sunsStack = ItemStack.EMPTY;
-        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            sunsStack = main;
-        } else if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(off) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
-            sunsStack = off;
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(main) != com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+            return;
         }
-        if (sunsStack.isEmpty()) return;
-        boolean isNetherite = com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(sunsStack);
+        boolean isNetherite = com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(main);
 
         UUID id = player.getUUID();
         ServerLevel level = player.serverLevel();
@@ -2047,12 +2032,19 @@ public final class MavuikaManager {
                     if (isEntitySubmergedInWater(target)) {
                         final LivingEntity srcTarget = target;
                         AABB chainBox = target.getBoundingBox().inflate(4.0D);
+                        boolean chained = false;
                         for (LivingEntity nearby : targetLevel.getEntitiesOfClass(LivingEntity.class, chainBox, e -> e.isAlive() && e != srcTarget)) {
                             if (isEntitySubmergedInWater(nearby)) {
                                 drawVoltaicArc(targetLevel, target, nearby);
                                 applyElement(targetLevel, nearby, Element.ELECTRO, 0.5F, null, 1.0F);
+                                chained = true;
                             }
                         }
+                        if (!chained) {
+                            ElectrifiedWaterManager.drawBodyInternalArc(targetLevel, target);
+                        }
+                    } else {
+                        ElectrifiedWaterManager.drawBodyInternalArc(targetLevel, target);
                     }
 
                     if (hydroState != null && !innateSet.contains(Element.HYDRO)) {
@@ -2195,9 +2187,7 @@ public final class MavuikaManager {
             if (!player.isAlive() || player.isSpectator()) continue;
             MavuikaIdleState st = MAVUIKA_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new MavuikaIdleState());
             ItemStack main = player.getMainHandItem();
-            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
-                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                    && ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS);
+            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
             if (st.lastStillPos == null || st.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
                 st.lastStillPos = player.position();
             }

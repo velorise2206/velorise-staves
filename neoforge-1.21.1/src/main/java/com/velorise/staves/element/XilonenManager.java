@@ -120,21 +120,13 @@ public final class XilonenManager {
 
     public static boolean isHoldingXilonen(Player player) {
         if (player == null) return false;
-        ItemStack main = player.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) return true;
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
-        return ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG;
     }
 
     private static boolean isEffectiveNetheriteHeld(Player player) {
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
             return ArcaneStaffItem.getEffectiveNetherite(main);
-        }
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) return false;
-        ItemStack off = player.getOffhandItem();
-        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.PEAK_PATROL_SONG) {
-            return ArcaneStaffItem.getEffectiveNetherite(off);
         }
         return false;
     }

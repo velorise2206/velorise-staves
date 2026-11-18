@@ -825,21 +825,11 @@ public final class RaidenManager {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getOffhandItem();
-        ItemStack raidenStack = ItemStack.EMPTY;
-        boolean fromMain = false;
-        if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            raidenStack = main;
-            fromMain = true;
-        } else if (!ArcaneStaffItem.isGenshinCharacterWeapon(main) && ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) {
-            raidenStack = off;
-        }
-        if (raidenStack.isEmpty()) return;
-        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(raidenStack);
+        if (ArcaneStaffItem.getEffectiveKind(main) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) return;
+        boolean isNetherite = ArcaneStaffItem.getEffectiveNetherite(main);
         if (activateRaidenMusouBurst(player, isNetherite)) {
-            ArcaneStaffItem.hurtStaffAndCheckBreak(raidenStack, 1, player,
-                    fromMain ? net.minecraft.world.InteractionHand.MAIN_HAND : net.minecraft.world.InteractionHand.OFF_HAND);
-            player.awardStat(net.minecraft.stats.Stats.ITEM_USED.get(raidenStack.getItem()));
+            ArcaneStaffItem.hurtStaffAndCheckBreak(main, 1, player, net.minecraft.world.InteractionHand.MAIN_HAND);
+            player.awardStat(net.minecraft.stats.Stats.ITEM_USED.get(main.getItem()));
             com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, 8);
         }
     }
@@ -1195,9 +1185,7 @@ public final class RaidenManager {
             if (!player.isAlive() || player.isSpectator()) continue;
             RaidenIdleState st = RAIDEN_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new RaidenIdleState());
             ItemStack main = player.getMainHandItem();
-            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
-                    || (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                    && ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
+            boolean holding = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
             if (st.lastStillPos == null || st.lastStillPos.equals(net.minecraft.world.phys.Vec3.ZERO)) {
                 st.lastStillPos = player.position();
             }

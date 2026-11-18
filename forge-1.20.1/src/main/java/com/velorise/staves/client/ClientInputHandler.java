@@ -282,6 +282,9 @@ public final class ClientInputHandler {
         }
         while (MAVUIKA_ULTI_KEY.consumeClick()) {
             if (mc.player != null) {
+                if (!ArcaneStaffItem.isGenshinCharacterWeapon(mc.player.getMainHandItem())) {
+                    continue;
+                }
                 boolean grounded = com.velorise.staves.element.ArchonUltiManager.isPlayerGroundedForBurst(mc.player);
                 if (!grounded) {
                     continue;
@@ -311,9 +314,7 @@ public final class ClientInputHandler {
         }
 
         // Furina Hold Left-Click Charged Attack (Arkhe Pneuma / Ousia Switch)
-        boolean holdingFurina = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.SPLENDOR
-                || (!ArcaneStaffItem.isGenshinCharacterWeapon(mc.player.getMainHandItem())
-                        && ArcaneStaffItem.getEffectiveKind(mc.player.getOffhandItem()) == ArcaneStaffItem.Kind.SPLENDOR);
+        boolean holdingFurina = ArcaneStaffItem.getEffectiveKind(mc.player.getMainHandItem()) == ArcaneStaffItem.Kind.SPLENDOR;
         if (holdingFurina && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && mc.player.onGround()) {
             if (mc.options.keyAttack.isDown()) {
                 furinaAttackHoldTicks++;

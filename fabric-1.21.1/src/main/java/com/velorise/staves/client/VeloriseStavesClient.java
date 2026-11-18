@@ -310,6 +310,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
             while (mavuikaUltiKey.consumeClick()) {
                 if (client.player != null) {
+                    if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(client.player.getMainHandItem())) {
+                        continue;
+                    }
                     boolean grounded = com.velorise.staves.element.ArchonUltiManager.isPlayerGroundedForBurst(client.player);
                     if (!grounded) {
                         continue;
@@ -350,9 +353,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         com.velorise.staves.network.MavuikaActionPayload.ACTION_NEUVILLETTE_CA_STOP);
             }
 
-            boolean holdingFurina = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR
-                    || (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(client.player.getMainHandItem())
-                            && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR);
+            boolean holdingFurina = com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(client.player.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.SPLENDOR;
             if (holdingFurina && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && client.player.onGround()) {
                 if (client.options.keyAttack.isDown()) {
                     furinaAttackHoldTicks[0]++;

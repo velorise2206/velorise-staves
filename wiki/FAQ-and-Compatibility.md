@@ -19,6 +19,9 @@
 ### Q5: How do I perform Mavuika's infinite Dash Cancel (`CD CD CC`) on the Flamestrider bike?
 **A:** While riding the Flamestrider, you can dash twice in a row with `[Sprint]` before hitting a `1.5s` (`30t`) dash cooldown. However, if you hold **Left-Click** to enter the **Donut Charged Attack spin** for at least **`0.4s` (`8 ticks`)**, both the Client and Server immediately reset your dash cooldown to `0`, allowing you to dash-cancel again right away!
 
+> [!TIP]
+> **Play Mavuika in Third-Person (`F5`):** Always switch to **Third-Person Perspective** when riding Mavuika's Flamestrider Motorcycle — during Donut Charged Attack spins and `CD CD CC` loops, First-Person camera continuously follows the rapid 360° turns and will quickly make you dizzy.
+
 ### Q6: How do I build an Overcharged Tesla Coil?
 **A:** Place a vanilla **Lightning Rod** directly on top of a **Redstone Block**. It will passively zap nearby mobs within `6m` every `2.5s`. Strike the Lightning Rod with any **Electro attack** (*Arc Caster, Engulfing Lightning, Dragonfire Scepter, Shulker Seeker,* or *Electro-Imbued Sword*) to overcharge it for `15s` (`8m` multi-target zaps every `1s` + unlocks the *High-Voltage Architect* advancement)!
 

@@ -253,14 +253,9 @@ public final class FurinaManager {
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             ItemStack main = player.getMainHandItem();
-            ItemStack off = player.getOffhandItem();
-            ItemStack furinaStack = ItemStack.EMPTY;
-            if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.SPLENDOR) {
-                furinaStack = main;
-            } else if (!ArcaneStaffItem.isGenshinCharacterWeapon(main)
-                    && ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.SPLENDOR) {
-                furinaStack = off;
-            }
+            ItemStack furinaStack = ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.SPLENDOR
+                    ? main
+                    : ItemStack.EMPTY;
             boolean holding = !furinaStack.isEmpty();
 
             FurinaIdleState st = FURINA_IDLE_STATES.computeIfAbsent(player.getUUID(), k -> new FurinaIdleState());

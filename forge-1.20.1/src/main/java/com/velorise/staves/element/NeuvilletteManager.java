@@ -65,8 +65,7 @@ public final class NeuvilletteManager {
 
     public static boolean isHoldingGuardianLens(@Nullable Player player) {
         if (player == null) return false;
-        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.GUARDIAN
-                || ArcaneStaffItem.getEffectiveKind(player.getOffhandItem()) == ArcaneStaffItem.Kind.GUARDIAN;
+        return ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.GUARDIAN;
     }
 
     public static boolean isChannelingOrFiring(Player player) {
@@ -144,13 +143,6 @@ public final class NeuvilletteManager {
         ItemStack main = player.getMainHandItem();
         if (ArcaneStaffItem.getEffectiveKind(main) == ArcaneStaffItem.Kind.GUARDIAN) {
             return main;
-        }
-        if (ArcaneStaffItem.isGenshinCharacterWeapon(main)) {
-            return ItemStack.EMPTY;
-        }
-        ItemStack off = player.getOffhandItem();
-        if (ArcaneStaffItem.getEffectiveKind(off) == ArcaneStaffItem.Kind.GUARDIAN) {
-            return off;
         }
         return ItemStack.EMPTY;
     }
