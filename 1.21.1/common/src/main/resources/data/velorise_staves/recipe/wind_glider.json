@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "PDP",
+    "FAF",
+    "F F"
+  ],
+  "key": {
+    "P": {
+      "item": "minecraft:phantom_membrane"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "F": {
+      "item": "minecraft:feather"
+    },
+    "A": [
+      {
+        "item": "velorise_staves:anemo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ]
+  },
+  "result": {
+    "id": "velorise_staves:wind_glider",
+    "count": 1
+  }
+}

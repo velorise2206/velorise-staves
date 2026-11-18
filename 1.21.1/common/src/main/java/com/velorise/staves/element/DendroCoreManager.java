@@ -1,0 +1,574 @@
+package com.velorise.staves.element;
+
+import com.velorise.staves.VeloriseStavesMod;
+import com.velorise.staves.config.StavesConfig;
+import com.velorise.staves.entity.DendroCoreEntity;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Manages Genshin Impact Dendro Cores in Minecraft.
+ * Handles Bloom seed physical dropping, water buoyancy, 6s timeout explosion,
+ * Hyperbloom (50% seed projectile with Genshin crescent homing arc), and Burgeon (Pyro 5m AoE blast).
+ */
+public final class DendroCoreManager {
+    public static final String TAG_DENDRO_CORE = "velorise_staves:dendro_core";
+    public static final String TAG_HYPERBLOOM_VISUAL = "velorise_staves:hyperbloom_visual";
+    private static final int MAX_CORES = 5;
+    private static final int CORE_LIFETIME_TICKS = 120; // 6 seconds
+
+    public static class CoreEntry {
+        public final DendroCoreEntity entity;
+        public final ServerLevel level;
+        public final long spawnTime;
+        public final @Nullable UUID ownerId;
+        public final float damageMultiplier;
+
+        public CoreEntry(DendroCoreEntity entity, ServerLevel level, long spawnTime, @Nullable UUID ownerId, float damageMultiplier) {
+            this.entity = entity;
+            this.level = level;
+            this.spawnTime = spawnTime;
+            this.ownerId = ownerId;
+            this.damageMultiplier = damageMultiplier;
+        }
+    }
+
+    public static class HyperbloomMissile {
+        public final ServerLevel level;
+        public Vec3 pos;
+        public final @Nullable LivingEntity target;
+        public Vec3 lastKnownTargetPos;
+        public final float damage;
+        public final @Nullable LivingEntity attacker;
+        public int currentTick;
+        public final @Nullable DendroCoreEntity visualEntity;
+
+        public HyperbloomMissile(
+                ServerLevel level,
+                Vec3 initialPos,
+                @Nullable LivingEntity target,
+                Vec3 initialTargetPos,
+                float damage,
+                @Nullable LivingEntity attacker,
+                @Nullable DendroCoreEntity visualEntity
+        ) {
+            this.level = level;
+            this.pos = initialPos;
+            this.target = target;
+            this.lastKnownTargetPos = initialTargetPos;
+            this.damage = damage;
+            this.attacker = attacker;
+            this.currentTick = 0;
+            this.visualEntity = visualEntity;
+        }
+    }
+
+    private static final List<CoreEntry> CORES = new CopyOnWriteArrayList<>();
+    private static final List<HyperbloomMissile> MISSILES = new CopyOnWriteArrayList<>();
+    private static final Set<UUID> ACTIVE_MISSILE_VISUALS = Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+    // Vibrant neon lime dust (size 1.25F, bright dendro green)
+    private static final DustParticleOptions HYPERBLOOM_FOOTPRINT = new DustParticleOptions(new Vector3f(0.35F, 1.0F, 0.2F), 1.25F);
+    public record BloomIcdKey(UUID targetId, ElementalReaction reaction) {}
+    private static final Map<BloomIcdKey, Long> LAST_DMG_TICK = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Map<BloomIcdKey, Integer> DMG_INSTANCE_COUNT = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private DendroCoreManager() {}
+
+    private static @Nullable DendroCoreEntity spawnVisualSeed(ServerLevel level, Vec3 pos) {
+        DendroCoreEntity visual = new DendroCoreEntity(VeloriseStavesMod.getDendroCoreEntityType(), level, pos.x, pos.y, pos.z);
+        visual.setHyperbloomVisual(true);
+        visual.addTag(TAG_HYPERBLOOM_VISUAL);
+        level.addFreshEntity(visual);
+        ACTIVE_MISSILE_VISUALS.add(visual.getUUID());
+        return visual;
+    }
+
+    private static boolean canTakeBloomDamage(LivingEntity victim, ElementalReaction reactionType, long now) {
+        BloomIcdKey key = new BloomIcdKey(victim.getUUID(), reactionType);
+        Long lastTick = LAST_DMG_TICK.get(key);
+        if (lastTick == null || now < lastTick || (now - lastTick) >= 10L) { // 0.5s (10-tick) window per reaction type
+            LAST_DMG_TICK.put(key, now);
+            DMG_INSTANCE_COUNT.put(key, 1);
+            return true;
+        }
+        int count = DMG_INSTANCE_COUNT.getOrDefault(key, 0);
+        if (count < 2) {
+            DMG_INSTANCE_COUNT.put(key, count + 1);
+            return true;
+        }
+        return false;
+    }
+
+    public static void spawn(ServerLevel level, Vec3 pos, @Nullable ServerPlayer owner, float damageMultiplier) {
+        UUID ownerId = owner != null ? owner.getUUID() : null;
+        int ownerCoreCount = 0;
+        CoreEntry oldestOwnerCore = null;
+        for (CoreEntry core : CORES) {
+            if (core.entity.isAlive() && !core.entity.isRemoved()) {
+                boolean sameOwner = (ownerId == null && core.ownerId == null)
+                        || (ownerId != null && ownerId.equals(core.ownerId));
+                if (sameOwner) {
+                    ownerCoreCount++;
+                    if (oldestOwnerCore == null) {
+                        oldestOwnerCore = core;
+                    }
+                }
+            }
+        }
+
+        if (ownerCoreCount >= MAX_CORES && oldestOwnerCore != null) {
+            detonateBloom(oldestOwnerCore);
+            CORES.remove(oldestOwnerCore);
+        }
+
+        DendroCoreEntity coreEntity = new DendroCoreEntity(VeloriseStavesMod.getDendroCoreEntityType(), level, pos.x, pos.y + 0.1D, pos.z);
+        coreEntity.setDeltaMovement((level.random.nextDouble() - 0.5D) * 0.12D, 0.22D, (level.random.nextDouble() - 0.5D) * 0.12D);
+        coreEntity.addTag(TAG_DENDRO_CORE);
+        level.addFreshEntity(coreEntity);
+
+        level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.SLIME_BLOCK_BREAK, SoundSource.PLAYERS, 0.9F, 1.2F);
+
+        CORES.add(new CoreEntry(coreEntity, level, level.getGameTime(), owner != null ? owner.getUUID() : null, damageMultiplier));
+    }
+
+    public static void checkReactionsNear(ServerLevel level, Vec3 hitPos, double radius, Element attackElement, @Nullable LivingEntity attacker) {
+        if (attackElement != Element.ELECTRO && attackElement != Element.PYRO) return;
+
+        double r2 = radius * radius;
+        for (CoreEntry core : CORES) {
+            if (core.level != level) {
+                continue;
+            }
+            if (!core.entity.isAlive() || core.entity.isRemoved()) {
+                CORES.remove(core);
+                continue;
+            }
+            if (core.entity.position().distanceToSqr(hitPos) <= r2) {
+                CORES.remove(core);
+                if (attackElement == Element.ELECTRO) {
+                    triggerHyperbloom(core, attacker);
+                } else if (attackElement == Element.PYRO) {
+                    triggerBurgeon(core, attacker);
+                }
+            }
+        }
+
+        // Also detect and react any untracked or orphaned seeds in the blast zone
+        AABB box = new AABB(hitPos.x - radius, hitPos.y - radius, hitPos.z - radius, hitPos.x + radius, hitPos.y + radius, hitPos.z + radius);
+        for (DendroCoreEntity coreEntity : level.getEntitiesOfClass(DendroCoreEntity.class, box, e -> e.isAlive() && !e.isRemoved() && !e.isHyperbloomVisual())) {
+            CoreEntry tempCore = new CoreEntry(coreEntity, level, level.getGameTime(), attacker != null ? attacker.getUUID() : null, 1.0F);
+            if (attackElement == Element.ELECTRO) {
+                triggerHyperbloom(tempCore, attacker);
+            } else if (attackElement == Element.PYRO) {
+                triggerBurgeon(tempCore, attacker);
+            }
+        }
+    }
+
+    private static void detonateBloom(CoreEntry core) {
+        Vec3 pos = core.entity.position();
+        core.entity.discard();
+        core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.3D, pos.z, 1, 0.1D, 0.1D, 0.1D, 0.0D);
+        core.level.sendParticles(ParticleTypes.SPORE_BLOSSOM_AIR, pos.x, pos.y + 0.5D, pos.z, 25, 0.7D, 0.5D, 0.7D, 0.05D);
+        core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 0.8F, 1.3F);
+
+        ServerPlayer owner = core.ownerId != null ? core.level.getServer().getPlayerList().getPlayer(core.ownerId) : null;
+        float rawDmg = 4.0F * core.damageMultiplier;
+        AABB box = new AABB(pos.x - 1.5D, pos.y - 1.0D, pos.z - 1.5D, pos.x + 1.5D, pos.y + 1.0D, pos.z + 1.5D);
+        for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
+            if (canTakeBloomDamage(victim, ElementalReaction.BLOOM, core.level.getGameTime())) {
+                ElementalGaugeManager.triggerMobAggro(core.level, victim, owner);
+                // Genshin Impact: Innate Dendro beings are immune to Dendro Bloom damage
+                if (ElementalGaugeManager.isOmniInnate(victim)) {
+                    ElementalGaugeManager.notifyOmniImmuneEnvironmental(core.level, victim);
+                    continue;
+                }
+                if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                    ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.DENDRO, ElementalReaction.IMMUNE, 0.0F);
+                    continue;
+                }
+                float dmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, rawDmg);
+                DamageSource bloomSource = ElementalDeathMessageHelper.createDamageSource(core.level, owner, ElementalReaction.BLOOM, Element.DENDRO);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, bloomSource, dmg);
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
+                ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, null, ElementalReaction.BLOOM, dmg);
+                NahidaManager.onElementalReactionOrCoreDamage(core.level, victim, owner);
+                MobHazardAvoidanceManager.reportReactionOrHazard(victim, owner, pos, Element.DENDRO, Element.HYDRO);
+            }
+        }
+    }
+
+    private static void triggerHyperbloom(CoreEntry core, @Nullable LivingEntity attacker) {
+        if (attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            long now = core.level.getGameTime();
+            ElementalResonanceManager.onElectroReactionTriggered(sp, now);
+            ElementalResonanceManager.onDendroReactionTriggered(sp, now);
+        }
+        if (core.ownerId != null && core.level.getServer() != null) {
+            ServerPlayer ownerPl = core.level.getServer().getPlayerList().getPlayer(core.ownerId);
+            if (ownerPl != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(ownerPl, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            }
+        }
+        Vec3 pos = core.entity.position();
+        core.entity.discard();
+
+        Vec3 p0 = pos.add(0, 0.35D, 0);
+
+        // Electro trigger burst at origin: crisp electric sparks + luminous glow
+        // ParticleTypes.ELECTRIC_SPARK removed
+        core.level.sendParticles(ParticleTypes.GLOW, p0.x, p0.y, p0.z, 8, 0.2D, 0.2D, 0.2D, 0.04D);
+        core.level.playSound(null, p0.x, p0.y, p0.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.8F);
+
+        // Find random living target within 16 blocks (excluding triggerer/attacker)
+        AABB search = new AABB(pos.x - 16.0D, pos.y - 12.0D, pos.z - 16.0D, pos.x + 16.0D, pos.y + 16.0D, pos.z + 16.0D);
+        List<LivingEntity> candidates = core.level.getEntitiesOfClass(
+                LivingEntity.class,
+                search,
+                e -> e.isAlive() && !e.isSpectator() && e != attacker
+        );
+        LivingEntity chosenTarget = candidates.isEmpty() ? null : candidates.get(core.level.random.nextInt(candidates.size()));
+
+        Vec3 targetPos;
+        if (chosenTarget != null) {
+            targetPos = chosenTarget.position().add(0, chosenTarget.getBbHeight() * 0.55D, 0);
+        } else {
+            targetPos = p0.add(core.level.random.nextDouble() * 4.0D - 2.0D, 12.0D, core.level.random.nextDouble() * 4.0D - 2.0D);
+        }
+
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
+        float hyperbloomDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
+
+        // Spawn self-lit 3D Dendro Core seed projectile
+        DendroCoreEntity visualSeed = spawnVisualSeed(core.level, p0);
+
+        MISSILES.add(new HyperbloomMissile(core.level, p0, chosenTarget, targetPos, hyperbloomDmg, attacker, visualSeed));
+    }
+
+    private static void triggerBurgeon(CoreEntry core, @Nullable LivingEntity attacker) {
+        if (attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_FIRST_REACTION);
+            com.velorise.staves.advancement.ModAdvancements.trigger(sp, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            ElementalResonanceManager.onDendroReactionTriggered(sp, core.level.getGameTime());
+        }
+        if (core.ownerId != null && core.level.getServer() != null) {
+            ServerPlayer ownerPl = core.level.getServer().getPlayerList().getPlayer(core.ownerId);
+            if (ownerPl != null) {
+                com.velorise.staves.advancement.ModAdvancements.trigger(ownerPl, com.velorise.staves.advancement.ModAdvancements.EVENT_DENDRO_CORE_REACTION);
+            }
+        }
+        Vec3 pos = core.entity.position();
+        core.entity.discard();
+        core.level.sendParticles(ParticleTypes.EXPLOSION, pos.x, pos.y + 0.5D, pos.z, 3, 0.3D, 0.3D, 0.3D, 0.0D);
+        core.level.sendParticles(ParticleTypes.FLAME, pos.x, pos.y + 0.5D, pos.z, 35, 0.8D, 0.5D, 0.8D, 0.08D);
+        core.level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GENERIC_EXPLODE, SoundSource.PLAYERS, 1.0F, 1.1F);
+
+        EnvironmentalBlockManager.applyPyroEnvironmentEffects(core.level, pos, 3.0D);
+        int emLvl = ElementalGaugeManager.getElementalMasteryLevel(attacker);
+        float burgeonDmg = 8.0F * (float) StavesConfig.getDamageMultiplier() * ElementalGaugeManager.getTransformativeMultiplier(emLvl);
+        AABB box = new AABB(pos.x - 1.5D, pos.y - 1.0D, pos.z - 1.5D, pos.x + 1.5D, pos.y + 1.0D, pos.z + 1.5D);
+        for (LivingEntity victim : core.level.getEntitiesOfClass(LivingEntity.class, box, e -> e.isAlive() && e != attacker)) {
+            if (canTakeBloomDamage(victim, ElementalReaction.BURGEON, core.level.getGameTime())) {
+                ElementalGaugeManager.triggerMobAggro(core.level, victim, attacker);
+                if (ElementalGaugeManager.isOmniInnate(victim)) {
+                    ElementalGaugeManager.notifyOmniImmuneEnvironmental(core.level, victim);
+                    continue;
+                }
+                if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                    ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.PYRO, ElementalReaction.IMMUNE, 0.0F);
+                    continue;
+                }
+                float effectiveDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.PYRO, burgeonDmg);
+                if (victim instanceof ServerPlayer sp && CrystallizeShardManager.getActiveShield(sp, core.level.getGameTime()) == Element.PYRO) {
+                    effectiveDmg *= 0.4F;
+                }
+                DamageSource burgeonSource = ElementalDeathMessageHelper.createDamageSource(core.level, attacker, ElementalReaction.BURGEON, Element.PYRO);
+                ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, burgeonSource, effectiveDmg);
+                ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
+                ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.PYRO, ElementalReaction.BURGEON, effectiveDmg);
+                NahidaManager.onElementalReactionOrCoreDamage(core.level, victim, attacker instanceof ServerPlayer spAtt ? spAtt : null);
+                MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, pos, Element.DENDRO, Element.PYRO);
+            }
+        }
+    }
+
+    public static void tick(ServerLevel level) {
+        long now = level.getGameTime();
+        if (now % 100 == 0) {
+            LAST_DMG_TICK.entrySet().removeIf(e -> {
+                if (Math.abs(now - e.getValue()) >= 20L) {
+                    DMG_INSTANCE_COUNT.remove(e.getKey());
+                    return true;
+                }
+                return false;
+            });
+            DMG_INSTANCE_COUNT.keySet().removeIf(id -> !LAST_DMG_TICK.containsKey(id));
+        }
+
+        // 1. Tick Hyperbloom homing missiles (GenshinCraft flight physics & speed 0.8 blocks/tick)
+        Iterator<HyperbloomMissile> missileIt = MISSILES.iterator();
+        while (missileIt.hasNext()) {
+            HyperbloomMissile m = missileIt.next();
+            if (m.level != level) continue;
+
+            m.currentTick++;
+
+            // Dynamically update target position if enemy is still alive and moving
+            Vec3 currentTargetPos;
+            if (m.target != null && m.target.isAlive() && !m.target.isRemoved()) {
+                currentTargetPos = m.target.position().add(0, m.target.getBbHeight() * 0.55D, 0);
+                m.lastKnownTargetPos = currentTargetPos;
+            } else {
+                currentTargetPos = m.lastKnownTargetPos;
+            }
+
+            Vec3 toTarget = currentTargetPos.subtract(m.pos);
+            double dist = toTarget.length();
+
+            // Hit detection: close enough or intersecting target bounding box
+            boolean hit = dist <= 0.85D;
+            if (!hit && m.target != null && m.target.isAlive()) {
+                AABB missileBox = new AABB(m.pos.x - 0.4D, m.pos.y - 0.4D, m.pos.z - 0.4D, m.pos.x + 0.4D, m.pos.y + 0.4D, m.pos.z + 0.4D);
+                hit = m.target.getBoundingBox().intersects(missileBox);
+            }
+
+            if (hit || m.currentTick > 100) { // Hit or timeout (5 seconds)
+                MISSILES.remove(m);
+                if (m.visualEntity != null) {
+                    ACTIVE_MISSILE_VISUALS.remove(m.visualEntity.getUUID());
+                    m.visualEntity.discard();
+                }
+
+                Vec3 hitPos = m.pos;
+
+                // Impact burst: luminous green flash, electric sparks, and chime
+                level.sendParticles(HYPERBLOOM_FOOTPRINT, hitPos.x, hitPos.y, hitPos.z, 16, 0.25D, 0.25D, 0.25D, 0.05D);
+                level.sendParticles(ParticleTypes.GLOW, hitPos.x, hitPos.y, hitPos.z, 12, 0.25D, 0.25D, 0.25D, 0.04D);
+                // ParticleTypes.ELECTRIC_SPARK removed
+                level.playSound(null, hitPos.x, hitPos.y, hitPos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.75F, 1.8F);
+
+                // Genshin Impact: Hyperbloom deals small AoE splash damage with 1.0m radius around impact point
+                AABB splashBox = new AABB(hitPos.x - 1.0D, hitPos.y - 1.0D, hitPos.z - 1.0D, hitPos.x + 1.0D, hitPos.y + 1.0D, hitPos.z + 1.0D);
+                boolean hitAny = false;
+                for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, splashBox, e -> e.isAlive() && e != m.attacker)) {
+                    if (canTakeBloomDamage(nearby, ElementalReaction.HYPERBLOOM, level.getGameTime())) {
+                        ElementalGaugeManager.triggerMobAggro(level, nearby, m.attacker);
+                        if (ElementalGaugeManager.isOmniInnate(nearby)) {
+                            ElementalGaugeManager.notifyOmniImmuneEnvironmental(level, nearby);
+                            hitAny = true;
+                            continue;
+                        }
+                        if (ElementalGaugeManager.getInnateElement(nearby) == Element.DENDRO) {
+                            ElementalGaugeManager.syncAuras(nearby, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
+                            hitAny = true;
+                            continue;
+                        }
+                        float hDmg = ElementalGaugeManager.applyMobElementalResistance(nearby, Element.DENDRO, m.damage);
+                        DamageSource hyperSource = ElementalDeathMessageHelper.createDamageSource(level, m.attacker, ElementalReaction.HYPERBLOOM, Element.ELECTRO);
+                        ElementalGaugeManager.hurtWithPreAppliedElementalRes(nearby, hyperSource, hDmg);
+                        ElementalGaugeManager.enforceFrozenPoseIfFrozen(nearby);
+                        ElementalGaugeManager.syncAuras(nearby, ElementalGaugeManager.getEntityElements(nearby.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
+                        NahidaManager.onElementalReactionOrCoreDamage(level, nearby, m.attacker instanceof ServerPlayer spAtt ? spAtt : null);
+                        MobHazardAvoidanceManager.reportReactionOrHazard(nearby, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
+                        hitAny = true;
+                    }
+                }
+                LivingEntity victim = m.target;
+                if (!hitAny && victim != null && victim.isAlive() && !victim.isRemoved() && victim != m.attacker) {
+                    ElementalGaugeManager.triggerMobAggro(level, victim, m.attacker);
+                    if (ElementalGaugeManager.isOmniInnate(victim)) {
+                        ElementalGaugeManager.notifyOmniImmuneEnvironmental(level, victim);
+                    } else if (ElementalGaugeManager.getInnateElement(victim) == Element.DENDRO) {
+                        ElementalGaugeManager.syncAuras(victim, Collections.singleton(Element.DENDRO), Element.DENDRO, Element.ELECTRO, ElementalReaction.IMMUNE, 0.0F);
+                    } else {
+                        if (canTakeBloomDamage(victim, ElementalReaction.HYPERBLOOM, level.getGameTime())) {
+                            float hDmg = ElementalGaugeManager.applyMobElementalResistance(victim, Element.DENDRO, m.damage);
+                            DamageSource hyperSource = ElementalDeathMessageHelper.createDamageSource(level, m.attacker, ElementalReaction.HYPERBLOOM, Element.ELECTRO);
+                            ElementalGaugeManager.hurtWithPreAppliedElementalRes(victim, hyperSource, hDmg);
+                            ElementalGaugeManager.enforceFrozenPoseIfFrozen(victim);
+                            ElementalGaugeManager.syncAuras(victim, ElementalGaugeManager.getEntityElements(victim.getUUID()), Element.DENDRO, Element.ELECTRO, ElementalReaction.HYPERBLOOM, hDmg);
+                            MobHazardAvoidanceManager.reportReactionOrHazard(victim, m.attacker, hitPos, Element.DENDRO, Element.ELECTRO);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // GenshinCraft flight vector formula with rapid acceleration
+            Vec3 dir;
+            if (m.target == null) {
+                dir = new Vec3(0.0D, 0.5D, 0.0D);
+            } else {
+                dir = dist > 1.0E-4D ? toTarget.scale(1.0D / dist) : new Vec3(0, 1, 0);
+                int age = m.currentTick;
+                if (age < 6) {
+                    dir = dir.add(0.0D, 0.7D, 0.0D).normalize();
+                } else if (age < 12) {
+                    dir = dir.add(0.0D, (12 - age) * 0.08D, 0.0D).normalize();
+                }
+            }
+
+            double stepSpeed = Math.min(1.35D, 0.85D + m.currentTick * 0.08D); // Rapid acceleration to high speed
+            Vec3 nextPos = m.pos.add(dir.scale(stepSpeed));
+            m.pos = nextPos;
+
+            // Move the glowing seed visual entity along the trajectory
+            if (m.visualEntity != null && m.visualEntity.isAlive()) {
+                m.visualEntity.teleportTo(nextPos.x, nextPos.y, nextPos.z);
+            }
+
+            // Brilliant luminous glowing Hyperbloom homing missile trail (vivid emerald lime + bright end rod tracer + glow sparkles)
+            level.sendParticles(HYPERBLOOM_FOOTPRINT, nextPos.x, nextPos.y, nextPos.z, 5, 0.05D, 0.05D, 0.05D, 0.02D);
+            level.sendParticles(ParticleTypes.GLOW, nextPos.x, nextPos.y, nextPos.z, 4, 0.05D, 0.05D, 0.05D, 0.02D);
+            level.sendParticles(ParticleTypes.END_ROD, nextPos.x, nextPos.y, nextPos.z, 1, 0.01D, 0.01D, 0.01D, 0.002D);
+            if (m.currentTick % 2 == 0) {
+                // ParticleTypes.ELECTRIC_SPARK removed
+            }
+
+            // Play flying hum / whistling sound at launch and mid-flight
+            if (m.currentTick == 2 || m.currentTick % 8 == 0) {
+                level.playSound(null, nextPos.x, nextPos.y, nextPos.z, SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 0.4F, 1.9F);
+            }
+        }
+
+        // 2. Tick physical Dendro Cores on field
+        Iterator<CoreEntry> it = CORES.iterator();
+        while (it.hasNext()) {
+            CoreEntry core = it.next();
+            if (core.level != level) continue;
+            if (!core.entity.isAlive() || core.entity.isRemoved()) {
+                CORES.remove(core);
+                continue;
+            }
+
+            // Proximity check: ANY player or monster near the Dendro Core with Electro or Pyro triggers Hyperbloom / Burgeon!
+            AABB triggerBox = core.entity.getBoundingBox().inflate(1.6D, 0.8D, 1.6D);
+            LivingEntity electroTriggerer = null;
+            LivingEntity pyroTriggerer = null;
+            for (LivingEntity nearby : level.getEntitiesOfClass(LivingEntity.class, triggerBox, LivingEntity::isAlive)) {
+                Element activeShield = CrystallizeShardManager.getActiveShield(nearby);
+                if (ElementalGaugeManager.hasElement(nearby, Element.ELECTRO)
+                        || ElementalGaugeManager.getInnateElement(nearby) == Element.ELECTRO
+                        || activeShield == Element.ELECTRO) {
+                    electroTriggerer = nearby;
+                    break;
+                }
+                if (ElementalGaugeManager.hasElement(nearby, Element.PYRO)
+                        || ElementalGaugeManager.getInnateElement(nearby) == Element.PYRO
+                        || nearby.isOnFire()
+                        || activeShield == Element.PYRO) {
+                    pyroTriggerer = nearby;
+                }
+            }
+
+            if (electroTriggerer != null) {
+                CORES.remove(core);
+                triggerHyperbloom(core, electroTriggerer);
+                continue;
+            } else if (pyroTriggerer != null) {
+                CORES.remove(core);
+                triggerBurgeon(core, pyroTriggerer);
+                continue;
+            }
+
+            // Explode after 6 seconds (120 ticks)
+            if (now < core.spawnTime || (now - core.spawnTime) >= CORE_LIFETIME_TICKS) {
+                CORES.remove(core);
+                detonateBloom(core);
+            }
+        }
+
+        // 3. Auto-Purge Orphaned Seeds & Legacy Visual Entities
+        if (now % 20 == 0 && !level.players().isEmpty()) {
+            Set<UUID> trackedCoreIds = new HashSet<>(CORES.size() * 2);
+            for (CoreEntry c : CORES) {
+                trackedCoreIds.add(c.entity.getUUID());
+            }
+            net.minecraft.world.item.Item dendroCoreItem = VeloriseStavesMod.getDendroCoreItem();
+            for (ServerPlayer player : level.players()) {
+                AABB scanBox = player.getBoundingBox().inflate(64.0D);
+
+                // A. Purge orphaned legacy ItemDisplay/ItemEntity seeds
+                for (Display.ItemDisplay disp : level.getEntitiesOfClass(Display.ItemDisplay.class, scanBox)) {
+                    if (disp.getTags().contains(TAG_HYPERBLOOM_VISUAL) || disp.getSlot(0).get().getItem() == dendroCoreItem) {
+                        disp.discard();
+                    }
+                }
+                for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, scanBox)) {
+                    if (item.getTags().contains(TAG_DENDRO_CORE) || item.getItem().getItem() == dendroCoreItem) {
+                        item.discard();
+                    }
+                }
+
+                // B. Adopt or purge orphaned DendroCoreEntity instances
+                for (DendroCoreEntity coreEntity : level.getEntitiesOfClass(DendroCoreEntity.class, scanBox)) {
+                    if (coreEntity.isHyperbloomVisual() || coreEntity.getTags().contains(TAG_HYPERBLOOM_VISUAL)) {
+                        if (!ACTIVE_MISSILE_VISUALS.contains(coreEntity.getUUID())) {
+                            coreEntity.discard();
+                        }
+                        continue;
+                    }
+                    if (!trackedCoreIds.contains(coreEntity.getUUID())) {
+                        if (coreEntity.getServerAgeTicks() >= CORE_LIFETIME_TICKS) {
+                            coreEntity.discard();
+                        } else {
+                            trackedCoreIds.add(coreEntity.getUUID());
+                            CORES.add(new CoreEntry(coreEntity, level, now - Math.max(0, coreEntity.getServerAgeTicks()), null, 1.0F));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static @Nullable Vec3 findNearestHazard(ServerLevel level, Vec3 pos, double margin) {
+        if (CORES.isEmpty()) return null;
+        double maxR = 3.2D + margin;
+        double maxR2 = maxR * maxR;
+        Vec3 nearest = null;
+        double bestDistSq = Double.MAX_VALUE;
+        for (CoreEntry core : CORES) {
+            if (core.level != level || !core.entity.isAlive() || core.entity.isRemoved()) continue;
+            Vec3 c = core.entity.position();
+            double d2 = pos.distanceToSqr(c);
+            if (d2 <= maxR2 && d2 < bestDistSq) {
+                bestDistSq = d2;
+                nearest = c;
+            }
+        }
+        return nearest;
+    }
+
+    public static void clearAll() {
+        for (CoreEntry core : CORES) {
+            core.entity.discard();
+        }
+        CORES.clear();
+        for (HyperbloomMissile m : MISSILES) {
+            if (m.visualEntity != null) {
+                m.visualEntity.discard();
+            }
+        }
+        MISSILES.clear();
+        ACTIVE_MISSILE_VISUALS.clear();
+        LAST_DMG_TICK.clear();
+        DMG_INSTANCE_COUNT.clear();
+    }
+}

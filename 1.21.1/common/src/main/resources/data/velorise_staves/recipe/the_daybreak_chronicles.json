@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "combat",
+  "pattern": [
+    " SA",
+    "S W",
+    "AW "
+  ],
+  "key": {
+    "S": {
+      "tag": "velorise_staves:anemo_staves"
+    },
+    "A": [
+      {
+        "item": "velorise_staves:anemo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "W": {
+      "item": "minecraft:breeze_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:the_daybreak_chronicles",
+    "count": 1
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "minecraft:breeze",
+      "required": false
+    },
+    "minecraft:phantom",
+    "minecraft:vex"
+  ]
+}

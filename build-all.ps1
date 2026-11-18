@@ -46,6 +46,54 @@ function Use-JavaHome([string]$VariableName, [string]$Label) {
     Write-Host "${VariableName} and JAVA_HOME are not set; Gradle will use java.exe from PATH for ${Label}." -ForegroundColor Yellow
 }
 
+function Test-SharedClassParity {
+    # 1. Verify no duplicate class files between 1.21.1/common and 1.21.1/{neoforge,fabric}
+    $commonJavaDir = Join-Path $Root "1.21.1\common\src\main\java"
+    $nfJavaDir     = Join-Path $Root "1.21.1\neoforge\src\main\java"
+    $fbJavaDir     = Join-Path $Root "1.21.1\fabric\src\main\java"
+
+    if (Test-Path $commonJavaDir) {
+        Get-ChildItem -Path $commonJavaDir -Filter "*.java" -Recurse | ForEach-Object {
+            $rel = $_.FullName.Substring($commonJavaDir.Length).TrimStart('\', '/')
+            if (Test-Path (Join-Path $nfJavaDir $rel)) {
+                throw "Duplicate class in both 1.21.1/common and 1.21.1/neoforge: $rel"
+            }
+            if (Test-Path (Join-Path $fbJavaDir $rel)) {
+                throw "Duplicate class in both 1.21.1/common and 1.21.1/fabric: $rel"
+            }
+        }
+    }
+
+    # 2. Verify cross-version pure Java parity between 1.21.1/common and 1.20.1/forge
+    $crossVersionClasses = @(
+        "audio\CharacterVoiceManager.java",
+        "client\CharacterVoiceScreen.java",
+        "client\VeloriseConfigScreen.java",
+        "compat\jade\VeloriseStavesJadePlugin.java",
+        "element\ElectrifiedWaterManager.java",
+        "element\Element.java",
+        "element\ElementalReaction.java",
+        "element\FurinaManager.java",
+        "element\GaugeState.java",
+        "element\PlayerGenshinState.java",
+        "manager\TemporaryWebManager.java",
+        "mixin\GuiGraphicsMixin.java",
+        "mixin\HumanoidModelMixin.java",
+        "mixin\ItemInHandRendererMixin.java"
+    )
+    foreach ($rel in $crossVersionClasses) {
+        $cmFile = Join-Path $Root "1.21.1\common\src\main\java\com\velorise\staves\$rel"
+        $fgFile = Join-Path $Root "1.20.1\forge\src\main\java\com\velorise\staves\$rel"
+        if ((Test-Path $cmFile) -and (Test-Path $fgFile)) {
+            $h1 = (Get-FileHash $cmFile -Algorithm SHA256).Hash
+            $h2 = (Get-FileHash $fgFile -Algorithm SHA256).Hash
+            if ($h1 -ne $h2) {
+                Write-Warning "Cross-version parity notice: $rel differs between 1.21.1/common and 1.20.1/forge"
+            }
+        }
+    }
+}
+
 function Invoke-Build(
     [string]$DisplayName,
     [string]$Folder,
@@ -65,45 +113,7 @@ function Invoke-Build(
     Use-JavaHome -VariableName $JavaEnvVar -Label $DisplayName
 
     Push-Location $projectDir
-    
-function Test-SharedClassParity {
-    $sharedClasses = @(
-        "element\Element.java",
-        "element\ElementalReaction.java",
-        "element\GaugeState.java",
-        "element\ElementalGaugeManager.java",
-        "element\PlayerGenshinState.java",
-        "element\RaidenManager.java",
-        "element\ZhongliManager.java",
-        "element\VentiManager.java",
-        "element\MavuikaManager.java",
-        "client\ClientAuraTracker.java",
-        "client\ElementalCodexScreen.java",
-        "client\glider\WindGliderRenderer.java",
-        "client\character\XilonenVisualRenderer.java",
-        "client\character\NahidaVisualRenderer.java",
-        "client\character\RaidenVisualRenderer.java",
-        "client\character\ZhongliVisualRenderer.java",
-        "client\character\MavuikaVisualRenderer.java",
-        "client\character\NeuvilletteVisualRenderer.java",
-        "client\character\TsaritsaVisualRenderer.java",
-        "client\character\VentiVisualRenderer.java"
-    )
-    foreach ($rel in $sharedClasses) {
-        $nfFile = Join-Path $Root "neoforge-1.21.1\src\main\java\com\velorise\staves\$rel"
-        $fbFile = Join-Path $Root "fabric-1.21.1\src\main\java\com\velorise\staves\$rel"
-        if ((Test-Path $nfFile) -and (Test-Path $fbFile)) {
-            $h1 = (Get-FileHash $nfFile -Algorithm SHA256).Hash
-            $h2 = (Get-FileHash $fbFile -Algorithm SHA256).Hash
-            if ($h1 -ne $h2) {
-                Write-Warning "Parity notice: $rel differs between neoforge-1.21.1 and fabric-1.21.1"
-            }
-        }
-    }
-}
-
-try {
-    Test-SharedClassParity
+    try {
         if ($Clean) {
             cmd.exe /c "gradlew.bat clean build --no-daemon"
         } else {
@@ -126,7 +136,6 @@ try {
             New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
         }
 
-        # Clean up old versions matching pattern in destination and root mods folder
         if (-not [string]::IsNullOrWhiteSpace($ArtifactPattern)) {
             Get-ChildItem -Path $OutputDirectory -Filter $ArtifactPattern -File -ErrorAction SilentlyContinue | Remove-Item -Force
             Get-ChildItem -Path $ModsRoot -Filter $ArtifactPattern -File -ErrorAction SilentlyContinue | Remove-Item -Force
@@ -159,9 +168,10 @@ try {
 }
 
 try {
-    Invoke-Build -DisplayName "Forge 1.20.1" -Folder "forge-1.20.1" -JavaEnvVar "JAVA17_HOME" -ArtifactPattern "*forge*.jar"
-    Invoke-Build -DisplayName "NeoForge 1.21.1" -Folder "neoforge-1.21.1" -JavaEnvVar "JAVA21_HOME" -ArtifactPattern "*neoforge*.jar"
-    Invoke-Build -DisplayName "Fabric 1.21.1" -Folder "fabric-1.21.1" -JavaEnvVar "JAVA21_HOME" -ArtifactPattern "*fabric*.jar"
+    Test-SharedClassParity
+    Invoke-Build -DisplayName "Forge 1.20.1" -Folder "1.20.1\forge" -JavaEnvVar "JAVA17_HOME" -ArtifactPattern "*forge*.jar"
+    Invoke-Build -DisplayName "NeoForge 1.21.1" -Folder "1.21.1\neoforge" -JavaEnvVar "JAVA21_HOME" -ArtifactPattern "*neoforge*.jar"
+    Invoke-Build -DisplayName "Fabric 1.21.1" -Folder "1.21.1\fabric" -JavaEnvVar "JAVA21_HOME" -ArtifactPattern "*fabric*.jar"
 
     Write-Host "`n==================================================" -ForegroundColor Green
     Write-Host " ALL BUILDS COMPLETED SUCCESSFULLY" -ForegroundColor Green

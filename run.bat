@@ -16,7 +16,9 @@ echo   3) Fabric 1.21.1    (Java 21)
 echo.
 echo   0) Exit
 echo ---------------------------------------------------------------------
+set "CHOICE="
 set /p "CHOICE=Select a loader/version [1]: "
+if "%CHOICE%"=="" set "CHOICE=1"
 
 :HANDLE_CHOICE
 if "%CHOICE%"=="1" (

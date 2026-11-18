@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " GG",
+    " EG",
+    "S  "
+  ],
+  "key": {
+    "G": {
+      "item": "velorise_staves:geo_rod"
+    },
+    "E": [
+      {
+        "item": "velorise_staves:geo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "S": {
+      "tag": "velorise_staves:geo_staves"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:vortex_vanquisher",
+    "count": 1
+  }
+}

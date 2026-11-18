@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:smithing_transform",
+  "addition": {
+    "item": "minecraft:netherite_ingot"
+  },
+  "base": {
+    "item": "velorise_staves:peak_patrol_song"
+  },
+  "result": {
+    "count": 1,
+    "id": "velorise_staves:netherite_peak_patrol_song"
+  },
+  "template": {
+    "item": "minecraft:netherite_upgrade_smithing_template"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  W",
+    " D ",
+    "B  "
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:wither_skeleton_skull"
+    },
+    "D": [
+      {
+        "item": "velorise_staves:dendro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "B": {
+      "item": "minecraft:blaze_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:wither_scepter",
+    "count": 1
+  }
+}

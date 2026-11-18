@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "velorise_staves:evoker_fang_staff",
+    "velorise_staves:netherite_evoker_fang_staff",
+    "velorise_staves:peak_patrol_song",
+    "velorise_staves:netherite_peak_patrol_song"
+  ]
+}

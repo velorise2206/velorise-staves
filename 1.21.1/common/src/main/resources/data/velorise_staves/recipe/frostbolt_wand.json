@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "  S",
+    " R ",
+    "R  "
+  ],
+  "key": {
+    "S": {
+      "item": "minecraft:snowball"
+    },
+    "R": {
+      "item": "velorise_staves:cryo_rod"
+    }
+  },
+  "result": {
+    "count": 1,
+    "id": "velorise_staves:frostbolt_wand"
+  }
+}

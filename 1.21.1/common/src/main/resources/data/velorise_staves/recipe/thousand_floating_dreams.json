@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "combat",
+  "pattern": [
+    " D ",
+    "DSD",
+    " D "
+  ],
+  "key": {
+    "D": [
+      {
+        "item": "velorise_staves:dendro_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "S": {
+      "tag": "velorise_staves:dendro_staves"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:thousand_floating_dreams",
+    "count": 1
+  }
+}

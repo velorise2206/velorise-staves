@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "minecraft:bogged",
+      "required": false
+    },
+    "minecraft:mooshroom",
+    "minecraft:bee",
+    "minecraft:cave_spider",
+    "minecraft:slime"
+  ]
+}

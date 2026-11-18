@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:guardian",
+    "minecraft:elder_guardian",
+    "minecraft:drowned",
+    "minecraft:axolotl"
+  ]
+}

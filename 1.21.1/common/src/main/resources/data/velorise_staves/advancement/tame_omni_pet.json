@@ -1,0 +1,31 @@
+{
+  "parent": "velorise_staves:first_reaction",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:omni_element"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.tame_omni_pet.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.tame_omni_pet.desc"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "tamed_omni_pet": {
+      "trigger": "velorise_staves:advancement_event",
+      "conditions": {
+        "event": "tame_omni_pet"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "tamed_omni_pet"
+    ]
+  ]
+}

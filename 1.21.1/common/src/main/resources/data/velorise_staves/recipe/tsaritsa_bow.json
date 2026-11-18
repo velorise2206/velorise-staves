@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "combat",
+  "pattern": [
+    " SC",
+    "S F",
+    "CF "
+  ],
+  "key": {
+    "S": {
+      "tag": "velorise_staves:cryo_staves"
+    },
+    "C": [
+      {
+        "item": "velorise_staves:cryo_element"
+      },
+      {
+        "item": "velorise_staves:omni_element"
+      }
+    ],
+    "F": {
+      "item": "velorise_staves:cryo_rod"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:tsaritsa_bow",
+    "count": 1
+  }
+}

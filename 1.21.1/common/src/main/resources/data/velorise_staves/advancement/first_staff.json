@@ -1,0 +1,35 @@
+{
+  "parent": "velorise_staves:root",
+  "display": {
+    "icon": {
+      "id": "velorise_staves:inferno_rod"
+    },
+    "title": {
+      "translate": "advancement.velorise_staves.first_staff.title"
+    },
+    "description": {
+      "translate": "advancement.velorise_staves.first_staff.desc"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "has_staff": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": "#velorise_staves:staves"
+          }
+        ]
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_staff"
+    ]
+  ]
+}

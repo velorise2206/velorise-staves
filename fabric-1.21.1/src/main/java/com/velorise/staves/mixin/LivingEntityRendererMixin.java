@@ -39,7 +39,7 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             livingEntity.yBodyRot = bike.getYRot();
             livingEntity.yBodyRotO = bike.yRotO;
         } else if (livingEntity != null && (com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderFade(livingEntity) > 0.01F
-                || com.velorise.staves.client.ClientAuraTracker.isRaidenSlashingOrBursting(livingEntity.getId()))) {
+                || ClientAuraTracker.isRaidenSlashingOrBursting(livingEntity.getId()))) {
             livingEntity.yBodyRot = livingEntity.getYRot();
             livingEntity.yBodyRotO = livingEntity.yRotO;
         }

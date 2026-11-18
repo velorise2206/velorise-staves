@@ -1,0 +1,39 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "combat",
+  "pattern": [
+    "CHA",
+    "PDG",
+    "S E"
+  ],
+  "key": {
+    "C": {
+      "tag": "velorise_staves:cryo_staves"
+    },
+    "H": {
+      "tag": "velorise_staves:hydro_staves"
+    },
+    "A": {
+      "tag": "velorise_staves:anemo_staves"
+    },
+    "P": {
+      "tag": "velorise_staves:pyro_staves"
+    },
+    "D": {
+      "tag": "velorise_staves:dendro_staves"
+    },
+    "G": {
+      "tag": "velorise_staves:geo_staves"
+    },
+    "E": {
+      "tag": "velorise_staves:electro_staves"
+    },
+    "S": {
+      "item": "minecraft:diamond_sword"
+    }
+  },
+  "result": {
+    "id": "velorise_staves:omni_staff",
+    "count": 1
+  }
+}

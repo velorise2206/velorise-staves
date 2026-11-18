@@ -1,0 +1,567 @@
+package com.velorise.staves;
+
+import com.velorise.staves.advancement.VeloriseCriterionTrigger;
+import com.velorise.staves.element.Element;
+import com.velorise.staves.item.ArcaneStaffItem;
+import com.velorise.staves.item.ElementItem;
+import com.velorise.staves.item.ElementalCodexItem;
+import com.velorise.staves.item.MagicMirrorItem;
+import com.velorise.staves.item.VoidTranslocatorItem;
+import com.velorise.staves.item.WindGliderItem;
+import com.velorise.staves.config.StavesConfig;
+import net.minecraft.advancements.CriterionTrigger;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.function.Supplier;
+
+@Mod(VeloriseStavesMod.MODID)
+public final class VeloriseStavesMod {
+    public static final String MODID = "velorise_staves";
+
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
+    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(BuiltInRegistries.SOUND_EVENT, MODID);
+    public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, MODID);
+    public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB, MODID);
+    public static final DeferredRegister<CriterionTrigger<?>> TRIGGER_TYPES = DeferredRegister.create(BuiltInRegistries.TRIGGER_TYPES, MODID);
+    public static final DeferredRegister<net.minecraft.world.inventory.MenuType<?>> MENUS = DeferredRegister.create(BuiltInRegistries.MENU, MODID);
+
+    public static final Supplier<net.minecraft.world.inventory.MenuType<com.velorise.staves.inventory.ShulkerStaffMenu>> SHULKER_STAFF_MENU =
+            MENUS.register("shulker_staff", () -> new net.minecraft.world.inventory.MenuType<>(
+                    com.velorise.staves.inventory.ShulkerStaffMenu::new,
+                    net.minecraft.world.flag.FeatureFlags.VANILLA_SET
+            ));
+
+    public static final Supplier<VeloriseCriterionTrigger> ADVANCEMENT_TRIGGER =
+            TRIGGER_TYPES.register("advancement_event", VeloriseCriterionTrigger::new);
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity>> GEO_FANG_PILLAR =
+            ENTITY_TYPES.register("geo_fang_pillar", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.GeoFangPillarEntity>of(com.velorise.staves.entity.GeoFangPillarEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.0F, 1.0F)
+                    .clientTrackingRange(10)
+                    .updateInterval(2)
+                    .build("geo_fang_pillar"));
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity>> DENDRO_CORE_ENTITY =
+            ENTITY_TYPES.register("dendro_core", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.DendroCoreEntity>of(com.velorise.staves.entity.DendroCoreEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("dendro_core"));
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.OmniOrbEntity>> OMNI_ORB =
+            ENTITY_TYPES.register("omni_orb", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.OmniOrbEntity>of(com.velorise.staves.entity.OmniOrbEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.45F, 0.45F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("omni_orb"));
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.HydroSalonSummonEntity>> HYDRO_SALON_SUMMON =
+            ENTITY_TYPES.register("hydro_salon_summon", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.HydroSalonSummonEntity>of(com.velorise.staves.entity.HydroSalonSummonEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.75F, 0.95F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .build("hydro_salon_summon"));
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity>> FLAMESTRIDER_BIKE =
+            ENTITY_TYPES.register("flamestrider_bike", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.FlamestriderBikeEntity>of(com.velorise.staves.entity.FlamestriderBikeEntity::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(1.35F, 1.05F)
+                    .clientTrackingRange(12)
+                    .updateInterval(1)
+                    .build("flamestrider_bike"));
+
+    // Sounds
+    public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_TAP_EN = SOUND_EVENTS.register("voice_zhongli_e_tap_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_tap_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_TAP_CN = SOUND_EVENTS.register("voice_zhongli_e_tap_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_tap_cn")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_HOLD_EN = SOUND_EVENTS.register("voice_zhongli_e_hold_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_hold_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_E_HOLD_CN = SOUND_EVENTS.register("voice_zhongli_e_hold_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_e_hold_cn")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_EN = SOUND_EVENTS.register("voice_zhongli_q_burst_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_ORDER_EN = SOUND_EVENTS.register("voice_zhongli_q_burst_order_en",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_order_en")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_ORDER_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_order_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_order_cn")));
+    public static final Supplier<SoundEvent> VOICE_ZHONGLI_Q_BURST_CN = SOUND_EVENTS.register("voice_zhongli_q_burst_cn",
+        () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "voice_zhongli_q_burst_cn")));
+
+    // Basic Combat Staves
+    public static final Supplier<Item> DRAGONFIRE_SCEPTER = ITEMS.register("dragonfire_scepter",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 130, false));
+
+    public static final Supplier<Item> RESONANT_ECHO = ITEMS.register("resonant_echo",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, 130, false));
+
+    public static final Supplier<Item> INFERNO_ROD = ITEMS.register("inferno_rod",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, 150, false));
+
+    public static final Supplier<Item> GHASTFIRE_STAFF = ITEMS.register("ghastfire_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, 120, false));
+
+    public static final Supplier<Item> WITHER_SCEPTER = ITEMS.register("wither_scepter",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, 140, false));
+
+    public static final Supplier<Item> SHULKER_SEEKER = ITEMS.register("shulker_seeker",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 130, false));
+
+    public static final Supplier<Item> GUARDIAN_LENS = ITEMS.register("guardian_lens",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 130, false));
+
+    public static final Supplier<Item> SPLENDOR_OF_TRANQUIL_WATERS = ITEMS.register("splendor_of_tranquil_waters",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, 140, false));
+
+    public static final Supplier<Item> EVOKER_FANG_STAFF = ITEMS.register("evoker_fang_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 120, false));
+
+    public static final Supplier<Item> VORTEX_VANQUISHER = ITEMS.register("vortex_vanquisher",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, 140, false));
+
+    public static final Supplier<Item> ARC_CASTER = ITEMS.register("arc_caster",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 130, false));
+
+    public static final Supplier<Item> FROSTBOLT_WAND = ITEMS.register("frostbolt_wand",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 150, false));
+
+    public static final Supplier<Item> NIGHTS_FOCUS_STAFF = ITEMS.register("nights_focus_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 150, false));
+
+    public static final Supplier<Item> THOUSAND_BLAZING_SUNS = ITEMS.register("thousand_blazing_suns",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 160, false));
+
+    public static final Supplier<Item> PEAK_PATROL_SONG = ITEMS.register("peak_patrol_song",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, 150, false));
+
+    public static final Supplier<Item> THOUSAND_FLOATING_DREAMS = ITEMS.register("thousand_floating_dreams",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, 150, false));
+
+    public static final Supplier<Item> TSARITSA_BOW = ITEMS.register("tsaritsa_bow",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_BOW, 160, false));
+
+    public static final Supplier<Item> TSARITSA_SPEAR = ITEMS.register("tsaritsa_spear",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_SPEAR, 160, false));
+
+    public static final Supplier<Item> CRYO_ROD = ITEMS.register("cryo_rod",
+        () -> new Item(new Item.Properties()));
+
+    public static final Supplier<Item> HYDRO_ROD = ITEMS.register("hydro_rod",
+        () -> new Item(new Item.Properties()));
+
+    public static final Supplier<Item> GEO_ROD = ITEMS.register("geo_rod",
+        () -> new Item(new Item.Properties()));
+
+    public static final Supplier<Item> ELECTRO_ROD = ITEMS.register("electro_rod",
+        () -> new Item(new Item.Properties()));
+
+    public static final Supplier<Item> WEBCASTER = ITEMS.register("webcaster",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
+
+    public static final Supplier<Item> WIND_STAFF = ITEMS.register("wind_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 140, false));
+
+    public static final Supplier<Item> THE_DAYBREAK_CHRONICLES = ITEMS.register("the_daybreak_chronicles",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, 140, false));
+
+    public static final Supplier<Item> ENGULFING_LIGHTNING = ITEMS.register("engulfing_lightning",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, 140, false));
+
+    public static final Supplier<Item> OMNI_STAFF = ITEMS.register("omni_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 250, false));
+
+    // Guidebook & Utility Artifacts
+    public static final Supplier<Item> ELEMENTAL_CODEX = ITEMS.register("elemental_codex",
+        ElementalCodexItem::new);
+    public static final Supplier<Item> VOID_TRANSLOCATOR = ITEMS.register("void_translocator",
+        () -> new VoidTranslocatorItem(80, 24.0D, false));
+
+    public static final Supplier<Item> WIND_GLIDER = ITEMS.register("wind_glider",
+        () -> new WindGliderItem(new Item.Properties().stacksTo(1)));
+
+    public static final Supplier<Item> MAGIC_MIRROR = ITEMS.register("magic_mirror",
+        () -> new MagicMirrorItem(40, false));
+
+    // Elemental Reaction Entities & Materials
+    public static final Supplier<Item> DENDRO_CORE = ITEMS.register("dendro_core",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> PYRO_CRYSTALLIZE_SHARD = ITEMS.register("pyro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> HYDRO_CRYSTALLIZE_SHARD = ITEMS.register("hydro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> ELECTRO_CRYSTALLIZE_SHARD = ITEMS.register("electro_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+    public static final Supplier<Item> CRYO_CRYSTALLIZE_SHARD = ITEMS.register("cryo_crystallize_shard",
+        () -> new Item(new Item.Properties()));
+
+    // Elemental Essences
+    public static final Supplier<Item> PYRO_ELEMENT = ITEMS.register("pyro_element",
+        () -> new ElementItem(Element.PYRO));
+    public static final Supplier<Item> HYDRO_ELEMENT = ITEMS.register("hydro_element",
+        () -> new ElementItem(Element.HYDRO));
+    public static final Supplier<Item> ANEMO_ELEMENT = ITEMS.register("anemo_element",
+        () -> new ElementItem(Element.ANEMO));
+    public static final Supplier<Item> ELECTRO_ELEMENT = ITEMS.register("electro_element",
+        () -> new ElementItem(Element.ELECTRO));
+    public static final Supplier<Item> DENDRO_ELEMENT = ITEMS.register("dendro_element",
+        () -> new ElementItem(Element.DENDRO));
+    public static final Supplier<Item> CRYO_ELEMENT = ITEMS.register("cryo_element",
+        () -> new ElementItem(Element.CRYO));
+    public static final Supplier<Item> GEO_ELEMENT = ITEMS.register("geo_element",
+        () -> new ElementItem(Element.GEO));
+    public static final Supplier<Item> OMNI_ELEMENT = ITEMS.register("omni_element",
+        () -> new ElementItem(null));
+
+    public static Item getElementItem(@Nullable Element element) {
+        if (element == null) return OMNI_ELEMENT.get();
+        return switch (element) {
+            case PYRO -> PYRO_ELEMENT.get();
+            case HYDRO -> HYDRO_ELEMENT.get();
+            case ANEMO -> ANEMO_ELEMENT.get();
+            case ELECTRO -> ELECTRO_ELEMENT.get();
+            case DENDRO -> DENDRO_ELEMENT.get();
+            case CRYO -> CRYO_ELEMENT.get();
+            case GEO -> GEO_ELEMENT.get();
+        };
+    }
+
+    public static @Nullable Element elementFromItem(ItemStack stack) {
+        if (!stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem) {
+            return elemItem.getElement();
+        }
+        return null;
+    }
+
+    public static boolean isOmniElementItem(ItemStack stack) {
+        return !stack.isEmpty() && stack.getItem() instanceof ElementItem elemItem && elemItem.isOmni();
+    }
+
+    // Netherite Upgraded Combat Staves
+    public static final Supplier<Item> NETHERITE_DRAGONFIRE_SCEPTER = ITEMS.register("netherite_dragonfire_scepter",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DRAGONFIRE, 500, true));
+
+    public static final Supplier<Item> NETHERITE_RESONANT_ECHO = ITEMS.register("netherite_resonant_echo",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ECHO, 500, true));
+
+    public static final Supplier<Item> NETHERITE_INFERNO_ROD = ITEMS.register("netherite_inferno_rod",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.INFERNO, 550, true));
+
+    public static final Supplier<Item> NETHERITE_GHASTFIRE_STAFF = ITEMS.register("netherite_ghastfire_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GHASTFIRE, 450, true));
+
+    public static final Supplier<Item> NETHERITE_WITHER_SCEPTER = ITEMS.register("netherite_wither_scepter",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WITHER, 500, true));
+
+    public static final Supplier<Item> NETHERITE_SHULKER_SEEKER = ITEMS.register("netherite_shulker_seeker",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SHULKER, 500, true));
+
+    public static final Supplier<Item> NETHERITE_GUARDIAN_LENS = ITEMS.register("netherite_guardian_lens",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.GUARDIAN, 500, true));
+
+    public static final Supplier<Item> NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS = ITEMS.register("netherite_splendor_of_tranquil_waters",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.SPLENDOR, 500, true));
+
+    public static final Supplier<Item> NETHERITE_EVOKER_FANG_STAFF = ITEMS.register("netherite_evoker_fang_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.EVOKER, 450, true));
+
+    public static final Supplier<Item> NETHERITE_VORTEX_VANQUISHER = ITEMS.register("netherite_vortex_vanquisher",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.VORTEX, 500, true));
+
+    public static final Supplier<Item> NETHERITE_ARC_CASTER = ITEMS.register("netherite_arc_caster",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.LIGHTNING, 500, true));
+
+    public static final Supplier<Item> NETHERITE_FROSTBOLT_WAND = ITEMS.register("netherite_frostbolt_wand",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.FROST, 500, true));
+
+    public static final Supplier<Item> NETHERITE_NIGHTS_FOCUS_STAFF = ITEMS.register("netherite_nights_focus_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.NIGHTS_FOCUS, 500, true));
+
+    public static final Supplier<Item> NETHERITE_THOUSAND_BLAZING_SUNS = ITEMS.register("netherite_thousand_blazing_suns",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, 520, true));
+
+    public static final Supplier<Item> NETHERITE_PEAK_PATROL_SONG = ITEMS.register("netherite_peak_patrol_song",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.PEAK_PATROL_SONG, 500, true));
+
+    public static final Supplier<Item> NETHERITE_THOUSAND_FLOATING_DREAMS = ITEMS.register("netherite_thousand_floating_dreams",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS, 500, true));
+
+    public static final Supplier<Item> NETHERITE_TSARITSA_BOW = ITEMS.register("netherite_tsaritsa_bow",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_BOW, 520, true));
+
+    public static final Supplier<Item> NETHERITE_TSARITSA_SPEAR = ITEMS.register("netherite_tsaritsa_spear",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_SPEAR, 520, true));
+
+    public static final Supplier<Item> NETHERITE_WEBCASTER = ITEMS.register("netherite_webcaster",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 500, true));
+
+    public static final Supplier<Item> NETHERITE_WIND_STAFF = ITEMS.register("netherite_wind_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WIND, 500, true));
+
+    public static final Supplier<Item> NETHERITE_THE_DAYBREAK_CHRONICLES = ITEMS.register("netherite_the_daybreak_chronicles",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.DAYBREAK, 500, true));
+
+    public static final Supplier<Item> NETHERITE_ENGULFING_LIGHTNING = ITEMS.register("netherite_engulfing_lightning",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.ENGULFING_LIGHTNING, 500, true));
+
+    public static final Supplier<Item> NETHERITE_OMNI_STAFF = ITEMS.register("netherite_omni_staff",
+        () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.OMNI, 900, true));
+
+    // Netherite Upgraded Utility Artifacts
+    public static final Supplier<Item> NETHERITE_VOID_TRANSLOCATOR = ITEMS.register("netherite_void_translocator",
+        () -> new VoidTranslocatorItem(250, 36.0D, true));
+
+    public static final Supplier<Item> NETHERITE_MAGIC_MIRROR = ITEMS.register("netherite_magic_mirror",
+        () -> new MagicMirrorItem(150, true));
+
+    // Creative Tab
+    public static final Supplier<CreativeModeTab> TAB = CREATIVE_MODE_TABS.register("velorise_staves_tab",
+        () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.velorise_staves"))
+            .icon(() -> new ItemStack(ELEMENTAL_CODEX.get()))
+            .displayItems((parameters, output) -> {
+                // Guidebook
+                output.accept(ELEMENTAL_CODEX.get());
+
+                // Basic tier
+                output.accept(DRAGONFIRE_SCEPTER.get());
+                output.accept(RESONANT_ECHO.get());
+                output.accept(INFERNO_ROD.get());
+                output.accept(GHASTFIRE_STAFF.get());
+                output.accept(WITHER_SCEPTER.get());
+                output.accept(SHULKER_SEEKER.get());
+                output.accept(GUARDIAN_LENS.get());
+                output.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
+                output.accept(EVOKER_FANG_STAFF.get());
+                output.accept(VORTEX_VANQUISHER.get());
+                output.accept(ARC_CASTER.get());
+                output.accept(FROSTBOLT_WAND.get());
+                output.accept(NIGHTS_FOCUS_STAFF.get());
+                output.accept(THOUSAND_BLAZING_SUNS.get());
+                output.accept(PEAK_PATROL_SONG.get());
+                output.accept(THOUSAND_FLOATING_DREAMS.get());
+                output.accept(TSARITSA_BOW.get());
+                output.accept(WEBCASTER.get());
+                output.accept(WIND_STAFF.get());
+                output.accept(THE_DAYBREAK_CHRONICLES.get());
+                output.accept(ENGULFING_LIGHTNING.get());
+                output.accept(OMNI_STAFF.get());
+                output.accept(VOID_TRANSLOCATOR.get());
+                output.accept(MAGIC_MIRROR.get());
+                output.accept(WIND_GLIDER.get());
+
+                // Netherite tier
+                output.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
+                output.accept(NETHERITE_RESONANT_ECHO.get());
+                output.accept(NETHERITE_INFERNO_ROD.get());
+                output.accept(NETHERITE_GHASTFIRE_STAFF.get());
+                output.accept(NETHERITE_WITHER_SCEPTER.get());
+                output.accept(NETHERITE_SHULKER_SEEKER.get());
+                output.accept(NETHERITE_GUARDIAN_LENS.get());
+                output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
+                output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
+                output.accept(NETHERITE_VORTEX_VANQUISHER.get());
+                output.accept(NETHERITE_ARC_CASTER.get());
+                output.accept(NETHERITE_FROSTBOLT_WAND.get());
+                output.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
+                output.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+                output.accept(NETHERITE_PEAK_PATROL_SONG.get());
+                output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS.get());
+                output.accept(NETHERITE_TSARITSA_BOW.get());
+                output.accept(NETHERITE_WEBCASTER.get());
+                output.accept(NETHERITE_WIND_STAFF.get());
+                output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
+                output.accept(NETHERITE_ENGULFING_LIGHTNING.get());
+                output.accept(NETHERITE_OMNI_STAFF.get());
+                output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
+                output.accept(NETHERITE_MAGIC_MIRROR.get());
+
+                // Reactions & Elements
+                output.accept(DENDRO_CORE.get());
+                output.accept(PYRO_ELEMENT.get());
+                output.accept(HYDRO_ELEMENT.get());
+                output.accept(ANEMO_ELEMENT.get());
+                output.accept(ELECTRO_ELEMENT.get());
+                output.accept(DENDRO_ELEMENT.get());
+                output.accept(CRYO_ELEMENT.get());
+                output.accept(GEO_ELEMENT.get());
+                output.accept(OMNI_ELEMENT.get());
+                output.accept(CRYO_ROD.get());
+                output.accept(HYDRO_ROD.get());
+                output.accept(GEO_ROD.get());
+                output.accept(ELECTRO_ROD.get());
+
+                // Elemental Mastery I-III Enchanted Books
+                parameters.holders().lookup(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .flatMap(reg -> reg.get(net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.ENCHANTMENT,
+                        ResourceLocation.fromNamespaceAndPath(MODID, "elemental_mastery")
+                    )))
+                    .ifPresent(holder -> {
+                        for (int lvl = 1; lvl <= 3; lvl++) {
+                            output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                                new net.minecraft.world.item.enchantment.EnchantmentInstance(holder, lvl)
+                            ));
+                        }
+                    });
+
+                // Elemental Protection I-IV Enchanted Books
+                parameters.holders().lookup(net.minecraft.core.registries.Registries.ENCHANTMENT)
+                    .flatMap(reg -> reg.get(net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.core.registries.Registries.ENCHANTMENT,
+                        ResourceLocation.fromNamespaceAndPath(MODID, "elemental_protection")
+                    )))
+                    .ifPresent(holder -> {
+                        for (int lvl = 1; lvl <= 4; lvl++) {
+                            output.accept(net.minecraft.world.item.EnchantedBookItem.createForEnchantment(
+                                new net.minecraft.world.item.enchantment.EnchantmentInstance(holder, lvl)
+                            ));
+                        }
+                    });
+            })
+            .build());
+
+    public VeloriseStavesMod(IEventBus modEventBus, ModContainer modContainer) {
+        modContainer.registerConfig(ModConfig.Type.COMMON, StavesConfig.SPEC, "velorise_staves.toml");
+        if (net.neoforged.fml.loading.FMLEnvironment.dist.isClient()) {
+            modContainer.registerExtensionPoint(
+                net.neoforged.neoforge.client.gui.IConfigScreenFactory.class,
+                (container, parent) -> new com.velorise.staves.client.VeloriseConfigScreen(parent)
+            );
+        }
+        modEventBus.addListener(com.velorise.staves.network.ModNetwork::registerPayloads);
+        modEventBus.addListener(VeloriseStavesMod::onBuildCreativeTabContents);
+        ITEMS.register(modEventBus);
+        ENTITY_TYPES.register(modEventBus);
+        SOUND_EVENTS.register(modEventBus);
+        CREATIVE_MODE_TABS.register(modEventBus);
+        TRIGGER_TYPES.register(modEventBus);
+        MENUS.register(modEventBus);
+        com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
+    }
+
+    private static void onBuildCreativeTabContents(net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent event) {
+        var tabKey = event.getTabKey();
+        if (tabKey == net.minecraft.world.item.CreativeModeTabs.COMBAT) {
+            event.accept(DRAGONFIRE_SCEPTER.get());
+            event.accept(RESONANT_ECHO.get());
+            event.accept(INFERNO_ROD.get());
+            event.accept(GHASTFIRE_STAFF.get());
+            event.accept(WITHER_SCEPTER.get());
+            event.accept(SHULKER_SEEKER.get());
+            event.accept(GUARDIAN_LENS.get());
+            event.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
+            event.accept(EVOKER_FANG_STAFF.get());
+            event.accept(VORTEX_VANQUISHER.get());
+            event.accept(ARC_CASTER.get());
+            event.accept(FROSTBOLT_WAND.get());
+            event.accept(NIGHTS_FOCUS_STAFF.get());
+            event.accept(THOUSAND_BLAZING_SUNS.get());
+            event.accept(PEAK_PATROL_SONG.get());
+            event.accept(THOUSAND_FLOATING_DREAMS.get());
+            event.accept(TSARITSA_BOW.get());
+            event.accept(WEBCASTER.get());
+            event.accept(WIND_STAFF.get());
+            event.accept(THE_DAYBREAK_CHRONICLES.get());
+            event.accept(ENGULFING_LIGHTNING.get());
+            event.accept(OMNI_STAFF.get());
+            event.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
+            event.accept(NETHERITE_RESONANT_ECHO.get());
+            event.accept(NETHERITE_INFERNO_ROD.get());
+            event.accept(NETHERITE_GHASTFIRE_STAFF.get());
+            event.accept(NETHERITE_WITHER_SCEPTER.get());
+            event.accept(NETHERITE_SHULKER_SEEKER.get());
+            event.accept(NETHERITE_GUARDIAN_LENS.get());
+            event.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
+            event.accept(NETHERITE_EVOKER_FANG_STAFF.get());
+            event.accept(NETHERITE_VORTEX_VANQUISHER.get());
+            event.accept(NETHERITE_ARC_CASTER.get());
+            event.accept(NETHERITE_FROSTBOLT_WAND.get());
+            event.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
+            event.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+            event.accept(NETHERITE_PEAK_PATROL_SONG.get());
+            event.accept(NETHERITE_THOUSAND_FLOATING_DREAMS.get());
+            event.accept(NETHERITE_TSARITSA_BOW.get());
+            event.accept(NETHERITE_WEBCASTER.get());
+            event.accept(NETHERITE_WIND_STAFF.get());
+            event.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
+            event.accept(NETHERITE_ENGULFING_LIGHTNING.get());
+            event.accept(NETHERITE_OMNI_STAFF.get());
+        } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ELEMENTAL_CODEX.get());
+            event.accept(VOID_TRANSLOCATOR.get());
+            event.accept(MAGIC_MIRROR.get());
+            event.accept(NETHERITE_VOID_TRANSLOCATOR.get());
+            event.accept(NETHERITE_MAGIC_MIRROR.get());
+            event.accept(WIND_GLIDER.get());
+        } else if (tabKey == net.minecraft.world.item.CreativeModeTabs.INGREDIENTS) {
+            event.accept(PYRO_ELEMENT.get());
+            event.accept(HYDRO_ELEMENT.get());
+            event.accept(ANEMO_ELEMENT.get());
+            event.accept(ELECTRO_ELEMENT.get());
+            event.accept(DENDRO_ELEMENT.get());
+            event.accept(CRYO_ELEMENT.get());
+            event.accept(GEO_ELEMENT.get());
+            event.accept(OMNI_ELEMENT.get());
+            event.accept(CRYO_ROD.get());
+            event.accept(HYDRO_ROD.get());
+            event.accept(GEO_ROD.get());
+            event.accept(ELECTRO_ROD.get());
+        }
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.GeoFangPillarEntity> getGeoFangPillarType() {
+        return GEO_FANG_PILLAR.get();
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
+        return FLAMESTRIDER_BIKE.get();
+    }
+
+    public static net.minecraft.world.inventory.MenuType<com.velorise.staves.inventory.ShulkerStaffMenu> getShulkerStaffMenuType() {
+        return SHULKER_STAFF_MENU.get();
+    }
+
+    public static VeloriseCriterionTrigger getAdvancementTrigger() {
+        return ADVANCEMENT_TRIGGER.get();
+    }
+
+    public static Item getCrystallizeShardItem(Element element) {
+        return switch (element) {
+            case PYRO -> PYRO_CRYSTALLIZE_SHARD.get();
+            case HYDRO -> HYDRO_CRYSTALLIZE_SHARD.get();
+            case ELECTRO -> ELECTRO_CRYSTALLIZE_SHARD.get();
+            case CRYO -> CRYO_CRYSTALLIZE_SHARD.get();
+            default -> PYRO_CRYSTALLIZE_SHARD.get();
+        };
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.DendroCoreEntity> getDendroCoreEntityType() {
+        return DENDRO_CORE_ENTITY.get();
+    }
+
+    public static Item getDendroCoreItem() {
+        return DENDRO_CORE.get();
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.HydroSalonSummonEntity> getHydroSalonSummonEntityType() {
+        return HYDRO_SALON_SUMMON.get();
+    }
+}
