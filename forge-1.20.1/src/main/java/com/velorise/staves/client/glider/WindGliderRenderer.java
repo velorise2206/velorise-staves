@@ -91,7 +91,7 @@ public final class WindGliderRenderer {
         }
         if (!ClientAuraTracker.isGliding(entity.getId())) return;
         if (entity instanceof net.minecraft.world.entity.player.Player p
-                && StavesConfig.isRenderDragonGlider()
+                && !com.velorise.staves.element.VentiManager.hasVentiWeapon(p)
                 && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(p)) {
             renderDragonGliderWings(entity, humanoid, partialTicks, poseStack, buffer);
             return;
@@ -1020,7 +1020,8 @@ public final class WindGliderRenderer {
         float scale = baseScale * (alpha < 230 ? (0.55F + 0.45F * fade) : 1.0F);
         poseStack.pushPose();
         poseStack.scale(scale, scale, scale);
-        if (headPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(-headPitchDeg));
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        if (headPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(headPitchDeg));
         if (headYawDeg != 0.0F) poseStack.mulPose(Axis.YP.rotationDegrees(headYawDeg));
         if (headRollDeg != 0.0F) poseStack.mulPose(Axis.ZP.rotationDegrees(headRollDeg));
 
@@ -1033,9 +1034,7 @@ public final class WindGliderRenderer {
         cachedVanillaEnderDragon.yBodyRotO = 0.0F;
         cachedVanillaEnderDragon.setXRot(0.0F);
         cachedVanillaEnderDragon.xRotO = 0.0F;
-        cachedVanillaEnderDragon.dragonDeathTime = alpha < 230
-                ? Math.max(1, Math.round((1.0F - fade) * 185.0F))
-                : 0;
+        cachedVanillaEnderDragon.dragonDeathTime = 0;
 
         @SuppressWarnings("unchecked")
         net.minecraft.client.renderer.entity.EntityRenderer<net.minecraft.world.entity.boss.enderdragon.EnderDragon> dragonRenderer =
@@ -1132,15 +1131,15 @@ public final class WindGliderRenderer {
                 float easeOut = 1.0F - (1.0F - u) * (1.0F - u);
                 float diveY = Mth.lerp(easeOut, 14.5F, 0.45F) + fpYOffset;
                 float pitch = Mth.lerp(smoothStep01(u), 72.0F, 0.0F);
-                poseStack.translate(0.0F, diveY, -4.0F);
+                poseStack.translate(0.0F, diveY, -3.2F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, pitch, 0.0F, 0.0F, time, false, 245);
             } else if (elapsedMs < 3150.0F) {
-                poseStack.translate(0.0F, 0.45F + fpYOffset, -4.0F);
+                poseStack.translate(0.0F, 0.45F + fpYOffset, -3.2F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, 0.0F, 0.0F, 0.0F, time * 0.75F, false, 245);
             } else {
                 float u = Mth.clamp((elapsedMs - 3150.0F) / 850.0F, 0.0F, 1.0F);
                 int fadeAlpha = Math.max(5, Math.round((1.0F - smoothStep01(u)) * 225.0F));
-                poseStack.translate(0.0F, 0.45F + fpYOffset, -4.0F);
+                poseStack.translate(0.0F, 0.45F + fpYOffset, -3.2F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, -8.0F * u, 0.0F, 0.0F, time * 0.6F, false, fadeAlpha);
             }
             poseStack.popPose();

@@ -1032,9 +1032,7 @@ public final class WindGliderRenderer {
         cachedVanillaEnderDragon.yBodyRotO = 0.0F;
         cachedVanillaEnderDragon.setXRot(0.0F);
         cachedVanillaEnderDragon.xRotO = 0.0F;
-        cachedVanillaEnderDragon.dragonDeathTime = alpha < 230
-                ? Math.max(1, Math.round((1.0F - fade) * 185.0F))
-                : 0;
+        cachedVanillaEnderDragon.dragonDeathTime = 0;
 
         @SuppressWarnings("unchecked")
         net.minecraft.client.renderer.entity.EntityRenderer<net.minecraft.world.entity.boss.enderdragon.EnderDragon> dragonRenderer =
