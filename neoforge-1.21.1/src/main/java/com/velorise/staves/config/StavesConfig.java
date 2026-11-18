@@ -61,6 +61,7 @@ public final class StavesConfig {
     public static final ModConfigSpec.BooleanValue USE_32PX_TEXTURES;
     public static final ModConfigSpec.BooleanValue USE_32PX_ELEMENT_ICONS;
     public static final ModConfigSpec.BooleanValue USE_32PX_GLIDER_TEXTURE;
+    public static final ModConfigSpec.BooleanValue RENDER_DRAGON_GLIDER;
     public static final ModConfigSpec.ConfigValue<String> CHARACTER_VOICE_LANGUAGE;
     public static final ModConfigSpec.BooleanValue SHOW_REACTION_TEXT;
     public static final ModConfigSpec.BooleanValue SHOW_DAMAGE_NUMBERS;
@@ -255,6 +256,9 @@ public final class StavesConfig {
         USE_32PX_GLIDER_TEXTURE = builder
             .comment("Client-side preference: use 32x32px texture for Wind Glider instead of default 16x16px. Default: false")
             .define("use_32px_glider_texture", false);
+        RENDER_DRAGON_GLIDER = builder
+            .comment("Client-side preference: render the 3D Ender Dragon model when gliding with Dragonfire Scepter. If false, renders standard Wind Glider wings instead. Default: true")
+            .define("render_dragon_glider", true);
         CHARACTER_VOICE_LANGUAGE = builder
             .comment("Language for character voice lines ('auto', 'en_us', 'zh_cn', 'disabled'). Default: 'auto'")
             .define("character_voice_language", "auto");
@@ -867,6 +871,14 @@ public final class StavesConfig {
 
     public static boolean isUse32pxGliderTexture() {
         return isUse32pxTextures();
+    }
+
+    public static boolean isRenderDragonGlider() {
+        try {
+            return RENDER_DRAGON_GLIDER == null || RENDER_DRAGON_GLIDER.get();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public static String getCharacterVoiceLanguage() {

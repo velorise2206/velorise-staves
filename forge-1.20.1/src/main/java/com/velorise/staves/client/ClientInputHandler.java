@@ -151,7 +151,7 @@ public final class ClientInputHandler {
                 event.setCanceled(true);
                 return;
             }
-            if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
+            if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE || effKind == ArcaneStaffItem.Kind.SHULKER) {
                 queuedDragonfireFastClicks++;
                 event.setSwingHand(true);
                 event.setCanceled(true);
@@ -485,7 +485,7 @@ public final class ClientInputHandler {
             ClientAuraTracker.ventiUltiHoldTicks = 0;
         }
 
-        boolean holdingDragonfire = (mainEffKind == ArcaneStaffItem.Kind.DRAGONFIRE);
+        boolean holdingDragonfire = (mainEffKind == ArcaneStaffItem.Kind.DRAGONFIRE || mainEffKind == ArcaneStaffItem.Kind.SHULKER);
         int dragonfireFast = queuedDragonfireFastClicks;
         queuedDragonfireFastClicks = 0;
         if (holdingDragonfire && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
@@ -574,10 +574,11 @@ public final class ClientInputHandler {
                     && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
                     && !mc.player.getAbilities().flying) {
                 boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(mc.player);
-                boolean hasDragonGlider = !hasVenti && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(mc.player);
-                double maxFallSpeed = hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D);
-                double maxSpeed = hasVenti ? 0.84D : (hasDragonGlider ? 0.63D : 0.42D);
-                double accel = hasVenti ? 0.11D : (hasDragonGlider ? 0.0825D : 0.055D);
+                boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(mc.player);
+                double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
+                double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
+                double maxSpeed = 0.42D * speedMult;
+                double accel = 0.055D * speedMult;
 
                 net.minecraft.world.phys.Vec3 vel = mc.player.getDeltaMovement();
                 double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
@@ -793,7 +794,7 @@ public final class ClientInputHandler {
                 } else if (effKind == ArcaneStaffItem.Kind.TSARITSA_BOW || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
                     resetMissTime(mc);
                     queuedTsaritsaFastClicks++;
-                } else if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
+                } else if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE || effKind == ArcaneStaffItem.Kind.SHULKER) {
                     resetMissTime(mc);
                     queuedDragonfireFastClicks++;
                 }

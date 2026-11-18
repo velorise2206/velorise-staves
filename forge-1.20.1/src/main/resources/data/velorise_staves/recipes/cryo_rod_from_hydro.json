@@ -6,11 +6,11 @@
       "item": "velorise_staves:cryo_element"
     },
     {
-      "item": "velorise_staves:geo_rod"
+      "item": "velorise_staves:hydro_rod"
     }
   ],
   "result": {
-    "item": "velorise_staves:frost_rod",
+    "item": "velorise_staves:cryo_rod",
     "count": 1
   }
 }

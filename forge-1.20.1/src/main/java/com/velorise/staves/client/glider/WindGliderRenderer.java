@@ -91,7 +91,7 @@ public final class WindGliderRenderer {
         }
         if (!ClientAuraTracker.isGliding(entity.getId())) return;
         if (entity instanceof net.minecraft.world.entity.player.Player p
-                && !com.velorise.staves.element.VentiManager.hasVentiWeapon(p)
+                && StavesConfig.isRenderDragonGlider()
                 && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(p)) {
             renderDragonGliderWings(entity, humanoid, partialTicks, poseStack, buffer);
             return;
@@ -1020,8 +1020,7 @@ public final class WindGliderRenderer {
         float scale = baseScale * (alpha < 230 ? (0.55F + 0.45F * fade) : 1.0F);
         poseStack.pushPose();
         poseStack.scale(scale, scale, scale);
-        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
-        if (headPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(headPitchDeg));
+        if (headPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(-headPitchDeg));
         if (headYawDeg != 0.0F) poseStack.mulPose(Axis.YP.rotationDegrees(headYawDeg));
         if (headRollDeg != 0.0F) poseStack.mulPose(Axis.ZP.rotationDegrees(headRollDeg));
 
@@ -1133,15 +1132,15 @@ public final class WindGliderRenderer {
                 float easeOut = 1.0F - (1.0F - u) * (1.0F - u);
                 float diveY = Mth.lerp(easeOut, 14.5F, 0.45F) + fpYOffset;
                 float pitch = Mth.lerp(smoothStep01(u), 72.0F, 0.0F);
-                poseStack.translate(0.0F, diveY, -3.2F);
+                poseStack.translate(0.0F, diveY, -4.0F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, pitch, 0.0F, 0.0F, time, false, 245);
             } else if (elapsedMs < 3150.0F) {
-                poseStack.translate(0.0F, 0.45F + fpYOffset, -3.2F);
+                poseStack.translate(0.0F, 0.45F + fpYOffset, -4.0F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, 0.0F, 0.0F, 0.0F, time * 0.75F, false, 245);
             } else {
                 float u = Mth.clamp((elapsedMs - 3150.0F) / 850.0F, 0.0F, 1.0F);
                 int fadeAlpha = Math.max(5, Math.round((1.0F - smoothStep01(u)) * 225.0F));
-                poseStack.translate(0.0F, 0.45F + fpYOffset, -3.2F);
+                poseStack.translate(0.0F, 0.45F + fpYOffset, -4.0F);
                 renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.0F, -8.0F * u, 0.0F, 0.0F, time * 0.6F, false, fadeAlpha);
             }
             poseStack.popPose();
@@ -1361,12 +1360,29 @@ public final class WindGliderRenderer {
         int iconX = sw / 2 - 8;
         int iconY = sh / 2 + 12;
         RenderSystem.enableBlend();
-        RenderSystem.setShaderColor(0.25F, 0.35F, 0.40F, 0.65F);
+        RenderSystem.setShaderColor(0.22F, 0.32F, 0.38F, 0.55F);
         guiGraphics.blit(echoTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
-        int fillH = Math.max(1, Math.round(16 * pct));
-        int topY = iconY + (16 - fillH);
+
+        float clamped = Mth.clamp(pct, 0.0F, 1.0F);
+        if (clamped > 0.01F) {
+            // Ring 3 (outermost 16x16 ring): expands outward after 66%
+            if (clamped > 0.66F) {
+                float r3 = Mth.clamp((clamped - 0.66F) / 0.34F, 0.0F, 1.0F);
+                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.35F + 0.65F * r3);
+                guiGraphics.blit(echoTex, iconX, iconY, 0, 0, 16, 16, 16, 16);
+            }
+            // Ring 2 (middle 8x8 ring at u=4, v=4): expands outward after 33%
+            if (clamped > 0.33F) {
+                float r2 = clamped >= 0.66F ? 1.0F : Mth.clamp((clamped - 0.33F) / 0.33F, 0.0F, 1.0F);
+                RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.35F + 0.65F * r2);
+                guiGraphics.blit(echoTex, iconX + 4, iconY + 4, 4, 4, 8, 8, 16, 16);
+            }
+            // Ring 1 (innermost 4x4 core at u=6, v=6): illuminates first
+            float r1 = clamped >= 0.33F ? 1.0F : Mth.clamp(clamped / 0.33F, 0.0F, 1.0F);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 0.40F + 0.60F * r1);
+            guiGraphics.blit(echoTex, iconX + 6, iconY + 6, 6, 6, 4, 4, 16, 16);
+        }
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        guiGraphics.blit(echoTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
     }
 
 }

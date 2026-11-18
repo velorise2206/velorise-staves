@@ -35,6 +35,13 @@ public final class VeloriseStavesMod {
     public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, MODID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(BuiltInRegistries.CREATIVE_MODE_TAB, MODID);
     public static final DeferredRegister<CriterionTrigger<?>> TRIGGER_TYPES = DeferredRegister.create(BuiltInRegistries.TRIGGER_TYPES, MODID);
+    public static final DeferredRegister<net.minecraft.world.inventory.MenuType<?>> MENUS = DeferredRegister.create(BuiltInRegistries.MENU, MODID);
+
+    public static final Supplier<net.minecraft.world.inventory.MenuType<com.velorise.staves.inventory.ShulkerStaffMenu>> SHULKER_STAFF_MENU =
+            MENUS.register("shulker_staff", () -> new net.minecraft.world.inventory.MenuType<>(
+                    com.velorise.staves.inventory.ShulkerStaffMenu::new,
+                    net.minecraft.world.flag.FeatureFlags.VANILLA_SET
+            ));
 
     public static final Supplier<VeloriseCriterionTrigger> ADVANCEMENT_TRIGGER =
             TRIGGER_TYPES.register("advancement_event", VeloriseCriterionTrigger::new);
@@ -154,7 +161,7 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> TSARITSA_SPEAR = ITEMS.register("tsaritsa_spear",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.TSARITSA_SPEAR, 160, false));
 
-    public static final Supplier<Item> FROST_ROD = ITEMS.register("frost_rod",
+    public static final Supplier<Item> CRYO_ROD = ITEMS.register("cryo_rod",
         () -> new Item(new Item.Properties()));
 
     public static final Supplier<Item> HYDRO_ROD = ITEMS.register("hydro_rod",
@@ -396,7 +403,7 @@ public final class VeloriseStavesMod {
                 output.accept(CRYO_ELEMENT.get());
                 output.accept(GEO_ELEMENT.get());
                 output.accept(OMNI_ELEMENT.get());
-                output.accept(FROST_ROD.get());
+                output.accept(CRYO_ROD.get());
                 output.accept(HYDRO_ROD.get());
                 output.accept(GEO_ROD.get());
                 output.accept(ELECTRO_ROD.get());
@@ -446,6 +453,7 @@ public final class VeloriseStavesMod {
         SOUND_EVENTS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
         TRIGGER_TYPES.register(modEventBus);
+        MENUS.register(modEventBus);
         com.velorise.staves.effect.ModMobEffects.MOB_EFFECTS.register(modEventBus);
     }
 
@@ -512,7 +520,7 @@ public final class VeloriseStavesMod {
             event.accept(CRYO_ELEMENT.get());
             event.accept(GEO_ELEMENT.get());
             event.accept(OMNI_ELEMENT.get());
-            event.accept(FROST_ROD.get());
+            event.accept(CRYO_ROD.get());
             event.accept(HYDRO_ROD.get());
             event.accept(GEO_ROD.get());
             event.accept(ELECTRO_ROD.get());
@@ -525,5 +533,9 @@ public final class VeloriseStavesMod {
 
     public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
         return FLAMESTRIDER_BIKE.get();
+    }
+
+    public static net.minecraft.world.inventory.MenuType<com.velorise.staves.inventory.ShulkerStaffMenu> getShulkerStaffMenuType() {
+        return SHULKER_STAFF_MENU.get();
     }
 }

@@ -181,9 +181,6 @@ public class CharacterVoiceScreen extends Screen {
                     .append(statusLabel));
         }
 
-        lines.add(Component.empty());
-        lines.add(Component.translatable("config.velorise_staves.voice_tooltip.note")
-                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         return lines;
     }
 
@@ -197,10 +194,37 @@ public class CharacterVoiceScreen extends Screen {
         lines.add(Component.empty());
         lines.add(Component.translatable("config.velorise_staves.voice_tooltip.all_langs_header")
                 .withStyle(ChatFormatting.AQUA));
-        lines.add(Component.translatable("config.velorise_staves.voice_tooltip.global_zhongli")
-                .withStyle(ChatFormatting.GREEN));
-        lines.add(Component.translatable("config.velorise_staves.voice_tooltip.global_others")
-                .withStyle(ChatFormatting.RED));
+        int missingCount = 0;
+        for (String charId : CharacterVoiceManager.CHARACTERS) {
+            boolean anyAvailable = false;
+            net.minecraft.network.chat.MutableComponent statusRow = Component.empty();
+            for (int i = 0; i < CharacterVoiceManager.VOICE_LANGUAGES.size(); i++) {
+                String langCode = CharacterVoiceManager.VOICE_LANGUAGES.get(i);
+                boolean has = CharacterVoiceManager.hasVoiceForLanguage(charId, langCode);
+                if (has) anyAvailable = true;
+                if (i > 0) {
+                    statusRow.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY));
+                }
+                statusRow.append(Component.translatable("config.velorise_staves.voice_char_lang." + langCode)
+                        .withStyle(has ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
+                statusRow.append(Component.literal(has ? " ✔" : " ✖")
+                        .withStyle(has ? ChatFormatting.GREEN : ChatFormatting.RED));
+            }
+            if (anyAvailable) {
+                lines.add(Component.literal("• ").withStyle(ChatFormatting.GRAY)
+                        .append(Component.translatable("config.velorise_staves.character." + charId)
+                                .withStyle(ChatFormatting.WHITE))
+                        .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
+                        .append(statusRow));
+            } else {
+                missingCount++;
+            }
+        }
+        if (missingCount > 0) {
+            lines.add(Component.literal("• (" + missingCount + ") ").withStyle(ChatFormatting.RED)
+                    .append(Component.translatable("config.velorise_staves.voice_tooltip.unavailable")
+                            .withStyle(ChatFormatting.RED)));
+        }
         return lines;
     }
 

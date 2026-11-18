@@ -28,15 +28,19 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
             queuedNahidaFastClicks++;
         } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
-                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
             queuedTsaritsaFastClicks++;
-        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SHULKER) {
             queuedDragonfireFastClicks++;
         }
     }
     @Override
     public void onInitializeClient() {
+        net.minecraft.client.gui.screens.MenuScreens.register(
+                com.velorise.staves.VeloriseStavesMod.SHULKER_STAFF_MENU,
+                ShulkerStaffScreen::new
+        );
         ClientPlayNetworking.registerGlobalReceiver(AuraSyncPayload.TYPE, (payload, context) -> {
             if (payload.durationTicks() == -4) {
                 ClientAuraTracker.silentDrainUntil = System.currentTimeMillis() + 800L;
@@ -165,7 +169,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
-                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SHULKER) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
@@ -179,7 +184,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
-                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SHULKER) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
@@ -531,7 +537,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
             }
 
-            boolean holdingDragonfire = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE);
+            boolean holdingDragonfire = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE
+                    || mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.SHULKER);
             int dragonfireFast = queuedDragonfireFastClicks;
             queuedDragonfireFastClicks = 0;
             if (holdingDragonfire && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
@@ -623,10 +630,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         && !client.player.onGround() && !client.player.isInWater() && !client.player.isInLava()
                         && !client.player.getAbilities().flying) {
                     boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(client.player);
-                    boolean hasDragonGlider = !hasVenti && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(client.player);
-                    double maxFallSpeed = hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D);
-                    double maxSpeed = hasVenti ? 0.84D : (hasDragonGlider ? 0.63D : 0.42D);
-                    double accel = hasVenti ? 0.11D : (hasDragonGlider ? 0.0825D : 0.055D);
+                    boolean hasDragonGlider = com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(client.player);
+                    double speedMult = (hasVenti ? 2.0D : 1.0D) * (hasDragonGlider ? 1.5D : 1.0D);
+                    double maxFallSpeed = (hasVenti && hasDragonGlider) ? -0.04D : (hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D));
+                    double maxSpeed = 0.42D * speedMult;
+                    double accel = 0.055D * speedMult;
 
                     net.minecraft.world.phys.Vec3 vel = client.player.getDeltaMovement();
                     double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;

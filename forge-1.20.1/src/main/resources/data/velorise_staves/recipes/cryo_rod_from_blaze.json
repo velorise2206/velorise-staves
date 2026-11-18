@@ -6,11 +6,11 @@
       "item": "velorise_staves:cryo_element"
     },
     {
-      "item": "minecraft:breeze_rod"
+      "item": "minecraft:blaze_rod"
     }
   ],
   "result": {
-    "id": "velorise_staves:frost_rod",
+    "item": "velorise_staves:cryo_rod",
     "count": 1
   }
 }

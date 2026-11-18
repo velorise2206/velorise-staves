@@ -694,6 +694,16 @@ public final class ArcaneStaffItem extends Item {
             }
             return InteractionResultHolder.fail(stack);
         }
+        if (kind == Kind.SHULKER) {
+            if (level.isClientSide()) {
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+            if (player instanceof ServerPlayer sp) {
+                com.velorise.staves.inventory.ShulkerStaffMenu.open(sp, stack, hand, this.isNetherite);
+                return InteractionResultHolder.consume(stack);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
         if (player.getCooldowns().isOnCooldown(this)) return InteractionResultHolder.fail(stack);
 
         if (isCharged()) {
@@ -833,6 +843,16 @@ public final class ArcaneStaffItem extends Item {
                 ElementalResonanceManager.applyOmniModeCooldown(sp, stack, getCooldownTicks());
                 sp.awardStat(Stats.ITEM_USED.get(omniOwner));
                 return InteractionResultHolder.sidedSuccess(stack, false);
+            }
+            return InteractionResultHolder.fail(stack);
+        }
+        if (kind == Kind.SHULKER) {
+            if (level.isClientSide()) {
+                return InteractionResultHolder.sidedSuccess(stack, true);
+            }
+            if (player instanceof ServerPlayer sp) {
+                com.velorise.staves.inventory.ShulkerStaffMenu.open(sp, stack, hand, effNeth);
+                return InteractionResultHolder.consume(stack);
             }
             return InteractionResultHolder.fail(stack);
         }
@@ -1463,6 +1483,33 @@ public final class ArcaneStaffItem extends Item {
 
     public boolean triggerDragonfireOrbFromLeftClick(ServerPlayer player) {
         return shootDragonfire(player);
+    }
+
+    public boolean triggerShulkerFromLeftClick(ServerPlayer player, ItemStack mainStack) {
+        if (player == null || mainStack.isEmpty()) return false;
+        if (player.getCooldowns().isOnCooldown(mainStack.getItem())) return false;
+        boolean isOmni = (this.kind == Kind.OMNI);
+        ArcaneStaffItem shulkerStaff = isOmni
+                ? getAbsorbedStaffForElement(mainStack, Element.ELECTRO)
+                : this;
+        if (shulkerStaff == null || shulkerStaff.kind != Kind.SHULKER) return false;
+        if (!isOmni && prepareBurst(player, burstShotsTag(), burstLastTag(), burstSlotTag(), BURST_RESET_TICKS)) {
+            return false;
+        }
+        boolean shouldConsumeDurability = isOmni || isFirstBurstShot(player, burstShotsTag());
+        if (!shulkerStaff.shootShulker(player)) return false;
+        if (shouldConsumeDurability) {
+            hurtStaffAndCheckBreak(mainStack, 1, player, InteractionHand.MAIN_HAND);
+        }
+        if (isOmni) {
+            int cdTicks = Math.max(10, shulkerStaff.getCooldownTicks() / 3);
+            ElementalResonanceManager.applyOmniModeCooldown(player, mainStack, cdTicks);
+        } else {
+            advanceBurst(player, burstShotsTag(), burstLastTag(), burstSlotTag(), maxBurstShots(), getCooldownTicks());
+        }
+        player.awardStat(Stats.ITEM_USED.get(this));
+        player.swing(InteractionHand.MAIN_HAND, true);
+        return true;
     }
 
     private boolean isThirdBurstShot(ServerPlayer player) {
@@ -2304,7 +2351,7 @@ public final class ArcaneStaffItem extends Item {
             case LIGHTNING, ENGULFING_LIGHTNING -> repair.is(VeloriseStavesMod.ELECTRO_ROD.get()) || repair.is(Items.AMETHYST_SHARD);
             case EVOKER -> repair.is(VeloriseStavesMod.GEO_ROD.get()) || repair.is(Items.EMERALD) || repair.is(Items.STICK);
             case FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
-            case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.FROST_ROD.get()) || repair.is(Items.SHIELD);
+            case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.CRYO_ROD.get()) || repair.is(Items.SHIELD);
             case THOUSAND_BLAZING_SUNS -> repair.is(Items.BLAZE_ROD) || repair.is(Items.BLAZE_POWDER);
             case VORTEX, PEAK_PATROL_SONG -> repair.is(Items.GOLD_INGOT) || repair.is(Items.GOLD_BLOCK) || repair.is(Items.DIAMOND) || repair.is(VeloriseStavesMod.GEO_ROD.get());
             case THOUSAND_FLOATING_DREAMS -> repair.is(Items.EMERALD) || repair.is(Items.GLOW_BERRIES) || repair.is(Items.SPORE_BLOSSOM);

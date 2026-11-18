@@ -1331,7 +1331,6 @@ public final class ClientAuraTracker {
         if (data != null) {
             data.staffAnimUntil = 0L;
             data.staffAnimType = 0;
-            data.gliding = false;
             data.plunging = false;
             data.xilonenJumpFlipUntil = 0L;
         }

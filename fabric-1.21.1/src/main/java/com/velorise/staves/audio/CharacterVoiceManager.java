@@ -51,14 +51,67 @@ public final class CharacterVoiceManager {
         LAST_VOICE_TIME.clear();
     }
 
-    public static boolean hasVoiceForLanguage(String charId, String langCode) {
-        if (charId == null || langCode == null) return false;
-        String normChar = charId.toLowerCase(Locale.ROOT);
-        String normLang = langCode.toLowerCase(Locale.ROOT);
-        if ("zhongli".equals(normChar)) {
-            return "en_us".equals(normLang) || "zh_cn".equals(normLang);
+    private static volatile java.util.Set<String> detectedVoiceKeys = java.util.Collections.emptySet();
+    private static volatile long lastVoiceScanMs = 0L;
+    private static volatile Object lastResourceManager = null;
+
+    private static java.util.Set<String> getDetectedVoiceKeys() {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc == null || mc.getResourceManager() == null) {
+            return detectedVoiceKeys;
+        }
+        Object rm = mc.getResourceManager();
+        long now = System.currentTimeMillis();
+        if (rm == lastResourceManager && (now - lastVoiceScanMs) < 2000L) {
+            return detectedVoiceKeys;
+        }
+        java.util.Set<String> found = new java.util.HashSet<>();
+        try {
+            var resources = mc.getResourceManager().listResources("sounds/voice",
+                    rl -> "velorise_staves".equals(rl.getNamespace()) && rl.getPath().endsWith(".ogg"));
+            for (net.minecraft.resources.ResourceLocation rl : resources.keySet()) {
+                String path = rl.getPath().toLowerCase(Locale.ROOT);
+                if (!path.startsWith("sounds/voice/")) continue;
+                String afterVoice = path.substring("sounds/voice/".length());
+                int slash = afterVoice.indexOf('/');
+                if (slash <= 0) continue;
+                String charKey = afterVoice.substring(0, slash);
+                String rest = afterVoice.substring(slash + 1);
+                for (String lang : VOICE_LANGUAGES) {
+                    if (matchesLangToken(rest, lang)) {
+                        found.add(charKey + ":" + lang);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        detectedVoiceKeys = java.util.Collections.unmodifiableSet(found);
+        lastResourceManager = rm;
+        lastVoiceScanMs = now;
+        return detectedVoiceKeys;
+    }
+
+    private static boolean matchesLangToken(String rest, String langCode) {
+        String[] tokens = switch (langCode) {
+            case "en_us" -> new String[]{"en", "en_us"};
+            case "zh_cn" -> new String[]{"cn", "zh_cn", "zh"};
+            case "ja_jp" -> new String[]{"jp", "ja_jp", "ja"};
+            case "ko_kr" -> new String[]{"kr", "ko_kr", "ko"};
+            default -> new String[]{langCode};
+        };
+        for (String t : tokens) {
+            if (rest.contains("_" + t + "_") || rest.contains("_" + t + ".")
+                    || rest.contains(t + "/") || rest.startsWith(t + "_")) {
+                return true;
+            }
         }
         return false;
+    }
+
+    public static boolean hasVoiceForLanguage(String charId, String langCode) {
+        if (charId == null || langCode == null) return false;
+        String key = charId.toLowerCase(Locale.ROOT) + ":" + langCode.toLowerCase(Locale.ROOT);
+        return getDetectedVoiceKeys().contains(key);
     }
 
     public static int getCharacterElementColorRgb(String charId) {

@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/handheld",
   "textures": {
-    "layer0": "velorise_staves:item/frost_rod"
+    "layer0": "velorise_staves:item/cryo_rod"
   }
 }

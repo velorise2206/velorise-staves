@@ -71,6 +71,7 @@ public final class StavesConfig {
     public static final BooleanValue USE_32PX_TEXTURES = defineBool("elemental_gauge", "use_32px_textures", false);
     public static final BooleanValue USE_32PX_ELEMENT_ICONS = defineBool("elemental_gauge", "use_32px_element_icons", false);
     public static final BooleanValue USE_32PX_GLIDER_TEXTURE = defineBool("elemental_gauge", "use_32px_glider_texture", false);
+    public static final BooleanValue RENDER_DRAGON_GLIDER = defineBool("elemental_gauge", "render_dragon_glider", true);
     public static final StringValue CHARACTER_VOICE_LANGUAGE = defineString("audio", "character_voice_language", "auto");
     public static final BooleanValue SHOW_REACTION_TEXT = defineBool("elemental_gauge", "show_reaction_text", true);
     public static final BooleanValue SHOW_DAMAGE_NUMBERS = defineBool("elemental_gauge", "show_damage_numbers", true);
@@ -307,6 +308,8 @@ public final class StavesConfig {
                 writer.write("use_32px_element_icons = " + USE_32PX_ELEMENT_ICONS.get() + "\n");
                 writer.write("# Client-side preference: use 32x32px texture for Wind Glider instead of default 16x16px\n");
                 writer.write("use_32px_glider_texture = " + USE_32PX_GLIDER_TEXTURE.get() + "\n");
+                writer.write("# Client-side preference: render the 3D Ender Dragon model when gliding with Dragonfire Scepter (false = standard Wind Glider wings)\n");
+                writer.write("render_dragon_glider = " + RENDER_DRAGON_GLIDER.get() + "\n");
                 writer.write("# Render floating elemental reaction titles\n");
                 writer.write("show_reaction_text = " + SHOW_REACTION_TEXT.get() + "\n");
                 writer.write("# Render floating elemental damage numbers\n");
@@ -818,6 +821,14 @@ public final class StavesConfig {
 
     public static boolean isUse32pxGliderTexture() {
         return isUse32pxTextures();
+    }
+
+    public static boolean isRenderDragonGlider() {
+        try {
+            return RENDER_DRAGON_GLIDER == null || RENDER_DRAGON_GLIDER.get();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public static String getCharacterVoiceLanguage() {

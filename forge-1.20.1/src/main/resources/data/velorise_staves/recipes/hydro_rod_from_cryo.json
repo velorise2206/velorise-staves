@@ -3,14 +3,14 @@
   "category": "misc",
   "ingredients": [
     {
-      "item": "velorise_staves:cryo_element"
+      "item": "velorise_staves:hydro_element"
     },
     {
-      "item": "minecraft:blaze_rod"
+      "item": "velorise_staves:cryo_rod"
     }
   ],
   "result": {
-    "id": "velorise_staves:frost_rod",
+    "item": "velorise_staves:hydro_rod",
     "count": 1
   }
 }

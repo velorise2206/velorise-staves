@@ -228,7 +228,12 @@ public final class DragonfireCloudManager {
         if (player == null || !player.isAlive() || player.level().isClientSide()) return;
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player) || ElementalResonanceManager.isOnSwapCooldown(player)) return;
         ItemStack main = player.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(main) != ArcaneStaffItem.Kind.DRAGONFIRE
+        ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(main);
+        if (effKind == ArcaneStaffItem.Kind.SHULKER && main.getItem() instanceof ArcaneStaffItem mainStaff) {
+            mainStaff.triggerShulkerFromLeftClick(player, main);
+            return;
+        }
+        if (effKind != ArcaneStaffItem.Kind.DRAGONFIRE
                 || !(main.getItem() instanceof ArcaneStaffItem mainStaff)) {
             return;
         }
@@ -339,14 +344,14 @@ public final class DragonfireCloudManager {
                 if (fwd.lengthSqr() < 1.0E-4D) fwd = lockedFwd;
                 else fwd = fwd.normalize();
 
-                // 1 block in front of the player, 5x5 square AoE (half-extent = 2.5m, or 3.25m on Netherite)
-                Vec3 rawTarget = player.position().add(fwd.scale(3.5D)); // Center of the 5x5 zone starting 1 block ahead
+                // 4 blocks in front of the player, 7x7 square AoE (half-extent = 3.5m, or 4.25m on Netherite)
+                Vec3 rawTarget = player.position().add(fwd.scale(4.0D)); // Center of the 7x7 zone 4 blocks ahead
                 BlockHitResult downHit = sl.clip(new ClipContext(
                         rawTarget.add(0.0D, 4.0D, 0.0D), rawTarget.subtract(0.0D, 8.0D, 0.0D),
                         ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
                 Vec3 impactPos = downHit.getType() == HitResult.Type.BLOCK ? downHit.getLocation() : rawTarget;
 
-                double halfExt = finalIsNeth ? 3.25D : 2.5D; // 5x5 blocks base (6.5x6.5 Netherite)
+                double halfExt = finalIsNeth ? 4.25D : 3.5D; // 7x7 blocks base (8.5x8.5 Netherite)
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
                 float diveDmg = (finalIsNeth ? 24.0F : 16.0F) * scale;
                 float gaugeU = finalIsNeth ? 4.0F : 3.5F;
@@ -386,7 +391,7 @@ public final class DragonfireCloudManager {
                 else fwd = fwd.normalize();
 
                 double length = finalIsNeth ? 12.0D : 10.0D; // 10 blocks long (12m Netherite)
-                double halfWidth = finalIsNeth ? 2.0D : 1.5D; // 3 blocks wide (4m Netherite)
+                double halfWidth = finalIsNeth ? 3.0D : 2.5D; // 5 blocks wide (6m Netherite)
                 float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, finalIsNeth);
                 float sweepDmg = (finalIsNeth ? 18.0F : 12.0F) * scale;
                 float gaugeU = finalIsNeth ? 3.5F : 3.0F;
@@ -751,19 +756,18 @@ public final class DragonfireCloudManager {
 
     /**
      * Shulker Seeker Passive — Shulker Shell Guard:
-     * Holding Shulker Seeker (or Omni Staff locked to Shulker Seeker) in the Main Hand
-     * reduces incoming damage by 30% (40% on Netherite), like a closed Shulker shell.
+     * While inspecting items inside the portable Shulker Seeker storage menu,
+     * incoming damage is reduced by 30% (40% on Netherite), like a closed Shulker shell.
      */
     public static float modifyShulkerShellGuardDamage(LivingEntity entity, DamageSource source, float amount) {
         if (amount <= 0.0F || !(entity instanceof Player player) || !player.isAlive()
                 || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return amount;
         }
-        ItemStack main = player.getMainHandItem();
-        if (ArcaneStaffItem.getEffectiveKind(main) != ArcaneStaffItem.Kind.SHULKER) {
+        if (!(player.containerMenu instanceof com.velorise.staves.inventory.ShulkerStaffMenu shulkerMenu)) {
             return amount;
         }
-        boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(main);
+        boolean isNeth = shulkerMenu.isNetherite();
         float mult = isNeth ? 0.60F : 0.70F; // -40% Netherite / -30% Basic incoming damage
         if (amount >= 1.0F && entity.level() instanceof ServerLevel sl) {
             sl.playSound(null, entity.getX(), entity.getY(), entity.getZ(),
