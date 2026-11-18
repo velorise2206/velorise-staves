@@ -706,10 +706,10 @@ public final class RaidenManager {
                     e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
                 applyElement(level, target, Element.ELECTRO, attackU, player, dmg);
             }
+            EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, center, radius, player, dmg);
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, center, radius, player, dmg);
 
         DustParticleOptions electroDust = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), isNetherite ? 1.6F : 1.25F);
         for (int i = 0; i < 24; i++) {
@@ -742,7 +742,10 @@ public final class RaidenManager {
 
         RAIDEN_MUSOU_UNTIL.put(id, now + 172L); // 32t draw windup + 7.0s (140t) Musou Isshin stance
         RAIDEN_MUSOU_NETHERITE.put(id, isNetherite);
-        RAIDEN_BURST_CD_UNTIL.put(id, now + 360L); // Genshin Q cooldown: 18.0s
+        long burstCdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
+                ? Math.round(360L * 0.90F)
+                : 360L;
+        RAIDEN_BURST_CD_UNTIL.put(id, now + burstCdTicks); // Genshin Q cooldown: 18.0s (-10% with Anemo Resonance)
         RAIDEN_IFRAME_UNTIL.put(id, now + 34L); // 1.6s Burst i-frame covering full draw animation
         RAIDEN_NEXT_SWING_TICK.put(id, now + 30L); // Lock NA attacks until chest draw + slash finishes
         player.invulnerableTime = Math.max(player.invulnerableTime, 34);
@@ -797,10 +800,10 @@ public final class RaidenManager {
                     e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
                 applyElement(level, target, Element.ELECTRO, attackU, player, hitotachiDmg);
             }
+            EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, slashCenter, aoeRadius, player, hitotachiDmg);
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, slashCenter, aoeRadius, player, hitotachiDmg);
         electrifyWaterAlongSlash(level, player, slashCenter, aoeRadius, hitotachiDmg * 0.35F);
 
         DustParticleOptions violetSlash = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), isNetherite ? 2.1F : 1.7F);
@@ -878,10 +881,10 @@ public final class RaidenManager {
                     e -> e.isAlive() && !e.isSpectator() && e != finalAttacker && !isRaidenProtectedAlly(finalAttacker, e))) {
                 applyElement(level, victim, Element.ELECTRO, attackU, finalAttacker, dmg);
             }
+            EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
-        EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
 
 
         // ParticleTypes.ELECTRIC_SPARK removed

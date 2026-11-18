@@ -773,7 +773,10 @@ public final class TsaritsaManager {
             return false;
         }
 
-        state.burstCooldownUntilTick = now + BURST_COOLDOWN_TICKS;
+        long burstCdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
+                ? Math.round(BURST_COOLDOWN_TICKS * 0.90F)
+                : BURST_COOLDOWN_TICKS;
+        state.burstCooldownUntilTick = now + burstCdTicks;
         state.burstIframeUntilTick = now + BURST_IFRAME_TICKS;
         player.invulnerableTime = Math.max(player.invulnerableTime, BURST_IFRAME_TICKS);
         ArchonUltiManager.applyBurstRoot(player, BURST_IFRAME_TICKS);
@@ -805,13 +808,6 @@ public final class TsaritsaManager {
                 sl.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.5D, player.getZ(),
                         40, 4.0D, 2.0D, 4.0D, 0.04D);
             });
-
-            level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.3F, 1.25F);
-            level.sendParticles(ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 2.0D, player.getZ(),
-                    65, 4.5D, 2.0D, 4.5D, 0.05D);
-            level.sendParticles(ParticleTypes.END_ROD, player.getX(), player.getY() + 2.5D, player.getZ(),
-                    40, 4.0D, 2.0D, 4.0D, 0.04D);
         } else {
             // Variant 2: DPS Burst (Glorious Blessing / Spear Stance — erupts after 38t cast)
             ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_TSARITSA_BURST_DPS);
@@ -884,8 +880,9 @@ public final class TsaritsaManager {
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
             if (!stack.isEmpty() && stack.getItem() instanceof ArcaneStaffItem staff) {
-                if (staff.getKind() != ArcaneStaffItem.Kind.TSARITSA_BOW
-                        && staff.getKind() != ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                ArcaneStaffItem.Kind effKind = ArcaneStaffItem.getEffectiveKind(stack);
+                if (effKind != ArcaneStaffItem.Kind.TSARITSA_BOW
+                        && effKind != ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
                     player.getCooldowns().addCooldown(staff, sealTicks);
                 }
             }

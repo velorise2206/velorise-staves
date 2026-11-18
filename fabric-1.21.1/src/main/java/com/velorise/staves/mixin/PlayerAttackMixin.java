@@ -28,7 +28,8 @@ public abstract class PlayerAttackMixin {
                 || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                 || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
             ci.cancel();
             return;
         }

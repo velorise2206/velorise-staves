@@ -88,20 +88,6 @@ public final class TemporaryWebManager {
                                         sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
                             }
                         }
-                        if (entry.ownerId != null && target instanceof net.minecraft.world.entity.monster.Spider) {
-                            net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(entry.ownerId);
-                            if (sp != null) {
-                                com.velorise.staves.advancement.ModAdvancements.trigger(
-                                        sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
-                            }
-                        }
-                        if (entry.ownerId != null && target instanceof net.minecraft.world.entity.monster.Spider) {
-                            net.minecraft.server.level.ServerPlayer sp = level.getServer().getPlayerList().getPlayer(entry.ownerId);
-                            if (sp != null) {
-                                com.velorise.staves.advancement.ModAdvancements.trigger(
-                                        sp, com.velorise.staves.advancement.ModAdvancements.EVENT_WEB_DEVELOPER);
-                            }
-                        }
                     }
                 }
             }

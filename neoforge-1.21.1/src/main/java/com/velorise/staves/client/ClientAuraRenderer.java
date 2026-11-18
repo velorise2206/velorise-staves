@@ -247,6 +247,7 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientLogout(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientAuraTracker.clear();
+        OmniWheelOverlay.reset();
         ElementalResonanceManager.clearClientState();
         resetFrozenClientState();
         StavesConfig.clearServerSync();
@@ -584,6 +585,7 @@ public final class ClientAuraRenderer {
         VentiVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         RaidenVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         TsaritsaVisualRenderer.renderIdleThrone(player, poseStack, buffer);
+        WindGliderRenderer.renderDragonfireEffects(player, poseStack, buffer);
     }
 
     public static boolean setupFirstPersonVortexMainArmPose(AbstractClientPlayer player, float partialTicks, HumanoidArm mainArm, PoseStack poseStack) {

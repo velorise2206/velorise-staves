@@ -54,7 +54,8 @@ public class MinecraftMixin {
         if (effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                 || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                || effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
             com.velorise.staves.client.VeloriseStavesClient.recordFastAttackClick(effKind);
             cir.setReturnValue(false);
             return;
@@ -82,7 +83,8 @@ public class MinecraftMixin {
                 || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                 || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                || effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
             ci.cancel();
             return;
         }

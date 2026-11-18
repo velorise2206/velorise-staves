@@ -19,6 +19,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
     private static int queuedNahidaFastClicks = 0;
     private static int queuedTsaritsaFastClicks = 0;
     private static int queuedDaybreakFastClicks = 0;
+    private static int queuedDragonfireFastClicks = 0;
+    private static long lastDragonfireClientShotMs = 0L;
 
     public static void recordFastAttackClick(com.velorise.staves.item.ArcaneStaffItem.Kind effKind) {
         if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK) {
@@ -26,8 +28,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS) {
             queuedNahidaFastClicks++;
         } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
             queuedTsaritsaFastClicks++;
+        } else if (effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
+            queuedDragonfireFastClicks++;
         }
     }
     @Override
@@ -143,7 +148,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
@@ -156,7 +162,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DAYBREAK
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                     || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_BOW
-                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                    || effKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE) {
                 return net.minecraft.world.InteractionResult.FAIL;
             }
             return net.minecraft.world.InteractionResult.PASS;
@@ -247,6 +254,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 queuedNahidaFastClicks = 0;
                 queuedTsaritsaFastClicks = 0;
                 queuedDaybreakFastClicks = 0;
+                queuedDragonfireFastClicks = 0;
                 ClientAuraTracker.localTsaritsaBowPullTicks = 0;
                 ClientAuraTracker.localDaybreakBowPullTicks = 0;
                 ClientAuraTracker.localTsaritsaHoldETicks = 0;
@@ -496,6 +504,23 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
             }
 
+            boolean holdingDragonfire = (mainEffKind == com.velorise.staves.item.ArcaneStaffItem.Kind.DRAGONFIRE);
+            int dragonfireFast = queuedDragonfireFastClicks;
+            queuedDragonfireFastClicks = 0;
+            if (holdingDragonfire && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                    && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(client.player)) {
+                client.missTime = 0;
+                while (client.options.keyAttack.consumeClick()) {
+                    dragonfireFast++;
+                }
+                long nowMs = System.currentTimeMillis();
+                if (dragonfireFast > 0 && nowMs - lastDragonfireClientShotMs >= 200L) {
+                    lastDragonfireClientShotMs = nowMs;
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                            com.velorise.staves.network.MavuikaActionPayload.ACTION_DRAGONFIRE_NA);
+                }
+            }
+
             if (ClientAuraTracker.isXilonenSkating(client.player.getId()) && !(client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)) {
                 if (!wasXilonenSkateActive[0]) {
                     wasXilonenSkateActive[0] = true;
@@ -566,9 +591,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                         && !client.player.onGround() && !client.player.isInWater() && !client.player.isInLava()
                         && !client.player.getAbilities().flying) {
                     boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(client.player);
-                    double maxFallSpeed = hasVenti ? -0.055D : -0.11D;
-                    double maxSpeed = hasVenti ? 0.84D : 0.42D;
-                    double accel = hasVenti ? 0.11D : 0.055D;
+                    boolean hasDragonGlider = !hasVenti && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(client.player);
+                    double maxFallSpeed = hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D);
+                    double maxSpeed = hasVenti ? 0.84D : (hasDragonGlider ? 0.63D : 0.42D);
+                    double accel = hasVenti ? 0.11D : (hasDragonGlider ? 0.0825D : 0.055D);
 
                     net.minecraft.world.phys.Vec3 vel = client.player.getDeltaMovement();
                     double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;

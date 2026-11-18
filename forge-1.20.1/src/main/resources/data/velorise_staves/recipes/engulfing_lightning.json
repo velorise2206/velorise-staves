@@ -3,8 +3,8 @@
   "category": "equipment",
   "pattern": [
     " EE",
-    "EA ",
-    "M  "
+    "ES ",
+    "S  "
   ],
   "key": {
     "E": [
@@ -15,11 +15,8 @@
         "item": "velorise_staves:omni_element"
       }
     ],
-    "A": {
-      "item": "velorise_staves:arc_caster"
-    },
-    "M": {
-      "item": "minecraft:amethyst_shard"
+    "S": {
+      "tag": "velorise_staves:electro_staves"
     }
   },
   "result": {

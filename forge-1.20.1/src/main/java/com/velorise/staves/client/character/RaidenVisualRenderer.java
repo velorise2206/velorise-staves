@@ -39,7 +39,9 @@ public final class RaidenVisualRenderer {
     private RaidenVisualRenderer() {}
 
     public static void tickClientAttackHold(Minecraft mc) {
-        ClientAuraTracker.localRaidenAttackHeld = false;
+        if (mc == null || mc.player == null || !ClientAuraTracker.isRaidenMusouActive(mc.player.getId())) {
+            ClientAuraTracker.localRaidenAttackHeld = false;
+        }
         raidenAttackHoldTicks = 0;
     }
 

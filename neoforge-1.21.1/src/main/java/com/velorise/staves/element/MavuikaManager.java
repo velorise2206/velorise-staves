@@ -1300,6 +1300,7 @@ public final class MavuikaManager {
 
     public static void tryDropElementOnDeath(LivingEntity entity, DamageSource source) {
         if (!(entity.level() instanceof ServerLevel level)) return;
+        DragonfireCloudManager.tryTriggerWitherContagionOnDeath(entity, source);
         if (!(entity instanceof Enemy) && !isMutatedInnate(entity) && !isOmniInnate(entity)) return;
         if (entity instanceof Player || entity instanceof Npc) return;
         if (entity instanceof Slime slime && slime.getSize() < 3) return;
@@ -1487,6 +1488,7 @@ public final class MavuikaManager {
         tickMavuikaSunAura(server, serverNow);
         tickRaidenState(server, serverNow);
         ArchonUltiManager.tick(server, serverNow);
+        DragonfireCloudManager.tickPlayers(server, serverNow);
         Set<UUID> visitedNearby = new HashSet<>();
         Set<UUID> visitedClouds = new HashSet<>();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
@@ -1676,9 +1678,16 @@ public final class MavuikaManager {
         ZhongliManager.clearPlayerState(id);
         RaidenManager.clearPlayerState(id);
         VentiManager.clearPlayerState(id);
+        DragonfireCloudManager.clearPlayerState(id);
         MAVUIKA_IDLE_STATES.remove(id);
         PETRIFIED_UNTIL.remove(id);
         LAST_ELEMENTAL_ARMOR_WEAR.remove(id);
+        LAST_PROXIMITY_SHOCK.remove(id);
+        LAST_THORNS_REFLECT.remove(id);
+        ICD_TRACKER.remove(id);
+        REACTION_ICD_TRACKER.remove(id);
+        EnvironmentalBlockManager.clearPlayerState(id);
+        com.velorise.staves.entity.HydroSalonSummonEntity.clearPlayerState(id);
         com.velorise.staves.entity.OmniOrbEntity.removeCycleEntry(id);
         com.velorise.staves.item.ArcaneStaffItem.clearPlayerState(id);
         MobHazardAvoidanceManager.clearEntityState(entity);
@@ -1804,6 +1813,8 @@ public final class MavuikaManager {
         VentiManager.clearAll();
         FurinaManager.clearAll();
         RaidenManager.clearAll();
+        com.velorise.staves.entity.HydroSalonSummonEntity.clearAll();
+        com.velorise.staves.item.ArcaneStaffItem.clearAll();
         MAVUIKA_IDLE_STATES.clear();
     }
 

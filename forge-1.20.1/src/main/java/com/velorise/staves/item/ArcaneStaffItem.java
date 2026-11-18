@@ -268,6 +268,7 @@ public final class ArcaneStaffItem extends Item {
                 || k == Kind.NIGHTS_FOCUS
                 || k == Kind.PEAK_PATROL_SONG
                 || k == Kind.GUARDIAN
+                || k == Kind.DRAGONFIRE
                 || k == Kind.OMNI;
     }
 
@@ -727,7 +728,7 @@ public final class ArcaneStaffItem extends Item {
         boolean shouldConsumeDurability = !isBurstKind() || isFirstBurstShot(serverPlayer, burstShotsTag());
 
         boolean activated = switch (kind) {
-            case DRAGONFIRE -> shootDragonfire(serverPlayer);
+            case DRAGONFIRE -> com.velorise.staves.element.DragonfireCloudManager.summonMiniDragon(serverPlayer, this.isNetherite);
             case INFERNO -> shootInferno(serverPlayer);
             case GHASTFIRE -> shootGhastfire(serverPlayer);
             case WITHER -> shootWither(serverPlayer);
@@ -844,7 +845,7 @@ public final class ArcaneStaffItem extends Item {
         if (!(player instanceof ServerPlayer serverPlayer)) return InteractionResultHolder.fail(stack);
 
         boolean activated = switch (kind) {
-            case DRAGONFIRE -> shootDragonfire(serverPlayer);
+            case DRAGONFIRE -> com.velorise.staves.element.DragonfireCloudManager.summonMiniDragon(serverPlayer, this.isNetherite);
             case INFERNO -> shootInferno(serverPlayer);
             case GHASTFIRE -> shootGhastfire(serverPlayer);
             case WITHER -> shootWither(serverPlayer);
@@ -1267,7 +1268,13 @@ public final class ArcaneStaffItem extends Item {
             if (delegated != null && delegated.kind() != Kind.OMNI) {
                 ItemStack res = delegated.finishUsingItem(stack, level, entity);
                 if (!level.isClientSide() && entity instanceof ServerPlayer sp) {
-                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, delegated.getCooldownTicks());
+                    int omniCd = delegated.getCooldownTicks();
+                    if (delegated.kind() == Kind.ECHO) {
+                        int bonusTicks = sp.getPersistentData().getInt("VeloriseLastEchoResonanceBonusTicks");
+                        sp.getPersistentData().remove("VeloriseLastEchoResonanceBonusTicks");
+                        omniCd = Math.max(20, omniCd - bonusTicks);
+                    }
+                    ElementalResonanceManager.applyOmniModeCooldown(sp, stack, omniCd);
                 }
                 return res;
             }
@@ -1452,6 +1459,30 @@ public final class ArcaneStaffItem extends Item {
         player.awardStat(Stats.ITEM_USED.get(this));
     }
 
+    public boolean triggerDragonfireOrbFromLeftClick(ServerPlayer player) {
+        return shootDragonfire(player);
+    }
+
+    private boolean isThirdBurstShot(ServerPlayer player) {
+        if (player == null) return false;
+        String tagShots = burstShotsTag();
+        if (!tagShots.isEmpty() && (player.getMainHandItem().getItem() == this || player.getOffhandItem().getItem() == this)) {
+            return player.getPersistentData().getInt(tagShots) >= maxBurstShots() - 1;
+        }
+        String omniKey = "OmniFinaleShots_" + kind.name();
+        String omniLastKey = "OmniFinaleLast_" + kind.name();
+        long now = player.level().getGameTime();
+        long last = player.getPersistentData().getLong(omniLastKey);
+        int shots = (now - last > BURST_RESET_TICKS) ? 0 : player.getPersistentData().getInt(omniKey);
+        player.getPersistentData().putLong(omniLastKey, now);
+        if (shots >= maxBurstShots() - 1) {
+            player.getPersistentData().putInt(omniKey, 0);
+            return true;
+        }
+        player.getPersistentData().putInt(omniKey, shots + 1);
+        return false;
+    }
+
     private boolean shootDragonfire(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
         DragonFireball projectile = EntityType.DRAGON_FIREBALL.create(level);
@@ -1500,16 +1531,21 @@ public final class ArcaneStaffItem extends Item {
         Vec3 direction = player.getLookAngle().normalize();
         Vec3 spawnPos = player.getEyePosition().add(direction.scale(0.8D));
         ShulkerBullet projectile;
+        boolean finale = isThirdBurstShot(player);
         if (target != null) {
             projectile = new ShulkerBullet(level, player, target, Direction.Axis.Y);
             projectile.moveTo(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z, player.getYRot(), player.getXRot());
-            projectile.setDeltaMovement(direction.scale(0.55D));
+            projectile.setDeltaMovement(direction.scale(finale ? 0.78D : 0.55D));
             projectile.getPersistentData().putString(ArcaneStaffEvents.TAG_KIND, kindTag);
             ArcaneStaffEvents.markRange(projectile, player.position(), range);
         } else {
             projectile = new ShulkerBullet(EntityType.SHULKER_BULLET, level);
-            prepareProjectile(projectile, player, kindTag, range, 1.25F, direction);
+            prepareProjectile(projectile, player, kindTag, range, finale ? (1.25F * 1.35F) : 1.25F, direction);
             projectile.setPos(spawnPos.x, spawnPos.y - 0.1D, spawnPos.z);
+        }
+        if (finale) {
+            projectile.addTag("velorise_staves:finale_shot");
+            level.sendParticles(ParticleTypes.END_ROD, spawnPos.x, spawnPos.y, spawnPos.z, 10, 0.15D, 0.15D, 0.15D, 0.04D);
         }
         level.addFreshEntity(projectile);
         level.playSound(null, player.blockPosition(), SoundEvents.SHULKER_SHOOT, SoundSource.PLAYERS, 0.8F, 1.15F);
@@ -2151,7 +2187,7 @@ public final class ArcaneStaffItem extends Item {
         level.playSound(null, player.blockPosition(), SoundEvents.BOAT_PADDLE_WATER, SoundSource.PLAYERS, 0.70F, 1.15F);
     }
 
-    private void fireEcho(ServerPlayer player) {
+    private int fireEcho(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
         Vec3 start = player.getEyePosition();
         Vec3 direction = player.getLookAngle().normalize();
@@ -2169,12 +2205,24 @@ public final class ArcaneStaffItem extends Item {
 
         float baseDmg = StavesConfig.getStaffBaseDamage(Kind.ECHO, isNetherite);
         float attackU = isNetherite ? 3.0F : 2.0F;
+        int validResonanceHits = 0;
         for (LivingEntity target : targets) {
+            boolean eligibleForResonance = com.velorise.staves.element.DragonfireCloudManager.isValidResonanceTarget(player, target);
+            float preTotalHp = target.getHealth() + target.getAbsorptionAmount();
             ElementalGaugeManager.applyElement(level, target, Element.ANEMO, attackU, player, baseDmg);
+            float postTotalHp = target.getHealth() + target.getAbsorptionAmount();
+            if (eligibleForResonance && (!target.isAlive() || postTotalHp < preTotalHp - 0.01F)) {
+                validResonanceHits++;
+            }
+        }
+        int cappedHits = Math.min(5, validResonanceHits);
+        if (cappedHits > 0) {
+            level.playSound(null, player.blockPosition(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.85F, 1.15F + cappedHits * 0.10F);
         }
         Vec3 end = start.add(direction.scale(range));
         drawBeam(level, start, end, ParticleTypes.SONIC_BOOM, 1.5D);
         level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.PLAYERS, 1.0F, 0.9F);
+        return cappedHits;
     }
 
     private static void drawBeam(ServerLevel level, Vec3 start, Vec3 end,
@@ -2224,12 +2272,13 @@ public final class ArcaneStaffItem extends Item {
         if (repairElem != null && repairElem == getElement()) return true;
         if (isNetherite && repair.is(Items.NETHERITE_INGOT)) return true;
         boolean validBase = switch (kind) {
-            case DRAGONFIRE, INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
+            case DRAGONFIRE -> repair.is(VeloriseStavesMod.ELECTRO_ROD.get()) || repair.is(Items.BLAZE_ROD);
+            case INFERNO, GHASTFIRE, WITHER -> repair.is(Items.BLAZE_ROD);
             case ECHO -> repair.is(Items.ECHO_SHARD) || repair.is(Items.BLAZE_ROD);
             case GUARDIAN, SPLENDOR -> repair.is(Items.PRISMARINE_SHARD) || repair.is(Items.PRISMARINE_CRYSTALS) || repair.is(Items.HEART_OF_THE_SEA) || repair.is(VeloriseStavesMod.HYDRO_ROD.get());
             case SHULKER -> repair.is(Items.END_ROD) || repair.is(Items.SHULKER_SHELL);
             case WIND, DAYBREAK -> repair.is(VeloriseStavesMod.BREEZE_ROD.get()) || repair.is(VeloriseStavesMod.WIND_CHARGE.get());
-            case LIGHTNING, ENGULFING_LIGHTNING -> repair.is(Items.AMETHYST_SHARD);
+            case LIGHTNING, ENGULFING_LIGHTNING -> repair.is(VeloriseStavesMod.ELECTRO_ROD.get()) || repair.is(Items.AMETHYST_SHARD);
             case EVOKER -> repair.is(VeloriseStavesMod.GEO_ROD.get()) || repair.is(Items.EMERALD) || repair.is(Items.STICK);
             case FROST, WEB -> repair.is(Items.BLAZE_ROD) || repair.is(Items.STICK);
             case NIGHTS_FOCUS -> repair.is(VeloriseStavesMod.FROST_ROD.get()) || repair.is(Items.SHIELD);

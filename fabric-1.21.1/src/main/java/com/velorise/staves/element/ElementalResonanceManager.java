@@ -206,6 +206,7 @@ public final class ElementalResonanceManager {
         PLAYER_STATES.remove(playerId);
         LAST_SYNCED.remove(playerId);
         ELECTRO_PARTICLE_ICD.remove(playerId);
+        GEO_RES_SHRED_UNTIL.remove(playerId);
         DENDRO_BONUS_EM_UNTIL.remove(playerId);
         RECORDED_STAFF_COOLDOWNS.remove(playerId);
         LAST_EXHAUSTION.remove(playerId);

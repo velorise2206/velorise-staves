@@ -2,7 +2,7 @@
   "parent": "velorise_staves:first_staff",
   "display": {
     "icon": {
-      "item": "velorise_staves:nights_focus"
+      "item": "velorise_staves:nights_focus_staff"
     },
     "title": {
       "translate": "advancement.velorise_staves.starry_night.title"
@@ -28,8 +28,8 @@
         "items": [
           {
             "items": [
-              "velorise_staves:nights_focus",
-              "velorise_staves:netherite_nights_focus"
+              "velorise_staves:nights_focus_staff",
+              "velorise_staves:netherite_nights_focus_staff"
             ]
           }
         ]

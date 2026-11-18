@@ -421,6 +421,10 @@ public final class ZhongliManager {
         if (amount <= 0.0F || entity == null || !entity.isAlive() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return amount;
         }
+        if (DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, source)) {
+            return 0.0F;
+        }
+        amount = DragonfireCloudManager.modifyShulkerShellGuardDamage(entity, source, amount);
         if (entity instanceof ServerPlayer sp && RaidenManager.isRaidenMusouActive(sp.getUUID(), entity.level().getGameTime())) {
             if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds) {
                 if (erds.getReaction() == ElementalReaction.ELECTRO_CHARGED) {
@@ -1392,6 +1396,8 @@ public final class ZhongliManager {
                 }
     }
 
+    private static final ThreadLocal<Boolean> IS_MODIFYING_FABRIC_DAMAGE = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
     public static float modifyFabricIncomingDamage(LivingEntity entity, DamageSource source, float amount) {
         if (entity == null || entity.level().isClientSide() || amount <= 0.0F) return amount;
         if (source.is(DamageTypeTags.IS_FALL) && PlungeAndGliderManager.isPlungeFallImmune(entity)) {
@@ -1412,8 +1418,15 @@ public final class ZhongliManager {
             }
         }
 
-        amount = applyImbuedSwordHit(entity, source, amount);
-        amount = applyRaidenMusouIsshinHit(entity, source, amount);
+        if (!Boolean.TRUE.equals(IS_MODIFYING_FABRIC_DAMAGE.get())) {
+            IS_MODIFYING_FABRIC_DAMAGE.set(true);
+            try {
+                amount = applyImbuedSwordHit(entity, source, amount);
+                amount = applyRaidenMusouIsshinHit(entity, source, amount);
+            } finally {
+                IS_MODIFYING_FABRIC_DAMAGE.set(false);
+            }
+        }
         amount = applyMobDamageResistances(entity, source, amount);
         amount = ElementalResonanceManager.modifyPhysicalAttackDamage(entity, source, amount);
         amount = ElementalResonanceManager.modifyIncomingDefenseDamage(entity, source, amount);

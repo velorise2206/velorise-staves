@@ -163,6 +163,9 @@ public final class VeloriseStavesMod {
     public static final Supplier<Item> GEO_ROD = ITEMS.register("geo_rod",
         () -> new Item(new Item.Properties()));
 
+    public static final Supplier<Item> ELECTRO_ROD = ITEMS.register("electro_rod",
+        () -> new Item(new Item.Properties()));
+
     public static final Supplier<Item> WEBCASTER = ITEMS.register("webcaster",
         () -> new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, 140, false));
 
@@ -396,6 +399,7 @@ public final class VeloriseStavesMod {
                 output.accept(FROST_ROD.get());
                 output.accept(HYDRO_ROD.get());
                 output.accept(GEO_ROD.get());
+                output.accept(ELECTRO_ROD.get());
 
                 // Elemental Mastery I-III Enchanted Books
                 parameters.holders().lookup(net.minecraft.core.registries.Registries.ENCHANTMENT)
@@ -511,6 +515,7 @@ public final class VeloriseStavesMod {
             event.accept(FROST_ROD.get());
             event.accept(HYDRO_ROD.get());
             event.accept(GEO_ROD.get());
+            event.accept(ELECTRO_ROD.get());
         }
     }
 

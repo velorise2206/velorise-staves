@@ -13,6 +13,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import java.util.ArrayList;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -394,7 +396,8 @@ public final class NeuvilletteManager {
                         fireEquitableJudgmentTick(level, player, st.netherite);
                     }
                     if (beamElapsed == 0 || beamElapsed == 24 || beamElapsed == 48) {
-                        stack.hurtAndBreak(1, player, EquipmentSlot.MAINHAND);
+                        InteractionHand usedHand = ArcaneStaffItem.getEffectiveKind(player.getMainHandItem()) == ArcaneStaffItem.Kind.GUARDIAN ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
+                        ArcaneStaffItem.hurtStaffAndCheckBreak(stack, 1, player, usedHand);
                         player.awardStat(Stats.ITEM_USED.get(stack.getItem()));
                     }
                     syncStateToClients(player, st, false);
@@ -414,16 +417,18 @@ public final class NeuvilletteManager {
         double maxDist = start.distanceTo(end);
 
         AABB search = player.getBoundingBox().expandTowards(direction.scale(maxDist)).inflate(beamRadius + 1.0D);
-        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, search,
-                t -> t.isAlive() && t != player && !t.isSpectator() && !player.isAlliedTo(t))
-                .stream()
-                .filter(t -> {
-                    Vec3 c = t.getBoundingBox().getCenter();
-                    double proj = Mth.clamp(c.subtract(start).dot(direction), 0.0D, maxDist);
-                    return start.add(direction.scale(proj)).distanceTo(c) <= beamRadius + t.getBbWidth() * 0.5D;
-                })
-                .sorted(Comparator.comparingDouble(t -> t.getBoundingBox().getCenter().subtract(start).dot(direction)))
-                .toList();
+        List<LivingEntity> candidates = level.getEntitiesOfClass(LivingEntity.class, search,
+                t -> t.isAlive() && t != player && !t.isSpectator() && !player.isAlliedTo(t) && !ElementalGaugeManager.isRaidenProtectedAlly(player, t));
+        List<LivingEntity> targets = new ArrayList<>(candidates.size());
+        for (LivingEntity t : candidates) {
+            Vec3 c = t.getBoundingBox().getCenter();
+            double proj = Mth.clamp(c.subtract(start).dot(direction), 0.0D, maxDist);
+            double maxRad = beamRadius + t.getBbWidth() * 0.5D;
+            if (start.add(direction.scale(proj)).distanceToSqr(c) <= maxRad * maxRad) {
+                targets.add(t);
+            }
+        }
+        targets.sort(Comparator.comparingDouble(t -> t.getBoundingBox().getCenter().subtract(start).dot(direction)));
 
         float draconicMult = ElementalGaugeManager.getDraconicGloriesMultiplier(player);
         boolean hpBuff = ElementalGaugeManager.hasRecentHpChangeBuff(player);

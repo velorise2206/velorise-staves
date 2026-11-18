@@ -118,6 +118,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item GEO_ROD = registerItem("geo_rod",
         new Item(new Item.Properties()));
 
+    public static final Item ELECTRO_ROD = registerItem("electro_rod",
+        new Item(new Item.Properties()));
+
     public static final Item WEBCASTER = registerItem("webcaster",
         new ArcaneStaffItem(ArcaneStaffItem.Kind.WEB, StavesConfig.getMaxDurability(ArcaneStaffItem.Kind.WEB, false), false));
 
@@ -347,6 +350,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(FROST_ROD);
             output.accept(HYDRO_ROD);
             output.accept(GEO_ROD);
+            output.accept(ELECTRO_ROD);
 
             // Elemental Mastery I-III Enchanted Books
             parameters.holders().lookup(Registries.ENCHANTMENT)
@@ -530,6 +534,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             entries.accept(FROST_ROD);
             entries.accept(HYDRO_ROD);
             entries.accept(GEO_ROD);
+            entries.accept(ELECTRO_ROD);
         });
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -550,6 +555,9 @@ public final class VeloriseStavesMod implements ModInitializer {
             return net.minecraft.world.InteractionResult.PASS;
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (!entity.level().isClientSide() && com.velorise.staves.element.DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, source)) {
+                return false;
+            }
             if (!entity.level().isClientSide()
                     && ElementalGaugeManager.isOmniInnate(entity)
                     && ElementalGaugeManager.isElementalOrMagicDamage(source)) {
@@ -651,6 +659,9 @@ public final class VeloriseStavesMod implements ModInitializer {
         });
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ElementalGaugeManager.clearEntityState(handler.getPlayer());
+        });
+        net.fabricmc.fabric.api.entity.event.v1.ServerEntityWorldChangeEvents.AFTER_PLAYER_CHANGE_WORLD.register((player, origin, destination) -> {
+            com.velorise.staves.element.PlayerGenshinState.onPlayerChangedDimension(player);
         });
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents.ENTITY_UNLOAD.register((entity, world) -> {
             if (!world.isClientSide() && (!entity.isAlive() || entity.isRemoved())) {

@@ -90,6 +90,12 @@ public final class WindGliderRenderer {
             return;
         }
         if (!ClientAuraTracker.isGliding(entity.getId())) return;
+        if (entity instanceof net.minecraft.world.entity.player.Player p
+                && !com.velorise.staves.element.VentiManager.hasVentiWeapon(p)
+                && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(p)) {
+            renderDragonGliderWings(entity, humanoid, partialTicks, poseStack, buffer);
+            return;
+        }
 
         float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
         float entityScale = 1.0F;
@@ -505,6 +511,7 @@ public final class WindGliderRenderer {
 
     public static void renderNightsFocusBarrier(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
         if (ClientAuraRenderer.isRenderingScreen() || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        renderDragonfireEffects(entity, poseStack, buffer);
         boolean hasShield = ClientAuraTracker.hasNightsFocusShield(entity);
         boolean hasDreamsphere = ClientAuraTracker.hasLaylaDreamsphere(entity.getId());
         if (!hasShield && !hasDreamsphere) return;
@@ -958,6 +965,279 @@ public final class WindGliderRenderer {
             return true;
         }
         return false;
+    }
+
+
+    private static void emitBox3D(
+            VertexConsumer vc, Matrix4f mat,
+            float x0, float y0, float z0,
+            float x1, float y1, float z1,
+            int r, int g, int b, int a
+    ) {
+        // Top & Bottom
+        emitDoubleQuad(vc, mat, x0, y1, z0, x1, y1, z0, x1, y1, z1, x0, y1, z1, r, g, b, a);
+        emitDoubleQuad(vc, mat, x0, y0, z0, x1, y0, z0, x1, y0, z1, x0, y0, z1, r, g, b, a);
+        // Front & Back
+        emitDoubleQuad(vc, mat, x0, y0, z0, x1, y0, z0, x1, y1, z0, x0, y1, z0, r, g, b, a);
+        emitDoubleQuad(vc, mat, x0, y0, z1, x1, y0, z1, x1, y1, z1, x0, y1, z1, r, g, b, a);
+        // Left & Right
+        emitDoubleQuad(vc, mat, x0, y0, z0, x0, y0, z1, x0, y1, z1, x0, y1, z0, r, g, b, a);
+        emitDoubleQuad(vc, mat, x1, y0, z0, x1, y0, z1, x1, y1, z1, x1, y1, z0, r, g, b, a);
+    }
+
+    /**
+     * Renders a 3D Ender Dragon model of configurable wingspan (1.0 block for Mini Pet/Idle,
+     * 5.0 blocks for Glider and Giant Ulti Dragon).
+     */
+    private static void renderStylizedEnderDragonModel(
+            PoseStack poseStack,
+            VertexConsumer vc,
+            float halfWingspan,
+            float flapAngleDeg,
+            float headPitchDeg,
+            float headYawDeg,
+            float headRollDeg,
+            float time,
+            boolean grippingShoulders,
+            int alpha
+    ) {
+        float scale = halfWingspan / 2.50F; // Base dimensions authored for 5.0-block total wingspan (2.5m per wing)
+        poseStack.pushPose();
+        poseStack.scale(scale, scale, scale);
+        Matrix4f bodyMat = poseStack.last().pose();
+
+        int obR = 24, obG = 18, obB = 34;
+        int spR = 215, spG = 75, spB = 255;
+        int memR = 135, memG = 40, memB = 210;
+        int memA = Math.max(40, (int) (alpha * 0.72F));
+
+        // 1. Torso & glowing Ender spine ridges
+        emitBox3D(vc, bodyMat, -0.28F, -0.18F, -0.42F, 0.28F, 0.20F, 0.48F, obR, obG, obB, alpha);
+        for (int s = 0; s < 4; s++) {
+            float sz = -0.30F + s * 0.20F;
+            emitBox3D(vc, bodyMat, -0.04F, 0.20F, sz, 0.04F, 0.30F, sz + 0.10F, spR, spG, spB, alpha);
+        }
+
+        // 2. Shoulder-gripping claws when carrying the gliding player
+        if (grippingShoulders) {
+            emitBox3D(vc, bodyMat, -0.32F, -0.52F, -0.18F, -0.18F, -0.16F, -0.04F, obR, obG, obB, alpha);
+            emitBox3D(vc, bodyMat, 0.18F, -0.52F, -0.18F, 0.32F, -0.16F, -0.04F, obR, obG, obB, alpha);
+            emitBox3D(vc, bodyMat, -0.34F, -0.58F, -0.24F, -0.16F, -0.50F, -0.02F, spR, spG, spB, alpha);
+            emitBox3D(vc, bodyMat, 0.16F, -0.58F, -0.24F, 0.34F, -0.50F, -0.02F, spR, spG, spB, alpha);
+        }
+
+        // 3. Articulated Head, Snout, Horns & Glowing Magenta Eyes
+        poseStack.pushPose();
+        poseStack.translate(0.0F, 0.08F, -0.52F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(headYawDeg));
+        poseStack.mulPose(Axis.XP.rotationDegrees(headPitchDeg));
+        poseStack.mulPose(Axis.ZP.rotationDegrees(headRollDeg));
+        Matrix4f headMat = poseStack.last().pose();
+        emitBox3D(vc, headMat, -0.22F, -0.16F, -0.36F, 0.22F, 0.18F, 0.06F, obR, obG, obB, alpha);
+        emitBox3D(vc, headMat, -0.16F, -0.12F, -0.64F, 0.16F, 0.06F, -0.34F, obR, obG, obB, alpha);
+        // Horns
+        emitBox3D(vc, headMat, -0.18F, 0.16F, -0.12F, -0.10F, 0.32F, 0.14F, spR, spG, spB, alpha);
+        emitBox3D(vc, headMat, 0.10F, 0.16F, -0.12F, 0.18F, 0.32F, 0.14F, spR, spG, spB, alpha);
+        // Glowing Eyes
+        emitBox3D(vc, headMat, -0.23F, 0.02F, -0.28F, -0.14F, 0.10F, -0.16F, 255, 95, 255, alpha);
+        emitBox3D(vc, headMat, 0.14F, 0.02F, -0.28F, 0.23F, 0.10F, -0.16F, 255, 95, 255, alpha);
+        poseStack.popPose();
+
+        // 4. Segmented swaying Tail
+        for (int t = 0; t < 4; t++) {
+            float tz = 0.50F + t * 0.28F;
+            float sway = Mth.sin(time * 0.22F - t * 0.55F) * 0.08F * (t + 1);
+            float w = 0.16F - t * 0.03F;
+            emitBox3D(vc, bodyMat, sway - w, -0.08F, tz, sway + w, 0.08F, tz + 0.24F, obR, obG, obB, alpha);
+            emitBox3D(vc, bodyMat, sway - 0.03F, 0.08F, tz + 0.04F, sway + 0.03F, 0.16F, tz + 0.18F, spR, spG, spB, alpha);
+        }
+
+        // 5. Articulated 5.0-block Total Wingspan (1.30m inner + 1.20m outer = 2.50m per side at scale=1.0)
+        float innerSpan = 1.30F;
+        float outerSpan = 1.20F;
+        for (int side : new int[]{-1, 1}) {
+            poseStack.pushPose();
+            poseStack.translate(side * 0.26F, 0.12F, -0.10F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * flapAngleDeg));
+            Matrix4f inMat = poseStack.last().pose();
+            float xIn = side * innerSpan;
+            // Leading wing bone
+            emitBox3D(vc, inMat, Math.min(0.0F, xIn), -0.04F, -0.32F, Math.max(0.0F, xIn), 0.04F, -0.22F, spR, spG, spB, alpha);
+            // Inner wing membrane
+            emitDoubleQuad(vc, inMat,
+                    0.0F, 0.0F, -0.26F,
+                    xIn, 0.0F, -0.26F,
+                    xIn, 0.0F, 0.62F,
+                    0.0F, 0.0F, 0.48F,
+                    memR, memG, memB, memA);
+
+            poseStack.translate(xIn, 0.0F, 0.0F);
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * (flapAngleDeg * 0.65F - 8.0F)));
+            Matrix4f outMat = poseStack.last().pose();
+            float xOut = side * outerSpan;
+            emitBox3D(vc, outMat, Math.min(0.0F, xOut), -0.03F, -0.28F, Math.max(0.0F, xOut), 0.03F, -0.20F, spR, spG, spB, alpha);
+            emitDoubleQuad(vc, outMat,
+                    0.0F, 0.0F, -0.24F,
+                    xOut, 0.0F, -0.12F,
+                    xOut * 0.85F, 0.0F, 0.56F,
+                    0.0F, 0.0F, 0.62F,
+                    memR, memG, memB, memA);
+            poseStack.popPose();
+        }
+
+        poseStack.popPose();
+    }
+
+    /**
+     * Hidden Passive — Dragon-Wing Glider:
+     * Replaces the standard Wind Glider with a 5.0-block horizontal wingspan 3D Ender Dragon
+     * gripping the player's shoulders and carrying them through the air (+50% glide speed).
+     */
+    private static void renderDragonGliderWings(
+            LivingEntity entity,
+            HumanoidModel<?> humanoid,
+            float partialTicks,
+            PoseStack poseStack,
+            MultiBufferSource buffer
+    ) {
+        float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+        float time = entity.tickCount + partialTicks;
+        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        poseStack.translate(0.0F, 1.55F, 0.12F);
+        poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F));
+        float flap = Mth.sin(time * 0.26F) * 18.0F;
+        float pitch = Mth.cos(time * 0.26F) * 6.0F;
+        renderStylizedEnderDragonModel(poseStack, vc, 2.50F, flap, pitch, 0.0F, 0.0F, time, true, 235);
+        poseStack.popPose();
+    }
+
+    /**
+     * Renders the Dragonfire Scepter's 1-block Mini Ender Dragon (Patrol & 3D Idle face-to-face hover)
+     * and the Giant Ender Dragon for Ulti Variants 1 (Skyfall Dive) and 2 (Sweeping Strafe).
+     */
+    public static void renderDragonfireEffects(LivingEntity entity, PoseStack poseStack, MultiBufferSource buffer) {
+        if (ClientAuraRenderer.isRenderingScreen() || entity == null || !entity.isAlive() || entity.isInvisible() || entity.isSpectator()) return;
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(entity.getId());
+        if (data == null) return;
+
+        long now = System.currentTimeMillis();
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPersonSelf = mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson();
+        float pt = mc.getFrameTime();
+        float time = entity.tickCount + pt;
+        float bodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
+
+        // Smooth fade for Dragonfire Idle
+        float targetIdleFade = data.dragonfireIdle ? 1.0F : 0.0F;
+        data.dragonfireIdleFade = Mth.lerp(0.12F, data.dragonfireIdleFade, targetIdleFade);
+
+        boolean petActive = now < data.dragonfirePetUntil;
+        boolean idleVisible = data.dragonfireIdle || data.dragonfireIdleFade > 0.02F;
+        int activeAnim = now < data.staffAnimUntil ? data.staffAnimType : 0;
+
+        if (!petActive && !idleVisible
+                && activeAnim != ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SKYFALL
+                && activeAnim != ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SWEEP) {
+            return;
+        }
+
+        VertexConsumer vc = buffer.getBuffer(ClientAuraRenderer.ShieldRenderTypes.TRANSLUCENT_NO_DEPTH_WRITE);
+
+        // 1. Ulti Variant 1 — Skyfall Dive (Mini Dragon shoots skyward -> 2.0s later Giant Dragon slams 1m ahead in 5x5 AoE)
+        if (activeAnim == ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SKYFALL && !isFirstPersonSelf) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+            if (t < 0.78F) {
+                float p = smoothStep01(t / 0.78F);
+                poseStack.translate(0.0F, 1.45F + p * 22.0F, -0.4F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-85.0F));
+                renderStylizedEnderDragonModel(poseStack, vc, 0.50F, Mth.sin(time * 0.8F) * 28.0F, 0.0F, 0.0F, 0.0F, time, false, 235);
+            } else {
+                float p = smoothStep01((t - 0.78F) / 0.22F);
+                float diveY = Mth.lerp(p, 20.0F, 0.35F);
+                poseStack.translate(0.0F, diveY, -3.2F);
+                poseStack.mulPose(Axis.XP.rotationDegrees(82.0F));
+                renderStylizedEnderDragonModel(poseStack, vc, 2.50F, 14.0F, 12.0F, 0.0F, 0.0F, time, false, 245);
+            }
+            poseStack.popPose();
+            return;
+        }
+
+        // 2. Ulti Variant 2 — Sweeping Strafe (Giant Dragon swoops in a curved arc along 3m x 10m look corridor)
+        if (activeAnim == ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SWEEP && !isFirstPersonSelf) {
+            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
+            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+            float forwardDist = Mth.lerp(t, -1.5F, 10.5F);
+            float swoopY = 0.75F + 4.5F * (1.0F - Mth.sin(t * (float) Math.PI));
+            float pitchDeg = Mth.lerp(t, 38.0F, -26.0F);
+
+            poseStack.pushPose();
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+            poseStack.translate(0.0F, swoopY, -forwardDist);
+            poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
+            renderStylizedEnderDragonModel(poseStack, vc, 2.50F, Mth.sin(time * 0.55F) * 24.0F, 0.0F, 0.0F, 0.0F, time, false, 240);
+            poseStack.popPose();
+            return;
+        }
+
+        // 3. Mini Ender Dragon (1.0-block total wingspan = 0.50F per wing): Patrol & 3D Idle Interaction
+        float idleW = data.dragonfireIdleFade;
+        // Patrol orbit coordinates (in player-yaw local space)
+        float orbitAng = time * 0.07F;
+        float patrolX = Mth.cos(orbitAng) * 1.45F;
+        float patrolY = 1.42F + Mth.sin(time * 0.14F) * 0.16F;
+        float patrolZ = Mth.sin(orbitAng) * 1.45F;
+        float patrolYaw = (float) Math.toDegrees(-orbitAng) + 90.0F;
+
+        // Idle free-flight + periodic hover in front of master's face looking curiously at the player
+        float idleCycle = (time * 0.045F) % ((float) (Math.PI * 2.0D));
+        float hoverPhase = Mth.clamp((Mth.sin(idleCycle) - 0.15F) / 0.85F, 0.0F, 1.0F);
+        float hoverW = smoothStep01(hoverPhase);
+
+        float freeX = Mth.sin(time * 0.09F) * 1.25F;
+        float freeY = 1.55F + Mth.sin(time * 0.18F) * 0.22F;
+        float freeZ = -0.85F + Mth.cos(time * 0.09F) * 0.65F;
+        float freeYaw = Mth.cos(time * 0.09F) * 45.0F;
+
+        // Face-to-face hover position (directly in front of the player at eye level, facing the player)
+        float faceX = Mth.sin(time * 0.12F) * 0.08F;
+        float faceY = 1.48F + Mth.sin(time * 0.22F) * 0.06F;
+        float faceZ = -1.15F;
+        float faceYaw = 180.0F; // Looking straight back at the master
+
+        float targetIdleX = Mth.lerp(hoverW, freeX, faceX);
+        float targetIdleY = Mth.lerp(hoverW, freeY, faceY);
+        float targetIdleZ = Mth.lerp(hoverW, freeZ, faceZ);
+        float targetIdleYaw = Mth.rotLerp(hoverW, freeYaw, faceYaw);
+
+        float finalX = Mth.lerp(idleW, patrolX, targetIdleX);
+        float finalY = Mth.lerp(idleW, patrolY, targetIdleY);
+        float finalZ = Mth.lerp(idleW, patrolZ, targetIdleZ);
+        float finalYaw = Mth.rotLerp(idleW, patrolYaw, targetIdleYaw);
+        float headRoll = idleW * hoverW * Mth.sin(time * 0.20F) * 16.0F; // Curious head tilt while looking at master
+        float headPitch = idleW * hoverW * Mth.cos(time * 0.15F) * 8.0F;
+        float flap = Mth.sin(time * (0.42F + 0.12F * hoverW)) * 24.0F;
+
+        if (isFirstPersonSelf && (idleW < 0.25F || hoverW < 0.20F)) {
+            return;
+        }
+
+        int alpha = petActive ? 235 : Math.max(0, Math.min(235, (int) (idleW * 235.0F)));
+        if (alpha <= 10) return;
+
+        poseStack.pushPose();
+        if (!isFirstPersonSelf) {
+            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
+        }
+        poseStack.translate(finalX, isFirstPersonSelf ? (finalY - 1.45F) : finalY, finalZ);
+        poseStack.mulPose(Axis.YP.rotationDegrees(finalYaw));
+        renderStylizedEnderDragonModel(poseStack, vc, 0.50F, flap, headPitch, 0.0F, headRoll, time, false, alpha);
+        poseStack.popPose();
     }
 
     public static void renderGenericChargeBar(GuiGraphics guiGraphics, ArcaneStaffItem staff, float pct) {

@@ -235,12 +235,12 @@
   "codex.velorise_staves.staff.frostbolt": "极寒 §b冰§r 法球；减速（§c-30% 移速§r）并冻结水面。",
   "codex.velorise_staves.staff.nights_focus": "展开 §b12秒冰元素护盾§r（§e40% 最大生命值§r / 下界合金 §660%§r，§b250% 冰伤吸收§r）+ 范围§b冰伤§r。随时间与战技积累§e晚星§r，集齐4枚自动发射4枚追踪§b飞星§r。",
   "codex.velorise_staves.staff.arc": "瞬发 §d雷§r 落雷打击；使水域带电。",
-  "codex.velorise_staves.staff.dragonfire": "末影 §d雷§r 等离子球；留下持续 §d龙息电云§r。",
-  "codex.velorise_staves.staff.wither": "腐朽 §a草§r 凋灵之首；施加 §8凋零§r + §a草附着§r。",
+  "codex.velorise_staves.staff.dragonfire": "左键发射末影等离子球留下6秒雷云。右键召唤迷你末影龙伙伴（30秒）环绕巡逻并每2秒电击附近敌人。[R] 龙王天灾（20秒冷却）：若有迷你龙，则冲天化为巨型末影龙猛砸前方1米（5x5范围雷伤）；若无，则巨龙沿视线俯冲横扫3x10米区域！隐藏被动：风之翼化为5米翼展末影龙（飞行速度+50%）。",
+  "codex.velorise_staves.staff.wither": "发射3枚凋灵草元素骷髅。凋灵护甲被动：生命值<=50%并手持权杖时，100%免疫所有远程投射物伤害！枯萎蔓延：受此权杖影响的敌人死亡时会爆发出3米草元素与凋灵瘟疫云！",
   "codex.velorise_staves.staff.webcaster": "用 §f蛛网§r 困住目标并施加 §a草附着§r。",
   "codex.velorise_staves.staff.wind": "旋风人 §b风§r 弹；击退 + §e5.0m 扩散§r。",
-  "codex.velorise_staves.staff.echo": "监守者 §b风§r 音爆；穿墙破甲 + §b扩散§r。",
-  "codex.velorise_staves.staff.shulker": "追踪 §d雷§r 潜影弹；施加 §d雷§r + §e漂浮§r。",
+  "codex.velorise_staves.staff.echo": "释放穿透墙壁与护甲的监守者音爆并触发扩散。共鸣被动：每命中一名有效敌人并造成实际生命损失，缩短1.0秒冷却时间（最多缩短5.0秒）。",
+  "codex.velorise_staves.staff.shulker": "发射3枚追踪潜影弹。第3击重力猛击：第3发子弹将目标高速击飞后猛砸向地面，造成2.5米范围雷伤！潜影壳护盾：主手持有时减少30%（下界合金40%）所受伤害。",
   "codex.velorise_staves.staff.evoker": "召唤 §6岩§r 尖牙与岩牙柱（基础 1x1x1，1倍最大§f§r，3m 0.5§f§r 0.5U / 下界合金 1x2x1，2倍最大§f§r，5m 1§f§r 1U）嘲讽怪物并每 2s 脉冲方形 §6岩§r 波。",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §b冷却:§r %ss | §d射程:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7耐久（基础 ➔ 下界合金）: §f%s ➔ §6%s",
@@ -778,5 +778,6 @@
   "config.velorise_staves.enable_mavuika_wall_climb": "驰轮车垂直攀岩",
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "允许玛薇卡的焚曜千阳驰轮车像原神一样垂直攀爬峭壁与墙面。",
   "config.velorise_staves.mavuika_bike_speed": "驰轮车速度倍率",
-  "config.velorise_staves.mavuika_bike_speed.desc": "玛薇卡驰轮车的行驶与攀岩速度倍率（默认：1.0x）。"
+  "config.velorise_staves.mavuika_bike_speed.desc": "玛薇卡驰轮车的行驶与攀岩速度倍率（默认：1.0x）。",
+  "item.velorise_staves.electro_rod": "雷之杖杆"
 }

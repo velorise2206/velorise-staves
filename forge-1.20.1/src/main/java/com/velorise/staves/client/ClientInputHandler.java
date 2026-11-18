@@ -24,13 +24,11 @@ public final class ClientInputHandler {
     private static final java.lang.reflect.Field MISS_TIME_FIELD;
     static {
         java.lang.reflect.Field f = null;
-        try {
-            f = Minecraft.class.getDeclaredField("missTime");
-            f.setAccessible(true);
-        } catch (Throwable t1) {
+        for (String fieldName : new String[]{"missTime", "f_91084_", "f_91078_"}) {
             try {
-                f = Minecraft.class.getDeclaredField("f_91084_");
+                f = Minecraft.class.getDeclaredField(fieldName);
                 f.setAccessible(true);
+                break;
             } catch (Throwable ignored) {}
         }
         MISS_TIME_FIELD = f;
@@ -90,6 +88,8 @@ public final class ClientInputHandler {
     private static int queuedNahidaFastClicks = 0;
     private static int queuedTsaritsaFastClicks = 0;
     private static int queuedDaybreakFastClicks = 0;
+    private static int queuedDragonfireFastClicks = 0;
+    private static long lastDragonfireClientShotMs = 0L;
     private static int tsaritsaSpearHoldTick = 0;
     private static int lastSelectedHotbarSlot = -1;
 
@@ -132,6 +132,12 @@ public final class ClientInputHandler {
             if (effKind == ArcaneStaffItem.Kind.DAYBREAK) {
                 queuedDaybreakFastClicks++;
                 event.setSwingHand(false);
+                event.setCanceled(true);
+                return;
+            }
+            if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
+                queuedDragonfireFastClicks++;
+                event.setSwingHand(true);
                 event.setCanceled(true);
                 return;
             }
@@ -228,6 +234,7 @@ public final class ClientInputHandler {
             ClientAuraTracker.localTsaritsaBowPullTicks = 0;
             ClientAuraTracker.localDaybreakBowPullTicks = 0;
             queuedDaybreakFastClicks = 0;
+            queuedDragonfireFastClicks = 0;
             ClientAuraTracker.localTsaritsaHoldETicks = 0;
             ClientAuraTracker.localTsaritsaHoldELocked = false;
             return;
@@ -387,6 +394,11 @@ public final class ClientInputHandler {
                 boolean leftPhysDown = mc.options.keyAttack.isDown()
                         || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
                 if (leftPhysDown) {
+                    if (mc.gameMode != null) {
+                        mc.gameMode.stopDestroyBlock();
+                    }
+                    mc.player.swinging = false;
+                    mc.player.swingTime = 0;
                     ClientAuraTracker.localTsaritsaBowPullTicks = Math.min(60, ClientAuraTracker.localTsaritsaBowPullTicks + 1);
                 } else {
                     int pulled = ClientAuraTracker.localTsaritsaBowPullTicks;
@@ -418,6 +430,11 @@ public final class ClientInputHandler {
             boolean leftPhysDown = mc.options.keyAttack.isDown()
                     || GLFW.glfwGetMouseButton(mc.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
             if (leftPhysDown) {
+                if (mc.gameMode != null) {
+                    mc.gameMode.stopDestroyBlock();
+                }
+                mc.player.swinging = false;
+                mc.player.swingTime = 0;
                 ClientAuraTracker.localDaybreakBowPullTicks = Math.min(60, ClientAuraTracker.localDaybreakBowPullTicks + 1);
                 ClientAuraTracker.ventiUltiHoldTicks = ClientAuraTracker.localDaybreakBowPullTicks;
             } else {
@@ -439,6 +456,22 @@ public final class ClientInputHandler {
         } else {
             ClientAuraTracker.localDaybreakBowPullTicks = 0;
             ClientAuraTracker.ventiUltiHoldTicks = 0;
+        }
+
+        boolean holdingDragonfire = (mainEffKind == ArcaneStaffItem.Kind.DRAGONFIRE);
+        int dragonfireFast = queuedDragonfireFastClicks;
+        queuedDragonfireFastClicks = 0;
+        if (holdingDragonfire && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity)
+                && !com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
+            resetMissTime(mc);
+            while (mc.options.keyAttack.consumeClick()) {
+                dragonfireFast++;
+            }
+            long nowMs = System.currentTimeMillis();
+            if (dragonfireFast > 0 && nowMs - lastDragonfireClientShotMs >= 200L) {
+                lastDragonfireClientShotMs = nowMs;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_DRAGONFIRE_NA);
+            }
         }
 
         // Item 1: Xilonen Roller-Skate Dash (release & re-press Sprint or Right-Click with 0.5s ICD)
@@ -509,9 +542,10 @@ public final class ClientInputHandler {
                     && !mc.player.onGround() && !mc.player.isInWater() && !mc.player.isInLava()
                     && !mc.player.getAbilities().flying) {
                 boolean hasVenti = com.velorise.staves.element.VentiManager.hasVentiWeapon(mc.player);
-                double maxFallSpeed = hasVenti ? -0.055D : -0.11D;
-                double maxSpeed = hasVenti ? 0.84D : 0.42D;
-                double accel = hasVenti ? 0.11D : 0.055D;
+                boolean hasDragonGlider = !hasVenti && com.velorise.staves.element.DragonfireCloudManager.hasDragonfireWeapon(mc.player);
+                double maxFallSpeed = hasVenti ? -0.055D : (hasDragonGlider ? -0.08D : -0.11D);
+                double maxSpeed = hasVenti ? 0.84D : (hasDragonGlider ? 0.63D : 0.42D);
+                double accel = hasVenti ? 0.11D : (hasDragonGlider ? 0.0825D : 0.055D);
 
                 net.minecraft.world.phys.Vec3 vel = mc.player.getDeltaMovement();
                 double dy = vel.y < maxFallSpeed ? Math.max(maxFallSpeed, vel.y * 0.65D) : vel.y;
@@ -722,6 +756,9 @@ public final class ClientInputHandler {
                 } else if (effKind == ArcaneStaffItem.Kind.TSARITSA_BOW || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
                     resetMissTime(mc);
                     queuedTsaritsaFastClicks++;
+                } else if (effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
+                    resetMissTime(mc);
+                    queuedDragonfireFastClicks++;
                 }
             }
         }

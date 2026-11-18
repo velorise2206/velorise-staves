@@ -2,22 +2,17 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "  E",
-    " A ",
-    "A  "
+    "  A",
+    " R ",
+    "R  "
   ],
   "key": {
     "A": {
       "item": "minecraft:amethyst_shard"
     },
-    "E": [
-      {
-        "item": "velorise_staves:electro_element"
-      },
-      {
-        "item": "velorise_staves:omni_element"
-      }
-    ]
+    "R": {
+      "item": "velorise_staves:electro_rod"
+    }
   },
   "result": {
     "item": "velorise_staves:arc_caster",

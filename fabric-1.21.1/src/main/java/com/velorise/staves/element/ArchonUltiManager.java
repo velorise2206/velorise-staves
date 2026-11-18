@@ -182,6 +182,7 @@ public final class ArchonUltiManager {
             case GUARDIAN -> NeuvilletteManager.triggerNeuvilletteUlti(player);
             case THOUSAND_FLOATING_DREAMS -> NahidaManager.triggerNahidaUlti(player);
             case TSARITSA_BOW, TSARITSA_SPEAR -> TsaritsaManager.triggerTsaritsaUlti(player);
+            case DRAGONFIRE -> DragonfireCloudManager.triggerDragonfireUlti(player);
             default -> {}
         }
     }
@@ -240,6 +241,10 @@ public final class ArchonUltiManager {
                     ? ArcaneStaffItem.getAbsorbedStaffForElement(off, Element.ANEMO)
                     : offStaff;
             if (targetStaff != null && targetStaff.triggerDaybreakVortexFromKey(player, off)) {
+                long baseCd = targetStaff.getDaybreakCooldownTicks(true);
+                long cdTicks = ElementalResonanceManager.hasResonance(player, ElementalResonanceManager.ResonanceType.ANEMO)
+                        ? Math.max(20L, Math.round(baseCd * 0.90D)) : baseCd;
+                VENTI_BURST_CD_UNTIL.put(id, now + cdTicks);
                 applyBurstRoot(player, 40);
                 ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_VENTI_BURST);
             }
@@ -629,5 +634,6 @@ public final class ArchonUltiManager {
         FurinaManager.cancelIdle(player);
         MavuikaManager.cancelIdle(player);
         TsaritsaManager.cancelIdle(player);
+        DragonfireCloudManager.cancelIdle(player);
     }
 }

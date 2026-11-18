@@ -56,6 +56,12 @@ public final class EnvironmentalBlockManager {
 
     private EnvironmentalBlockManager() {}
 
+    public static void clearPlayerState(UUID playerId) {
+        if (playerId == null) return;
+        LAST_AMETHYST_ZAP.remove(playerId);
+        PLAYER_TESLA_SCAN_CACHE.remove(playerId);
+    }
+
     public static void clearAll() {
         LAST_AMETHYST_ZAP.clear();
         LAST_SENSOR_ZAP.clear();
@@ -315,6 +321,7 @@ public final class EnvironmentalBlockManager {
             PLAYER_TESLA_SCAN_CACHE.entrySet().removeIf(e -> serverNow < e.getValue().lastScanTick() || (serverNow - e.getValue().lastScanTick()) > 200L);
         }
 
+        Set<BlockPos> currentActiveSensors = new HashSet<>();
         for (ServerLevel level : server.getAllLevels()) {
             List<ServerPlayer> players = level.players();
             if (players.isEmpty()) continue;
@@ -322,7 +329,6 @@ public final class EnvironmentalBlockManager {
             Set<Long> visitedChunks = new HashSet<>();
             List<BlockPos> activeSensors8 = new ArrayList<>();
             List<BlockPos> activeCalibrated16 = new ArrayList<>();
-            Set<BlockPos> currentActiveSensors = new HashSet<>();
 
             for (ServerPlayer player : players) {
                 ChunkPos cp = player.chunkPosition();
@@ -353,8 +359,7 @@ public final class EnvironmentalBlockManager {
                 }
             }
 
-            // Immediately clear sensors that left SculkSensorPhase.ACTIVE so their next activation zaps on frame 0
-            LAST_SENSOR_ZAP.keySet().retainAll(currentActiveSensors);
+            // Active sensors across all dimensions are retained at the end of the server tick
 
             // Sculk Sensor (8m -> 1.0U Electro) & Calibrated Sculk Sensor (16m -> 2.0U Electro):
             // Synchronized with vanilla SculkSensorPhase.ACTIVE animation (zaps immediately on activation and every 10 ticks while active)
@@ -511,6 +516,8 @@ public final class EnvironmentalBlockManager {
                 }
             }
         }
+        // Immediately clear sensors that left SculkSensorPhase.ACTIVE across all dimensions so their next activation zaps on frame 0
+        LAST_SENSOR_ZAP.keySet().retainAll(currentActiveSensors);
     }
 
     /**
@@ -536,7 +543,7 @@ public final class EnvironmentalBlockManager {
                 BlockPos outputPos = p.relative(outputDir);
                 AABB outputBox = new AABB(outputPos);
                 if (entityBox.intersects(outputBox)) {
-                    long key = (((long) living.getId()) << 32) | (p.asLong() & 0xFFFFFFFFL);
+                    long key = (((long) living.getId()) << 32) | (p.hashCode() & 0xFFFFFFFFL);
                     Long lastObsZap = LAST_OBSERVER_ZAP.get(key);
                     if (lastObsZap == null || now < lastObsZap || (now - lastObsZap) >= 6L) {
                         LAST_OBSERVER_ZAP.put(key, now);

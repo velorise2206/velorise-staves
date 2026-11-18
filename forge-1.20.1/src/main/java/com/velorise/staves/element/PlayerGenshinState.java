@@ -166,6 +166,8 @@ public final class PlayerGenshinState {
         ArchonUltiManager.resetAllArchonIdleTimers(player);
         NeuvilletteManager.clearPlayerState(id);
         PlungeAndGliderManager.clearPlayerState(id);
+        EnvironmentalBlockManager.clearPlayerState(id);
+        com.velorise.staves.entity.HydroSalonSummonEntity.clearPlayerState(id);
     }
 
     public static void clearAll() {

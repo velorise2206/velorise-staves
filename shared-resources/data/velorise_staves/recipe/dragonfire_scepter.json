@@ -4,7 +4,7 @@
   "pattern": [
     "  H",
     " E ",
-    "B  "
+    "R  "
   ],
   "key": {
     "H": {
@@ -18,8 +18,8 @@
         "item": "velorise_staves:omni_element"
       }
     ],
-    "B": {
-      "item": "minecraft:blaze_rod"
+    "R": {
+      "item": "velorise_staves:electro_rod"
     }
   },
   "result": {

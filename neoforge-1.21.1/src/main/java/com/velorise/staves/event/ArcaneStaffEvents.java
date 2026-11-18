@@ -135,7 +135,8 @@ public final class ArcaneStaffEvents {
                 || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                || effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
             event.setCanceled(true);
         }
     }
@@ -153,7 +154,8 @@ public final class ArcaneStaffEvents {
                 || effKind == ArcaneStaffItem.Kind.DAYBREAK
                 || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                 || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
-                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                || effKind == ArcaneStaffItem.Kind.DRAGONFIRE) {
             event.setCanceled(true);
             return;
         }
@@ -291,6 +293,8 @@ public final class ArcaneStaffEvents {
         }
 
         event.setCanceled(true);
+        com.velorise.staves.element.DragonfireCloudManager.setCurrentImpactFinale(projectile.getTags().contains("velorise_staves:finale_shot"));
+        try {
         switch (baseKind) {
             case "dragonfire" -> resolveDragonfire(level, hit, owner, isNetherite);
             case "inferno" -> resolveInferno(level, hit, owner, event, isNetherite);
@@ -303,6 +307,9 @@ public final class ArcaneStaffEvents {
             case "guardian_orb" -> resolveGuardianOrb(level, hit, owner, event, isNetherite);
             case "omni_trident" -> resolveOmniTrident(level, hit, owner, event, isNetherite);
             default -> {}
+        }
+        } finally {
+            com.velorise.staves.element.DragonfireCloudManager.setCurrentImpactFinale(false);
         }
         projectile.discard();
     }
@@ -350,6 +357,10 @@ public final class ArcaneStaffEvents {
     public static void onLivingIncomingDamage(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent event) {
         LivingEntity entity = event.getEntity();
         DamageSource src = event.getSource();
+        if (!entity.level().isClientSide() && com.velorise.staves.element.DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, src)) {
+            event.setCanceled(true);
+            return;
+        }
         if (!entity.level().isClientSide() && (ElementalGaugeManager.isRaidenIframeActive(entity)
                 || ElementalGaugeManager.isMavuikaBikeIframeActive(entity, src)
                 || (src.is(DamageTypeTags.IS_FALL) && com.velorise.staves.element.PlungeAndGliderManager.isPlungeFallImmune(entity)))) {
@@ -558,15 +569,31 @@ public final class ArcaneStaffEvents {
     private static void resolveInferno(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        boolean isFinale = com.velorise.staves.element.DragonfireCloudManager.isCurrentImpactFinale();
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.INFERNO, isNetherite) * (isFinale ? 1.5F : 1.0F);
+        float attackU = isFinale ? (isNetherite ? 3.0F : 2.0F) : (isNetherite ? 1.5F : 1.0F);
         if (target != null && target != owner) {
             boolean hadElectro = ElementalGaugeManager.hasElement(target, Element.ELECTRO)
                     || ElementalGaugeManager.hasInnateElement(target, Element.ELECTRO);
             if (!ElementalGaugeManager.isPyroInnate(target) && !hadElectro) {
                 target.igniteForSeconds(isNetherite ? 5 : 3);
             }
-            float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.INFERNO, isNetherite);
-            float attackU = isNetherite ? 1.5F : 1.0F;
             ElementalGaugeManager.applyElement(level, target, Element.PYRO, attackU, player, baseDmg);
+        }
+        if (isFinale) {
+            double finaleRadius = isNetherite ? 3.2D : 2.5D;
+            for (LivingEntity splash : targets(level, hit, finaleRadius, owner)) {
+                if (splash == target) continue;
+                boolean hadElectro = ElementalGaugeManager.hasElement(splash, Element.ELECTRO)
+                        || ElementalGaugeManager.hasInnateElement(splash, Element.ELECTRO);
+                if (!ElementalGaugeManager.isPyroInnate(splash) && !hadElectro) {
+                    splash.igniteForSeconds(isNetherite ? 5 : 3);
+                }
+                ElementalGaugeManager.applyElement(level, splash, Element.PYRO, attackU, player, baseDmg * 0.85F);
+            }
+            level.sendParticles(ParticleTypes.LAVA, hit.x, hit.y + 0.2D, hit.z, 18, 0.55D, 0.35D, 0.55D, 0.05D);
+            level.sendParticles(ParticleTypes.EXPLOSION, hit.x, hit.y + 0.25D, hit.z, 2, 0.25D, 0.15D, 0.25D, 0.0D);
+            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 0.85F, 1.25F);
         } else if (event.getRayTraceResult() instanceof BlockHitResult bhr) {
             com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
@@ -644,6 +671,7 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
+            com.velorise.staves.element.DragonfireCloudManager.markWitherContagion(target, player, isNetherite, 160);
             ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
                 target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 150 : 100, isNetherite ? 1 : 0));
@@ -657,11 +685,14 @@ public final class ArcaneStaffEvents {
     private static void resolveShulker(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
+        boolean isFinale = com.velorise.staves.element.DragonfireCloudManager.isCurrentImpactFinale();
         float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.SHULKER, isNetherite);
-        float attackU = isNetherite ? 1.5F : 1.0F;
+        float attackU = isFinale ? (isNetherite ? 2.5F : 2.0F) : (isNetherite ? 1.5F : 1.0F);
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
-            if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
+            if (isFinale) {
+                com.velorise.staves.element.DragonfireCloudManager.scheduleShulkerGravitySlam(level, target, player, isNetherite);
+            } else if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
                 target.addEffect(new MobEffectInstance(MobEffects.LEVITATION, isNetherite ? 70 : 50, 0));
@@ -686,35 +717,42 @@ public final class ArcaneStaffEvents {
     private static void resolveFrost(ServerLevel level, Vec3 hit, Entity owner, ProjectileImpactEvent event, boolean isNetherite) {
         LivingEntity target = hitEntity(event);
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.FROST, isNetherite);
-        float attackU = isNetherite ? 1.5F : 1.0F;
+        boolean isFinale = com.velorise.staves.element.DragonfireCloudManager.isCurrentImpactFinale();
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.FROST, isNetherite) * (isFinale ? 1.5F : 1.0F);
+        float attackU = isFinale ? (isNetherite ? 3.0F : 2.0F) : (isNetherite ? 1.5F : 1.0F);
+        int slowAmp = isFinale ? 3 : 1;
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.CRYO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.CRYO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {
-                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 100 : 70, 1));
-                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isNetherite ? 200 : 140));
+                target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 110 : 80, slowAmp));
+                target.setTicksFrozen(Math.max(target.getTicksFrozen(), isFinale ? 260 : (isNetherite ? 200 : 140)));
             }
             ElementalGaugeManager.enforceFrozenPoseIfFrozen(target);
         }
-        double radius = isNetherite ? 3.2D : 2.2D;
-        float splashDmg = baseDmg * (isNetherite ? 0.75F : 0.6F);
+        double radius = isFinale ? (isNetherite ? 3.5D : 2.5D) : (isNetherite ? 3.2D : 2.2D);
+        float splashDmg = baseDmg * (isFinale ? 0.85F : (isNetherite ? 0.75F : 0.6F));
+        float splashU = isFinale ? (isNetherite ? 2.0F : 1.5F) : 1.0F;
         for (LivingEntity splashTarget : targets(level, hit, radius, owner)) {
             if (splashTarget != target) {
-                ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, 1.0F, player, splashDmg);
+                ElementalGaugeManager.applyElement(level, splashTarget, Element.CRYO, splashU, player, splashDmg);
                 if (ElementalGaugeManager.getInnateElement(splashTarget) != Element.CRYO
                         && !ElementalGaugeManager.isBossEntity(splashTarget)
                         && !ElementalGaugeManager.isEntityFrozen(splashTarget)) {
-                    splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 80 : 50, 1));
-                    splashTarget.setTicksFrozen(splashTarget.getTicksFrozen() + 100);
+                    splashTarget.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, isNetherite ? 90 : 60, slowAmp));
+                    splashTarget.setTicksFrozen(splashTarget.getTicksFrozen() + (isFinale ? 160 : 100));
                 }
                 ElementalGaugeManager.enforceFrozenPoseIfFrozen(splashTarget);
             }
         }
 
-        // Cryo ice bridging (Kaeya/Ayaka effect)
-        freezeWaterNear(level, hit, isNetherite ? 2 : 1);
+        // Cryo ice bridging (Kaeya/Ayaka effect) + Finale Permafrost ground frost
+        freezeWaterNear(level, hit, isFinale ? (isNetherite ? 3 : 2) : (isNetherite ? 2 : 1));
+        if (isFinale) {
+            level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y + 0.25D, hit.z, 36, radius * 0.45D, 0.25D, radius * 0.45D, 0.06D);
+            level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.GLASS_PLACE, SoundSource.PLAYERS, 0.9F, 0.85F);
+        }
 
         level.sendParticles(ParticleTypes.SNOWFLAKE, hit.x, hit.y, hit.z, 28, 0.55D, 0.35D, 0.55D, 0.05D);
         level.sendParticles(ParticleTypes.ITEM_SNOWBALL, hit.x, hit.y, hit.z, 16, 0.45D, 0.30D, 0.45D, 0.08D);

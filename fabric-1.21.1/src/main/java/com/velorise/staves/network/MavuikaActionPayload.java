@@ -38,6 +38,7 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_DAYBREAK_NA = 23;
     public static final byte ACTION_DAYBREAK_CA = 24;
     public static final byte ACTION_DAYBREAK_CA_FULL = 25;
+    public static final byte ACTION_DRAGONFIRE_NA = 26;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -123,6 +124,8 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
             com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.65F);
         } else if (action == ACTION_DAYBREAK_CA_FULL) {
             com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 1.0F);
+        } else if (action == ACTION_DRAGONFIRE_NA) {
+            com.velorise.staves.element.DragonfireCloudManager.handleLeftClickOrb(player);
         }
     }
 }

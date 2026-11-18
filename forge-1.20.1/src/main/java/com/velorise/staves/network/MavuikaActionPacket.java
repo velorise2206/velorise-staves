@@ -36,6 +36,7 @@ public class MavuikaActionPacket {
     public static final byte ACTION_DAYBREAK_NA = 24;
     public static final byte ACTION_DAYBREAK_CA = 25;
     public static final byte ACTION_DAYBREAK_CA_FULL = 26;
+    public static final byte ACTION_DRAGONFIRE_NA = 27;
 
     private final byte action;
 
@@ -125,6 +126,8 @@ public class MavuikaActionPacket {
                 com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 0.65F);
             } else if (packet.action == ACTION_DAYBREAK_CA_FULL) {
                 com.velorise.staves.item.ArcaneStaffItem.performDaybreakLeftClickShot(player, 1.0F);
+            } else if (packet.action == ACTION_DRAGONFIRE_NA) {
+                com.velorise.staves.element.DragonfireCloudManager.handleLeftClickOrb(player);
             }
         });
         ctx.setPacketHandled(true);

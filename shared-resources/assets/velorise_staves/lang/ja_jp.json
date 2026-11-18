@@ -235,12 +235,12 @@
   "codex.velorise_staves.staff.frostbolt": "極寒 §b氷§r 弾；減速（§c-30% 速度§r）し水面を凍らせます。",
   "codex.velorise_staves.staff.nights_focus": "§b12秒間の氷シールド§r（§e最大HP40%§r / ネザライト§660%§r）を展開。§e夜星§rを4つ溜めると追尾する§b飛星§rを4発放つ。",
   "codex.velorise_staves.staff.arc": "即時 §d雷§r 落雷撃；水面を帯電させます。",
-  "codex.velorise_staves.staff.dragonfire": "エンダー §d雷§r プラズマ弾；§dドラゴンブレスの雲§r を残します。",
-  "codex.velorise_staves.staff.wither": "腐敗 §a草§r スカル；§8衰弱§r + §a草付着§r を付与します。",
+  "codex.velorise_staves.staff.dragonfire": "左クリックでエンダープラズマ球を発射。右クリックでミニエンダードラゴン（30秒）を召喚し、周囲を巡回して2秒ごとに敵を電撃。[R] 龍王の天災（CT20秒）：ミニドラゴン召喚中は上空へ飛び立ち巨大ドラゴンとして前方1mに墜落（5x5雷範囲ダメージ）。未召喚時は巨大ドラゴンが前方3x10mを薙ぎ払う！隠しパッシブ：風の翼が5mエンダードラゴンに変化（飛行速度+50%）。",
+  "codex.velorise_staves.staff.wither": "3発の草ウィザースカルを放つ。ウィザー装甲パッシブ：HP50%以下でこの杖を持つと飛び道具ダメージを100%無効化！枯死伝染：標的にされた敵が倒れると半径3mに草＋ウィザー爆発を拡散！",
   "codex.velorise_staves.staff.webcaster": "§fクモの巣§r で動きを封じ §a草付着§r を付与します。",
   "codex.velorise_staves.staff.wind": "ブリーズ §b風§r 弾；ノックバック + §e5.0m 拡散§r。",
-  "codex.velorise_staves.staff.echo": "ウォーデン §b風§r 音爆；壁・防御貫通 + §b拡散§r。",
-  "codex.velorise_staves.staff.shulker": "追尾 §d雷§r シュルカー弾；§d雷§r + §e浮遊§r を付与します。",
+  "codex.velorise_staves.staff.echo": "壁と防具を貫通するウォーデンのソニックブームを放ち拡散を起こす。共鳴パッシブ：有効な敵にダメージを与えるごとにクールタイムが1.0秒短縮（最大5.0秒短縮）。",
+  "codex.velorise_staves.staff.shulker": "3発の追尾シュルカー弾を発射。3発目グラビティスラム：3発目が命中すると標的を急上昇させて地面に叩きつけ2.5m範囲雷ダメージ！シュルカーシェル：メインハンド保持で被ダメージ-30%（ネザライト-40%）。",
   "codex.velorise_staves.staff.evoker": "§6岩§r牙＋岩牙柱（通常1x1x1・最大§f§r×1・3m 0.5§f§r 0.5U／ネザライト1x2x1・最大§f§r×2・5m 1§f§r 1U）を召喚し敵を挑発＆2秒ごとに四角形の§6岩§r波を放出。",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bCT:§r %ss | §d射程:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7耐久値 (通常 ➔ ネザライト): §f%s ➔ §6%s",
@@ -778,5 +778,6 @@
   "config.velorise_staves.enable_mavuika_wall_climb": "双輪バイク壁登り",
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "マーヴィカの双輪バイクで垂直な崖や壁を登れるようにします。",
   "config.velorise_staves.mavuika_bike_speed": "双輪バイク速度倍率",
-  "config.velorise_staves.mavuika_bike_speed.desc": "マーヴィカの双輪バイクの移動および壁登り速度倍率（デフォルト：1.0x）。"
+  "config.velorise_staves.mavuika_bike_speed.desc": "マーヴィカの双輪バイクの移動および壁登り速度倍率（デフォルト：1.0x）。",
+  "item.velorise_staves.electro_rod": "雷のロッド"
 }

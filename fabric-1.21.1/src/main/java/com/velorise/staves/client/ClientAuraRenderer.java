@@ -403,6 +403,7 @@ public final class ClientAuraRenderer {
         VentiVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         RaidenVisualRenderer.renderIdleEffects(player, poseStack, buffer);
         TsaritsaVisualRenderer.renderIdleThrone(player, poseStack, buffer);
+        WindGliderRenderer.renderDragonfireEffects(player, poseStack, buffer);
     }
 
     public static boolean setupFirstPersonVortexMainArmPose(AbstractClientPlayer player, float partialTicks, HumanoidArm mainArm, PoseStack poseStack) {

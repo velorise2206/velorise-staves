@@ -230,9 +230,6 @@ public final class XilonenManager {
         if (now < st.dashCooldownUntil) return;
         if (now > st.dashWindowUntil) st.dashChain = 0;
         st.lastDashTick = now;
-        st.dashChain = 0;
-        st.dashWindowUntil = 0L;
-        st.dashCooldownUntil = now + 10L;
         st.dashChain++;
         if (st.dashChain >= 2) {
             st.dashChain = 0;

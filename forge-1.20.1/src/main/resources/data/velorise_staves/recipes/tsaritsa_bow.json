@@ -2,11 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "combat",
   "pattern": [
-    " CC",
-    "C F",
+    " SC",
+    "S F",
     "CF "
   ],
   "key": {
+    "S": {
+      "tag": "velorise_staves:cryo_staves"
+    },
     "C": [
       {
         "item": "velorise_staves:cryo_element"

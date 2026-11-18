@@ -12,7 +12,7 @@
 
 📖 **Full in-depth documentation, crafting guides, and reaction sheets are available on the [Official Velorise's Staves Wiki](https://github.com/velorise2206/velorise-staves/wiki)!**
 
-A lightweight Minecraft magic & combat mod introducing **22 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **17 custom advancements (including 6 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
+A lightweight Minecraft magic & combat mod introducing **22 elemental combat staves**, **element-imbued swords**, **8 elemental essence items**, **2 utility artifacts**, **28 custom advancements (including 12 hidden challenges)**, and a complete **Genshin Impact-inspired Elemental Reaction System (EGT)** across **NeoForge 1.21.1**, **Fabric 1.21.1**, and **Forge 1.20.1**.
 
 No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying magic powered by **Vanilla Durability & Cooldowns**, fully enchantable and upgradeable to Netherite.
 
@@ -118,7 +118,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Engulfing Lightning** (![Electro][electro] Electro): Raiden Shogun's Electro polearm — Hold Left-Click for upward crescent sweep (`1.35x` DMG, `7.5m➔9.5m`). Right-Click (`10s` CD) opens **Eye of Stormy Judgment** (`15s`, `0.9s` coordinated strikes, builds up to 60 Resolve). **`[R]` Secret Art: Musou Shinsetsu** (`18s` CD, `1.6s` I-frames) unleashes **Musou no Hitotachi** (`6m➔9m`, up to `2.5x`) and **Musou Isshin** (`7s` 5-step Tachi combo, `5m wide × 3m forward` slash).
 - **A Thousand Floating Dreams** (![Dendro][dendro] Dendro): Nahida's Dendro catalyst — Tap Left-Click for 4-step hopscotch combo (`2m wide × 5m forward`, `0.5❤`); Hold Left-Click weaves a 3D Dendro box (`3×3×3m`, 1m ahead) that explodes for AoE Dendro (`3.0❤➔4.5❤`). Tap Right-Click (`5s` CD) sweeps within `2m`; Hold Right-Click (`6s` CD) opens **Camera Viewfinder** (`20m➔28m`) to mark up to 8 targets with **Seeds of Skandha** (`25s`, **Tri-Karma Purification**) & harvest crops/items. **`[R]` Illusory Heart** (`13.5s` CD, `2.0s` I-frames) expands **Shrine of Maya** (`15s➔23s`, `18m➔22.5m`, `+1➔+2 EM` & Pyro/Electro/Hydro buffs).
 - **Peak Patrol Song** (![Geo][geo] Geo): Xilonen's Geo sword — Right-Click (`7s` CD) activates Roller Skate Nightsoul (`+35%` speed, wall-climbing); 2 kicks trigger **Source Samples** (`15s`, `-36%` Elemental RES shred within `8m`, `+90` Fighting Spirit to Mavuika). **`[R]` Ocelotlicue Point!** deals AoE Geo & heals for `12s`.
-- **Absolution of the Rime-Throne** (![Cryo][cryo] Cryo): Tsaritsa's dual-stance (`Bow ⇄ Spear`, Hold Right-Click `0.7s`) Cryo weapon — Frostflake Arrows / 3-step Spear cleave that freezes water, **Rime-Pillar** (`8s` CD, `12s`, `4.5m➔6.0m`), **Stellar Cryo** passive, and **`[R]` Rime-Throne's Decree** (`15s` CD, `2.0s` I-frames).
+- **Absolution of the Rime-Throne** (![Cryo][cryo] Cryo): Tsaritsa's dual-stance (`Bow ⇄ Spear`, Right-Click `6.0s` CD) Cryo regalia — 3-stage Frostflake Arrows / 3-step Spear cleave with passive water freezing, **Rime-Pillar** (`12s`, `4.5m➔6.0m`), and dual-variant **`[R]` Elemental Burst** (`15s` CD: Bow **Support Burst** with *Azure Crown* & *Stellar Cryo Reactions*, or Spear **DPS Burst** with Colossal Ice Spear, 10s staff seal & *3 Stellar Punishment* orbital spears).
 - **Omni Staff** (![Omni][omni] Omni): Fires prism crystal orbs that automatically trigger the strongest reaction element, or hold `[Tab]` to open the Element Wheel and lock onto any element.
 
 *All staves can be upgraded to Netherite via the Smithing Table for **1.5x combat stats (damage, HP scaling, elemental gauge U, and effect durations)** and extended range (without reducing cooldowns), and scale with the custom **Elemental Mastery I–III** enchantment.*
@@ -136,7 +136,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Void Translocator**: Blink forward up to 24 blocks (36 Netherite) through solid obstacles safely.
 - **Magic Mirror**: Channel to recall back to your bed or world spawn point (cross-dimensional on Netherite).
 - **Elemental Codex**: Interactive in-game guidebook with clickable reaction links, heart-rendered damage stats, live server config sync, and **9-language** localization (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`).
-- **Advancements Tab (17 Advancements)**: Dedicated advancement tree covering weapon crafting, Netherite smithing, Elemental Mastery, Omni Staff, EGT reactions, Dendro Cores, Crystallize shields, Geo Fang Pillars, Tesla Coils, and spatial artifacts.
+- **Advancements Tab (28 Advancements)**: Dedicated advancement tree covering weapon crafting, Netherite smithing, Elemental Mastery, Omni Staff, EGT reactions, Dendro Cores, Crystallize shields, Geo Fang Pillars, Tesla Coils, and spatial artifacts.
 
 ---
 

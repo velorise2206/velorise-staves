@@ -235,12 +235,12 @@
   "codex.velorise_staves.staff.frostbolt": "3x rapid §bCryo§r bolts with AoE Cryo Nova; inflicts §cSlowness II§r, Freeze & freezes water.",
   "codex.velorise_staves.staff.nights_focus": "Grants a §b12s Cryo Shield§r (§e40% Max HP§r / §660%§r Netherite, §b250% Cryo Absorb§r) + AoE §bCryo§r. Gains §eNight Stars§r (1/1.5s, +2 on skill); at 4 stars fires 4 homing §bShooting Stars§r.",
   "codex.velorise_staves.staff.arc": "Instant §dElectro§r lightning strike; electrifies water pools.",
-  "codex.velorise_staves.staff.dragonfire": "Ender §dElectro§r plasma orb; leaves a §ddragonfire cloud§r.",
-  "codex.velorise_staves.staff.wither": "Decaying §aDendro§r skull; inflicts §8Wither§r + §aDendro Aura§r.",
+  "codex.velorise_staves.staff.dragonfire": "Left-Click fires an Ender Plasma Orb leaving a 6s Electro cloud. Right-Click summons a Mini Ender Dragon companion (30s) that patrols around you and zaps nearby enemies every 2s. [R] Sovereign's Cataclysm (20s CD): If Mini Dragon is active, it ascends and crashes down as a Giant Ender Dragon 1m ahead (5x5 AoE Electro); otherwise, a Giant Dragon swoops forward along a 3x10m path! Passive: Replaces Wind Glider with a 5m Ender Dragon (+50% flight speed).",
+  "codex.velorise_staves.staff.wither": "Fires a 3-skull Dendro salvo inflicting Wither II. Wither Carapace Passive: When below 50% HP while holding the scepter, grants complete immunity to incoming projectiles. Withering Contagion: Enemies that die while afflicted by Wither Scepter explode in a 3m Dendro + Wither spore cloud!",
   "codex.velorise_staves.staff.webcaster": "Traps targets in §fCobwebs§r and applies §aDendro Aura§r.",
   "codex.velorise_staves.staff.wind": "Breeze §bAnemo§r wind charge; knockback + §e5.0m Swirl§r.",
-  "codex.velorise_staves.staff.echo": "Warden §bAnemo§r sonic boom; pierces walls/armor + §bSwirl§r.",
-  "codex.velorise_staves.staff.shulker": "3x homing §dElectro§r Shulker bullets with AoE Gravity Shockwave; applies §dElectro§r + §eLevitation§r.",
+  "codex.velorise_staves.staff.echo": "Channels a Warden Sonic Boom that pierces walls and armor, triggering Swirl. Resonance Passive: Each valid hostile enemy damaged reduces the staff's cooldown by 1.0s (up to -5.0s max).",
+  "codex.velorise_staves.staff.shulker": "Fires 3 homing Electro Shulker bullets. 3rd-Shot Gravity Slam: The 3rd shot launches the target high and slams them violently into the ground for 2.5m AoE Electro DMG! Shulker Shell Passive: Holding in main hand reduces incoming damage by 30% (40% Netherite).",
   "codex.velorise_staves.staff.evoker": "Summons §6Geo§r Fangs + Geo Fang Pillar (Basic 1x1x1, 1x Max§f§r, 3m 0.5§f§r 0.5U / Netherite 1x2x1, 2x Max§f§r, 5m 1§f§r 1U) that taunts mobs & pulses square §6Geo§r waves every 2s.",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bCD:§r %ss | §dRange:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7Durability (Basic ➔ Netherite): §f%s ➔ §6%s",
@@ -778,5 +778,6 @@
   "config.velorise_staves.enable_mavuika_wall_climb": "Flamestrider Wall Climb",
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Allow Mavuika's Flamestrider motorcycle to climb vertical cliffs and walls.",
   "config.velorise_staves.mavuika_bike_speed": "Flamestrider Speed Mult",
-  "config.velorise_staves.mavuika_bike_speed.desc": "Movement and wall-climbing speed multiplier for Mavuika's Flamestrider motorcycle (Default: 1.0x)."
+  "config.velorise_staves.mavuika_bike_speed.desc": "Movement and wall-climbing speed multiplier for Mavuika's Flamestrider motorcycle (Default: 1.0x).",
+  "item.velorise_staves.electro_rod": "Electro Rod"
 }

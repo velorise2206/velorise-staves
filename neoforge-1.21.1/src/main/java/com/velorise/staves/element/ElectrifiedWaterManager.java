@@ -44,6 +44,7 @@ public final class ElectrifiedWaterManager {
     }
 
     private static final List<WaterZone> ZONES = new CopyOnWriteArrayList<>();
+    private static final ThreadLocal<Boolean> IS_SHOCKING = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
     private ElectrifiedWaterManager() {}
 
@@ -147,6 +148,7 @@ public final class ElectrifiedWaterManager {
     public static void tick(ServerLevel level) {
         long now = level.getGameTime();
         Iterator<WaterZone> it = ZONES.iterator();
+        Set<UUID> shockedThisTick = (now % 20 == 0) ? new HashSet<>() : null;
 
         while (it.hasNext()) {
             WaterZone zone = it.next();
@@ -183,57 +185,66 @@ public final class ElectrifiedWaterManager {
                 }
             }
 
-            AABB zoneBox = singleBlock
-                    ? new AABB(zone.center)
-                    : new AABB(
-                            zone.center.getX() - zone.radius, zone.center.getY() - 1.0D, zone.center.getZ() - zone.radius,
-                            zone.center.getX() + zone.radius + 1.0D, zone.center.getY() + 2.5D, zone.center.getZ() + zone.radius + 1.0D
-                    );
-            List<LivingEntity> inWaterMobs = level.getEntitiesOfClass(LivingEntity.class, zoneBox,
-                    e -> e.isAlive() && ElementalGaugeManager.isEntityInWater(e));
+            if (now % 4 == 0 || now % 3 == 0 || now % 20 == 0) {
+                AABB zoneBox = singleBlock
+                        ? new AABB(zone.center)
+                        : new AABB(
+                                zone.center.getX() - zone.radius, zone.center.getY() - 1.5D, zone.center.getZ() - zone.radius,
+                                zone.center.getX() + zone.radius + 1.0D, zone.center.getY() + 2.5D, zone.center.getZ() + zone.radius + 1.0D
+                        );
+                List<LivingEntity> inWaterMobs = level.getEntitiesOfClass(LivingEntity.class, zoneBox,
+                        e -> e.isAlive() && ElementalGaugeManager.isEntityInWater(e));
 
-            if (inWaterMobs.size() >= 2 && now % 4 == 0) {
-                for (int i = 0; i < inWaterMobs.size() - 1; i++) {
-                    LivingEntity m1 = inWaterMobs.get(i);
-                    LivingEntity m2 = inWaterMobs.get(i + 1);
-                    if (m1.position().distanceToSqr(m2.position()) <= 25.0D) {
-                        drawElectricArc(level, m1, m2, 8);
+                if (inWaterMobs.size() >= 2 && now % 4 == 0) {
+                    for (int i = 0; i < inWaterMobs.size() - 1; i++) {
+                        LivingEntity m1 = inWaterMobs.get(i);
+                        LivingEntity m2 = inWaterMobs.get(i + 1);
+                        if (m1.position().distanceToSqr(m2.position()) <= 25.0D) {
+                            drawElectricArc(level, m1, m2, 8);
+                        }
                     }
+                } else if (!inWaterMobs.isEmpty() && now % 3 == 0) {
+                    LivingEntity mob = inWaterMobs.get(level.random.nextInt(inWaterMobs.size()));
+                    double spread = singleBlock ? 0.45D : 1.6D;
+                    Vec3 waterPt = new Vec3(mob.getX() + (level.random.nextDouble() - 0.5D) * spread,
+                                            zone.center.getY() + 0.85D,
+                                            mob.getZ() + (level.random.nextDouble() - 0.5D) * spread);
+                    drawElectricArc(level, waterPt, mob.position().add(0, mob.getBbHeight() * 0.4D, 0), 0.22D, false);
                 }
-            } else if (!inWaterMobs.isEmpty() && now % 3 == 0) {
-                LivingEntity mob = inWaterMobs.get(level.random.nextInt(inWaterMobs.size()));
-                double spread = singleBlock ? 0.45D : 1.6D;
-                Vec3 waterPt = new Vec3(mob.getX() + (level.random.nextDouble() - 0.5D) * spread,
-                                        zone.center.getY() + 0.85D,
-                                        mob.getZ() + (level.random.nextDouble() - 0.5D) * spread);
-                drawElectricArc(level, waterPt, mob.position().add(0, mob.getBbHeight() * 0.4D, 0), 0.22D, false);
-            }
 
-            // Periodic electric shock damage and Electro aura application (every 20 ticks = 1.0s)
-            if (now % 20 == 0) {
-                ServerPlayer attacker = zone.attackerId != null ? level.getServer().getPlayerList().getPlayer(zone.attackerId) : null;
-                shockEntities(level, zone.center, zone.radius, attacker, zone.damage);
+                // Periodic electric shock damage and Electro aura application (every 20 ticks = 1.0s)
+                if (now % 20 == 0 && shockedThisTick != null) {
+                    ServerPlayer attacker = zone.attackerId != null ? level.getServer().getPlayerList().getPlayer(zone.attackerId) : null;
+                    shockEntities(level, zone.center, attacker, inWaterMobs, shockedThisTick);
+                }
             }
         }
     }
 
     private static void shockEntities(ServerLevel level, BlockPos center, double radius, @Nullable ServerPlayer attacker, float damage) {
-        boolean singleBlock = radius <= 0.5D;
-        AABB box = singleBlock
-                ? new AABB(center)
-                : new AABB(
-                        center.getX() - radius, center.getY() - 1.5D, center.getZ() - radius,
-                        center.getX() + radius + 1.0D, center.getY() + 2.5D, center.getZ() + radius + 1.0D
-                );
+        AABB box = new AABB(center).inflate(radius + 0.5D, 1.0D, radius + 0.5D);
+        List<LivingEntity> inWaterMobs = level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && (e.isInWaterOrRain() || isWaterAt(level, e.blockPosition())));
+        shockEntities(level, center, attacker, inWaterMobs, null);
+    }
 
-        for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, box, LivingEntity::isAlive)) {
-            if (victim.isSpectator() || (victim instanceof Player p && p.isCreative())) continue;
-            // Innate Electro beings are immune to electrified water shocks
-            if (ElementalGaugeManager.getInnateElement(victim) == Element.ELECTRO) continue;
-            if (ElementalGaugeManager.isEntityInWater(victim)) {
-                ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, 1.0F);
-                MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, Vec3.atCenterOf(center), Element.ELECTRO, Element.HYDRO);
+    private static void shockEntities(ServerLevel level, BlockPos center, @Nullable ServerPlayer attacker, List<LivingEntity> inWaterMobs, Set<UUID> shockedThisTick) {
+        if (Boolean.TRUE.equals(IS_SHOCKING.get())) return;
+        IS_SHOCKING.set(true);
+        try {
+            Vec3 centerVec = Vec3.atCenterOf(center);
+            for (LivingEntity victim : inWaterMobs) {
+                if (victim.isSpectator() || (victim instanceof Player p && p.isCreative())) continue;
+                if (attacker != null && ElementalGaugeManager.isRaidenProtectedAlly(attacker, victim)) continue;
+                // Innate Electro beings are immune to electrified water shocks
+                if (ElementalGaugeManager.hasInnateElement(victim, Element.ELECTRO)) continue;
+                if (shockedThisTick.add(victim.getUUID())) {
+                    ElementalGaugeManager.applyElement(level, victim, Element.ELECTRO, 0.8F, attacker, 1.0F);
+                    MobHazardAvoidanceManager.reportReactionOrHazard(victim, attacker, centerVec, Element.ELECTRO, Element.HYDRO);
+                }
             }
+        } finally {
+            IS_SHOCKING.set(false);
         }
     }
 

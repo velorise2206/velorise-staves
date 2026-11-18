@@ -235,12 +235,12 @@
   "codex.velorise_staves.staff.frostbolt": "3 phát §bBăng§r kèm nổ §bBăng§r diện rộng; gây §cChậm II§r, Đóng Băng & đóng băng nước.",
   "codex.velorise_staves.staff.nights_focus": "Tạo §bKhiên Băng 12s§r (§e40% Máu tối đa§r / §660%§r Netherite, §bHấp thụ Băng 250%§r) + §bBăng§r diện rộng. Tích §eSao Đêm§r (1/1.5s, +2 khi dùng kỹ năng); đủ 4 sao bắn 4 §bSao Băng§r truy đuổi.",
   "codex.velorise_staves.staff.arc": "Tia sét §dLôi§r tức thời; làm nhiễm điện vùng nước.",
-  "codex.velorise_staves.staff.dragonfire": "Cầu plasma Rồng §dLôi§r; để lại §dđám mây hơi thở rồng§r.",
-  "codex.velorise_staves.staff.wither": "Đầu lâu §aThảo§r phân rã; gây §8Khô Héo§r + §aẤn Thảo§r.",
+  "codex.velorise_staves.staff.dragonfire": "Chuột trái bắn Cầu Rồng Lôi tạo mây điện 6s. Chuột phải triệu hồi Rồng Ender Nhỏ (30s) bay tuần tra quanh chủ nhân và giật điện kẻ địch mỗi 2s. [R] Long Vương Giáng Thế (20s CD): Khi đang có Rồng Nhỏ, rồng bay vút lên trời rồi hóa Rồng Lớn đâm sầm xuống trước mặt 1m (nổ Lôi 5x5); nếu chưa triệu hồi, Rồng Lớn lượn vòng cung càn quét dải 3x10m! Nội tại ẩn: Đổi Phong Chi Dực thành Rồng Ender sải cánh 5m (+50% tốc độ bay).",
+  "codex.velorise_staves.staff.wither": "Bắn 3 đầu lâu Thảo gây hiệu ứng Khô Héo (Wither II). Nội tại Giáp Wither: Khi máu <= 50% lúc cầm trượng, miễn nhiễm 100% mọi đòn bắn tầm xa (Projectile). Nội tại Phát Tán Khô Héo: Quái chết khi đang dính hiệu ứng từ trượng sẽ phát nổ lan Thảo + Wither trong bán kính 3m!",
   "codex.velorise_staves.staff.webcaster": "Giữ chân mục tiêu bằng §fMạng Nhện§r và gắn §aẤn Thảo§r.",
   "codex.velorise_staves.staff.wind": "Luồng gió Breeze §bPhong§r; đẩy lùi + §eKhuếch Tán 5.0m§r.",
-  "codex.velorise_staves.staff.echo": "Sóng siêu thanh Warden §bPhong§r; xuyên tường/giáp + §bKhuếch Tán§r.",
-  "codex.velorise_staves.staff.shulker": "3 đạn tự đuổi §dLôi§r kèm Sóng Trọng Lực diện rộng; gắn §dLôi§r + §eBay Lơ Lửng§r.",
+  "codex.velorise_staves.staff.echo": "Giải phóng sóng âm Warden xuyên tường và xuyên giáp, kích hoạt Khuếch Tán. Nội tại Resonance: Mỗi kẻ địch hợp lệ bị trúng đòn và mất máu giúp giảm ngay 1.0s hồi chiêu (tối đa giảm 5.0s).",
+  "codex.velorise_staves.staff.shulker": "Bắn 3 đạn Shulker Lôi tự tìm mục tiêu. Đòn Thứ 3 Dập Trọng Lực: Viên đạn thứ 3 hất văng mục tiêu lên nhanh hơn rồi dập mạnh xuống đất gây nổ Lôi 2.5m! Nội tại Shulker Shield: Cầm trên tay chính giúp giảm 30% sát thương nhận vào (40% bản Netherite) như vỏ Shulker đóng nắp.",
   "codex.velorise_staves.staff.evoker": "Triệu hồi Nanh §6Nham§r + Trụ Nanh Nham (Cơ bản 1x1x1, 1x Max§f§r, 3m 0.5§f§r 0.5U / Netherite 1x2x1, 2x Max§f§r, 5m 1§f§r 1U) thu hút quái & tỏa sóng vuông §6Nham§r mỗi 2s.",
   "codex.velorise_staves.staff.stats_combat": "%s ➔ %s§r | §bHồi chiêu:§r %ss | §dTầm:§r %s",
   "codex.velorise_staves.staff.stats_durability": "§7Độ bền (Thường ➔ Netherite): §f%s ➔ §6%s",
@@ -778,5 +778,6 @@
   "config.velorise_staves.enable_mavuika_wall_climb": "Xe Mavuika Leo Tường",
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Cho phép mô-tô Flamestrider của Mavuika leo thẳng lên vách đá và tường đứng chuẩn Genshin.",
   "config.velorise_staves.mavuika_bike_speed": "Tốc Độ Xe Mavuika",
-  "config.velorise_staves.mavuika_bike_speed.desc": "Hệ số tốc độ di chuyển và leo tường của xe Flamestrider (Mặc định: 1.0x)."
+  "config.velorise_staves.mavuika_bike_speed.desc": "Hệ số tốc độ di chuyển và leo tường của xe Flamestrider (Mặc định: 1.0x).",
+  "item.velorise_staves.electro_rod": "Gậy Lôi"
 }

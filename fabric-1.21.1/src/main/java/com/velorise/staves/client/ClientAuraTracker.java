@@ -70,6 +70,11 @@ public final class ClientAuraTracker {
     public static final int ANIM_TSARITSA_UNSEAL = 60;
     public static final int ANIM_TSARITSA_CROWN_FLASH = 61;
     public static final int ANIM_LAYLA_DREAMSPHERE = 62;
+    public static final int ANIM_DRAGONFIRE_PET_OFF = 4070;
+    public static final int ANIM_DRAGONFIRE_PET_ON = 4071;
+    public static final int ANIM_DRAGONFIRE_IDLE_ON = 4072;
+    public static final int ANIM_DRAGONFIRE_ULTI_SKYFALL = 4073;
+    public static final int ANIM_DRAGONFIRE_ULTI_SWEEP = 4074;
 
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
@@ -115,6 +120,10 @@ public final class ClientAuraTracker {
         public long jadeShieldUntil = 0L;
         public long nightsFocusUntil = 0L;
         public long laylaDreamsphereUntil = 0L;
+        public long dragonfirePetUntil = 0L;
+        public boolean dragonfireIdle = false;
+        public float dragonfireIdleFade = 0.0F;
+        public long dragonfireIdleStartMs = 0L;
         public int nightsFocusStars = 0;
         public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
@@ -622,6 +631,34 @@ public final class ClientAuraTracker {
             } else if (!entry.tsaritsaIdle) {
                 entry.tsaritsaIdleStartMs = 0L;
             }
+            return;
+        }
+        if (animType == ANIM_DRAGONFIRE_PET_OFF || animType == ANIM_DRAGONFIRE_PET_ON || animType == ANIM_DRAGONFIRE_IDLE_ON) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (animType == ANIM_DRAGONFIRE_PET_OFF) {
+                entry.dragonfirePetUntil = 0L;
+                entry.dragonfireIdle = false;
+            } else if (animType == ANIM_DRAGONFIRE_PET_ON) {
+                entry.dragonfirePetUntil = now + 31000L;
+                entry.dragonfireIdle = false;
+            } else {
+                if (!entry.dragonfireIdle) {
+                    entry.dragonfireIdleStartMs = now;
+                }
+                entry.dragonfireIdle = true;
+            }
+            return;
+        }
+        if (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL || animType == ANIM_DRAGONFIRE_ULTI_SWEEP) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            if (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL) {
+                entry.dragonfirePetUntil = 0L;
+            }
+            entry.dragonfireIdle = false;
+            entry.dragonfireIdleFade = 0.0F;
+            entry.staffAnimType = animType;
+            entry.staffAnimStartTime = now;
+            entry.staffAnimUntil = now + (animType == ANIM_DRAGONFIRE_ULTI_SKYFALL ? 2500L : 1850L);
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -1295,6 +1332,16 @@ public final class ClientAuraTracker {
         return true;
     }
 
+    public static boolean hasDragonfirePet(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && System.currentTimeMillis() < data.dragonfirePetUntil;
+    }
+
+    public static boolean isDragonfireIdle(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && (data.dragonfireIdle || data.dragonfireIdleFade > 0.01F);
+    }
+
     public static boolean hasLaylaDreamsphere(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         return data != null && System.currentTimeMillis() < data.laylaDreamsphereUntil;
@@ -1406,6 +1453,7 @@ public final class ClientAuraTracker {
             d.zhongliIdleMeteor = false; d.zhongliIdleFade = 0.0F; d.zhongliIdleYawSet = false;
             d.furinaIdleMode = 0; d.furinaIdleFade = 0.0F; d.furinaIdleYawSet = false;
             d.nahidaIdleSwing = false; d.nahidaIdleSwingFade = 0.0F; d.nahidaIdleYawSet = false;
+            d.dragonfireIdle = false; d.dragonfireIdleFade = 0.0F;
             return;
         }
         boolean isFirstPerson = mc.options.getCameraType().isFirstPerson();

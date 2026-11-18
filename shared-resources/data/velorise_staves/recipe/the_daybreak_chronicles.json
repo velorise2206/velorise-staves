@@ -2,11 +2,14 @@
   "type": "minecraft:crafting_shaped",
   "category": "combat",
   "pattern": [
-    " AA",
-    "A W",
+    " SA",
+    "S W",
     "AW "
   ],
   "key": {
+    "S": {
+      "tag": "velorise_staves:anemo_staves"
+    },
     "A": [
       {
         "item": "velorise_staves:anemo_element"

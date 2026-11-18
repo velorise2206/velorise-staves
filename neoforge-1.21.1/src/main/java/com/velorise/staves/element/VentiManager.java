@@ -786,7 +786,7 @@ public final class VentiManager {
             }
             case ELECTRO_CHARGED -> {
                 if (emitVisual) {
-                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, pos.x, pos.y + 0.8D, pos.z, 2, 0.1D, 0.1D, 0.1D, 0.02D);
+                    // ParticleTypes.ELECTRIC_SPARK removed
                     level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.7F, 1.7F);
                 }
             }

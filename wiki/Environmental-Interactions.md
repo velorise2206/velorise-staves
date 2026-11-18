@@ -1,43 +1,82 @@
-# Environmental Interactions & Mob Mutations
+# Environmental Interactions, Innate Mobs & Mutations
 
-The world of Minecraft interacts dynamically with the mod's Elemental Gauge Theory. Blocks, weather, water bodies, and vanilla mobs carry natural elemental affinities that trigger reactions automatically!
-
----
-
-## Environmental Elemental Sources
-
-### 1. Water Bodies & Rainfall
-- **Water Pools / Rivers / Oceans:** Walking in water or being submerged continuously applies an infinite **Hydro Aura**. 
-  - Hitting water with **Cryo** creates temporary **Frosted Ice** that you can walk across (similar to Frost Walker, but works with staves!).
-  - Hitting water with **Electro** triggers **Branching Surface Arcs**: electric lightning currents branch across the entire water surface, shocking all entities in the pool.
-- **Rain:** Entities standing in rain outdoors receive continuous **Hydro Aura** application, allowing you to trigger Vaporize, Electro-Charged, Bloom, or Freeze without spending Hydro skills!
-
-### 2. Fire, Lava, and Campfires
-- **Fire & Soul Fire:** Walking into fire applies **Pyro Aura** (`1.0U`). Soul Fire applies higher damage ticks.
-- **Lava:** Swimming or standing in lava applies an overwhelming **Pyro Aura** (`2.0U`). Applying Cryo or Hydro triggers instant Vaporize/Melt steam blasts.
-- **Campfires:** Standing on lit campfires or soul campfires continuously feeds a mild Pyro aura.
-
-### 3. Powder Snow & Cold Biomes
-- Walking through **Powder Snow** accelerates cold accumulation and applies **Cryo Aura** (`1.0U`).
-- Enemies in snowy biomes during snowfall are prime targets for Superconduct or Melt reactions.
-
-### 4. Lightning Rods (Tesla Coils)
-- Striking a **Lightning Rod** with any Electro weapon (Arc Caster, Engulfing Lightning, Void Translocator, Dragonfire Scepter) overcharges the rod into a **Tesla Coil**:
-  - Emits high-voltage electric discharges to nearby hostile mobs within an 8-block radius.
-  - Channels arcs into adjacent water bodies.
+In **Velorise's Staves**, the Minecraft world is a living elemental sandbox. Terrain blocks, fluids, weather, redstone circuits, sculk sensors, amethyst geodes, and creatures interact with the **Elemental Gauge Theory (EGT)** automatically every tick.
 
 ---
 
-## Innate Mob Element Affinities
+## 🌍 Environmental Block & Weather Interactions
 
-Certain vanilla Minecraft mobs possess **Innate Elemental Auras**. You do not need to apply an initial element to react with them:
+### 1. Water Bodies, Rain & Hydro Interactions
+- **Water Pools, Rivers & Oceans:** Standing or swimming in water continuously applies a non-decaying **`1.0U` Hydro Aura** and extinguishes Burning/Pyro auras.
+  - **Cryo on Water (Ice Bridging):** Any Cryo projectile, Tsaritsa Spear footstep, or Cryo-Imbued mob touching water freezes surface water blocks into temporary **Frosted Ice**.
+  - **Electro on Water (Electrified Water Pools):** Striking water with any Electro attack (or when a Powered Creeper / Mutated Electro mob enters water) electrifies the water zone (`ElectrifiedWaterManager`). Crackling purple arcs jump across the water surface and between submerged mobs, dealing **`0.5❤` (`1.0F`) + `0.8U` Electro** every `1.0s` (`20t`) to trigger continuous **Electro-Charged** shocks!
+- **Rainfall:** Entities standing outdoors under rain receive continuous **Hydro Aura**, enabling effortless *Vaporize, Electro-Charged, Bloom,* and *Freeze* combos.
+- **Hydro Attacks on Terrain:** Hydro beams and splashes extinguish Fire blocks, unlight lit Campfires and Candles, solidify Lava into Obsidian/Cobblestone, and hydrate Farmland.
 
-| Mob | Innate Element | Natural Reaction Opportunities |
+### 2. Fire, Lava, Campfires & Pyro Terrain Physics
+- **Fire, Soul Fire & Lava:** Touching Fire/Lava maintains a continuous **Pyro Aura** (`1.0U` on Fire, `2.0U` on Soul Campfire & Lava).
+- **Pyro Attacks on Terrain (`applyPyroEnvironmentEffects`):**
+  - **Melts Ice & Snow:** Instantly melts Frosted Ice, Ice, Packed Ice (`radius >= 2.0m`), Snow layers, Snow Blocks, Powder Snow, and converts Powder Snow Cauldrons into Water Cauldrons.
+  - **Ignites & Primes:** Lights unlit Campfires and Candles, primes **TNT blocks** directly into live `PrimedTnt`, and burns away **Cobwebs** and dry replaceable vegetation!
+- **Amethyst Cluster Overloaded Mining (`checkPyroAmethystMining`):**
+  - Just like Genshin Impact's Electro Crystals, Amethyst Clusters and Buds carry natural Electro energy. Hitting an **Amethyst Cluster** with any **Pyro attack** or **Overloaded explosion** triggers an Overloaded detonation that shatters the cluster and drops **2 to 4 Amethyst Shards**!
+
+### 3. Tesla Coils, Lightning Rods, Redstone & Sculk Sensors (Electro)
+- **Tesla Coil Structure (`Lightning Rod` placed on top of a `Redstone Block`):**
+  - **Passive Mode:** Automatically zaps the nearest hostile mob within **`6.0m`** every `2.5s` (`50t`) for **`0.5❤` + `1.0U` Electro** with a visual lightning arc.
+  - **Overcharged Mode (`15.0s` / `300t`):** Striking a Tesla Coil with **any Electro staff/sword** or a natural **Lightning Bolt** overcharges it for `15.0s` (unlocking the **High-Voltage Architect** advancement!). While overcharged, it zaps up to **4 targets** within **`8.0m`** every `1.0s` (`20t`) for **`1.5❤` + `2.0U` Electro**, electrifies nearby water, and triggers **Hyperbloom** on nearby Dendro Cores!
+- **Standalone Lightning Rods:** When struck by lightning or an Electro attack, discharges a **`4.5m` Electro shockwave** (`1.0U` Electro) and electrifies adjacent water.
+- **Sculk Sensors & Calibrated Sculk Sensors:**
+  - When a **Sculk Sensor** enters its `ACTIVE` phase from sound vibrations, it immediately zaps the nearest entity within **`8.0m`** for **`1.0U` Electro** (and every `0.5s` while active).
+  - An active **Calibrated Sculk Sensor** zaps within **`16.0m`** for a heavy **`2.0U` Electro**!
+- **Observers & Energized Redstone:**
+  - **Observer Blocks:** When triggered (`POWERED = true`), emits a **`1.0U` Electro** shock from its back output port (`0.3s` ICD).
+  - **Redstone Contact:** Touching a **Redstone Block**, powered **Redstone Wire (`power > 0`)**, **Lit Redstone Ore**, **Redstone Torch**, or active **Powered Rail** applies **`1.0U` Electro** with crackling arcs!
+- **Amethyst Geodes:** Touching solid **Amethyst Blocks / Budding Amethyst** or standing within `1.0m` of an **Amethyst Cluster** applies **`1.0U` Electro** every `1.0s`.
+
+### 4. Dendro, Cryo & Geo Environmental Hazards
+- **Dendro Contact:** Standing on **Slime Blocks**, **Honey Blocks**, or touching **Giant Red/Brown Mushroom Blocks** applies **`1.0U` Dendro Aura**; walking into **Cactus** or **Sweet Berry Bushes** also applies Dendro.
+- **Cryo Contact:** Standing in **Powder Snow** or touching **Blue Ice / Packed Ice** applies **`1.0U` Cryo Aura**.
+- **Geo Contact:** Being struck by falling **Pointed Dripstone (Stalactites)** or landing on **Stalagmites** applies **`1.0U` Geo Aura** (and shatters Frozen targets!).
+- **Thorns Armor Reflection & Elemental Armor Wear:**
+  - Wearing armor enchanted with **Thorns** reflects **`0.5U` per Thorns level** of the attacker's or victim's active element back onto melee attackers!
+  - Elemental reactions accelerate armor durability wear on victims (configurable via `elemental_armor_durability_wear`: `"auto"`, `"true"`, `"false"`).
+
+---
+
+## 👾 Innate Creature Elemental Affinities
+
+Many vanilla Minecraft mobs possess a permanent **Innate Elemental Aura** (and are **100% Immune** to damage of their own innate element while naturally reacting with opposing elements):
+
+| Element | Innate Vanilla Creatures | Combat Tips & Natural Reactions |
 | :--- | :--- | :--- |
-| **Blaze, Magma Cube** | 🔥 **Pyro** | Hit with Hydro for **2.0× Forward Vaporize** or Cryo for **1.5× Reverse Melt**! |
-| **Drowned, Guardian, Elder Guardian** | 💧 **Hydro** | Hit with Cryo for instant **Frozen**, or Electro for instant **Electro-Charged**! |
-| **Stray, Polar Bear** | ❄️ **Cryo** | Hit with Pyro for **2.0× Forward Melt**, or Electro for **Superconduct**! |
-| **Breeze** | 🌪️ **Anemo** | Naturally Swirls any element applied to it! |
-| **Enderman, Shulker** | ⚡ **Electro** | Hit with Pyro for **Overloaded** or Dendro for **Quicken**! |
-| **Creeper, Sniffer** | 🌿 **Dendro** | Hit with Hydro for **Bloom** or Electro for **Quicken**! |
-| **Iron Golem, Warden** | 🪨 **Geo** | Can be struck with elemental attacks to generate **Crystallize Shards**! |
+| 🔥 **Pyro** | **Blaze, Magma Cube, Strider, Ghast, Zombified Piglin, Zoglin, Wither Skeleton** | Immune to Pyro & Fire. Hit with **Hydro** for `2.0×` *Forward Vaporize*, **Cryo** for `1.5×` *Reverse Melt*, or **Electro** for *Overloaded*! |
+| 💧 **Hydro** | **Guardian, Elder Guardian, Drowned, Axolotl** | Immune to Hydro. Hit with **Cryo** for instant *Frozen*, **Dendro** for *Bloom* cores, or **Electro** for *Electro-Charged*! |
+| 🌪️ **Anemo** | **Breeze, Phantom, Vex** | Immune to Anemo & Fall Damage (except Stalagmites). Hit with Pyro/Hydro/Electro/Cryo to trigger instant `5.0m` **Swirl**! |
+| ⚡ **Electro** | **Enderman, Ender Dragon, Endermite, Shulker, Powered Creeper** | Immune to Electro. **Powered Creepers** passively radiate `1.0U` Electro within `1.0m` every `1.0s` and electrify water! Hit with **Pyro** for *Overloaded* or **Dendro** for *Quicken*. |
+| 🌿 **Dendro** | **Bogged, Mooshroom, Bee, Cave Spider, Slime** | Immune to Dendro. Hit with **Pyro** for *Burning*, **Hydro** for *Bloom*, or **Electro** for *Quicken / Aggravate*! |
+| ❄️ **Cryo** | **Stray, Snow Golem, Polar Bear** | Immune to Cryo. Freeze water underfoot! Hit with **Pyro** for `2.0×` *Forward Melt* or **Electro** for *Superconduct* (`-40%` Phys RES). |
+| 🪨 **Geo** | **Armadillo, Iron Golem, Husk, Silverfish** | Immune to Geo. Hit with Pyro/Hydro/Electro/Cryo to spawn **Crystallize Shards** for free elemental shields! |
+
+---
+
+## 🧬 Innate Mob Mutations (`7%` Default) & Omni Pet Taming
+
+When normal mobs spawn in the world, they roll against the configurable **Innate Mutation System** (`StavesConfig` `innate_mutation`):
+1. **Standard Elemental Mutation (`~6%` default):**
+   - The mob gains one of the **7 Elements** as an innate aura (displayed as an overhead elemental badge and in Jade/Waila tooltips), becomes immune to that element, inflicts `1.0U` of that element on melee attacks, and drops its matching **Elemental Essence** at a **15% rate** on player kill (vs `5%` for natural innate mobs).
+2. **Omni-Innate Mutation (`~1%` default — `Omni ∞`):**
+   - Approximately `14.3%` (`omni_mutation_share = 0.143`) of mutated mobs ascend into **Omni-Innate Creatures**, marked by a spinning iridescent **Omni Prism Badge (`Omni ∞`)**.
+   - **100% Immune to All Elemental & Magic Damage:** Omni-mutated mobs take **zero damage** from staves, reactions, potions, and elemental hazards — you must defeat them using **Physical Melee or Bow attacks**!
+   - **Adaptive Elemental Strikes:** When an Omni-mutated mob attacks a target that already has an elemental aura, it **automatically applies the strongest reaction-triggering element**!
+   - **25% Essence Drop Rate:** Dropping an **Omni Element** or Elemental Essence on player kill.
+3. **Taming Omni-Innate Mobs (`Transcendent Companion` Advancement):**
+   - Right-clicking a tamable animal (such as a **Wolf** or **Fox** — whitelisted by default in `mutable_mob_whitelist`) that spawned with an **Omni-Innate Mutation** using an **Omni Element** (`omni_element`) **instantly tames it as an immortal elemental-immune companion** and unlocks the **Transcendent Companion** challenge advancement!
+
+---
+
+## 🧠 Mob Elemental Hazard Avoidance AI (`MobHazardAvoidanceManager`)
+
+Non-boss pathfinding mobs feature a custom AI goal (`AvoidElementalHazardsGoal`) and danger-memory reflex:
+- **Pathfinding Penalty (`WalkNodeEvaluatorMixin`):** Mobs actively steer around **Electrified Water**, **Ghastfire Fields**, **Dragonfire Clouds**, **Active Tesla Coils**, **Lit Campfires**, and **Temporary Toxic Webs** (unless they are innate-immune to that hazard's element!).
+- **Unseen Sniper Evasion:** If a mob is struck by a long-range elemental reaction with no visible player nearby, it records the hazard coordinates and flees away from the blast zone for `2.0s` (`40t`).

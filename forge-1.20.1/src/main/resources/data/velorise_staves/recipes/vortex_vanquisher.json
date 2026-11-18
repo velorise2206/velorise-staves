@@ -4,7 +4,7 @@
   "pattern": [
     " GG",
     " EG",
-    "G  "
+    "S  "
   ],
   "key": {
     "G": {
@@ -17,10 +17,13 @@
       {
         "item": "velorise_staves:omni_element"
       }
-    ]
+    ],
+    "S": {
+      "tag": "velorise_staves:geo_staves"
+    }
   },
   "result": {
-    "count": 1,
-    "item": "velorise_staves:vortex_vanquisher"
+    "item": "velorise_staves:vortex_vanquisher",
+    "count": 1
   }
 }

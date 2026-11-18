@@ -420,6 +420,10 @@ public final class ZhongliManager {
         if (amount <= 0.0F || entity == null || !entity.isAlive() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
             return amount;
         }
+        if (DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, source)) {
+            return 0.0F;
+        }
+        amount = DragonfireCloudManager.modifyShulkerShellGuardDamage(entity, source, amount);
         if (entity instanceof ServerPlayer sp && RaidenManager.isRaidenMusouActive(sp.getUUID(), entity.level().getGameTime())) {
             if (source instanceof ElementalDeathMessageHelper.ElementalReactionDamageSource erds) {
                 if (erds.getReaction() == ElementalReaction.ELECTRO_CHARGED) {

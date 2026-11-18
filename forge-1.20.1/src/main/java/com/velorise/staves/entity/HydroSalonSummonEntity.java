@@ -61,7 +61,21 @@ public class HydroSalonSummonEntity extends Entity {
             SynchedEntityData.defineId(HydroSalonSummonEntity.class, EntityDataSerializers.INT);
 
     private static final Map<UUID, Long> ACTIVE_OWNER_SUMMON_UNTIL = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> NEGATIVE_SUMMON_SCAN_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Boolean> ACTIVE_OWNER_NETHERITE = new ConcurrentHashMap<>();
+
+    public static void clearPlayerState(@Nullable UUID playerId) {
+        if (playerId == null) return;
+        ACTIVE_OWNER_SUMMON_UNTIL.remove(playerId);
+        NEGATIVE_SUMMON_SCAN_UNTIL.remove(playerId);
+        ACTIVE_OWNER_NETHERITE.remove(playerId);
+    }
+
+    public static void clearAll() {
+        ACTIVE_OWNER_SUMMON_UNTIL.clear();
+        NEGATIVE_SUMMON_SCAN_UNTIL.clear();
+        ACTIVE_OWNER_NETHERITE.clear();
+    }
 
     private @Nullable UUID ownerUuid;
     private int ageTicks;
@@ -146,18 +160,30 @@ public class HydroSalonSummonEntity extends Entity {
 
     public static boolean hasActiveSummon(@Nullable Player player) {
         if (player == null) return false;
-        if (!carriesSplendorStaff(player)) return false;
-        Long until = ACTIVE_OWNER_SUMMON_UNTIL.get(player.getUUID());
-        if (until != null && player.level().getGameTime() <= until) {
-            return true;
+        UUID pid = player.getUUID();
+        long now = player.level().getGameTime();
+        Long until = ACTIVE_OWNER_SUMMON_UNTIL.get(pid);
+        if (until != null && now <= until) {
+            return carriesSplendorStaff(player);
+        }
+        Long negUntil = NEGATIVE_SUMMON_SCAN_UNTIL.get(pid);
+        if (negUntil != null && now <= negUntil) {
+            return false;
+        }
+        if (!carriesSplendorStaff(player)) {
+            NEGATIVE_SUMMON_SCAN_UNTIL.put(pid, now + 10L);
+            return false;
         }
         AABB box = player.getBoundingBox().inflate(64.0D);
         List<HydroSalonSummonEntity> list = player.level().getEntitiesOfClass(
-                HydroSalonSummonEntity.class, box, Entity::isAlive);
+                HydroSalonSummonEntity.class, box,
+                e -> e.isAlive() && (e.level().isClientSide() || pid.equals(e.getOwnerUUID())));
         if (!list.isEmpty()) {
-            ACTIVE_OWNER_SUMMON_UNTIL.put(player.getUUID(), player.level().getGameTime() + 10L);
+            NEGATIVE_SUMMON_SCAN_UNTIL.remove(pid);
+            ACTIVE_OWNER_SUMMON_UNTIL.put(pid, now + 10L);
             return true;
         }
+        NEGATIVE_SUMMON_SCAN_UNTIL.put(pid, now + 10L);
         return false;
     }
 
