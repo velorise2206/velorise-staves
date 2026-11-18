@@ -1217,6 +1217,17 @@ public final class ClientAuraTracker {
         return state != null && state.effectiveMusouTicks() > 0.0F;
     }
 
+    public static boolean isRaidenSlashingOrBursting(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        if (data == null || System.currentTimeMillis() >= data.staffAnimUntil) return false;
+        int anim = data.staffAnimType;
+        return anim == ANIM_RAIDEN_DRAW || anim == ANIM_RAIDEN_SLASH || anim == ANIM_RAIDEN_CA;
+    }
+
+    public static boolean isSlotSwitchLocked(int entityId) {
+        return isUltiCastActive(entityId) || isRaidenSlashingOrBursting(entityId);
+    }
+
 
     public static boolean isXilonenSkating(int entityId) {
         AuraDisplayData data = DATA.get(entityId);

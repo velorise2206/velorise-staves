@@ -235,10 +235,15 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.item.ArcaneStaffItem.tickCraftingMenuOmniPreview(client.player);
                 int curSlot = client.player.getInventory().selected;
                 if (lastSelectedHotbarSlot[0] != -1 && curSlot != lastSelectedHotbarSlot[0]) {
-                    net.minecraft.world.item.ItemStack main = client.player.getMainHandItem();
-                    ClientAuraTracker.interruptActiveAnimations(client.player.getId());
-                    if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem) {
-                        com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(client.player, main);
+                    if (ClientAuraTracker.isSlotSwitchLocked(client.player.getId())) {
+                        client.player.getInventory().selected = lastSelectedHotbarSlot[0];
+                        curSlot = lastSelectedHotbarSlot[0];
+                    } else {
+                        net.minecraft.world.item.ItemStack main = client.player.getMainHandItem();
+                        ClientAuraTracker.interruptActiveAnimations(client.player.getId());
+                        if (main.getItem() instanceof com.velorise.staves.item.ArcaneStaffItem) {
+                            com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(client.player, main);
+                        }
                     }
                 }
                 lastSelectedHotbarSlot[0] = curSlot;

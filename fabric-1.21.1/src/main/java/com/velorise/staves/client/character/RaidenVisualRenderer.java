@@ -284,6 +284,11 @@ public final class RaidenVisualRenderer {
         int alpha = Mth.clamp((int) (255.0F * fade), 10, 255);
         Vec3 sCam = startPos.subtract(camPos);
         Vec3 eCam = endPos.subtract(camPos);
+        if (isMusouOrCa) {
+            Vec3 mid = sCam.lerp(eCam, 0.5D);
+            sCam = mid.add(sCam.subtract(mid).scale(3.0D));
+            eCam = mid.add(eCam.subtract(mid).scale(3.0D));
+        }
         Vec3 slashDir = eCam.subtract(sCam);
         double chordLen = slashDir.length();
         if (chordLen > 1.0E-4D) {
@@ -301,7 +306,7 @@ public final class RaidenVisualRenderer {
             // Smooth 12-segment crescent moon spline with 3-tier Electro gradient (0x7828C8 -> 0xBF5AF2 -> 0xFFFFFF)
             int segs = 12;
             double archDepth = chordLen * (isMusouOrCa ? 0.28D : 0.20D) * (0.92D + prog * 0.16D);
-            double maxHalfWidth = (isMusouOrCa ? 0.30D : 0.16D) * (1.08D - prog * 0.32D);
+            double maxHalfWidth = (isMusouOrCa ? 0.90D : 0.16D) * (1.08D - prog * 0.32D);
 
             for (int i = 0; i < segs; i++) {
                 double u0 = (double) i / (double) segs;

@@ -215,10 +215,15 @@ public final class ClientInputHandler {
                 ArcaneStaffItem.tickCraftingMenuOmniPreview(mc.player);
                 int curSlot = mc.player.getInventory().selected;
                 if (lastSelectedHotbarSlot != -1 && curSlot != lastSelectedHotbarSlot) {
-                    ItemStack main = mc.player.getMainHandItem();
-                    ClientAuraTracker.interruptActiveAnimations(mc.player.getId());
-                    if (main.getItem() instanceof ArcaneStaffItem) {
-                        com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(mc.player, main);
+                    if (ClientAuraTracker.isSlotSwitchLocked(mc.player.getId())) {
+                        mc.player.getInventory().selected = lastSelectedHotbarSlot;
+                        curSlot = lastSelectedHotbarSlot;
+                    } else {
+                        ItemStack main = mc.player.getMainHandItem();
+                        ClientAuraTracker.interruptActiveAnimations(mc.player.getId());
+                        if (main.getItem() instanceof ArcaneStaffItem) {
+                            com.velorise.staves.element.ElementalResonanceManager.notifyClientSlotSwitchedToStaff(mc.player, main);
+                        }
                     }
                 }
                 lastSelectedHotbarSlot = curSlot;
