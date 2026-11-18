@@ -57,6 +57,20 @@ public final class ClientInputHandler {
             GLFW.GLFW_KEY_R,
             "key.categories.velorise_staves"
     );
+
+    public static final KeyMapping PLUNGE_ATTACK_KEY = new KeyMapping(
+            "key.velorise_staves.plunge_attack",
+            InputConstants.Type.MOUSE,
+            GLFW.GLFW_MOUSE_BUTTON_LEFT,
+            "key.categories.velorise_staves"
+    );
+
+    public static final KeyMapping WIND_GLIDER_KEY = new KeyMapping(
+            "key.velorise_staves.wind_glider",
+            InputConstants.Type.MOUSE,
+            GLFW.GLFW_MOUSE_BUTTON_RIGHT,
+            "key.categories.velorise_staves"
+    );
     private static boolean wasBikeDashDown = false;
     private static boolean bikeSprintActive = false;
     private static boolean bikeMountWaitRelease = false;
@@ -100,6 +114,8 @@ public final class ClientInputHandler {
             event.register(OmniWheelOverlay.OMNI_WHEEL_KEY);
             event.register(MAVUIKA_ULTI_KEY);
             event.register(OPEN_CONFIG_KEY);
+            event.register(PLUNGE_ATTACK_KEY);
+            event.register(WIND_GLIDER_KEY);
         }
     }
 
@@ -506,7 +522,7 @@ public final class ClientInputHandler {
                 }
             }
             wasAirJumpDown = jumpDown;
-            boolean useDown = mc.options.keyUse.isDown();
+            boolean useDown = WIND_GLIDER_KEY.isDown();
             if (useDown && !wasAirUseDown
                     && (ClientAuraTracker.localWindGliderUnlocked || com.velorise.staves.element.PlungeAndGliderManager.isWindGliderUnlocked(mc.player))
                     && !mc.player.onGround() && !wasOnGround
@@ -516,7 +532,11 @@ public final class ClientInputHandler {
                     && (mc.hitResult == null || mc.hitResult.getType() == net.minecraft.world.phys.HitResult.Type.MISS)
                     && com.velorise.staves.element.PlungeAndGliderManager.canRightClickToggleGlider(mc.player)) {
                 ClientAuraTracker.localWindGliderUnlocked = true;
-                while (mc.options.keyUse.consumeClick()) {
+                while (WIND_GLIDER_KEY.consumeClick()) {
+                }
+                if (WIND_GLIDER_KEY.same(mc.options.keyUse)) {
+                    while (mc.options.keyUse.consumeClick()) {
+                    }
                 }
                 if (mc.player.getAbilities().flying) {
                     mc.player.getAbilities().flying = false;
@@ -567,11 +587,15 @@ public final class ClientInputHandler {
                 mc.player.fallDistance = 0.0F;
             }
 
-            boolean atkDown = mc.options.keyAttack.isDown();
+            boolean atkDown = PLUNGE_ATTACK_KEY.isDown();
             if (atkDown && !wasAirAttackDown && !holdingGuardian
                     && com.velorise.staves.element.PlungeAndGliderManager.canTriggerMidAirPlunge(mc.player)) {
-                while (mc.options.keyAttack.consumeClick()) {
-                    // Suppress vanilla air swing when initiating plunge
+                while (PLUNGE_ATTACK_KEY.consumeClick()) {
+                }
+                if (PLUNGE_ATTACK_KEY.same(mc.options.keyAttack)) {
+                    while (mc.options.keyAttack.consumeClick()) {
+                        // Suppress vanilla air swing when initiating plunge
+                    }
                 }
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_PLUNGE_ATTACK);
             }

@@ -988,9 +988,11 @@ public final class WindGliderRenderer {
      * Renders a 3D Ender Dragon model of configurable wingspan (1.0 block for Mini Pet/Idle,
      * 5.0 blocks for Glider and Giant Ulti Dragon).
      */
+    private static net.minecraft.world.entity.boss.enderdragon.EnderDragon cachedVanillaEnderDragon = null;
+
     private static void renderStylizedEnderDragonModel(
             PoseStack poseStack,
-            VertexConsumer vc,
+            MultiBufferSource buffer,
             float halfWingspan,
             float flapAngleDeg,
             float headPitchDeg,
@@ -1000,90 +1002,36 @@ public final class WindGliderRenderer {
             boolean grippingShoulders,
             int alpha
     ) {
-        float scale = halfWingspan / 2.50F; // Base dimensions authored for 5.0-block total wingspan (2.5m per wing)
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level == null) return;
+        if (cachedVanillaEnderDragon == null || cachedVanillaEnderDragon.level() != mc.level) {
+            cachedVanillaEnderDragon = net.minecraft.world.entity.EntityType.ENDER_DRAGON.create(mc.level);
+        }
+        if (cachedVanillaEnderDragon == null) return;
+
+        float scale = (halfWingspan / 2.50F) * 0.28F;
         poseStack.pushPose();
         poseStack.scale(scale, scale, scale);
-        Matrix4f bodyMat = poseStack.last().pose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        if (headPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(headPitchDeg));
+        if (headYawDeg != 0.0F) poseStack.mulPose(Axis.YP.rotationDegrees(headYawDeg));
+        if (headRollDeg != 0.0F) poseStack.mulPose(Axis.ZP.rotationDegrees(headRollDeg));
 
-        int obR = 24, obG = 18, obB = 34;
-        int spR = 215, spG = 75, spB = 255;
-        int memR = 135, memG = 40, memB = 210;
-        int memA = Math.max(40, (int) (alpha * 0.72F));
+        float flapCycle = (time * 0.075F) % 1.0F;
+        cachedVanillaEnderDragon.oFlapTime = flapCycle;
+        cachedVanillaEnderDragon.flapTime = flapCycle;
+        cachedVanillaEnderDragon.setYRot(0.0F);
+        cachedVanillaEnderDragon.yRotO = 0.0F;
+        cachedVanillaEnderDragon.yBodyRot = 0.0F;
+        cachedVanillaEnderDragon.yBodyRotO = 0.0F;
+        cachedVanillaEnderDragon.setXRot(0.0F);
+        cachedVanillaEnderDragon.xRotO = 0.0F;
+        cachedVanillaEnderDragon.dragonDeathTime = 0;
 
-        // 1. Torso & glowing Ender spine ridges
-        emitBox3D(vc, bodyMat, -0.28F, -0.18F, -0.42F, 0.28F, 0.20F, 0.48F, obR, obG, obB, alpha);
-        for (int s = 0; s < 4; s++) {
-            float sz = -0.30F + s * 0.20F;
-            emitBox3D(vc, bodyMat, -0.04F, 0.20F, sz, 0.04F, 0.30F, sz + 0.10F, spR, spG, spB, alpha);
-        }
-
-        // 2. Shoulder-gripping claws when carrying the gliding player
-        if (grippingShoulders) {
-            emitBox3D(vc, bodyMat, -0.32F, -0.52F, -0.18F, -0.18F, -0.16F, -0.04F, obR, obG, obB, alpha);
-            emitBox3D(vc, bodyMat, 0.18F, -0.52F, -0.18F, 0.32F, -0.16F, -0.04F, obR, obG, obB, alpha);
-            emitBox3D(vc, bodyMat, -0.34F, -0.58F, -0.24F, -0.16F, -0.50F, -0.02F, spR, spG, spB, alpha);
-            emitBox3D(vc, bodyMat, 0.16F, -0.58F, -0.24F, 0.34F, -0.50F, -0.02F, spR, spG, spB, alpha);
-        }
-
-        // 3. Articulated Head, Snout, Horns & Glowing Magenta Eyes
-        poseStack.pushPose();
-        poseStack.translate(0.0F, 0.08F, -0.52F);
-        poseStack.mulPose(Axis.YP.rotationDegrees(headYawDeg));
-        poseStack.mulPose(Axis.XP.rotationDegrees(headPitchDeg));
-        poseStack.mulPose(Axis.ZP.rotationDegrees(headRollDeg));
-        Matrix4f headMat = poseStack.last().pose();
-        emitBox3D(vc, headMat, -0.22F, -0.16F, -0.36F, 0.22F, 0.18F, 0.06F, obR, obG, obB, alpha);
-        emitBox3D(vc, headMat, -0.16F, -0.12F, -0.64F, 0.16F, 0.06F, -0.34F, obR, obG, obB, alpha);
-        // Horns
-        emitBox3D(vc, headMat, -0.18F, 0.16F, -0.12F, -0.10F, 0.32F, 0.14F, spR, spG, spB, alpha);
-        emitBox3D(vc, headMat, 0.10F, 0.16F, -0.12F, 0.18F, 0.32F, 0.14F, spR, spG, spB, alpha);
-        // Glowing Eyes
-        emitBox3D(vc, headMat, -0.23F, 0.02F, -0.28F, -0.14F, 0.10F, -0.16F, 255, 95, 255, alpha);
-        emitBox3D(vc, headMat, 0.14F, 0.02F, -0.28F, 0.23F, 0.10F, -0.16F, 255, 95, 255, alpha);
-        poseStack.popPose();
-
-        // 4. Segmented swaying Tail
-        for (int t = 0; t < 4; t++) {
-            float tz = 0.50F + t * 0.28F;
-            float sway = Mth.sin(time * 0.22F - t * 0.55F) * 0.08F * (t + 1);
-            float w = 0.16F - t * 0.03F;
-            emitBox3D(vc, bodyMat, sway - w, -0.08F, tz, sway + w, 0.08F, tz + 0.24F, obR, obG, obB, alpha);
-            emitBox3D(vc, bodyMat, sway - 0.03F, 0.08F, tz + 0.04F, sway + 0.03F, 0.16F, tz + 0.18F, spR, spG, spB, alpha);
-        }
-
-        // 5. Articulated 5.0-block Total Wingspan (1.30m inner + 1.20m outer = 2.50m per side at scale=1.0)
-        float innerSpan = 1.30F;
-        float outerSpan = 1.20F;
-        for (int side : new int[]{-1, 1}) {
-            poseStack.pushPose();
-            poseStack.translate(side * 0.26F, 0.12F, -0.10F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * flapAngleDeg));
-            Matrix4f inMat = poseStack.last().pose();
-            float xIn = side * innerSpan;
-            // Leading wing bone
-            emitBox3D(vc, inMat, Math.min(0.0F, xIn), -0.04F, -0.32F, Math.max(0.0F, xIn), 0.04F, -0.22F, spR, spG, spB, alpha);
-            // Inner wing membrane
-            emitDoubleQuad(vc, inMat,
-                    0.0F, 0.0F, -0.26F,
-                    xIn, 0.0F, -0.26F,
-                    xIn, 0.0F, 0.62F,
-                    0.0F, 0.0F, 0.48F,
-                    memR, memG, memB, memA);
-
-            poseStack.translate(xIn, 0.0F, 0.0F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(side * (flapAngleDeg * 0.65F - 8.0F)));
-            Matrix4f outMat = poseStack.last().pose();
-            float xOut = side * outerSpan;
-            emitBox3D(vc, outMat, Math.min(0.0F, xOut), -0.03F, -0.28F, Math.max(0.0F, xOut), 0.03F, -0.20F, spR, spG, spB, alpha);
-            emitDoubleQuad(vc, outMat,
-                    0.0F, 0.0F, -0.24F,
-                    xOut, 0.0F, -0.12F,
-                    xOut * 0.85F, 0.0F, 0.56F,
-                    0.0F, 0.0F, 0.62F,
-                    memR, memG, memB, memA);
-            poseStack.popPose();
-        }
-
+        mc.getEntityRenderDispatcher().render(
+                cachedVanillaEnderDragon, 0.0D, 0.0D, 0.0D, 0.0F, 0.0F,
+                poseStack, buffer, net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+        );
         poseStack.popPose();
     }
 
@@ -1109,7 +1057,7 @@ public final class WindGliderRenderer {
         poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F));
         float flap = Mth.sin(time * 0.26F) * 18.0F;
         float pitch = Mth.cos(time * 0.26F) * 6.0F;
-        renderStylizedEnderDragonModel(poseStack, vc, 2.50F, flap, pitch, 0.0F, 0.0F, time, true, 235);
+        renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, flap, pitch, 0.0F, 0.0F, time, true, 235);
         poseStack.popPose();
     }
 
@@ -1155,13 +1103,13 @@ public final class WindGliderRenderer {
                 float p = smoothStep01(t / 0.78F);
                 poseStack.translate(0.0F, 1.45F + p * 22.0F, -0.4F);
                 poseStack.mulPose(Axis.XP.rotationDegrees(-85.0F));
-                renderStylizedEnderDragonModel(poseStack, vc, 0.50F, Mth.sin(time * 0.8F) * 28.0F, 0.0F, 0.0F, 0.0F, time, false, 235);
+                renderStylizedEnderDragonModel(poseStack, buffer, 0.50F, Mth.sin(time * 0.8F) * 28.0F, 0.0F, 0.0F, 0.0F, time, false, 235);
             } else {
                 float p = smoothStep01((t - 0.78F) / 0.22F);
                 float diveY = Mth.lerp(p, 20.0F, 0.35F);
                 poseStack.translate(0.0F, diveY, -3.2F);
                 poseStack.mulPose(Axis.XP.rotationDegrees(82.0F));
-                renderStylizedEnderDragonModel(poseStack, vc, 2.50F, 14.0F, 12.0F, 0.0F, 0.0F, time, false, 245);
+                renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 14.0F, 12.0F, 0.0F, 0.0F, time, false, 245);
             }
             poseStack.popPose();
             return;
@@ -1179,7 +1127,7 @@ public final class WindGliderRenderer {
             poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
             poseStack.translate(0.0F, swoopY, -forwardDist);
             poseStack.mulPose(Axis.XP.rotationDegrees(pitchDeg));
-            renderStylizedEnderDragonModel(poseStack, vc, 2.50F, Mth.sin(time * 0.55F) * 24.0F, 0.0F, 0.0F, 0.0F, time, false, 240);
+            renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, Mth.sin(time * 0.55F) * 24.0F, 0.0F, 0.0F, 0.0F, time, false, 240);
             poseStack.popPose();
             return;
         }
@@ -1235,7 +1183,7 @@ public final class WindGliderRenderer {
         }
         poseStack.translate(finalX, isFirstPersonSelf ? (finalY - 1.45F) : finalY, finalZ);
         poseStack.mulPose(Axis.YP.rotationDegrees(finalYaw));
-        renderStylizedEnderDragonModel(poseStack, vc, 0.50F, flap, headPitch, 0.0F, headRoll, time, false, alpha);
+        renderStylizedEnderDragonModel(poseStack, buffer, 0.50F, flap, headPitch, 0.0F, headRoll, time, false, alpha);
         poseStack.popPose();
     }
 

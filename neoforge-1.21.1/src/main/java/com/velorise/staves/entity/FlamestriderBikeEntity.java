@@ -766,10 +766,6 @@ public class FlamestriderBikeEntity extends Entity {
                         executeMountWhipImpact(sl, sp);
                     }
                 } else if (pendingFinisher && curStep == 6 && nextNa == 6) {
-                    if (!this.onGround() && !this.isInWater() && this.tickCount % 16 != 0) {
-                        this.entityData.set(DATA_NA_TICKS, 7);
-                        return;
-                    }
                     pendingFinisher = false;
                     executeChargedFinisher(sl, sp);
                 } else if (!pendingFinisher && !pendingDiscardAfterFinisher && curStep == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
@@ -974,17 +970,16 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     private void executeMountWhipImpact(ServerLevel sl, ServerPlayer sp) {
-        boolean isLeft = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
-        spawnFierySweep(sl, this.position().add(0.0D, 0.45D, 0.0D), sp.getYRot(), 3.2D, isLeft);
+        spawnFierySweep(sl, this.position().add(0.0D, 0.45D, 0.0D), sp.getYRot(), 3.2D, false);
         Vec3 fwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
-        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize().scale(isLeft ? -1.0D : 1.0D);
+        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
         Vec3 arcCenter = this.position().add(0.0D, 0.65D, 0.0D).add(fwd.scale(1.85D));
         com.velorise.staves.network.ModNetwork.sendElectricArc(
                 sl,
                 arcCenter.add(right.scale(-2.35D)),
                 arcCenter.add(right.scale(2.35D)),
                 8,
-                isLeft ? 0xFFFF8824 : 0xFFFF8825
+                0xFFFF8824
         );
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.90F, 1.05F);
         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.85F, 1.15F);

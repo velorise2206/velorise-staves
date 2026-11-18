@@ -779,5 +779,7 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Cho phép mô-tô Flamestrider của Mavuika leo thẳng lên vách đá và tường đứng chuẩn Genshin.",
   "config.velorise_staves.mavuika_bike_speed": "Tốc Độ Xe Mavuika",
   "config.velorise_staves.mavuika_bike_speed.desc": "Hệ số tốc độ di chuyển và leo tường của xe Flamestrider (Mặc định: 1.0x).",
-  "item.velorise_staves.electro_rod": "Gậy Lôi"
+  "item.velorise_staves.electro_rod": "Gậy Lôi",
+  "key.velorise_staves.plunge_attack": "Tấn Công Đáp",
+  "key.velorise_staves.wind_glider": "Mở / Đóng Phong Chi Dực"
 }

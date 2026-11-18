@@ -779,5 +779,7 @@
   "config.velorise_staves.enable_mavuika_wall_climb.desc": "Allow Mavuika's Flamestrider motorcycle to climb vertical cliffs and walls.",
   "config.velorise_staves.mavuika_bike_speed": "Flamestrider Speed Mult",
   "config.velorise_staves.mavuika_bike_speed.desc": "Movement and wall-climbing speed multiplier for Mavuika's Flamestrider motorcycle (Default: 1.0x).",
-  "item.velorise_staves.electro_rod": "Electro Rod"
+  "item.velorise_staves.electro_rod": "Electro Rod",
+  "key.velorise_staves.plunge_attack": "Plunge Attack",
+  "key.velorise_staves.wind_glider": "Toggle Wind Glider"
 }

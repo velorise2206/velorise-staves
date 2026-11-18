@@ -667,8 +667,10 @@ public class FlamestriderBikeEntity extends Entity {
                 sp.setShiftKeyDown(false);
                 sp.setPose(net.minecraft.world.entity.Pose.STANDING);
             }
-            boolean holdingMavuika = ArcaneStaffItem.getEffectiveKind(sp.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
-                    || ArcaneStaffItem.getEffectiveKind(sp.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
+            boolean holdingMavuika = (sp.getMainHandItem().getItem() instanceof ArcaneStaffItem sm
+                    && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                    || (sp.getOffhandItem().getItem() instanceof ArcaneStaffItem so
+                    && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS);
             if (!holdingMavuika && this.getUltiTicks() <= 0) {
                 this.spinInputHeld = false;
                 setSpinning(false);
@@ -766,10 +768,6 @@ public class FlamestriderBikeEntity extends Entity {
                         executeMountWhipImpact(sl, sp);
                     }
                 } else if (pendingFinisher && curStep == 6 && nextNa == 6) {
-                    if (!this.onGround() && !this.isInWater() && this.tickCount % 16 != 0) {
-                        this.entityData.set(DATA_NA_TICKS, 7);
-                        return;
-                    }
                     pendingFinisher = false;
                     executeChargedFinisher(sl, sp);
                 } else if (!pendingFinisher && !pendingDiscardAfterFinisher && curStep == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
@@ -869,7 +867,7 @@ public class FlamestriderBikeEntity extends Entity {
 
         AABB box = this.getBoundingBox().inflate(3.2D, 1.6D, 3.2D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
         boolean anyHit = false;
         for (LivingEntity target : targets) {
             double dMid = target.position().add(0.0D, target.getBbHeight() * 0.4D, 0.0D).distanceToSqr(midPoint);
@@ -906,7 +904,7 @@ public class FlamestriderBikeEntity extends Entity {
 
         AABB box = this.getBoundingBox().inflate(1.5D, 1.0D, 1.5D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
         boolean anyHit = false;
         for (LivingEntity target : targets) {
             long lastHit = dashHitCooldowns.getOrDefault(target.getId(), -100L);
@@ -942,7 +940,7 @@ public class FlamestriderBikeEntity extends Entity {
         AABB box = new AABB(center.x - 4.0D, center.y - 1.5D, center.z - 4.0D,
                 center.x + 4.0D, center.y + 2.5D, center.z + 4.0D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
         for (LivingEntity target : targets) {
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
@@ -957,6 +955,7 @@ public class FlamestriderBikeEntity extends Entity {
         spawnFierySweep(sl, this.position().add(0.0D, 0.55D, 0.0D), sp.getYRot(), 3.4D, sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
         sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.3D, this.getZ(), 42, 1.8D, 0.35D, 1.8D, 0.12D);
         sl.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.25D, this.getZ(), 16, 1.2D, 0.25D, 1.2D, 0.04D);
+        sl.playSound(null, this.blockPosition(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.9F, 1.15F);
         // Ulti slam explosion sound removed per user request
     }
 
@@ -999,7 +998,7 @@ public class FlamestriderBikeEntity extends Entity {
                 sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D
         );
         for (LivingEntity target : sl.getEntitiesOfClass(LivingEntity.class, sweepBox,
-                e -> isValidBikeCombatTarget(sp, e) && !ElementalGaugeManager.isPassiveAquaticOrAmbient(e))) {
+                e -> e.isAlive() && !e.isRemoved() && e != sp && !ElementalGaugeManager.isPassiveAquaticOrAmbient(e))) {
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, castDmg);
             Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
             if (kb.lengthSqr() > 1.0E-4D) {
@@ -1042,9 +1041,11 @@ public class FlamestriderBikeEntity extends Entity {
         this.entityData.set(DATA_NA_STEP, naComboStep);
         this.entityData.set(DATA_NA_TICKS, naComboStep == 5 ? 14 : 10);
         net.minecraft.world.InteractionHand swingHand =
-                (ArcaneStaffItem.getEffectiveKind(sp.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                (sp.getMainHandItem().getItem() instanceof ArcaneStaffItem sm
+                        && sm.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
                         ? net.minecraft.world.InteractionHand.MAIN_HAND
-                        : ((ArcaneStaffItem.getEffectiveKind(sp.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
+                        : ((sp.getOffhandItem().getItem() instanceof ArcaneStaffItem so
+                                && so.kind() == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
                                 ? net.minecraft.world.InteractionHand.OFF_HAND
                                 : net.minecraft.world.InteractionHand.MAIN_HAND);
         sp.swing(swingHand, true);
@@ -1066,7 +1067,7 @@ public class FlamestriderBikeEntity extends Entity {
         Vec3 origin = this.position().add(0.0D, 0.5D, 0.0D);
         AABB box = this.getBoundingBox().inflate(range, 1.8D, range);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
         boolean anyHit = false;
         for (LivingEntity target : targets) {
             Vec3 toTarget = target.position().subtract(origin);
@@ -1235,7 +1236,7 @@ public class FlamestriderBikeEntity extends Entity {
                 hitCenter.x + radius, hitCenter.y + 2.2D, hitCenter.z + radius
         );
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
+                e -> e.isAlive() && !e.isRemoved() && e != sp);
         for (LivingEntity target : targets) {
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             Vec3 kb = target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
@@ -1279,7 +1280,7 @@ public class FlamestriderBikeEntity extends Entity {
                 || (getNaStep() == 6 && getNaTicks() > 0);
         serverDashChain++;
         lastDashTick = now;
-        int dashCd = (serverDashChain >= 2) ? 30 : 5; // 2 consecutive dashes (5t gap), then 1.5s (30t) cooldown unless reset by CC spin
+        int dashCd = (serverDashChain >= 2) ? 15 : 5; // 2 consecutive dashes (5t gap), then 0.75s (15t) stagger before 3rd
         if (serverDashChain >= 2) {
             serverDashChain = 0;
         }
@@ -1291,11 +1292,11 @@ public class FlamestriderBikeEntity extends Entity {
         ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 3.0F);
         if (dashCd >= 15) {
             if (sp.getMainHandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem sm
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(sp.getMainHandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                    && sm.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
                 sp.getCooldowns().addCooldown(sm, dashCd);
             }
             if (sp.getOffhandItem().getItem() instanceof com.velorise.staves.item.ArcaneStaffItem so
-                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(sp.getOffhandItem()) == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
+                    && so.kind() == com.velorise.staves.item.ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS) {
                 sp.getCooldowns().addCooldown(so, dashCd);
             }
         }
@@ -1602,11 +1603,6 @@ public class FlamestriderBikeEntity extends Entity {
                 spinPivotZO = spinPivotZ;
             }
             clientContinuousSpinTicks++;
-            if (clientContinuousSpinTicks >= 8) {
-                clientDashCooldownTicks = 0;
-                clientDashChain = 0;
-                clientDashWindowTicks = 0;
-            }
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
@@ -1828,15 +1824,10 @@ public class FlamestriderBikeEntity extends Entity {
         clientWasOnGround = this.onGround();
     }
 
-    private static boolean isValidBikeCombatTarget(ServerPlayer sp, LivingEntity e) {
-        return e.isAlive() && !e.isRemoved() && e != sp && !e.isSpectator()
-                && !sp.isAlliedTo(e) && !ElementalGaugeManager.isRaidenProtectedAlly(sp, e);
-    }
-
     @Override
     protected void readAdditionalSaveData(CompoundTag tag) {
         if (tag.hasUUID("Owner")) {
-            this.entityData.set(DATA_OWNER_UUID, Optional.of(tag.getUUID("Owner")));
+            setOwner(this.level().getPlayerByUUID(tag.getUUID("Owner")));
         }
         setNetherite(tag.getBoolean("Netherite"));
     }

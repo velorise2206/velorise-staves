@@ -603,8 +603,8 @@ public final class ArcaneStaffItem extends Item {
         if (!level.isClientSide() && player instanceof ServerPlayer spUse) {
             com.velorise.staves.element.ArchonUltiManager.resetAllArchonIdleTimers(spUse);
         }
-        if (hand == InteractionHand.OFF_HAND && isGenshinCharacterWeapon(stack) && isGenshinCharacterWeapon(player.getMainHandItem())) {
-            return InteractionResultHolder.fail(stack);
+        if (hand == InteractionHand.OFF_HAND && isGenshinCharacterWeapon(stack)) {
+            return InteractionResultHolder.pass(stack);
         }
         if (ElementalResonanceManager.isOnSwapCooldown(player)) {
             return InteractionResultHolder.fail(stack);
