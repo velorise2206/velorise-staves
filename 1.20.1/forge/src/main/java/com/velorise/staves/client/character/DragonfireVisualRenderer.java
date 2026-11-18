@@ -13,13 +13,21 @@ import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
@@ -28,7 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Dedicated client-side VFX & animation renderer for Dragonfire Scepter (Ender Dragon):
- * - Mini Ender Dragon pet with 3-layer controller (Anchor / Seek+Arrival Movement / Orientation+Anim) & single PetPose
+ * - Mini Ender Dragon pet with world-space free flight (independent of player camera/body rotation),
+ *   stationary combat hover when fighting monsters, and exact world-space snout/mouth lightning origin
  * - Giant Ender Dragon Ulti Variants 1 (Skyfall Dive) and 2 (Sweeping Strafe)
  * - Giant Ender Dragon Snout-Petting Idle (3rd-person locked, 1st-person free look)
  */
@@ -39,33 +48,33 @@ public final class DragonfireVisualRenderer {
             new ResourceLocation("textures/entity/enderdragon/dragon_eyes.png");
 
     // --- Tunable Mini Ender Dragon Pet constants (with units) ---
-    public static final float FOLLOW_ORBIT_RADIUS = 1.45F;        // blocks around owner in FOLLOW
+    public static final float FOLLOW_ORBIT_RADIUS = 1.65F;        // base blocks around owner in FOLLOW
     public static final float FOLLOW_HEIGHT_OFFSET = 0.55F;       // blocks above owner eye/top in FOLLOW
-    public static final float FOLLOW_BOB_AMP = 0.15F;             // blocks vertical bobbing amplitude in FOLLOW
+    public static final float FOLLOW_BOB_AMP = 0.16F;             // blocks vertical bobbing amplitude in FOLLOW
     public static final float FOLLOW_BOB_FREQ = 1.50F;            // rad/s vertical bobbing frequency in FOLLOW
-    public static final float FOLLOW_OMEGA = 1.05F;               // rad/s orbit angular speed in FOLLOW
+    public static final float FOLLOW_OMEGA = 1.05F;               // rad/s world-space orbit angular speed in FOLLOW
 
     public static final double ENGAGE_DETECT_RANGE = 20.0D;       // blocks from owner to engage target
-    public static final float ENGAGE_ORBIT_RADIUS = 4.20F;        // blocks around target in ENGAGE
-    public static final float ENGAGE_HEIGHT_OFFSET = 1.85F;       // blocks above target feet in ENGAGE/ATTACK
-    public static final float ENGAGE_BOB_AMP = 0.30F;             // blocks vertical oscillation in ENGAGE/ATTACK
-    public static final float ENGAGE_BOB_FREQ = 1.70F;            // rad/s vertical oscillation frequency in combat
-    public static final float ENGAGE_OMEGA = 1.35F;               // rad/s orbit angular speed around target
-    public static final float ATTACK_DASH_RADIUS = 2.60F;         // blocks close dash radius around target in ATTACK
-    public static final long ENGAGE_HYSTERESIS_MS = 3000L;        // ms before falling back from ENGAGE to FOLLOW
+    public static final float ENGAGE_ORBIT_RADIUS = 4.20F;        // compatibility constant
+    public static final float ENGAGE_HEIGHT_OFFSET = 1.85F;       // compatibility constant
+    public static final float ENGAGE_BOB_AMP = 0.30F;             // compatibility constant
+    public static final float ENGAGE_BOB_FREQ = 1.70F;            // compatibility constant
+    public static final float ENGAGE_OMEGA = 1.35F;               // compatibility constant
+    public static final float ATTACK_DASH_RADIUS = 2.60F;         // compatibility constant
+    public static final long ENGAGE_HYSTERESIS_MS = 250L;         // brief grace window on target loss
     public static final double TELEPORT_DIST = 32.0D;             // blocks from anchor triggering instant teleport
 
     public static final double MAX_SPEED_FOLLOW = 7.0D;           // blocks/s (= 0.35 block/tick)
-    public static final double MAX_SPEED_COMBAT = 12.0D;          // blocks/s (= 0.60 block/tick)
+    public static final double MAX_SPEED_COMBAT = 10.0D;          // blocks/s when repositioning if owner walks far
     public static final double MAX_ACCEL = 32.0D;                 // blocks/s^2 (= 0.08 block/tick^2)
-    public static final double ARRIVAL_K = 4.0D;                  // 1/s arrival braking gain
-    public static final double DRAG = 1.0D;                       // 1/s exponential aerodynamic drag
+    public static final double ARRIVAL_K = 4.2D;                  // 1/s arrival braking gain
+    public static final double DRAG = 1.1D;                       // 1/s exponential aerodynamic drag
     public static final float MAX_TURN_DEG_PER_SEC = 270.0F;      // deg/s yaw turn rate in FOLLOW
-    public static final float COMBAT_TURN_DEG_PER_SEC = 480.0F;   // deg/s yaw turn rate in ENGAGE/ATTACK
+    public static final float COMBAT_TURN_DEG_PER_SEC = 720.0F;   // deg/s yaw turn rate in ENGAGE/ATTACK
 
     public static final float MODEL_SCALE_MINI = 0.085F;          // scale factor for 1.0-block wingspan mini dragon
-    public static final float MOUTH_FORWARD = 5.65F;              // unscaled model blocks from pose origin to snout gap
-    public static final float MOUTH_UP = -0.58F;                  // unscaled model blocks along pose up vector to mouth gap
+    public static final float MOUTH_FORWARD = 5.666F;             // unscaled model blocks from pose origin to snout gap
+    public static final float MOUTH_UP = -0.877F;                 // unscaled model blocks along pose up vector to mouth gap
 
     public enum PetState {
         FOLLOW,
@@ -78,18 +87,20 @@ public final class DragonfireVisualRenderer {
         public Vec3 prevPos = Vec3.ZERO;
         public Vec3 vel = Vec3.ZERO;
         public Vec3 anchor = Vec3.ZERO;
+        public Vec3 combatHoverPos = null;
         public float yaw = 0.0F;          // Minecraft yaw convention (0 = +Z, -90 = +X, 180 = -Z)
         public float prevYaw = 0.0F;
         public float pitch = 0.0F;        // Minecraft pitch convention (+ = nose down, - = nose up)
         public float prevPitch = 0.0F;
         public float roll = 0.0F;         // Wing bank angle in degrees
         public float prevRoll = 0.0F;
-        public float orbitAngle = 0.0F;
-        public float ownerBodyYawSmoothed = 0.0F;
+        public float orbitAngle = 0.0F;   // World-space flight angle (radians), independent of player rotation
         public float flapTicks = 0.0F;    // Continuous time-driven animation ticks (never freezes)
         public float stateTime = 0.0F;
         public PetState state = PetState.FOLLOW;
         public int targetEntityId = -1;
+        public int lastOwnerHurtMobId = -1;
+        public int lastOwnerHurtMobTs = -1;
         public Vec3 lastTargetSeenPos = null;
         public float lastTargetHeight = 1.8F;
         public long lastTargetSeenMs = 0L;
@@ -109,6 +120,104 @@ public final class DragonfireVisualRenderer {
     public static float approachAngle(float cur, float tgt, float maxStep) {
         float d = Mth.wrapDegrees(tgt - cur);
         return cur + Mth.clamp(d, -maxStep, maxStep);
+    }
+
+    public static @org.jetbrains.annotations.Nullable Vec3 getActivePetMouthWorldPos(int ownerEntityId) {
+        PetPose pose = PET_POSES.get(ownerEntityId);
+        if (pose == null || !pose.initialized) return null;
+        return pose.mouthWorldPos;
+    }
+
+    /**
+     * Called immediately when an attack lightning packet arrives on the client so the pet dragon
+     * stops in place, aims directly at the target, opens its jaw, and returns the exact world-space
+     * mouth origin for frame 0 of the lightning bolt.
+     */
+    public static @org.jetbrains.annotations.Nullable Vec3 snapPetToAttackAndGetMouthPos(
+            int ownerEntityId,
+            int targetEntityId,
+            @org.jetbrains.annotations.Nullable Vec3 fallbackTargetCenter
+    ) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null) return null;
+        Entity ownerEnt = mc.level.getEntity(ownerEntityId);
+        if (!(ownerEnt instanceof LivingEntity owner) || !owner.isAlive()) return null;
+
+        float pt = mc.getFrameTime();
+        Vec3 ownerWorld = owner.getPosition(pt);
+        PetPose pose = PET_POSES.computeIfAbsent(ownerEntityId, k -> new PetPose());
+        if (pose.lastDimension != owner.level().dimension()) {
+            pose.initialized = false;
+            pose.lastDimension = owner.level().dimension();
+        }
+        if (!pose.initialized) {
+            initializePetPose(pose, owner, ownerWorld, pt, System.nanoTime());
+        }
+
+        Vec3 aimPt = fallbackTargetCenter;
+        if (targetEntityId > 0 && mc.level.getEntity(targetEntityId) instanceof LivingEntity tgt && tgt.isAlive()) {
+            Vec3 tgtPos = tgt.getPosition(pt);
+            pose.targetEntityId = targetEntityId;
+            pose.lastTargetSeenPos = tgtPos;
+            pose.lastTargetHeight = tgt.getBbHeight();
+            pose.lastTargetSeenMs = System.currentTimeMillis();
+            aimPt = tgtPos.add(0.0D, tgt.getBbHeight() * 0.55D, 0.0D);
+        }
+
+        // Stop immediately in place to fire
+        pose.state = PetState.ATTACK;
+        pose.combatHoverPos = pose.pos;
+        pose.anchor = pose.pos;
+        pose.vel = Vec3.ZERO;
+        pose.roll = 0.0F;
+        pose.prevRoll = 0.0F;
+
+        if (aimPt != null) {
+            Vec3 toTgt = aimPt.subtract(pose.pos);
+            double hLen = Math.hypot(toTgt.x, toTgt.z);
+            double totalDist = Math.max(0.65D, toTgt.length());
+            double mouthPitchCorrDeg = Math.toDegrees(Math.atan2(0.0745D, totalDist));
+            pose.yaw = (float) Math.toDegrees(Math.atan2(-toTgt.x, toTgt.z));
+            pose.prevYaw = pose.yaw;
+            pose.pitch = (float) Mth.clamp(Math.toDegrees(Math.atan2(-toTgt.y, Math.max(1.0E-4D, hLen))) - mouthPitchCorrDeg, -55.0D, 55.0D);
+            pose.prevPitch = pose.pitch;
+        }
+
+        Vec3 exactMouth = computeExactMouthWorldPos(
+                pose, 0.50F, 0.085F,
+                pose.pitch, pose.roll, 0.0F, 0.0F, 0.0F,
+                0.0F, 36.0F, pose.flapTicks, 1.0F
+        );
+        pose.mouthWorldPos = exactMouth;
+        return exactMouth;
+    }
+
+    private static void initializePetPose(PetPose pose, LivingEntity entity, Vec3 ownerWorld, float pt, long nowNs) {
+        pose.orbitAngle = (entity.getId() * 1.618F) % ((float) Math.PI * 2.0F);
+        Vec3 initPos = ownerWorld.add(
+                Math.cos(pose.orbitAngle) * FOLLOW_ORBIT_RADIUS,
+                entity.getBbHeight() + FOLLOW_HEIGHT_OFFSET,
+                Math.sin(pose.orbitAngle) * FOLLOW_ORBIT_RADIUS
+        );
+        double tx = -Math.sin(pose.orbitAngle);
+        double tz = Math.cos(pose.orbitAngle);
+        float initYaw = (float) Math.toDegrees(Math.atan2(-tx, tz));
+        pose.pos = initPos;
+        pose.prevPos = initPos;
+        pose.anchor = initPos;
+        pose.combatHoverPos = null;
+        pose.vel = Vec3.ZERO;
+        pose.yaw = initYaw;
+        pose.prevYaw = initYaw;
+        pose.pitch = 0.0F;
+        pose.prevPitch = 0.0F;
+        pose.roll = 0.0F;
+        pose.prevRoll = 0.0F;
+        pose.flapTicks = entity.tickCount + pt;
+        pose.stateTime = 0.0F;
+        pose.state = PetState.FOLLOW;
+        pose.lastUpdateNs = nowNs;
+        pose.initialized = true;
     }
 
     private static ModelPart dragonModelRoot = null;
@@ -175,7 +284,7 @@ public final class DragonfireVisualRenderer {
             float headYawDeg,
             float headRollDeg,
             boolean stationaryLegs,
-            @org.jetbrains.annotations.Nullable Vector3f outMouthRelCam
+            boolean steadyAim
     ) {
         float jawRad = jawOpenDeg * ((float) Math.PI / 180.0F);
         float headPitchRad = headPitchDeg * ((float) Math.PI / 180.0F);
@@ -187,12 +296,12 @@ public final class DragonfireVisualRenderer {
         float nx = 0.0F;
         float breath = stationaryLegs ? Mth.sin(time * 0.12F) : 0.0F;
         float breathCos = stationaryLegs ? Mth.cos(time * 0.12F) : 0.0F;
-        float neckSway = stationaryLegs ? (Mth.sin(time * 0.09F) * 0.012F) : Mth.sin(time * 0.14F) * 0.035F;
-        float neckPitchBase = Mth.lerp(walkBlend, 0.04F - Mth.cos(flapRad) * 0.05F, stationaryLegs ? (0.02F + breath * 0.016F) : -0.07F);
+        float neckSway = steadyAim ? 0.0F : (stationaryLegs ? (Mth.sin(time * 0.09F) * 0.012F) : Mth.sin(time * 0.14F) * 0.035F);
+        float neckPitchBase = steadyAim ? 0.0F : Mth.lerp(walkBlend, 0.04F - Mth.cos(flapRad) * 0.05F, stationaryLegs ? (0.02F + breath * 0.016F) : -0.07F);
         dragonJaw.xRot = jawRad + (stationaryLegs ? Math.max(0.0F, breath) * 0.025F : 0.0F);
 
         for (int i = 0; i < 5; ++i) {
-            float segPitch = neckPitchBase + (i - 2) * 0.025F + headPitchRad * 0.12F;
+            float segPitch = steadyAim ? (headPitchRad * 0.12F) : (neckPitchBase + (i - 2) * 0.025F + headPitchRad * 0.12F);
             float segYaw = headYawRad * (0.08F * (i + 1)) + neckSway * (i + 1);
             dragonNeck.xRot = segPitch;
             dragonNeck.yRot = segYaw;
@@ -213,14 +322,6 @@ public final class DragonfireVisualRenderer {
         dragonHead.yRot = headYawRad + neckSway * 5.0F;
         dragonHead.zRot = headRollRad;
         dragonHead.render(poseStack, vc, WindGliderRenderer.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-        if (outMouthRelCam != null) {
-            poseStack.pushPose();
-            dragonHead.translateAndRotate(poseStack);
-            Vector4f mp = new Vector4f(0.0F, 0.28F, -1.375F, 1.0F);
-            mp.mul(poseStack.last().pose());
-            outMouthRelCam.set(mp.x(), mp.y(), mp.z());
-            poseStack.popPose();
-        }
 
         dragonBody.xRot = stationaryLegs ? (breath * 0.012F) : 0.0F;
         dragonBody.render(poseStack, vc, WindGliderRenderer.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
@@ -296,6 +397,77 @@ public final class DragonfireVisualRenderer {
         dragonNeck.zRot = 0.0F;
     }
 
+    /**
+     * Computes the exact world-space position of the dragon's open mouth cavity using an
+     * identity-rooted PoseStack that mirrors the exact model hierarchy (immune to camera rotation,
+     * camera distance, or player crouch render offsets).
+     */
+    public static Vec3 computeExactMouthWorldPos(
+            PetPose pose,
+            float halfWingspan,
+            float flapSpeed,
+            float bodyPitchDeg,
+            float bankRollDeg,
+            float headYawDeg,
+            float headPitchDeg,
+            float headRollDeg,
+            float walkBlend,
+            float jawOpenDeg,
+            float time,
+            float scaleMul
+    ) {
+        boolean stationaryLegs = (flapSpeed <= 0.001F);
+        boolean steadyAim = (halfWingspan <= 0.60F && jawOpenDeg >= 13.5F);
+        float baseScale = (halfWingspan <= 0.60F) ? MODEL_SCALE_MINI : (halfWingspan / 2.50F) * 0.28F;
+        float scale = baseScale * Mth.clamp(scaleMul, 0.05F, 3.60F);
+        float flapCycle = stationaryLegs ? 0.0F : ((time * flapSpeed) % 1.0F);
+        float flapRad = flapCycle * ((float) Math.PI * 2.0F);
+        float bounceY = steadyAim ? 0.12F : (stationaryLegs ? (Mth.sin(time * 0.12F) * 0.035F) : Mth.lerp(walkBlend, (float) (Math.sin(flapRad) + 1.0D) * 0.2F,
+                Mth.abs(Mth.sin(time * 0.40F)) * 0.08F));
+
+        float jawRad = jawOpenDeg * ((float) Math.PI / 180.0F);
+        float headPitchRad = headPitchDeg * ((float) Math.PI / 180.0F);
+        float headYawRad = headYawDeg * ((float) Math.PI / 180.0F);
+        float headRollRad = headRollDeg * ((float) Math.PI / 180.0F);
+
+        float ny = 20.0F;
+        float nz = -12.0F;
+        float nx = 0.0F;
+        float breath = stationaryLegs ? Mth.sin(time * 0.12F) : 0.0F;
+        float neckSway = steadyAim ? 0.0F : (stationaryLegs ? (Mth.sin(time * 0.09F) * 0.012F) : Mth.sin(time * 0.14F) * 0.035F);
+        float neckPitchBase = steadyAim ? 0.0F : Mth.lerp(walkBlend, 0.04F - Mth.cos(flapRad) * 0.05F, stationaryLegs ? (0.02F + breath * 0.016F) : -0.07F);
+        float effectiveJawRad = jawRad + (stationaryLegs ? Math.max(0.0F, breath) * 0.025F : 0.0F);
+
+        for (int i = 0; i < 5; ++i) {
+            float segPitch = steadyAim ? (headPitchRad * 0.12F) : (neckPitchBase + (i - 2) * 0.025F + headPitchRad * 0.12F);
+            float segYaw = headYawRad * (0.08F * (i + 1)) + neckSway * (i + 1);
+            nx -= Mth.sin(segYaw) * Mth.cos(segPitch) * 10.0F;
+            ny += Mth.sin(segPitch) * 10.0F;
+            nz -= Mth.cos(segPitch) * Mth.cos(segYaw) * 10.0F;
+        }
+
+        float hxRot = headPitchRad + neckPitchBase * 0.5F + (stationaryLegs ? breath * 0.018F : 0.0F);
+        float hyRot = headYawRad + neckSway * 5.0F;
+        float hzRot = headRollRad;
+
+        PoseStack mouthStack = new PoseStack();
+        mouthStack.mulPose(Axis.YP.rotationDegrees(180.0F - pose.yaw));
+        if (bodyPitchDeg != 0.0F) mouthStack.mulPose(Axis.XP.rotationDegrees(-bodyPitchDeg));
+        if (bankRollDeg != 0.0F) mouthStack.mulPose(Axis.ZP.rotationDegrees(bankRollDeg));
+        mouthStack.scale(-scale, -scale, scale);
+        mouthStack.translate(0.0F, -1.00F + bounceY, -0.50F);
+        mouthStack.translate(nx / 16.0F, ny / 16.0F, nz / 16.0F);
+        if (hzRot != 0.0F || hyRot != 0.0F || hxRot != 0.0F) {
+            mouthStack.mulPose(new Quaternionf().rotationZYX(hzRot, hyRot, hxRot));
+        }
+
+        float yMouth = 0.25F + 0.4375F * Mth.sin(effectiveJawRad);
+        float zMouth = -0.50F - 0.875F * (0.5F + 0.5F * Mth.cos(effectiveJawRad));
+        Vector4f mp = new Vector4f(0.0F, yMouth, zMouth, 1.0F);
+        mp.mul(mouthStack.last().pose());
+        return pose.pos.add(mp.x(), mp.y(), mp.z());
+    }
+
     public static void renderStylizedEnderDragonModel(
             PoseStack poseStack,
             MultiBufferSource buffer,
@@ -311,38 +483,16 @@ public final class DragonfireVisualRenderer {
             float time,
             float scaleMul
     ) {
-        renderStylizedEnderDragonModelWithMouth(
-                poseStack, buffer, halfWingspan, flapSpeed,
-                bodyPitchDeg, bankRollDeg, headYawDeg, headPitchDeg, headRollDeg,
-                walkBlend, jawOpenDeg, time, scaleMul, null
-        );
-    }
-
-    private static void renderStylizedEnderDragonModelWithMouth(
-            PoseStack poseStack,
-            MultiBufferSource buffer,
-            float halfWingspan,
-            float flapSpeed,
-            float bodyPitchDeg,
-            float bankRollDeg,
-            float headYawDeg,
-            float headPitchDeg,
-            float headRollDeg,
-            float walkBlend,
-            float jawOpenDeg,
-            float time,
-            float scaleMul,
-            @org.jetbrains.annotations.Nullable Vector3f outMouthRelCam
-    ) {
         if (!ensureDragonPartsBaked()) return;
 
         boolean stationaryLegs = (flapSpeed <= 0.001F);
+        boolean steadyAim = (halfWingspan <= 0.60F && jawOpenDeg >= 13.5F);
         float baseScale = (halfWingspan <= 0.60F) ? MODEL_SCALE_MINI : (halfWingspan / 2.50F) * 0.28F;
         float scale = baseScale * Mth.clamp(scaleMul, 0.05F, 3.60F);
         float flapCycle = stationaryLegs ? 0.0F : ((time * flapSpeed) % 1.0F);
         float flapRad = flapCycle * ((float) Math.PI * 2.0F);
-        float bounceY = stationaryLegs ? (Mth.sin(time * 0.12F) * 0.035F) : Mth.lerp(walkBlend, (float) (Math.sin(flapRad) + 1.0D) * 0.2F,
-                Mth.abs(Mth.sin(time * 0.40F)) * 0.08F);
+        float bounceY = steadyAim ? 0.12F : (stationaryLegs ? (Mth.sin(time * 0.12F) * 0.035F) : Mth.lerp(walkBlend, (float) (Math.sin(flapRad) + 1.0D) * 0.2F,
+                Mth.abs(Mth.sin(time * 0.40F)) * 0.08F));
 
         poseStack.pushPose();
         if (bodyPitchDeg != 0.0F) poseStack.mulPose(Axis.XP.rotationDegrees(-bodyPitchDeg));
@@ -351,9 +501,9 @@ public final class DragonfireVisualRenderer {
         poseStack.translate(0.0F, -1.00F + bounceY, -0.50F);
 
         VertexConsumer skinVc = buffer.getBuffer(RenderType.entityCutoutNoCull(ENDER_DRAGON_TEX));
-        renderDragonGeometryPass(poseStack, skinVc, time, flapRad, walkBlend, jawOpenDeg, headPitchDeg, headYawDeg, headRollDeg, stationaryLegs, outMouthRelCam);
+        renderDragonGeometryPass(poseStack, skinVc, time, flapRad, walkBlend, jawOpenDeg, headPitchDeg, headYawDeg, headRollDeg, stationaryLegs, steadyAim);
         VertexConsumer eyesVc = buffer.getBuffer(RenderType.eyes(ENDER_DRAGON_EYES_TEX));
-        renderDragonGeometryPass(poseStack, eyesVc, time, flapRad, walkBlend, jawOpenDeg, headPitchDeg, headYawDeg, headRollDeg, stationaryLegs, null);
+        renderDragonGeometryPass(poseStack, eyesVc, time, flapRad, walkBlend, jawOpenDeg, headPitchDeg, headYawDeg, headRollDeg, stationaryLegs, steadyAim);
 
         poseStack.popPose();
     }
@@ -364,7 +514,15 @@ public final class DragonfireVisualRenderer {
         if (mc.player != null && entity.getId() == mc.player.getId() && mc.options.getCameraType().isFirstPerson()) {
             return;
         }
+        float pt = mc.getFrameTime();
+        EntityRenderer<? super LivingEntity> renderer = mc.getEntityRenderDispatcher().getRenderer(entity);
+        Vec3 renderOffset = renderer != null ? renderer.getRenderOffset(entity, pt) : Vec3.ZERO;
+        poseStack.pushPose();
+        if (renderOffset.lengthSqr() > 1.0E-7D) {
+            poseStack.translate(-renderOffset.x, -renderOffset.y, -renderOffset.z);
+        }
         renderDragonfireEffects(entity, poseStack, buffer);
+        poseStack.popPose();
         if (buffer instanceof MultiBufferSource.BufferSource bs) {
             bs.endBatch(RenderType.entityCutoutNoCull(ENDER_DRAGON_TEX));
             bs.endBatch(RenderType.eyes(ENDER_DRAGON_EYES_TEX));
@@ -483,6 +641,7 @@ public final class DragonfireVisualRenderer {
 
         float elapsedMs = Math.max(0.0F, (float) (now - data.staffAnimStartTime));
 
+        // 1. Ulti Variant 1 — Skyfall Dive
         if (activeAnim == ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SKYFALL && elapsedMs < 850.0F) {
             if (!data.dragonfireUltiYawSet) {
                 data.dragonfireUltiYaw = entity.getViewYRot(pt);
@@ -508,6 +667,7 @@ public final class DragonfireVisualRenderer {
             return;
         }
 
+        // 2. Ulti Variant 2 — Sweeping Strafe
         if (activeAnim == ClientAuraTracker.ANIM_DRAGONFIRE_ULTI_SWEEP && elapsedMs < 1500.0F) {
             if (!data.dragonfireUltiYawSet) {
                 data.dragonfireUltiYaw = entity.getViewYRot(pt);
@@ -548,6 +708,8 @@ public final class DragonfireVisualRenderer {
         }
 
         float idleW = data.dragonfireIdleFade;
+
+        // 3. Dragonfire Idle: Full Ender-Dragon-scale dragon stands in world space closer for petting
         if (idleVisible) {
             if (!data.dragonfireIdleYawSet) {
                 data.dragonfireIdleYaw = entity.getViewYRot(pt);
@@ -568,12 +730,25 @@ public final class DragonfireVisualRenderer {
             return;
         }
 
-        // 4. Mini Ender Dragon (1.0-block wingspan): 3-layer controller (Anchor / Seek+Arrival Movement / Orientation+Anim)
+        // 4. Mini Ender Dragon (1.0-block wingspan): world-space free flight & stationary combat hover
         if (!petActive) {
             PET_POSES.remove(entity.getId());
             return;
         }
         updateAndRenderMiniDragonPet(entity, data, poseStack, buffer, pt, now, mc);
+    }
+
+    private static boolean isValidClientMiniDragonTarget(LivingEntity owner, @org.jetbrains.annotations.Nullable LivingEntity target) {
+        if (target == null || !target.isAlive() || target == owner || target.isSpectator() || target.isInvulnerable()) {
+            return false;
+        }
+        if (target instanceof ArmorStand) return false;
+        if (target instanceof Mob mob && mob.isNoAi()) return false;
+        if (owner.isAlliedTo(target)) return false;
+        if (target instanceof TamableAnimal ta && ta.isTame()) return false;
+        if (target instanceof OwnableEntity oe && oe.getOwnerUUID() != null) return false;
+        if (target instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        return true;
     }
 
     private static @org.jetbrains.annotations.Nullable LivingEntity resolveMiniDragonTarget(
@@ -585,14 +760,39 @@ public final class DragonfireVisualRenderer {
     ) {
         if (mc.level == null) return null;
         double maxLockDistSqr = (ENGAGE_DETECT_RANGE + 4.0D) * (ENGAGE_DETECT_RANGE + 4.0D);
+        double maxScanSqr = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
+
+        LivingEntity lastHurt = owner.getLastHurtMob();
+        if (lastHurt != null) {
+            int hurtId = lastHurt.getId();
+            int hurtTs = owner.getLastHurtMobTimestamp();
+            if (hurtId != pose.lastOwnerHurtMobId || hurtTs != pose.lastOwnerHurtMobTs) {
+                pose.lastOwnerHurtMobId = hurtId;
+                pose.lastOwnerHurtMobTs = hurtTs;
+                if (isValidClientMiniDragonTarget(owner, lastHurt)
+                        && lastHurt.position().distanceToSqr(ownerWorld) <= maxScanSqr) {
+                    data.dragonfirePetTargetId = hurtId;
+                    pose.targetEntityId = hurtId;
+                    return lastHurt;
+                }
+            }
+        }
 
         int[] candidateIds = { data.dragonfirePetTargetId, pose.targetEntityId };
         for (int cid : candidateIds) {
-            if (cid > 0 && mc.level.getEntity(cid) instanceof LivingEntity le
-                    && le != owner && le.isAlive() && !le.isSpectator()
-                    && !owner.isAlliedTo(le)
-                    && le.position().distanceToSqr(ownerWorld) <= maxLockDistSqr) {
-                return le;
+            if (cid > 0) {
+                Entity ent = mc.level.getEntity(cid);
+                if (ent instanceof LivingEntity le
+                        && isValidClientMiniDragonTarget(owner, le)
+                        && le.position().distanceToSqr(ownerWorld) <= maxLockDistSqr) {
+                    return le;
+                } else {
+                    if (data.dragonfirePetTargetId == cid) data.dragonfirePetTargetId = -1;
+                    if (pose.targetEntityId == cid) {
+                        pose.targetEntityId = -1;
+                        pose.lastTargetScanMs = 0L;
+                    }
+                }
             }
         }
 
@@ -602,12 +802,11 @@ public final class DragonfireVisualRenderer {
         }
         pose.lastTargetScanMs = nowMs;
 
-        double maxScanSqr = ENGAGE_DETECT_RANGE * ENGAGE_DETECT_RANGE;
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;
         for (LivingEntity e : mc.level.getEntitiesOfClass(LivingEntity.class,
                 owner.getBoundingBox().inflate(ENGAGE_DETECT_RANGE, 8.0D, ENGAGE_DETECT_RANGE),
-                ent -> ent != owner && ent.isAlive() && !ent.isSpectator() && !owner.isAlliedTo(ent))) {
+                ent -> isValidClientMiniDragonTarget(owner, ent))) {
             boolean hostile = e instanceof Enemy
                     || e == owner.getLastHurtMob()
                     || e == owner.getLastHurtByMob();
@@ -621,17 +820,6 @@ public final class DragonfireVisualRenderer {
         return best;
     }
 
-    private static Vec3 computeMouthWorldFromPose(PetPose pose) {
-        Vec3 fwd = Vec3.directionFromRotation(pose.pitch, pose.yaw);
-        Vec3 upBase = Vec3.directionFromRotation(pose.pitch - 90.0F, pose.yaw);
-        double rollRad = Math.toRadians(pose.roll);
-        Vec3 right = fwd.cross(upBase);
-        Vec3 up = upBase.scale(Math.cos(rollRad)).add(right.scale(Math.sin(rollRad)));
-        return pose.pos
-                .add(fwd.scale(MOUTH_FORWARD * MODEL_SCALE_MINI))
-                .add(up.scale(MOUTH_UP * MODEL_SCALE_MINI));
-    }
-
     private static void updateAndRenderMiniDragonPet(
             LivingEntity entity,
             ClientAuraTracker.AuraDisplayData data,
@@ -643,7 +831,6 @@ public final class DragonfireVisualRenderer {
     ) {
         PetPose pose = PET_POSES.computeIfAbsent(entity.getId(), k -> new PetPose());
         Vec3 ownerWorld = entity.getPosition(pt);
-        float ownerBodyYaw = Mth.rotLerp(pt, entity.yBodyRotO, entity.yBodyRot);
 
         if (pose.lastDimension != entity.level().dimension()) {
             pose.initialized = false;
@@ -653,29 +840,7 @@ public final class DragonfireVisualRenderer {
         long nowNs = System.nanoTime();
         float dt = 0.0F;
         if (!pose.initialized) {
-            pose.ownerBodyYawSmoothed = ownerBodyYaw;
-            double initRad = Math.toRadians(ownerBodyYaw);
-            Vec3 initPos = ownerWorld.add(
-                    Math.cos(initRad) * FOLLOW_ORBIT_RADIUS,
-                    entity.getBbHeight() + FOLLOW_HEIGHT_OFFSET,
-                    Math.sin(initRad) * FOLLOW_ORBIT_RADIUS
-            );
-            pose.pos = initPos;
-            pose.prevPos = initPos;
-            pose.anchor = initPos;
-            pose.vel = Vec3.ZERO;
-            pose.yaw = ownerBodyYaw;
-            pose.prevYaw = ownerBodyYaw;
-            pose.pitch = 0.0F;
-            pose.prevPitch = 0.0F;
-            pose.roll = 0.0F;
-            pose.prevRoll = 0.0F;
-            pose.orbitAngle = 0.0F;
-            pose.flapTicks = entity.tickCount + pt;
-            pose.stateTime = 0.0F;
-            pose.state = PetState.FOLLOW;
-            pose.lastUpdateNs = nowNs;
-            pose.initialized = true;
+            initializePetPose(pose, entity, ownerWorld, pt, nowNs);
         } else {
             long diffNs = nowNs - pose.lastUpdateNs;
             if (diffNs > 500_000L) {
@@ -693,15 +858,11 @@ public final class DragonfireVisualRenderer {
             targetPos = target.getPosition(pt);
             targetHeight = target.getBbHeight();
         } else if (attacking && data.dragonfirePetAttackTarget != null) {
-            targetPos = data.dragonfirePetAttackTarget.subtract(0.0D, targetHeight * 0.5D, 0.0D);
-        } else if (pose.state != PetState.FOLLOW && pose.lastTargetSeenPos != null
-                && (now - pose.lastTargetSeenMs) < ENGAGE_HYSTERESIS_MS) {
-            targetPos = pose.lastTargetSeenPos;
+            targetPos = data.dragonfirePetAttackTarget.subtract(0.0D, targetHeight * 0.55D, 0.0D);
         }
 
         if (dt > 0.0F) {
             pose.stateTime += dt;
-            pose.ownerBodyYawSmoothed = approachAngle(pose.ownerBodyYawSmoothed, ownerBodyYaw, 180.0F * dt);
 
             if (target != null) {
                 pose.targetEntityId = target.getId();
@@ -713,47 +874,70 @@ public final class DragonfireVisualRenderer {
                 pose.lastTargetSeenPos = targetPos;
                 pose.lastTargetSeenMs = now;
                 pose.state = PetState.ATTACK;
-            } else if (pose.state != PetState.FOLLOW && pose.lastTargetSeenPos != null
-                    && (now - pose.lastTargetSeenMs) < ENGAGE_HYSTERESIS_MS) {
-                pose.state = PetState.ENGAGE;
             } else {
                 pose.state = PetState.FOLLOW;
                 pose.targetEntityId = -1;
+                pose.combatHoverPos = null;
             }
 
+            // Layer 1: Anchor
+            // - In FOLLOW: pure world-space free flight around the player (never depends on player view/body yaw)
+            // - In ENGAGE/ATTACK: stands still at combatHoverPos (only repositions if master walks > 6.0m away while not mid-shot)
             if (pose.state == PetState.FOLLOW || targetPos == null) {
-                pose.orbitAngle += FOLLOW_OMEGA * dt;
-                float worldAng = (float) Math.toRadians(pose.ownerBodyYawSmoothed) + pose.orbitAngle;
-                double bobY = Math.sin(pose.stateTime * FOLLOW_BOB_FREQ) * FOLLOW_BOB_AMP;
+                pose.combatHoverPos = null;
+                pose.orbitAngle = (float) ((pose.orbitAngle + FOLLOW_OMEGA * dt) % (Math.PI * 2.0D));
+                double dynRadius = FOLLOW_ORBIT_RADIUS
+                        + Math.sin(pose.stateTime * 0.65D) * 0.55D
+                        + Math.cos(pose.stateTime * 1.15D) * 0.25D;
+                double bobY = Math.sin(pose.stateTime * FOLLOW_BOB_FREQ) * FOLLOW_BOB_AMP
+                        + Math.cos(pose.stateTime * 0.85D) * 0.10D;
                 pose.anchor = ownerWorld.add(
-                        Math.cos(worldAng) * FOLLOW_ORBIT_RADIUS,
+                        Math.cos(pose.orbitAngle) * dynRadius,
                         entity.getBbHeight() + FOLLOW_HEIGHT_OFFSET + bobY,
-                        Math.sin(worldAng) * FOLLOW_ORBIT_RADIUS
+                        Math.sin(pose.orbitAngle) * dynRadius
                 );
             } else {
-                pose.orbitAngle += ENGAGE_OMEGA * dt;
-                double dxOwner = ownerWorld.x - targetPos.x;
-                double dzOwner = ownerWorld.z - targetPos.z;
-                double ownerHoriz = Math.hypot(dxOwner, dzOwner);
-                Vec3 biasDir = ownerHoriz > 1.0E-4D
-                        ? new Vec3(dxOwner / ownerHoriz, 0.0D, dzOwner / ownerHoriz)
-                        : Vec3.ZERO;
-                float radius = (pose.state == PetState.ATTACK) ? ATTACK_DASH_RADIUS : ENGAGE_ORBIT_RADIUS;
-                Vec3 orbitCenter = targetPos.add(biasDir.scale(1.15D));
-                double bobY = Math.sin(pose.stateTime * ENGAGE_BOB_FREQ) * ENGAGE_BOB_AMP;
-                pose.anchor = orbitCenter.add(
-                        Math.cos(pose.orbitAngle) * radius,
-                        ENGAGE_HEIGHT_OFFSET + bobY,
-                        Math.sin(pose.orbitAngle) * radius
-                );
+                if (pose.combatHoverPos == null) {
+                    pose.combatHoverPos = pose.pos;
+                }
+                if (pose.state == PetState.ATTACK) {
+                    // Lock 100% stationary at current position while firing lightning
+                    pose.combatHoverPos = pose.pos;
+                    pose.anchor = pose.pos;
+                } else {
+                    double distToOwner = pose.combatHoverPos.distanceTo(ownerWorld);
+                    double distToTarget = pose.combatHoverPos.distanceTo(targetPos);
+                    if (distToOwner > 6.0D || distToTarget > 18.0D) {
+                        Vec3 toTgtHoriz = new Vec3(targetPos.x - ownerWorld.x, 0.0D, targetPos.z - ownerWorld.z);
+                        Vec3 dirToTgt = toTgtHoriz.lengthSqr() > 1.0E-4D ? toTgtHoriz.normalize() : Vec3.ZERO;
+                        Vec3 desiredVantage = ownerWorld.add(dirToTgt.scale(1.65D))
+                                .add(0.0D, entity.getBbHeight() + FOLLOW_HEIGHT_OFFSET, 0.0D);
+                        if (pose.pos.distanceTo(desiredVantage) <= 0.85D) {
+                            pose.combatHoverPos = pose.pos;
+                        } else {
+                            pose.combatHoverPos = desiredVantage;
+                        }
+                    }
+                    pose.anchor = pose.combatHoverPos;
+                }
             }
 
+            // Layer 2: Movement
             Vec3 toAnchor = pose.anchor.subtract(pose.pos);
             double dist = toAnchor.length();
             if (dist > TELEPORT_DIST || pose.pos.distanceTo(ownerWorld) > TELEPORT_DIST + 4.0D) {
                 pose.prevPos = pose.anchor;
                 pose.pos = pose.anchor;
                 pose.vel = Vec3.ZERO;
+                if (pose.state != PetState.FOLLOW) {
+                    pose.combatHoverPos = pose.pos;
+                }
+            } else if (pose.state != PetState.FOLLOW && (pose.state == PetState.ATTACK || dist <= 0.25D)) {
+                // Stationary hover in combat
+                pose.vel = Vec3.ZERO;
+                pose.prevPos = pose.pos;
+                pose.combatHoverPos = pose.pos;
+                pose.anchor = pose.pos;
             } else {
                 double maxSpeed = (pose.state == PetState.FOLLOW) ? MAX_SPEED_FOLLOW : MAX_SPEED_COMBAT;
                 double speed = Math.min(maxSpeed, dist * ARRIVAL_K);
@@ -773,6 +957,7 @@ public final class DragonfireVisualRenderer {
                 pose.pos = pose.pos.add(pose.vel.scale(dt));
             }
 
+            // Layer 3: Decoupled orientation & continuous time-driven animation
             float targetYaw;
             float targetPitch;
             double horizSpeed = Math.hypot(pose.vel.x, pose.vel.z);
@@ -782,59 +967,63 @@ public final class DragonfireVisualRenderer {
                         : targetPos.add(0.0D, targetHeight * 0.55D, 0.0D);
                 Vec3 toTgt = aimPt.subtract(pose.pos);
                 double hLen = Math.hypot(toTgt.x, toTgt.z);
+                double totalDist = Math.max(0.65D, toTgt.length());
+                double mouthPitchCorrDeg = Math.toDegrees(Math.atan2(0.0745D, totalDist));
                 targetYaw = (float) Math.toDegrees(Math.atan2(-toTgt.x, toTgt.z));
-                targetPitch = (float) Mth.clamp(Math.toDegrees(Math.atan2(-toTgt.y, Math.max(1.0E-4D, hLen))), -42.0D, 42.0D);
-            } else if (horizSpeed > 0.5D) {
+                targetPitch = (float) Mth.clamp(Math.toDegrees(Math.atan2(-toTgt.y, Math.max(1.0E-4D, hLen))) - mouthPitchCorrDeg, -55.0D, 55.0D);
+            } else if (horizSpeed > 0.15D) {
                 targetYaw = (float) Math.toDegrees(Math.atan2(-pose.vel.x, pose.vel.z));
                 targetPitch = (float) Mth.clamp(-pose.vel.y * 5.0D, -35.0D, 35.0D);
             } else {
-                targetYaw = pose.ownerBodyYawSmoothed;
-                targetPitch = (float) Mth.clamp(-pose.vel.y * 5.0D, -35.0D, 35.0D);
+                double tx = -Math.sin(pose.orbitAngle);
+                double tz = Math.cos(pose.orbitAngle);
+                targetYaw = (float) Math.toDegrees(Math.atan2(-tx, tz));
+                targetPitch = 0.0F;
             }
 
-            float maxTurn = ((pose.state != PetState.FOLLOW) ? COMBAT_TURN_DEG_PER_SEC : MAX_TURN_DEG_PER_SEC) * dt;
+            float turnRate = (pose.state == PetState.ATTACK)
+                    ? 1800.0F
+                    : ((pose.state == PetState.ENGAGE) ? COMBAT_TURN_DEG_PER_SEC : MAX_TURN_DEG_PER_SEC);
+            float maxTurn = turnRate * dt;
             float nextYaw = approachAngle(pose.yaw, targetYaw, maxTurn);
             float yawRate = Mth.wrapDegrees(nextYaw - pose.yaw) / Math.max(0.001F, dt);
             pose.prevYaw = pose.yaw;
             pose.yaw = nextYaw;
             pose.prevPitch = pose.pitch;
-            pose.pitch = approachAngle(pose.pitch, targetPitch, 200.0F * dt);
+            float pitchSpeed = (pose.state == PetState.ATTACK) ? 1400.0F : ((pose.state == PetState.ENGAGE) ? 540.0F : 220.0F);
+            pose.pitch = approachAngle(pose.pitch, targetPitch, pitchSpeed * dt);
 
-            float targetRoll = Mth.clamp(-yawRate * 0.12F, -30.0F, 30.0F);
-            float rollAlpha = 1.0F - (float) Math.exp(-8.0D * dt);
+            float targetRoll = (pose.state != PetState.FOLLOW) ? 0.0F : Mth.clamp(-yawRate * 0.12F, -30.0F, 30.0F);
+            float rollAlpha = 1.0F - (float) Math.exp(((pose.state != PetState.FOLLOW) ? -16.0D : -8.0D) * dt);
             pose.prevRoll = pose.roll;
             pose.roll = Mth.lerp(rollAlpha, pose.roll, targetRoll);
 
             double speedNorm = Mth.clamp(pose.vel.length() / MAX_SPEED_COMBAT, 0.0D, 1.0D);
-            float animRate = (float) Mth.lerp(speedNorm, 0.85D, 1.45D);
+            float animRate = (float) Mth.lerp(speedNorm, 0.90D, 1.45D);
             pose.flapTicks += dt * 20.0F * animRate;
         }
 
         float jawOpenDeg = (pose.state == PetState.ATTACK)
                 ? 36.0F
-                : ((pose.state == PetState.ENGAGE) ? (14.0F + Mth.sin(pose.flapTicks * 0.25F) * 4.0F)
+                : ((pose.state == PetState.ENGAGE) ? 16.0F
                 : (8.0F + Mth.sin(pose.flapTicks * 0.25F) * 4.0F));
         Vec3 rel = pose.pos.subtract(ownerWorld);
-        Vector3f capturedMouthRelCam = new Vector3f(Float.NaN, Float.NaN, Float.NaN);
 
         poseStack.pushPose();
         poseStack.translate(rel.x, rel.y, rel.z);
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - pose.yaw));
-        renderStylizedEnderDragonModelWithMouth(
+        renderStylizedEnderDragonModel(
                 poseStack, buffer, 0.50F, 0.085F,
                 pose.pitch, pose.roll, 0.0F, 0.0F, 0.0F,
-                0.0F, jawOpenDeg, pose.flapTicks, 1.0F, capturedMouthRelCam
+                0.0F, jawOpenDeg, pose.flapTicks, 1.0F
         );
         poseStack.popPose();
 
-        Vec3 camPos = mc.gameRenderer.getMainCamera().getPosition();
-        Vec3 resolvedMouth = computeMouthWorldFromPose(pose);
-        if (Float.isFinite(capturedMouthRelCam.x) && Float.isFinite(capturedMouthRelCam.y) && Float.isFinite(capturedMouthRelCam.z)) {
-            Vec3 camMouth = camPos.add(capturedMouthRelCam.x, capturedMouthRelCam.y, capturedMouthRelCam.z);
-            if (camMouth.distanceToSqr(pose.pos) < 4.0D) {
-                resolvedMouth = camMouth;
-            }
-        }
+        Vec3 resolvedMouth = computeExactMouthWorldPos(
+                pose, 0.50F, 0.085F,
+                pose.pitch, pose.roll, 0.0F, 0.0F, 0.0F,
+                0.0F, jawOpenDeg, pose.flapTicks, 1.0F
+        );
         pose.mouthWorldPos = resolvedMouth;
         data.dragonfirePetMouthWorldPos = resolvedMouth;
         int tagOwner = -10000 - entity.getId();

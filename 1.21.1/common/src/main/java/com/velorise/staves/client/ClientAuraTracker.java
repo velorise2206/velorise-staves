@@ -489,25 +489,39 @@ public final class ClientAuraTracker {
         net.minecraft.world.phys.Vec3 resolvedStart = start;
         int resolvedToId = isNahidaWorldVfx ? -8 : toId;
         if (color == 0xFFD05CE3 && start != null) {
-            int bestOwner = -1;
-            int bestTargetId = -1;
-            net.minecraft.world.phys.Vec3 bestMouth = null;
-            for (Map.Entry<Integer, AuraDisplayData> e : DATA.entrySet()) {
-                AuraDisplayData d = e.getValue();
-                if (d != null && now <= d.dragonfirePetAttackUntilMs) {
-                    bestOwner = e.getKey();
-                    bestTargetId = d.dragonfirePetTargetId;
-                    bestMouth = d.dragonfirePetMouthWorldPos;
-                    break;
+            int bestOwner = fromId > 0 ? fromId : -1;
+            int bestTargetId = toId > 0 ? toId : -1;
+            if (bestOwner <= 0) {
+                for (Map.Entry<Integer, AuraDisplayData> e : DATA.entrySet()) {
+                    AuraDisplayData d = e.getValue();
+                    if (d != null && (now <= d.dragonfirePetAttackUntilMs || now < d.dragonfirePetUntil)) {
+                        bestOwner = e.getKey();
+                        if (bestTargetId <= 0) {
+                            bestTargetId = d.dragonfirePetTargetId;
+                        }
+                        break;
+                    }
                 }
             }
             if (bestOwner > 0) {
-                resolvedFromId = -10000 - bestOwner;
-                if (bestMouth != null) {
-                    resolvedStart = bestMouth;
+                AuraDisplayData entry = DATA.computeIfAbsent(bestOwner, k -> new AuraDisplayData());
+                long attackDurMs = durationTicks > 0 ? (long) durationTicks * 50L : 550L;
+                entry.dragonfirePetAttackUntilMs = now + Math.max(500L, attackDurMs);
+                if (bestTargetId > 0) {
+                    entry.dragonfirePetTargetId = bestTargetId;
                 }
+                entry.dragonfirePetAttackTarget = end;
+                resolvedFromId = -10000 - bestOwner;
                 if (bestTargetId > 0) {
                     resolvedToId = bestTargetId;
+                }
+                net.minecraft.world.phys.Vec3 liveMouth =
+                        com.velorise.staves.client.character.DragonfireVisualRenderer.snapPetToAttackAndGetMouthPos(bestOwner, bestTargetId, end);
+                if (liveMouth != null) {
+                    entry.dragonfirePetMouthWorldPos = liveMouth;
+                    resolvedStart = liveMouth;
+                } else if (entry.dragonfirePetMouthWorldPos != null) {
+                    resolvedStart = entry.dragonfirePetMouthWorldPos;
                 }
             }
         }
@@ -743,13 +757,12 @@ public final class ClientAuraTracker {
                 entry.dragonfireIdle = false;
                 entry.dragonfireIdleYawSet = false;
             } else {
-                if (!entry.dragonfireIdle) {
-                    entry.dragonfireIdleStartMs = now;
-                    entry.dragonfireIdleYawSet = false;
-                }
-                entry.dragonfireIdle = true;
-                if (entry.dragonfirePetUntil > now) {
-                    entry.dragonfirePetUntil = Math.max(entry.dragonfirePetUntil, now + 5000L);
+                if (entry.dragonfirePetUntil <= now) {
+                    if (!entry.dragonfireIdle) {
+                        entry.dragonfireIdleStartMs = now;
+                        entry.dragonfireIdleYawSet = false;
+                    }
+                    entry.dragonfireIdle = true;
                 }
             }
             return;

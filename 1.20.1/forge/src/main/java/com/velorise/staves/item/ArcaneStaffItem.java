@@ -768,7 +768,7 @@ public final class ArcaneStaffItem extends Item {
 
         if (isBurstKind()) {
             advanceBurst(serverPlayer, burstShotsTag(), burstLastTag(), burstSlotTag(), maxBurstShots(), getCooldownTicks());
-        } else if (kind != Kind.PEAK_PATROL_SONG) {
+        } else if (kind != Kind.PEAK_PATROL_SONG && kind != Kind.DRAGONFIRE) {
             ElementalResonanceManager.applyCooldown(player, this, getCooldownTicks());
         }
 
@@ -898,7 +898,7 @@ public final class ArcaneStaffItem extends Item {
         if (!activated) return InteractionResultHolder.fail(stack);
 
         hurtStaffAndCheckBreak(stack, 1, player, hand);
-        if (kind != Kind.PEAK_PATROL_SONG) {
+        if (kind != Kind.PEAK_PATROL_SONG && kind != Kind.DRAGONFIRE) {
             int cdTicks = isBurstKind() ? Math.max(10, getCooldownTicks() / 3) : getCooldownTicks();
             ElementalResonanceManager.applyOmniModeCooldown(player, stack, cdTicks);
         }

@@ -368,58 +368,60 @@ public final class VeloriseStavesMod {
                 // Guidebook
                 output.accept(ELEMENTAL_CODEX.get());
 
-                // Basic tier
-                output.accept(DRAGONFIRE_SCEPTER.get());
-                output.accept(RESONANT_ECHO.get());
+                // 1. Basic Staves & Relics (Basic + Netherite pairs)
                 output.accept(INFERNO_ROD.get());
+                output.accept(NETHERITE_INFERNO_ROD.get());
                 output.accept(GHASTFIRE_STAFF.get());
+                output.accept(NETHERITE_GHASTFIRE_STAFF.get());
                 output.accept(WITHER_SCEPTER.get());
+                output.accept(NETHERITE_WITHER_SCEPTER.get());
                 output.accept(SHULKER_SEEKER.get());
-                output.accept(GUARDIAN_LENS.get());
-                output.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
+                output.accept(NETHERITE_SHULKER_SEEKER.get());
+                output.accept(DRAGONFIRE_SCEPTER.get());
+                output.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
                 output.accept(EVOKER_FANG_STAFF.get());
-                output.accept(VORTEX_VANQUISHER.get());
+                output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
                 output.accept(ARC_CASTER.get());
+                output.accept(NETHERITE_ARC_CASTER.get());
                 output.accept(FROSTBOLT_WAND.get());
-                output.accept(NIGHTS_FOCUS_STAFF.get());
-                output.accept(THOUSAND_BLAZING_SUNS.get());
-                output.accept(PEAK_PATROL_SONG.get());
-                output.accept(THOUSAND_FLOATING_DREAMS.get());
-                output.accept(TSARITSA_BOW.get());
+                output.accept(NETHERITE_FROSTBOLT_WAND.get());
                 output.accept(WEBCASTER.get());
+                output.accept(NETHERITE_WEBCASTER.get());
                 output.accept(WIND_STAFF.get());
-                output.accept(THE_DAYBREAK_CHRONICLES.get());
-                output.accept(ENGULFING_LIGHTNING.get());
+                output.accept(NETHERITE_WIND_STAFF.get());
+                output.accept(RESONANT_ECHO.get());
+                output.accept(NETHERITE_RESONANT_ECHO.get());
                 output.accept(OMNI_STAFF.get());
+                output.accept(NETHERITE_OMNI_STAFF.get());
                 output.accept(VOID_TRANSLOCATOR.get());
+                output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
                 output.accept(MAGIC_MIRROR.get());
+                output.accept(NETHERITE_MAGIC_MIRROR.get());
                 output.accept(WIND_GLIDER.get());
 
-                // Netherite tier
-                output.accept(NETHERITE_DRAGONFIRE_SCEPTER.get());
-                output.accept(NETHERITE_RESONANT_ECHO.get());
-                output.accept(NETHERITE_INFERNO_ROD.get());
-                output.accept(NETHERITE_GHASTFIRE_STAFF.get());
-                output.accept(NETHERITE_WITHER_SCEPTER.get());
-                output.accept(NETHERITE_SHULKER_SEEKER.get());
+                // 2. Genshin Weapons (Basic + Netherite pairs)
+                output.accept(GUARDIAN_LENS.get());
                 output.accept(NETHERITE_GUARDIAN_LENS.get());
-                output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
-                output.accept(NETHERITE_EVOKER_FANG_STAFF.get());
-                output.accept(NETHERITE_VORTEX_VANQUISHER.get());
-                output.accept(NETHERITE_ARC_CASTER.get());
-                output.accept(NETHERITE_FROSTBOLT_WAND.get());
+                output.accept(NIGHTS_FOCUS_STAFF.get());
                 output.accept(NETHERITE_NIGHTS_FOCUS_STAFF.get());
-                output.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+                output.accept(PEAK_PATROL_SONG.get());
                 output.accept(NETHERITE_PEAK_PATROL_SONG.get());
-                output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS.get());
-                output.accept(NETHERITE_TSARITSA_BOW.get());
-                output.accept(NETHERITE_WEBCASTER.get());
-                output.accept(NETHERITE_WIND_STAFF.get());
+
+                // 3. Archon Weapons (Basic + Netherite pairs)
+                output.accept(THE_DAYBREAK_CHRONICLES.get());
                 output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES.get());
+                output.accept(VORTEX_VANQUISHER.get());
+                output.accept(NETHERITE_VORTEX_VANQUISHER.get());
+                output.accept(ENGULFING_LIGHTNING.get());
                 output.accept(NETHERITE_ENGULFING_LIGHTNING.get());
-                output.accept(NETHERITE_OMNI_STAFF.get());
-                output.accept(NETHERITE_VOID_TRANSLOCATOR.get());
-                output.accept(NETHERITE_MAGIC_MIRROR.get());
+                output.accept(THOUSAND_FLOATING_DREAMS.get());
+                output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS.get());
+                output.accept(SPLENDOR_OF_TRANQUIL_WATERS.get());
+                output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS.get());
+                output.accept(THOUSAND_BLAZING_SUNS.get());
+                output.accept(NETHERITE_THOUSAND_BLAZING_SUNS.get());
+                output.accept(TSARITSA_BOW.get());
+                output.accept(NETHERITE_TSARITSA_BOW.get());
 
                 // Reactions & Materials
                 output.accept(DENDRO_CORE.get());

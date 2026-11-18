@@ -107,6 +107,7 @@ public final class DragonfireCloudManager {
     private static final Map<UUID, Boolean> DRAGONFIRE_PET_NETHERITE = new ConcurrentHashMap<>();
     private static final Map<UUID, Vec3> DRAGONFIRE_PET_POS = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> DRAGONFIRE_PET_NEXT_ATK = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> DRAGONFIRE_PET_TOGGLE_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> DRAGONFIRE_ORB_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, Long> DRAGONFIRE_ULTI_CD_UNTIL = new ConcurrentHashMap<>();
     private static final Map<UUID, DragonfireIdleState> DRAGONFIRE_IDLE_STATES = new ConcurrentHashMap<>();
@@ -207,6 +208,21 @@ public final class DragonfireCloudManager {
         cancelIdle(player);
         long now = level.getServer().overworld().getGameTime();
         UUID id = player.getUUID();
+        if (now < DRAGONFIRE_PET_TOGGLE_CD_UNTIL.getOrDefault(id, 0L)) {
+            return false;
+        }
+        DRAGONFIRE_PET_TOGGLE_CD_UNTIL.put(id, now + 5L); // 0.25s anti-spam toggle cooldown
+        if (now < DRAGONFIRE_PET_UNTIL.getOrDefault(id, 0L)) {
+            Vec3 oldPos = DRAGONFIRE_PET_POS.getOrDefault(id, player.position().add(0.0D, 1.45D, 0.0D));
+            DRAGONFIRE_PET_UNTIL.remove(id);
+            DRAGONFIRE_PET_NETHERITE.remove(id);
+            DRAGONFIRE_PET_POS.remove(id);
+            DRAGONFIRE_PET_NEXT_ATK.remove(id);
+            ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_PET_OFF);
+            level.sendParticles(ParticleTypes.DRAGON_BREATH, oldPos.x, oldPos.y, oldPos.z, 12, 0.3D, 0.25D, 0.3D, 0.02D);
+            level.playSound(null, player.blockPosition(), SoundEvents.ENDER_DRAGON_FLAP, SoundSource.PLAYERS, 0.65F, 1.65F);
+            return true;
+        }
         DRAGONFIRE_PET_UNTIL.put(id, now + 600L); // 30.0s duration
         DRAGONFIRE_PET_NETHERITE.put(id, isNetherite);
         DRAGONFIRE_PET_POS.put(id, player.position().add(0.0D, 1.45D, 0.0D));
@@ -526,15 +542,26 @@ public final class DragonfireCloudManager {
                     ModNetwork.sendStaffAnimation(player, ClientAuraTracker.ANIM_DRAGONFIRE_PET_OFF);
                 }
             } else if (petActive) {
-                double orbitAng = (serverNow * 0.07D);
-                Vec3 desiredOrbit = player.position().add(Math.cos(orbitAng) * 1.55D, 1.45D + Math.sin(serverNow * 0.12D) * 0.18D, Math.sin(orbitAng) * 1.55D);
+                LivingEntity activeTarget = findNearestMiniDragonTarget(level, player, 20.0D);
+                double orbitAng = (serverNow * 0.055D);
+                double dynRadius = 1.60D + Math.sin(serverNow * 0.032D) * 0.50D;
+                Vec3 desiredOrbit = player.position().add(
+                        Math.cos(orbitAng) * dynRadius,
+                        1.45D + Math.sin(serverNow * 0.09D) * 0.16D,
+                        Math.sin(orbitAng) * dynRadius
+                );
                 Vec3 curPetPos = DRAGONFIRE_PET_POS.getOrDefault(id, desiredOrbit);
                 if (curPetPos.distanceToSqr(player.position()) > 1024.0D) { // > 32m away: teleport to master
                     curPetPos = desiredOrbit;
                     level.sendParticles(ParticleTypes.PORTAL, curPetPos.x, curPetPos.y, curPetPos.z, 12, 0.25D, 0.25D, 0.25D, 0.05D);
                     level.playSound(null, BlockPos.containing(curPetPos), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.55F, 1.45F);
+                } else if (activeTarget != null) {
+                    // Stand still while fighting a target unless master walked > 6.0m away
+                    if (curPetPos.distanceToSqr(player.position()) > 36.0D) {
+                        curPetPos = curPetPos.lerp(desiredOrbit, 0.25D);
+                    }
                 } else {
-                    curPetPos = curPetPos.lerp(desiredOrbit, 0.35D);
+                    curPetPos = curPetPos.lerp(desiredOrbit, 0.30D);
                 }
                 DRAGONFIRE_PET_POS.put(id, curPetPos);
 
@@ -548,27 +575,27 @@ public final class DragonfireCloudManager {
 
                 long nextAtk = DRAGONFIRE_PET_NEXT_ATK.getOrDefault(id, 0L);
                 if (serverNow >= nextAtk) {
-                    DRAGONFIRE_PET_NEXT_ATK.put(id, serverNow + 40L); // Attack every 2.0s (40 ticks)
-                    LivingEntity target = findNearestMiniDragonTarget(level, player, 20.0D);
-                    if (target != null) {
+                    if (activeTarget != null) {
+                        DRAGONFIRE_PET_NEXT_ATK.put(id, serverNow + 40L); // Attack every 2.0s (40 ticks)
                         boolean isNeth = DRAGONFIRE_PET_NETHERITE.getOrDefault(id, false);
                         float scale = StavesConfig.getStaffDamageScale(ArcaneStaffItem.Kind.DRAGONFIRE, isNeth);
                         float petDmg = (isNeth ? 3.0F : 2.0F) * scale; // 1.0 heart Basic / 1.5 hearts Netherite
-                        Vec3 targetCenter = target.getBoundingBox().getCenter();
-                        double petAngle = (serverNow * 0.065D) % (Math.PI * 2.0D);
-                        ModNetwork.sendElectricArc(level, new Vec3(player.getId(), target.getId(), petAngle), targetCenter, 10, 0xFFDF00FF);
-                        ModNetwork.sendElectricArc(level, curPetPos, targetCenter, 10, 0xFFD05CE3);
+                        Vec3 targetCenter = activeTarget.getBoundingBox().getCenter();
+                        ModNetwork.sendElectricArc(level, player, activeTarget, 12, 0xFFD05CE3);
                         level.sendParticles(ParticleTypes.DRAGON_BREATH, targetCenter.x, targetCenter.y, targetCenter.z, 6, 0.2D, 0.2D, 0.2D, 0.02D);
                         level.playSound(null, BlockPos.containing(curPetPos), SoundEvents.ENDER_DRAGON_SHOOT, SoundSource.PLAYERS, 0.45F, 1.65F);
-                        ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, 1.0F, player, petDmg);
+                        ElementalGaugeManager.applyElement(level, activeTarget, Element.ELECTRO, 1.0F, player, petDmg);
+                    } else {
+                        DRAGONFIRE_PET_NEXT_ATK.put(id, serverNow + 5L); // Re-scan quickly while idle
                     }
                 }
             }
 
-            // B. Dragonfire 3D Idle Animation (standing still 20.0s while holding Dragonfire Scepter)
+            // B. Dragonfire 3D Idle Animation (standing still 20.0s while holding Dragonfire Scepter; blocked while mini dragon pet is active)
             boolean holdingDragonfire = isHoldingDragonfireWeapon(player);
             DragonfireIdleState st = DRAGONFIRE_IDLE_STATES.computeIfAbsent(id, k -> new DragonfireIdleState());
             boolean stoodStill = holdingDragonfire
+                    && !petActive
                     && player.onGround()
                     && !player.isShiftKeyDown()
                     && !player.isCrouching()
@@ -598,8 +625,14 @@ public final class DragonfireCloudManager {
     }
 
     private static @Nullable LivingEntity findNearestMiniDragonTarget(ServerLevel level, ServerPlayer player, double radius) {
-        AABB box = player.getBoundingBox().inflate(radius, 6.0D, radius);
         double maxDistSqr = radius * radius;
+        LivingEntity lastHurt = player.getLastHurtMob();
+        if (lastHurt != null
+                && isValidResonanceTarget(player, lastHurt)
+                && lastHurt.distanceToSqr(player) <= maxDistSqr) {
+            return lastHurt;
+        }
+        AABB box = player.getBoundingBox().inflate(radius, 6.0D, radius);
         LivingEntity best = null;
         double bestDist = Double.MAX_VALUE;
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box,
@@ -868,6 +901,7 @@ public final class DragonfireCloudManager {
         DRAGONFIRE_PET_NETHERITE.remove(id);
         DRAGONFIRE_PET_POS.remove(id);
         DRAGONFIRE_PET_NEXT_ATK.remove(id);
+        DRAGONFIRE_PET_TOGGLE_CD_UNTIL.remove(id);
         DRAGONFIRE_ORB_CD_UNTIL.remove(id);
         DRAGONFIRE_ULTI_CD_UNTIL.remove(id);
         DRAGONFIRE_IDLE_STATES.remove(id);
@@ -881,6 +915,7 @@ public final class DragonfireCloudManager {
         DRAGONFIRE_PET_NETHERITE.clear();
         DRAGONFIRE_PET_POS.clear();
         DRAGONFIRE_PET_NEXT_ATK.clear();
+        DRAGONFIRE_PET_TOGGLE_CD_UNTIL.clear();
         DRAGONFIRE_ORB_CD_UNTIL.clear();
         DRAGONFIRE_ULTI_CD_UNTIL.clear();
         DRAGONFIRE_IDLE_STATES.clear();

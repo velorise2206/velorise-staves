@@ -216,12 +216,13 @@ public final class LaylaVisualRenderer {
             }
         }
 
-        // 2. Orbiting Night Stars (1-4 Billboard Quads at R = 1.32f, 50 deg/s)
+        // 2. Orbiting Night Stars (1-4 Billboard Quads inside the Curtain of Slumber sphere)
         int stars = ClientAuraTracker.getNightsFocusStars(entity);
         if (stars > 0) {
             VertexConsumer starVc = buffer.getBuffer(RenderType.entityTranslucentEmissive(LAYLA_NIGHT_STAR_TEX));
-            float rStar = 1.32F;
+            float rStar = 0.96F * openScale;
             float starHalf = 0.16F;
+            int starAlpha = Math.round(250.0F * shieldFade);
             float baseDeg = time * 2.5F;
             float stepDeg = 360.0F / Math.max(1, stars);
             for (int s = 0; s < stars; s++) {
@@ -233,10 +234,10 @@ public final class LaylaVisualRenderer {
                 poseStack.translate(sx, sy, sz);
                 poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
                 Matrix4f sm = poseStack.last().pose();
-                starVc.addVertex(sm, -starHalf, -starHalf, 0.0F).setColor(235, 248, 255, 250).setUv(0.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
-                starVc.addVertex(sm,  starHalf, -starHalf, 0.0F).setColor(235, 248, 255, 250).setUv(1.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
-                starVc.addVertex(sm,  starHalf,  starHalf, 0.0F).setColor(235, 248, 255, 250).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
-                starVc.addVertex(sm, -starHalf,  starHalf, 0.0F).setColor(235, 248, 255, 250).setUv(0.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
+                starVc.addVertex(sm, -starHalf, -starHalf, 0.0F).setColor(235, 248, 255, starAlpha).setUv(0.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
+                starVc.addVertex(sm,  starHalf, -starHalf, 0.0F).setColor(235, 248, 255, starAlpha).setUv(1.0F, 1.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
+                starVc.addVertex(sm,  starHalf,  starHalf, 0.0F).setColor(235, 248, 255, starAlpha).setUv(1.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
+                starVc.addVertex(sm, -starHalf,  starHalf, 0.0F).setColor(235, 248, 255, starAlpha).setUv(0.0F, 0.0F).setOverlay(OverlayTexture.NO_OVERLAY).setLight(WindGliderRenderer.FULL_BRIGHT).setNormal(0.0F, 0.0F, 1.0F);
                 poseStack.popPose();
             }
         }

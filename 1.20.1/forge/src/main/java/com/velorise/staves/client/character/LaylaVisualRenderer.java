@@ -215,8 +215,9 @@ public final class LaylaVisualRenderer {
         int stars = ClientAuraTracker.getNightsFocusStars(entity);
         if (stars > 0) {
             VertexConsumer starVc = buffer.getBuffer(RenderType.entityTranslucentEmissive(LAYLA_NIGHT_STAR_TEX));
-            float rStar = 1.32F;
+            float rStar = 0.96F * openScale;
             float starHalf = 0.16F;
+            int starAlpha = Math.round(250.0F * shieldFade);
             float baseDeg = time * 2.5F;
             float stepDeg = 360.0F / Math.max(1, stars);
             for (int s = 0; s < stars; s++) {
@@ -228,10 +229,10 @@ public final class LaylaVisualRenderer {
                 poseStack.translate(sx, sy, sz);
                 poseStack.mulPose(mc.getEntityRenderDispatcher().cameraOrientation());
                 Matrix4f sm = poseStack.last().pose();
-                starVc.vertex(sm, -starHalf, -starHalf, 0.0F).color(235, 248, 255, 250).uv(0.0F, 1.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
-                starVc.vertex(sm,  starHalf, -starHalf, 0.0F).color(235, 248, 255, 250).uv(1.0F, 1.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
-                starVc.vertex(sm,  starHalf,  starHalf, 0.0F).color(235, 248, 255, 250).uv(1.0F, 0.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
-                starVc.vertex(sm, -starHalf,  starHalf, 0.0F).color(235, 248, 255, 250).uv(0.0F, 0.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
+                starVc.vertex(sm, -starHalf, -starHalf, 0.0F).color(235, 248, 255, starAlpha).uv(0.0F, 1.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
+                starVc.vertex(sm,  starHalf, -starHalf, 0.0F).color(235, 248, 255, starAlpha).uv(1.0F, 1.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
+                starVc.vertex(sm,  starHalf,  starHalf, 0.0F).color(235, 248, 255, starAlpha).uv(1.0F, 0.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
+                starVc.vertex(sm, -starHalf,  starHalf, 0.0F).color(235, 248, 255, starAlpha).uv(0.0F, 0.0F).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(WindGliderRenderer.FULL_BRIGHT).normal(0.0F, 0.0F, 1.0F).endVertex();
                 poseStack.popPose();
             }
         }

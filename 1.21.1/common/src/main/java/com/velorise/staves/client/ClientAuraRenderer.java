@@ -578,11 +578,22 @@ public final class ClientAuraRenderer {
             if (arc.fromEntityId == -3 || arc.fromEntityId == -5 || arc.fromEntityId == -6 || arc.fromEntityId == -7 || arc.fromEntityId == -8) continue;
             net.minecraft.world.entity.Entity fromEnt = arc.fromEntityId >= 0 ? mc.level.getEntity(arc.fromEntityId) : null;
             net.minecraft.world.entity.Entity toEnt = arc.toEntityId >= 0 ? mc.level.getEntity(arc.toEntityId) : null;
-            Vec3 startPos = fromEnt != null
-                    ? fromEnt.position().add(0.0D, fromEnt.getBbHeight() * 0.45D, 0.0D)
-                    : arc.start;
+            float arcPt = mc.getTimer().getGameTimeDeltaPartialTick(true);
+            Vec3 startPos;
+            if (arc.fromEntityId <= -10000) {
+                int petOwnerId = -10000 - arc.fromEntityId;
+                Vec3 liveMouth = DragonfireVisualRenderer.getActivePetMouthWorldPos(petOwnerId);
+                if (liveMouth != null) {
+                    arc.start = liveMouth;
+                }
+                startPos = arc.start;
+            } else {
+                startPos = fromEnt != null
+                        ? fromEnt.getPosition(arcPt).add(0.0D, fromEnt.getBbHeight() * 0.45D, 0.0D)
+                        : arc.start;
+            }
             Vec3 endPos = toEnt != null
-                    ? toEnt.position().add(0.0D, toEnt.getBbHeight() * 0.45D, 0.0D)
+                    ? toEnt.getPosition(arcPt).add(0.0D, toEnt.getBbHeight() * 0.55D, 0.0D)
                     : arc.end;
             if (startPos == null || endPos == null) continue;
             if (VentiVisualRenderer.renderVortexStreamArc(arc, startPos, endPos, camPos, now, consumer, matrix)) continue;

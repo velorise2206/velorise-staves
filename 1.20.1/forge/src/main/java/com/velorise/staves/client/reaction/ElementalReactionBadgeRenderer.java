@@ -1901,17 +1901,23 @@ public final class ElementalReactionBadgeRenderer {
         double dist = diff.length();
         if (dist < 0.05D) return;
 
-        boolean mouthMoved = false;
-        if (arc.fromEntityId <= -10000 && !arc.points.isEmpty()) {
+        boolean isDragonMouthArc = (arc.fromEntityId <= -10000);
+        boolean endpointsMoved = false;
+        if (isDragonMouthArc && arc.points.size() >= 2) {
             org.joml.Vector3f first = arc.points.get(0);
-            double dx = first.x - startPos.x;
-            double dy = first.y - startPos.y;
-            double dz = first.z - startPos.z;
-            mouthMoved = (dx * dx + dy * dy + dz * dz) > 1.0E-4D;
+            org.joml.Vector3f last = arc.points.get(arc.points.size() - 1);
+            double dx0 = first.x - startPos.x;
+            double dy0 = first.y - startPos.y;
+            double dz0 = first.z - startPos.z;
+            double dx1 = last.x - endPos.x;
+            double dy1 = last.y - endPos.y;
+            double dz1 = last.z - endPos.z;
+            endpointsMoved = (dx0 * dx0 + dy0 * dy0 + dz0 * dz0) > 2.5E-3D
+                    || (dx1 * dx1 + dy1 * dy1 + dz1 * dz1) > 1.0E-2D;
         }
-        if (arc.points.isEmpty() || mouthMoved || (now - arc.lastJitterTime) >= 70L) {
+        if (arc.points.isEmpty() || endpointsMoved || (now - arc.lastJitterTime) >= 65L) {
             arc.points.clear();
-            int segs = Math.max(3, (int) Math.round(dist * 1.5D));
+            int segs = Math.max(4, (int) Math.round(dist * 1.6D));
             Vec3 dir = diff.normalize();
             Vec3 arbitrary = Math.abs(dir.y) < 0.9D ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
             Vec3 u = dir.cross(arbitrary).normalize();
@@ -1920,7 +1926,8 @@ public final class ElementalReactionBadgeRenderer {
             arc.points.add(new org.joml.Vector3f((float) startPos.x, (float) startPos.y, (float) startPos.z));
             for (int i = 1; i < segs; i++) {
                 double t = (double) i / (double) segs;
-                double maxJitter = Math.min(0.18D, dist * 0.05D);
+                double taper = isDragonMouthArc ? Math.sin(t * Math.PI) : 1.0D;
+                double maxJitter = Math.min(0.18D, dist * 0.05D) * taper;
                 double jx = (Math.random() - 0.5D) * 2.0D * maxJitter;
                 double jy = (Math.random() - 0.5D) * 2.0D * maxJitter;
                 Vec3 pt = startPos.add(diff.scale(t)).add(u.scale(jx)).add(v.scale(jy));
@@ -1928,6 +1935,9 @@ public final class ElementalReactionBadgeRenderer {
             }
             arc.points.add(new org.joml.Vector3f((float) endPos.x, (float) endPos.y, (float) endPos.z));
             arc.lastJitterTime = now;
+        } else if (isDragonMouthArc && arc.points.size() >= 2) {
+            arc.points.get(0).set((float) startPos.x, (float) startPos.y, (float) startPos.z);
+            arc.points.get(arc.points.size() - 1).set((float) endPos.x, (float) endPos.y, (float) endPos.z);
         }
 
         int ptsCount = arc.points.size();

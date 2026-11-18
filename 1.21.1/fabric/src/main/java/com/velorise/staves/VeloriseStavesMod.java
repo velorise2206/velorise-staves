@@ -297,58 +297,60 @@ public final class VeloriseStavesMod implements ModInitializer {
             // Guidebook
             output.accept(ELEMENTAL_CODEX);
 
-            // Basic tier
-            output.accept(DRAGONFIRE_SCEPTER);
-            output.accept(RESONANT_ECHO);
+            // 1. Basic Staves & Relics (Basic + Netherite pairs)
             output.accept(INFERNO_ROD);
+            output.accept(NETHERITE_INFERNO_ROD);
             output.accept(GHASTFIRE_STAFF);
-            output.accept(THOUSAND_BLAZING_SUNS);
-            output.accept(PEAK_PATROL_SONG);
-            output.accept(THOUSAND_FLOATING_DREAMS);
-            output.accept(TSARITSA_BOW);
+            output.accept(NETHERITE_GHASTFIRE_STAFF);
             output.accept(WITHER_SCEPTER);
+            output.accept(NETHERITE_WITHER_SCEPTER);
             output.accept(SHULKER_SEEKER);
-            output.accept(GUARDIAN_LENS);
-            output.accept(SPLENDOR_OF_TRANQUIL_WATERS);
+            output.accept(NETHERITE_SHULKER_SEEKER);
+            output.accept(DRAGONFIRE_SCEPTER);
+            output.accept(NETHERITE_DRAGONFIRE_SCEPTER);
             output.accept(EVOKER_FANG_STAFF);
-            output.accept(VORTEX_VANQUISHER);
+            output.accept(NETHERITE_EVOKER_FANG_STAFF);
             output.accept(ARC_CASTER);
+            output.accept(NETHERITE_ARC_CASTER);
             output.accept(FROSTBOLT_WAND);
-            output.accept(NIGHTS_FOCUS_STAFF);
+            output.accept(NETHERITE_FROSTBOLT_WAND);
             output.accept(WEBCASTER);
+            output.accept(NETHERITE_WEBCASTER);
             output.accept(WIND_STAFF);
-            output.accept(THE_DAYBREAK_CHRONICLES);
-            output.accept(ENGULFING_LIGHTNING);
+            output.accept(NETHERITE_WIND_STAFF);
+            output.accept(RESONANT_ECHO);
+            output.accept(NETHERITE_RESONANT_ECHO);
             output.accept(OMNI_STAFF);
+            output.accept(NETHERITE_OMNI_STAFF);
             output.accept(VOID_TRANSLOCATOR);
+            output.accept(NETHERITE_VOID_TRANSLOCATOR);
             output.accept(MAGIC_MIRROR);
+            output.accept(NETHERITE_MAGIC_MIRROR);
             output.accept(WIND_GLIDER);
 
-            // Netherite tier
-            output.accept(NETHERITE_DRAGONFIRE_SCEPTER);
-            output.accept(NETHERITE_RESONANT_ECHO);
-            output.accept(NETHERITE_INFERNO_ROD);
-            output.accept(NETHERITE_GHASTFIRE_STAFF);
-            output.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
-            output.accept(NETHERITE_PEAK_PATROL_SONG);
-            output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS);
-            output.accept(NETHERITE_TSARITSA_BOW);
-            output.accept(NETHERITE_WITHER_SCEPTER);
-            output.accept(NETHERITE_SHULKER_SEEKER);
+            // 2. Genshin Weapons (Basic + Netherite pairs)
+            output.accept(GUARDIAN_LENS);
             output.accept(NETHERITE_GUARDIAN_LENS);
-            output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
-            output.accept(NETHERITE_EVOKER_FANG_STAFF);
-            output.accept(NETHERITE_VORTEX_VANQUISHER);
-            output.accept(NETHERITE_ARC_CASTER);
-            output.accept(NETHERITE_FROSTBOLT_WAND);
+            output.accept(NIGHTS_FOCUS_STAFF);
             output.accept(NETHERITE_NIGHTS_FOCUS_STAFF);
-            output.accept(NETHERITE_WEBCASTER);
-            output.accept(NETHERITE_WIND_STAFF);
+            output.accept(PEAK_PATROL_SONG);
+            output.accept(NETHERITE_PEAK_PATROL_SONG);
+
+            // 3. Archon Weapons (Basic + Netherite pairs)
+            output.accept(THE_DAYBREAK_CHRONICLES);
             output.accept(NETHERITE_THE_DAYBREAK_CHRONICLES);
+            output.accept(VORTEX_VANQUISHER);
+            output.accept(NETHERITE_VORTEX_VANQUISHER);
+            output.accept(ENGULFING_LIGHTNING);
             output.accept(NETHERITE_ENGULFING_LIGHTNING);
-            output.accept(NETHERITE_OMNI_STAFF);
-            output.accept(NETHERITE_VOID_TRANSLOCATOR);
-            output.accept(NETHERITE_MAGIC_MIRROR);
+            output.accept(THOUSAND_FLOATING_DREAMS);
+            output.accept(NETHERITE_THOUSAND_FLOATING_DREAMS);
+            output.accept(SPLENDOR_OF_TRANQUIL_WATERS);
+            output.accept(NETHERITE_SPLENDOR_OF_TRANQUIL_WATERS);
+            output.accept(THOUSAND_BLAZING_SUNS);
+            output.accept(NETHERITE_THOUSAND_BLAZING_SUNS);
+            output.accept(TSARITSA_BOW);
+            output.accept(NETHERITE_TSARITSA_BOW);
 
             // Reactions & Elements
             output.accept(DENDRO_CORE);

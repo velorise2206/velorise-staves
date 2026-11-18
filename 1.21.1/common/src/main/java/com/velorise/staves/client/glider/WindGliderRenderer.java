@@ -816,7 +816,7 @@ public final class WindGliderRenderer {
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyYaw));
-        poseStack.translate(0.0F, 2.38F, 0.12F);
+        poseStack.translate(0.0F, 2.38F, -0.38F);
         poseStack.mulPose(Axis.XP.rotationDegrees(-14.0F));
         float pitch = Mth.cos(time * 0.26F) * 6.0F;
         com.velorise.staves.client.character.DragonfireVisualRenderer.renderStylizedEnderDragonModel(poseStack, buffer, 2.50F, 0.085F, pitch, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 10.0F, time, 1.0F);
