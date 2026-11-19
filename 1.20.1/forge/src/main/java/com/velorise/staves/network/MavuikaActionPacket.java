@@ -40,6 +40,8 @@ public class MavuikaActionPacket {
     public static final byte ACTION_PLAYER_DASH = 28;
     public static final byte ACTION_STEVE_WALL_CLIMB_START = 29;
     public static final byte ACTION_STEVE_WALL_CLIMB_STOP = 30;
+    public static final byte ACTION_STEVE_WALL_CLIMB_JUMP = 31;
+    public static final byte ACTION_STEVE_WALL_CLIMB_EXHAUSTED = 32;
 
     private final byte action;
 
@@ -66,6 +68,8 @@ public class MavuikaActionPacket {
                     && packet.action != ACTION_PLAYER_DASH
                     && packet.action != ACTION_STEVE_WALL_CLIMB_START
                     && packet.action != ACTION_STEVE_WALL_CLIMB_STOP
+                    && packet.action != ACTION_STEVE_WALL_CLIMB_JUMP
+                    && packet.action != ACTION_STEVE_WALL_CLIMB_EXHAUSTED
                     && packet.action != ACTION_SPIN_STOP
                     && packet.action != ACTION_SPRINT_STOP
                     && packet.action != ACTION_NEUVILLETTE_CA_STOP
@@ -138,6 +142,10 @@ public class MavuikaActionPacket {
                 com.velorise.staves.element.PlungeAndGliderManager.handlePlayerDash(player);
             } else if (packet.action == ACTION_STEVE_WALL_CLIMB_START || packet.action == ACTION_STEVE_WALL_CLIMB_STOP) {
                 com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbState(player, packet.action == ACTION_STEVE_WALL_CLIMB_START);
+            } else if (packet.action == ACTION_STEVE_WALL_CLIMB_JUMP) {
+                com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbJump(player);
+            } else if (packet.action == ACTION_STEVE_WALL_CLIMB_EXHAUSTED) {
+                com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbExhausted(player);
             }
         });
         ctx.setPacketHandled(true);

@@ -42,6 +42,8 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
     public static final byte ACTION_PLAYER_DASH = 28;
     public static final byte ACTION_STEVE_WALL_CLIMB_START = 29;
     public static final byte ACTION_STEVE_WALL_CLIMB_STOP = 30;
+    public static final byte ACTION_STEVE_WALL_CLIMB_JUMP = 31;
+    public static final byte ACTION_STEVE_WALL_CLIMB_EXHAUSTED = 32;
 
     public static final Type<MavuikaActionPayload> TYPE =
             new Type<>(ResourceLocation.fromNamespaceAndPath(VeloriseStavesMod.MODID, "mavuika_action"));
@@ -64,6 +66,8 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
                 && action != ACTION_PLAYER_DASH
                 && action != ACTION_STEVE_WALL_CLIMB_START
                 && action != ACTION_STEVE_WALL_CLIMB_STOP
+                && action != ACTION_STEVE_WALL_CLIMB_JUMP
+                && action != ACTION_STEVE_WALL_CLIMB_EXHAUSTED
                 && action != ACTION_SPIN_STOP
                 && action != ACTION_SPRINT_STOP
                 && action != ACTION_NEUVILLETTE_CA_STOP
@@ -136,6 +140,10 @@ public record MavuikaActionPayload(byte action) implements CustomPacketPayload {
             com.velorise.staves.element.PlungeAndGliderManager.handlePlayerDash(player);
         } else if (action == ACTION_STEVE_WALL_CLIMB_START || action == ACTION_STEVE_WALL_CLIMB_STOP) {
             com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbState(player, action == ACTION_STEVE_WALL_CLIMB_START);
+        } else if (action == ACTION_STEVE_WALL_CLIMB_JUMP) {
+            com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbJump(player);
+        } else if (action == ACTION_STEVE_WALL_CLIMB_EXHAUSTED) {
+            com.velorise.staves.element.PlungeAndGliderManager.handleWallClimbExhausted(player);
         }
     }
 }

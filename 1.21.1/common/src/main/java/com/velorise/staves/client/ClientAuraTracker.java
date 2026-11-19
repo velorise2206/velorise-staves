@@ -77,6 +77,8 @@ public final class ClientAuraTracker {
     public static final int ANIM_DRAGONFIRE_ULTI_SWEEP = 4074;
     public static final int ANIM_STEVE_WALL_CLIMB_ON = 4080;
     public static final int ANIM_STEVE_WALL_CLIMB_OFF = 4081;
+    public static final int ANIM_STEVE_WALL_CLIMB_JUMP = 4082;
+    public static final int ANIM_STEVE_WALL_CLIMB_MANTLE = 4083;
     public static final int ANIM_STAMINA_TIER_100 = 86;
     public static final int ANIM_STAMINA_TIER_170 = 87;
     public static final int ANIM_STAMINA_TIER_240 = 88;
@@ -92,6 +94,14 @@ public final class ClientAuraTracker {
     private static int localDashChainCount = 0;
     private static int localDashChainResetTicks = 0;
     private static boolean localSteveWallClimbing = false;
+    private static com.velorise.staves.fsm.MovementActionState localMovementState = com.velorise.staves.fsm.MovementActionState.GROUNDED;
+    private static int localMoveElapsedTicks = 0;
+    private static int localWallJumpTicks = 0;
+    private static int localMantleTicks = 0;
+    private static net.minecraft.core.Direction localWallNormalFace = null;
+    private static boolean wasWallJumpKeyDown = false;
+    private static boolean localExhaustedClimbFall = false;
+    private static final com.velorise.staves.fsm.InputBuffer<com.velorise.staves.fsm.MovementActionState.BufferedInput> localWallInputBuffer = new com.velorise.staves.fsm.InputBuffer<>();
 
     public static volatile boolean localWindGliderUnlocked = false;
     public static volatile int ventiUltiHoldTicks = 0;
@@ -160,6 +170,11 @@ public final class ClientAuraTracker {
         public boolean steveWallClimbing = false;
         public float steveWallClimbFade = 0.0F;
         public long steveWallClimbLastMs = 0L;
+        public float steveWallClimbDist = 0.0F;
+        public long steveWallJumpUntilMs = 0L;
+        public long steveWallMantleUntilMs = 0L;
+        public net.minecraft.core.Direction wallNormalFace = null;
+        public final com.velorise.staves.fsm.PoseBlender.HumanoidPose wallClimbPose = new com.velorise.staves.fsm.PoseBlender.HumanoidPose();
         public int nightsFocusStars = 0;
         public long nightsFocusAppliedTime = 0L;
         public long frozenTotalMs = 0L;
@@ -784,6 +799,17 @@ public final class ClientAuraTracker {
         if (animType == ANIM_STEVE_WALL_CLIMB_ON || animType == ANIM_STEVE_WALL_CLIMB_OFF) {
             AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
             entry.steveWallClimbing = (animType == ANIM_STEVE_WALL_CLIMB_ON);
+            if (!entry.steveWallClimbing) entry.wallNormalFace = null;
+            return;
+        }
+        if (animType == ANIM_STEVE_WALL_CLIMB_JUMP) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.steveWallJumpUntilMs = now + 420L;
+            return;
+        }
+        if (animType == ANIM_STEVE_WALL_CLIMB_MANTLE) {
+            AuraDisplayData entry = DATA.computeIfAbsent(entityId, k -> new AuraDisplayData());
+            entry.steveWallMantleUntilMs = now + 320L;
             return;
         }
         if (animType >= 4100 && animType <= 4101) {
@@ -1564,6 +1590,14 @@ public final class ClientAuraTracker {
         localDashChainCount = 0;
         localDashChainResetTicks = 0;
         localSteveWallClimbing = false;
+        localMovementState = com.velorise.staves.fsm.MovementActionState.GROUNDED;
+        localMoveElapsedTicks = 0;
+        localWallJumpTicks = 0;
+        localMantleTicks = 0;
+        localWallNormalFace = null;
+        wasWallJumpKeyDown = false;
+        localExhaustedClimbFall = false;
+        localWallInputBuffer.clear();
     }
 
     public static void tickLocalStaminaAndDash(
@@ -1618,7 +1652,9 @@ public final class ClientAuraTracker {
                 && (player.onGround() || player.isInWater())) {
             boolean enoughStamina = !customStamina || creative || (!localStaminaExhausted && localStamina >= 18.0F);
             if (enoughStamina) {
-                if (customStamina && !creative) {
+                tickLocalWallClimbMachine(player, customStamina, creative, blocked);
+
+        if (customStamina && !creative) {
                     localStamina = Math.max(0.0F, localStamina - 18.0F);
                     localStaminaRegenDelayTicks = 30;
                     if (localStamina <= 0.01F) {
@@ -1672,7 +1708,8 @@ public final class ClientAuraTracker {
 
         if (customStamina && !creative) {
             boolean glidingNow = isGliding(pid) && !player.onGround() && !player.getAbilities().flying && player.getVehicle() == null;
-            boolean sprintingNow = !glidingNow && player.isSprinting() && !player.getAbilities().flying
+            boolean wallClimbingNow = localSteveWallClimbing || localMovementState.isWallState();
+            boolean sprintingNow = !glidingNow && !wallClimbingNow && player.isSprinting() && !player.getAbilities().flying
                     && player.getVehicle() == null && !isXilonenSkating(pid) && !blocked;
             if (glidingNow) {
                 float drain = com.velorise.staves.element.VentiManager.hasVentiWeapon(player) ? 0.15F : 0.30F;
@@ -1684,6 +1721,8 @@ public final class ClientAuraTracker {
                     stopGliding(pid);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(toggleGliderAction);
                 }
+            } else if (wallClimbingNow) {
+                localStaminaRegenDelayTicks = 25;
             } else if (sprintingNow) {
                 localStamina = Math.max(0.0F, localStamina - 0.45F);
                 localStaminaRegenDelayTicks = 25;
@@ -2066,5 +2105,264 @@ public final class ClientAuraTracker {
             return mobShield;
         }
         return getTrackedCrystallizeShield();
+    }
+
+    public static boolean isSteveWallClimbing(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null && data.steveWallClimbing;
+    }
+
+    public static boolean isLocalExhaustedClimbFall() {
+        return localExhaustedClimbFall;
+    }
+
+    @javax.annotation.Nullable
+    public static net.minecraft.core.Direction getWallNormalFace(int entityId) {
+        AuraDisplayData data = DATA.get(entityId);
+        return data != null ? data.wallNormalFace : null;
+    }
+
+    private static void exitLocalWallClimb(net.minecraft.world.entity.player.Player player, boolean exhausted) {
+        int pid = player.getId();
+        boolean wasClimbing = localSteveWallClimbing || localMovementState.isWallState();
+        localSteveWallClimbing = false;
+        localWallNormalFace = null;
+        localMoveElapsedTicks = 0;
+        localWallJumpTicks = 0;
+        localMantleTicks = 0;
+        localWallInputBuffer.clear();
+        AuraDisplayData entry = DATA.get(pid);
+        if (entry != null) {
+            entry.steveWallClimbing = false;
+            entry.wallNormalFace = null;
+        }
+        if (exhausted) {
+            localMovementState = com.velorise.staves.fsm.MovementActionState.EXHAUSTED_FALL;
+            localExhaustedClimbFall = true;
+            if (wasClimbing) {
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 32);
+            }
+        } else {
+            localMovementState = player.onGround()
+                    ? com.velorise.staves.fsm.MovementActionState.GROUNDED
+                    : com.velorise.staves.fsm.MovementActionState.GROUNDED;
+            if (wasClimbing) {
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 30);
+            }
+        }
+    }
+
+    private static void tickLocalWallClimbMachine(
+            net.minecraft.world.entity.player.Player player,
+            boolean customStamina,
+            boolean creative,
+            boolean blockedByOtherLayer
+    ) {
+        int pid = player.getId();
+        localWallInputBuffer.tick();
+
+        if (player.onGround() || player.isInWater() || player.isInLava()) {
+            localExhaustedClimbFall = false;
+            if (localMovementState == com.velorise.staves.fsm.MovementActionState.EXHAUSTED_FALL) {
+                localMovementState = com.velorise.staves.fsm.MovementActionState.GROUNDED;
+            }
+        }
+
+        boolean wallClimbEnabled = com.velorise.staves.config.StavesConfig.isEnableWallClimb();
+        boolean higherPriorityActive = blockedByOtherLayer
+                || !wallClimbEnabled
+                || player.onClimbable()
+                || player.isInWater()
+                || player.isInLava()
+                || player.getAbilities().flying
+                || player.getVehicle() != null
+                || isXilonenSkating(pid)
+                || isGliding(pid)
+                || isPlunging(pid);
+
+        if (higherPriorityActive) {
+            if (localSteveWallClimbing || localMovementState.isWallState()) {
+                exitLocalWallClimb(player, false);
+            }
+            wasWallJumpKeyDown = false;
+            return;
+        }
+
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        boolean jumpDown = mc != null && mc.options != null && mc.options.keyJump.isDown();
+        boolean jumpPressed = jumpDown && !wasWallJumpKeyDown;
+        wasWallJumpKeyDown = jumpDown;
+
+        float fwdIn = ClientAccess.getForwardImpulse(player);
+        float leftIn = ClientAccess.getLeftImpulse(player);
+        boolean sneakDown = player.isShiftKeyDown();
+
+        if (localSteveWallClimbing && jumpPressed) {
+            localWallInputBuffer.push(com.velorise.staves.fsm.MovementActionState.BufferedInput.CLIMB_JUMP, 4);
+        }
+
+        // Active ledge mantle (6 ticks)
+        if (localMovementState == com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE) {
+            localMoveElapsedTicks++;
+            localMantleTicks--;
+            net.minecraft.core.Direction wallFace = localWallNormalFace;
+            if (wallFace != null) {
+                net.minecraft.core.Direction inward = wallFace.getOpposite();
+                player.setDeltaMovement(inward.getStepX() * 0.24D, 0.34D, inward.getStepZ() * 0.24D);
+                player.fallDistance = 0.0F;
+            }
+            if (localMantleTicks <= 0 || player.onGround()) {
+                exitLocalWallClimb(player, false);
+            }
+            return;
+        }
+
+        // Active climb jump (8 ticks, cancel window at tick 5)
+        if (localMovementState == com.velorise.staves.fsm.MovementActionState.WALL_JUMP) {
+            localMoveElapsedTicks++;
+            localWallJumpTicks--;
+            player.fallDistance = 0.0F;
+            if (localWallJumpTicks <= 0) {
+                net.minecraft.core.Direction regrab = com.velorise.staves.element.WallClimbHelper.findClimbWall(
+                        player, com.velorise.staves.element.WallClimbHelper.CLIENT_WALL_PROBE_DIST + 0.15D);
+                if (regrab != null && (!customStamina || creative || localStamina > 0.01F)) {
+                    localWallNormalFace = regrab;
+                    localMovementState = com.velorise.staves.fsm.MovementActionState.WALL_CLING;
+                    localMoveElapsedTicks = 0;
+                    AuraDisplayData entry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
+                    entry.wallNormalFace = regrab;
+                } else {
+                    exitLocalWallClimb(player, customStamina && !creative && localStamina <= 0.01F);
+                }
+            }
+            return;
+        }
+
+        // Manual drop-off via Shift
+        if (localSteveWallClimbing && sneakDown) {
+            exitLocalWallClimb(player, false);
+            return;
+        }
+
+        net.minecraft.core.Direction wallFace = com.velorise.staves.element.WallClimbHelper.findClimbWall(
+                player, com.velorise.staves.element.WallClimbHelper.CLIENT_WALL_PROBE_DIST);
+
+        if (!localSteveWallClimbing) {
+            boolean enoughToStart = !customStamina || creative || (!localStaminaExhausted && !localExhaustedClimbFall && localStamina >= 5.0F);
+            boolean wantsAttach = wallFace != null && !sneakDown && enoughToStart
+                    && (fwdIn > 0.10F && (!player.onGround() || player.horizontalCollision));
+            if (wantsAttach) {
+                localSteveWallClimbing = true;
+                localWallNormalFace = wallFace;
+                localMovementState = com.velorise.staves.fsm.MovementActionState.WALL_CLING;
+                localMoveElapsedTicks = 0;
+                AuraDisplayData entry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
+                entry.steveWallClimbing = true;
+                entry.wallNormalFace = wallFace;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 29);
+            } else {
+                return;
+            }
+        }
+
+        // Already climbing: validate wall contact
+        if (wallFace == null) {
+            exitLocalWallClimb(player, false);
+            return;
+        }
+        localWallNormalFace = wallFace;
+        AuraDisplayData entry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
+        entry.steveWallClimbing = true;
+        entry.wallNormalFace = wallFace;
+        localMoveElapsedTicks++;
+
+        // Check Ledge Mantle when pushing forward near top edge
+        if (fwdIn > 0.10F && com.velorise.staves.element.WallClimbHelper.canLedgeMantle(player, wallFace)) {
+            localMovementState = com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE;
+            localMoveElapsedTicks = 0;
+            localMantleTicks = com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE_DURATION_TICKS;
+            entry.steveWallMantleUntilMs = System.currentTimeMillis() + 320L;
+            return;
+        }
+
+        // Consume buffered Climb Jump (Space = -25 Stamina)
+        if (localWallInputBuffer.consumeIf(i -> i == com.velorise.staves.fsm.MovementActionState.BufferedInput.CLIMB_JUMP) != null) {
+            boolean canJump = !customStamina || creative || localStamina >= 25.0F;
+            if (canJump) {
+                if (customStamina && !creative) {
+                    localStamina = Math.max(0.0F, localStamina - 25.0F);
+                    localStaminaRegenDelayTicks = 30;
+                }
+                if (fwdIn < -0.20F) {
+                    // Authentic Genshin: downward + jump kicks away from wall
+                    player.setDeltaMovement(wallFace.getStepX() * 0.42D, 0.38D, wallFace.getStepZ() * 0.42D);
+                    exitLocalWallClimb(player, false);
+                    return;
+                }
+                // Upward / diagonal climb leap along the wall
+                double rightX = -wallFace.getStepZ();
+                double rightZ = wallFace.getStepX();
+                net.minecraft.core.Direction inward = wallFace.getOpposite();
+                double strafe = -leftIn * 0.22D;
+                player.setDeltaMovement(
+                        inward.getStepX() * 0.08D + rightX * strafe,
+                        0.46D,
+                        inward.getStepZ() * 0.08D + rightZ * strafe
+                );
+                player.fallDistance = 0.0F;
+                localMovementState = com.velorise.staves.fsm.MovementActionState.WALL_JUMP;
+                localMoveElapsedTicks = 0;
+                localWallJumpTicks = com.velorise.staves.fsm.MovementActionState.WALL_JUMP_DURATION_TICKS;
+                entry.steveWallJumpUntilMs = System.currentTimeMillis() + 420L;
+                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 31);
+                if (customStamina && !creative && localStamina <= 0.01F) {
+                    localStamina = 0.0F;
+                    localStaminaExhausted = true;
+                    exitLocalWallClimb(player, true);
+                }
+                return;
+            }
+        }
+
+        // Compute tangent-plane climbing velocity (W/S = up/down, A/D = strafe along wall)
+        boolean movingOnWall = Math.abs(fwdIn) > 0.05F || Math.abs(leftIn) > 0.05F;
+        localMovementState = movingOnWall
+                ? com.velorise.staves.fsm.MovementActionState.WALL_CLIMB
+                : com.velorise.staves.fsm.MovementActionState.WALL_CLING;
+
+        net.minecraft.core.Direction inward = wallFace.getOpposite();
+        double rightX = -wallFace.getStepZ();
+        double rightZ = wallFace.getStepX();
+
+        double vy = fwdIn * 0.155D;
+        if (vy > 0.0D && com.velorise.staves.element.WallClimbHelper.hasOverhangAbove(player)) {
+            vy = 0.0D;
+        }
+        double strafe = -leftIn * 0.125D;
+        double vx = inward.getStepX() * 0.04D + rightX * strafe;
+        double vz = inward.getStepZ() * 0.04D + rightZ * strafe;
+
+        player.setDeltaMovement(vx, vy, vz);
+        player.fallDistance = 0.0F;
+
+        // If descending onto solid ground, exit cleanly
+        if (fwdIn < -0.10F && player.onGround()) {
+            exitLocalWallClimb(player, false);
+            return;
+        }
+
+        // Authentic Genshin stamina rule: clinging idle costs 0 but pauses regen; moving drains stamina
+        if (customStamina && !creative) {
+            localStaminaRegenDelayTicks = 25;
+            if (movingOnWall) {
+                float drain = 0.45F; // ~9 Stamina/s
+                localStamina = Math.max(0.0F, localStamina - drain);
+                if (localStamina <= 0.01F) {
+                    localStamina = 0.0F;
+                    localStaminaExhausted = true;
+                    exitLocalWallClimb(player, true);
+                }
+            }
+        }
     }
 }

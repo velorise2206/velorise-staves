@@ -327,6 +327,7 @@ public final class ClientAuraRenderer {
 
         if (WindGliderRenderer.applyPlungeAndGliderHumanoidPose(entity, model, ageInTicks)) return;
         if (XilonenVisualRenderer.applySkateStrideAndWallClimb(entity, model, ageInTicks, activeAnim)) return;
+        if (com.velorise.staves.client.character.WallClimbVisualRenderer.applyWallClimbHumanoidPose(entity, model, ageInTicks)) return;
         if (NeuvilletteVisualRenderer.applyChannelingHumanoidPose(entity, model, activeAnim)) return;
         if (ZhongliVisualRenderer.applyHumanoidAnimation(entity, model, ageInTicks, activeAnim, t)) return;
         if (WindGliderRenderer.applyAuxiliaryStaffHumanoidAnimation(entity, model, ageInTicks, activeAnim, t)) return;

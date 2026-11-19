@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - Shared FSM Core & Authentic Genshin Wall Climbing (`MovementMachine`)
+- **Shared FSM Core (`com.velorise.staves.fsm`)**: Added reusable `StateNode`, `InputBuffer` (4–5 tick TTL), `PoseBlender` (exponential damping `1 - exp(-k * dt)`), and `MovementActionState` (`GROUNDED`, `WALL_CLING`, `WALL_CLIMB`, `WALL_JUMP`, `LEDGE_MANTLE`, `GLIDING`, `PLUNGE_DIVE`, `EXHAUSTED_FALL`) identically in `1.21.1/common` and `1.20.1/forge`.
+- **Genshin Wall Climbing & Anti-Kick**: Added `WallClimbHelper` (`isFaceSturdy` filter, overhang blocking, `canLedgeMantle`) and `ServerGamePacketListenerAccessor` (`aboveGroundTickCount = 0` anti-80-tick floating kick) across `1.21.1/neoforge`, `1.21.1/fabric`, and `1.20.1/forge`.
+- **Client Prediction, Pose Blending & Xilonen/Mavuika Isolation**: Implemented tangent-plane climbing, 0-stamina Cling (pausing regen), 25-stamina Climb Jump with `InputBuffer`, Ledge Mantle, `WallClimbVisualRenderer` + `LivingEntityRendererMixin` `yBodyRot` wall lock, priority gating (`MAVUIKA_BIKE > XILONEN_SKATE > VANILLA_CLIMBABLE > UNIVERSAL_AIR_MOVE`), and Genshin `EXHAUSTED_FALL` plunge lock.
+
+
 ## [Unreleased] - Authentic Genshin Plunging Attack Rework
 - **Base-Scaled Plunging Attack (`PlungeAndGliderManager`)**: Replaced fixed plunge scaling with unified weapon-base multipliers following Genshin Impact's 1 : 2 : 2.5 ratio (`0.64x` Mid-Air Collision every 6 ticks / 0.3s in 1.0m radius, `1.28x` Low Plunge for `<= 2.4` blocks in 3.0m radius, `1.60x` High Plunge for `> 2.4` blocks in 5.0m radius) across `1.21.1/neoforge`, `1.21.1/fabric`, and `1.20.1/forge`.
 - **Radial Impulse & VFX/SFX Tiering**: Added Low/High Plunge radial knockback (`0.25` vs `0.55` + `0.22Y` lift), scaled shockwave particle rings, and distinct audio pitch.

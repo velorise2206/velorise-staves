@@ -11,7 +11,8 @@
     "MobAccessor",
     "CombatTrackerMixin",
     "ExplosionMixin",
-    "WalkNodeEvaluatorMixin"
+    "WalkNodeEvaluatorMixin",
+    "ServerGamePacketListenerAccessor"
   ],
   "client": [
     "LivingEntityRendererMixin",

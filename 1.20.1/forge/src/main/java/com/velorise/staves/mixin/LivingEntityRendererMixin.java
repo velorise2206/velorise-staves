@@ -41,6 +41,10 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
                 || com.velorise.staves.client.ClientAuraTracker.isRaidenSlashingOrBursting(livingEntity.getId()))) {
             livingEntity.yBodyRot = livingEntity.getYRot();
             livingEntity.yBodyRotO = livingEntity.yRotO;
+        } else if (livingEntity != null && com.velorise.staves.client.ClientAuraTracker.isSteveWallClimbing(livingEntity.getId())) {
+            float wallYaw = com.velorise.staves.client.character.WallClimbVisualRenderer.resolveWallBodyYaw(livingEntity);
+            livingEntity.yBodyRot = wallYaw;
+            livingEntity.yBodyRotO = wallYaw;
         }
         velorise$bikePoseStack.push(FlamestriderBikeRenderer.pushRiderBikeTransform(livingEntity, partialTicks, poseStack));
     }
