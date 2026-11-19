@@ -16,19 +16,19 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
 
 ## 📚 Wiki Navigation Directory
 
-1. **[Staves List & Character Kits](Staves-List.md)**
+1. **[Staves List & Character Kits](Staves-List)**
    - Complete controls table, all **10 Genshin Character Signature Kits** (Normal/Charged/Skill/Burst/Passives/Combos), **8 3D AFK Idle Animations**, **12 Standard & Omni Staves**, and **Elemental Resonance** buffs.
-2. **[Elements, Reactions & Enchantments](Elements-and-Reactions.md)**
+2. **[Elements, Reactions & Enchantments](Elements-and-Reactions)**
    - Mathematical breakdown of **Elemental Gauge Theory (1U/2U/4U)**, Aura Decay, Internal Cooldown (ICD), all **19 Elemental Reactions** (including *Stellar Melt*, *Stellar Frozen*, and *Stellar Conduct*), and **Elemental Mastery I–III / Elemental Protection I–IV** scaling.
-3. **[Environmental Interactions & Mob Mutations](Environmental-Interactions.md)**
+3. **[Environmental Interactions & Mob Mutations](Environmental-Interactions)**
    - How water, rain, fire, lava, powder snow, **Tesla Coils**, **Sculk Sensors**, **Observers**, **Redstone**, **Amethyst Clusters**, **Slime/Honey/Mushrooms**, and **Dripstone** interact with elements, plus the full **Innate Mob Table**, **Omni-Innate Mutations**, **Omni Pet Taming**, and **Mob Hazard Avoidance AI**.
-4. **[Relics, Gliders, Rods & Advancements](Relics-and-Utilities.md)**
+4. **[Relics, Gliders, Rods & Advancements](Relics-and-Utilities)**
    - *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider & Plunge Attack)*, *Elemental Codex*, *8 Elemental Essences*, *4 Elemental Rods*, and the complete list of **39 Custom Advancements** (including hidden challenges).
-5. **[Anvil Imbuing & Omni Staff Rules](Anvil-Imbuing.md)**
+5. **[Anvil Imbuing & Omni Staff Rules](Anvil-Imbuing)**
    - How to imbue any sword with an element, craft/upgrade the **Omni Staff**, swap absorbed non-Archon staves/Trident/Void Translocator, and understand the **7 Archons Restriction (`!isArchon()`)**.
-6. **[Configuration Guide (TOML & In-Game GUI)](Configuration-Guide.md)**
+6. **[Configuration Guide (TOML & In-Game GUI)](Configuration-Guide)**
    - Full reference for all server/client TOML settings (`mechanics`, `elemental_gauge`, `scaling`, `gameplay`, `audio`, `innate_mutation`, `cooldowns`, `damage`, `durability`), Co-Op dynamic mob scaling, and live server-to-client Codex sync.
-7. **[FAQ, Keybinds, Resource Packs & Compatibility](FAQ-and-Compatibility.md)**
+7. **[FAQ, Keybinds, Resource Packs & Compatibility](FAQ-and-Compatibility)**
    - Frequently asked questions, full keybind list, **Resource Pack Guide (Custom Wind Glider Textures & Character Voice Packs)**, and compatibility details for **JEI/REI/EMI**, **Jade/Waila**, **Iris/Oculus Shaders**, **Sodium/Embeddium**, and **First-Person Model** mods.
 
 

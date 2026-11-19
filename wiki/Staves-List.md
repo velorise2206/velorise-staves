@@ -218,7 +218,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 - **Dual-Variant Elemental Burst (`[R]` Key, `15.0s` CD, `1.9s` I-frames):**
   - **Variant 1 — Support Burst (Cast in Bow Stance: *Benevolent Blessing*):**
     - Summons a `10.0m` **Polar Ice Field & Central Ice Pillar** for `15.0s` and bestows the **Azure Crown** (`+15%` All DMG on Basic / `+25%` on Netherite).
-    - **Unlocks Stellar Cryo Reactions:** While Azure Crown is active, your Cryo reactions upgrade into **Stellar Melt**, **Stellar Frozen**, and **Stellar Conduct** (see [Elements and Reactions](Elements-and-Reactions.md))!
+    - **Unlocks Stellar Cryo Reactions:** While Azure Crown is active, your Cryo reactions upgrade into **Stellar Melt**, **Stellar Frozen**, and **Stellar Conduct** (see [Elements and Reactions](Elements-and-Reactions))!
     - Seals Spear Stance for `8.0s`; each Stellar Reaction triggered reduces the seal by **2.0s**, and once unsealed, grants a free instant stance switch!
   - **Variant 2 — DPS Burst (Cast in Spear Stance: *Glorious Blessing*):**
     - Hurls a **Colossal Ice Spear** `5.0m` ahead followed by `8` raining Cryo arrows (`7.5m` impact zone), dealing massive AoE Cryo damage (`2.9×` Basic / `3.4×` Netherite).
