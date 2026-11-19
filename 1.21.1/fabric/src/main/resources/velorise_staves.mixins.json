@@ -28,7 +28,8 @@
     "HumanoidModelMixin",
     "ItemInHandRendererMixin",
     "MinecraftMixin",
-    "GuiMixin"
+    "GuiMixin",
+    "LocalPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

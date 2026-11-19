@@ -3,6 +3,7 @@ package com.velorise.staves.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.velorise.staves.client.ClientAuraRenderer;
 import com.velorise.staves.client.FlamestriderBikeRenderer;
+import com.velorise.staves.client.character.WallClimbVisualRenderer;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -42,12 +43,22 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
                 || com.velorise.staves.client.ClientAuraTracker.isRaidenSlashingOrBursting(livingEntity.getId()))) {
             livingEntity.yBodyRot = livingEntity.getYRot();
             livingEntity.yBodyRotO = livingEntity.yRotO;
-        } else if (livingEntity != null && com.velorise.staves.client.ClientAuraTracker.isSteveWallClimbing(livingEntity.getId())) {
-            float wallYaw = com.velorise.staves.client.character.WallClimbVisualRenderer.resolveWallBodyYaw(livingEntity);
-            livingEntity.yBodyRot = wallYaw;
-            livingEntity.yBodyRotO = wallYaw;
         }
         velorise$bikePoseStack.push(FlamestriderBikeRenderer.pushRiderBikeTransform(livingEntity, partialTicks, poseStack));
+    }
+
+    @Inject(
+            method = "render",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/blaze3d/vertex/PoseStack;scale(FFF)V",
+                    ordinal = 0
+            )
+    )
+    private void velorise$applyWallClimbBodyTransform(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
+        if (livingEntity != null) {
+            WallClimbVisualRenderer.applyWallClimbBodyTransform(livingEntity, partialTicks, poseStack);
+        }
     }
 
     @Inject(method = "render", at = @At("RETURN"))

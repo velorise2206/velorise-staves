@@ -400,7 +400,9 @@ public final class ClientAuraRenderer {
     }
 
     public static void applyFirstPersonStaffTransform(AbstractClientPlayer player, float partialTicks, InteractionHand hand, ItemStack stack, PoseStack poseStack) {
-        if (player == null || stack == null || stack.isEmpty()) return;
+        if (player == null) return;
+        if (com.velorise.staves.client.character.WallClimbVisualRenderer.applyFirstPersonWallClimbTransform(player, partialTicks, hand, poseStack)) return;
+        if (stack == null || stack.isEmpty()) return;
         HumanoidArm arm = (hand == InteractionHand.MAIN_HAND) ? player.getMainArm() : player.getMainArm().getOpposite();
         float dir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
         if (WindGliderRenderer.applyFirstPersonPlungeTransform(player, dir, poseStack)) return;
@@ -451,6 +453,7 @@ public final class ClientAuraRenderer {
 
     public static boolean setupFirstPersonEmptyOffhandPose(AbstractClientPlayer player, float partialTicks, HumanoidArm offArm, PoseStack poseStack) {
         if (player == null) return false;
+        if (com.velorise.staves.client.character.WallClimbVisualRenderer.setupFirstPersonEmptyOffhandClimbPose(player, partialTicks, offArm, poseStack)) return true;
         if (MavuikaVisualRenderer.setupFirstPersonBikeArmPose(player, partialTicks, offArm, poseStack)) return true;
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, offArm, poseStack)) return true;
         if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, offArm, poseStack)) return true;

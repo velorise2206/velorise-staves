@@ -198,6 +198,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
         final int[] queuedFastAttackClicks = {0};
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
             ClientAuraRenderer.tickFrozenPlayer();
+            ClientAuraTracker.prepareLocalWallClimbPreTick();
             if (client.player != null && client.screen == null
                     && client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
                 while (client.options.keyAttack.consumeClick()) {

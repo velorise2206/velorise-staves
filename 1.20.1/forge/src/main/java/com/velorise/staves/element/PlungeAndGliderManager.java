@@ -67,6 +67,7 @@ public final class PlungeAndGliderManager {
         public int stateElapsedTicks = 0;
         public Direction wallNormalFace = null;
         public long wallJumpGraceUntilTick = 0L;
+        public int wallLostTicks = 0;
         public boolean exhaustedClimbFall = false;
         public float plungeStartFallDist = 0.0F;
         public double plungeStartY = 0.0D;
@@ -166,6 +167,10 @@ public final class PlungeAndGliderManager {
 
     public static void syncPlayerOnJoinOrRespawn(ServerPlayer player) {
         if (player == null) return;
+        // Clear any stale NoGravity flag persisted in player NBT from earlier wall-climb builds
+        if (player.isNoGravity()) {
+            player.setNoGravity(false);
+        }
         checkStaminaMilestones(player);
         var nbt = player.getPersistentData();
         boolean unlocked = nbt.getBoolean(TAG_WIND_GLIDER_UNLOCKED);
@@ -218,7 +223,7 @@ public final class PlungeAndGliderManager {
         st.wallClimbing = false;
         st.wallNormalFace = null;
         st.wallJumpGraceUntilTick = 0L;
-        player.setNoGravity(false);
+        st.wallLostTicks = 0;
         if (exhausted) {
             st.exhaustedClimbFall = true;
             st.actionState = MovementActionState.EXHAUSTED_FALL;
@@ -248,8 +253,9 @@ public final class PlungeAndGliderManager {
                 || resolveMovementLayer(player) != MovementActionState.MovementLayer.UNIVERSAL_AIR_MOVE) {
             return;
         }
-        Direction wall = WallClimbHelper.findClimbWall(player, WallClimbHelper.SERVER_WALL_TOLERANCE);
+        Direction wall = WallClimbHelper.findClimbWall(player, 1.15D);
         if (wall == null) return;
+        boolean alreadyClimbing = st.wallClimbing;
         if (st.gliding) {
             st.gliding = false;
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
@@ -259,12 +265,16 @@ public final class PlungeAndGliderManager {
         }
         st.wallClimbing = true;
         st.wallNormalFace = wall;
-        st.actionState = MovementActionState.WALL_CLING;
-        st.stateElapsedTicks = 0;
-        player.setNoGravity(true);
+        st.wallLostTicks = 0;
+        if (!alreadyClimbing) {
+            st.actionState = MovementActionState.WALL_CLING;
+            st.stateElapsedTicks = 0;
+        }
         player.fallDistance = 0.0F;
         ((ServerGamePacketListenerAccessor) player.connection).velorise$setAboveGroundTickCount(0);
-        ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_STEVE_WALL_CLIMB_ON);
+        if (!alreadyClimbing) {
+            ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_STEVE_WALL_CLIMB_ON);
+        }
     }
 
     public static void handleWallClimbJump(ServerPlayer player) {
@@ -406,7 +416,6 @@ public final class PlungeAndGliderManager {
 
         AirState st = STATES.computeIfAbsent(player.getUUID(), k -> new AirState());
         if (st.plunging || st.wallClimbing || st.exhaustedClimbFall) return;
-        if (!MovementActionState.canTransition(st.actionState, MovementActionState.PLUNGE_DIVE, st.stateElapsedTicks)) return;
 
         if (st.gliding) {
             st.gliding = false;
@@ -417,6 +426,7 @@ public final class PlungeAndGliderManager {
             ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_GLIDER_STOP);
             player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.ARMOR_EQUIP_ELYTRA, SoundSource.PLAYERS, 0.65F, 0.90F);
         } else {
+            if (!MovementActionState.canTransition(st.actionState, MovementActionState.GLIDING, st.stateElapsedTicks)) return;
             if (st.wallClimbing) {
                 exitServerWallClimb(player, st, false);
             }
@@ -524,6 +534,11 @@ public final class PlungeAndGliderManager {
                 boolean invalidLayer = resolveMovementLayer(player) != MovementActionState.MovementLayer.UNIVERSAL_AIR_MOVE;
                 boolean inJumpGrace = now <= st.wallJumpGraceUntilTick;
                 Direction wallNow = WallClimbHelper.findClimbWall(player, WallClimbHelper.SERVER_WALL_TOLERANCE);
+                if (wallNow != null || inJumpGrace) {
+                    st.wallLostTicks = 0;
+                } else {
+                    st.wallLostTicks++;
+                }
                 if (!StavesConfig.isEnableWallClimb()
                         || invalidLayer
                         || st.plunging
@@ -531,18 +546,15 @@ public final class PlungeAndGliderManager {
                         || player.isInWater()
                         || player.isInLava()
                         || player.getAbilities().flying
-                        || (!inJumpGrace && wallNow == null)) {
+                        || st.wallLostTicks >= 5) {
                     exitServerWallClimb(player, st, false);
                 } else {
                     if (wallNow != null) {
                         st.wallNormalFace = wallNow;
                     }
-                    player.setNoGravity(true);
                     player.fallDistance = 0.0F;
                     ((ServerGamePacketListenerAccessor) player.connection).velorise$setAboveGroundTickCount(0);
                 }
-            } else if (player.isNoGravity() && !player.getAbilities().flying && player.getVehicle() == null) {
-                player.setNoGravity(false);
             }
 
             if (st.gliding) {

@@ -30,6 +30,10 @@ public final class WallClimbHelper {
      * (pointing from the wall toward the player). Returns null if no sturdy wall is adjacent.
      */
     public static Direction findClimbWall(Player player, double probeDist) {
+        return findClimbWall(player, probeDist, null);
+    }
+
+    public static Direction findClimbWall(Player player, double probeDist, Direction preferredNormal) {
         if (player == null) return null;
         Level level = player.level();
         Vec3 look = player.getLookAngle();
@@ -70,6 +74,9 @@ public final class WallClimbHelper {
             if (chestValid && shoulderValid) {
                 dot += 0.25D;
             }
+            if (preferredNormal != null && normalFace == preferredNormal) {
+                dot += 0.55D;
+            }
             if (dot > bestScore) {
                 bestScore = dot;
                 bestNormal = normalFace;
@@ -101,7 +108,16 @@ public final class WallClimbHelper {
      * while eye-level and the 2 blocks above the wall edge are clear to mantle onto.
      */
     public static boolean canLedgeMantle(Player player, Direction wallNormalFace) {
-        if (player == null || wallNormalFace == null) return false;
+        return !Double.isNaN(findLedgeTopY(player, wallNormalFace));
+    }
+
+    /**
+     * Returns the exact top surface Y coordinate of a climbable ledge when the player's
+     * feet are within 1.05 blocks of the top lip and 2 full blocks above the ledge are clear.
+     * Returns Double.NaN if not ready to mantle.
+     */
+    public static double findLedgeTopY(Player player, Direction wallNormalFace) {
+        if (player == null || wallNormalFace == null) return Double.NaN;
         Level level = player.level();
         Direction inward = wallNormalFace.getOpposite();
         AABB bb = player.getBoundingBox();
@@ -109,17 +125,33 @@ public final class WallClimbHelper {
         double sampleX = player.getX() + inward.getStepX() * (halfW + CLIENT_WALL_PROBE_DIST);
         double sampleZ = player.getZ() + inward.getStepZ() * (halfW + CLIENT_WALL_PROBE_DIST);
 
-        BlockPos chestWall = BlockPos.containing(sampleX, player.getY() + 0.78D, sampleZ);
-        if (!isSturdyClimbableFace(level, chestWall, wallNormalFace)) {
-            return false;
+        // Probe waist (y+0.55) and shin (y+0.15) to find the top block of the wall
+        BlockPos waistWall = BlockPos.containing(sampleX, player.getY() + 0.55D, sampleZ);
+        BlockPos ledgeBlock = null;
+        if (isSturdyClimbableFace(level, waistWall, wallNormalFace)) {
+            ledgeBlock = waistWall;
+        } else {
+            BlockPos shinWall = BlockPos.containing(sampleX, player.getY() + 0.15D, sampleZ);
+            if (isSturdyClimbableFace(level, shinWall, wallNormalFace)) {
+                ledgeBlock = shinWall;
+            }
         }
-        BlockPos topClear1 = chestWall.above();
-        BlockPos topClear2 = chestWall.above(2);
-        BlockPos eyeClear = BlockPos.containing(sampleX, player.getY() + 1.68D, sampleZ);
+        if (ledgeBlock == null) return Double.NaN;
 
-        return level.getBlockState(topClear1).getCollisionShape(level, topClear1).isEmpty()
+        double topSurfaceY = ledgeBlock.getY() + 1.0D;
+        // Wait until feet are within 1.05 blocks of the top surface so we don't trigger prematurely
+        if (player.getY() < topSurfaceY - 1.05D) {
+            return Double.NaN;
+        }
+        BlockPos topClear1 = ledgeBlock.above();
+        BlockPos topClear2 = ledgeBlock.above(2);
+        // Also ensure headroom directly above player is clear to rise up to topSurfaceY
+        BlockPos headClear = BlockPos.containing(player.getX(), topSurfaceY + 1.65D, player.getZ());
+
+        boolean clear = level.getBlockState(topClear1).getCollisionShape(level, topClear1).isEmpty()
                 && level.getBlockState(topClear2).getCollisionShape(level, topClear2).isEmpty()
-                && level.getBlockState(eyeClear).getCollisionShape(level, eyeClear).isEmpty();
+                && level.getBlockState(headClear).getCollisionShape(level, headClear).isEmpty();
+        return clear ? topSurfaceY : Double.NaN;
     }
 
     /**

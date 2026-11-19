@@ -36,6 +36,14 @@ public abstract class KeyboardInputMixin extends Input {
                 this.left = false;
                 this.right = false;
                 this.jumping = false;
+            } else if (mc.player != null && com.velorise.staves.client.ClientAuraTracker.isLocalWallClimbing()) {
+                this.forwardImpulse = 0.0F;
+                this.leftImpulse = 0.0F;
+                this.up = false;
+                this.down = false;
+                this.left = false;
+                this.right = false;
+                this.jumping = false;
             }
         }
     }

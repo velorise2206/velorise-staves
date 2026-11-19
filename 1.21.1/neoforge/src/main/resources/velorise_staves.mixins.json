@@ -18,6 +18,7 @@
     "HumanoidModelMixin",
     "ItemInHandRendererMixin",
     "LivingEntityRendererMixin",
-    "GuiMixin"
+    "GuiMixin",
+    "LocalPlayerMixin"
   ]
 }

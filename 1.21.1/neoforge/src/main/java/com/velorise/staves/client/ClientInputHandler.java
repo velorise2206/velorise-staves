@@ -928,6 +928,7 @@ public final class ClientInputHandler {
     @SubscribeEvent
     public static void onClientTickPre(ClientTickEvent.Pre event) {
         com.velorise.staves.client.reaction.ElementalReactionBadgeRenderer.syncAndLockFrozenPlayer(false);
+        ClientAuraTracker.prepareLocalWallClimbPreTick();
     }
 
     @SubscribeEvent
@@ -1014,6 +1015,15 @@ public final class ClientInputHandler {
             mc.player.setShiftKeyDown(false);
             mc.player.setSprinting(false);
             mc.player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            input.forwardImpulse = 0.0F;
+            input.leftImpulse = 0.0F;
+            input.up = false;
+            input.down = false;
+            input.left = false;
+            input.right = false;
+            input.jumping = false;
+        } else if (mc.player != null && event.getEntity() == mc.player && ClientAuraTracker.isLocalWallClimbing()) {
+            net.minecraft.client.player.Input input = event.getInput();
             input.forwardImpulse = 0.0F;
             input.leftImpulse = 0.0F;
             input.up = false;

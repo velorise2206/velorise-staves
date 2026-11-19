@@ -1,6 +1,53 @@
 # Changelog
 
+## [v15] - Stale NoGravity NBT Cleanup & Glider FSM Guard Fix
+- **Cleared Persisted `NoGravity: 1b` on Join/Respawn/Tick**: Added automatic `if (player.isNoGravity()) player.setNoGravity(false);` cleanup in `PlungeAndGliderManager.syncPlayerOnJoinOrRespawn` across all 3 loaders (`1.21.1/neoforge`, `1.21.1/fabric`, `1.20.1/forge`) so worlds previously saved during pre-v11 wall-climb tests can never leave players stuck floating in mid-air.
+- **Fixed Wind Glider Toggle FSM Guard**: Corrected `PlungeAndGliderManager.handleToggleGlider` across all 3 loaders to check `MovementActionState.GLIDING` (only when opening) instead of `PLUNGE_DIVE`.
+
+### Wall Climb v14 — Final Per-Tick Data Wipe Fix (All 3 Loaders)
+- **Fixed Root-Cause Per-Tick Flicker & Frozen Gait (`ElementalReactionBadgeRenderer.java`)**: Added `!data.steveWallClimbing`, `data.steveWallClimbFade <= 0.01F`, `data.steveWallJumpUntilMs <= now`, and `data.steveWallMantleUntilMs <= now` guards before `ClientAuraTracker.remove(entity.getId())` in `renderReactionBadges()`. Previously, `ElementalReactionBadgeRenderer` deleted the player's `AuraDisplayData` entry on the first render frame of every tick, resetting `steveWallClimbFade`, `steveWallClimbDist`, `steveWallMoveX/Y`, and `steveWallMantleUntilMs` back to zero 20 times per second (causing both the 20Hz standing-pose flicker and the frozen climb cycle).
+- **Exact `partialTick` Continuity (`WallClimbVisualRenderer.java`)**: Cached `lastRenderPartialTick` from `LivingEntityRendererMixin` so `applyWallClimbHumanoidPose` never falls back to `0.0F` when `ageInTicks` is zero, and removed all temporary v13 diagnostic logs.
+
+### Wall Climb v13 — Root-Cause Flicker Fix (All 3 Loaders)
+- **Fixed 10Hz Pose Flicker (`ClientAuraTracker.java`)**: Added `!entry.steveWallClimbing`, `entry.steveWallClimbFade <= 0.01F`, `entry.steveWallJumpUntilMs <= now`, and `entry.steveWallMantleUntilMs <= now` guards to the empty-aura cleanup check (`DATA.remove(entityId)`). Previously, periodic server aura sync packets deleted the player's `AuraDisplayData` entry every ~2 ticks while climbing, wiping `steveWallClimbFade`, `steveWallClimbDist`, and `wallNormalFace` and causing a 1-frame snap back to the standing pose.
+- **Unified `HumanoidModelMixin` Pose Pipeline**: Kept wall-climb humanoid pose execution on the proven `HumanoidModelMixin` -> `ClientAuraRenderer.applyStaffHumanoidAnimation` path paired with the waist-pivot `(0, 0.9, 0)` `PoseStack` transform in `LivingEntityRendererMixin`.
+
+### Wall Climb v11 — Authentic ParCool! Architecture Overhaul (All 3 Loaders)
+- **Zero-Jitter Enforced Movement (`LocalPlayerMixin.move`)**: Added `LocalPlayerMixin` across NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1 to intercept `MoverType.SELF` during wall climbing and ledge mantling, canceling vanilla gravity/drag displacement before `super.move()` just like ParCool!'s `LocalPlayerMixin` + `BehaviorEnforcer`.
+- **2-Phase Cubic-Eased `ClimbUp` Ledge Mantle**: Replaced velocity-impulse vaulting with ParCool!'s exact 2-phase cubic ease-in-out target-point trajectory (Phase 1 lifts straight up above the lip; Phase 2 glides cleanly onto the top surface with `+0.0625` block clearance).
+- **6-DOF Keyframe + `Quaternionf.slerp` Limb Animation (`WallClimbVisualRenderer`)**: Replaced sine-wave Euler interpolation with 4-keyframe cubic-eased rock-climber cycles (Climb Up/Down, Lateral Shimmy, 3-keyframe ClimbUp Vault, Wall Jump, and breathing Cling Idle) combining 3-axis quaternion slerp with pixel bone translation (`part.x/y/z`) for shoulder reach and bent-knee foothold articulation.
+- **Whole-Body Waist-Pivot Transform & Dirty-Pose Cleanup**: Moved wall-facing lock, wall-hug (`-0.175`), pitch lean, climber twist, roll weight-shift, and vertical heave into a single waist-pivot `(0, 0.9, 0)` `PoseStack` hook right before `PoseStack.scale(-1, -1, 1)` (eliminating `yBodyRot` snapping and hip-seam breaks), paired with `HumanoidModelMixin` `resetPose()` cleanup at `setupAnim` HEAD.
+
 ## [Unreleased] - Shared FSM Core & Authentic Genshin Wall Climbing (`MovementMachine`)
+
+- **ParCool!-Style Wall-Climb Overhaul & Single-Pass Pose Pipeline (v10 — All 3 Loaders)**:
+  - Eliminated double-execution of `WallClimbVisualRenderer.applyWallClimbHumanoidPose()` (removed duplicate call in `ClientAuraRenderer`, keeping the single post-`setupAnim` execution in `LivingEntityRendererMixin` across NeoForge, Fabric, and Forge).
+  - Upgraded `WallClimbVisualRenderer` to a full 3-axis ParCool!-style climber gait: shaped reach-grip-pull wave, inward hand-angle `yRot`, frog-knee outward `zRot` splay, dynamic torso twist/lean, vertical heave bob, and directional head tilt looking toward the next hold.
+  - Replaced multi-tick `LEDGE_MANTLE` velocity lock with a ParCool! `ClimbUp` single-vault impulse (`vaultVy = 0.32..0.46`, `inward = 0.22`) that immediately hands control back to vanilla physics to land smoothly on top of any ledge without getting stuck.
+  - Kept `prepareLocalWallClimbPreTick()` strictly read-only on FSM state (`localWallLostGraceTicks == 0`) to eliminate seam jitter while preserving instant Shift exit and 2-tick wall-loss auto-exit.
+
+- **Wall-Climb 2-Phase Ledge Mantle, Cross-Loader 3rd-Person Guarantee & Mid-Air Fix (v9 — All 3 Loaders)**:
+  - Rewrote ledge mantling into a ParCool-style 2-phase maneuver (`WallClimbHelper.findLedgeTopY`): triggers only when feet are within `1.05` blocks of the top lip with 2 clear blocks above, rises straight up past the lip first (Phase 1, zero inward block slam), then steps smoothly onto the top surface (Phase 2).
+  - Fixed mid-air freeze on Forge 1.20.1 by exiting wall climb immediately in `prepareLocalWallClimbPreTick()` whenever no wall is adjacent, and allowing Shift drop-off to cancel any wall state immediately.
+  - Added a post-`EntityModel.setupAnim` injection in `LivingEntityRendererMixin` across all 3 loaders so NeoForge 1.21.1 and Forge 1.20.1 reliably render the exact same 3rd-person wall-climbing animation as Fabric 1.21.1.
+  - Replaced the intrusive 1st-person climbing arm overlay with a clean, subtle ParCool-style main-hand rhythm bob (removing the floating extra offhand arm).
+
+- **Wall-Climb Wall-Hug Transform, 1st-Person Hands & Mantle Cap (v8 — All 3 Loaders)**:
+  - Added `WallClimbVisualRenderer.pushWallClimbBodyTransform()` hooked into `LivingEntityRendererMixin` across all 3 loaders to translate the player mesh `0.155` blocks inward toward the wall face while climbing, eliminating the floating air gap between Steve and the block surface.
+  - Added first-person climbing animations (`applyFirstPersonWallClimbTransform` & `setupFirstPersonEmptyOffhandClimbPose`) in `ClientAuraRenderer` so both hands visibly reach and pull in 1st-person view.
+  - Guaranteed immediate climbing pose engagement across all wall states (`WALL_CLING`, `WALL_CLIMB`, `WALL_JUMP`, `LEDGE_MANTLE`) and added a wall-contact safety guard in `prepareLocalWallClimbPreTick()` plus toned-down 4-tick `LEDGE_MANTLE` (`0.24 -> 0.08`) to prevent launching skyward on Forge 1.20.1.
+
+- **Wall-Climb ParCool / NotEnoughAnimations Architecture Pass (v7 — All 3 Loaders)**:
+  - Refactored `WallClimbVisualRenderer` into a 100% read-only, tick-interpolated renderer (`partialTick = ageInTicks - entity.tickCount`) with zero `System.nanoTime()` and zero state mutation inside `setupAnim()`, eliminating multi-pass pose flicker.
+  - Upgraded climbing poses to authentic contra-lateral hand-over-hand reach/pull (`-2.95` to `-0.75 rad`), opposite knee drive (`-1.15` to `+0.45 rad`), torso twist, vertical climb bob, hip-pivot leg alignment (`setPos`), and distinct lateral shimmy / climb down / mantle / jump poses.
+  - Removed `player.setNoGravity(true/false)` toggling on both client and server (`ClientAuraTracker`, `PlungeAndGliderManager`) so server `DATA_NO_GRAVITY` `SynchedEntityData` packets never fight client climbing motion; retained 80-tick anti-kick (`aboveGroundTickCount = 0`) and `fallDistance = 0.0F`.
+  - Added `preferredNormal` face hysteresis (`+0.55D`) in `WallClimbHelper.findClimbWall` and zero-velocity Cling Idle (`0, 0, 0`) to prevent corner face-flipping and wall bounce.
+
+- **Wall-Climb Anti-Flicker & Animation Pass (v6 — All 3 Loaders)**:
+  - Suppressed vanilla WASD/Jump movement impulses while wall climbing (`MovementInputUpdateEvent` on NeoForge 1.21.1 & Forge 1.20.1, `KeyboardInputMixin` on Fabric 1.21.1) so `LivingEntity.travel()` no longer fights tangent-plane climbing velocity at 20Hz.
+  - Added `ClientAuraTracker.prepareLocalWallClimbPreTick()` hooked into `ClientTickEvent.Pre` / `START_CLIENT_TICK` / `TickEvent.Phase.START` to apply climbing velocity, `noGravity`, and locked `yBodyRot` *before* vanilla movement integrates each tick.
+  - Replaced constant inward wall slam with gentle conditional wall-hug bias (`0.018D` only when moving or not flush) and added a 10-tick server keepalive with `1.15D` attach tolerance in `PlungeAndGliderManager`.
+  - Upgraded `WallClimbVisualRenderer` to clear `ArmPose` while climbing and widen Climb Up / Down / Strafe arm-and-leg reach/pull arcs (`BLEND_STIFFNESS = 22.0F`, `8.4 rad/s`) so active climbing is clearly distinct from Cling Idle.
 - **Shared FSM Core (`com.velorise.staves.fsm`)**: Added reusable `StateNode`, `InputBuffer` (4–5 tick TTL), `PoseBlender` (exponential damping `1 - exp(-k * dt)`), and `MovementActionState` (`GROUNDED`, `WALL_CLING`, `WALL_CLIMB`, `WALL_JUMP`, `LEDGE_MANTLE`, `GLIDING`, `PLUNGE_DIVE`, `EXHAUSTED_FALL`) identically in `1.21.1/common` and `1.20.1/forge`.
 - **Genshin Wall Climbing & Anti-Kick**: Added `WallClimbHelper` (`isFaceSturdy` filter, overhang blocking, `canLedgeMantle`) and `ServerGamePacketListenerAccessor` (`aboveGroundTickCount = 0` anti-80-tick floating kick) across `1.21.1/neoforge`, `1.21.1/fabric`, and `1.20.1/forge`.
 - **Client Prediction, Pose Blending & Xilonen/Mavuika Isolation**: Implemented tangent-plane climbing, 0-stamina Cling (pausing regen), 25-stamina Climb Jump with `InputBuffer`, Ledge Mantle, `WallClimbVisualRenderer` + `LivingEntityRendererMixin` `yBodyRot` wall lock, priority gating (`MAVUIKA_BIKE > XILONEN_SKATE > VANILLA_CLIMBABLE > UNIVERSAL_AIR_MOVE`), and Genshin `EXHAUSTED_FALL` plunge lock.

@@ -556,7 +556,9 @@ public final class ElementalReactionBadgeRenderer {
                     && !data.tsaritsaCrownActive && data.tsaritsaSyncUntil <= now
                     && data.dragonfirePetUntil <= now && (!data.dragonfireIdle && data.dragonfireIdleFade <= 0.01F)
                     && (!data.nahidaIdleSwing && data.nahidaIdleSwingFade <= 0.01F) && (!data.zhongliIdleMeteor && data.zhongliIdleFade <= 0.01F) && (!data.raidenIdle && data.raidenIdleFade <= 0.01F) && (!data.mavuikaIdle && data.mavuikaIdleFade <= 0.01F) && (data.furinaIdleMode == 0 && data.furinaIdleFade <= 0.01F) && (!data.ventiIdle && data.ventiIdleFade <= 0.01F) && (!data.tsaritsaIdle && data.tsaritsaIdleFade <= 0.01F) && (!data.nahidaViewfinder && data.nahidaViewfinderFade <= 0.01F) && data.skandhaMarkedUntil <= now && data.nahidaShrineUntil <= now && data.nahidaWeaponHideUntil + 550L <= now
-                    && !data.isFrozen && !hasInnate && !omniInnate) {
+                    && !data.isFrozen && !hasInnate && !omniInnate
+                    && !data.steveWallClimbing && data.steveWallClimbFade <= 0.01F
+                    && data.steveWallJumpUntilMs <= now && data.steveWallMantleUntilMs <= now) {
                 ClientAuraTracker.remove(entity.getId());
                 return;
             }

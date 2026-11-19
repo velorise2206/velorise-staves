@@ -291,6 +291,9 @@ public final class ClientAuraRenderer {
     @SubscribeEvent
     public static void onClientTick(TickEvent.ClientTickEvent event) {
         ElementalReactionBadgeRenderer.syncAndLockFrozenPlayer(false);
+        if (event.phase == TickEvent.Phase.START) {
+            ClientAuraTracker.prepareLocalWallClimbPreTick();
+        }
         if (event.phase == TickEvent.Phase.END) {
             ClientAuraTracker.syncIdleLockedYaw(Minecraft.getInstance());
             Minecraft mc = Minecraft.getInstance();
@@ -376,6 +379,15 @@ public final class ClientAuraRenderer {
             mc.player.setShiftKeyDown(false);
             mc.player.setSprinting(false);
             mc.player.setDeltaMovement(Vec3.ZERO);
+            input.forwardImpulse = 0.0F;
+            input.leftImpulse = 0.0F;
+            input.up = false;
+            input.down = false;
+            input.left = false;
+            input.right = false;
+            input.jumping = false;
+        } else if (mc.player != null && event.getEntity() == mc.player && ClientAuraTracker.isLocalWallClimbing()) {
+            Input input = event.getInput();
             input.forwardImpulse = 0.0F;
             input.leftImpulse = 0.0F;
             input.up = false;
@@ -599,7 +611,9 @@ public final class ClientAuraRenderer {
     }
 
     public static void applyFirstPersonStaffTransform(AbstractClientPlayer player, float partialTicks, InteractionHand hand, ItemStack stack, PoseStack poseStack) {
-        if (player == null || stack == null || stack.isEmpty()) return;
+        if (player == null) return;
+        if (com.velorise.staves.client.character.WallClimbVisualRenderer.applyFirstPersonWallClimbTransform(player, partialTicks, hand, poseStack)) return;
+        if (stack == null || stack.isEmpty()) return;
         HumanoidArm arm = (hand == InteractionHand.MAIN_HAND) ? player.getMainArm() : player.getMainArm().getOpposite();
         float dir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
         if (WindGliderRenderer.applyFirstPersonPlungeTransform(player, dir, poseStack)) return;
@@ -650,6 +664,7 @@ public final class ClientAuraRenderer {
 
     public static boolean setupFirstPersonEmptyOffhandPose(AbstractClientPlayer player, float partialTicks, HumanoidArm offArm, PoseStack poseStack) {
         if (player == null) return false;
+        if (com.velorise.staves.client.character.WallClimbVisualRenderer.setupFirstPersonEmptyOffhandClimbPose(player, partialTicks, offArm, poseStack)) return true;
         if (MavuikaVisualRenderer.setupFirstPersonBikeArmPose(player, partialTicks, offArm, poseStack)) return true;
         if (VentiVisualRenderer.setupFirstPersonLyreArmPose(player, partialTicks, offArm, poseStack)) return true;
         if (TsaritsaVisualRenderer.setupFirstPersonQuillArmPose(player, partialTicks, offArm, poseStack)) return true;
