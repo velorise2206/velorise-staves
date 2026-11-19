@@ -9,7 +9,6 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import javax.annotation.Nullable;
 
 /**
  * Shared geometric wall-surface filter for authentic Genshin-style climbing.
@@ -30,7 +29,6 @@ public final class WallClimbHelper {
      * Finds the best climbable wall face near the player, returning the outward surface normal
      * (pointing from the wall toward the player). Returns null if no sturdy wall is adjacent.
      */
-    @Nullable
     public static Direction findClimbWall(Player player, double probeDist) {
         if (player == null) return null;
         Level level = player.level();
@@ -61,7 +59,9 @@ public final class WallClimbHelper {
             BlockPos shoulderPos = BlockPos.containing(sampleX, shoulderY, sampleZ);
             boolean chestValid = isSturdyClimbableFace(level, chestPos, normalFace);
             boolean shoulderValid = isSturdyClimbableFace(level, shoulderPos, normalFace);
-            if (!chestValid && !shoulderValid) {
+            if (player.onGround()) {
+                if (!chestValid || !shoulderValid) continue;
+            } else if (!chestValid && !shoulderValid) {
                 continue;
             }
 

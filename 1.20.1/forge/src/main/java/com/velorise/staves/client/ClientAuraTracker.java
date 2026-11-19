@@ -2116,7 +2116,6 @@ public final class ClientAuraTracker {
         return localExhaustedClimbFall;
     }
 
-    @javax.annotation.Nullable
     public static net.minecraft.core.Direction getWallNormalFace(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
         return data != null ? data.wallNormalFace : null;
@@ -2127,6 +2126,9 @@ public final class ClientAuraTracker {
         boolean wasClimbing = localSteveWallClimbing || localMovementState.isWallState();
         localSteveWallClimbing = false;
         localWallNormalFace = null;
+        if (player != null && !player.getAbilities().flying && player.getVehicle() == null) {
+            player.setNoGravity(false);
+        }
         localMoveElapsedTicks = 0;
         localWallJumpTicks = 0;
         localMantleTicks = 0;
@@ -2250,7 +2252,7 @@ public final class ClientAuraTracker {
         if (!localSteveWallClimbing) {
             boolean enoughToStart = !customStamina || creative || (!localStaminaExhausted && !localExhaustedClimbFall && localStamina >= 5.0F);
             boolean wantsAttach = wallFace != null && !sneakDown && enoughToStart
-                    && (fwdIn > 0.10F && (!player.onGround() || player.horizontalCollision));
+                    && fwdIn > 0.10F;
             if (wantsAttach) {
                 localSteveWallClimbing = true;
                 localWallNormalFace = wallFace;
@@ -2259,6 +2261,7 @@ public final class ClientAuraTracker {
                 AuraDisplayData entry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
                 entry.steveWallClimbing = true;
                 entry.wallNormalFace = wallFace;
+                player.setNoGravity(true);
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 29);
             } else {
                 return;
@@ -2342,6 +2345,7 @@ public final class ClientAuraTracker {
         double vx = inward.getStepX() * 0.04D + rightX * strafe;
         double vz = inward.getStepZ() * 0.04D + rightZ * strafe;
 
+        player.setNoGravity(true);
         player.setDeltaMovement(vx, vy, vz);
         player.fallDistance = 0.0F;
 

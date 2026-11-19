@@ -907,7 +907,13 @@ public final class StavesConfig {
     }
 
     public static boolean isEnableWallClimb() {
-        return false;
+        SyncedData s = syncedServerData;
+        if (s != null) return s.enableWallClimb;
+        try {
+            return ENABLE_WALL_CLIMB == null || ENABLE_WALL_CLIMB.get();
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     public static boolean isEnableMavuikaWallClimb() {

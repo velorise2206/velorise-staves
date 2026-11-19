@@ -1,6 +1,5 @@
 package com.velorise.staves.fsm;
 
-import javax.annotation.Nullable;
 import java.util.function.Predicate;
 
 /**
@@ -8,7 +7,6 @@ import java.util.function.Predicate;
  * cancel windows at 20 TPS (shared by MovementMachine and character combat FSMs).
  */
 public final class InputBuffer<I> {
-    @Nullable
     private I bufferedInput = null;
     private int remainingTicks = 0;
 
@@ -31,12 +29,10 @@ public final class InputBuffer<I> {
         return bufferedInput != null && remainingTicks > 0;
     }
 
-    @Nullable
     public I peek() {
         return hasBuffered() ? bufferedInput : null;
     }
 
-    @Nullable
     public I consume() {
         if (!hasBuffered()) return null;
         I out = bufferedInput;
@@ -45,7 +41,6 @@ public final class InputBuffer<I> {
         return out;
     }
 
-    @Nullable
     public I consumeIf(Predicate<I> predicate) {
         if (!hasBuffered() || predicate == null) return null;
         if (predicate.test(bufferedInput)) {
