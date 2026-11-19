@@ -50,13 +50,13 @@ Many vanilla Minecraft mobs possess a permanent **Innate Elemental Aura** (and a
 
 | Element | Innate Vanilla Creatures | Combat Tips & Natural Reactions |
 | :--- | :--- | :--- |
-| 🔥 **Pyro** | **Blaze, Magma Cube, Strider, Ghast, Zombified Piglin, Zoglin, Wither Skeleton** | Immune to Pyro & Fire. Hit with **Hydro** for `2.0×` *Forward Vaporize*, **Cryo** for `1.5×` *Reverse Melt*, or **Electro** for *Overloaded*! |
-| 💧 **Hydro** | **Guardian, Elder Guardian, Drowned, Axolotl** | Immune to Hydro. Hit with **Cryo** for instant *Frozen*, **Dendro** for *Bloom* cores, or **Electro** for *Electro-Charged*! |
-| 🌪️ **Anemo** | **Breeze, Phantom, Vex** | Immune to Anemo & Fall Damage (except Stalagmites). Hit with Pyro/Hydro/Electro/Cryo to trigger instant `5.0m` **Swirl**! |
-| ⚡ **Electro** | **Enderman, Ender Dragon, Endermite, Shulker, Powered Creeper** | Immune to Electro. **Powered Creepers** passively radiate `1.0U` Electro within `1.0m` every `1.0s` and electrify water! Hit with **Pyro** for *Overloaded* or **Dendro** for *Quicken*. |
-| 🌿 **Dendro** | **Bogged, Mooshroom, Bee, Cave Spider, Slime** | Immune to Dendro. Hit with **Pyro** for *Burning*, **Hydro** for *Bloom*, or **Electro** for *Quicken / Aggravate*! |
-| ❄️ **Cryo** | **Stray, Snow Golem, Polar Bear** | Immune to Cryo. Freeze water underfoot! Hit with **Pyro** for `2.0×` *Forward Melt* or **Electro** for *Superconduct* (`-40%` Phys RES). |
-| 🪨 **Geo** | **Armadillo, Iron Golem, Husk, Silverfish** | Immune to Geo. Hit with Pyro/Hydro/Electro/Cryo to spawn **Crystallize Shards** for free elemental shields! |
+| ![Pyro][pyro] **Pyro** | **Blaze, Magma Cube, Strider, Ghast, Zombified Piglin, Zoglin, Wither Skeleton** | Immune to Pyro & Fire. Hit with **Hydro** for `2.0×` *Forward Vaporize*, **Cryo** for `1.5×` *Reverse Melt*, or **Electro** for *Overloaded*! |
+| ![Hydro][hydro] **Hydro** | **Guardian, Elder Guardian, Drowned, Axolotl** | Immune to Hydro. Hit with **Cryo** for instant *Frozen*, **Dendro** for *Bloom* cores, or **Electro** for *Electro-Charged*! |
+| ![Anemo][anemo] **Anemo** | **Breeze, Phantom, Vex** | Immune to Anemo & Fall Damage (except Stalagmites). Hit with Pyro/Hydro/Electro/Cryo to trigger instant `5.0m` **Swirl**! |
+| ![Electro][electro] **Electro** | **Enderman, Ender Dragon, Endermite, Shulker, Powered Creeper** | Immune to Electro. **Powered Creepers** passively radiate `1.0U` Electro within `1.0m` every `1.0s` and electrify water! Hit with **Pyro** for *Overloaded* or **Dendro** for *Quicken*. |
+| ![Dendro][dendro] **Dendro** | **Bogged, Mooshroom, Bee, Cave Spider, Slime** | Immune to Dendro. Hit with **Pyro** for *Burning*, **Hydro** for *Bloom*, or **Electro** for *Quicken / Aggravate*! |
+| ![Cryo][cryo] **Cryo** | **Stray, Snow Golem, Polar Bear** | Immune to Cryo. Freeze water underfoot! Hit with **Pyro** for `2.0×` *Forward Melt* or **Electro** for *Superconduct* (`-40%` Phys RES). |
+| ![Geo][geo] **Geo** | **Armadillo, Iron Golem, Husk, Silverfish** | Immune to Geo. Hit with Pyro/Hydro/Electro/Cryo to spawn **Crystallize Shards** for free elemental shields! |
 
 ---
 
@@ -80,3 +80,12 @@ When normal mobs spawn in the world, they roll against the configurable **Innate
 Non-boss pathfinding mobs feature a custom AI goal (`AvoidElementalHazardsGoal`) and danger-memory reflex:
 - **Pathfinding Penalty (`WalkNodeEvaluatorMixin`):** Mobs actively steer around **Electrified Water**, **Ghastfire Fields**, **Dragonfire Clouds**, **Active Tesla Coils**, **Lit Campfires**, and **Temporary Toxic Webs** (unless they are innate-immune to that hazard's element!).
 - **Unseen Sniper Evasion:** If a mob is struck by a long-range elemental reaction with no visible player nearby, it records the hazard coordinates and flees away from the blast zone for `2.0s` (`40t`).
+
+[pyro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png
+[hydro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png
+[anemo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png
+[electro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png
+[dendro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png
+[cryo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png
+[geo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png
+[omni]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png

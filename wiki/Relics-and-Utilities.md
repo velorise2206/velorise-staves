@@ -17,7 +17,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 - **Crafting:** Shaped Crafting Table recipe (`2 Diamonds` + `2 Glass` + `1 Ender Pearl`); upgradeable to Netherite in a Smithing Table.
 
 ### 3. Wings of First Flight — Wind Glider (`wind_glider`)
-- **Function:** Carry the **Wind Glider** anywhere in your inventory (or equip it) and press **`[Space]` while falling in midair** (`enable_wind_glider = true`) to unfold 3D procedural **Wings of First Flight**!
+- **Function:** Carry the **Wind Glider** anywhere in your inventory (or equip it) and press **Right-Click in midair** (`enable_wind_glider = true`, default `Unbound` fallback to Use/Right-Click to avoid conflicting with Creative mode flight; rebindable via `key.velorise_staves.wind_glider`) to unfold 3D procedural **Wings of First Flight**!
   - Smoothly glides through the air with zero durability loss and complete fall-damage protection.
   - **Updraft Synergy:** Gliding into **Venti's *Skyward Sonnet* wind current** or over rising heat sources propels you high into the sky!
   - **Mid-Air Plunging Attack (`Left-Click` while gliding or falling):** Folds the glider and slams straight down (`enable_plunge_attack = true`), dealing AoE impact damage on landing and canceling all fall damage!
@@ -39,7 +39,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
     - **25%** from **Omni-Innate (`Omni ∞`) Mobs**.
 - **Omni Element (`omni_element`):**
   - Crafted by combining all **7 Standard Elemental Essences** in a Crafting Table, or dropped by **Omni-Innate Mobs**.
-  - Can substitute for **any** of the 7 elements in staff crafting recipes, repair any staff in an Anvil, imbue any sword, convert a non-Archon staff into an **Omni Staff**, or **tame an Omni-Innate animal**!
+  - Can substitute for **any** of the 7 elements in staff crafting recipes, repair any staff in an Anvil, imbue any sword, or **tame an Omni-Innate animal**!
 
 ### 2. Elemental Rods & 1.20.1 Backport Recipes
 - **`cryo_rod` (Cryo), `electro_rod` (Electro), `hydro_rod` (Hydro), `geo_rod` (Geo), `breeze_rod` (Anemo), `blaze_rod` (Pyro):**
@@ -83,7 +83,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 | **No Love Left for Her People** | `no_love_left` | Challenge | Unleash **The Tsaritsa's Elemental Burst `[R]`**. |
 | **Shattered Regalia** | `shattered_regalia` | Challenge *(Hidden)* | Shatter *Silver Dawn* by depleting its durability to 0. |
 | **Starry Night** | `starry_night` | Challenge *(Hidden)* | Fire a full 4-star salvo from **Layla's *Nights of Formal Focus***. |
-| **The Wind is strong today!** | `the_wind_is_strong_today` | Challenge | Launch a mob `> 100` blocks skyward with **The Daybreak Chronicles**. |
+| **The Wind is strong today!** | `the_wind_is_strong_today` | Challenge | Launch a mob `>= 75` blocks skyward with **The Daybreak Chronicles**. |
 | **Thermal Explosion** | `hidden_pyro` | Challenge *(Hidden)* | Trigger an **Overloaded** or **Vaporize** reaction. |
 | **Absolute Zero** | `hidden_cryo` | Challenge *(Hidden)* | **Freeze** or **Shatter** targets with Cryo energy. |
 | **Gale Dispersion** | `hidden_anemo` | Challenge *(Hidden)* | Swirl elemental energies with **Anemo**. |

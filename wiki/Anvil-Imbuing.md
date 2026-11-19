@@ -16,7 +16,7 @@ Place any vanilla or modded **Sword** in the **Left Anvil Slot** and any **Eleme
 
 ---
 
-## 🌈 2. Omni Staff Crafting, Absorption & The 7 Archons Rule
+## ![Omni][omni] 2. Omni Staff Crafting, Absorption & The 7 Archons Rule
 
 The **Omni Staff** (`omni_staff` / `netherite_omni_staff`) is a modular master weapon that stores **one absorbed weapon per Element (`Pyro, Hydro, Anemo, Electro, Dendro, Cryo, Geo`)**.
 
@@ -25,23 +25,19 @@ Combine all **7 Elemental Essences** (*Cryo, Hydro, Anemo, Pyro, Dendro, Geo, El
 
 ![Omni Element Crafting Recipe](images/omni_element_recipe.png)
 
-### How to Create an Omni Staff
-1. **Method A — Crafting Table (`recipe/omni_staff.json`):**
-   - Combine **1 Non-Archon Staff from each of the 7 elemental tags** (`#pyro_staves`, `#hydro_staves`, `#anemo_staves`, `#electro_staves`, `#dendro_staves`, `#cryo_staves`, `#geo_staves`) + **1 Diamond Sword** (`S`).
-   - The resulting Omni Staff **records the exact staff ID used in each elemental slot** and sets its **Max Durability to the sum of all 7 input staves' durabilities**!
-2. **Method B — Anvil Direct Conversion (`Staff + Omni Element`):**
-   - Place any **Non-Archon Staff** in the Left Anvil Slot and `1` **Omni Element** (`omni_element`) in the Right Slot (`5 XP Levels`).
-   - Converts the staff into an **Omni Staff** (or **Netherite Omni Staff** if the base staff was Netherite!), keeping all Enchantments and placing that staff into its corresponding elemental slot (while filling the other 6 slots with default elemental staves).
+### How to Create an Omni Staff (`recipe/omni_staff.json`)
+- Combine **1 Non-Archon Staff from each of the 7 elemental tags** (`#pyro_staves`, `#hydro_staves`, `#anemo_staves`, `#electro_staves`, `#dendro_staves`, `#cryo_staves`, `#geo_staves`) + **1 Diamond Sword** (`S`) in a Crafting Table.
+- The resulting Omni Staff **records the exact staff ID used in each elemental slot** and sets its **Max Durability to the sum of all 7 input staves' durabilities**!
 
 ### Swapping Absorbed Weapons in the Anvil (`Omni Staff + Non-Archon Staff / Trident / Void Translocator`)
 Place an **Omni Staff** in the Left Anvil Slot and any eligible weapon in the Right Slot (`2 XP Levels`):
-- **Pyro Slot:** *Inferno Rod* or *Ghastfire Staff*
-- **Hydro Slot:** *Guardian Lens (Neuvillette)* or **Vanilla Trident (`minecraft:trident`)** (throws a loyal Riptide/Channeling Hydro Trident when locked to Hydro!)
-- **Anemo Slot:** *Wind Staff* or *Resonant Echo*
-- **Electro Slot:** *Arc Caster*, *Dragonfire Scepter*, *Shulker Seeker*, or **Void Translocator** (blinks through walls when locked to Electro!)
-- **Dendro Slot:** *Wither Scepter* or *Webcaster*
-- **Cryo Slot:** *Frostbolt Wand* or *Nights of Formal Focus (Layla)*
-- **Geo Slot:** *Evoker Fang Staff* or *Peak Patrol Song (Xilonen)*
+- ![Pyro][pyro] **Pyro Slot:** *Inferno Rod* or *Ghastfire Staff*
+- ![Hydro][hydro] **Hydro Slot:** *Guardian Lens (Neuvillette)* or **Vanilla Trident (`minecraft:trident`)** (throws a loyal Riptide/Channeling Hydro Trident when locked to Hydro!)
+- ![Anemo][anemo] **Anemo Slot:** *Wind Staff* or *Resonant Echo*
+- ![Electro][electro] **Electro Slot:** *Arc Caster*, *Dragonfire Scepter*, *Shulker Seeker*, or **Void Translocator** (blinks through walls when locked to Electro!)
+- ![Dendro][dendro] **Dendro Slot:** *Wither Scepter* or *Webcaster*
+- ![Cryo][cryo] **Cryo Slot:** *Frostbolt Wand* or *Nights of Formal Focus (Layla)*
+- ![Geo][geo] **Geo Slot:** *Evoker Fang Staff* or *Peak Patrol Song (Xilonen)*
 
 > [!CAUTION]
 > **Why Can't the 7 Archon Weapons Be Combined into the Omni Staff?**
@@ -52,3 +48,12 @@ Place an **Omni Staff** in the Left Anvil Slot and any eligible weapon in the Ri
 ## 🔧 3. Anvil Repairing
 - **Matching Essence Repair:** Place any combat staff (including Archon weapons!) in the Left Anvil Slot and its **matching Elemental Essence** in the Right Slot — each essence restores **25% of the staff's Max Durability** (`1 XP Level` per essence).
 - **Universal Omni Repair:** An **Omni Element** (`omni_element`) can repair **any** staff or relic (including the Omni Staff and all 7 Archon weapons) for **50% Max Durability** per essence!
+
+[pyro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png
+[hydro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png
+[anemo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png
+[electro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png
+[dendro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png
+[cryo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png
+[geo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png
+[omni]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png

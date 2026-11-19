@@ -16,7 +16,7 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
 | **Combat Dash / Dodge** | **`[Sprint / Ctrl]`** | **Dash / Dodge** | While riding **Mavuika's Flamestrider** or skating in **Xilonen's Nightsoul state**, performs a 2-dash chain (`5t` gap between Dash 1 & Dash 2, then `1.5s` / `30t` cooldown). |
 | **Omni Element Wheel** | **`[Tab]` Key** (Hold/Tap) | **Element Switcher** | Opens the radial **Omni Wheel** to lock onto any of the 7 elements or `Auto Best` mode (`0`). |
 | **Character Voice Menu** | **`[V]` Key** | **Voice-Over Profile** | Opens the **Character Voice Screen** (`18` Zhongli voice lines in EN/ZH + voice language selector). |
-| **Wind Glider** | **`[Space]` in midair** *(while falling)* | **Wings of First Flight** | Deploys the Wind Glider while falling (`enable_wind_glider`). Press `[Space]` again or land to fold. Carrying **Dragonfire Scepter** upgrades it to a **5m Ender Dragon Glider** (**+50%** horizontal speed). |
+| **Wind Glider** | **Right-Click in midair** *(rebindable)* | **Wings of First Flight** | Deploys/folds the Wind Glider in midair (`enable_wind_glider`). Defaults to **Right-Click** (Unbound fallback) to avoid conflicting with Creative mode flight. Carrying **Dragonfire Scepter** upgrades it to a **5m Ender Dragon Glider** (**+50%** horizontal speed). |
 | **Plunging Attack** | **`Left-Click` in midair** *(rebindable)* | **Plunging Attack** | Dives straight down (`enable_plunge_attack`), dealing AoE impact damage and **canceling 100% of fall damage**. |
 
 ---
@@ -27,25 +27,25 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 | Element | Staff Name & ID | Config Base DMG (Basic ➔ Netherite) | Cooldown | Durability (Basic ➔ Neth) | Range & Full Combat Mechanics |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Pyro** | **Inferno Rod**<br>`inferno_rod` | `3.0` (`1.5❤ × 3`) ➔ `4.5` (`2.25❤ × 3`) | `4.0s` | `150` ➔ `550` | `30m`. Fires a 3-shot burst of blazing fireballs (`11t` interval). **3rd-Shot Finale:** `+35%` projectile speed, `+50%` damage, `2.0U➔3.0U` Pyro, and a **`2.5m` AoE Pyro explosion**! Melts ice/snow, lights campfires/candles, and primes TNT. |
-| **Pyro** | **Ghastfire Staff**<br>`ghastfire_staff` | `6.0` (`3.0❤`) ➔ `9.0` (`4.5❤`) | `5.0s` | `120` ➔ `450` | `36m`. Launches a high-velocity Ghast fireball that detonates on impact (`3.5m➔4.5m` AoE) and leaves a **Ghastfire Field** (`5.0s`) dealing continuous Pyro ticks and triggering **Amethyst Cluster Overloaded Mining**. |
-| **Dendro** | **Wither Scepter**<br>`wither_scepter` | `4.0` (`2.0❤ × 3`) ➔ `6.0` (`3.0❤ × 3`) | `6.0s` | `140` ➔ `500` | `32m`. Fires 3 decaying Dendro skulls inflicting **Wither II** (`4.0s`) and `1.0U➔1.5U` Dendro. **Wither Carapace:** `<= 50%` HP grants **100% projectile immunity**. **Withering Contagion:** Marked foes that die within `8s` explode in a **`3.0m` Dendro + Wither II cloud** (`1.5❤➔2.25❤`, `1.5U`). |
-| **Electro** | **Shulker Seeker**<br>`shulker_seeker` | `6.0` (`3.0❤ × 3`) ➔ `9.0` (`4.5❤ × 3`) | `6.0s` | `130` ➔ `500` | `30m`. **Left-Click:** 3-shot homing salvo with **3rd-Shot Gravity Slam** (`+0.78Y` launch, `0.5s` later `-1.45Y` ground slam for `2.5m` AoE Electro). **Right-Click:** Portable Shulker Chest (`27` slots Basic / `54` scrollable slots Netherite); **Shulker Shell Guard** grants **-30%/-40% DMG reduction** while open. |
-| **Electro** | **Dragonfire Scepter**<br>`dragonfire_scepter` | `7.0` (`3.5❤`) ➔ `10.5` (`5.25❤`) | `4.0s` (NA) / `0s` (E, `30s`) / `20.0s` `[R]` | `130` ➔ `500` | `32m`. **Left-Click (`4.0s` CD):** Fires Ender Plasma Orb (`3.5❤➔5.25❤` Electro AoE + `6s` Dragonfire Cloud). **Right-Click (No CD, `0.25s` anti-spam):** Toggles a `1m` **Mini Ender Dragon** (`30s`) that patrols, **auto-switches targets** to whoever you hit, and **hovers still** while firing every `2.0s` (`1.0❤➔1.5❤`, `1.0U`). **`[R]` (`20.0s` CD):** With Pet active, **Skyfall Dive** (`2.2s` I-frames, Giant Dragon `10×10m` ➔ `12×12m` slam, `8.0❤➔12.0❤`, `3.5U➔4.0U`); without Pet, **Sweeping Strafe** (`1.6s` I-frames, `5×20m` ➔ `6×24m` corridor, `6.0❤➔9.0❤`, `3.0U➔3.5U`). **Passive:** Upgrades Wind Glider to **5m Ender Dragon** (`+50%` speed). |
-| **Geo** | **Evoker Fang Staff**<br>`evoker_fang_staff` | `3.0` (`1.5❤ × 9`) ➔ `4.5` (`2.25❤ × 13`) | `5.0s` | `120` ➔ `450` | `13.5m➔19.5m`. Erupts a line of Geo Evoker Fangs (`1.0U➔1.5U` Geo) and raises a physical **Geo Fang Pillar** (`1×1×1` Basic / `1×2×1` Netherite, `1×/2×` owner Max HP, `30s` duration, max 3 constructs) that blocks projectiles, taunts hit mobs, and pulses square Geo waves every `2.0s`. |
-| **Electro** | **Arc Caster**<br>`arc_caster` | `1.0` (`0.5❤`/hit) ➔ `1.5` (`0.75❤`/hit) | `6.0s` | `130` ➔ `500` | `30m➔36m`. Instant Electro lightning strike that chains across wet/conductive targets (`6.0m` Netherite), charges Creepers (`arc_caster_charge_creeper`), overcharges **Tesla Coils**, and electrifies water pools. |
-| **Cryo** | **Frostbolt Wand**<br>`frostbolt_wand` | `4.5` (`2.25❤ × 3`) ➔ `6.75` (`3.38❤ × 3`) | `4.0s` | `150` ➔ `500` | `28m`. Fires a 3-shot burst of cryogenic icicles inflicting **Slowness II**, `1.0U➔1.5U` Cryo, and freezing water. **3rd-Shot Finale:** `+35%` speed, `+50%` damage, `2.0U➔3.0U` Cryo, and **`2.5m` Cryo Permafrost Nova + Slowness IV**! |
-| **Dendro** | **Webcaster**<br>`webcaster` | `1.5` (`0.75❤ × 3`) ➔ `2.25` (`1.13❤ × 3`) | `5.0s` | `140` ➔ `500` | `28m`. Fires a 3-shot burst of venomous silk orbs that trap victims in **Temporary Toxic Cobwebs** (`5.0s` default via `temporary_web_duration_ticks`, auto-restores blocks), inflicting **Poison** and `1.0U➔1.5U` Dendro. |
-| **Anemo** | **Wind Staff**<br>`wind_staff` | `1.5` (`0.75❤`) ➔ `2.25` (`1.13❤`) | `1.5s` | `140` ➔ `500` | `28m`. Fires a high-speed Wind Charge (`3.5m➔4.5m` Swirl AoE + strong knockback). Firing at your feet propels you into a high **Wind-Jump** with fall-damage protection! |
-| **Anemo** | **Resonant Echo**<br>`resonant_echo` | `11.0` (`5.5❤`) ➔ `16.5` (`8.25❤`) | `8.0s` *(up to `-5.0s`)* | `130` ➔ `500` | `28m➔32m`. Channels a Warden **Sonic Boom** that pierces walls and shields (`2.0U➔3.0U` Swirl). **Resonance Passive:** Each valid non-dummy hostile target damaged reduces cooldown by **`1.0s`** (up to **`-5.0s`** max across 5 targets). |
-| **Omni** | **Omni Staff**<br>`omni_staff` | `10.0` (`5.0❤` / `2U`) ➔ `15.0` (`7.5❤` / `3U`) | `6.0s` | Sum of 7 Staves (`250` ➔ `900` fallback) | `36m➔48m`. Holds 1 non-Archon weapon per element! Hold `[Tab]` to open the **Omni Wheel**:<br>• **Mode 0 (`OMNI` Auto-Best):** Fires an iridescent **Omni Orb** that inspects the target's active aura on impact and **automatically triggers the highest-priority reaction**!<br>• **Modes 1–7 (Locked Element):** Delegates directly to the absorbed staff for that element (or fires a pure elemental Omni Orb when sneaking), including **Riptide Trident throw** (Hydro) or **Spatial Blink** (Electro Void Translocator)! |
+| ![Pyro][pyro] **Pyro** | **Inferno Rod**<br>`inferno_rod` | `3.0` (`1.5❤ × 3`) ➔ `4.5` (`2.25❤ × 3`) | `4.0s` | `150` ➔ `550` | `30m`. Fires a 3-shot burst of blazing fireballs (`11t` interval). **3rd-Shot Finale:** `+35%` projectile speed, `+50%` damage, `2.0U➔3.0U` Pyro, and a **`2.5m` AoE Pyro explosion**! Melts ice/snow, lights campfires/candles, and primes TNT. |
+| ![Pyro][pyro] **Pyro** | **Ghastfire Staff**<br>`ghastfire_staff` | `6.0` (`3.0❤`) ➔ `9.0` (`4.5❤`) | `5.0s` | `120` ➔ `450` | `36m`. Launches a high-velocity Ghast fireball that detonates on impact (`3.5m➔4.5m` AoE) and leaves a **Ghastfire Field** (`5.0s`) dealing continuous Pyro ticks and triggering **Amethyst Cluster Overloaded Mining**. |
+| ![Dendro][dendro] **Dendro** | **Wither Scepter**<br>`wither_scepter` | `4.0` (`2.0❤ × 3`) ➔ `6.0` (`3.0❤ × 3`) | `6.0s` | `140` ➔ `500` | `32m`. Fires 3 decaying Dendro skulls inflicting **Wither II** (`4.0s`) and `1.0U➔1.5U` Dendro. **Wither Carapace:** `<= 50%` HP grants **100% projectile immunity**. **Withering Contagion:** Marked foes that die within `8s` explode in a **`3.0m` Dendro + Wither II cloud** (`1.5❤➔2.25❤`, `1.5U`). |
+| ![Electro][electro] **Electro** | **Shulker Seeker**<br>`shulker_seeker` | `6.0` (`3.0❤ × 3`) ➔ `9.0` (`4.5❤ × 3`) | `6.0s` | `130` ➔ `500` | `30m`. **Left-Click:** 3-shot homing salvo with **3rd-Shot Gravity Slam** (`+0.78Y` launch, `0.5s` later `-1.45Y` ground slam for `2.5m` AoE Electro). **Right-Click:** Portable Shulker Chest (`27` slots Basic / `54` scrollable slots Netherite); **Shulker Shell Guard** grants **-30%/-40% DMG reduction** while open. |
+| ![Electro][electro] **Electro** | **Dragonfire Scepter**<br>`dragonfire_scepter` | `7.0` (`3.5❤`) ➔ `10.5` (`5.25❤`) | `4.0s` (NA) / `0s` (E, `30s`) / `20.0s` `[R]` | `130` ➔ `500` | `32m`. **Left-Click (`4.0s` CD):** Fires Ender Plasma Orb (`3.5❤➔5.25❤` Electro AoE + `6s` Dragonfire Cloud). **Right-Click (No CD, `0.25s` anti-spam):** Toggles a `1m` **Mini Ender Dragon** (`30s`) that patrols, **auto-switches targets** to whoever you hit, and **hovers still** while firing every `2.0s` (`1.0❤➔1.5❤`, `1.0U`). **`[R]` (`20.0s` CD):** With Pet active, **Skyfall Dive** (`2.2s` I-frames, Giant Dragon `10×10m` ➔ `12×12m` slam, `8.0❤➔12.0❤`, `3.5U➔4.0U`); without Pet, **Sweeping Strafe** (`1.6s` I-frames, `5×20m` ➔ `6×24m` corridor, `6.0❤➔9.0❤`, `3.0U➔3.5U`). **Passive:** Upgrades Wind Glider to **5m Ender Dragon** (`+50%` speed). |
+| ![Geo][geo] **Geo** | **Evoker Fang Staff**<br>`evoker_fang_staff` | `3.0` (`1.5❤ × 9`) ➔ `4.5` (`2.25❤ × 13`) | `5.0s` | `120` ➔ `450` | `13.5m➔19.5m`. Erupts a line of Geo Evoker Fangs (`1.0U➔1.5U` Geo) and raises a physical **Geo Fang Pillar** (`1×1×1` Basic / `1×2×1` Netherite, `1×/2×` owner Max HP, `30s` duration, max 3 constructs) that blocks projectiles, taunts hit mobs, and pulses square Geo waves every `2.0s`. |
+| ![Electro][electro] **Electro** | **Arc Caster**<br>`arc_caster` | `1.0` (`0.5❤`/hit) ➔ `1.5` (`0.75❤`/hit) | `6.0s` | `130` ➔ `500` | `30m➔36m`. Instant Electro lightning strike that chains across wet/conductive targets (`6.0m` Netherite), charges Creepers (`arc_caster_charge_creeper`), overcharges **Tesla Coils**, and electrifies water pools. |
+| ![Cryo][cryo] **Cryo** | **Frostbolt Wand**<br>`frostbolt_wand` | `4.5` (`2.25❤ × 3`) ➔ `6.75` (`3.38❤ × 3`) | `4.0s` | `150` ➔ `500` | `28m`. Fires a 3-shot burst of cryogenic icicles inflicting **Slowness II**, `1.0U➔1.5U` Cryo, and freezing water. **3rd-Shot Finale:** `+35%` speed, `+50%` damage, `2.0U➔3.0U` Cryo, and **`2.5m` Cryo Permafrost Nova + Slowness IV**! |
+| ![Dendro][dendro] **Dendro** | **Webcaster**<br>`webcaster` | `1.5` (`0.75❤ × 3`) ➔ `2.25` (`1.13❤ × 3`) | `5.0s` | `140` ➔ `500` | `28m`. Fires a 3-shot burst of venomous silk orbs that trap victims in **Temporary Toxic Cobwebs** (`5.0s` default via `temporary_web_duration_ticks`, auto-restores blocks), inflicting **Poison** and `1.0U➔1.5U` Dendro. |
+| ![Anemo][anemo] **Anemo** | **Wind Staff**<br>`wind_staff` | `1.5` (`0.75❤`) ➔ `2.25` (`1.13❤`) | `1.5s` | `140` ➔ `500` | `28m`. Fires a high-speed Wind Charge (`3.5m➔4.5m` Swirl AoE + strong knockback). Firing at your feet propels you into a high **Wind-Jump** with fall-damage protection! |
+| ![Anemo][anemo] **Anemo** | **Resonant Echo**<br>`resonant_echo` | `11.0` (`5.5❤`) ➔ `16.5` (`8.25❤`) | `8.0s` *(up to `-5.0s`)* | `130` ➔ `500` | `28m➔32m`. Channels a Warden **Sonic Boom** that pierces walls and shields (`2.0U➔3.0U` Swirl). **Resonance Passive:** Each valid non-dummy hostile target damaged reduces cooldown by **`1.0s`** (up to **`-5.0s`** max across 5 targets). |
+| ![Omni][omni] **Omni** | **Omni Staff**<br>`omni_staff` | `10.0` (`5.0❤` / `2U`) ➔ `15.0` (`7.5❤` / `3U`) | `6.0s` | Sum of 7 Staves (`250` ➔ `900` fallback) | `36m➔48m`. Holds 1 non-Archon weapon per element! Hold `[Tab]` to open the **Omni Wheel**:<br>• **Mode 0 (`OMNI` Auto-Best):** Fires an iridescent **Omni Orb** that inspects the target's active aura on impact and **automatically triggers the highest-priority reaction**!<br>• **Modes 1–7 (Locked Element):** Delegates directly to the absorbed staff for that element (or fires a pure elemental Omni Orb when sneaking), including **Riptide Trident throw** (Hydro) or **Spatial Blink** (Electro Void Translocator)! |
 
 ---
 
 ## ⭐ Genshin Weapons (3 Weapons — Omni-Eligible)
 
 ### 1. Neuvillette — *Guardian Lens (Tome of the Eternal Flow)* (`guardian_lens`)
-- **Element:** 💧 Hydro | **Role:** Hydro Dragon Sovereign Catalyst (HP-Scaled Hydro Beam & Droplet Sustainer) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Element:** ![Hydro][hydro] Hydro | **Role:** Hydro Dragon Sovereign Catalyst (HP-Scaled Hydro Beam & Droplet Sustainer) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
 - **Config Base Damage:** `2.0` (Scales with **Max HP**) | **Skill CD:** `12.0s` | **Burst CD:** `18.0s` | **Durability:** `260` Basic / `520` Netherite
 - **Elemental Skill — *O Tears, I Shall Repay* (`Right-Click`, `12.0s` CD):**
   - Summons a **Surging Waterfall** at the target (`20.0m` Basic / `26.0m` Netherite range, `3.5m` AoE) dealing Hydro damage (`1.5❤ + 5% Max HP`) and spawning **3 Sourcewater Droplets** on the ground (`15s` lifetime).
@@ -62,7 +62,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 2. Xilonen — *Peak Patrol Song* (`peak_patrol_song`)
-- **Element:** 🪨 Geo | **Role:** Natlan Roller-Skating Sword (Multi-Element RES Shredder, Healer & Nightsoul Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Element:** ![Geo][geo] Geo | **Role:** Natlan Roller-Skating Sword (Multi-Element RES Shredder, Healer & Nightsoul Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
 - **Config Base Damage:** `1.0` | **Skill CD:** `7.0s` | **Burst CD:** `15.0s` | **Durability:** `380` Basic / `760` Netherite
 - **Elemental Skill — *Yohual's Scratch* (`Right-Click`, `7.0s` CD):**
   - Enters **Nightsoul's Blessing** (`9.0s` max duration, `45` initial Nightsoul points): equips **Roller Skates** (`+35%` movement speed, step-up assist, and **smooth vertical Wall-Climbing**!).
@@ -81,7 +81,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 3. Layla — *Nights of Formal Focus* (`nights_focus_staff`)
-- **Element:** ❄️ Cryo | **Role:** Rtawahist Astrologer Scepter (HP-Scaled Cryo Shield & Homing Starlight Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Element:** ![Cryo][cryo] Cryo | **Role:** Rtawahist Astrologer Scepter (HP-Scaled Cryo Shield & Homing Starlight Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
 - **Config Base Damage:** `4.0` | **Skill CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `260` Basic / `520` Netherite
 - **Elemental Skill — *Nights of Formal Focus* (`Right-Click`, `12.0s` CD):**
   - Deals AoE Cryo damage (`1.0❤` Basic / `1.5❤` Netherite) and wraps the player in the **Curtain of Slumber Shield** for `12.0s`:
@@ -102,10 +102,10 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 > - The **3 Non-Archon Genshin Character Weapons** — **Neuvillette** (`Guardian Lens`), **Xilonen** (`Peak Patrol Song`), and **Layla** (`Nights of Formal Focus`) — have `isArchon() == false` and **CAN** be crafted or absorbed into the **Omni Staff**!
 
 ### 1. Mavuika — *A Thousand Blazing Suns* (`thousand_blazing_suns`)
-- **Element:** 🔥 Pyro | **Role:** Pyro Archon Claymore (On-Field Motorcycle Hypercarry & Off-Field Sub-DPS) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Pyro][pyro] Pyro | **Role:** Pyro Archon Claymore (On-Field Motorcycle Hypercarry & Off-Field Sub-DPS) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Skill CD:** `15.0s` | **Burst CD:** `18.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Elemental Skill — *The Named Moment* (`Right-Click`):**
-  - **Tap Right-Click (Off-Field Mode):** Summons the **Ring of Searing Radiance** above the player (`20s` duration, `80` Nightsoul points). Strikes nearby enemies with coordinated Pyro pillars every `2.0s` within `3.0m` (Basic) / `8.0m` (Netherite) and harvests Amethyst Clusters via Overloaded.
+  - **Tap Right-Click (Off-Field Mode):** Summons the **Ring of Searing Radiance** above the player (`20s` duration, `80` Nightsoul points). Strikes nearby enemies with coordinated Pyro pillars every `2.0s` within `3.0m` (Basic) / `8.0m` (Netherite).
   - **Hold Right-Click or Re-Press Right-Click while Ring is active (All-Fire Armaments):** Summons and mounts the **Flamestrider Motorcycle**!
     - **Driving & Terrain Physics:** Smooth momentum steering (`WASD`), `[Space]` to jump/wheelie, **Water & Lava Surface Skimming**, and **Vertical Cliff Wall-Climbing** (hold `[Sprint]` into a wall; toggleable via `enable_mavuika_wall_climb`).
     - **5-Step Normal Attack (`Tap Left-Click` while riding):** Cleaves in a wide frontal arc with escalating multipliers (`1.0× ➔ 1.05× ➔ 1.15× ➔ 1.25× ➔ 1.55×`), consuming `1.0` Nightsoul Fuel per swing and generating **Fighting Spirit**.
@@ -121,7 +121,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 2. Furina — *Splendor of Tranquil Waters* (`splendor_of_tranquil_waters`)
-- **Element:** 💧 Hydro | **Role:** Hydro Archon Rapier (Dual-Arkhe Summoner, Water Walker & Universal Buffer) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Hydro][hydro] Hydro | **Role:** Hydro Archon Rapier (Dual-Arkhe Summoner, Water Walker & Universal Buffer) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `1.0` (Max HP-scaled summons) | **Skill CD:** `20.0s` (`30s` summon duration) | **Burst CD:** `15.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Arkhe Alignment Switch (`Hold Left-Click`):**
   - Switches between **Arkhe: Ousia** (dark outfit/aura, offensive summon mode) and **Arkhe: Pneuma** (light outfit/aura, healing summon mode) with a `1.0s` (`20t`) switch cooldown. If summons are currently active in the world, switching Arkhe morphs them in real time!
@@ -136,7 +136,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 3. Zhongli — *Vortex Vanquisher* (`vortex_vanquisher`)
-- **Element:** 🪨 Geo | **Role:** Geo Archon Polearm (Unbreakable Shield, All-RES Shred, Geo Construct Resonance & Petrification) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Geo][geo] Geo | **Role:** Geo Archon Polearm (All-RES Shred, Geo Construct Resonance & Petrification) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`+ Max HP scaling`) | **Tap E CD:** `4.0s` | **Hold E CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Elemental Skill — *Dominus Lapidis* (`Right-Click`):**
   - **Tap Right-Click (`4.0s` CD):** Summons a `3.5m` physical **Stone Stele** (`GeoFangPillarEntity` in Stele mode, `30s` lifetime, max `3` constructs per player). The Stele blocks projectiles, taunts hit monsters, and emits expanding square **Geo Resonance Waves** every `2.0s` (`3.5m` Basic / `5.5m` Netherite) that trigger **Sympathetic Resonance Pulses** from other nearby Geo Constructs!
@@ -152,7 +152,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 4. Venti — *The Daybreak Chronicles* (`the_daybreak_chronicles`)
-- **Element:** 🌪️ Anemo | **Role:** Anemo Archon Bow (3-Stage Gale Archer, Updraft Generator & Vortex Crowd Control) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Anemo][anemo] Anemo | **Role:** Anemo Archon Bow (3-Stage Gale Archer, Updraft Generator & Vortex Crowd Control) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `1.5` (`0.75❤` Basic / `1.13❤` Netherite base shot) | **Skill CD:** `2.0s` | **Burst CD:** `15.0s` | **Durability:** `380` Basic / `760` Netherite
 - **Normal & 3-Stage Charged Attack (`Left-Click` / `Hold Left-Click`):**
   - **Tap Left-Click:** Fires a fast Anemo wind bolt (`0.45×` multiplier).
@@ -166,7 +166,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 5. Raiden Shogun — *Engulfing Lightning* (`engulfing_lightning`)
-- **Element:** ⚡ Electro | **Role:** Electro Archon Polearm (Coordinated Sub-DPS, Resolve Battery & Musou Isshin Hypercarry) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Electro][electro] Electro | **Role:** Electro Archon Polearm (Coordinated Sub-DPS, Resolve Battery & Musou Isshin Hypercarry) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Skill CD:** `10.0s` | **Burst CD:** `18.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Crescent Charged Attack (`Hold Left-Click`):**
   - Unleashes a vertical upward **Crescent Lightning Sweep** (`1.35×` DMG, `7.5m` Basic / `9.5m` Netherite reach) with 3rd-person look-direction lock that launches enemies upward.
@@ -184,7 +184,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 6. Nahida — *A Thousand Floating Dreams* (`thousand_floating_dreams`)
-- **Element:** 🌿 Dendro | **Role:** Dendro Archon Catalyst (Tri-Karma Linker, Remote Harvester & EM Dome Buffer) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Dendro][dendro] Dendro | **Role:** Dendro Archon Catalyst (Tri-Karma Linker, Remote Harvester & EM Dome Buffer) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Tap E CD:** `5.0s` | **Hold E CD:** `6.0s` | **Burst CD:** `13.5s` | **Durability:** `380` Basic / `760` Netherite
 - **Normal & Charged Attack (`Left-Click` / `Hold Left-Click`):**
   - **Tap Left-Click (*Akara* 4-Step Hopscotch Combo):** Projects 4 glowing green keyboard tiles (`2.0m wide × 5.0m forward`) dealing AoE Dendro damage (`0.5❤` base) and **automatically bone-mealing crops and saplings** along the path!
@@ -205,7 +205,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 ---
 
 ### 7. The Tsaritsa — *Silver Dawn* (`tsaritsa_bow` ⇄ `tsaritsa_spear`)
-- **Element:** ❄️ Cryo | **Role:** Cryo Archon Dual-Stance Regalia (Stellar Cryo Buffer & Orbital Spear DPS) | **Archon:** Yes (`isArchon = true`)
+- **Element:** ![Cryo][cryo] Cryo | **Role:** Cryo Archon Dual-Stance Regalia (Stellar Cryo Buffer & Orbital Spear DPS) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.5` (`2.25❤` Basic / `3.38❤` Netherite) | **Skill / Stance Switch CD:** `6.0s` | **Burst CD:** `15.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Dual-Stance Switching & Elemental Skill (`Right-Click`, `6.0s` CD):**
   - Pressing **Right-Click** seamlessly transforms the weapon item between **Cryo Bow (`tsaritsa_bow` — Support Stance)** and **Cryo Spear (`tsaritsa_spear` — DPS Stance)** while summoning a **Rime-Pillar** (`12.0s` duration, `4.5m` Basic / `6.0m` Netherite radius) that pulses Cryo waves every `2.0s`!
@@ -240,7 +240,7 @@ Standing completely still for **3.0 seconds** (`60t`) while holding a signature 
 | **Mavuika** | *A Thousand Blazing Suns* | Casually leans on the **Flamestrider Motorcycle** (in 1st-person view, applies a warm cinematic visor tint `0x140e18` without obstructing vision). |
 | **Nahida** | *A Thousand Floating Dreams* | Manifests a glowing emerald **botanical vine swing** suspended from above, swaying gently back and forth. |
 | **The Tsaritsa** | *Silver Dawn* | Conjures the crystalline **Rime-Throne** and an ice desk, writing royal decrees with a glowing frost quill in both 1st-person and 3rd-person views. |
-| **Xilonen** | *Peak Patrol Song* | Deploys a neon-lit Natlan **DJ Turntable Booth** with dual spinning vinyl decks and equalizer bars pulsing to the beat. |
+| **Dragonfire** | *Dragonfire Scepter* | Summons a full-scale 3D **Ender Dragon** right in front of you (when the Mini Dragon pet is inactive) and gently **pets the dragon's snout** in both 1st-person and 3rd-person views. |
 
 ---
 
@@ -250,15 +250,24 @@ Carrying combat staves in your inventory (up to the configurable **4-Staff Cap**
 
 | Resonance | Requirement | Active Buffs & Mechanics |
 | :--- | :--- | :--- |
-| 🔥 **Fervent Flames (Pyro)** | `>= 2` Pyro Staves | **+10% All Attack Damage** (configurable via `pyro_resonance_damage_bonus`, default `0.10`); reduces Cryo aura & Freeze duration on you by **-40%**. |
-| 💧 **Soothing Water (Hydro)** | `>= 2` Hydro Staves | **+25% Max HP** (`+5.0❤` base); extinguishes fire `2×` faster; reduces Pyro aura duration on you by **-40%**. |
-| 🌪️ **Impetuous Winds (Anemo)** | `>= 2` Anemo Staves | **+10% Movement Speed**; **-15% Hunger/Exhaustion consumption**; **-10% Skill & Elemental Burst Cooldowns** (including Archon `[R]` Bursts!). |
-| ⚡ **High Voltage (Electro)** | `>= 2` Electro Staves | Triggering *Superconduct, Overloaded, Electro-Charged, Quicken, Aggravate,* or *Hyperbloom* spawns an **Electro Elemental Particle** (`5.0s` ICD) that restores **1.0s cooldown** to all staves in your inventory; reduces Hydro aura duration by **-40%**. |
-| 🌿 **Sprawling Greenery (Dendro)** | `>= 2` Dendro Staves | Passively grants **+1 Elemental Mastery (EM) Level**. Triggering *Burning, Bloom,* or *Quicken* grants **+1 additional EM Level** for `6.0s`; triggering *Aggravate, Spread, Hyperbloom,* or *Burgeon* grants another **+1 EM Level** for `6.0s`! |
-| ❄️ **Shattering Ice (Cryo)** | `>= 2` Cryo Staves | Attacks against enemies affected by Cryo or Frozen have a **+15% Critical Hit Chance** (`1.5×` damage multiplier); reduces Electro aura duration on you by **-40%**. |
-| 🪨 **Enduring Rock (Geo)** | `>= 2` Geo Staves | **+15% Shield Strength**. While protected by any shield (*Crystallize, Jade Shield,* or *Curtain of Slumber*), deals **+15% All Damage** and shreds hit enemies' **Geo RES by -20% for 15.0s**. |
+| ![Pyro][pyro] **Fervent Flames (Pyro)** | `>= 2` Pyro Staves | **+10% All Attack Damage** (configurable via `pyro_resonance_damage_bonus`, default `0.10`); reduces Cryo aura & Freeze duration on you by **-40%**. |
+| ![Hydro][hydro] **Soothing Water (Hydro)** | `>= 2` Hydro Staves | **+25% Max HP** (`+5.0❤` base); extinguishes fire `2×` faster; reduces Pyro aura duration on you by **-40%**. |
+| ![Anemo][anemo] **Impetuous Winds (Anemo)** | `>= 2` Anemo Staves | **+10% Movement Speed**; **-15% Hunger/Exhaustion consumption**; **-10% Skill & Elemental Burst Cooldowns** (including Archon `[R]` Bursts!). |
+| ![Electro][electro] **High Voltage (Electro)** | `>= 2` Electro Staves | Triggering *Superconduct, Overloaded, Electro-Charged, Quicken, Aggravate,* or *Hyperbloom* spawns an **Electro Elemental Particle** (`5.0s` ICD) that restores **1.0s cooldown** to all staves in your inventory; reduces Hydro aura duration by **-40%**. |
+| ![Dendro][dendro] **Sprawling Greenery (Dendro)** | `>= 2` Dendro Staves | Passively grants **+1 Elemental Mastery (EM) Level**. Triggering *Burning, Bloom,* or *Quicken* grants **+1 additional EM Level** for `6.0s`; triggering *Aggravate, Spread, Hyperbloom,* or *Burgeon* grants another **+1 EM Level** for `6.0s`! |
+| ![Cryo][cryo] **Shattering Ice (Cryo)** | `>= 2` Cryo Staves | Attacks against enemies affected by Cryo or Frozen have a **+15% Critical Hit Chance** (`1.5×` damage multiplier); reduces Electro aura duration on you by **-40%**. |
+| ![Geo][geo] **Enduring Rock (Geo)** | `>= 2` Geo Staves | **+15% Shield Strength**. While protected by any shield (*Crystallize, Jade Shield,* or *Curtain of Slumber*), deals **+15% All Damage** and shreds hit enemies' **Geo RES by -20% for 15.0s**. |
 | 🛡️ **Protective Canopy (4-Unique)** | `4` Staves of 4 Different Elements | Reduces all incoming **Elemental & Physical Damage by -15%**. |
 
 > [!WARNING]
 > **Elemental Overload (`> 4` Staves) & Swap Cooldown:**
 > - Carrying more than `max_staves_in_inventory` (default `4`) combat staves at once triggers **Elemental Overload**, disabling all staff skills, bursts, and resonances until excess staves are placed in a chest or bundle (Creative & Spectator players are exempt; *Imbued Swords*, *Void Translocator*, and *Magic Mirror* do **not** count toward the cap).
+
+[pyro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/pyro.png
+[hydro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/hydro.png
+[anemo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/anemo.png
+[electro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/electro.png
+[dendro]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/dendro.png
+[cryo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/cryo.png
+[geo]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/geo.png
+[omni]: https://raw.githubusercontent.com/velorise2206/velorise-staves/main/shared-resources/assets/velorise_staves/textures/element/omni.png

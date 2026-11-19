@@ -44,7 +44,7 @@
 | `use_32px_glider_texture` | `false` | `boolean` | Uses 32×32 HD texture for the *Wings of First Flight* Wind Glider. |
 | `character_voice_language` | `"auto"` | `"auto"`, `"en"`, `"zh"` | Voice-over language for Zhongli & Archon abilities. |
 | `enable_plunge_attack` | `true` | `boolean` | Enables mid-air Left-Click Plunging Attacks. |
-| `enable_wind_glider` | `true` | `boolean` | Enables mid-air `[Space]` Wind Glider deployment. |
+| `enable_wind_glider` | `true` | `boolean` | Enables mid-air Right-Click (rebindable) Wind Glider deployment. |
 | `enable_mavuika_wall_climb` | `true` | `boolean` | Allows Mavuika's Flamestrider motorcycle to climb vertical walls. |
 | `mavuika_bike_speed_multiplier` | `1.0` | `0.5` – `3.0` | Speed multiplier for Mavuika's Flamestrider motorcycle. |
 

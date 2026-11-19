@@ -1,0 +1,22 @@
+### 🪄 [Velorise's Staves](Home)
+
+- [Home & Overview](Home)
+
+**Core Mechanics**
+- [Elements & Reactions](Elements-and-Reactions)
+  - [Multiplicative Reactions](Elements-and-Reactions#amplifying-reactions-multiplicative-damage)
+  - [Transformative & CC](Elements-and-Reactions#transformative--crowd-control-reactions)
+  - [Dendro (Bloom & Catalyze)](Elements-and-Reactions#catalyze--dendro-core-reactions)
+  - [Internal Cooldown (ICD)](Elements-and-Reactions#internal-cooldown-icd)
+- [Resonances & Overload](Staves-List#elemental-resonance--4-staff-inventory-cap)
+  - [Arcane Overload (4-Staff Cap)](Staves-List#elemental-resonance--4-staff-inventory-cap)
+  - [Innate & Mutated Mobs](Environmental-Interactions#innate-elemental-mobs)
+- [Staves & Weapons (22 Combat Weapons)](Staves-List)
+  - [The Apex Weapon: Omni Staff](Anvil-Imbuing#2-omni-staff-crafting-absorption--the-7-archons-rule)
+  - [Netherite Smithing Upgrade](Staves-List#staves-list-character-kits--resonances-22-combat-weapons)
+  - [Staff Enchantments (EM)](Elements-and-Reactions#custom-enchantments-elemental-mastery--elemental-protection)
+- [Anvil Weapon Imbuing](Anvil-Imbuing)
+- [Environmental Interactions](Environmental-Interactions)
+- [Relics, Gliders & Advancements](Relics-and-Utilities)
+- [Configuration Guide](Configuration-Guide)
+- [FAQ & Compatibility](FAQ-and-Compatibility)
