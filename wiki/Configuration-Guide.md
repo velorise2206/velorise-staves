@@ -42,9 +42,13 @@
 | `use_32px_textures` | `false` | `boolean` | Switches staff item textures to high-resolution 32×32 sprites. |
 | `use_32px_element_icons` | `false` | `boolean` | Uses 32×32 HD overhead element icons instead of 16×16 pixel-art icons. |
 | `use_32px_glider_texture` | `false` | `boolean` | Uses 32×32 HD texture for the *Wings of First Flight* Wind Glider. |
+| `render_dragon_glider` | `true` | `boolean` | Renders the 3D Ender Dragon model when gliding with *Dragonfire Scepter* (set `false` to use standard Wind Glider wings). |
 | `character_voice_language` | `"auto"` | `"auto"`, `"en"`, `"zh"` | Voice-over language for Zhongli & Archon abilities. |
 | `enable_plunge_attack` | `true` | `boolean` | Enables mid-air Left-Click Plunging Attacks. |
 | `enable_wind_glider` | `true` | `boolean` | Enables mid-air Right-Click (rebindable) Wind Glider deployment. |
+| `enable_custom_stamina` | `true` | `boolean` | Enables Genshin-style Stamina (`100` Overworld ➔ `170` Nether ➔ `240` End milestones) for dashing, sprinting, gliding, and wall-climbing. |
+| `enable_custom_dash` | `true` | `boolean` | Enables Genshin-style quick Dash impulse with I-frames when pressing `[Sprint / Ctrl]`. |
+| `enable_wall_climb` | `true` | `boolean` | Enables Genshin-style vertical wall-climbing when pressing forward against walls (consumes Stamina). |
 | `enable_mavuika_wall_climb` | `true` | `boolean` | Allows Mavuika's Flamestrider motorcycle to climb vertical walls. |
 | `mavuika_bike_speed_multiplier` | `1.0` | `0.5` – `3.0` | Speed multiplier for Mavuika's Flamestrider motorcycle. |
 

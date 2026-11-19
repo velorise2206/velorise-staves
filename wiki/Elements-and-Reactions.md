@@ -74,7 +74,7 @@ When the player has the **Azure Crown** buff active (granted by **The Tsaritsa's
 | :--- | :--- | :--- |
 | **Stellar Melt** | ![Pyro][pyro] **Pyro** + ![Cryo][cryo] **Stellar Cryo** | Amplifies triggering hit damage by **2.5×** (Forward) / **1.85×** (Reverse) AND spawns **3 Homing Frostlotus Blades** that seek out nearby enemies for bonus Cryo damage! |
 | **Stellar Frozen** | ![Hydro][hydro] **Hydro** + ![Cryo][cryo] **Stellar Cryo** | Encases the target in **Permafrost Ice** (**+50% Freeze duration**) and shreds the victim's **Cryo & Hydro Resistance by -25%** while frozen! |
-| **Stellar Conduct** | ![Electro][electro] **Electro** + ![Cryo][cryo] **Stellar Cryo** | Unleashes a **`4.5m` Arctic Lightning Nova** dealing `1.6×` Superconduct AoE Cryo damage, shredding **Physical & Cryo Resistance by -40% for 12.0s**, and chaining frost arcs across up to 4 targets! |
+| **Stellar Conduct** | ![Electro][electro] **Electro** + ![Cryo][cryo] **Stellar Cryo** | Unleashes a **`4.5m` Arctic Lightning Nova** dealing `1.6×` Superconduct AoE Cryo damage, chaining frost arcs across up to 4 targets, and deploying a **`6.0m` Polestar Field** (`10.0s`, up to 4 stacks granting **+10% Crit Rate & +14% Base DMG per stack** plus **-40% Physical RES** / `1.40×` Physical DMG)! |
 
 ---
 

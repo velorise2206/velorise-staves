@@ -23,7 +23,14 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
   - **Mid-Air Plunging Attack (`Left-Click` while gliding or falling):** Folds the glider and slams straight down (`enable_plunge_attack = true`), dealing AoE impact damage on landing and canceling all fall damage!
 - **Crafting:** Shaped Crafting Table recipe (`2 Phantom Membranes` + `1 Diamond` + `4 Feathers` + `1 Anemo/Omni Element`).
 
-### 4. Elemental Codex (`elemental_codex`)
+### 4. Genshin-Style Stamina, Quick Dash & Wall-Climbing
+- **Progressive Stamina Bar (`enable_custom_stamina = true`):**
+  - Starts at **`100` Max Stamina** in the Overworld and permanently upgrades to **`170`** upon reaching the Nether milestone and **`240`** upon reaching The End milestone!
+  - Consumed by **Quick Dash** (`18` Stamina), sprinting, gliding, and vertical wall-climbing; automatically regenerates after a short pause (Creative mode is exempt).
+- **Quick Dash (`enable_custom_dash = true`):** Pressing `[Sprint / Ctrl]` triggers a Genshin-style forward dash impulse with brief **I-frames** to dodge incoming attacks.
+- **Universal Wall-Climbing (`enable_wall_climb = true`):** Pressing forward against solid vertical walls lets you climb directly up cliffs and structures while consuming Stamina.
+
+### 5. Elemental Codex (`elemental_codex`)
 - **Function:** Automatically gifted to every player upon first joining a world (and craftable anytime via `Book + Amethyst Shard`).
 - **Interactive 9-Tab Guidebook:** Covers *Overview, Elements, Reactions, Staves, Artifacts, Sword Imbuing, World & Mobs, Resonances,* and *Live Config*. Features clickable cross-reference links, visual recipe grids, and **real-time server config synchronization** across **9 languages** (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `ru_ru`, `fr_fr`, `es_es`, `pt_br`).
 

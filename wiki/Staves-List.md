@@ -55,6 +55,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
   - While charging or firing, grants **Water Walking** (unless sneaking) and consumes `8% Max HP` every `0.5s` only while HP is above `50%` (triggering Furina's Fanfare and Neuvillette's HP-fluctuation buff).
   - **Passives — *Heir to the Ancient Sea's Authority* & *Discipline of the Supreme Arbitration*:**
     - Triggering Hydro reactions grants up to **3 Past Draconic Glories stacks** (`30s` each), multiplying *Equitable Judgment* beam damage by **1.10× / 1.25× / 1.60×**!
+    - **Netherite C1:** Grants **+1 permanent Past Draconic Glories stack** (starts at `1/3`) and **100% interruption immunity** while charging or firing *Equitable Judgment*.
     - Gains up to **+30% Hydro DMG Bonus** based on current HP above `30% Max HP` ( reaching max `+30%` at `>= 80% HP`).
 - **Elemental Burst — *O Tides, I Have Returned* (`[R]` Key, `18.0s` CD):**
   - Grants `1.8s` (`36t`) I-frames, unleashes a `7.0m➔9.0m` crashing Hydro wave (`2.0❤ + 7% Max HP`) followed by 2 ascending waterfall waves, and immediately spawns **6 Sourcewater Droplets** around the player (enough for **2 consecutive instant Charged Beams**!).
@@ -71,12 +72,17 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
     - Each Roller Skate kick hits enemies in front and grants **+35 Nightsoul points**.
     - Reaching **90 Nightsoul points** (2 kicks!) consumes all Nightsoul to activate **3 Source Samples** for `15.0s` (`300t`), accompanied by a glowing holographic Natlan **DJ Turntable ring**:
       - Inspects your inventory for **Pyro, Hydro, Cryo, and Electro** staves to convert up to 3 Geo samples into those elements.
-      - **Support Mode (`>= 2` converted Pyro/Hydro/Cryo/Electro samples):** Shreds nearby enemies' corresponding Elemental & Geo Resistance by **-36%** (`-45%` Netherite) within `8.0m`!
+      - **Support Mode (`>= 2` converted Pyro/Hydro/Cryo/Electro samples):** Shreds nearby enemies' corresponding Elemental & Geo Resistance by **-36%** within `8.0m`!
       - **Geo DPS Mode (`< 2` converted samples):** Grants **+30% Geo DMG Bonus** while skating.
 - **Elemental Burst — *Ocelotlicue Point!* (`[R]` Key, `15.0s` CD):**
   - Grants `1.5s` (`30t`) I-frames and drops a high-decibel Natlan beat (`6.0m` AoE Geo damage).
   - **Support Mode (`>= 2` converted samples):** Pulses **8 rhythmic healing waves** over `12.0s` (`1.5s` interval), restoring HP to the player and nearby allies within `8.0m`.
   - **Geo DPS Mode (`< 2` converted samples):** Unleashes **2 additional follow-up Geo shockwaves**!
+- **Built-in *Scroll of the Hero of Cinder City* Passive:**
+  - Triggering **Crystallize** while holding *Peak Patrol Song*, skating, or while *Source Samples* are active grants **+40% Elemental DMG** for `18.0s` (`360t`) to **![Geo][geo] Geo + the reacted element** for you and nearby allies within `12.0m`!
+- **Netherite C1 & C2 Passives:**
+  - **C1:** Reduces Nightsoul consumption by **-30%** (extending max skating from `~9.0s` to `~13.0s`) and grants **+0.5 Knockback Resistance**.
+  - **C2 (Elemental Sample Buffs within `8.0m`):** Active samples grant **![Geo][geo] Geo +50% DMG**, **![Pyro][pyro] Pyro +45% DMG**, **![Cryo][cryo] Cryo +45% DMG**, **![Hydro][hydro] Hydro +45% Max HP**, and **![Electro][electro] Electro -6.0s Burst CD** (`15.0s` ➔ `9.0s`).
 
 ---
 
@@ -117,6 +123,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 - **Elemental Burst — *Hour of Burning Skies* (`[R]` Key):**
   - Grants `1.7s` (`34t`) I-frames and leaps high on the Flamestrider to deliver **Sunfell Slice** (`5.0❤` Basic / `10.0❤` Netherite base AoE Pyro, amplified up to **2.0×** by **Fighting Spirit** stacks `0–10`).
   - Activates **Crucible of Death and Life** for `7.0s` (`140t`), cutting all Nightsoul Fuel consumption by **50%** and increasing attack speed and damage.
+- **Netherite C1 Passive:** Increases max Nightsoul Fuel cap from `80` ➔ **`120` points** and boosts **Fighting Spirit** generation efficiency by **+25%**.
 
 ---
 
@@ -201,6 +208,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
     - **Pyro Present:** Increases *Tri-Karma Purification* damage by **+25% / +40%**.
     - **Electro Present:** Shortens *Tri-Karma Purification* trigger interval by **-0.4s / -0.6s**.
     - **Hydro Present:** Extends *Shrine of Maya* duration by **+5.0s / +8.0s**.
+    - **Netherite C1 (*The Seed of Stored Knowledge*):** Automatically adds **+1 bonus count** to ![Pyro][pyro] Pyro, ![Electro][electro] Electro, and ![Hydro][hydro] Hydro simultaneously inside the Shrine!
 
 ---
 
@@ -224,6 +232,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
     - Hurls a **Colossal Ice Spear** `5.0m` ahead followed by `8` raining Cryo arrows (`7.5m` impact zone), dealing massive AoE Cryo damage (`2.9×` Basic / `3.4×` Netherite).
     - Seals all other staves in your inventory for `10.0s` (hotbar switching to food/blocks/tools remains completely free!) and grants **3 Stellar Punishment Charges**.
     - **Stellar Punishment (`Right-Click` during DPS Burst):** Consumes 1 charge (up to 3 times) to call down a giant orbital Cryo spear onto the nearest target (`2.2×➔2.6×` AoE Cryo DMG)!
+- **Netherite C1 Passive:** Grants **+15% DMG** to Cryo staves while *Azure Crown* or *Spear Seal* is active.
 
 ---
 
