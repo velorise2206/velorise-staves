@@ -235,7 +235,7 @@
   "codex.velorise_staves.staff.frostbolt": "极寒 §b冰§r 法球；减速（§c-30% 移速§r）并冻结水面。",
   "codex.velorise_staves.staff.nights_focus": "展开 §b12秒冰元素护盾§r（§e40% 最大生命值§r / 下界合金 §660%§r，§b250% 冰伤吸收§r）+ 范围§b冰伤§r。随时间与战技积累§e晚星§r，集齐4枚自动发射4枚追踪§b飞星§r。",
   "codex.velorise_staves.staff.arc": "瞬发 §d雷§r 落雷打击；使水域带电。",
-  "codex.velorise_staves.staff.dragonfire": "左键发射末影等离子球留下6秒雷云。右键召唤迷你末影龙伙伴（30秒）环绕巡逻并每2秒电击附近敌人。[R] 龙王天灾（20秒冷却）：若有迷你龙，则冲天化为巨型末影龙猛砸前方1米（5x5范围雷伤）；若无，则巨龙沿视线俯冲横扫3x10米区域！隐藏被动：风之翼化为5米翼展末影龙（飞行速度+50%）。",
+  "codex.velorise_staves.staff.dragonfire": "§e左键（4秒冷却）：§r发射§d末影等离子球§r并留下§e6秒§r§d龙炎雷云§r。§e右键（无冷却，0.25秒防连点）：§r切换召唤§d迷你末影龙§r伙伴（§e30秒§r）环绕巡逻，§e自动切换目标§r锁定你攻击的敌人，并§e悬停§r每§e2秒§r电击一次。§d[R] 龙王天灾（20秒冷却）：§r若有迷你龙，则冲天化为§d巨型末影龙§r重砸前方（§e10x10米§r / 下界合金§e12x12米§r范围§d雷伤§r）；若无，则巨龙俯冲横扫§e5x20米§r（下界合金§e6x24米§r）走廊！§b被动：§r将§b风之翼§r化为§d5米翼展末影龙§r（滑翔速度§e+50%§r）。",
   "codex.velorise_staves.staff.wither": "发射3枚凋灵草元素骷髅。凋灵护甲被动：生命值<=50%并手持权杖时，100%免疫所有远程投射物伤害！枯萎蔓延：受此权杖影响的敌人死亡时会爆发出3米草元素与凋灵瘟疫云！",
   "codex.velorise_staves.staff.webcaster": "用 §f蛛网§r 困住目标并施加 §a草附着§r。",
   "codex.velorise_staves.staff.wind": "旋风人 §b风§r 弹；击退 + §e5.0m 扩散§r。",

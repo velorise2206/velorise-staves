@@ -235,7 +235,7 @@
   "codex.velorise_staves.staff.frostbolt": "Kalter §bKryo§r-Bolzen; verlangsamt (§c-30% Tempo§r) & friert Wasser.",
   "codex.velorise_staves.staff.nights_focus": "Gewährt einen §b12s Kryo-Schild§r (§e40% Max. LP§r / §660%§r Netherit) + Flächen-§bKryo§r. Sammelt §eNachtsterne§r und feuert bei 4 Sternen zielsuchende §bSternschnuppen§r.",
   "codex.velorise_staves.staff.arc": "Sofortiger §dElektro§r-Blitzschlag; elektrisiert Wasserbecken.",
-  "codex.velorise_staves.staff.dragonfire": "Ender-§dElektro§r-Plasmaorb; hinterlässt §dDrachenatem-Wolke§r.",
+  "codex.velorise_staves.staff.dragonfire": "§eLinksklick (4s CD):§r Feuert einen §dEnder-Plasmaorb§r mit §e6s§r §dDrachenfeuer-Wolke§r. §eRechtsklick (Kein CD, 0,25s Anti-Spam):§r Schaltet einen §dMini-Enderdrachen§r (§e30s§r) um, der um dich patrouilliert, §eautomatisch dein angegriffenes Ziel übernimmt§r und §estill schwebend§r alle §e2s§r Gegner schockt. §d[R] Kataklysmus des Souveräns (20s CD):§r Mit aktivem Mini-Drachen stürzt ein §dRiesiger Enderdrache§r herab (§e10x10m§r / §e12x12m§r Netherit §dElektro§r-AoE); sonst fegt er durch einen §e5x20m§r-Korridor (§e6x24m§r Netherit)! §bPassiv:§r Ersetzt den §bWindgleiter§r durch einen §d5m-Enderdrachen§r (§e+50%§r Gleitgeschwindigkeit).",
   "codex.velorise_staves.staff.wither": "Verfallender §aDendro§r-Schädel; gibt §8Wither§r + §aDendro-Aura§r.",
   "codex.velorise_staves.staff.webcaster": "Fängt Ziele in §fSpinnweben§r ein & setzt §aDendro-Aura§r.",
   "codex.velorise_staves.staff.wind": "Brise-§bAnemo§r-Windladung; Rückstoß + §e5.0m Verwirbelung§r.",

@@ -235,7 +235,7 @@
   "codex.velorise_staves.staff.frostbolt": "極寒 §b氷§r 弾；減速（§c-30% 速度§r）し水面を凍らせます。",
   "codex.velorise_staves.staff.nights_focus": "§b12秒間の氷シールド§r（§e最大HP40%§r / ネザライト§660%§r）を展開。§e夜星§rを4つ溜めると追尾する§b飛星§rを4発放つ。",
   "codex.velorise_staves.staff.arc": "即時 §d雷§r 落雷撃；水面を帯電させます。",
-  "codex.velorise_staves.staff.dragonfire": "左クリックでエンダープラズマ球を発射。右クリックでミニエンダードラゴン（30秒）を召喚し、周囲を巡回して2秒ごとに敵を電撃。[R] 龍王の天災（CT20秒）：ミニドラゴン召喚中は上空へ飛び立ち巨大ドラゴンとして前方1mに墜落（5x5雷範囲ダメージ）。未召喚時は巨大ドラゴンが前方3x10mを薙ぎ払う！隠しパッシブ：風の翼が5mエンダードラゴンに変化（飛行速度+50%）。",
+  "codex.velorise_staves.staff.dragonfire": "§e左クリック（CT4秒）：§r§dエンダープラズマ球§rを放ち§e6秒§rの§dドラゴンファイア雲§rを残す。§e右クリック（CTなし・0.25秒連打防止）：§r§dミニエンダードラゴン§r（§e30秒§r）を切替召喚し、周囲を巡回して§e攻撃対象へ即座にロック切替§r、§e静止ホバリング§rで§e2秒§rごとに電撃。§d[R] 龍王の天災（CT20秒）：§rミニドラゴン召喚中は上空へ飛び立ち§d巨大エンダードラゴン§rとして墜落（§e10x10m§r / ネザライト§e12x12m§r §d雷§r範囲）；未召喚時は§e5x20m§r（ネザライト§e6x24m§r）の進路を薙ぎ払う！§bパッシブ：§r§b風の翼§rを§d5mエンダードラゴン§rに変化（滑空速度§e+50%§r）。",
   "codex.velorise_staves.staff.wither": "3発の草ウィザースカルを放つ。ウィザー装甲パッシブ：HP50%以下でこの杖を持つと飛び道具ダメージを100%無効化！枯死伝染：標的にされた敵が倒れると半径3mに草＋ウィザー爆発を拡散！",
   "codex.velorise_staves.staff.webcaster": "§fクモの巣§r で動きを封じ §a草付着§r を付与します。",
   "codex.velorise_staves.staff.wind": "ブリーズ §b風§r 弾；ノックバック + §e5.0m 拡散§r。",

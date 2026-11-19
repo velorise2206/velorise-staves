@@ -86,7 +86,9 @@ public final class OmniWheelOverlay {
                 if (effKind == ArcaneStaffItem.Kind.DAYBREAK
                         || effKind == ArcaneStaffItem.Kind.THOUSAND_FLOATING_DREAMS
                         || effKind == ArcaneStaffItem.Kind.TSARITSA_BOW
-                        || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR) {
+                        || effKind == ArcaneStaffItem.Kind.TSARITSA_SPEAR
+                        || effKind == ArcaneStaffItem.Kind.DRAGONFIRE
+                        || effKind == ArcaneStaffItem.Kind.SHULKER) {
                     mc.missTime = 0;
                     VeloriseStavesClient.recordFastAttackClick(effKind);
                 }
