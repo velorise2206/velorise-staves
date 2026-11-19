@@ -18,6 +18,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
@@ -38,6 +40,21 @@ public final class PlungeAndGliderManager {
     public static final String TAG_STAMINA_NETHER_UNLOCKED = "VeloriseStaminaNether";
     public static final String TAG_STAMINA_END_UNLOCKED = "VeloriseStaminaEnd";
 
+    private static final double HIGH_PLUNGE_HEIGHT_THRESHOLD = 2.4D;
+    private static final long MID_AIR_PLUNGE_INTERVAL_TICKS = 6L;
+    private static final double MID_AIR_PLUNGE_RADIUS = 1.0D;
+    private static final float MID_AIR_PLUNGE_MULT = 0.64F;
+    private static final float LOW_PLUNGE_MULT = 1.28F;
+    private static final float HIGH_PLUNGE_MULT = 1.60F;
+    private static final double LOW_PLUNGE_RADIUS = 3.0D;
+    private static final double HIGH_PLUNGE_RADIUS = 5.0D;
+    private static final double LOW_PLUNGE_KNOCKBACK = 0.25D;
+    private static final double HIGH_PLUNGE_KNOCKBACK = 0.55D;
+    private static final double HIGH_PLUNGE_LIFT = 0.22D;
+
+    private static final ThreadLocal<Boolean> APPLYING_PLUNGE_FALL_DAMAGE = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+
     public static final class AirState {
         public boolean gliding = false;
         public long gliderOpenedTick = 0L;
@@ -46,6 +63,7 @@ public final class PlungeAndGliderManager {
         public double plungeStartY = 0.0D;
         public long plungeStartedTick = 0L;
         public long plungeLandedTick = -100L;
+        public long lastMidAirHitTick = -100L;
         public boolean wallClimbing = false;
     }
 
@@ -339,6 +357,7 @@ public final class PlungeAndGliderManager {
         st.plungeStartFallDist = player.fallDistance;
         st.plungeStartY = player.getY();
         st.plungeStartedTick = player.level().getGameTime();
+        st.lastMidAirHitTick = -100L;
 
         player.fallDistance = 0.0F;
         Vec3 look = player.getLookAngle();
@@ -353,6 +372,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static boolean isPlungeFallImmune(LivingEntity entity) {
+        if (APPLYING_PLUNGE_FALL_DAMAGE.get()) return false;
         if (!(entity instanceof Player player)) return false;
         if (player.level().isClientSide()) {
             return com.velorise.staves.client.ClientAuraTracker.isGliding(player.getId())
@@ -367,6 +387,7 @@ public final class PlungeAndGliderManager {
     }
 
     public static float modifyPlungeOrGliderFallDamage(LivingEntity entity, float rawFallDamage) {
+        if (APPLYING_PLUNGE_FALL_DAMAGE.get()) return rawFallDamage;
         if (isPlungeFallImmune(entity)) {
             entity.fallDistance = 0.0F;
             return 0.0F;
@@ -459,11 +480,13 @@ public final class PlungeAndGliderManager {
                 }
 
                 if (waterLanding || player.onGround() || (now - st.plungeStartedTick) > 200L) {
+                    double dropHeight = Math.max(0.0D, st.plungeStartY - player.getY());
                     st.plunging = false;
                     st.plungeLandedTick = now;
                     player.fallDistance = 0.0F;
                     ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_PLUNGE_END);
-                    executePlungeImpact(level, player);
+                    executePlungeImpact(level, player, dropHeight);
+                    applyPlungeFallDamage(level, player, dropHeight);
                 } else if (player.isInWater() || player.isInLava() || player.getAbilities().flying || player.getVehicle() != null) {
                     st.plunging = false;
                     st.plungeLandedTick = now;
@@ -475,6 +498,10 @@ public final class PlungeAndGliderManager {
                         player.hasImpulse = true;
                         player.connection.send(new ClientboundSetEntityMotionPacket(player));
                     }
+                    if (now - st.lastMidAirHitTick >= MID_AIR_PLUNGE_INTERVAL_TICKS) {
+                        st.lastMidAirHitTick = now;
+                        executeMidAirPlungeTick(level, player);
+                    }
                     level.sendParticles(ParticleTypes.CLOUD, player.getX(), player.getY() + 0.5D, player.getZ(),
                             2, 0.18D, 0.25D, 0.18D, 0.02D);
                 }
@@ -482,49 +509,119 @@ public final class PlungeAndGliderManager {
         }
     }
 
-    private static void executePlungeImpact(ServerLevel level, ServerPlayer player) {
+    private static float resolveWeaponBaseDamage(ServerPlayer player, ItemStack held) {
+        if (held.getItem() instanceof ArcaneStaffItem staff) {
+            boolean isNeth = ArcaneStaffItem.getEffectiveNetherite(held);
+            return StavesConfig.getStaffBaseDamage(staff.kind(), isNeth);
+        }
+        AttributeInstance atkAttr = player.getAttribute(Attributes.ATTACK_DAMAGE);
+        return atkAttr != null ? Math.max(1.0F, (float) atkAttr.getValue()) : 4.5F;
+    }
+
+    private static void executeMidAirPlungeTick(ServerLevel level, ServerPlayer player) {
+        ItemStack held = player.getMainHandItem();
+        float baseDmg = resolveWeaponBaseDamage(player, held);
+        float midAirDmg = baseDmg * MID_AIR_PLUNGE_MULT * (float) StavesConfig.getDamageMultiplier();
+        AABB box = player.getBoundingBox().inflate(MID_AIR_PLUNGE_RADIUS, 0.75D, MID_AIR_PLUNGE_RADIUS);
+        List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
+                e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
+        for (LivingEntity target : targets) {
+            target.hurt(level.damageSources().playerAttack(player), midAirDmg);
+        }
+    }
+
+    private static void applyPlungeFallDamage(ServerLevel level, ServerPlayer player, double plungeDropHeight) {
+        if (player.isCreative() || player.isSpectator() || player.getAbilities().invulnerable) {
+            return;
+        }
+        // Authentic Genshin Impact Plunging Attack fall damage tiers (measured from plunge start):
+        // 0-40m: 100% reduction (0% taken); 40-60m: 90% reduction (10% taken);
+        // 60-100m: 80% reduction (20% taken); >100m: 60% reduction (40% taken).
+        float takenRatio;
+        if (plungeDropHeight <= 40.0D) {
+            return;
+        } else if (plungeDropHeight <= 60.0D) {
+            takenRatio = 0.10F;
+        } else if (plungeDropHeight <= 100.0D) {
+            takenRatio = 0.20F;
+        } else {
+            takenRatio = 0.40F;
+        }
+        float rawFall = Math.max(0.0F, (float) plungeDropHeight - 3.0F);
+        float finalFallDamage = rawFall * takenRatio;
+        if (finalFallDamage <= 0.0F) {
+            return;
+        }
+        APPLYING_PLUNGE_FALL_DAMAGE.set(Boolean.TRUE);
+        try {
+            player.hurt(level.damageSources().fall(), finalFallDamage);
+        } finally {
+            APPLYING_PLUNGE_FALL_DAMAGE.set(Boolean.FALSE);
+        }
+    }
+
+    private static void executePlungeImpact(ServerLevel level, ServerPlayer player, double dropHeight) {
         player.fallDistance = 0.0F;
         ItemStack held = player.getMainHandItem();
         boolean isNeth = false;
         Element elem = null;
-        float basePlungeDmg = 4.5F;
         if (held.getItem() instanceof ArcaneStaffItem staff) {
             isNeth = ArcaneStaffItem.getEffectiveNetherite(held);
             elem = staff.kind() == ArcaneStaffItem.Kind.OMNI
                     ? ArcaneStaffItem.getOmniActiveElement(held)
                     : staff.getElement();
-            basePlungeDmg = StavesConfig.getStaffBaseDamage(staff.kind(), isNeth) * 1.65F;
         } else {
             elem = SwordImbueHelper.getImbuedElement(held);
         }
 
+        boolean isHighPlunge = dropHeight > HIGH_PLUNGE_HEIGHT_THRESHOLD;
+        float baseDmg = resolveWeaponBaseDamage(player, held);
+        float plungeDmg = baseDmg * (isHighPlunge ? HIGH_PLUNGE_MULT : LOW_PLUNGE_MULT);
         float gaugeU = isNeth ? 1.5F : 1.0F;
-        double radius = 3.5D;
+        double radius = isHighPlunge ? HIGH_PLUNGE_RADIUS : LOW_PLUNGE_RADIUS;
+        double knockback = isHighPlunge ? HIGH_PLUNGE_KNOCKBACK : LOW_PLUNGE_KNOCKBACK;
 
+        Vec3 pos = player.position();
         AABB box = player.getBoundingBox().inflate(radius, 1.8D, radius);
         List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
                 e -> e.isAlive() && e != player && !e.isSpectator() && !player.isAlliedTo(e));
         for (LivingEntity target : targets) {
             target.invulnerableTime = 0;
             if (elem != null) {
-                ElementalGaugeManager.applyElement(level, target, elem, gaugeU, player, basePlungeDmg);
+                ElementalGaugeManager.applyElement(level, target, elem, gaugeU, player, plungeDmg);
             } else {
-                float physPlungeDmg = basePlungeDmg * (float) StavesConfig.getDamageMultiplier();
+                float physPlungeDmg = plungeDmg * (float) StavesConfig.getDamageMultiplier();
                 target.hurt(level.damageSources().playerAttack(player), physPlungeDmg);
+            }
+            double dx = target.getX() - pos.x;
+            double dz = target.getZ() - pos.z;
+            double horizDist = Math.sqrt(dx * dx + dz * dz);
+            if (horizDist > 1.0E-4D) {
+                double nx = dx / horizDist;
+                double nz = dz / horizDist;
+                Vec3 tv = target.getDeltaMovement();
+                target.setDeltaMovement(
+                        tv.x + nx * knockback,
+                        isHighPlunge ? Math.max(tv.y, HIGH_PLUNGE_LIFT) : tv.y,
+                        tv.z + nz * knockback
+                );
+                target.hurtMarked = true;
             }
         }
 
-        Vec3 pos = player.position();
-        for (int i = 0; i < 20; i++) {
-            double ang = (Math.PI * 2.0D * i) / 20.0D;
+        int ringCount = isHighPlunge ? 28 : 18;
+        double cloudRing = radius * 0.75D;
+        double critRing = radius * 0.60D;
+        for (int i = 0; i < ringCount; i++) {
+            double ang = (Math.PI * 2.0D * i) / ringCount;
             level.sendParticles(ParticleTypes.CLOUD,
-                    pos.x + Math.cos(ang) * 2.2D, pos.y + 0.15D, pos.z + Math.sin(ang) * 2.2D,
+                    pos.x + Math.cos(ang) * cloudRing, pos.y + 0.15D, pos.z + Math.sin(ang) * cloudRing,
                     2, 0.12D, 0.05D, 0.12D, 0.03D);
             level.sendParticles(ParticleTypes.CRIT,
-                    pos.x + Math.cos(ang) * 1.8D, pos.y + 0.25D, pos.z + Math.sin(ang) * 1.8D,
+                    pos.x + Math.cos(ang) * critRing, pos.y + 0.25D, pos.z + Math.sin(ang) * critRing,
                     1, 0.1D, 0.1D, 0.1D, 0.04D);
         }
-        level.playSound(null, BlockPos.containing(pos), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1.0F, 0.85F);
-        level.playSound(null, BlockPos.containing(pos), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.55F, 1.35F);
+        level.playSound(null, BlockPos.containing(pos), SoundEvents.PLAYER_ATTACK_STRONG, SoundSource.PLAYERS, 1.0F, isHighPlunge ? 0.75F : 0.90F);
+        level.playSound(null, BlockPos.containing(pos), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, isHighPlunge ? 0.70F : 0.45F, isHighPlunge ? 0.95F : 1.35F);
     }
 }

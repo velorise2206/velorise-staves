@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - Authentic Genshin Plunging Attack Rework
+- **Base-Scaled Plunging Attack (`PlungeAndGliderManager`)**: Replaced fixed plunge scaling with unified weapon-base multipliers following Genshin Impact's 1 : 2 : 2.5 ratio (`0.64x` Mid-Air Collision every 6 ticks / 0.3s in 1.0m radius, `1.28x` Low Plunge for `<= 2.4` blocks in 3.0m radius, `1.60x` High Plunge for `> 2.4` blocks in 5.0m radius) across `1.21.1/neoforge`, `1.21.1/fabric`, and `1.20.1/forge`.
+- **Radial Impulse & VFX/SFX Tiering**: Added Low/High Plunge radial knockback (`0.25` vs `0.55` + `0.22Y` lift), scaled shockwave particle rings, and distinct audio pitch.
+- **Authentic Genshin Plunge Fall Damage**: Removed unconditional fall-damage immunity on plunge landing; now computes fall damage strictly from plunge-start height using Genshin tiers (`0–40m`: 0% taken, `40–60m`: 10% taken, `60–100m`: 20% taken, `>100m`: 40% taken), including water-walking landings.
+
+
 All notable changes to **Velorise's Staves** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
