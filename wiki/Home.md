@@ -10,7 +10,7 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
 - **19 Elemental Reactions** (including **Forward/Reverse Vaporize & Melt**, **Frozen & Shatter**, **Quicken/Aggravate/Spread**, **Bloom/Hyperbloom/Burgeon**, **Overvape**, and Tsaritsa's 3 **Stellar Cryo Reactions**).
 - **Dynamic World & Environmental Physics:** Electrified water pools, Tesla Coils (Lightning Rod on Redstone Block), Sculk Sensor & Observer zaps, Amethyst Cluster Overloaded mining, Slime/Honey/Mushroom Dendro contact, Dripstone Geo impacts, and AI hazard avoidance.
 - **Innate Creature Elements & Mutations:** Natural mob elemental affinities, a configurable `7%` innate mutation system (`6%` Elemental + `1%` **Omni-Innate `Omni ∞`**), and **Omni Pet Taming**.
-- **Relics, Gliders, Enchantments & 28 Custom Advancements:** *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider)*, *Elemental Codex* (9 languages), *Elemental Mastery I–III*, *Elemental Protection I–IV*, and *Anvil Sword Imbuing*.
+- **Relics, Gliders, Enchantments & 39 Custom Advancements:** *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider)*, *Elemental Codex* (9 languages), *Elemental Mastery I–III*, *Elemental Protection I–IV*, and *Anvil Sword Imbuing*.
 
 ---
 
@@ -23,7 +23,7 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
 3. **[Environmental Interactions & Mob Mutations](Environmental-Interactions.md)**
    - How water, rain, fire, lava, powder snow, **Tesla Coils**, **Sculk Sensors**, **Observers**, **Redstone**, **Amethyst Clusters**, **Slime/Honey/Mushrooms**, and **Dripstone** interact with elements, plus the full **Innate Mob Table**, **Omni-Innate Mutations**, **Omni Pet Taming**, and **Mob Hazard Avoidance AI**.
 4. **[Relics, Gliders, Rods & Advancements](Relics-and-Utilities.md)**
-   - *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider & Plunge Attack)*, *Elemental Codex*, *8 Elemental Essences*, *4 Elemental Rods*, and the complete list of **28 Custom Advancements** (including hidden challenges).
+   - *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider & Plunge Attack)*, *Elemental Codex*, *8 Elemental Essences*, *4 Elemental Rods*, and the complete list of **39 Custom Advancements** (including hidden challenges).
 5. **[Anvil Imbuing & Omni Staff Rules](Anvil-Imbuing.md)**
    - How to imbue any sword with an element, craft/upgrade the **Omni Staff**, swap absorbed non-Archon staves/Trident/Void Translocator, and understand the **7 Archons Restriction (`!isArchon()`)**.
 6. **[Configuration Guide (TOML & In-Game GUI)](Configuration-Guide.md)**
@@ -46,7 +46,7 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
   - **Omni Staff (`omni_staff`)**: Strictly restricted to 7 non-Archon staves (`!isArchon()`).
 - **Dragonfire Scepter (`DRAGONFIRE` — Non-Archon, Omni-Eligible)**:
   - **Left-Click (Normal Attack, `4.0s` CD)**: Fires the Ender Dragon plasma orb (`3.5❤` Basic / `5.25❤` Netherite Electro AoE + `6s` Dragonfire Cloud).
-  - **Right-Click (`E` Skill, `8.0s` CD)**: Summons a `1.0-block` **Mini Ender Dragon Pet** (`30s` duration) that smoothly patrols around the player, teleports if `> 18m` away, and attacks the nearest hostile target within `12m` every `2.0s` (`1.0❤` Basic / `1.5❤` Netherite, `1.0U` Electro).
+  - **Right-Click (`E` Skill, No CD / `0.25s` anti-spam)**: Toggles a `1.0-block` **Mini Ender Dragon Pet** (`30s` duration) that smoothly patrols around the player, teleports if `> 18m` away, **auto-switches targets** to whoever the player attacks, and **hovers still while firing** every `2.0s` (`1.0❤` Basic / `1.5❤` Netherite, `1.0U` Electro).
   - **`[R]` Elemental Burst (`20.0s` CD, `-10%` with Anemo Resonance)**:
     - *Variant 1 (Pet Active — Skyfall Dive)*: Grants `2.0s` I-frames; Mini Dragon shoots straight into the sky and vanishes; `2.0s` later, a **Giant Ender Dragon** crashes down `1 block` ahead of the player in a **`5×5 blocks`** AoE (`8.0❤` Basic / `12.0❤` Netherite, `4.0U` Electro + Dragonfire Cloud).
     - *Variant 2 (No Pet — Sweeping Strafe)*: Grants `1.8s` I-frames; a **Giant Ender Dragon** swoops in a curved arc skimming a **`3m wide × 10m long`** corridor along the player's look direction (`6.0❤` Basic / `9.0❤` Netherite, `3.0U` Electro).

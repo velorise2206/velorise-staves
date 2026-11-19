@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "Clic Der. (E) activa los patines de Noctambulismo (+35% velocidad y escalada vertical). 2 patadas consumen 90 pts de Noctambulismo, otorgan +90 de Espíritu de Lucha a Mavuika y reducen -36% la RES Elemental de los enemigos durante 15s.",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "Planeador (Alas del Compañerismo)",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ Clic Derecho: Desbloquea permanentemente el Planeador de Viento (¡sin ranura de armadura! Pulsa [Space] en el aire para planear; Agacharse + Clic Der. para alternar)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ Ataque Descendente: Clic Izq. en el aire con espada o bastón para caer en picado (0 daño por caída <= 15m)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ Planeador desactivado. Haz clic derecho con el objeto para reactivarlo.",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "Ataque Descendente",
   "key.velorise_staves.wind_glider": "Desplegar Planeador del Viento",
   "message.velorise_staves.stamina_nether_unlocked": "✦ Bendición del Nether: ¡Aguante máximo aumentado a 170!",
-  "message.velorise_staves.stamina_end_unlocked": "✦ Bendición del End: ¡Aguante máximo aumentado a 240!"
+  "message.velorise_staves.stamina_end_unlocked": "✦ Bendición del End: ¡Aguante máximo aumentado a 240!",
+  "tooltip.velorise_staves.action.dragonfire.left": "  Clic Izquierdo: Orbe de Plasma del End + Nube Dracónica",
+  "tooltip.velorise_staves.action.dragonfire.right": "  Clic Derecho: Alternar Mini Dragón del End (Sin CD, 30s)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  Pulsa [R]: Cataclismo del Soberano",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  Pasiva: Planeador Dragón del End 5m (+50% Vel.)",
+  "codex.velorise_staves.staff.utility.p3": "• §bPlaneador de Viento (Wind Glider):§r Clic Derecho una vez para desbloquearlo permanentemente (¡sin ranura de armadura!). Pulsa §e[Space]§r cayendo para planear; ¡§fAtaque en Picado§r con Clic Izquierdo en el aire! (§dCetro de Fuego Dracónico§r lo mejora a un §dDragón del End de 5m§r con §e+50%§r vel.)."
 }

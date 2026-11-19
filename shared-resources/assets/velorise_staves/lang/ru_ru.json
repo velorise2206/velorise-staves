@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "ПКМ (E) включает режим роликов Ночного духа (+35% к скорости и подъём по вертикальным стенам). 2 удара в ближнем бою активируют Исходные сэмплы на 15с (-36% сопр. элементам врагов) и передают +90 Боевого духа Мавуике.",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "Планер (Крылья товарищества)",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ ПКМ: Навсегда открывает Планер Ветра (без слота брони! [Space] в воздухе для полёта; Приседание + ПКМ для переключения)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ Атака в падении: ЛКМ в воздухе с мечом или посохом для ударной волны (0 урона от падения <= 15м)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ Планер отключён. Нажмите ПКМ предметом для включения.",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "Атака в падении",
   "key.velorise_staves.wind_glider": "Раскрыть ветряной планер",
   "message.velorise_staves.stamina_nether_unlocked": "✦ Благословение Незера: Максимальная выносливость увеличена до 170!",
-  "message.velorise_staves.stamina_end_unlocked": "✦ Благословение Энда: Максимальная выносливость увеличена до 240!"
+  "message.velorise_staves.stamina_end_unlocked": "✦ Благословение Энда: Максимальная выносливость увеличена до 240!",
+  "tooltip.velorise_staves.action.dragonfire.left": "  ЛКМ: Плазменная сфера Энда + Облако Драконьего Огня",
+  "tooltip.velorise_staves.action.dragonfire.right": "  ПКМ: Вкл/Выкл Мини-Дракона Энда (Без КД, 30с)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  Клавиша [R]: Катаклизм Владыки",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  Пассивно: Планер Дракона Энда 5м (+50% Скорость)",
+  "codex.velorise_staves.staff.utility.p3": "• §bПланер Ветра (Wind Glider):§r Нажмите ПКМ один раз, чтобы навсегда разблокировать (без слота брони!). Нажмите §e[Space]§r в падении для полёта; §fАтака в падении§r на ЛКМ в воздухе! (§dСкипетр Огня Дракона§r улучшает его до §dДракона Энда 5м§r со скоростью §e+50%§r)."
 }

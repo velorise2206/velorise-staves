@@ -166,7 +166,7 @@ public class VoidTranslocatorItem extends Item {
         tooltip.add(Component.translatable("tooltip.velorise_staves.when_used").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.velorise_staves.range", (int) getEffectiveRange() + "m").withStyle(ChatFormatting.BLUE));
         float cdSec = com.velorise.staves.element.ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
-        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format("%.1f", cdSec)).withStyle(ChatFormatting.BLUE));
+        tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown", String.format(java.util.Locale.ROOT, "%.1f", cdSec)).withStyle(ChatFormatting.BLUE));
 
         if (flag.isAdvanced()) {
             tooltip.add(Component.empty());

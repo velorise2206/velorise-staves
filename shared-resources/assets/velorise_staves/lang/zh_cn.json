@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "右键（E）进入夜魂轮滑状态（初始45/90点），提升+35%移速并支持平滑垂直攀岩。普通攻击踢击2次（每次+35点 -> 90/90）立即消耗全部90点夜魂值、为玛薇卡提供+90战意，并激活15秒源音采样（后台生效），使8米内敌人对应元素抗性降低 -36%。触发结晶反应赋予18秒+40%岩与对应元素增伤。按 [R] 释放豹烈律动！（范围岩伤+12秒单体持续治疗）。下界合金解锁C1与C2元素增益。",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "风之翼（陪伴之翼）",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ 右键：永久解锁风之翼（不占护甲槽！空中按 [Space] 滑翔；潜行+右键切换开关）",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ 下落攻击：在空中使用任意剑或法杖按左键急速下劈并触发范围冲击波（15米内免摔落伤害）",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ 风之翼已关闭。右键点击物品可重新启用。",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "下落攻击",
   "key.velorise_staves.wind_glider": "展开风之翼",
   "message.velorise_staves.stamina_nether_unlocked": "✦ 下界赐福：最大体力上限提升至 170！",
-  "message.velorise_staves.stamina_end_unlocked": "✦ 末地赐福：最大体力上限提升至 240！"
+  "message.velorise_staves.stamina_end_unlocked": "✦ 末地赐福：最大体力上限提升至 240！",
+  "tooltip.velorise_staves.action.dragonfire.left": "  左键：末影等离子球 + 龙炎云",
+  "tooltip.velorise_staves.action.dragonfire.right": "  右键：切换迷你末影龙（无冷却，30秒）",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  按 [R]：君王灾厄",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  被动：5m 末影龙滑翔翼（+50% 速度）",
+  "codex.velorise_staves.staff.utility.p3": "• §b风之翼 (Wind Glider):§r 右键一次永久解锁（不占护甲槽！）。空中下落时按 §e[Space]§r 滑翔；空中左键触发§f下落攻击§r！（携带§d龙炎权杖§r时升级为§d5m 末影龙§r并获得 §e+50%§r 滑翔速度）。"
 }

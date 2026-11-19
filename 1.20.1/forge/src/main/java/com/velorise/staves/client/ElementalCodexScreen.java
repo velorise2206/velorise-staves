@@ -128,8 +128,18 @@ public class ElementalCodexScreen extends Screen {
             new ReactionLinkSpec(Tab.STAVES, "engulfing_lightning", new String[]{}, new String[]{"engulfing lightning", "eye of stormy judgment", "chakra desiderata", "musou shinsetsu", "musou no hitotachi", "musou isshin", "raiden shogun", "raiden"}),
             new ReactionLinkSpec(Tab.STAVES, "thousand_floating_dreams", new String[]{}, new String[]{"a thousand floating dreams", "thousand floating dreams", "all schemes to know", "seed of skandha", "seeds of skandha", "tri-karma purification", "shrine of maya", "illusory heart", "nahida"}),
             new ReactionLinkSpec(Tab.STAVES, "tsaritsa_bow", new String[]{}, new String[]{"absolution of the rime-throne", "glacial verdict of the rime-throne", "rime-pillar", "stellar cryo", "stellar swirl", "stellar conduct", "stellar punishment", "tsaritsa"}),
+            new ReactionLinkSpec(Tab.STAVES, "inferno_rod", new String[]{}, new String[]{"inferno rod"}),
+            new ReactionLinkSpec(Tab.STAVES, "ghastfire_staff", new String[]{}, new String[]{"ghastfire staff", "ghastfire field"}),
+            new ReactionLinkSpec(Tab.STAVES, "frostbolt_wand", new String[]{}, new String[]{"frostbolt wand", "permafrost nova"}),
+            new ReactionLinkSpec(Tab.STAVES, "arc_caster", new String[]{}, new String[]{"arc caster"}),
+            new ReactionLinkSpec(Tab.STAVES, "dragonfire_scepter", new String[]{}, new String[]{"dragonfire scepter", "dragonfire cloud", "mini ender dragon", "sovereign's cataclysm", "dragon-wing glider"}),
+            new ReactionLinkSpec(Tab.STAVES, "shulker_seeker", new String[]{}, new String[]{"shulker seeker", "gravity slam", "shulker shell guard"}),
+            new ReactionLinkSpec(Tab.STAVES, "wither_scepter", new String[]{}, new String[]{"wither scepter", "wither carapace", "withering contagion"}),
+            new ReactionLinkSpec(Tab.STAVES, "webcaster", new String[]{}, new String[]{"webcaster"}),
+            new ReactionLinkSpec(Tab.STAVES, "wind_staff", new String[]{}, new String[]{"wind staff"}),
+            new ReactionLinkSpec(Tab.STAVES, "resonant_echo", new String[]{}, new String[]{"resonant echo", "sonic boom"}),
             new ReactionLinkSpec(Tab.STAVES, "evoker_fang_staff", new String[]{}, new String[]{"evoker fang staff", "geo fang pillar"}),
-            new ReactionLinkSpec(Tab.STAVES, "utility_relics", new String[]{}, new String[]{"void translocator", "magic mirror", "wind glider"})
+            new ReactionLinkSpec(Tab.STAVES, "utility_relics", new String[]{}, new String[]{"void translocator", "magic mirror", "wind glider", "wings of first flight"})
     );
 
     private static boolean containsCjkOrHangul(String s) {
@@ -821,9 +831,11 @@ public class ElementalCodexScreen extends Screen {
                             : tr("item.velorise_staves." + baseId);
                     int color = el != null ? ClientAuraRenderer.getElementBorderColor(el) : 0xFFFFD60A;
                     String badge = el != null ? elemTitle(el).toUpperCase(Locale.ROOT) : "§f" + Element.omniIconString() + "§r " + tr("element.velorise_staves.omni").toUpperCase(Locale.ROOT);
-                    String cdDisplay = (kind == ArcaneStaffItem.Kind.VORTEX)
-                            ? String.format(Locale.ROOT, "%.1fs (Tap) / %.1f", cdSec, cdSec * 3.0D)
-                            : String.format(Locale.ROOT, "%.1f", cdSec);
+                    String cdDisplay = switch (kind) {
+                        case VORTEX -> String.format(Locale.ROOT, "%.1fs (Tap) / %.1f", cdSec, cdSec * 3.0D);
+                        case DRAGONFIRE -> String.format(Locale.ROOT, "%.1f (NA) / 0 (E, 30s) | %.1f [R]", 4.0D * cdMult, 20.0D * cdMult);
+                        default -> String.format(Locale.ROOT, "%.1f", cdSec);
+                    };
                     String statsCombat = tr("codex.velorise_staves.staff.stats_combat",
                             bDmg, nDmg, cdDisplay, rngStr);
                     String statsDur = tr("codex.velorise_staves.staff.stats_durability",
@@ -847,7 +859,8 @@ public class ElementalCodexScreen extends Screen {
                         tr("codex.velorise_staves.badge.utility"), 0xFFDA70D6,
                         List.of(
                                 tr("codex.velorise_staves.staff.utility.p1", fmt(vBasic), fmt(vNeth)),
-                                tr("codex.velorise_staves.staff.utility.p2", fmt(mCd))
+                                tr("codex.velorise_staves.staff.utility.p2", fmt(mCd)),
+                                tr("codex.velorise_staves.staff.utility.p3")
                         )
                 ).withKey("utility_relics"));
             }

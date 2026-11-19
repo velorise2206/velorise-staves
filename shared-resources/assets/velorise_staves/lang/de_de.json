@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "Rechtsklick (E) aktiviert den Nachtseelen-Rollschuhmodus (+35% Tempo & senkrechtes Wandklettern). 2 Tritte verbrauchen 90 Nachtseelenpunkte, geben Mavuika +90 Kampfeswillen und senken 15s lang den Elementar-WDS naher Feinde um -36%.",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "Windgleiter (Flügel der Kameradschaft)",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ Rechtsklick: Windgleiter dauerhaft freischalten (kein Rüstungsslot! [Space] in der Luft zum Gleiten; Schleichen + Rechtsklick zum Umschalten)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ Angriff aus dem Fall: Linksklick in der Luft mit Schwert oder Stab für Flächenschockwelle (0 Fallschaden <= 15m)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ Windgleiter deaktiviert. Rechtsklick mit dem Gegenstand zum Aktivieren.",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "Sturzangriff",
   "key.velorise_staves.wind_glider": "Windgleiter entfalten",
   "message.velorise_staves.stamina_nether_unlocked": "✦ Segen des Nethers: Maximale Ausdauer auf 170 erhöht!",
-  "message.velorise_staves.stamina_end_unlocked": "✦ Segen des Endes: Maximale Ausdauer auf 240 erhöht!"
+  "message.velorise_staves.stamina_end_unlocked": "✦ Segen des Endes: Maximale Ausdauer auf 240 erhöht!",
+  "tooltip.velorise_staves.action.dragonfire.left": "  Linksklick: Ender-Plasma-Kugel + Drachenfeuer-Wolke",
+  "tooltip.velorise_staves.action.dragonfire.right": "  Rechtsklick: Mini-Enderdrache umschalten (Kein CD, 30s)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  Taste [R]: Kataklysmus des Souveräns",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  Passiv: 5m Enderdrachen-Gleiter (+50% Tempo)",
+  "codex.velorise_staves.staff.utility.p3": "• §bWindgleiter (Wind Glider):§r Einmal Rechtsklick zum dauerhaften Freischalten (kein Rüstungsslot!). Im Fall §e[Space]§r drücken zum Gleiten; §fSturzangriff§r per Linksklick in der Luft! (§dDrachenfeuer-Zepter§r wertet ihn zu einem §d5m Enderdrachen§r mit §e+50%§r Tempo auf)."
 }

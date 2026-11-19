@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "우클릭(E)으로 밤혼 롤러스케이트 상태(이동속도 +35% 및 수직 벽 등반) 진입. 일반 공격 2회 적중 시 밤혼 90pt를 소모하여 마비카에게 전의 +90을 부여하고 15초간 주변 적의 원소 내성을 -36% 감소시킵니다. [R] 사용 시 범위 바위 피해 및 12초 자가 치유.",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "바람의 날개 (동행의 날개)",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ 우클릭: 바람의 날개 영구 해금 (방어구 슬롯 불필요! 공중에서 [Space] 로 활공; 웅크리기+우클릭으로 전환)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ 낙하 공격: 공중에서 검이나 지팡이를 들고 좌클릭하면 급강하하여 범위 충격파 발생 (15m 이하 낙하 피해 면제)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ 바람의 날개가 비활성화되었습니다. 우클릭하여 다시 활성화하세요.",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "낙하 공격",
   "key.velorise_staves.wind_glider": "바람의 날개 펼치기",
   "message.velorise_staves.stamina_nether_unlocked": "✦ 네더의 축복: 최대 스태미나가 170으로 증가했습니다!",
-  "message.velorise_staves.stamina_end_unlocked": "✦ 엔드의 축복: 최대 스태미나가 240으로 증가했습니다!"
+  "message.velorise_staves.stamina_end_unlocked": "✦ 엔드의 축복: 최대 스태미나가 240으로 증가했습니다!",
+  "tooltip.velorise_staves.action.dragonfire.left": "  좌클릭: 엔더 플라즈마 구체 + 드래곤파이어 구름",
+  "tooltip.velorise_staves.action.dragonfire.right": "  우클릭: 미니 엔더 드래곤 전환 (재사용 대기시간 없음, 30초)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  [R] 키: 군주의 대재앙",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  패시브: 5m 엔더 드래곤 글라이더 (속도 +50%)",
+  "codex.velorise_staves.staff.utility.p3": "• §b바람의 날개 (Wind Glider):§r 우클릭 한 번으로 영구 해금(방어구 슬롯 불필요!). 낙하 중 §e[Space]§r 로 활공, 공중 좌클릭으로 §f낙하 공격§r! (§d드래곤파이어 홀§r 보유 시 §d5m 엔더 드래곤§r으로 업그레이드, 속도 §e+50%§r)."
 }

@@ -16,12 +16,85 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
 | **Combat Dash / Dodge** | **`[Sprint / Ctrl]`** | **Dash / Dodge** | While riding **Mavuika's Flamestrider** or skating in **Xilonen's Nightsoul state**, performs a 2-dash chain (`5t` gap between Dash 1 & Dash 2, then `1.5s` / `30t` cooldown). |
 | **Omni Element Wheel** | **`[Tab]` Key** (Hold/Tap) | **Element Switcher** | Opens the radial **Omni Wheel** to lock onto any of the 7 elements or `Auto Best` mode (`0`). |
 | **Character Voice Menu** | **`[V]` Key** | **Voice-Over Profile** | Opens the **Character Voice Screen** (`18` Zhongli voice lines in EN/ZH + voice language selector). |
-| **Wind Glider** | **`Right-Click` in midair** *(rebindable)* | **Wings of First Flight** | Deploys the Wind Glider while falling (`enable_wind_glider`). Press again or land to fold. |
+| **Wind Glider** | **`[Space]` in midair** *(while falling)* | **Wings of First Flight** | Deploys the Wind Glider while falling (`enable_wind_glider`). Press `[Space]` again or land to fold. Carrying **Dragonfire Scepter** upgrades it to a **5m Ender Dragon Glider** (**+50%** horizontal speed). |
 | **Plunging Attack** | **`Left-Click` in midair** *(rebindable)* | **Plunging Attack** | Dives straight down (`enable_plunge_attack`), dealing AoE impact damage and **canceling 100% of fall damage**. |
 
 ---
 
-## 👑 The Seven Archons & Genshin Character Signature Weapons (10 Weapons)
+## 🪄 Basic & Boss Combat Staves & Master Omni Staff (12 Weapons)
+
+All 11 standard elemental staves below have `isArchon() == false` and **can be combined or absorbed into the Omni Staff**!
+
+| Element | Staff Name & ID | Config Base DMG (Basic ➔ Netherite) | Cooldown | Durability (Basic ➔ Neth) | Range & Full Combat Mechanics |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Pyro** | **Inferno Rod**<br>`inferno_rod` | `3.0` (`1.5❤ × 3`) ➔ `4.5` (`2.25❤ × 3`) | `4.0s` | `150` ➔ `550` | `30m`. Fires a 3-shot burst of blazing fireballs (`11t` interval). **3rd-Shot Finale:** `+35%` projectile speed, `+50%` damage, `2.0U➔3.0U` Pyro, and a **`2.5m` AoE Pyro explosion**! Melts ice/snow, lights campfires/candles, and primes TNT. |
+| **Pyro** | **Ghastfire Staff**<br>`ghastfire_staff` | `6.0` (`3.0❤`) ➔ `9.0` (`4.5❤`) | `5.0s` | `120` ➔ `450` | `36m`. Launches a high-velocity Ghast fireball that detonates on impact (`3.5m➔4.5m` AoE) and leaves a **Ghastfire Field** (`5.0s`) dealing continuous Pyro ticks and triggering **Amethyst Cluster Overloaded Mining**. |
+| **Dendro** | **Wither Scepter**<br>`wither_scepter` | `4.0` (`2.0❤ × 3`) ➔ `6.0` (`3.0❤ × 3`) | `6.0s` | `140` ➔ `500` | `32m`. Fires 3 decaying Dendro skulls inflicting **Wither II** (`4.0s`) and `1.0U➔1.5U` Dendro. **Wither Carapace:** `<= 50%` HP grants **100% projectile immunity**. **Withering Contagion:** Marked foes that die within `8s` explode in a **`3.0m` Dendro + Wither II cloud** (`1.5❤➔2.25❤`, `1.5U`). |
+| **Electro** | **Shulker Seeker**<br>`shulker_seeker` | `6.0` (`3.0❤ × 3`) ➔ `9.0` (`4.5❤ × 3`) | `6.0s` | `130` ➔ `500` | `30m`. **Left-Click:** 3-shot homing salvo with **3rd-Shot Gravity Slam** (`+0.78Y` launch, `0.5s` later `-1.45Y` ground slam for `2.5m` AoE Electro). **Right-Click:** Portable Shulker Chest (`27` slots Basic / `54` scrollable slots Netherite); **Shulker Shell Guard** grants **-30%/-40% DMG reduction** while open. |
+| **Electro** | **Dragonfire Scepter**<br>`dragonfire_scepter` | `7.0` (`3.5❤`) ➔ `10.5` (`5.25❤`) | `4.0s` (NA) / `0s` (E, `30s`) / `20.0s` `[R]` | `130` ➔ `500` | `32m`. **Left-Click (`4.0s` CD):** Fires Ender Plasma Orb (`3.5❤➔5.25❤` Electro AoE + `6s` Dragonfire Cloud). **Right-Click (No CD, `0.25s` anti-spam):** Toggles a `1m` **Mini Ender Dragon** (`30s`) that patrols, **auto-switches targets** to whoever you hit, and **hovers still** while firing every `2.0s` (`1.0❤➔1.5❤`, `1.0U`). **`[R]` (`20.0s` CD):** With Pet active, **Skyfall Dive** (`2.0s` I-frames, Giant Dragon `5×5` slam, `8.0❤➔12.0❤`, `4.0U`); without Pet, **Sweeping Strafe** (`1.8s` I-frames, `3×10m` arc, `6.0❤➔9.0❤`, `3.0U`). **Passive:** Upgrades Wind Glider to **5m Ender Dragon** (`+50%` speed). |
+| **Geo** | **Evoker Fang Staff**<br>`evoker_fang_staff` | `3.0` (`1.5❤ × 9`) ➔ `4.5` (`2.25❤ × 13`) | `5.0s` | `120` ➔ `450` | `13.5m➔19.5m`. Erupts a line of Geo Evoker Fangs (`1.0U➔1.5U` Geo) and raises a physical **Geo Fang Pillar** (`1×1×1` Basic / `1×2×1` Netherite, `1×/2×` owner Max HP, `30s` duration, max 3 constructs) that blocks projectiles, taunts hit mobs, and pulses square Geo waves every `2.0s`. |
+| **Electro** | **Arc Caster**<br>`arc_caster` | `1.0` (`0.5❤`/hit) ➔ `1.5` (`0.75❤`/hit) | `6.0s` | `130` ➔ `500` | `30m➔36m`. Instant Electro lightning strike that chains across wet/conductive targets (`6.0m` Netherite), charges Creepers (`arc_caster_charge_creeper`), overcharges **Tesla Coils**, and electrifies water pools. |
+| **Cryo** | **Frostbolt Wand**<br>`frostbolt_wand` | `4.5` (`2.25❤ × 3`) ➔ `6.75` (`3.38❤ × 3`) | `4.0s` | `150` ➔ `500` | `28m`. Fires a 3-shot burst of cryogenic icicles inflicting **Slowness II**, `1.0U➔1.5U` Cryo, and freezing water. **3rd-Shot Finale:** `+35%` speed, `+50%` damage, `2.0U➔3.0U` Cryo, and **`2.5m` Cryo Permafrost Nova + Slowness IV**! |
+| **Dendro** | **Webcaster**<br>`webcaster` | `1.5` (`0.75❤ × 3`) ➔ `2.25` (`1.13❤ × 3`) | `5.0s` | `140` ➔ `500` | `28m`. Fires a 3-shot burst of venomous silk orbs that trap victims in **Temporary Toxic Cobwebs** (`5.0s` default via `temporary_web_duration_ticks`, auto-restores blocks), inflicting **Poison** and `1.0U➔1.5U` Dendro. |
+| **Anemo** | **Wind Staff**<br>`wind_staff` | `1.5` (`0.75❤`) ➔ `2.25` (`1.13❤`) | `1.5s` | `140` ➔ `500` | `28m`. Fires a high-speed Wind Charge (`3.5m➔4.5m` Swirl AoE + strong knockback). Firing at your feet propels you into a high **Wind-Jump** with fall-damage protection! |
+| **Anemo** | **Resonant Echo**<br>`resonant_echo` | `11.0` (`5.5❤`) ➔ `16.5` (`8.25❤`) | `8.0s` *(up to `-5.0s`)* | `130` ➔ `500` | `28m➔32m`. Channels a Warden **Sonic Boom** that pierces walls and shields (`2.0U➔3.0U` Swirl). **Resonance Passive:** Each valid non-dummy hostile target damaged reduces cooldown by **`1.0s`** (up to **`-5.0s`** max across 5 targets). |
+| **Omni** | **Omni Staff**<br>`omni_staff` | `10.0` (`5.0❤` / `2U`) ➔ `15.0` (`7.5❤` / `3U`) | `6.0s` | Sum of 7 Staves (`250` ➔ `900` fallback) | `36m➔48m`. Holds 1 non-Archon weapon per element! Hold `[Tab]` to open the **Omni Wheel**:<br>• **Mode 0 (`OMNI` Auto-Best):** Fires an iridescent **Omni Orb** that inspects the target's active aura on impact and **automatically triggers the highest-priority reaction**!<br>• **Modes 1–7 (Locked Element):** Delegates directly to the absorbed staff for that element (or fires a pure elemental Omni Orb when sneaking), including **Riptide Trident throw** (Hydro) or **Spatial Blink** (Electro Void Translocator)! |
+
+---
+
+## ⭐ Genshin 5-Star Character Weapons (3 Weapons — Omni-Eligible)
+
+### 1. Neuvillette — *Guardian Lens (Tome of the Eternal Flow)* (`guardian_lens`)
+- **Element:** 💧 Hydro | **Role:** Hydro Dragon Sovereign Catalyst (HP-Scaled Hydro Beam & Droplet Sustainer) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Config Base Damage:** `2.0` (Scales with **Max HP**) | **Skill CD:** `12.0s` | **Burst CD:** `18.0s` | **Durability:** `260` Basic / `520` Netherite
+- **Elemental Skill — *O Tears, I Shall Repay* (`Right-Click`, `12.0s` CD):**
+  - Summons a **Surging Waterfall** at the target (`20.0m` Basic / `26.0m` Netherite range, `3.5m` AoE) dealing Hydro damage (`1.5❤ + 5% Max HP`) and spawning **3 Sourcewater Droplets** on the ground (`15s` lifetime).
+- **Charged Attack — *Equitable Judgment* (`Hold Left-Click`):**
+  - Channels an Empowerment Ring (up to `3.0s` / `60t` charge). Automatically absorbs up to **3 Sourcewater Droplets** within `12.0m` — each absorbed droplet **reduces charge time by `1.0s` (`20t`)** (3 droplets = **instant `0.0s` beam fire!**) and **heals Neuvillette for `16% Max HP`**.
+  - Fires a continuous `3.0s` (`60t`) **Torrential Hydro Cannon** (`24.0m` Basic / `28.0m` Netherite range, `1.2m➔1.35m` beam radius) hitting all enemies in line 8 times (`every 8t`).
+  - While charging or firing, grants **Water Walking** (unless sneaking) and consumes `8% Max HP` every `0.5s` only while HP is above `50%` (triggering Furina's Fanfare and Neuvillette's HP-fluctuation buff).
+  - **Passives — *Heir to the Ancient Sea's Authority* & *Discipline of the Supreme Arbitration*:**
+    - Triggering Hydro reactions grants up to **3 Past Draconic Glories stacks** (`30s` each), multiplying *Equitable Judgment* beam damage by **1.10× / 1.25× / 1.60×**!
+    - Gains up to **+30% Hydro DMG Bonus** based on current HP above `30% Max HP` ( reaching max `+30%` at `>= 80% HP`).
+- **Elemental Burst — *O Tides, I Have Returned* (`[R]` Key, `18.0s` CD):**
+  - Grants `1.8s` (`36t`) I-frames, unleashes a `7.0m➔9.0m` crashing Hydro wave (`2.0❤ + 7% Max HP`) followed by 2 ascending waterfall waves, and immediately spawns **6 Sourcewater Droplets** around the player (enough for **2 consecutive instant Charged Beams**!).
+
+---
+
+### 2. Xilonen — *Peak Patrol Song* (`peak_patrol_song`)
+- **Element:** 🪨 Geo | **Role:** Natlan Roller-Skating Sword (Multi-Element RES Shredder, Healer & Nightsoul Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Config Base Damage:** `1.0` | **Skill CD:** `7.0s` | **Burst CD:** `15.0s` | **Durability:** `380` Basic / `760` Netherite
+- **Elemental Skill — *Yohual's Scratch* (`Right-Click`, `7.0s` CD):**
+  - Enters **Nightsoul's Blessing** (`9.0s` max duration, `45` initial Nightsoul points): equips **Roller Skates** (`+35%` movement speed, step-up assist, and **smooth vertical Wall-Climbing**!).
+  - **Skate Dash (`[Sprint]` while skating):** Performs a forward roller-lunge dealing Geo damage (`2-dash chain`: `5t` gap between Dash 1 & 2, then `1.5s` / `30t` cooldown). Consuming Nightsoul points directly feeds **Fighting Spirit** to Mavuika!
+  - **Normal Attack Kicks & *Source Samples* (`Left-Click` while skating):**
+    - Each Roller Skate kick hits enemies in front and grants **+35 Nightsoul points**.
+    - Reaching **90 Nightsoul points** (2 kicks!) consumes all Nightsoul to activate **3 Source Samples** for `15.0s` (`300t`), accompanied by a glowing holographic Natlan **DJ Turntable ring**:
+      - Inspects your inventory for **Pyro, Hydro, Cryo, and Electro** staves to convert up to 3 Geo samples into those elements.
+      - **Support Mode (`>= 2` converted Pyro/Hydro/Cryo/Electro samples):** Shreds nearby enemies' corresponding Elemental & Geo Resistance by **-36%** (`-45%` Netherite) within `8.0m`!
+      - **Geo DPS Mode (`< 2` converted samples):** Grants **+30% Geo DMG Bonus** while skating.
+- **Elemental Burst — *Ocelotlicue Point!* (`[R]` Key, `15.0s` CD):**
+  - Grants `1.5s` (`30t`) I-frames and drops a high-decibel Natlan beat (`6.0m` AoE Geo damage).
+  - **Support Mode (`>= 2` converted samples):** Pulses **8 rhythmic healing waves** over `12.0s` (`1.5s` interval), restoring HP to the player and nearby allies within `8.0m`.
+  - **Geo DPS Mode (`< 2` converted samples):** Unleashes **2 additional follow-up Geo shockwaves**!
+
+---
+
+### 3. Layla — *Nights of Formal Focus* (`nights_focus_staff`)
+- **Element:** ❄️ Cryo | **Role:** Rtawahist Astrologer Scepter (HP-Scaled Cryo Shield & Homing Starlight Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
+- **Config Base Damage:** `4.0` | **Skill CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `260` Basic / `520` Netherite
+- **Elemental Skill — *Nights of Formal Focus* (`Right-Click`, `12.0s` CD):**
+  - Deals AoE Cryo damage (`1.0❤` Basic / `1.5❤` Netherite) and wraps the player in the **Curtain of Slumber Shield** for `12.0s`:
+    - Shield capacity equals **40% Max HP** (Basic) / **60% Max HP** (Netherite), with **250% absorption efficiency** against Cryo damage.
+    - Passively generates **1 Night Star** every `1.5s`, plus **+2 Night Stars** whenever you cast any staff skill (up to 4 stars orbiting the shield).
+    - Upon reaching **4 Night Stars**, automatically fires a salvo of **4 Homing Shooting Stars** that track down nearby enemies for Cryo damage (`0.75❤➔1.13❤` each) and apply Cryo aura!
+- **Elemental Burst — *Dream of the Star-Stream Shaker* (`[R]` Key, `12.0s` CD):**
+  - Grants `1.5s` (`30t`) I-frames and summons a hovering **Celestial Dreamsphere** above the player for `12.0s`.
+  - Fires homing **Starlight Slugs** at enemies within `12.0m` every `1.5s` while simultaneously generating **+1 Night Star** for Layla's shield on each shot!
+
+---
+
+## 👑 The Seven Archons Signature Weapons (7 Weapons)
 
 > [!IMPORTANT]
 > **Omni Staff Eligibility Rule (`isArchon()`):**
@@ -154,56 +227,6 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
 
 ---
 
-### 8. Neuvillette — *Guardian Lens (Tome of the Eternal Flow)* (`guardian_lens`)
-- **Element:** 💧 Hydro | **Role:** Hydro Dragon Sovereign Catalyst (HP-Scaled Hydro Beam & Droplet Sustainer) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
-- **Config Base Damage:** `2.0` (Scales with **Max HP**) | **Skill CD:** `12.0s` | **Burst CD:** `18.0s` | **Durability:** `260` Basic / `520` Netherite
-- **Elemental Skill — *O Tears, I Shall Repay* (`Right-Click`, `12.0s` CD):**
-  - Summons a **Surging Waterfall** at the target (`20.0m` Basic / `26.0m` Netherite range, `3.5m` AoE) dealing Hydro damage (`1.5❤ + 5% Max HP`) and spawning **3 Sourcewater Droplets** on the ground (`15s` lifetime).
-- **Charged Attack — *Equitable Judgment* (`Hold Left-Click`):**
-  - Channels an Empowerment Ring (up to `3.0s` / `60t` charge). Automatically absorbs up to **3 Sourcewater Droplets** within `12.0m` — each absorbed droplet **reduces charge time by `1.0s` (`20t`)** (3 droplets = **instant `0.0s` beam fire!**) and **heals Neuvillette for `16% Max HP`**.
-  - Fires a continuous `3.0s` (`60t`) **Torrential Hydro Cannon** (`24.0m` Basic / `28.0m` Netherite range, `1.2m➔1.35m` beam radius) hitting all enemies in line 8 times (`every 8t`).
-  - While charging or firing, grants **Water Walking** (unless sneaking) and consumes `8% Max HP` every `0.5s` only while HP is above `50%` (triggering Furina's Fanfare and Neuvillette's HP-fluctuation buff).
-  - **Passives — *Heir to the Ancient Sea's Authority* & *Discipline of the Supreme Arbitration*:**
-    - Triggering Hydro reactions grants up to **3 Past Draconic Glories stacks** (`30s` each), multiplying *Equitable Judgment* beam damage by **1.10× / 1.25× / 1.60×**!
-    - Gains up to **+30% Hydro DMG Bonus** based on current HP above `30% Max HP` ( reaching max `+30%` at `>= 80% HP`).
-- **Elemental Burst — *O Tides, I Have Returned* (`[R]` Key, `18.0s` CD):**
-  - Grants `1.8s` (`36t`) I-frames, unleashes a `7.0m➔9.0m` crashing Hydro wave (`2.0❤ + 7% Max HP`) followed by 2 ascending waterfall waves, and immediately spawns **6 Sourcewater Droplets** around the player (enough for **2 consecutive instant Charged Beams**!).
-
----
-
-### 9. Xilonen — *Peak Patrol Song* (`peak_patrol_song`)
-- **Element:** 🪨 Geo | **Role:** Natlan Roller-Skating Sword (Multi-Element RES Shredder, Healer & Nightsoul Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
-- **Config Base Damage:** `1.0` | **Skill CD:** `7.0s` | **Burst CD:** `15.0s` | **Durability:** `380` Basic / `760` Netherite
-- **Elemental Skill — *Yohual's Scratch* (`Right-Click`, `7.0s` CD):**
-  - Enters **Nightsoul's Blessing** (`9.0s` max duration, `45` initial Nightsoul points): equips **Roller Skates** (`+35%` movement speed, step-up assist, and **smooth vertical Wall-Climbing**!).
-  - **Skate Dash (`[Sprint]` while skating):** Performs a forward roller-lunge dealing Geo damage (`2-dash chain`: `5t` gap between Dash 1 & 2, then `1.5s` / `30t` cooldown). Consuming Nightsoul points directly feeds **Fighting Spirit** to Mavuika!
-  - **Normal Attack Kicks & *Source Samples* (`Left-Click` while skating):**
-    - Each Roller Skate kick hits enemies in front and grants **+35 Nightsoul points**.
-    - Reaching **90 Nightsoul points** (2 kicks!) consumes all Nightsoul to activate **3 Source Samples** for `15.0s` (`300t`), accompanied by a glowing holographic Natlan **DJ Turntable ring**:
-      - Inspects your inventory for **Pyro, Hydro, Cryo, and Electro** staves to convert up to 3 Geo samples into those elements.
-      - **Support Mode (`>= 2` converted Pyro/Hydro/Cryo/Electro samples):** Shreds nearby enemies' corresponding Elemental & Geo Resistance by **-36%** (`-45%` Netherite) within `8.0m`!
-      - **Geo DPS Mode (`< 2` converted samples):** Grants **+30% Geo DMG Bonus** while skating.
-- **Elemental Burst — *Ocelotlicue Point!* (`[R]` Key, `15.0s` CD):**
-  - Grants `1.5s` (`30t`) I-frames and drops a high-decibel Natlan beat (`6.0m` AoE Geo damage).
-  - **Support Mode (`>= 2` converted samples):** Pulses **8 rhythmic healing waves** over `12.0s` (`1.5s` interval), restoring HP to the player and nearby allies within `8.0m`.
-  - **Geo DPS Mode (`< 2` converted samples):** Unleashes **2 additional follow-up Geo shockwaves**!
-
----
-
-### 10. Layla — *Nights of Formal Focus* (`nights_focus_staff`)
-- **Element:** ❄️ Cryo | **Role:** Rtawahist Astrologer Scepter (HP-Scaled Cryo Shield & Homing Starlight Battery) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)
-- **Config Base Damage:** `4.0` | **Skill CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `260` Basic / `520` Netherite
-- **Elemental Skill — *Nights of Formal Focus* (`Right-Click`, `12.0s` CD):**
-  - Deals AoE Cryo damage (`1.0❤` Basic / `1.5❤` Netherite) and wraps the player in the **Curtain of Slumber Shield** for `12.0s`:
-    - Shield capacity equals **40% Max HP** (Basic) / **60% Max HP** (Netherite), with **250% absorption efficiency** against Cryo damage.
-    - Passively generates **1 Night Star** every `1.5s`, plus **+2 Night Stars** whenever you cast any staff skill (up to 4 stars orbiting the shield).
-    - Upon reaching **4 Night Stars**, automatically fires a salvo of **4 Homing Shooting Stars** that track down nearby enemies for Cryo damage (`0.75❤➔1.13❤` each) and apply Cryo aura!
-- **Elemental Burst — *Dream of the Star-Stream Shaker* (`[R]` Key, `12.0s` CD):**
-  - Grants `1.5s` (`30t`) I-frames and summons a hovering **Celestial Dreamsphere** above the player for `12.0s`.
-  - Fires homing **Starlight Slugs** at enemies within `12.0m` every `1.5s` while simultaneously generating **+1 Night Star** for Layla's shield on each shot!
-
----
-
 ## 🎭 Archon & Character 3D Idle Animations (AFK Showcase)
 
 Standing completely still for **3.0 seconds** (`60t`) while holding a signature weapon triggers a custom 3D procedural idle animation (automatically canceled the instant you move, jump, or attack):
@@ -218,27 +241,6 @@ Standing completely still for **3.0 seconds** (`60t`) while holding a signature 
 | **Nahida** | *A Thousand Floating Dreams* | Manifests a glowing emerald **botanical vine swing** suspended from above, swaying gently back and forth. |
 | **The Tsaritsa** | *Absolution of the Rime-Throne* | Conjures the crystalline **Rime-Throne** and an ice desk, writing royal decrees with a glowing frost quill in both 1st-person and 3rd-person views. |
 | **Xilonen** | *Peak Patrol Song* | Deploys a neon-lit Natlan **DJ Turntable Booth** with dual spinning vinyl decks and equalizer bars pulsing to the beat. |
-
----
-
-## 🪄 Standard Elemental Staves & Master Omni Staff (12 Weapons)
-
-All 11 standard elemental staves below have `isArchon() == false` and **can be combined or absorbed into the Omni Staff**!
-
-| Element | Staff Name & ID | Config Base DMG (Basic ➔ Netherite) | Cooldown | Durability (Basic ➔ Neth) | Range & Full Combat Mechanics |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Omni** | **Omni Staff**<br>`omni_staff` | `10.0` (`5.0❤` / `2U`) ➔ `15.0` (`7.5❤` / `3U`) | `6.0s` | Sum of 7 Staves (`2340` ➔ `4680` default) | `36m➔48m`. Holds 1 non-Archon weapon per element! Hold `[Tab]` to open the **Omni Wheel**:<br>• **Mode 0 (`OMNI` Auto-Best):** Fires an iridescent **Omni Orb** that inspects the target's active aura on impact and **automatically triggers the highest-priority reaction**!<br>• **Modes 1–7 (Locked Element):** Delegates directly to the absorbed staff for that element (or fires a pure elemental Omni Orb when sneaking), including **Riptide Trident throw** (if Trident is absorbed in Hydro) or **Spatial Blink** (if Void Translocator is absorbed in Electro)! |
-| **Pyro** | **Inferno Rod**<br>`inferno_rod` | `3.0` (`1.5❤ × 3`) ➔ `4.5` (`2.25❤ × 3`) | `4.0s` | `120` ➔ `240` | `30m`. Fires a 3-shot burst of blazing fireballs (`11t` interval to bypass vanilla damage iframes). Applies `1.0U➔1.5U` Pyro, melts ice/snow, lights campfires/candles, and primes TNT. |
-| **Pyro** | **Ghastfire Staff**<br>`ghastfire_staff` | `6.0` (`3.0❤`) ➔ `9.0` (`4.5❤`) | `5.0s` | `96` ➔ `192` | `36m`. Launches a high-velocity Ghast fireball that detonates on impact (`3.5m➔5.0m` AoE) and leaves a **Ghastfire Field** (`5.0s`) dealing continuous Pyro ticks and triggering **Amethyst Cluster Overloaded Mining**. |
-| **Cryo** | **Frostbolt Wand**<br>`frostbolt_wand` | `4.5` (`2.25❤ × 3`) ➔ `6.75` (`3.38❤ × 3`) | `4.0s` | `120` ➔ `240` | `28m`. Fires a 3-shot burst of cryogenic icicles inflicting **Slowness II**, `1.0U➔1.5U` Cryo aura, and freezing water along its trajectory into walkable Frosted Ice. |
-| **Electro** | **Arc Caster**<br>`arc_caster` | `1.0` (`0.5❤`/tick) ➔ `1.5` (`0.75❤`/tick) | `6.0s` | `128` ➔ `256` | `30m➔36m`. Channels a continuous lightning beam (`up to 3.0s`) that chains across nearby wet/conductive targets, charges Creepers (`arc_caster_charge_creeper`), overcharges **Tesla Coils**, and electrifies water pools. |
-| **Electro** | **Dragonfire Scepter**<br>`dragonfire_scepter` | `7.0` (`3.5❤`) ➔ `10.5` (`5.25❤`) | `8.0s` | `64` ➔ `128` | `32m`. Hurls an Ender Dragon plasma orb that erupts into a lingering **Dragonfire Cloud** (`6.0s`, `3.5m➔5.0m` radius) applying continuous `2.0U` Electro and heavy DoT. |
-| **Electro** | **Shulker Seeker**<br>`shulker_seeker` | `6.0` (`3.0❤ × 3`) ➔ `9.0` (`4.5❤ × 3`) | `6.0s` | `130` ➔ `500` | `30m`. **Left-Click** launches a 3-shot homing salvo with 3rd-Shot Gravity Slam (`2.5m` AoE). **Right-Click** opens a portable Shulker chest (`27` slots Basic / `54` scrollable slots Netherite); grants **-30%/-40% DMG reduction** while open. |
-| **Dendro** | **Wither Scepter**<br>`wither_scepter` | `4.0` (`2.0❤ × 3`) ➔ `6.0` (`3.0❤ × 3`) | `6.0s` | `96` ➔ `192` | `32m`. Fires 3 decaying Dendro skulls (`11t` burst window) that inflict **Wither II** (`4.0s`) and apply `1.0U➔1.5U` Dendro aura. |
-| **Dendro** | **Webcaster**<br>`webcaster` | `1.5` (`0.75❤ × 3`) ➔ `2.25` (`1.13❤ × 3`) | `5.0s` | `120` ➔ `240` | `28m`. Fires a 3-shot burst of venomous silk orbs that trap victims in **Temporary Toxic Cobwebs** (`5.0s` default via `temporary_web_duration_ticks`, auto-restores original air/blocks), inflicting **Poison** and `1.0U` Dendro. |
-| **Anemo** | **Wind Staff**<br>`wind_staff` | `1.5` (`0.75❤`) ➔ `2.25` (`1.13❤`) | `1.5s` | `180` ➔ `360` | `28m`. Fires a high-speed Wind Charge (`5.0m` Swirl AoE + strong knockback). Firing at your feet propels you into a high **Wind-Jump** with fall-damage protection! |
-| **Anemo** | **Resonant Echo**<br>`resonant_echo` | `11.0` (`5.5❤`) ➔ `16.5` (`8.25❤`) | `8.0s` | `64` ➔ `128` | `28m➔32m`. Channels a Warden **Sonic Boom** that pierces straight through solid walls and shields, ignoring armor and triggering `2.0U` **Swirl** on every entity in its path. |
-| **Geo** | **Evoker Fang Staff**<br>`evoker_fang_staff` | `3.0` (`1.5❤ × 9`) ➔ `4.5` (`2.25❤ × 13`) | `5.0s` | `120` ➔ `240` | `13.5m➔19.5m`. Erupts a line of Geo Evoker Fangs (`1.0U➔1.5U` Geo) and raises a physical **Geo Fang Pillar** (`1×1×1` Basic / `1×2×1` Netherite, `1×/2×` owner Max HP, `30s` duration, max 3 constructs) that blocks projectiles, taunts hit mobs without aggroing them onto you, and pulses square Geo waves every `2.0s`! |
 
 ---
 

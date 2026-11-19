@@ -618,7 +618,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "Chuột phải (E) kích hoạt trạng thái Trượt Patin Dạ Hồn (khởi đầu 45/90 điểm) tăng 35% tốc chạy và leo vách đá mượt mà. Đánh thường trúng đích 2 đòn (+35 điểm/đòn -> 90/90) lập tức tiêu hao toàn bộ 90 điểm Dạ Hồn, bơm thẳng 90 Chiến Ý cho Mavuika và kích hoạt Nguồn Âm Vang trong 15s (duy trì cả khi đổi vũ khí), giảm 36% Kháng Nguyên Tố trong bán kính 8m theo các nguyên tố trong 4 Staff túi đồ. Kích hoạt Kết Tinh tăng +40% sát thương Nham và nguyên tố được kết tinh trong 18s. Nhấn [R] gây 0.5 ❤ sát thương Nham diện rộng và hồi máu đơn mục tiêu cho bản thân trong 12s. Bản Netherite mở khóa C1+C2.",
   "codex.velorise_staves.links.peak_patrol_song": "khúc ca tuần đỉnh|peak patrol song|xilonen|nguồn âm vang|source samples",
   "item.velorise_staves.wind_glider": "Phong Chi Dực (Đôi Cánh Đồng Hành)",
-  "tooltip.velorise_staves.wind_glider": "✦ Chuột Phải: Mở khóa vĩnh viễn Phong Chi Dực (không tốn ô giáp! Nhấn [Space] trên không để lượn; Ngồi + Chuột Phải để tắt)",
+  "tooltip.velorise_staves.wind_glider": "✦ Chuột Phải: Mở khóa vĩnh viễn Phong Chi Dực (không tốn ô giáp! Nhấn [Space] trên không để lượn; Ngồi + Chuột Phải để bật/tắt)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ Tấn Công Đáp: Nhấn Chuột Trái trên không khi cầm Kiếm hoặc Trượng để lao xuống chấn địa AoE (miễn ST rơi <= 15m)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Đã mở khóa Phong Chi Dực! Nhấn [Space] trên không để lượn.",
   "message.velorise_staves.wind_glider_disabled": "✦ Đã tắt Phong Chi Dực. Chuột phải để bật lại.",
@@ -794,5 +794,10 @@
   "config.velorise_staves.wall_climb.off": "Leo tường: TẮT",
   "config.velorise_staves.tooltip.wall_climb": "Bật/tắt cơ chế leo tường thẳng đứng kiểu Genshin khi nhấn tiến vào tường (tiêu hao Thể lực).",
   "message.velorise_staves.stamina_nether_unlocked": "✦ Thể Lực Tối Đa Tăng: 100 ➔ 170 (Mốc Nether)",
-  "message.velorise_staves.stamina_end_unlocked": "✦ Thể Lực Tối Đa Tăng: 170 ➔ 240 (Mốc The End — Tối Đa)"
+  "message.velorise_staves.stamina_end_unlocked": "✦ Thể Lực Tối Đa Tăng: 170 ➔ 240 (Mốc The End — Tối Đa)",
+  "tooltip.velorise_staves.action.dragonfire.left": "  Chuột Trái: Cầu Plasma Ender + Mây Dragonfire",
+  "tooltip.velorise_staves.action.dragonfire.right": "  Chuột Phải: Bật/Tắt Rồng Con Ender (Không CD, 30s)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  Nhấn [R]: Tai Ương Chúa Tể",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  Nội tại: Tàu Lượn Rồng Ender 5m (+50% Tốc độ)",
+  "codex.velorise_staves.staff.utility.p3": "• §bPhong Chi Dực (Wind Glider):§r Chuột Phải 1 lần để mở khóa vĩnh viễn (không tốn ô giáp!). Nhấn §e[Space]§r khi đang rơi để lượn; §fĐánh Đáp (Plunge)§r bằng Chuột Trái trên không! (§dDragonfire Scepter§r nâng cấp thành §dRồng Ender 5m§r tăng §e+50%§r tốc độ)."
 }

@@ -48,7 +48,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 
 ---
 
-## 🏆 Complete List of 28 Custom Advancements
+## 🏆 Complete List of 39 Custom Advancements
 
 | Advancement Title | ID | Category / Frame | Exact Unlock Condition |
 | :--- | :--- | :--- | :--- |
@@ -83,3 +83,11 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 | **No Love Left for Her People** | `no_love_left` | Challenge | Unleash **The Tsaritsa's Elemental Burst `[R]`**. |
 | **Shattered Regalia** | `shattered_regalia` | Challenge *(Hidden)* | Shatter *Absolution of the Rime-Throne* by depleting its durability to 0. |
 | **Starry Night** | `starry_night` | Challenge *(Hidden)* | Fire a full 4-star salvo from **Layla's *Nights of Formal Focus***. |
+| **The Wind is strong today!** | `the_wind_is_strong_today` | Challenge | Launch a mob `> 100` blocks skyward with **The Daybreak Chronicles**. |
+| **Thermal Explosion** | `hidden_pyro` | Challenge *(Hidden)* | Trigger an **Overloaded** or **Vaporize** reaction. |
+| **Absolute Zero** | `hidden_cryo` | Challenge *(Hidden)* | **Freeze** or **Shatter** targets with Cryo energy. |
+| **Gale Dispersion** | `hidden_anemo` | Challenge *(Hidden)* | Swirl elemental energies with **Anemo**. |
+| **High Voltage** | `hidden_electro` | Challenge *(Hidden)* | Trigger an **Electro-Charged** or **Superconduct** reaction. |
+| **Wild Overgrowth** | `hidden_dendro` | Challenge *(Hidden)* | Trigger a **Bloom**, **Burning**, or **Quicken** reaction. |
+| **Solidification** | `hidden_geo` | Challenge *(Hidden)* | Trigger a **Crystallize** reaction to generate an elemental shield shard. |
+| **Prismatic Harmony** | `hidden_omni` | Challenge *(Hidden)* | Master and unleash all **seven elements**. |

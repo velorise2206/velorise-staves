@@ -2681,6 +2681,11 @@ public final class ArcaneStaffItem extends Item {
             tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.tap_right").withStyle(ChatFormatting.GREEN));
             tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.hold_right").withStyle(ChatFormatting.GREEN));
             tooltip.add(Component.translatable("tooltip.velorise_staves.action.floating_dreams.burst").withStyle(ChatFormatting.GOLD));
+        } else if (kind == Kind.DRAGONFIRE) {
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.dragonfire.left").withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.dragonfire.right").withStyle(ChatFormatting.DARK_PURPLE));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.dragonfire.burst").withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("tooltip.velorise_staves.action.dragonfire.passive").withStyle(ChatFormatting.AQUA));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
             tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.left").withStyle(ChatFormatting.AQUA));
             tooltip.add(Component.translatable("tooltip.velorise_staves.action.tsaritsa.right").withStyle(ChatFormatting.BLUE));
@@ -2717,6 +2722,11 @@ public final class ArcaneStaffItem extends Item {
             float eSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getCooldownTicks()) / 20.0F;
             float qSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(300) / 20.0F;
             String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (E) | %.1fs [R]", eSec, qSec);
+            tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
+        } else if (kind == Kind.DRAGONFIRE) {
+            float leftSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(80) / 20.0F;
+            float burstSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(400) / 20.0F;
+            String cdStr = String.format(java.util.Locale.ROOT, "%.1fs (NA) | 0.0s (E) | %.1fs [R]", leftSec, burstSec);
             tooltip.add(Component.translatable("tooltip.velorise_staves.cooldown_custom", cdStr).withStyle(ChatFormatting.BLUE));
         } else if (kind == Kind.TSARITSA_BOW || kind == Kind.TSARITSA_SPEAR) {
             float eSec = ElementalResonanceManager.getClientAdjustedCooldownTicks(getTsaritsaCooldownTicks(false)) / 20.0F;

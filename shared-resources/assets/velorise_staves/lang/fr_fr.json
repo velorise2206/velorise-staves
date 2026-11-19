@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "Clic Droit (E) active les patins de Noctâme (+35% vitesse et escalade verticale). 2 coups de pied consomment 90 pts de Noctâme, donnent +90 Esprit combatif à Mavuika et réduisent de -36% la RÉS élémentaire des ennemis pendant 15s.",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "Planeur (Ailes de camaraderie)",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ Clic Droit : Débloque définitivement le Planeur du Vent (sans emplacement d'armure ! [Space] en l'air pour planer ; Accroupi + Clic Droit pour basculer)",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ Attaque Plongeante : Clic Gauche en l'air avec une épée ou un bâton pour plonger (0 DGT de chute <= 15m)",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ Planeur désactivé. Clic droit avec l'objet pour le réactiver.",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "Attaque Plongeante",
   "key.velorise_staves.wind_glider": "Déployer le Planeur de Vent",
   "message.velorise_staves.stamina_nether_unlocked": "✦ Bénédiction du Nether : Endurance maximale augmentée à 170 !",
-  "message.velorise_staves.stamina_end_unlocked": "✦ Bénédiction de l'End : Endurance maximale augmentée à 240 !"
+  "message.velorise_staves.stamina_end_unlocked": "✦ Bénédiction de l'End : Endurance maximale augmentée à 240 !",
+  "tooltip.velorise_staves.action.dragonfire.left": "  Clic Gauche : Orbe de Plasma de l'End + Nuage Draconique",
+  "tooltip.velorise_staves.action.dragonfire.right": "  Clic Droit : Basculer Mini Dragon de l'End (Sans CD, 30s)",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  Touche [R] : Cataclysme du Souverain",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  Passif : Planeur Dragon de l'End 5m (+50% Vit.)",
+  "codex.velorise_staves.staff.utility.p3": "• §bPlaneur du Vent (Wind Glider) :§r Clic Droit une fois pour le débloquer définitivement (sans emplacement d'armure !). Appuyez sur §e[Space]§r en chute pour planer ; §fAttaque Plongeante§r avec Clic Gauche en l'air ! (§dSceptre Feu-Dragon§r l'améliore en §dDragon de l'End 5m§r avec §e+50%§r vitesse)."
 }

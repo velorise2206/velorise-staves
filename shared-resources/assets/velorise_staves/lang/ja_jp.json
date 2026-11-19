@@ -616,7 +616,7 @@
   "codex.velorise_staves.staff.peak_patrol_song": "右クリック（E）で夜魂ローラースケート状態（移動速度+35%＆垂直壁登り）に入る。通常攻撃2回で夜魂90を消費し、マーヴィカに戦意+90を付与して15秒間周囲の敵の元素耐性を -36% ダウンさせる。[R] で範囲岩ダメージ＋12秒間自己回復。",
   "codex.velorise_staves.links.peak_patrol_song": "peak patrol song|xilonen|source samples|yohual's scratch|ocelotlicue point",
   "item.velorise_staves.wind_glider": "風の翼（伴侶の翼）",
-  "tooltip.velorise_staves.wind_glider": "✦ Right-Click: Permanently unlocks Wind Glider (no armor slot! Press [Space] in mid-air to glide; Sneak + R-Click to disable)",
+  "tooltip.velorise_staves.wind_glider": "✦ 右クリック：風の翼を永久解放（防具枠不要！空中で [Space] で滑空；スニーク+右クリックで切替）",
   "tooltip.velorise_staves.wind_glider.plunge": "✦ 落下攻撃：空中で剣や杖を持って左クリックすると急降下して範囲衝撃波を放つ（15m以下落下ダメージ無効）",
   "message.velorise_staves.wind_glider_unlocked": "✦ Wind Glider Unlocked! Press [Space] in mid-air to glide.",
   "message.velorise_staves.wind_glider_disabled": "✦ 風の翼を無効化しました。右クリックで再有効化できます。",
@@ -794,5 +794,10 @@
   "key.velorise_staves.plunge_attack": "落下攻撃",
   "key.velorise_staves.wind_glider": "風の翼を展開",
   "message.velorise_staves.stamina_nether_unlocked": "✦ ネザーの祝福：最大スタミナが 170 に上昇しました！",
-  "message.velorise_staves.stamina_end_unlocked": "✦ エンドの祝福：最大スタミナが 240 に上昇しました！"
+  "message.velorise_staves.stamina_end_unlocked": "✦ エンドの祝福：最大スタミナが 240 に上昇しました！",
+  "tooltip.velorise_staves.action.dragonfire.left": "  左クリック：エンダープラズマ球 + 竜炎雲",
+  "tooltip.velorise_staves.action.dragonfire.right": "  右クリック：ミニエンダードラゴン切替（CDなし、30秒）",
+  "tooltip.velorise_staves.action.dragonfire.burst": "  [R] キー：覇王の天災",
+  "tooltip.velorise_staves.action.dragonfire.passive": "  パッシブ：5m エンダードラゴングライダー（速度+50%）",
+  "codex.velorise_staves.staff.utility.p3": "• §b風の翼 (Wind Glider):§r 右クリック1回で永久解放（防具枠不要！）。落下中に §e[Space]§r で滑空、空中で左クリックすると§f落下攻撃§r！（§dドラゴンファイアの杖§rで§d5m エンダードラゴン§rに進化し速度 §e+50%§r）。"
 }
