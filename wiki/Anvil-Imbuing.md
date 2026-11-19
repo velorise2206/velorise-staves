@@ -45,7 +45,7 @@ Place an **Omni Staff** in the Left Anvil Slot and any eligible weapon in the Ri
 
 > [!CAUTION]
 > **Why Can't the 7 Archon Weapons Be Combined into the Omni Staff?**
-> By design (`ArcaneStaffItem.isArchonKind()`), the **7 Archon Signature Weapons** — **Mavuika** (*A Thousand Blazing Suns*), **Furina** (*Splendor of Tranquil Waters*), **Zhongli** (*Vortex Vanquisher*), **Venti** (*The Daybreak Chronicles*), **Raiden Shogun** (*Engulfing Lightning*), **Nahida** (*A Thousand Floating Dreams*), and **The Tsaritsa** (*Absolution of the Rime-Throne*) — possess multi-input Divine Authority kits (`Left-Click`, `Hold Left-Click`, `Tap Right-Click`, `Hold Right-Click`, `[R] Burst`, Stance Switches, and Vehicles) that cannot be compressed into a single Omni Wheel slot. Both the Crafting Table tags (`*_staves.json`) and Anvil logic (`!staff.isArchon()`) strictly reject Archon weapons from being absorbed into the Omni Staff.
+> By design (`ArcaneStaffItem.isArchonKind()`), the **7 Archon Signature Weapons** — **Mavuika** (*A Thousand Blazing Suns*), **Furina** (*Splendor of Tranquil Waters*), **Zhongli** (*Vortex Vanquisher*), **Venti** (*The Daybreak Chronicles*), **Raiden Shogun** (*Engulfing Lightning*), **Nahida** (*A Thousand Floating Dreams*), and **The Tsaritsa** (*Silver Dawn*) — possess multi-input Divine Authority kits (`Left-Click`, `Hold Left-Click`, `Tap Right-Click`, `Hold Right-Click`, `[R] Burst`, Stance Switches, and Vehicles) that cannot be compressed into a single Omni Wheel slot. Both the Crafting Table tags (`*_staves.json`) and Anvil logic (`!staff.isArchon()`) strictly reject Archon weapons from being absorbed into the Omni Staff.
 
 ---
 

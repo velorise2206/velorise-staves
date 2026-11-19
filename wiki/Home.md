@@ -4,7 +4,7 @@ Welcome to the complete technical and gameplay reference manual for **Velorise's
 
 The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental Gauge Theory (EGT)** and character combat kits into Minecraft:
 - **22 Elemental Combat Staves** (both **Basic** and **Netherite** tiers):
-  - **7 Archon Signature Weapons:** Mavuika (*A Thousand Blazing Suns*), Furina (*Splendor of Tranquil Waters*), Zhongli (*Vortex Vanquisher*), Venti (*The Daybreak Chronicles*), Raiden Shogun (*Engulfing Lightning*), Nahida (*A Thousand Floating Dreams*), and the Tsaritsa (*Absolution of the Rime-Throne* Bow ⇄ Spear).
+  - **7 Archon Signature Weapons:** Mavuika (*A Thousand Blazing Suns*), Furina (*Splendor of Tranquil Waters*), Zhongli (*Vortex Vanquisher*), Venti (*The Daybreak Chronicles*), Raiden Shogun (*Engulfing Lightning*), Nahida (*A Thousand Floating Dreams*), and the Tsaritsa (*Silver Dawn* Bow ⇄ Spear).
   - **3 Genshin Character Signature Weapons (Omni-Eligible):** Neuvillette (*Guardian Lens*), Xilonen (*Peak Patrol Song*), and Layla (*Nights of Formal Focus*).
   - **11 Standard Elemental Staves** + **1 Master Omni Staff** (with `[Tab]` Radial Element Wheel and Auto-Best Reaction AI).
 - **19 Elemental Reactions** (including **Forward/Reverse Vaporize & Melt**, **Frozen & Shatter**, **Quicken/Aggravate/Spread**, **Bloom/Hyperbloom/Burgeon**, **Overvape**, and Tsaritsa's 3 **Stellar Cryo Reactions**).

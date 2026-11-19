@@ -204,7 +204,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ---
 
-### 7. The Tsaritsa — *Absolution of the Rime-Throne* (`tsaritsa_bow` ⇄ `tsaritsa_spear`)
+### 7. The Tsaritsa — *Silver Dawn* (`tsaritsa_bow` ⇄ `tsaritsa_spear`)
 - **Element:** ❄️ Cryo | **Role:** Cryo Archon Dual-Stance Regalia (Stellar Cryo Buffer & Orbital Spear DPS) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.5` (`2.25❤` Basic / `3.38❤` Netherite) | **Skill / Stance Switch CD:** `6.0s` | **Burst CD:** `15.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Dual-Stance Switching & Elemental Skill (`Right-Click`, `6.0s` CD):**
@@ -239,7 +239,7 @@ Standing completely still for **3.0 seconds** (`60t`) while holding a signature 
 | **Raiden Shogun** | *Engulfing Lightning* | Meditates in midair levitation as the **Eye of Stormy Judgment** and **Chakra Desiderata halo** ignite behind her back with violet arcs. |
 | **Mavuika** | *A Thousand Blazing Suns* | Casually leans on the **Flamestrider Motorcycle** (in 1st-person view, applies a warm cinematic visor tint `0x140e18` without obstructing vision). |
 | **Nahida** | *A Thousand Floating Dreams* | Manifests a glowing emerald **botanical vine swing** suspended from above, swaying gently back and forth. |
-| **The Tsaritsa** | *Absolution of the Rime-Throne* | Conjures the crystalline **Rime-Throne** and an ice desk, writing royal decrees with a glowing frost quill in both 1st-person and 3rd-person views. |
+| **The Tsaritsa** | *Silver Dawn* | Conjures the crystalline **Rime-Throne** and an ice desk, writing royal decrees with a glowing frost quill in both 1st-person and 3rd-person views. |
 | **Xilonen** | *Peak Patrol Song* | Deploys a neon-lit Natlan **DJ Turntable Booth** with dual spinning vinyl decks and equalizer bars pulsing to the beat. |
 
 ---

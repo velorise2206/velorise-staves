@@ -81,7 +81,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 | **Illusory Heart** | `illusory_heart` | Challenge | Expand **Nahida's *Shrine of Maya* `[R]`** dome. |
 | **A Dream Awoken** | `a_dream_awoken` | Challenge *(Hidden)* | Shatter *A Thousand Floating Dreams* by depleting its durability to 0. |
 | **No Love Left for Her People** | `no_love_left` | Challenge | Unleash **The Tsaritsa's Elemental Burst `[R]`**. |
-| **Shattered Regalia** | `shattered_regalia` | Challenge *(Hidden)* | Shatter *Absolution of the Rime-Throne* by depleting its durability to 0. |
+| **Shattered Regalia** | `shattered_regalia` | Challenge *(Hidden)* | Shatter *Silver Dawn* by depleting its durability to 0. |
 | **Starry Night** | `starry_night` | Challenge *(Hidden)* | Fire a full 4-star salvo from **Layla's *Nights of Formal Focus***. |
 | **The Wind is strong today!** | `the_wind_is_strong_today` | Challenge | Launch a mob `> 100` blocks skyward with **The Daybreak Chronicles**. |
 | **Thermal Explosion** | `hidden_pyro` | Challenge *(Hidden)* | Trigger an **Overloaded** or **Vaporize** reaction. |
