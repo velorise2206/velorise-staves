@@ -112,7 +112,7 @@ No complex mana systems, no bloated tiers, and no EMC — just pure, satisfying 
 - **Resonant Echo** (![Anemo][anemo] Anemo): Releases a piercing Warden sonic boom through blocks, reducing cooldown by `-1.0s` per valid target hit (up to `-5.0s`).
 - **Omni Staff** (![Omni][omni] Omni): Fires prism crystal orbs that automatically trigger the strongest reaction element, or hold `[Tab]` to open the Element Wheel and lock onto any element (can absorb non-Archon staves, Trident, or Void Translocator).
 
-#### Genshin 5-Star Weapons (3)
+#### Genshin Weapons (3)
 - **Guardian Lens** (![Hydro][hydro] Hydro): Neuvillette's Hydro catalyst — Quick-tap fires a **Hydro Orb** (`1♥`, `2.0s` CD), or Hold 3s (instant with **Sourcewater Droplets**) to unleash a piercing 3.0s *Equitable Judgment* Hydro beam scaling with Max HP & Past Draconic Glories (`6.0s` CD, stops self-HP drain at `<= 50%` Max HP).
 - **Nights of Formal Focus** (![Cryo][cryo] Cryo): Layla's Cryo staff (crafted with **Frost Rod**) — Grants a **12s Curtain of Slumber Cryo Shield** (`40%` Basic / `60%` Netherite Max HP, `250%` Cryo Absorb) + AoE Cryo, accumulating orbiting **Night Stars** inside the shield to launch 4 homing **Shooting Stars** at 4 stacks.
 - **Peak Patrol Song** (![Geo][geo] Geo): Xilonen's Geo sword — Right-Click (`7s` CD) activates 3D Roller Skate Nightsoul (`+35%` speed, wall-climbing, 360° front-flip jump); 2 kicks trigger **Source Samples** (`15s`, `-36%` Elemental RES shred within `8m`, `+90` Fighting Spirit to Mavuika). **`[R]` Ocelotlicue Point!** deals AoE Geo & heals for `12s`.

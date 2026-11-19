@@ -42,7 +42,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ---
 
-## ⭐ Genshin 5-Star Character Weapons (3 Weapons — Omni-Eligible)
+## ⭐ Genshin Weapons (3 Weapons — Omni-Eligible)
 
 ### 1. Neuvillette — *Guardian Lens (Tome of the Eternal Flow)* (`guardian_lens`)
 - **Element:** 💧 Hydro | **Role:** Hydro Dragon Sovereign Catalyst (HP-Scaled Hydro Beam & Droplet Sustainer) | **Archon:** No (`isArchon = false` — **Omni Staff Eligible!**)

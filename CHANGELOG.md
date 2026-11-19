@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added (All 3 Loaders: NeoForge 1.21.1, Fabric 1.21.1, Forge 1.20.1)
 
 - **New Staves, Archon Kits & Relics**:
-  - **7 Archon Weapons & 3 Genshin 5-Star Weapons**: *The Daybreak Chronicles*, *Vortex Vanquisher*, *Engulfing Lightning*, *A Thousand Floating Dreams*, *Splendor of Tranquil Waters*, *A Thousand Blazing Suns*, *Absolution of the Rime-Throne* (Tsaritsa Bow/Spear), *Guardian Lens*, *Nights of Formal Focus*, and *Peak Patrol Song*, complete with 3D Blockbench models (Raiden Robot, Tsaritsa Throne, Nahida Shrine, Mavuika Flamestrider & Helmet, Xilonen Skates), 8 AFK 3D idle animations, and character voice-over packs (`[V]`).
+  - **7 Archon Weapons & 3 Genshin Weapons**: *The Daybreak Chronicles*, *Vortex Vanquisher*, *Engulfing Lightning*, *A Thousand Floating Dreams*, *Splendor of Tranquil Waters*, *A Thousand Blazing Suns*, *Absolution of the Rime-Throne* (Tsaritsa Bow/Spear), *Guardian Lens*, *Nights of Formal Focus*, and *Peak Patrol Song*, complete with 3D Blockbench models (Raiden Robot, Tsaritsa Throne, Nahida Shrine, Mavuika Flamestrider & Helmet, Xilonen Skates), 8 AFK 3D idle animations, and character voice-over packs (`[V]`).
   - **Wind Glider & Materials**: *Wings of First Flight* (`[Space]` mid-air glider + Plunge Attack, upgraded to 5m Ender Dragon Glider when carrying Dragonfire Scepter) and **Frost Rod** (`cryo_element` + Blaze/Breeze Rod).
   - **39 Custom Advancements**: Expanded advancement progression including hidden elemental & staff challenges.
 - **Animations, HUD & Codex UX**:
