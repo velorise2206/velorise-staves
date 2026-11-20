@@ -1,0 +1,5042 @@
+{
+  "meta": {
+    "format_version": "4.10",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "xilonen_roller_skates_steve",
+  "model_identifier": "xilonen_roller_skates_steve",
+  "visible_box": [
+    1,
+    1,
+    0
+  ],
+  "variable_placeholders": "",
+  "variable_placeholder_buttons": [],
+  "timeline_setups": [],
+  "unhandled_root_fields": {},
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "right_skate_wheel_front_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.65,
+        0.1065,
+        -4.5935
+      ],
+      "to": [
+        -1.35,
+        2.6935,
+        -2.0065
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d6ffefd8-e86a-414b-abfa-45181356a6f8"
+    },
+    {
+      "name": "right_skate_wheel_front_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.63,
+        0.1065,
+        -4.5935
+      ],
+      "to": [
+        -1.37,
+        2.6935,
+        -2.0065
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "82e63edb-54a2-415e-ab2c-95b2e28833f3"
+    },
+    {
+      "name": "right_skate_wheel_front_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.0,
+        0.9,
+        -3.8
+      ],
+      "to": [
+        -1.0,
+        1.9,
+        -2.8
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "b6d58e63-66a2-4ce0-a311-d543ae842afb"
+    },
+    {
+      "name": "right_skate_wheel_mid_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.65,
+        0.1065,
+        -1.3935
+      ],
+      "to": [
+        -1.35,
+        2.6935,
+        1.1935
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "ac49804e-0125-4449-b000-ca540d23b134"
+    },
+    {
+      "name": "right_skate_wheel_mid_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.63,
+        0.1065,
+        -1.3935
+      ],
+      "to": [
+        -1.37,
+        2.6935,
+        1.1935
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "3e07fc4c-bfa3-4449-a7cc-997076cdd020"
+    },
+    {
+      "name": "right_skate_wheel_mid_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.0,
+        0.9,
+        -0.6
+      ],
+      "to": [
+        -1.0,
+        1.9,
+        0.4
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "7fbb68e8-e97a-4352-b545-8bd052b46230"
+    },
+    {
+      "name": "right_skate_wheel_rear_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.875,
+        0.1522,
+        1.5522
+      ],
+      "to": [
+        -1.125,
+        3.8478,
+        5.2478
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "ba0ea76a-55c4-42c1-ac0b-dad74937a987"
+    },
+    {
+      "name": "right_skate_wheel_rear_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -2.855,
+        0.1522,
+        1.5522
+      ],
+      "to": [
+        -1.145,
+        3.8478,
+        5.2478
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "2dceafc3-f3f9-479b-b47d-15bf9bb7d49a"
+    },
+    {
+      "name": "right_skate_wheel_rear_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.225,
+        1.5,
+        2.9
+      ],
+      "to": [
+        -0.775,
+        2.5,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "77fd2fed-2f58-4853-9996-7a83cdb2ce92"
+    },
+    {
+      "name": "right_skate_frame_rail_0",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.32,
+        2.0,
+        -4.1
+      ],
+      "to": [
+        -2.88,
+        3.6,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -3.1,
+        2.8,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "25ae748f-4349-4448-9065-e1b873da3c74"
+    },
+    {
+      "name": "right_skate_frame_rail_1",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -1.12,
+        2.0,
+        -4.1
+      ],
+      "to": [
+        -0.68,
+        3.6,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -0.9,
+        2.8,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "9d33ddbb-3bb2-4cc0-a414-d4a363fd5c04"
+    },
+    {
+      "name": "right_skate_nose_guard",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.9,
+        2.6,
+        -5.4
+      ],
+      "to": [
+        -0.15,
+        3.9,
+        -3.8
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        3.2,
+        -4.6
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "3cf0a4f4-2b9c-4e95-9e36-65c99bd7bec8"
+    },
+    {
+      "name": "right_skate_rear_fender",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.9,
+        3.4,
+        2.0
+      ],
+      "to": [
+        -0.15,
+        4.7,
+        5.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        4.0,
+        3.5
+      ],
+      "rotation": [
+        14,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "da07f3ef-4625-49b0-9835-fe0a8e7be511"
+    },
+    {
+      "name": "right_skate_chassis_accent",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 8,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -3.59,
+        2.5,
+        -2.5
+      ],
+      "to": [
+        -3.31,
+        3.05,
+        1.6
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -3.45,
+        2.75,
+        -0.45
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "98081f67-4b1a-438f-b4f3-c11e1e331c95"
+    },
+    {
+      "name": "right_skate_sole",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.45,
+        3.4,
+        -4.8
+      ],
+      "to": [
+        -0.03,
+        4.4,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        3.9,
+        -0.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "07cbfa2c-4103-41c0-ba9c-39c954f0b3fc"
+    },
+    {
+      "name": "right_skate_toe_box",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.35,
+        4.2,
+        -5.0
+      ],
+      "to": [
+        -0.04,
+        6.2,
+        -2.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        5.0,
+        -3.5
+      ],
+      "rotation": [
+        -8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "7c477a76-eb6a-4408-9fed-9cbea3de005d"
+    },
+    {
+      "name": "right_skate_toe_tip",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.0,
+        4.1,
+        -5.6
+      ],
+      "to": [
+        -0.15,
+        5.5,
+        -4.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        4.8,
+        -5.0
+      ],
+      "rotation": [
+        -18,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "ea198d66-0be7-456f-adb1-7295f79ab8ee"
+    },
+    {
+      "name": "right_skate_foot_core",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.35,
+        4.2,
+        -2.3
+      ],
+      "to": [
+        -0.02,
+        7.4,
+        2.45
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        5.8,
+        0.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "7d750eb8-b922-4179-9169-0409013284d6"
+    },
+    {
+      "name": "right_skate_outer_side_plate",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.58,
+        4.3,
+        -2.1
+      ],
+      "to": [
+        -4.22,
+        7.2,
+        2.35
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -4.4,
+        5.7,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "161fa953-b34b-4189-ad74-644ab9dadb6b"
+    },
+    {
+      "name": "right_skate_ankle_strap",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.6,
+        6.0,
+        -2.45
+      ],
+      "to": [
+        -0.01,
+        6.9,
+        1.1
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        6.45,
+        -0.6
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "f1d60afd-d91c-4cd2-9610-4b631f2e6924"
+    },
+    {
+      "name": "right_skate_strap_buckle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.73,
+        6.1,
+        -1.3
+      ],
+      "to": [
+        -4.37,
+        6.9,
+        -0.3
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -4.55,
+        6.5,
+        -0.8
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "06a53a6d-68e3-4668-af6f-75e23a604923"
+    },
+    {
+      "name": "right_skate_heel_counter",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.45,
+        4.2,
+        1.9
+      ],
+      "to": [
+        -0.02,
+        7.8,
+        3.4
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        6.0,
+        2.65
+      ],
+      "rotation": [
+        8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "b28a76fd-23f7-438c-95b0-cf59e6d9b7d4"
+    },
+    {
+      "name": "right_skate_inner_collar",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.3,
+        7.3,
+        -2.25
+      ],
+      "to": [
+        -0.02,
+        11.2,
+        2.35
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        9.2,
+        0.05
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "a247bf6f-49fc-40ae-833a-33e15d553579"
+    },
+    {
+      "name": "right_skate_front_shin",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.35,
+        7.4,
+        -2.7
+      ],
+      "to": [
+        -0.03,
+        11.9,
+        -1.85
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        9.6,
+        -2.25
+      ],
+      "rotation": [
+        -8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "bb52fc80-6184-4edc-9535-bb3c140803cf"
+    },
+    {
+      "name": "right_skate_outer_cuff_wing",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 3,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.7,
+        7.4,
+        -2.1
+      ],
+      "to": [
+        -4.2,
+        12.2,
+        2.3
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -4.45,
+        9.8,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        5.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "7b342ab3-1d21-44ff-a9fb-cea550a75b37"
+    },
+    {
+      "name": "right_skate_rear_cuff_fin",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        -4.3,
+        7.7,
+        2.0
+      ],
+      "to": [
+        -0.02,
+        11.5,
+        3.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        -2.0,
+        9.6,
+        2.5
+      ],
+      "rotation": [
+        10,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "9e3d7625-947e-4e7f-ae0c-575fed37306e"
+    },
+    {
+      "name": "left_skate_wheel_front_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.35,
+        0.1065,
+        -4.5935
+      ],
+      "to": [
+        2.65,
+        2.6935,
+        -2.0065
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d23051b0-e500-44a1-9d5f-1daf9761d2af"
+    },
+    {
+      "name": "left_skate_wheel_front_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.37,
+        0.1065,
+        -4.5935
+      ],
+      "to": [
+        2.63,
+        2.6935,
+        -2.0065
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "88cdc90a-356f-479d-829c-48f97b8d1c9b"
+    },
+    {
+      "name": "left_skate_wheel_front_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.0,
+        0.9,
+        -3.8
+      ],
+      "to": [
+        3.0,
+        1.9,
+        -2.8
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -3.3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "f06bf27a-012f-4c54-8bfb-eec3e3da35b1"
+    },
+    {
+      "name": "left_skate_wheel_mid_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.35,
+        0.1065,
+        -1.3935
+      ],
+      "to": [
+        2.65,
+        2.6935,
+        1.1935
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "33b574a3-f9a1-4654-a2f5-8b6c1c97a93a"
+    },
+    {
+      "name": "left_skate_wheel_mid_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.37,
+        0.1065,
+        -1.3935
+      ],
+      "to": [
+        2.63,
+        2.6935,
+        1.1935
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "004a41f8-fc53-48dd-959b-0db43b5ade4b"
+    },
+    {
+      "name": "left_skate_wheel_mid_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.0,
+        0.9,
+        -0.6
+      ],
+      "to": [
+        3.0,
+        1.9,
+        0.4
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        1.4,
+        -0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "60be5979-4f30-4ae3-b018-cb7cf8c185e1"
+    },
+    {
+      "name": "left_skate_wheel_rear_core_a",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.125,
+        0.1522,
+        1.5522
+      ],
+      "to": [
+        2.875,
+        3.8478,
+        5.2478
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "b85dc14f-790e-4dd8-8340-20f6e1f904ab"
+    },
+    {
+      "name": "left_skate_wheel_rear_core_b",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 6,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        1.145,
+        0.1522,
+        1.5522
+      ],
+      "to": [
+        2.855,
+        3.8478,
+        5.2478
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        45,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            16,
+            16,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "124677d7-6bc9-4a60-a2d9-a05594fd349e"
+    },
+    {
+      "name": "left_skate_wheel_rear_axle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.775,
+        1.5,
+        2.9
+      ],
+      "to": [
+        3.225,
+        2.5,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        2.0,
+        3.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "4df78af2-3767-4215-8538-51f1ae70b5e1"
+    },
+    {
+      "name": "left_skate_frame_rail_0",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.68,
+        2.0,
+        -4.1
+      ],
+      "to": [
+        1.12,
+        3.6,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        0.9,
+        2.8,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "69371916-2de9-4448-baf6-b66c0a83b36e"
+    },
+    {
+      "name": "left_skate_frame_rail_1",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        2.88,
+        2.0,
+        -4.1
+      ],
+      "to": [
+        3.32,
+        3.6,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        3.1,
+        2.8,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "cb05c18e-05c1-4fc3-9bb6-3400ddd19ed1"
+    },
+    {
+      "name": "left_skate_nose_guard",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.15,
+        2.6,
+        -5.4
+      ],
+      "to": [
+        3.9,
+        3.9,
+        -3.8
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        3.2,
+        -4.6
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "52b86b66-5aa3-4ced-b15f-91f8a3a19054"
+    },
+    {
+      "name": "left_skate_rear_fender",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.15,
+        3.4,
+        2.0
+      ],
+      "to": [
+        3.9,
+        4.7,
+        5.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        4.0,
+        3.5
+      ],
+      "rotation": [
+        14,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "5a77a074-b68d-4e4f-84d4-b0b54ddd6b83"
+    },
+    {
+      "name": "left_skate_chassis_accent",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 8,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        3.31,
+        2.5,
+        -2.5
+      ],
+      "to": [
+        3.59,
+        3.05,
+        1.6
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        3.45,
+        2.75,
+        -0.45
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            64,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "d3ce84ed-09b2-4264-95b9-bd90f8ee84a5"
+    },
+    {
+      "name": "left_skate_sole",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.03,
+        3.4,
+        -4.8
+      ],
+      "to": [
+        4.45,
+        4.4,
+        3.9
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        3.9,
+        -0.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "6d4f5108-779d-43dc-a618-4953279e8a8f"
+    },
+    {
+      "name": "left_skate_toe_box",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.04,
+        4.2,
+        -5.0
+      ],
+      "to": [
+        4.35,
+        6.2,
+        -2.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        5.0,
+        -3.5
+      ],
+      "rotation": [
+        -8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "36047a35-e79c-4ea8-9b55-2e2cec818311"
+    },
+    {
+      "name": "left_skate_toe_tip",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.15,
+        4.1,
+        -5.6
+      ],
+      "to": [
+        4.0,
+        5.5,
+        -4.5
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        4.8,
+        -5.0
+      ],
+      "rotation": [
+        -18,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "a1f5c7b2-9622-4992-941c-f0219f87bd6a"
+    },
+    {
+      "name": "left_skate_foot_core",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.02,
+        4.2,
+        -2.3
+      ],
+      "to": [
+        4.35,
+        7.4,
+        2.45
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        5.8,
+        0.0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "a80684a6-ca43-425f-bb4d-5952470fa4e2"
+    },
+    {
+      "name": "left_skate_outer_side_plate",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        4.22,
+        4.3,
+        -2.1
+      ],
+      "to": [
+        4.58,
+        7.2,
+        2.35
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        4.4,
+        5.7,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "3ed453dc-d65b-4702-921b-f5aff2649a33"
+    },
+    {
+      "name": "left_skate_ankle_strap",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.01,
+        6.0,
+        -2.45
+      ],
+      "to": [
+        4.6,
+        6.9,
+        1.1
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        6.45,
+        -0.6
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            33,
+            1,
+            47,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "89062c10-99e8-4262-8787-2f63d71e3b6d"
+    },
+    {
+      "name": "left_skate_strap_buckle",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 4,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        4.37,
+        6.1,
+        -1.3
+      ],
+      "to": [
+        4.73,
+        6.9,
+        -0.3
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        4.55,
+        6.5,
+        -0.8
+      ],
+      "rotation": [
+        -22,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            32,
+            16,
+            48,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "607782d7-291a-400a-b763-28a5ec213c59"
+    },
+    {
+      "name": "left_skate_heel_counter",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.02,
+        4.2,
+        1.9
+      ],
+      "to": [
+        4.45,
+        7.8,
+        3.4
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        6.0,
+        2.65
+      ],
+      "rotation": [
+        8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "8d480c45-e526-4147-9442-69994376f66c"
+    },
+    {
+      "name": "left_skate_inner_collar",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.02,
+        7.3,
+        -2.25
+      ],
+      "to": [
+        4.3,
+        11.2,
+        2.35
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        9.2,
+        0.05
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            49,
+            1,
+            63,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "aaff1e47-711b-4006-8e8c-fe09f6d1cdda"
+    },
+    {
+      "name": "left_skate_front_shin",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.03,
+        7.4,
+        -2.7
+      ],
+      "to": [
+        4.35,
+        11.9,
+        -1.85
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        9.6,
+        -2.25
+      ],
+      "rotation": [
+        -8,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "0b0cc482-4228-4143-aac6-88548d8684da"
+    },
+    {
+      "name": "left_skate_outer_cuff_wing",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 3,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        4.2,
+        7.4,
+        -2.1
+      ],
+      "to": [
+        4.7,
+        12.2,
+        2.3
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        4.45,
+        9.8,
+        0.1
+      ],
+      "rotation": [
+        0,
+        0,
+        -5.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "16fb282a-8c5b-4484-8c95-225f47eba0f8"
+    },
+    {
+      "name": "left_skate_rear_cuff_fin",
+      "box_uv": false,
+      "rescale": false,
+      "locked": false,
+      "light_emission": 0,
+      "render_order": "default",
+      "allow_mirror_modeling": true,
+      "from": [
+        0.02,
+        7.7,
+        2.0
+      ],
+      "to": [
+        4.3,
+        11.5,
+        3.0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "origin": [
+        2.0,
+        9.6,
+        2.5
+      ],
+      "rotation": [
+        10,
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            1,
+            1,
+            15,
+            15
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "f50da022-dd16-46ec-b1e4-041f0381106e"
+    }
+  ],
+  "outliner": [
+    {
+      "name": "xilonen_roller_skates",
+      "origin": [
+        0,
+        15.8,
+        0
+      ],
+      "color": 0,
+      "uuid": "5366baf9-278d-46c5-bc86-bd00e8cf57f0",
+      "export": true,
+      "mirror_uv": false,
+      "isOpen": true,
+      "locked": false,
+      "visibility": true,
+      "autouv": 0,
+      "children": [
+        {
+          "name": "right_skate",
+          "origin": [
+            -2.0,
+            15.8,
+            0
+          ],
+          "color": 0,
+          "uuid": "5b32cb31-5ad2-411a-8f12-1ebd6af4cf2f",
+          "export": true,
+          "mirror_uv": false,
+          "isOpen": true,
+          "locked": false,
+          "visibility": true,
+          "autouv": 0,
+          "children": [
+            {
+              "name": "right_skate_wheels",
+              "origin": [
+                -2.0,
+                1.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "16722714-9626-4bbe-8bf1-e9e3574be418",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                {
+                  "name": "right_skate_wheel_front",
+                  "origin": [
+                    -2.0,
+                    1.4,
+                    -3.3
+                  ],
+                  "color": 0,
+                  "uuid": "c3271adc-f7be-4c3f-a7fa-061e44a2d980",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "d6ffefd8-e86a-414b-abfa-45181356a6f8",
+                    "82e63edb-54a2-415e-ab2c-95b2e28833f3",
+                    "b6d58e63-66a2-4ce0-a311-d543ae842afb"
+                  ]
+                },
+                {
+                  "name": "right_skate_wheel_mid",
+                  "origin": [
+                    -2.0,
+                    1.4,
+                    -0.1
+                  ],
+                  "color": 0,
+                  "uuid": "7d1a3285-b7fb-4aed-9c4a-50f4ce21fc51",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "ac49804e-0125-4449-b000-ca540d23b134",
+                    "3e07fc4c-bfa3-4449-a7cc-997076cdd020",
+                    "7fbb68e8-e97a-4352-b545-8bd052b46230"
+                  ]
+                },
+                {
+                  "name": "right_skate_wheel_rear",
+                  "origin": [
+                    -2.0,
+                    2.0,
+                    3.4
+                  ],
+                  "color": 0,
+                  "uuid": "ab9306bd-b10e-4b0e-b3da-8c31f6defab4",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "ba0ea76a-55c4-42c1-ac0b-dad74937a987",
+                    "2dceafc3-f3f9-479b-b47d-15bf9bb7d49a",
+                    "77fd2fed-2f58-4853-9996-7a83cdb2ce92"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "right_skate_frame",
+              "origin": [
+                -2.0,
+                2.8,
+                0
+              ],
+              "color": 0,
+              "uuid": "b2cd8a49-be42-41a6-805e-99b3cd8f3457",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "25ae748f-4349-4448-9065-e1b873da3c74",
+                "9d33ddbb-3bb2-4cc0-a414-d4a363fd5c04",
+                "3cf0a4f4-2b9c-4e95-9e36-65c99bd7bec8",
+                "da07f3ef-4625-49b0-9835-fe0a8e7be511",
+                "98081f67-4b1a-438f-b4f3-c11e1e331c95"
+              ]
+            },
+            {
+              "name": "right_skate_boot",
+              "origin": [
+                -2.0,
+                5.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "541de8ba-8d12-49cb-8d0c-23f7f54782d5",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "07cbfa2c-4103-41c0-ba9c-39c954f0b3fc",
+                "7c477a76-eb6a-4408-9fed-9cbea3de005d",
+                "ea198d66-0be7-456f-adb1-7295f79ab8ee",
+                "7d750eb8-b922-4179-9169-0409013284d6",
+                "161fa953-b34b-4189-ad74-644ab9dadb6b",
+                "f1d60afd-d91c-4cd2-9610-4b631f2e6924",
+                "06a53a6d-68e3-4668-af6f-75e23a604923",
+                "b28a76fd-23f7-438c-95b0-cf59e6d9b7d4"
+              ]
+            },
+            {
+              "name": "right_skate_cuff",
+              "origin": [
+                -2.0,
+                9.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "cef5f2a2-66bc-4679-8532-0b59fcdbc122",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "a247bf6f-49fc-40ae-833a-33e15d553579",
+                "bb52fc80-6184-4edc-9535-bb3c140803cf",
+                "7b342ab3-1d21-44ff-a9fb-cea550a75b37",
+                "9e3d7625-947e-4e7f-ae0c-575fed37306e"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "left_skate",
+          "origin": [
+            2.0,
+            15.8,
+            0
+          ],
+          "color": 0,
+          "uuid": "2f7004e3-1ee8-4ce6-93e3-69810ad7d1f5",
+          "export": true,
+          "mirror_uv": false,
+          "isOpen": true,
+          "locked": false,
+          "visibility": true,
+          "autouv": 0,
+          "children": [
+            {
+              "name": "left_skate_wheels",
+              "origin": [
+                2.0,
+                1.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "2d5b1081-7848-441b-baf8-3f96469ccafd",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                {
+                  "name": "left_skate_wheel_front",
+                  "origin": [
+                    2.0,
+                    1.4,
+                    -3.3
+                  ],
+                  "color": 0,
+                  "uuid": "d104a02b-25c3-4e93-8d7e-8d6694475fe7",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "d23051b0-e500-44a1-9d5f-1daf9761d2af",
+                    "88cdc90a-356f-479d-829c-48f97b8d1c9b",
+                    "f06bf27a-012f-4c54-8bfb-eec3e3da35b1"
+                  ]
+                },
+                {
+                  "name": "left_skate_wheel_mid",
+                  "origin": [
+                    2.0,
+                    1.4,
+                    -0.1
+                  ],
+                  "color": 0,
+                  "uuid": "3b5b2f03-5bba-48df-92d5-1402e3db35eb",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "33b574a3-f9a1-4654-a2f5-8b6c1c97a93a",
+                    "004a41f8-fc53-48dd-959b-0db43b5ade4b",
+                    "60be5979-4f30-4ae3-b018-cb7cf8c185e1"
+                  ]
+                },
+                {
+                  "name": "left_skate_wheel_rear",
+                  "origin": [
+                    2.0,
+                    2.0,
+                    3.4
+                  ],
+                  "color": 0,
+                  "uuid": "d6a19c09-6eff-4233-be7c-41e9e9258b77",
+                  "export": true,
+                  "mirror_uv": false,
+                  "isOpen": true,
+                  "locked": false,
+                  "visibility": true,
+                  "autouv": 0,
+                  "children": [
+                    "b85dc14f-790e-4dd8-8340-20f6e1f904ab",
+                    "124677d7-6bc9-4a60-a2d9-a05594fd349e",
+                    "4df78af2-3767-4215-8538-51f1ae70b5e1"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "left_skate_frame",
+              "origin": [
+                2.0,
+                2.8,
+                0
+              ],
+              "color": 0,
+              "uuid": "971b4497-a650-49f7-bbcb-2b2b28ea771e",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "69371916-2de9-4448-baf6-b66c0a83b36e",
+                "cb05c18e-05c1-4fc3-9bb6-3400ddd19ed1",
+                "52b86b66-5aa3-4ced-b15f-91f8a3a19054",
+                "5a77a074-b68d-4e4f-84d4-b0b54ddd6b83",
+                "d3ce84ed-09b2-4264-95b9-bd90f8ee84a5"
+              ]
+            },
+            {
+              "name": "left_skate_boot",
+              "origin": [
+                2.0,
+                5.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "33c58cf7-6b2e-4cc7-8269-a35f4e9ecf28",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "6d4f5108-779d-43dc-a618-4953279e8a8f",
+                "36047a35-e79c-4ea8-9b55-2e2cec818311",
+                "a1f5c7b2-9622-4992-941c-f0219f87bd6a",
+                "a80684a6-ca43-425f-bb4d-5952470fa4e2",
+                "3ed453dc-d65b-4702-921b-f5aff2649a33",
+                "89062c10-99e8-4262-8787-2f63d71e3b6d",
+                "607782d7-291a-400a-b763-28a5ec213c59",
+                "8d480c45-e526-4147-9442-69994376f66c"
+              ]
+            },
+            {
+              "name": "left_skate_cuff",
+              "origin": [
+                2.0,
+                9.6,
+                0
+              ],
+              "color": 0,
+              "uuid": "0d2bfd92-ae5d-4b30-9746-1e71bcda9e76",
+              "export": true,
+              "mirror_uv": false,
+              "isOpen": true,
+              "locked": false,
+              "visibility": true,
+              "autouv": 0,
+              "children": [
+                "aaff1e47-711b-4006-8e8c-fe09f6d1cdda",
+                "0b0cc482-4228-4143-aac6-88548d8684da",
+                "16fb282a-8c5b-4484-8c95-225f47eba0f8",
+                "f50da022-dd16-46ec-b1e4-041f0381106e"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "path": "",
+      "name": "xilonen_skates_texture.png",
+      "folder": "",
+      "namespace": "",
+      "id": "0",
+      "group": "",
+      "width": 64,
+      "height": 64,
+      "uv_width": 64,
+      "uv_height": 64,
+      "particle": false,
+      "use_as_default": false,
+      "layers_enabled": false,
+      "sync_to_project": "",
+      "render_mode": "default",
+      "render_sides": "auto",
+      "frame_time": 1,
+      "frame_order_type": "loop",
+      "frame_order": "",
+      "frame_interpolate": false,
+      "visible": true,
+      "internal": true,
+      "saved": true,
+      "uuid": "3fdd90fa-c923-4a25-b7de-10974390df75",
+      "relative_path": "",
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACo0lEQVR4nO2Yv2vbQBTHvzEZMphSQjCl2FsHT/a/UEIDDRRNmTyXDp2E8ZQxQycj/Bd0NB06qQEHUkqWdrfp4CFbTCjCmBI8ZAhNBnHXu7MsnXT6ZfM+YJDk92y/77337p13HudnjyiQjx+ujPy//fpt5L8LAPAuEjlfDqc4sm0j/5+TKl4ePE/kfzv/y6/3q3uxfBfLewBMgC3iyqmEvv+6+0+63zoB1ACjCJcrBdrWTNt2eHqXik0cMs2AtjWD1+uibTkYu/VI+86nZ8Y2pSkBFvyB9RYeoC2CKaUoATF4AL4IvW6scsiL1DNADZ6RVyYUXgJjt4625cADJBHm7gVq/ezLoBQlMHbrqPUdzF1/QMor+CRIGXA5nGo5HXWakTZiJugGPzy9i+zyUTZGJdD7Uo36jQCAcUfLjIugu/JpbINxS0ASIIsULWPai2Q+CZadXUC/9tdh4r9Y3mOx/GP0/exzkrBTf1HL5P+Am8ED8Mb2b74P0LCDd9zP7x+Mvke3b60jdA64+fEKANA4vA79kOCz+DLShq2azq4ShGnmAgECsKDXPYsSoyi8XjeWfa3vAFAEkIKfKOq2mtymrCIkgQvAgxcCPx74W9jInv1/3mquiKDTgLSblCq8Siu8XNQziAqbThmBPYAFrt6P7ODTnGkPKBJ5DlDUH52fYHR+gjCbTacCyLXPV1sInF2LmRHULDeRVI7DqfaAnKkA8tbG6vz43Vf+jF2LPUD02a/urbxUdGyKQM6AVlPeBQQRJJstIrAEeBZEdP9tgAvQOLz2Gxtb4clUDlxYeXUQSrUHGGaYus9HIWUAFyHkhwRNgZs8B6yUgBig7mGoDLDZPi6h22BegadxqiMIgiAIgiAIgiAIgiAIgiAIgiAIgiAIgljHEyhNFqIaNaVlAAAAAElFTkSuQmCC"
+    }
+  ]
+}
