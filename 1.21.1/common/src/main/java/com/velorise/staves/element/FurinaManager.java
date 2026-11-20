@@ -203,7 +203,7 @@ public final class FurinaManager {
             return;
         }
 
-        double minSurfaceOffset = Math.max(VentiManager.isChannelingGuardianLens(player) ? 1.15D : 0.65D, -dv.y + 0.25D);
+        double minSurfaceOffset = Math.max(NeuvilletteManager.isChannelingGuardianLens(player) ? 1.15D : 0.65D, -dv.y + 0.25D);
         boolean atSurface = (py <= surfaceY + 0.12D && py >= surfaceY - minSurfaceOffset);
         boolean crossingSurface = (py > surfaceY && (py + dv.y) <= surfaceY + 0.08D && py <= surfaceY + Math.max(0.85D, -dv.y + 0.35D));
         if (!atSurface && !crossingSurface) {

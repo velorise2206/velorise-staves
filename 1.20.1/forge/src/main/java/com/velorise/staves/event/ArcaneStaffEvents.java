@@ -340,7 +340,7 @@ public final class ArcaneStaffEvents {
     public static void onLivingAttack(net.minecraftforge.event.entity.living.LivingAttackEvent event) {
         LivingEntity entity = event.getEntity();
         DamageSource src = event.getSource();
-        if (!entity.level().isClientSide() && com.velorise.staves.element.DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, src)) {
+        if (!entity.level().isClientSide() && com.velorise.staves.element.WitherShulkerMechanicManager.tryDeflectProjectileWithWitherCarapace(entity, src)) {
             event.setCanceled(true);
             return;
         }
@@ -723,7 +723,7 @@ public final class ArcaneStaffEvents {
         float attackU = isNetherite ? 1.5F : 1.0F;
         ServerPlayer player = owner instanceof ServerPlayer sp ? sp : null;
         for (LivingEntity target : targets(level, hit, radius, owner)) {
-            com.velorise.staves.element.DragonfireCloudManager.markWitherContagion(target, player, isNetherite, 160);
+            com.velorise.staves.element.WitherShulkerMechanicManager.markWitherContagion(target, player, isNetherite, 160);
             ElementalGaugeManager.applyElementBypassIcd(level, target, Element.DENDRO, attackU, player, baseDmg);
             if (ElementalGaugeManager.getInnateElement(target) != Element.DENDRO) {
                 target.addEffect(new MobEffectInstance(MobEffects.WITHER, isNetherite ? 150 : 100, isNetherite ? 1 : 0));
@@ -743,7 +743,7 @@ public final class ArcaneStaffEvents {
         if (target != null && target != owner) {
             ElementalGaugeManager.applyElement(level, target, Element.ELECTRO, attackU, player, baseDmg);
             if (isFinale) {
-                com.velorise.staves.element.DragonfireCloudManager.scheduleShulkerGravitySlam(level, target, player, isNetherite);
+                com.velorise.staves.element.WitherShulkerMechanicManager.scheduleShulkerGravitySlam(level, target, player, isNetherite);
             } else if (ElementalGaugeManager.getInnateElement(target) != Element.ELECTRO
                     && !ElementalGaugeManager.isBossEntity(target)
                     && !ElementalGaugeManager.isEntityFrozen(target)) {

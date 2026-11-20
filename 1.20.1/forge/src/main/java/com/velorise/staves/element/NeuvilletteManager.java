@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import static com.velorise.staves.element.ElementalGaugeManager.*;
+import static com.velorise.staves.element.PlayerGenshinState.*;
+import java.util.*;
 
 /**
  * Manages Neuvillette's reworked Guardian Lens kit (1.20.1 Forge).
@@ -54,10 +57,12 @@ public final class NeuvilletteManager {
     private NeuvilletteManager() {}
 
     public static void clearAll() {
+        SOURCEWATER_DROPLETS.clear();
         STATES.clear();
     }
 
     public static void clearPlayerState(UUID playerId) {
+        if (playerId != null) SOURCEWATER_DROPLETS.removeIf(d -> playerId.equals(d.ownerId));
         if (playerId != null) STATES.remove(playerId);
     }
 
@@ -446,6 +451,192 @@ public final class NeuvilletteManager {
         if (force || code != st.lastSyncedCode || (st.firingBeam && st.beamElapsedTicks % 4 == 0)) {
             st.lastSyncedCode = code;
             ModNetwork.sendStaffAnimation(player, code);
+        }
+    }
+
+    public record SourcewaterDroplet(ServerLevel level, Vec3 pos, long spawnTick, @Nullable UUID ownerId) {}
+
+    public static final java.util.List<SourcewaterDroplet> SOURCEWATER_DROPLETS = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    public static boolean isChannelingGuardianLens(Player player) {
+        if (player == null) return false;
+        if (NeuvilletteManager.isChannelingOrFiring(player)) return true;
+        if (!player.isUsingItem()) return false;
+        ItemStack active = player.getUseItem();
+        return ArcaneStaffItem.getEffectiveKind(active) == ArcaneStaffItem.Kind.GUARDIAN;
+    }
+
+    public static boolean carriesGuardianLens(Player player) {
+        if (player == null) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty() && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void onHydroReactionTriggered(
+            ServerLevel level,
+            Vec3 targetPos,
+            ElementalReaction reaction,
+            @Nullable Element reactedAura,
+            @Nullable Element triggerElem,
+            @Nullable ServerPlayer attacker
+    ) {
+        if (level == null || reaction == null) return;
+        boolean isHydroReaction = switch (reaction) {
+            case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE, FROZEN, ELECTRO_CHARGED, BLOOM, REVERSE_BLOOM -> true;
+            case SWIRL, CRYSTALLIZE -> reactedAura == Element.HYDRO || triggerElem == Element.HYDRO;
+            default -> false;
+        };
+        if (!isHydroReaction) return;
+
+        long now = level.getGameTime();
+        if (attacker != null) {
+            String stackKey = switch (reaction) {
+                case FORWARD_VAPORIZE, REVERSE_VAPORIZE, OVERVAPE -> "VAPORIZE";
+                case FROZEN -> "FROZEN";
+                case ELECTRO_CHARGED -> "ELECTRO_CHARGED";
+                case BLOOM, REVERSE_BLOOM -> "BLOOM";
+                case SWIRL -> "HYDRO_SWIRL";
+                case CRYSTALLIZE -> "HYDRO_CRYSTALLIZE";
+                default -> reaction.name();
+            };
+            Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.computeIfAbsent(attacker.getUUID(), k -> new ConcurrentHashMap<>());
+            stacks.entrySet().removeIf(e -> now >= e.getValue());
+            stacks.put(stackKey, now + 600L); // 30s Past Draconic Glories stack
+        }
+
+        // Item 6: Hydro reactions ONLY grant Past Draconic Glories stacks; Sourcewater Droplets spawn exclusively from Skill E & Burst [R].
+    }
+
+    public static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) {
+        if (!(entity instanceof Player player)) return false;
+        for (ItemStack s : player.getInventory().items) {
+            if (!s.isEmpty()
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
+                return true;
+            }
+        }
+        for (ItemStack s : player.getInventory().offhand) {
+            if (!s.isEmpty()
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(s) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                    && com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) {
+        NeuvilletteManager.tryInterruptChanneling(victim, damageDealt);
+        if (damageDealt <= 0.0F || !(victim instanceof ServerPlayer sp)) return;
+        if (sp.getAbsorptionAmount() > 0.0F) return;
+        if (!sp.isUsingItem()) return;
+        ItemStack active = sp.getUseItem();
+        if (com.velorise.staves.item.ArcaneStaffItem.getEffectiveKind(active) == com.velorise.staves.item.ArcaneStaffItem.Kind.GUARDIAN
+                && !com.velorise.staves.item.ArcaneStaffItem.getEffectiveNetherite(active)) {
+            sp.stopUsingItem();
+            sp.serverLevel().playSound(null, sp.blockPosition(), SoundEvents.SHIELD_BREAK, SoundSource.PLAYERS, 0.55F, 1.25F);
+        }
+    }
+
+    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) {
+        if (entity == null) return 0;
+        int c1Base = hasNetheriteGuardianLens(entity) ? 1 : 0;
+        Map<String, Long> stacks = DRACONIC_GLORIES_STACKS.get(entity.getUUID());
+        if (stacks == null || stacks.isEmpty()) return c1Base;
+        long now = entity.level().getGameTime();
+        stacks.entrySet().removeIf(e -> now >= e.getValue());
+        return Math.min(3, stacks.size() + c1Base);
+    }
+
+    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) {
+        int stacks = getDraconicGloriesStacks(entity);
+        return switch (stacks) {
+            case 1 -> 1.15F;
+            case 2 -> 1.30F;
+            case 3 -> 1.60F;
+            default -> 1.00F;
+        };
+    }
+
+    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) {
+        SOURCEWATER_DROPLETS.removeIf(d -> d.level() != level || (now - d.spawnTick()) >= 300L);
+        long activeInLevel = SOURCEWATER_DROPLETS.stream()
+                .filter(d -> d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId))
+                .count();
+        if (activeInLevel >= 9) {
+            for (SourcewaterDroplet d : SOURCEWATER_DROPLETS) {
+                if (d.level() == level && java.util.Objects.equals(d.ownerId(), ownerId)) {
+                    SOURCEWATER_DROPLETS.remove(d);
+                    break;
+                }
+            }
+        }
+        double ox = (level.random.nextDouble() - 0.5D) * 1.6D;
+        double oz = (level.random.nextDouble() - 0.5D) * 1.6D;
+        Vec3 dropPos = new Vec3(basePos.x + ox, basePos.y + 0.45D, basePos.z + oz);
+        SOURCEWATER_DROPLETS.add(new SourcewaterDroplet(level, dropPos, now, ownerId));
+        level.sendParticles(ParticleTypes.SPLASH, dropPos.x, dropPos.y, dropPos.z, 10, 0.2D, 0.2D, 0.2D, 0.04D);
+        level.sendParticles(ParticleTypes.GLOW, dropPos.x, dropPos.y, dropPos.z, 6, 0.15D, 0.15D, 0.15D, 0.02D);
+    }
+
+    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) {
+        if (level == null || caster == null || SOURCEWATER_DROPLETS.isEmpty()) return 0;
+        double r2 = radius * radius;
+        Vec3 cPos = caster.position();
+        UUID casterId = caster.getUUID();
+        int absorbed = 0;
+        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
+            if (droplet.level() != level) continue;
+            if (droplet.ownerId() == null || !droplet.ownerId().equals(casterId)) continue;
+            if (droplet.pos().distanceToSqr(cPos) <= r2) {
+                SOURCEWATER_DROPLETS.remove(droplet);
+                absorbed++;
+                level.sendParticles(ParticleTypes.BUBBLE_POP, droplet.pos().x, droplet.pos().y, droplet.pos().z, 12, 0.2D, 0.2D, 0.2D, 0.04D);
+                level.sendParticles(ParticleTypes.HEART, caster.getX(), caster.getY() + 1.2D, caster.getZ(), 1, 0.2D, 0.2D, 0.2D, 0.02D);
+                if (absorbed >= maxCount) break;
+            }
+        }
+        if (absorbed > 0) {
+            caster.heal(caster.getMaxHealth() * 0.16F * absorbed);
+            level.playSound(null, caster.blockPosition(), SoundEvents.BUCKET_FILL, SoundSource.PLAYERS, 0.85F, 1.35F);
+        }
+        return absorbed;
+    }
+
+    public static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) {
+        if (SOURCEWATER_DROPLETS.isEmpty()) return;
+        for (SourcewaterDroplet droplet : SOURCEWATER_DROPLETS) {
+            ServerLevel lvl = droplet.level();
+            if (lvl == null || serverNow < droplet.spawnTick() || (serverNow - droplet.spawnTick()) >= 300L) {
+                SOURCEWATER_DROPLETS.remove(droplet);
+                continue;
+            }
+            if (serverNow % 5 == 0) {
+                lvl.sendParticles(ParticleTypes.DRIPPING_WATER, droplet.pos().x, droplet.pos().y, droplet.pos().z, 3, 0.12D, 0.12D, 0.12D, 0.01D);
+                lvl.sendParticles(ParticleTypes.GLOW, droplet.pos().x, droplet.pos().y, droplet.pos().z, 2, 0.10D, 0.10D, 0.10D, 0.01D);
+            }
+            UUID ownerId = droplet.ownerId();
+            if (ownerId == null) continue;
+            for (ServerPlayer player : lvl.getPlayers(p -> p.isAlive() && !p.isSpectator()
+                    && p.getUUID().equals(ownerId) && p.position().distanceToSqr(droplet.pos()) <= 2.25D)) {
+                if (player.getHealth() < player.getMaxHealth()) {
+                    SOURCEWATER_DROPLETS.remove(droplet);
+                    player.heal(player.getMaxHealth() * 0.16F);
+                    lvl.sendParticles(ParticleTypes.HEART, player.getX(), player.getY() + 1.1D, player.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.02D);
+                    lvl.playSound(null, player.blockPosition(), SoundEvents.GENERIC_DRINK, SoundSource.PLAYERS, 0.65F, 1.4F);
+                    break;
+                }
+            }
         }
     }
 }

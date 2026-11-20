@@ -1458,7 +1458,7 @@ public final class ElementalGaugeManager {
             @Nullable ServerPlayer attacker,
             double dmgMult
     ) {
-        VentiManager.executeReactionEffectInternal(level, target, reaction, trigger, reactedU, attacker, dmgMult);
+        ReactionEffectManager.executeReactionEffectInternal(level, target, reaction, trigger, reactedU, attacker, dmgMult);
     }
 
 public static void tick(MinecraftServer server) {
@@ -1529,52 +1529,52 @@ public static void tick(MinecraftServer server) {
         for (ServerLevel lvl : server.getAllLevels()) {
             TsaritsaManager.tickServer(lvl);
         }
-        MavuikaManager.tickActiveEntityGauges(server, serverNow);
-        MavuikaManager.tickActivePlayersAndEnvironment(server, serverNow);
+        ElementalTickManager.tickActiveEntityGauges(server, serverNow);
+        ElementalTickManager.tickActivePlayersAndEnvironment(server, serverNow);
     }
 
     public static record FrozenPoseState(double x, double y, double z, float yRot, float xRot, float yHeadRot, float yBodyRot) {}
-    public static boolean isPhysicalDamage(DamageSource source) { return ZhongliManager.isPhysicalDamage(source); }
-    public static boolean isElementalOrMagicDamage(DamageSource source) { return ZhongliManager.isElementalOrMagicDamage(source); }
-    public static void notifyOmniImmuneEnvironmental(ServerLevel level, LivingEntity target) { RaidenManager.notifyOmniImmuneEnvironmental(level, target); }
-    public static Element chooseOmniMutatedAttackElement(LivingEntity target, LivingEntity attacker) { return RaidenManager.chooseOmniMutatedAttackElement(target, attacker); }
-    public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) { return ZhongliManager.getElementalDamageSource(level, attacker); }
-    public static DamageSource getElementalDamageSource( ServerLevel level, @Nullable LivingEntity attacker, @Nullable ElementalReaction reaction, @Nullable Element element ) { return ZhongliManager.getElementalDamageSource(level, attacker, reaction, element); }
-    public static boolean isGeoInnateMob(@Nullable Entity entity) { return ZhongliManager.isGeoInnateMob(entity); }
-    public static boolean isAnemoInnateMob(@Nullable Entity entity) { return ZhongliManager.isAnemoInnateMob(entity); }
-    public static boolean isProjectileDamageSource(@Nullable DamageSource source) { return ZhongliManager.isProjectileDamageSource(source); }
-    public static boolean isFallDamageImmunityApplicable(@Nullable LivingEntity entity, @Nullable DamageSource source) { return ZhongliManager.isFallDamageImmunityApplicable(entity, source); }
-    public static void beginDamageFloatTracking(@Nullable LivingEntity entity) { ZhongliManager.beginDamageFloatTracking(entity); }
-    public static void trySendPhysicalDamageFloat(@Nullable LivingEntity target, @Nullable DamageSource source, float finalDamage) { ZhongliManager.trySendPhysicalDamageFloat(target, source, finalDamage); }
-    public static boolean isVanillaPhysicalDisplayDamage(DamageSource source) { return ZhongliManager.isVanillaPhysicalDisplayDamage(source); }
-    public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) { return ZhongliManager.getMobElementalResistance(target, element); }
-    public static float getMobPhysicalResistance(@Nullable LivingEntity target) { return ZhongliManager.getMobPhysicalResistance(target); }
-    public static float computeResistanceMultiplier(float res) { return ZhongliManager.computeResistanceMultiplier(res); }
-    public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) { return ZhongliManager.getEffectivePhysicalMultiplier(target, now); }
-    public static float getEffectivePhysicalMultiplier(LivingEntity target, @Nullable DamageSource source, long now) { return ZhongliManager.getEffectivePhysicalMultiplier(target, source, now); }
-    public static float getEffectiveElementalResistance(@Nullable LivingEntity target, @Nullable Element element, long now) { return ZhongliManager.getEffectiveElementalResistance(target, element, now); }
-    public static float applyMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element, float damage) { return ZhongliManager.applyMobElementalResistance(target, element, damage); }
-    public static @Nullable Element inferElementFromDamageSource(DamageSource source) { return ZhongliManager.inferElementFromDamageSource(source); }
-    public static boolean hurtWithPreAppliedElementalRes(LivingEntity target, DamageSource source, float amount) { return ZhongliManager.hurtWithPreAppliedElementalRes(target, source, amount); }
-    public static float applyMobDamageResistances(LivingEntity entity, DamageSource source, float amount) { return ZhongliManager.applyMobDamageResistances(entity, source, amount); }
-    public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) { ZhongliManager.triggerMobAggro(level, target, attacker); }
-    public static void enforceFrozenPoseIfFrozen(LivingEntity target) { ZhongliManager.enforceFrozenPoseIfFrozen(target); }
-    public static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) { ZhongliManager.applyFreezeState(target, targetId, newFreeze, freezeTicks, now); }
-    public static void enforceFrozenPose(LivingEntity target, UUID id) { ZhongliManager.enforceFrozenPose(target, id); }
-    public static int getFrozenRemainingTicks(UUID id, long now) { return ZhongliManager.getFrozenRemainingTicks(id, now); }
-    public static void tickEntityFreezeGuard(LivingEntity entity) { ZhongliManager.tickEntityFreezeGuard(entity); }
-    public static void clearFreezeState(LivingEntity target, UUID id) { ZhongliManager.clearFreezeState(target, id); }
-    public static void handlePlayerFreezeStruggle(ServerPlayer player) { ZhongliManager.handlePlayerFreezeStruggle(player); }
-    public static boolean isEntitySubmergedInWater(LivingEntity target) { return MavuikaManager.isEntitySubmergedInWater(target); }
-    public static boolean isEntityInWater(LivingEntity target) { return MavuikaManager.isEntityInWater(target); }
-    public static boolean isTouchingSoulCampfire(LivingEntity target) { return MavuikaManager.isTouchingSoulCampfire(target); }
-    public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) { return MavuikaManager.isTouchingEnvironmentalFireBlock(target); }
-    public static boolean isTouchingMushroomBlock(LivingEntity target) { return MavuikaManager.isTouchingMushroomBlock(target); }
-    public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) { MavuikaManager.tryApplyMushroomContactAura(level, target, now); }
-    public static void updatePlayerHpTracking(ServerPlayer player, long now) { VentiManager.updatePlayerHpTracking(player, now); }
-    public static void recordFurinaHpFluctuation(ServerLevel level, LivingEntity changedEntity, float hpFractionDelta) { VentiManager.recordFurinaHpFluctuation(level, changedEntity, hpFractionDelta); }
-    public static void activateFurinaUniversalRevelry(ServerPlayer player, boolean isNetherite) { VentiManager.activateFurinaUniversalRevelry(player, isNetherite); }
-    public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) { return VentiManager.getFanfareBonusMultiplier(entity); }
+    public static boolean isPhysicalDamage(DamageSource source) { return DamageResistanceManager.isPhysicalDamage(source); }
+    public static boolean isElementalOrMagicDamage(DamageSource source) { return DamageResistanceManager.isElementalOrMagicDamage(source); }
+    public static void notifyOmniImmuneEnvironmental(ServerLevel level, LivingEntity target) { InnateMobManager.notifyOmniImmuneEnvironmental(level, target); }
+    public static Element chooseOmniMutatedAttackElement(LivingEntity target, LivingEntity attacker) { return InnateMobManager.chooseOmniMutatedAttackElement(target, attacker); }
+    public static DamageSource getElementalDamageSource(ServerLevel level, @Nullable LivingEntity attacker) { return DamageResistanceManager.getElementalDamageSource(level, attacker); }
+    public static DamageSource getElementalDamageSource( ServerLevel level, @Nullable LivingEntity attacker, @Nullable ElementalReaction reaction, @Nullable Element element ) { return DamageResistanceManager.getElementalDamageSource(level, attacker, reaction, element); }
+    public static boolean isGeoInnateMob(@Nullable Entity entity) { return DamageResistanceManager.isGeoInnateMob(entity); }
+    public static boolean isAnemoInnateMob(@Nullable Entity entity) { return DamageResistanceManager.isAnemoInnateMob(entity); }
+    public static boolean isProjectileDamageSource(@Nullable DamageSource source) { return DamageResistanceManager.isProjectileDamageSource(source); }
+    public static boolean isFallDamageImmunityApplicable(@Nullable LivingEntity entity, @Nullable DamageSource source) { return DamageResistanceManager.isFallDamageImmunityApplicable(entity, source); }
+    public static void beginDamageFloatTracking(@Nullable LivingEntity entity) { DamageResistanceManager.beginDamageFloatTracking(entity); }
+    public static void trySendPhysicalDamageFloat(@Nullable LivingEntity target, @Nullable DamageSource source, float finalDamage) { DamageResistanceManager.trySendPhysicalDamageFloat(target, source, finalDamage); }
+    public static boolean isVanillaPhysicalDisplayDamage(DamageSource source) { return DamageResistanceManager.isVanillaPhysicalDisplayDamage(source); }
+    public static float getMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element) { return DamageResistanceManager.getMobElementalResistance(target, element); }
+    public static float getMobPhysicalResistance(@Nullable LivingEntity target) { return DamageResistanceManager.getMobPhysicalResistance(target); }
+    public static float computeResistanceMultiplier(float res) { return DamageResistanceManager.computeResistanceMultiplier(res); }
+    public static float getEffectivePhysicalMultiplier(LivingEntity target, long now) { return DamageResistanceManager.getEffectivePhysicalMultiplier(target, now); }
+    public static float getEffectivePhysicalMultiplier(LivingEntity target, @Nullable DamageSource source, long now) { return DamageResistanceManager.getEffectivePhysicalMultiplier(target, source, now); }
+    public static float getEffectiveElementalResistance(@Nullable LivingEntity target, @Nullable Element element, long now) { return DamageResistanceManager.getEffectiveElementalResistance(target, element, now); }
+    public static float applyMobElementalResistance(@Nullable LivingEntity target, @Nullable Element element, float damage) { return DamageResistanceManager.applyMobElementalResistance(target, element, damage); }
+    public static @Nullable Element inferElementFromDamageSource(DamageSource source) { return DamageResistanceManager.inferElementFromDamageSource(source); }
+    public static boolean hurtWithPreAppliedElementalRes(LivingEntity target, DamageSource source, float amount) { return DamageResistanceManager.hurtWithPreAppliedElementalRes(target, source, amount); }
+    public static float applyMobDamageResistances(LivingEntity entity, DamageSource source, float amount) { return DamageResistanceManager.applyMobDamageResistances(entity, source, amount); }
+    public static void triggerMobAggro(ServerLevel level, LivingEntity target, @Nullable LivingEntity attacker) { DamageResistanceManager.triggerMobAggro(level, target, attacker); }
+    public static void enforceFrozenPoseIfFrozen(LivingEntity target) { FreezeStateManager.enforceFrozenPoseIfFrozen(target); }
+    public static void applyFreezeState(LivingEntity target, UUID targetId, GaugeState newFreeze, int freezeTicks, long now) { FreezeStateManager.applyFreezeState(target, targetId, newFreeze, freezeTicks, now); }
+    public static void enforceFrozenPose(LivingEntity target, UUID id) { FreezeStateManager.enforceFrozenPose(target, id); }
+    public static int getFrozenRemainingTicks(UUID id, long now) { return FreezeStateManager.getFrozenRemainingTicks(id, now); }
+    public static void tickEntityFreezeGuard(LivingEntity entity) { FreezeStateManager.tickEntityFreezeGuard(entity); }
+    public static void clearFreezeState(LivingEntity target, UUID id) { FreezeStateManager.clearFreezeState(target, id); }
+    public static void handlePlayerFreezeStruggle(ServerPlayer player) { FreezeStateManager.handlePlayerFreezeStruggle(player); }
+    public static boolean isEntitySubmergedInWater(LivingEntity target) { return EnvironmentalAuraManager.isEntitySubmergedInWater(target); }
+    public static boolean isEntityInWater(LivingEntity target) { return EnvironmentalAuraManager.isEntityInWater(target); }
+    public static boolean isTouchingSoulCampfire(LivingEntity target) { return EnvironmentalAuraManager.isTouchingSoulCampfire(target); }
+    public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) { return EnvironmentalAuraManager.isTouchingEnvironmentalFireBlock(target); }
+    public static boolean isTouchingMushroomBlock(LivingEntity target) { return EnvironmentalAuraManager.isTouchingMushroomBlock(target); }
+    public static void tryApplyMushroomContactAura(ServerLevel level, LivingEntity target, long now) { EnvironmentalAuraManager.tryApplyMushroomContactAura(level, target, now); }
+    public static void updatePlayerHpTracking(ServerPlayer player, long now) { FurinaManager.updatePlayerHpTracking(player, now); }
+    public static void recordFurinaHpFluctuation(ServerLevel level, LivingEntity changedEntity, float hpFractionDelta) { FurinaManager.recordFurinaHpFluctuation(level, changedEntity, hpFractionDelta); }
+    public static void activateFurinaUniversalRevelry(ServerPlayer player, boolean isNetherite) { FurinaManager.activateFurinaUniversalRevelry(player, isNetherite); }
+    public static float getFanfareBonusMultiplier(@Nullable LivingEntity entity) { return FurinaManager.getFanfareBonusMultiplier(entity); }
     public static boolean isMavuikaOnCooldown(UUID id, long now) { return MavuikaManager.isMavuikaOnCooldown(id, now); }
     public static long getMavuikaSkillRemainingTicks(UUID id, long now) { return MavuikaManager.getMavuikaSkillRemainingTicks(id, now); }
     public static void applyMavuikaDismountOrRemainingCooldown(ServerPlayer player) { MavuikaManager.applyMavuikaDismountOrRemainingCooldown(player); }
@@ -1594,91 +1594,91 @@ public static void tick(MinecraftServer server) {
     public static void triggerMavuikaUlti(ServerPlayer player) { MavuikaManager.triggerMavuikaUlti(player); }
     public static void executeMavuikaUltiImpact(ServerLevel level, ServerPlayer player, float ultiDmg) { MavuikaManager.executeMavuikaUltiImpact(level, player, ultiDmg); }
     public static void tickMavuikaSunAura(MinecraftServer server, long serverNow) { MavuikaManager.tickMavuikaSunAura(server, serverNow); }
-    public static void drainHealthSilently(LivingEntity entity, float newHealth) { VentiManager.drainHealthSilently(entity, newHealth); }
+    public static void drainHealthSilently(LivingEntity entity, float newHealth) { FurinaManager.drainHealthSilently(entity, newHealth); }
     public static void setPlayerShieldAbsorption(ServerPlayer player, float targetAbsorption) { ZhongliManager.setPlayerShieldAbsorption(player, targetAbsorption); }
     public static void activateJadeShield(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateJadeShield(player, isNetherite); }
-    public static void activateNightsFocusShield(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateNightsFocusShield(player, isNetherite); }
-    public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) { ZhongliManager.activateNightsFocusBurstStars(player, isNetherite); }
-    public static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) { ZhongliManager.clearNightsFocusShield(player, playBreakSound); }
-    public static boolean hasActiveNightsFocusShield(@Nullable LivingEntity entity) { return ZhongliManager.hasActiveNightsFocusShield(entity); }
+    public static void activateNightsFocusShield(ServerPlayer player, boolean isNetherite) { NightsFocusManager.activateNightsFocusShield(player, isNetherite); }
+    public static void activateNightsFocusBurstStars(ServerPlayer player, boolean isNetherite) { NightsFocusManager.activateNightsFocusBurstStars(player, isNetherite); }
+    public static void clearNightsFocusShield(ServerPlayer player, boolean playBreakSound) { NightsFocusManager.clearNightsFocusShield(player, playBreakSound); }
+    public static boolean hasActiveNightsFocusShield(@Nullable LivingEntity entity) { return NightsFocusManager.hasActiveNightsFocusShield(entity); }
     public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) { RaidenManager.onPlayerCastStaffSkill(player); }
     public static void grantRaidenResolveOnStaffSkill(ServerPlayer player) { RaidenManager.grantRaidenResolveOnStaffSkill(player); }
-    public static void addNightsFocusStars(ServerPlayer player, int amount, long now) { ZhongliManager.addNightsFocusStars(player, amount, now); }
-    public static void tickNightsFocusShield(ServerPlayer player, long now) { ZhongliManager.tickNightsFocusShield(player, now); }
-    public static @Nullable LivingEntity findNearestNightsFocusTarget(ServerLevel level, ServerPlayer player) { return ZhongliManager.findNearestNightsFocusTarget(level, player); }
-    public static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) { return ZhongliManager.fireSingleNightsFocusStar(level, player); }
-    public static void tickNightsFocusProjectiles() { ZhongliManager.tickNightsFocusProjectiles(); }
+    public static void addNightsFocusStars(ServerPlayer player, int amount, long now) { NightsFocusManager.addNightsFocusStars(player, amount, now); }
+    public static void tickNightsFocusShield(ServerPlayer player, long now) { NightsFocusManager.tickNightsFocusShield(player, now); }
+    public static @Nullable LivingEntity findNearestNightsFocusTarget(ServerLevel level, ServerPlayer player) { return NightsFocusManager.findNearestNightsFocusTarget(level, player); }
+    public static boolean fireSingleNightsFocusStar(ServerLevel level, ServerPlayer player) { return NightsFocusManager.fireSingleNightsFocusStar(level, player); }
+    public static void tickNightsFocusProjectiles() { NightsFocusManager.tickNightsFocusProjectiles(); }
     public static boolean hasActiveJadeShield(@Nullable LivingEntity entity) { return ZhongliManager.hasActiveJadeShield(entity); }
     public static boolean isNearJadeShieldAura(@Nullable LivingEntity target) { return ZhongliManager.isNearJadeShieldAura(target); }
     public static float getVortexGoldenMajestyMultiplier(@Nullable ServerPlayer attacker) { return ZhongliManager.getVortexGoldenMajestyMultiplier(attacker); }
-    public static boolean isChannelingGuardianLens(Player player) { return VentiManager.isChannelingGuardianLens(player); }
-    public static void applyFurinaWaterWalking(Player player) { VentiManager.applyFurinaWaterWalking(player); }
-    public static boolean isStandingOnWaterSurface(Player player) { return VentiManager.isStandingOnWaterSurface(player); }
-    public static boolean hasRecentHpChangeBuff(ServerPlayer player) { return VentiManager.hasRecentHpChangeBuff(player); }
-    public static boolean carriesGuardianLens(Player player) { return VentiManager.carriesGuardianLens(player); }
-    public static void onHydroReactionTriggered( ServerLevel level, Vec3 targetPos, ElementalReaction reaction, @Nullable Element reactedAura, @Nullable Element triggerElem, @Nullable ServerPlayer attacker ) { VentiManager.onHydroReactionTriggered(level, targetPos, reaction, reactedAura, triggerElem, attacker); }
-    public static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) { return VentiManager.hasNetheriteGuardianLens(entity); }
-    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) { VentiManager.tryInterruptGuardianChanneling(victim, damageDealt); }
-    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) { return VentiManager.getDraconicGloriesStacks(entity); }
-    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) { return VentiManager.getDraconicGloriesMultiplier(entity); }
-    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) { VentiManager.spawnSourcewaterDroplet(level, basePos, ownerId, now); }
-    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) { return VentiManager.consumeSourcewaterDropletsForChannel(level, caster, radius, maxCount); }
-    public static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) { VentiManager.tickSourcewaterDroplets(server, serverNow); }
-    public static @Nullable Element getElementForEffect(Holder<MobEffect> effectHolder) { return VentiManager.getElementForEffect(effectHolder); }
-    public static List<Element> getElementsFromPotionContents(PotionContents contents) { return VentiManager.getElementsFromPotionContents(contents); }
-    public static List<Element> getElementsFromPotionStack(ItemStack stack) { return VentiManager.getElementsFromPotionStack(stack); }
-    public static List<Element> getElementsFromArrow(ServerLevel level, Arrow arrow) { return VentiManager.getElementsFromArrow(level, arrow); }
-    public static List<Element> getElementsFromAreaEffectCloud(ServerLevel level, AreaEffectCloud cloud) { return VentiManager.getElementsFromAreaEffectCloud(level, cloud); }
-    public static void handleTippedArrowHit(ServerLevel level, Arrow arrow, LivingEntity target) { VentiManager.handleTippedArrowHit(level, arrow, target); }
-    public static void handleItemUseFinish(ServerLevel level, LivingEntity entity, ItemStack stack) { VentiManager.handleItemUseFinish(level, entity, stack); }
-    public static int getMaceWindBurstLevel(LivingEntity attacker) { return VentiManager.getMaceWindBurstLevel(attacker); }
-    public static int getElementalMasteryLevel(ItemStack stack) { return VentiManager.getElementalMasteryLevel(stack); }
-    public static int getElementalMasteryLevel(@Nullable LivingEntity attacker) { return VentiManager.getElementalMasteryLevel(attacker); }
-    public static int getElementalProtectionLevel(ItemStack stack) { return VentiManager.getElementalProtectionLevel(stack); }
-    public static int getElementalProtectionTotalLevel(@Nullable LivingEntity entity) { return VentiManager.getElementalProtectionTotalLevel(entity); }
-    public static float applyElementalProtectionAndArmorWear(LivingEntity entity, DamageSource source, float amount) { return VentiManager.applyElementalProtectionAndArmorWear(entity, source, amount); }
-    public static void updateCoopMobScaling(ServerLevel level, LivingEntity entity) { ZhongliManager.updateCoopMobScaling(level, entity); }
-    public static int getThornsEnchantmentLevel(LivingEntity entity) { return RaidenManager.getThornsEnchantmentLevel(entity); }
-    public static boolean hasThornsEnchantment(LivingEntity entity) { return RaidenManager.hasThornsEnchantment(entity); }
-    public static void reflectThornsElement( ServerLevel level, LivingEntity defender, LivingEntity attacker, long now, @Nullable Element fallbackElement ) { RaidenManager.reflectThornsElement(level, defender, attacker, now, fallbackElement); }
-    public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) { ZhongliManager.handleLivingIncomingDamage(target, source); }
-    public static void processIncomingDamageSources(ServerLevel level, LivingEntity target, DamageSource source) { ZhongliManager.processIncomingDamageSources(level, target, source); }
-    public static float modifyIncomingEnvironmentalDamage(LivingEntity target, DamageSource source, float amount) { return MavuikaManager.modifyIncomingEnvironmentalDamage(target, source, amount); }
-    public static float modifyIncomingEnvironmentalDamageInternal(LivingEntity target, DamageSource source, float amount) { return MavuikaManager.modifyIncomingEnvironmentalDamageInternal(target, source, amount); }
-    public static void maintainBurningPyroAura(LivingEntity target) { MavuikaManager.maintainBurningPyroAura(target); }
-    public static void handleEnvironmentalFireDamage(LivingEntity target) { MavuikaManager.handleEnvironmentalFireDamage(target); }
-    public static boolean isNaturallyWaterSensitive(LivingEntity target) { return MavuikaManager.isNaturallyWaterSensitive(target); }
-    public static void handleEnvironmentalWater(LivingEntity target) { MavuikaManager.handleEnvironmentalWater(target); }
-    public static void checkCryoWaterFreezing(LivingEntity entity) { MavuikaManager.checkCryoWaterFreezing(entity); }
-    public static boolean isHostileMob(LivingEntity entity) { return MavuikaManager.isHostileMob(entity); }
-    public static void checkInnateMutation(LivingEntity entity) { MavuikaManager.checkInnateMutation(entity); }
-    public static void rollInnateMutationOnce(LivingEntity entity) { MavuikaManager.rollInnateMutationOnce(entity); }
-    public static boolean isOmniInnate(@Nullable Entity entity) { return MavuikaManager.isOmniInnate(entity); }
-    public static @Nullable Element getInnateElement(LivingEntity target) { return MavuikaManager.getInnateElement(target); }
-    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) { return MavuikaManager.getInnateElements(target); }
-    public static boolean hasInnateElement(@Nullable LivingEntity target, @Nullable Element element) { return MavuikaManager.hasInnateElement(target, element); }
-    public static boolean isPyroInnate(@Nullable Entity entity) { return MavuikaManager.isPyroInnate(entity); }
-    public static boolean isPyroResistant(@Nullable LivingEntity target) { return MavuikaManager.isPyroResistant(target); }
-    public static void ensurePreDeathPyroIgnite(@Nullable LivingEntity target, int seconds) { MavuikaManager.ensurePreDeathPyroIgnite(target, seconds); }
-    public static void extinguishPyroInnate(@Nullable LivingEntity entity) { MavuikaManager.extinguishPyroInnate(entity); }
-    public static boolean isMutatedInnate(LivingEntity entity) { return MavuikaManager.isMutatedInnate(entity); }
-    public static void tryDropElementOnDeath(LivingEntity entity, DamageSource source) { MavuikaManager.tryDropElementOnDeath(entity, source); }
-    public static @Nullable Element getNaturalInnateElement(LivingEntity target) { return MavuikaManager.getNaturalInnateElement(target); }
-    public static boolean isBossEntity(LivingEntity entity) { return MavuikaManager.isBossEntity(entity); }
-    public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) { return MavuikaManager.isPassiveAquaticOrAmbient(entity); }
-    public static void recordPreAttackStrength(@Nullable Player player, float scale) { RaidenManager.recordPreAttackStrength(player, scale); }
-    public static void clearPreAttackStrength(@Nullable Player player) { RaidenManager.clearPreAttackStrength(player); }
-    public static float getEffectiveAttackStrengthScale(Player attacker) { return RaidenManager.getEffectiveAttackStrengthScale(attacker); }
-    public static float modifyFabricIncomingDamage(LivingEntity entity, DamageSource source, float amount) { return ZhongliManager.modifyFabricIncomingDamage(entity, source, amount); }
-    public static float applyImbuedSwordHit(LivingEntity target, DamageSource source, float incomingDamage) { return RaidenManager.applyImbuedSwordHit(target, source, incomingDamage); }
-    public static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) { RaidenManager.triggerOverloadExplosion(level, target, attacker, dmgMult); }
-    public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) { RaidenManager.drawVoltaicArc(level, start, end); }
-    public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) { RaidenManager.drawVoltaicArc(level, from, to); }
-    public static Element pickDefenderAuraForThorns(LivingEntity defender) { return RaidenManager.pickDefenderAuraForThorns(defender); }
-    public static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) { MavuikaManager.updateCryoDebuff(target, id, hasCryo, innate); }
-    public static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) { MavuikaManager.spawnAmbientParticles(level, target, gauges, now); }
-    public static void spawnExpandingSquareParticles( ServerLevel level, Vec3 center, double halfExtent, double yOffset, ParticleOptions primary, @Nullable ParticleOptions accent, int accentStride ) { MavuikaManager.spawnExpandingSquareParticles(level, center, halfExtent, yOffset, primary, accent, accentStride); }
-    public static void handleCreeperExplosionBurst( ServerLevel level, Creeper creeper, Vec3 center, float explosionRadius ) { RaidenManager.handleCreeperExplosionBurst(level, creeper, center, explosionRadius); }
+    public static boolean isChannelingGuardianLens(Player player) { return NeuvilletteManager.isChannelingGuardianLens(player); }
+    public static void applyFurinaWaterWalking(Player player) { FurinaManager.applyFurinaWaterWalking(player); }
+    public static boolean isStandingOnWaterSurface(Player player) { return FurinaManager.isStandingOnWaterSurface(player); }
+    public static boolean hasRecentHpChangeBuff(ServerPlayer player) { return FurinaManager.hasRecentHpChangeBuff(player); }
+    public static boolean carriesGuardianLens(Player player) { return NeuvilletteManager.carriesGuardianLens(player); }
+    public static void onHydroReactionTriggered( ServerLevel level, Vec3 targetPos, ElementalReaction reaction, @Nullable Element reactedAura, @Nullable Element triggerElem, @Nullable ServerPlayer attacker ) { NeuvilletteManager.onHydroReactionTriggered(level, targetPos, reaction, reactedAura, triggerElem, attacker); }
+    public static boolean hasNetheriteGuardianLens(@Nullable LivingEntity entity) { return NeuvilletteManager.hasNetheriteGuardianLens(entity); }
+    public static void tryInterruptGuardianChanneling(LivingEntity victim, float damageDealt) { NeuvilletteManager.tryInterruptGuardianChanneling(victim, damageDealt); }
+    public static int getDraconicGloriesStacks(@Nullable LivingEntity entity) { return NeuvilletteManager.getDraconicGloriesStacks(entity); }
+    public static float getDraconicGloriesMultiplier(@Nullable LivingEntity entity) { return NeuvilletteManager.getDraconicGloriesMultiplier(entity); }
+    public static void spawnSourcewaterDroplet(ServerLevel level, Vec3 basePos, @Nullable UUID ownerId, long now) { NeuvilletteManager.spawnSourcewaterDroplet(level, basePos, ownerId, now); }
+    public static int consumeSourcewaterDropletsForChannel(ServerLevel level, ServerPlayer caster, double radius, int maxCount) { return NeuvilletteManager.consumeSourcewaterDropletsForChannel(level, caster, radius, maxCount); }
+    public static void tickSourcewaterDroplets(MinecraftServer server, long serverNow) { NeuvilletteManager.tickSourcewaterDroplets(server, serverNow); }
+    public static @Nullable Element getElementForEffect(Holder<MobEffect> effectHolder) { return PotionAndEnchantmentManager.getElementForEffect(effectHolder); }
+    public static List<Element> getElementsFromPotionContents(PotionContents contents) { return PotionAndEnchantmentManager.getElementsFromPotionContents(contents); }
+    public static List<Element> getElementsFromPotionStack(ItemStack stack) { return PotionAndEnchantmentManager.getElementsFromPotionStack(stack); }
+    public static List<Element> getElementsFromArrow(ServerLevel level, Arrow arrow) { return PotionAndEnchantmentManager.getElementsFromArrow(level, arrow); }
+    public static List<Element> getElementsFromAreaEffectCloud(ServerLevel level, AreaEffectCloud cloud) { return PotionAndEnchantmentManager.getElementsFromAreaEffectCloud(level, cloud); }
+    public static void handleTippedArrowHit(ServerLevel level, Arrow arrow, LivingEntity target) { PotionAndEnchantmentManager.handleTippedArrowHit(level, arrow, target); }
+    public static void handleItemUseFinish(ServerLevel level, LivingEntity entity, ItemStack stack) { PotionAndEnchantmentManager.handleItemUseFinish(level, entity, stack); }
+    public static int getMaceWindBurstLevel(LivingEntity attacker) { return PotionAndEnchantmentManager.getMaceWindBurstLevel(attacker); }
+    public static int getElementalMasteryLevel(ItemStack stack) { return PotionAndEnchantmentManager.getElementalMasteryLevel(stack); }
+    public static int getElementalMasteryLevel(@Nullable LivingEntity attacker) { return PotionAndEnchantmentManager.getElementalMasteryLevel(attacker); }
+    public static int getElementalProtectionLevel(ItemStack stack) { return PotionAndEnchantmentManager.getElementalProtectionLevel(stack); }
+    public static int getElementalProtectionTotalLevel(@Nullable LivingEntity entity) { return PotionAndEnchantmentManager.getElementalProtectionTotalLevel(entity); }
+    public static float applyElementalProtectionAndArmorWear(LivingEntity entity, DamageSource source, float amount) { return PotionAndEnchantmentManager.applyElementalProtectionAndArmorWear(entity, source, amount); }
+    public static void updateCoopMobScaling(ServerLevel level, LivingEntity entity) { DamageResistanceManager.updateCoopMobScaling(level, entity); }
+    public static int getThornsEnchantmentLevel(LivingEntity entity) { return PotionAndEnchantmentManager.getThornsEnchantmentLevel(entity); }
+    public static boolean hasThornsEnchantment(LivingEntity entity) { return PotionAndEnchantmentManager.hasThornsEnchantment(entity); }
+    public static void reflectThornsElement( ServerLevel level, LivingEntity defender, LivingEntity attacker, long now, @Nullable Element fallbackElement ) { PotionAndEnchantmentManager.reflectThornsElement(level, defender, attacker, now, fallbackElement); }
+    public static void handleLivingIncomingDamage(LivingEntity target, DamageSource source) { DamageResistanceManager.handleLivingIncomingDamage(target, source); }
+    public static void processIncomingDamageSources(ServerLevel level, LivingEntity target, DamageSource source) { DamageResistanceManager.processIncomingDamageSources(level, target, source); }
+    public static float modifyIncomingEnvironmentalDamage(LivingEntity target, DamageSource source, float amount) { return EnvironmentalAuraManager.modifyIncomingEnvironmentalDamage(target, source, amount); }
+    public static float modifyIncomingEnvironmentalDamageInternal(LivingEntity target, DamageSource source, float amount) { return EnvironmentalAuraManager.modifyIncomingEnvironmentalDamageInternal(target, source, amount); }
+    public static void maintainBurningPyroAura(LivingEntity target) { EnvironmentalAuraManager.maintainBurningPyroAura(target); }
+    public static void handleEnvironmentalFireDamage(LivingEntity target) { EnvironmentalAuraManager.handleEnvironmentalFireDamage(target); }
+    public static boolean isNaturallyWaterSensitive(LivingEntity target) { return EnvironmentalAuraManager.isNaturallyWaterSensitive(target); }
+    public static void handleEnvironmentalWater(LivingEntity target) { EnvironmentalAuraManager.handleEnvironmentalWater(target); }
+    public static void checkCryoWaterFreezing(LivingEntity entity) { EnvironmentalAuraManager.checkCryoWaterFreezing(entity); }
+    public static boolean isHostileMob(LivingEntity entity) { return InnateMobManager.isHostileMob(entity); }
+    public static void checkInnateMutation(LivingEntity entity) { InnateMobManager.checkInnateMutation(entity); }
+    public static void rollInnateMutationOnce(LivingEntity entity) { InnateMobManager.rollInnateMutationOnce(entity); }
+    public static boolean isOmniInnate(@Nullable Entity entity) { return InnateMobManager.isOmniInnate(entity); }
+    public static @Nullable Element getInnateElement(LivingEntity target) { return InnateMobManager.getInnateElement(target); }
+    public static EnumSet<Element> getInnateElements(@Nullable LivingEntity target) { return InnateMobManager.getInnateElements(target); }
+    public static boolean hasInnateElement(@Nullable LivingEntity target, @Nullable Element element) { return InnateMobManager.hasInnateElement(target, element); }
+    public static boolean isPyroInnate(@Nullable Entity entity) { return InnateMobManager.isPyroInnate(entity); }
+    public static boolean isPyroResistant(@Nullable LivingEntity target) { return InnateMobManager.isPyroResistant(target); }
+    public static void ensurePreDeathPyroIgnite(@Nullable LivingEntity target, int seconds) { InnateMobManager.ensurePreDeathPyroIgnite(target, seconds); }
+    public static void extinguishPyroInnate(@Nullable LivingEntity entity) { InnateMobManager.extinguishPyroInnate(entity); }
+    public static boolean isMutatedInnate(LivingEntity entity) { return InnateMobManager.isMutatedInnate(entity); }
+    public static void tryDropElementOnDeath(LivingEntity entity, DamageSource source) { InnateMobManager.tryDropElementOnDeath(entity, source); }
+    public static @Nullable Element getNaturalInnateElement(LivingEntity target) { return InnateMobManager.getNaturalInnateElement(target); }
+    public static boolean isBossEntity(LivingEntity entity) { return InnateMobManager.isBossEntity(entity); }
+    public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) { return InnateMobManager.isPassiveAquaticOrAmbient(entity); }
+    public static void recordPreAttackStrength(@Nullable Player player, float scale) { PotionAndEnchantmentManager.recordPreAttackStrength(player, scale); }
+    public static void clearPreAttackStrength(@Nullable Player player) { PotionAndEnchantmentManager.clearPreAttackStrength(player); }
+    public static float getEffectiveAttackStrengthScale(Player attacker) { return PotionAndEnchantmentManager.getEffectiveAttackStrengthScale(attacker); }
+    public static float modifyFabricIncomingDamage(LivingEntity entity, DamageSource source, float amount) { return DamageResistanceManager.modifyFabricIncomingDamage(entity, source, amount); }
+    public static float applyImbuedSwordHit(LivingEntity target, DamageSource source, float incomingDamage) { return PotionAndEnchantmentManager.applyImbuedSwordHit(target, source, incomingDamage); }
+    public static void triggerOverloadExplosion(ServerLevel level, LivingEntity target, @Nullable ServerPlayer attacker, double dmgMult) { ReactionEffectManager.triggerOverloadExplosion(level, target, attacker, dmgMult); }
+    public static void drawVoltaicArc(ServerLevel level, Vec3 start, Vec3 end) { ReactionEffectManager.drawVoltaicArc(level, start, end); }
+    public static void drawVoltaicArc(ServerLevel level, Entity from, Entity to) { ReactionEffectManager.drawVoltaicArc(level, from, to); }
+    public static Element pickDefenderAuraForThorns(LivingEntity defender) { return PotionAndEnchantmentManager.pickDefenderAuraForThorns(defender); }
+    public static void updateCryoDebuff(LivingEntity target, UUID id, boolean hasCryo, @Nullable Element innate) { EnvironmentalAuraManager.updateCryoDebuff(target, id, hasCryo, innate); }
+    public static void spawnAmbientParticles(ServerLevel level, LivingEntity target, Map<Element, GaugeState> gauges, long now) { ElementalTickManager.spawnAmbientParticles(level, target, gauges, now); }
+    public static void spawnExpandingSquareParticles( ServerLevel level, Vec3 center, double halfExtent, double yOffset, ParticleOptions primary, @Nullable ParticleOptions accent, int accentStride ) { ElementalTickManager.spawnExpandingSquareParticles(level, center, halfExtent, yOffset, primary, accent, accentStride); }
+    public static void handleCreeperExplosionBurst( ServerLevel level, Creeper creeper, Vec3 center, float explosionRadius ) { ReactionEffectManager.handleCreeperExplosionBurst(level, creeper, center, explosionRadius); }
     public static void onEvokerFangJoin(ServerLevel level, EvokerFangs fangs) { ZhongliManager.onEvokerFangJoin(level, fangs); }
     public static void flushPendingEvokerConstructs(MinecraftServer server) { ZhongliManager.flushPendingEvokerConstructs(server); }
     public static void summonDaybreakVortex(ServerPlayer owner, Vec3 center, boolean isNetherite) { VentiManager.summonDaybreakVortex(owner, center, isNetherite); }
@@ -1706,6 +1706,6 @@ public static void tick(MinecraftServer server) {
     public static void performRaidenMusouSwing(ServerPlayer player, boolean isCharged) { RaidenManager.performRaidenMusouSwing(player, isCharged); }
     public static void tickRaidenState(MinecraftServer server, long serverNow) { RaidenManager.tickRaidenState(server, serverNow); }
     public static void applyPetrifyState(LivingEntity target, int petrifyTicks, long targetGameTime) { ZhongliManager.applyPetrifyState(target, petrifyTicks, targetGameTime); }
-    public static void clearEntityState(@Nullable LivingEntity entity) { MavuikaManager.clearEntityStateInternal(entity); }
-    public static void clearAll() { MavuikaManager.clearAllInternal(); }
+    public static void clearEntityState(@Nullable LivingEntity entity) { ElementalTickManager.clearEntityStateInternal(entity); }
+    public static void clearAll() { ElementalTickManager.clearAllInternal(); }
 }

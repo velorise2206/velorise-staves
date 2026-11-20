@@ -570,7 +570,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             return net.minecraft.world.InteractionResult.PASS;
         });
         net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            if (!entity.level().isClientSide() && com.velorise.staves.element.DragonfireCloudManager.tryDeflectProjectileWithWitherCarapace(entity, source)) {
+            if (!entity.level().isClientSide() && com.velorise.staves.element.WitherShulkerMechanicManager.tryDeflectProjectileWithWitherCarapace(entity, source)) {
                 return false;
             }
             if (!entity.level().isClientSide()
