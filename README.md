@@ -1,4 +1,4 @@
-# Velorise's Staves
+﻿# Velorise's Staves
 
 [![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/velorise2206/velorise-staves/wiki)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Available_Now-f16436?style=for-the-badge&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/velorises-staves-elements)
@@ -6,7 +6,7 @@
 <!-- Modrinth Dynamic Downloads Badge (Uncomment once published):
 [![Modrinth Downloads](https://img.shields.io/modrinth/dt/velorises-staves-elements?style=for-the-badge&logo=modrinth&label=Modrinth&color=00af5c)](https://modrinth.com/mod/velorises-staves-elements)
 -->
-[![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](LICENSE)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1%20%7C%201.20.1-brightgreen.svg)](https://minecraft.net/)
 [![Loaders](https://img.shields.io/badge/Modloader-NeoForge%20%7C%20Forge%20%7C%20Fabric-orange.svg)](https://github.com/velorise2206/velorise-staves)
 
@@ -206,9 +206,9 @@ Enhance your adventure with companion mods by **velorise2206**:
 
 ## License & Disclaimer
 
-Copyright (c) 2026 **velorise2206** — **All Rights Reserved (Code & Documentation Only)** ([LICENSE](LICENSE)).
+Copyright (c) 2026 **velorise2206** — **MIT (Code & Documentation Only)** ([LICENSE](LICENSE)).
 
-- **Scope of License (Excluding Assets):** The **All Rights Reserved** license applies solely to this mod's original source code, compiled binaries, data/localization files, and documentation authored by **velorise2206**. You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code or binaries without prior written permission from the copyright holder. It does **not** cover or claim exclusive ownership over visual assets, element icons, textures, or 3D models.
+- **Scope of License (Excluding Assets):** The **MIT** license applies solely to this mod's original source code, compiled binaries, data/localization files, and documentation authored by **velorise2206**. You may NOT copy, redistribute, reupload, modify, or create derivative works from this mod's source code or binaries without prior written permission from the copyright holder. It does **not** cover or claim exclusive ownership over visual assets, element icons, textures, or 3D models.
 - **Third-Party IP Disclaimer:** *Velorise's Staves* is an **unofficial, non-commercial fan-made mod** inspired by *Genshin Impact* and is **not affiliated with, endorsed by, or associated with HoYoverse / Cognosphere Pte. Ltd.** (or Mojang / Microsoft). All *Genshin Impact* trademarks, names, element icons/symbols, and related IP belong to **HoYoverse / Cognosphere Pte. Ltd.**; any third-party fan textures or 3D models belong to their respective creators.
 
 [pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png

@@ -5,14 +5,14 @@
   "name": "Velorise's Staves & Elements",
   "description": "Vanilla-friendly magic staves and utility artifacts powered by durability and cooldowns.",
   "authors": [
-    "hungbbdzz"
+    "velorise2206"
   ],
   "contact": {
     "homepage": "https://github.com/velorise2206/velorise-staves",
     "sources": "https://github.com/velorise2206/velorise-staves",
     "issues": "https://github.com/velorise2206/velorise-staves/issues"
   },
-  "license": "All Rights Reserved",
+  "license": "MIT",
   "icon": "logo.png",
   "environment": "*",
   "entrypoints": {
