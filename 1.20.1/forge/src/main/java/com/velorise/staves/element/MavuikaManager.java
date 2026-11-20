@@ -83,6 +83,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class MavuikaManager {
     private MavuikaManager() {}
+    private static final Map<UUID, com.velorise.staves.fsm.MavuikaFormState> MAVUIKA_FORM_STATES = new ConcurrentHashMap<>();
+    public static com.velorise.staves.fsm.MavuikaFormState getFormState(UUID id) {
+        return MAVUIKA_FORM_STATES.computeIfAbsent(id, k -> new com.velorise.staves.fsm.MavuikaFormState());
+    }
 
     public static boolean isEntitySubmergedInWater(LivingEntity target) {
         if (target.isInWater()) return true;
@@ -480,6 +484,7 @@ public final class MavuikaManager {
             if (!player.isAlive()) {
                 MAVUIKA_AURA_UNTIL.remove(id);
                 MAVUIKA_NIGHTSOUL_FUEL.remove(id);
+                MAVUIKA_FORM_STATES.remove(id);
                 MAVUIKA_NIGHTSOUL_POINTS.remove(id);
                 com.velorise.staves.network.ModNetwork.sendMavuikaSync(player, 0, 0.0F, neth);
                 continue;
@@ -488,25 +493,41 @@ public final class MavuikaManager {
             ServerLevel level = player.serverLevel();
             boolean onBike = player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity;
             boolean crucibleActive = serverNow < MAVUIKA_CRUCIBLE_UNTIL.getOrDefault(id, 0L);
-            float drainPerTick = 0.325F;
-            if (crucibleActive) {
-                drainPerTick = 0.0F;
-            } else if (onBike && player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
-                drainPerTick = 0.45F;
-                if (bike.isDashingServer()) {
-                    drainPerTick = 1.45F;
-                } else if (bike.isWallClimbing()) {
-                    drainPerTick = 0.65F; // 13 pts/s Genshin Flamestrider cliff climbing
-                } else if (bike.isInWater()) {
-                    drainPerTick = 0.70F;
-                } else if (bike.isGliding()) {
-                    drainPerTick = 0.60F;
-                } else if (bike.isBikeSprinting()) {
-                    drainPerTick = 0.70F;
-                } else if (bike.isSpinning()) {
-                    drainPerTick = 0.55F;
+            com.velorise.staves.fsm.MavuikaFormState formState = getFormState(id);
+            formState.setForm(onBike
+                    ? com.velorise.staves.fsm.MavuikaFormState.Form.FLAMESTRIDER
+                    : com.velorise.staves.fsm.MavuikaFormState.Form.RING_OF_SEARING_RADIANCE);
+            boolean bikeDashing = false;
+            boolean bikeWallClimbing = false;
+            boolean bikeWaterSurfing = false;
+            boolean bikeGliding = false;
+            boolean bikeSprinting = false;
+            boolean bikeSpinning = false;
+            if (onBike && player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
+                bikeDashing = bike.isDashingServer();
+                bikeWallClimbing = bike.isWallClimbing();
+                bikeWaterSurfing = bike.isInWater();
+                bikeGliding = bike.isGliding();
+                bikeSprinting = bike.isBikeSprinting();
+                bikeSpinning = bike.isSpinning();
+                if (bike.onGround() && !bikeWaterSurfing && !bikeWallClimbing) {
+                    formState.rechargeOnGround();
+                } else {
+                    if (bikeWallClimbing) formState.consumeWallClimbTick();
+                    if (bikeWaterSurfing) formState.consumeWaterSurfTick();
+                    if (bikeGliding) formState.consumeGlideTick();
                 }
             }
+            float drainPerTick = com.velorise.staves.fsm.MavuikaFormState.computeDrainPerTick(
+                    formState.getForm(),
+                    crucibleActive,
+                    bikeDashing,
+                    bikeWallClimbing,
+                    bikeWaterSurfing,
+                    bikeGliding,
+                    bikeSprinting,
+                    bikeSpinning
+            );
             float prevFuel = fuel;
             fuel = Math.max(0.0F, fuel - drainPerTick);
             float drained = prevFuel - fuel;
@@ -518,6 +539,7 @@ public final class MavuikaManager {
             MAVUIKA_NIGHTSOUL_FUEL.put(id, fuel);
             if (fuel <= 0.01F) {
                 MAVUIKA_NIGHTSOUL_FUEL.remove(id);
+                MAVUIKA_FORM_STATES.remove(id);
                 MAVUIKA_AURA_UNTIL.remove(id);
                 if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                     if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
@@ -1723,6 +1745,7 @@ public final class MavuikaManager {
         MAVUIKA_AURA_NEXT_STRIKE.clear();
         MAVUIKA_NIGHTSOUL_POINTS.clear();
         MAVUIKA_NIGHTSOUL_FUEL.clear();
+        MAVUIKA_FORM_STATES.clear();
         MAVUIKA_CRUCIBLE_UNTIL.clear();
         MAVUIKA_CRUCIBLE_POINTS.clear();
         MAVUIKA_SKILL_COOLDOWN_UNTIL.clear();

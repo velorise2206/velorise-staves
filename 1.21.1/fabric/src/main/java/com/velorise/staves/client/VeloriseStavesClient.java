@@ -207,6 +207,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             }
         });
         final boolean[] wasBikeDashDown = {false};
+        final com.velorise.staves.fsm.MavuikaInputBuffer bikeInputBuffer = new com.velorise.staves.fsm.MavuikaInputBuffer();
         final boolean[] bikeSprintActive = {false};
         final boolean[] bikeMountWaitRelease = {false};
         final boolean[] wasRidingBike = {false};
@@ -318,6 +319,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 bikeAutoSpinLatched[0] = false;
                 bikeSpinTapCount[0] = 0;
                 bikeDoubleTapWindowTicks[0] = 0;
+                bikeInputBuffer.reset();
                 queuedFastAttackClicks[0] = 0;
                 raidenAttackHoldTicks[0] = 0;
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
@@ -749,91 +751,37 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 while (client.options.keyUse.consumeClick()) {
                     // Suppress item right-click re-triggers while riding bike
                 }
-                if (bikeSpinReleaseWindowTicks[0] > 0) {
-                    bikeSpinReleaseWindowTicks[0]--;
-                }
-                if (bikeDoubleTapWindowTicks[0] > 0) {
-                    bikeDoubleTapWindowTicks[0]--;
-                    if (bikeDoubleTapWindowTicks[0] == 0) {
-                        bikeSpinTapCount[0] = 0;
-                    }
-                }
                 if (client.options.keyJump.isDown()) {
-                    bikeAutoSpinLatched[0] = false;
+                    bikeInputBuffer.notifyJumpPressed();
                 }
-                if (bike.getUltiTicks() > 8) {
-                    bikeAttackHoldTicks[0] = 0;
-                    bikeSpinActive[0] = false;
-                    bikeSpinReleaseWindowTicks[0] = 0;
-                    bikeHeldThroughDash[0] = false;
-                    bikeAutoSpinLatched[0] = false;
-                    bikeSpinTapCount[0] = 0;
-                    bikeDoubleTapWindowTicks[0] = 0;
-                } else {
-                    boolean attackDown = client.options.keyAttack.isDown();
-                    if (!attackDown && bikeHeldThroughDash[0]) {
-                        bikeHeldThroughDash[0] = false;
-                    }
-                    boolean committedFinisherSlam = bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 5 && bike.getActiveNaTicks() <= 8;
-                    boolean fastSpinReentry = bikeSpinReleaseWindowTicks[0] > 0 || bikeHeldThroughDash[0]
-                            || (bike.getActiveNaStep() == 6 && bike.getActiveNaTicks() > 0 && (bike.getActiveNaTicks() >= 9 || bike.getActiveNaTicks() <= 5));
-                    int requiredHoldTicks = fastSpinReentry ? 1 : 6;
-                    if (attackDown) {
-                        if (bikeAttackHoldTicks[0] == 0 && (bike.isSpinning() || bikeSpinReleaseWindowTicks[0] > 0 || bikeAutoSpinLatched[0])) {
-                            if (bikeAutoSpinLatched[0] && bikeDoubleTapWindowTicks[0] == 0) {
-                                bikeAutoSpinLatched[0] = false;
-                            } else {
-                                bikeSpinTapCount[0]++;
-                                bikeDoubleTapWindowTicks[0] = 10;
-                                if (bikeSpinTapCount[0] >= 2) {
-                                    bikeAutoSpinLatched[0] = true;
-                                }
-                            }
-                        }
-                        bikeAttackHoldTicks[0]++;
-                        if (!bikeSpinActive[0] && !committedFinisherSlam && bikeAttackHoldTicks[0] >= requiredHoldTicks) {
-                            bikeSpinActive[0] = true;
-                            if (bikeDoubleTapWindowTicks[0] == 0 && !bikeAutoSpinLatched[0]) {
-                                bikeSpinTapCount[0] = 0;
-                                bikeDoubleTapWindowTicks[0] = 10;
-                            }
-                            bike.cancelClientFinisherToSpin();
-                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
-                        }
-                    } else if (bikeAttackHoldTicks[0] > 0) {
-                        if (bikeSpinActive[0]) {
-                            if (bikeAutoSpinLatched[0]) {
-                                bikeSpinReleaseWindowTicks[0] = 8;
-                            } else {
-                                bikeSpinReleaseWindowTicks[0] = 6;
-                                if (bikeDoubleTapWindowTicks[0] == 0) {
-                                    bikeDoubleTapWindowTicks[0] = 10;
-                                }
-                                bike.triggerClientFinisher(client.player);
-                                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
-                                bikeSpinActive[0] = false;
-                            }
-                        } else {
-                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
-                        }
-                        bikeAttackHoldTicks[0] = 0;
-                    } else if (attackClicks > 0) {
-                        if (bike.isSpinning() || bikeSpinReleaseWindowTicks[0] > 0 || bikeAutoSpinLatched[0]) {
-                            bikeSpinTapCount[0] += attackClicks;
-                            bikeDoubleTapWindowTicks[0] = 10;
-                            if (bikeSpinTapCount[0] >= 2) {
-                                bikeAutoSpinLatched[0] = true;
-                                bikeSpinActive[0] = true;
-                                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
-                            } else {
-                                bikeSpinReleaseWindowTicks[0] = 6;
-                                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
-                                com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
-                            }
-                        } else {
-                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
-                        }
-                    }
+                com.velorise.staves.fsm.MavuikaInputBuffer.TickDecision bikeDec = bikeInputBuffer.tickAttackInput(
+                        client.options.keyAttack.isDown(),
+                        attackClicks,
+                        bike.getUltiTicks() > 8,
+                        bike.isSpinning(),
+                        bike.getActiveNaStep(),
+                        bike.getActiveNaTicks()
+                );
+                bikeSpinActive[0] = bikeInputBuffer.isSpinActive();
+                bikeAutoSpinLatched[0] = bikeInputBuffer.isAutoSpinLatched();
+                if (bikeDec.cancelClientFinisherToSpin) {
+                    bike.cancelClientFinisherToSpin();
+                }
+                if (bikeDec.triggerClientFinisher) {
+                    bike.triggerClientFinisher(client.player);
+                }
+                if (bikeDec.sendSpinStart) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                }
+                if (bikeDec.sendSpinStop) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                }
+                if (bikeDec.sendSpinTapPulse) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_START);
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_SPIN_STOP);
+                }
+                if (bikeDec.sendNormalAttack) {
+                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
                 }
                 boolean useHeld = !bikeMountWaitRelease[0] && client.options.keyUse.isDown();
                 boolean sprintDown = client.options.keySprint.isDown() || useHeld;
@@ -844,6 +792,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                             || bikeAutoSpinLatched[0] || client.options.keyAttack.isDown();
                     bike.triggerClientDash(client.player);
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_DASH_CANCEL);
+                    bikeInputBuffer.notifyDashTriggered(client.options.keyAttack.isDown(), bike.isSpinning());
                     bikeHeldThroughDash[0] = wasSpinningOrHolding && client.options.keyAttack.isDown();
                     bikeSpinReleaseWindowTicks[0] = wasSpinningOrHolding ? 7 : 0;
                     bikeAutoSpinLatched[0] = false;
@@ -874,6 +823,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 bikeAutoSpinLatched[0] = false;
                 bikeSpinTapCount[0] = 0;
                 bikeDoubleTapWindowTicks[0] = 0;
+                bikeInputBuffer.reset();
                 if (bikeDismountWaitAttackRelease[0]) {
                     if (!client.options.keyAttack.isDown()) {
                         bikeDismountWaitAttackRelease[0] = false;

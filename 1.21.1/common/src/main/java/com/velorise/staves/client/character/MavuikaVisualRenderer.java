@@ -37,6 +37,7 @@ public final class MavuikaVisualRenderer {
     public static void clearClientCaches() {
         BIKE_FP_CAM_SMOOTH.clear();
         BIKE_ARM_SMOOTH.clear();
+        com.velorise.staves.fsm.BikePoseBlender.clearAll();
     }
     private static final ResourceLocation MAVUIKA_HELMET_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/mavuika_helmet_texture.png");

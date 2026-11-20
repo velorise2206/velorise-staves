@@ -245,6 +245,26 @@ public class FlamestriderBikeEntity extends Entity {
         return this.pendingFinisher || (getActiveNaStep() == 6 && getActiveNaTicks() > 0);
     }
 
+    public com.velorise.staves.fsm.BikeActionState getActionState() {
+        return com.velorise.staves.fsm.BikeActionState.resolveActiveState(
+                this.getUltiTicks(),
+                this.isPlunging(),
+                this.getPlungeWindup(),
+                this.clientPlungeRecoveryTicks,
+                this.isDashingServer() || this.clientDashTicks > 0,
+                this.isSpinning(),
+                this.getActiveNaStep(),
+                this.getActiveNaTicks(),
+                this.clientWallCrestTicks > 0,
+                this.isWallClimbing(),
+                this.isGliding(),
+                this.isInWater(),
+                this.isBikeSprinting(),
+                !this.onGround(),
+                this.getDeltaMovement().horizontalDistanceSqr() > 0.0025D
+        );
+    }
+
     public boolean isSpinInputHeld() {
         return this.spinInputHeld;
     }

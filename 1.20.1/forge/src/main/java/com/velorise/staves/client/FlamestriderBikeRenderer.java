@@ -283,143 +283,31 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
     }
 
     private static void applyActionTransforms(FlamestriderBikeEntity entity, int ultiT, int naT, float partialTicks, PoseStack poseStack) {
-        if (entity.isGliding() && !entity.isPlunging() && ultiT <= 0 && naT <= 0) {
-            poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F));
-        }
-        if (entity.isSpinning() && ultiT <= 0 && !entity.isPlunging()) {
-            // Genshin Donut Spin: front tire planted, rear wheel slightly lifted & drifting outward
-            poseStack.translate(0.0D, 0.06D, 0.0D);
-            poseStack.mulPose(Axis.XP.rotationDegrees(7.5F));
-        }
-        if (entity.isPlunging()) {
-            int windup = entity.getPlungeWindup();
-            if (windup > 0) {
-                float w = Mth.clamp((5.0F - ((float) windup - partialTicks)) / 5.0F, 0.0F, 1.0F);
-                poseStack.translate(0.0D, Math.sin(w * Math.PI) * 0.18D, 0.0D);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -28.0F, 62.0F)));
-            } else {
-                poseStack.mulPose(Axis.XP.rotationDegrees(62.0F));
+        com.velorise.staves.fsm.BikeActionState activeState = entity.getActionState();
+        com.velorise.staves.fsm.BikePoseBlender.BikePoseSnapshot pose =
+                com.velorise.staves.fsm.BikePoseBlender.evaluateAndBlend(
+                        entity.getId(),
+                        activeState,
+                        ultiT,
+                        entity.getPlungeWindup(),
+                        entity.getActiveNaStep(),
+                        entity.getSmoothNaTicks(partialTicks),
+                        entity.getFinisherProgress(partialTicks),
+                        partialTicks
+                );
+        if (Math.abs(pose.pivotZ) > 0.0001F) {
+            poseStack.translate(pose.offsetX, pose.offsetY, pose.offsetZ + pose.pivotZ);
+            if (Math.abs(pose.yawDeg) > 0.001F) poseStack.mulPose(Axis.YP.rotationDegrees(pose.yawDeg));
+            if (Math.abs(pose.rollDeg) > 0.001F) poseStack.mulPose(Axis.ZP.rotationDegrees(pose.rollDeg));
+            if (Math.abs(pose.pitchDeg) > 0.001F) poseStack.mulPose(Axis.XP.rotationDegrees(pose.pitchDeg));
+            poseStack.translate(0.0F, 0.0F, -pose.pivotZ);
+        } else {
+            if (Math.abs(pose.offsetX) > 0.0001F || Math.abs(pose.offsetY) > 0.0001F || Math.abs(pose.offsetZ) > 0.0001F) {
+                poseStack.translate(pose.offsetX, pose.offsetY, pose.offsetZ);
             }
-        }
-        if (ultiT > 0) {
-            float u = Math.max(0.0F, (float) ultiT - partialTicks);
-            if (u > 8.0F) {
-                if (u >= 19.0F) {
-                    // Half 1 (u: 30.0 -> 19.0): steady climb + 180-deg half-donut spin behind/beside rider
-                    float p1 = Mth.clamp((30.0F - u) / 11.0F, 0.0F, 1.0F);
-                    float s1 = p1 * p1 * (3.0F - 2.0F * p1);
-                    float theta = s1 * (float) Math.PI;
-                    float sideX = Mth.sin(theta) * 1.15F;
-                    float backZ = -(1.0F - Mth.cos(theta)) * 0.55F;
-                    float arcY = p1 * 0.85F;
-                    poseStack.translate(sideX, arcY, backZ);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(-s1 * 180.0F));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(-Mth.sin(theta) * 32.0F));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-Mth.sin(theta) * 20.0F));
-                } else {
-                    // Half 2 (u: 19.0 -> 8.0): complete loop 180 -> 360 deg forward, descend, and cleave at touchdown (u == 8)
-                    float p2 = Mth.clamp((19.0F - u) / 11.0F, 0.0F, 1.0F);
-                    float s2 = p2 * p2 * (3.0F - 2.0F * p2);
-                    float theta = (float) Math.PI * (1.0F + s2);
-                    float sideX = Mth.sin(theta) * 1.15F;
-                    float backZ = -(1.0F - Mth.cos(theta)) * 0.55F;
-                    float arcY = (1.0F - p2 * p2) * 0.85F;
-                    poseStack.translate(sideX, arcY, backZ);
-                    poseStack.mulPose(Axis.YP.rotationDegrees(-180.0F - s2 * 180.0F));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(s2 * (float) Math.PI) * 28.0F));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.sin(s2 * (float) Math.PI) * 22.0F));
-                }
-            } else {
-                float rec = Mth.clamp(u / 8.0F, 0.0F, 1.0F);
-                poseStack.translate(0.0F, 0.0F, rec * 0.25F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(rec * 14.0F));
-                poseStack.mulPose(Axis.XP.rotationDegrees(rec * 8.0F));
-            }
-        }
-
-        if (naT > 0 && !entity.isSpinning()) {
-            int step = entity.getActiveNaStep();
-            float naTf = entity.getSmoothNaTicks(partialTicks);
-            if (step == 1) {
-                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                float swing = Mth.sin(p * (float) Math.PI);
-                float pitch = (s < 0.45F)
-                        ? Mth.lerp(s / 0.45F, 0.0F, -16.0F)
-                        : Mth.lerp((s - 0.45F) / 0.55F, -16.0F, 14.0F) * (1.0F - p * 0.65F);
-                poseStack.translate(0.0D, swing * 0.16D, swing * 0.10D);
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, 10.0F, -14.0F) * swing));
-                poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(10.0F * swing));
-            } else if (step == 2) {
-                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                float swing = Mth.sin(p * (float) Math.PI);
-                poseStack.translate(0.0D, swing * 0.10D, 0.0D);
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -34.0F, 36.0F) * swing));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(20.0F * swing));
-                poseStack.mulPose(Axis.XP.rotationDegrees(8.0F * swing));
-            } else if (step == 3) {
-                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                float swing = Mth.sin(p * (float) Math.PI);
-                poseStack.translate(0.0D, swing * 0.08D, swing * 0.12D);
-                poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, 38.0F, -38.0F) * swing));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-22.0F * swing));
-            } else if (step == 4) {
-                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                float swing = Mth.sin(p * (float) Math.PI);
-                float pitch = (s < 0.52F)
-                        ? Mth.lerp(s / 0.52F, 0.0F, -34.0F)
-                        : Mth.lerp((s - 0.52F) / 0.48F, -34.0F, 18.0F) * (1.0F - (p - 0.52F));
-                poseStack.translate(0.0D, swing * 0.36D, 0.0D);
-                poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(-12.0F * swing));
-            } else if (step == 5) {
-                float p = Mth.clamp(1.0F - (naTf / 14.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                poseStack.translate(0.0D, Math.sin(p * Math.PI) * 0.88D, 0.0D);
-                poseStack.mulPose(Axis.XP.rotationDegrees(s * 360.0F));
-            } else if (step == 6) {
-                // Genshin Charged Attack Final (Finisher): higher continuous C1 leap & overhead slam arc
-                float p = entity.getFinisherProgress(partialTicks);
-                float jumpArc = (p < 0.72F) ? Mth.sin((p / 0.72F) * (float) Math.PI) * 0.68F : 0.0F;
-                float surgeZ = Mth.sin(p * (float) Math.PI) * 0.20F;
-                poseStack.translate(0.0D, jumpArc, surgeZ);
-                float yawWhip;
-                float pitch;
-                float roll;
-                if (p < 0.36F) {
-                    float e = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
-                    yawWhip = Mth.lerp(e, 0.0F, -8.0F);
-                    pitch = Mth.lerp(e, 0.0F, -22.0F);
-                    roll = Mth.lerp(e, 0.0F, -8.0F);
-                } else if (p < 0.72F) {
-                    float e = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
-                    yawWhip = Mth.lerp(e, -8.0F, 10.0F);
-                    pitch = Mth.lerp(e, -22.0F, 14.0F);
-                    roll = Mth.lerp(e, -8.0F, 10.0F);
-                } else {
-                    float e = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
-                    yawWhip = Mth.lerp(e, 10.0F, 0.0F);
-                    pitch = Mth.lerp(e, 14.0F, 0.0F);
-                    roll = Mth.lerp(e, 10.0F, 0.0F);
-                }
-                poseStack.mulPose(Axis.YP.rotationDegrees(yawWhip));
-                poseStack.mulPose(Axis.XP.rotationDegrees(pitch));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(roll));
-            } else if (step == 7) {
-                // Genshin Hold E Mount: 180-deg half-donut rear-wheel tail whip around front tire pivot
-                float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-                float s = p * p * (3.0F - 2.0F * p);
-                float swing = Mth.sin(p * (float) Math.PI);
-                poseStack.translate(0.0F, swing * 0.10F, 0.72F);
-                poseStack.mulPose(Axis.YP.rotationDegrees((1.0F - s) * 360.0F));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(26.0F * swing));
-                poseStack.mulPose(Axis.XP.rotationDegrees(12.0F * swing));
-                poseStack.translate(0.0F, 0.0F, -0.72F);
-            }
+            if (Math.abs(pose.yawDeg) > 0.001F) poseStack.mulPose(Axis.YP.rotationDegrees(pose.yawDeg));
+            if (Math.abs(pose.pitchDeg) > 0.001F) poseStack.mulPose(Axis.XP.rotationDegrees(pose.pitchDeg));
+            if (Math.abs(pose.rollDeg) > 0.001F) poseStack.mulPose(Axis.ZP.rotationDegrees(pose.rollDeg));
         }
     }
 
