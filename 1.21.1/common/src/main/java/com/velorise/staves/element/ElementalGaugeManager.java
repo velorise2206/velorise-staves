@@ -617,6 +617,8 @@ public final class ElementalGaugeManager {
         return resDamage;
     }
 
+    private static final ThreadLocal<Boolean> API_PRECHECK_DONE = ThreadLocal.withInitial(() -> Boolean.FALSE);
+
     public static float getAuraUnits(@Nullable LivingEntity target, @Nullable Element element) {
         if (target == null || element == null) return 0.0F;
         Map<Element, GaugeState> map = GAUGES.get(target.getUUID());
@@ -649,6 +651,8 @@ public final class ElementalGaugeManager {
         float scaledDamage = baseDamage * shieldHit.damageScale();
         ServerPlayer spAttacker = attacker instanceof ServerPlayer sp ? sp : null;
         LivingEntity prevAttacker = CURRENT_REACTION_ATTACKER.get();
+        boolean prevApiCheck = Boolean.TRUE.equals(API_PRECHECK_DONE.get());
+        API_PRECHECK_DONE.set(Boolean.TRUE);
         CURRENT_REACTION_ATTACKER.set(attacker != null ? attacker : prevAttacker);
         try {
             if (attacker != null && spAttacker == null && scaledDamage > 0.0F) {
@@ -656,6 +660,8 @@ public final class ElementalGaugeManager {
             }
             applyElement(level, target, attackElement, attackU, spAttacker, scaledDamage, bypassStandardIcd, null);
         } finally {
+            if (prevApiCheck) API_PRECHECK_DONE.set(Boolean.TRUE);
+            else API_PRECHECK_DONE.remove();
             if (prevAttacker == null) CURRENT_REACTION_ATTACKER.remove();
             else CURRENT_REACTION_ATTACKER.set(prevAttacker);
         }
@@ -717,7 +723,8 @@ public final class ElementalGaugeManager {
             triggerMobAggro(level, target, attacker);
         }
 
-        if (!physicalMelee && !com.velorise.staves.api.VeloriseElementEvents.firePreApplyAura(level, target, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get(), attackElement, attackU)) {
+        boolean apiPrechecked = Boolean.TRUE.equals(API_PRECHECK_DONE.get());
+        if (!physicalMelee && !apiPrechecked && !com.velorise.staves.api.VeloriseElementEvents.firePreApplyAura(level, target, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get(), attackElement, attackU)) {
             return;
         }
 
@@ -725,7 +732,7 @@ public final class ElementalGaugeManager {
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
         float effectiveDamage = physicalMelee ? baseDamage : (float) (baseDamage * dmgMult);
 
-        if (!physicalMelee && ElementalShieldManager.hasShield(target)) {
+        if (!physicalMelee && !apiPrechecked && ElementalShieldManager.hasShield(target)) {
             LivingEntity shieldAttacker = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
             ElementalShieldManager.ShieldHitOutcome shieldHit = ElementalShieldManager.processIncomingElement(
                     level, target, shieldAttacker, attackElement, attackU

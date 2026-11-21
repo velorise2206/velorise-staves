@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  Chuột Phải: Bật/Tắt Rồng Con Ender (Không CD, 30s)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  Nhấn [R]: Tai Ương Chúa Tể",
   "tooltip.velorise_staves.action.dragonfire.passive": "  Nội tại: Tàu Lượn Rồng Ender 5m (+50% Tốc độ)",
-  "codex.velorise_staves.staff.utility.p3": "• §bPhong Chi Dực (Wind Glider):§r Chuột Phải 1 lần để mở khóa vĩnh viễn (không tốn ô giáp!). Nhấn §e[Space]§r khi đang rơi để lượn; §fĐánh Đáp (Plunge)§r bằng Chuột Trái trên không! (§dDragonfire Scepter§r nâng cấp thành §dRồng Ender 5m§r tăng §e+50%§r tốc độ)."
+  "codex.velorise_staves.staff.utility.p3": "• §bPhong Chi Dực (Wind Glider):§r Chuột Phải 1 lần để mở khóa vĩnh viễn (không tốn ô giáp!). Nhấn §e[Space]§r khi đang rơi để lượn; §fĐánh Đáp (Plunge)§r bằng Chuột Trái trên không! (§dDragonfire Scepter§r nâng cấp thành §dRồng Ender 5m§r tăng §e+50%§r tốc độ).",
+  "entity.velorise_staves.cryo_regisvine": "Cây Cấp Đông (Cryo Regisvine)",
+  "entity.velorise_staves.cryo_icicle": "Mũi Băng",
+  "item.velorise_staves.hoarfrost_core": "Lõi Cực Hàn",
+  "tooltip.velorise_staves.hoarfrost_core": "Chuột Phải lên bãi đất trống để triệu hồi Boss Thế Giới Cây Cấp Đông.",
+  "message.velorise_staves.hoarfrost_core.blocked": "Không đủ khoảng trống phía trên để triệu hồi Cây Cấp Đông."
 }

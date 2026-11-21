@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  右键：切换迷你末影龙（无冷却，30秒）",
   "tooltip.velorise_staves.action.dragonfire.burst": "  按 [R]：君王灾厄",
   "tooltip.velorise_staves.action.dragonfire.passive": "  被动：5m 末影龙滑翔翼（+50% 速度）",
-  "codex.velorise_staves.staff.utility.p3": "• §b风之翼 (Wind Glider):§r 右键一次永久解锁（不占护甲槽！）。空中下落时按 §e[Space]§r 滑翔；空中左键触发§f下落攻击§r！（携带§d龙炎权杖§r时升级为§d5m 末影龙§r并获得 §e+50%§r 滑翔速度）。"
+  "codex.velorise_staves.staff.utility.p3": "• §b风之翼 (Wind Glider):§r 右键一次永久解锁（不占护甲槽！）。空中下落时按 §e[Space]§r 滑翔；空中左键触发§f下落攻击§r！（携带§d龙炎权杖§r时升级为§d5m 末影龙§r并获得 §e+50%§r 滑翔速度）。",
+  "entity.velorise_staves.cryo_regisvine": "急冻树",
+  "entity.velorise_staves.cryo_icicle": "冰锥",
+  "item.velorise_staves.hoarfrost_core": "极寒之核",
+  "tooltip.velorise_staves.hoarfrost_core": "右键空旷地面以召唤世界首领急冻树。",
+  "message.velorise_staves.hoarfrost_core.blocked": "上方空间不足，无法召唤急冻树。"
 }

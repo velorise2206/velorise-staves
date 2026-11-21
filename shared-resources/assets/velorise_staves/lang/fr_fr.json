@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  Clic Droit : Basculer Mini Dragon de l'End (Sans CD, 30s)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  Touche [R] : Cataclysme du Souverain",
   "tooltip.velorise_staves.action.dragonfire.passive": "  Passif : Planeur Dragon de l'End 5m (+50% Vit.)",
-  "codex.velorise_staves.staff.utility.p3": "• §bPlaneur du Vent (Wind Glider) :§r Clic Droit une fois pour le débloquer définitivement (sans emplacement d'armure !). Appuyez sur §e[Space]§r en chute pour planer ; §fAttaque Plongeante§r avec Clic Gauche en l'air ! (§dSceptre Feu-Dragon§r l'améliore en §dDragon de l'End 5m§r avec §e+50%§r vitesse)."
+  "codex.velorise_staves.staff.utility.p3": "• §bPlaneur du Vent (Wind Glider) :§r Clic Droit une fois pour le débloquer définitivement (sans emplacement d'armure !). Appuyez sur §e[Space]§r en chute pour planer ; §fAttaque Plongeante§r avec Clic Gauche en l'air ! (§dSceptre Feu-Dragon§r l'améliore en §dDragon de l'End 5m§r avec §e+50%§r vitesse).",
+  "entity.velorise_staves.cryo_regisvine": "Arbre congelé",
+  "entity.velorise_staves.cryo_icicle": "Glaçon Cryo",
+  "item.velorise_staves.hoarfrost_core": "Duramen de glace",
+  "tooltip.velorise_staves.hoarfrost_core": "Clic droit sur un sol dégagé pour invoquer le boss Arbre congelé.",
+  "message.velorise_staves.hoarfrost_core.blocked": "Espace libre insuffisant au-dessus pour invoquer l'Arbre congelé."
 }

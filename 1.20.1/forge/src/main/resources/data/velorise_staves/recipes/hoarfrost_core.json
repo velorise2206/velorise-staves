@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "BCB",
+    "RDR",
+    "BCB"
+  ],
+  "key": {
+    "B": { "item": "minecraft:blue_ice" },
+    "D": { "item": "minecraft:diamond" },
+    "R": { "item": "velorise_staves:cryo_rod" },
+    "C": [
+      { "item": "velorise_staves:cryo_element" },
+      { "item": "velorise_staves:omni_element" }
+    ]
+  },
+  "result": {
+    "item": "velorise_staves:hoarfrost_core",
+    "count": 1
+  }
+}

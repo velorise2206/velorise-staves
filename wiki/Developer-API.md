@@ -61,7 +61,6 @@ VeloriseElementEvents.registerShieldBreakListener((level, target, attacker, shie
 ## 3. Datapack Entity Tags
 
 Add modded mobs to innate elements or exclude vanilla mobs using standard Minecraft Entity Type Tags:
-
 - `#velorise_staves:pyro_creatures`, `hydro_creatures`, `cryo_creatures`, `electro_creatures`, `dendro_creatures`, `anemo_creatures`, `geo_creatures`
 - `#velorise_staves:no_innate_creatures` — explicitly strips natural innate elements from any listed entity type (overrides built-in vanilla fallbacks).
 

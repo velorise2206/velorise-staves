@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  우클릭: 미니 엔더 드래곤 전환 (재사용 대기시간 없음, 30초)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  [R] 키: 군주의 대재앙",
   "tooltip.velorise_staves.action.dragonfire.passive": "  패시브: 5m 엔더 드래곤 글라이더 (속도 +50%)",
-  "codex.velorise_staves.staff.utility.p3": "• §b바람의 날개 (Wind Glider):§r 우클릭 한 번으로 영구 해금(방어구 슬롯 불필요!). 낙하 중 §e[Space]§r 로 활공, 공중 좌클릭으로 §f낙하 공격§r! (§d드래곤파이어 홀§r 보유 시 §d5m 엔더 드래곤§r으로 업그레이드, 속도 §e+50%§r)."
+  "codex.velorise_staves.staff.utility.p3": "• §b바람의 날개 (Wind Glider):§r 우클릭 한 번으로 영구 해금(방어구 슬롯 불필요!). 낙하 중 §e[Space]§r 로 활공, 공중 좌클릭으로 §f낙하 공격§r! (§d드래곤파이어 홀§r 보유 시 §d5m 엔더 드래곤§r으로 업그레이드, 속도 §e+50%§r).",
+  "entity.velorise_staves.cryo_regisvine": "얼음 나무",
+  "entity.velorise_staves.cryo_icicle": "얼음 고드름",
+  "item.velorise_staves.hoarfrost_core": "서리의 핵",
+  "tooltip.velorise_staves.hoarfrost_core": "탁 트인 지면을 우클릭하여 월드 보스 얼음 나무를 소환합니다.",
+  "message.velorise_staves.hoarfrost_core.blocked": "얼음 나무를 소환할 상단 공간이 부족합니다."
 }

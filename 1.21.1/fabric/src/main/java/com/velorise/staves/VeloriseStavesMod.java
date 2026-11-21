@@ -158,6 +158,9 @@ public final class VeloriseStavesMod implements ModInitializer {
     public static final Item WIND_GLIDER = registerItem("wind_glider",
         new WindGliderItem(new Item.Properties().stacksTo(1)));
 
+    public static final Item HOARFROST_CORE = registerItem("hoarfrost_core",
+        new com.velorise.staves.item.HoarfrostCoreItem(new Item.Properties().stacksTo(16)));
+
     public static final Item MAGIC_MIRROR = registerItem("magic_mirror",
         new MagicMirrorItem(StavesConfig.getArtifactMaxDurability(false, false), false));
 
@@ -327,6 +330,7 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(MAGIC_MIRROR);
             output.accept(NETHERITE_MAGIC_MIRROR);
             output.accept(WIND_GLIDER);
+            output.accept(HOARFROST_CORE);
 
             // 2. Genshin Weapons (Basic + Netherite pairs)
             output.accept(GUARDIAN_LENS);
@@ -472,11 +476,42 @@ public final class VeloriseStavesMod implements ModInitializer {
                             .build("flamestrider_bike")
             );
 
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoRegisvineEntity> CRYO_REGISVINE =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "cryo_regisvine"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.CryoRegisvineEntity>of(
+                                    com.velorise.staves.entity.CryoRegisvineEntity::new,
+                                    net.minecraft.world.entity.MobCategory.MONSTER
+                            )
+                            .sized(3.2F, 6.5F)
+                            .clientTrackingRange(16)
+                            .updateInterval(1)
+                            .build("cryo_regisvine")
+            );
+
+    public static final net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoIcicleProjectile> CRYO_ICICLE =
+            Registry.register(
+                    BuiltInRegistries.ENTITY_TYPE,
+                    ResourceLocation.fromNamespaceAndPath(MODID, "cryo_icicle"),
+                    net.minecraft.world.entity.EntityType.Builder
+                            .<com.velorise.staves.entity.CryoIcicleProjectile>of(
+                                    com.velorise.staves.entity.CryoIcicleProjectile::new,
+                                    net.minecraft.world.entity.MobCategory.MISC
+                            )
+                            .sized(0.45F, 0.45F)
+                            .clientTrackingRange(10)
+                            .updateInterval(1)
+                            .build("cryo_icicle")
+            );
+
     @Override
     public void onInitialize() {
         StavesConfig.load();
         com.velorise.staves.network.ModNetwork.registerCommon();
         com.velorise.staves.effect.ModMobEffects.init();
+        net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry.register(CRYO_REGISVINE, com.velorise.staves.entity.CryoRegisvineEntity.createAttributes());
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY, TAB);
 
         // Also add combat staves to vanilla Combat tab so players never miss them
@@ -700,6 +735,14 @@ public final class VeloriseStavesMod implements ModInitializer {
 
     public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
         return FLAMESTRIDER_BIKE;
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoRegisvineEntity> getCryoRegisvineType() {
+        return CRYO_REGISVINE;
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoIcicleProjectile> getCryoIcicleType() {
+        return CRYO_ICICLE;
     }
 
     public static VeloriseCriterionTrigger getAdvancementTrigger() {

@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  ПКМ: Вкл/Выкл Мини-Дракона Энда (Без КД, 30с)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  Клавиша [R]: Катаклизм Владыки",
   "tooltip.velorise_staves.action.dragonfire.passive": "  Пассивно: Планер Дракона Энда 5м (+50% Скорость)",
-  "codex.velorise_staves.staff.utility.p3": "• §bПланер Ветра (Wind Glider):§r Нажмите ПКМ один раз, чтобы навсегда разблокировать (без слота брони!). Нажмите §e[Space]§r в падении для полёта; §fАтака в падении§r на ЛКМ в воздухе! (§dСкипетр Огня Дракона§r улучшает его до §dДракона Энда 5м§r со скоростью §e+50%§r)."
+  "codex.velorise_staves.staff.utility.p3": "• §bПланер Ветра (Wind Glider):§r Нажмите ПКМ один раз, чтобы навсегда разблокировать (без слота брони!). Нажмите §e[Space]§r в падении для полёта; §fАтака в падении§r на ЛКМ в воздухе! (§dСкипетр Огня Дракона§r улучшает его до §dДракона Энда 5м§r со скоростью §e+50%§r).",
+  "entity.velorise_staves.cryo_regisvine": "Крио папоротник",
+  "entity.velorise_staves.cryo_icicle": "Ледяная сосулька",
+  "item.velorise_staves.hoarfrost_core": "Инеевое ядро",
+  "tooltip.velorise_staves.hoarfrost_core": "ПКМ по открытой земле, чтобы призвать босса Крио папоротника.",
+  "message.velorise_staves.hoarfrost_core.blocked": "Недостаточно свободного места сверху для призыва Крио папоротника."
 }

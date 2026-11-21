@@ -855,6 +855,14 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 com.velorise.staves.VeloriseStavesMod.FLAMESTRIDER_BIKE,
                 FlamestriderBikeRenderer::new
         );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.CRYO_REGISVINE,
+                CryoRegisvineRenderer::new
+        );
+        net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(
+                com.velorise.staves.VeloriseStavesMod.CRYO_ICICLE,
+                CryoIcicleRenderer::new
+        );
 
         net.minecraft.resources.ResourceLocation pullId = net.minecraft.resources.ResourceLocation.withDefaultNamespace("pull");
         net.minecraft.resources.ResourceLocation pullingId = net.minecraft.resources.ResourceLocation.withDefaultNamespace("pulling");

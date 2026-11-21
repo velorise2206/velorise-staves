@@ -41,6 +41,8 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
     @SubscribeEvent
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(VeloriseStavesMod.FLAMESTRIDER_BIKE.get(), FlamestriderBikeRenderer::new);
+        event.registerEntityRenderer(VeloriseStavesMod.CRYO_REGISVINE.get(), CryoRegisvineRenderer::new);
+        event.registerEntityRenderer(VeloriseStavesMod.CRYO_ICICLE.get(), CryoIcicleRenderer::new);
     }
 
     @SubscribeEvent

@@ -86,6 +86,22 @@ public final class VeloriseStavesMod {
                     .updateInterval(1)
                     .build("flamestrider_bike"));
 
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoRegisvineEntity>> CRYO_REGISVINE =
+            ENTITY_TYPES.register("cryo_regisvine", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.CryoRegisvineEntity>of(com.velorise.staves.entity.CryoRegisvineEntity::new, net.minecraft.world.entity.MobCategory.MONSTER)
+                    .sized(3.2F, 6.5F)
+                    .clientTrackingRange(16)
+                    .updateInterval(1)
+                    .build("cryo_regisvine"));
+
+    public static final Supplier<net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoIcicleProjectile>> CRYO_ICICLE =
+            ENTITY_TYPES.register("cryo_icicle", () -> net.minecraft.world.entity.EntityType.Builder
+                    .<com.velorise.staves.entity.CryoIcicleProjectile>of(com.velorise.staves.entity.CryoIcicleProjectile::new, net.minecraft.world.entity.MobCategory.MISC)
+                    .sized(0.45F, 0.45F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .build("cryo_icicle"));
+
     // Sounds
     public static final Supplier<SoundEvent> MAGIC_MIRROR_USE_SOUND = SOUND_EVENTS.register("magic_mirror_use",
         () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MODID, "magic_mirror_use")));
@@ -196,6 +212,9 @@ public final class VeloriseStavesMod {
 
     public static final Supplier<Item> WIND_GLIDER = ITEMS.register("wind_glider",
         () -> new WindGliderItem(new Item.Properties().stacksTo(1)));
+
+    public static final Supplier<Item> HOARFROST_CORE = ITEMS.register("hoarfrost_core",
+        () -> new com.velorise.staves.item.HoarfrostCoreItem(new Item.Properties().stacksTo(16)));
 
     public static final Supplier<Item> MAGIC_MIRROR = ITEMS.register("magic_mirror",
         () -> new MagicMirrorItem(40, false));
@@ -370,6 +389,7 @@ public final class VeloriseStavesMod {
                 output.accept(MAGIC_MIRROR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
                 output.accept(WIND_GLIDER.get());
+                output.accept(HOARFROST_CORE.get());
 
                 // 2. Genshin Weapons (Basic + Netherite pairs)
                 output.accept(GUARDIAN_LENS.get());
@@ -450,6 +470,7 @@ public final class VeloriseStavesMod {
         }
         modEventBus.addListener(com.velorise.staves.network.ModNetwork::registerPayloads);
         modEventBus.addListener(VeloriseStavesMod::onBuildCreativeTabContents);
+        modEventBus.addListener(VeloriseStavesMod::onEntityAttributes);
         ITEMS.register(modEventBus);
         ENTITY_TYPES.register(modEventBus);
         SOUND_EVENTS.register(modEventBus);
@@ -535,6 +556,18 @@ public final class VeloriseStavesMod {
 
     public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.FlamestriderBikeEntity> getFlamestriderBikeType() {
         return FLAMESTRIDER_BIKE.get();
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoRegisvineEntity> getCryoRegisvineType() {
+        return CRYO_REGISVINE.get();
+    }
+
+    public static net.minecraft.world.entity.EntityType<com.velorise.staves.entity.CryoIcicleProjectile> getCryoIcicleType() {
+        return CRYO_ICICLE.get();
+    }
+
+    private static void onEntityAttributes(net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent event) {
+        event.put(CRYO_REGISVINE.get(), com.velorise.staves.entity.CryoRegisvineEntity.createAttributes().build());
     }
 
     public static net.minecraft.world.inventory.MenuType<com.velorise.staves.inventory.ShulkerStaffMenu> getShulkerStaffMenuType() {

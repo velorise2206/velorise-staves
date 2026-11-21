@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  Right-Click: Toggle Mini Ender Dragon (No CD, 30s)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  Press [R]: Sovereign's Cataclysm",
   "tooltip.velorise_staves.action.dragonfire.passive": "  Passive: 5m Ender Dragon Glider (+50% Speed)",
-  "codex.velorise_staves.staff.utility.p3": "• §bWind Glider (Wings of First Flight):§r Right-Click once to permanently unlock (no armor slot!). Press §e[Space]§r while falling in mid-air to glide; §fPlunge Attack§r with Left-Click in mid-air! (§dDragonfire Scepter§r upgrades it to a §d5m Ender Dragon§r with §e+50%§r speed)."
+  "codex.velorise_staves.staff.utility.p3": "• §bWind Glider (Wings of First Flight):§r Right-Click once to permanently unlock (no armor slot!). Press §e[Space]§r while falling in mid-air to glide; §fPlunge Attack§r with Left-Click in mid-air! (§dDragonfire Scepter§r upgrades it to a §d5m Ender Dragon§r with §e+50%§r speed).",
+  "entity.velorise_staves.cryo_regisvine": "Cryo Regisvine",
+  "entity.velorise_staves.cryo_icicle": "Cryo Icicle",
+  "item.velorise_staves.hoarfrost_core": "Hoarfrost Core",
+  "tooltip.velorise_staves.hoarfrost_core": "Right-Click open ground to summon the Cryo Regisvine World Boss.",
+  "message.velorise_staves.hoarfrost_core.blocked": "Not enough open space above this spot to summon the Cryo Regisvine."
 }

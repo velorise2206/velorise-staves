@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  右クリック：ミニエンダードラゴン切替（CDなし、30秒）",
   "tooltip.velorise_staves.action.dragonfire.burst": "  [R] キー：覇王の天災",
   "tooltip.velorise_staves.action.dragonfire.passive": "  パッシブ：5m エンダードラゴングライダー（速度+50%）",
-  "codex.velorise_staves.staff.utility.p3": "• §b風の翼 (Wind Glider):§r 右クリック1回で永久解放（防具枠不要！）。落下中に §e[Space]§r で滑空、空中で左クリックすると§f落下攻撃§r！（§dドラゴンファイアの杖§rで§d5m エンダードラゴン§rに進化し速度 §e+50%§r）。"
+  "codex.velorise_staves.staff.utility.p3": "• §b風の翼 (Wind Glider):§r 右クリック1回で永久解放（防具枠不要！）。落下中に §e[Space]§r で滑空、空中で左クリックすると§f落下攻撃§r！（§dドラゴンファイアの杖§rで§d5m エンダードラゴン§rに進化し速度 §e+50%§r）。",
+  "entity.velorise_staves.cryo_regisvine": "急凍樹",
+  "entity.velorise_staves.cryo_icicle": "氷柱",
+  "item.velorise_staves.hoarfrost_core": "極寒のコア",
+  "tooltip.velorise_staves.hoarfrost_core": "開けた地面を右クリックしてワールドボス「急凍樹」を召喚します。",
+  "message.velorise_staves.hoarfrost_core.blocked": "急凍樹を召喚するための上空スペースが不足しています。"
 }

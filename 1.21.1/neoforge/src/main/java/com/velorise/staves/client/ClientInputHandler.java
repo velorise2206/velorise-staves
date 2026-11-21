@@ -136,6 +136,8 @@ public final class ClientInputHandler {
             event.registerEntityRenderer(VeloriseStavesMod.HYDRO_SALON_SUMMON.get(), HydroSalonSummonRenderer::new);
             event.registerEntityRenderer(VeloriseStavesMod.OMNI_ORB.get(), OmniOrbRenderer::new);
             event.registerEntityRenderer(VeloriseStavesMod.FLAMESTRIDER_BIKE.get(), FlamestriderBikeRenderer::new);
+            event.registerEntityRenderer(VeloriseStavesMod.CRYO_REGISVINE.get(), CryoRegisvineRenderer::new);
+            event.registerEntityRenderer(VeloriseStavesMod.CRYO_ICICLE.get(), CryoIcicleRenderer::new);
         }
 
         @SubscribeEvent

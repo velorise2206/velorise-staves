@@ -799,5 +799,10 @@
   "tooltip.velorise_staves.action.dragonfire.right": "  Rechtsklick: Mini-Enderdrache umschalten (Kein CD, 30s)",
   "tooltip.velorise_staves.action.dragonfire.burst": "  Taste [R]: Kataklysmus des Souveräns",
   "tooltip.velorise_staves.action.dragonfire.passive": "  Passiv: 5m Enderdrachen-Gleiter (+50% Tempo)",
-  "codex.velorise_staves.staff.utility.p3": "• §bWindgleiter (Wind Glider):§r Einmal Rechtsklick zum dauerhaften Freischalten (kein Rüstungsslot!). Im Fall §e[Space]§r drücken zum Gleiten; §fSturzangriff§r per Linksklick in der Luft! (§dDrachenfeuer-Zepter§r wertet ihn zu einem §d5m Enderdrachen§r mit §e+50%§r Tempo auf)."
+  "codex.velorise_staves.staff.utility.p3": "• §bWindgleiter (Wind Glider):§r Einmal Rechtsklick zum dauerhaften Freischalten (kein Rüstungsslot!). Im Fall §e[Space]§r drücken zum Gleiten; §fSturzangriff§r per Linksklick in der Luft! (§dDrachenfeuer-Zepter§r wertet ihn zu einem §d5m Enderdrachen§r mit §e+50%§r Tempo auf).",
+  "entity.velorise_staves.cryo_regisvine": "Fluxeisbaum",
+  "entity.velorise_staves.cryo_icicle": "Eiszapfen",
+  "item.velorise_staves.hoarfrost_core": "Fluxfrostkern",
+  "tooltip.velorise_staves.hoarfrost_core": "Rechtsklick auf freien Boden, um den Weltboss Fluxeisbaum zu beschwören.",
+  "message.velorise_staves.hoarfrost_core.blocked": "Nicht genügend freier Platz nach oben, um den Fluxeisbaum zu beschwören."
 }
