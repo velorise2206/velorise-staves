@@ -479,12 +479,16 @@ public class FireBikeModel<T extends Entity> extends EntityModel<T> {
         return LayerDefinition.create(meshdefinition, 256, 256);
     }
 
+    public void applyWheelAndSteering(float frontWheelSpinAngle, float rearWheelSpinAngle, float steeringYawRad) {
+        this.front_wheel.xRot = frontWheelSpinAngle;
+        this.front_wheel.yRot = steeringYawRad;
+        this.rear_wheel.xRot = rearWheelSpinAngle;
+        this.steering.yRot = steeringYawRad;
+    }
+
     @Override
     public void setupAnim(T entity, float limbSwing, float limbSwingAmount, float ageInTicks, float netHeadYaw, float headPitch) {
-        // Rotate wheels or steering here:
-        // this.front_wheel.xRot = limbSwing;
-        // this.rear_wheel.xRot = limbSwing;
-        // this.steering.yRot = netHeadYaw * ((float)Math.PI / 180F);
+        applyWheelAndSteering(limbSwing, limbSwing, netHeadYaw * ((float) Math.PI / 180.0F));
     }
 
     @Override

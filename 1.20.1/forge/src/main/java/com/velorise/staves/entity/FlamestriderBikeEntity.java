@@ -134,8 +134,12 @@ public class FlamestriderBikeEntity extends Entity {
     private boolean clientWasPlunging = false;
     private Vec3 clientDashVec = Vec3.ZERO;
     public float wheelSpinAngle = 0.0F;
+    public float prevFrontWheelSpinAngle = 0.0F;
     public float frontWheelSpinAngle = 0.0F;
+    public float prevRearWheelSpinAngle = 0.0F;
     public float rearWheelSpinAngle = 0.0F;
+    public float prevSteeringAngle = 0.0F;
+    public float steeringAngle = 0.0F;
     public float spinYawOffset = 0.0F;
     public float spinLean = 0.0F;
     public float prevSpinLean = 0.0F;
@@ -626,10 +630,6 @@ public class FlamestriderBikeEntity extends Entity {
             ultiRiderPost.setPose(net.minecraft.world.entity.Pose.STANDING);
         }
         this.fallDistance = 0.0F;
-        double stepDist = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
-        if (stepDist > 0.001D && stepDist < 8.0D) {
-            this.distanceTraveledBlocks += stepDist;
-        }
         if (this.clientDashCooldownTicks > 0) {
             this.clientDashCooldownTicks--;
         }
@@ -654,6 +654,14 @@ public class FlamestriderBikeEntity extends Entity {
             double vy = this.onGround() ? 0.0D : Math.max(-1.2D, vel.y - 0.08D);
             this.setDeltaMovement(vel.x * 0.85D, vy, vel.z * 0.85D);
             this.move(MoverType.SELF, this.getDeltaMovement());
+        }
+
+        double stepDist = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
+        if (stepDist > 0.001D && stepDist < 8.0D) {
+            this.distanceTraveledBlocks += stepDist;
+        }
+        if (this.level().isClientSide()) {
+            tickClientWheelAndSteeringVisuals();
         }
     }
 
@@ -1379,10 +1387,19 @@ public class FlamestriderBikeEntity extends Entity {
         this.setYRot(rider.getYRot());
     }
 
-    private void tickClientVisuals() {
-        double horizSpeed = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
+    private void tickClientWheelAndSteeringVisuals() {
+        this.prevFrontWheelSpinAngle = this.frontWheelSpinAngle;
+        this.prevRearWheelSpinAngle = this.rearWheelSpinAngle;
+        this.prevSteeringAngle = this.steeringAngle;
+
+        double dx = this.getX() - this.xo;
+        double dz = this.getZ() - this.zo;
+        double horizSpeed = Math.hypot(dx, dz);
         double climbSpeed = this.clientWallClimbing ? Math.max(0.0D, this.getY() - this.yo) : 0.0D;
-        float baseSpinDelta = (float) (Math.hypot(horizSpeed, climbSpeed) * 2.6F);
+        double yawRad = Math.toRadians(this.getYRot());
+        double forwardDot = dx * (-Math.sin(yawRad)) + dz * Math.cos(yawRad);
+        float spinDirection = (!this.clientWallClimbing && forwardDot < -0.002D) ? -1.0F : 1.0F;
+        float baseSpinDelta = (float) (Math.hypot(horizSpeed, climbSpeed) * 2.6F) * spinDirection;
         this.wheelSpinAngle += baseSpinDelta;
         if (isSpinning()) {
             double omega = Math.toRadians(24.0D);
@@ -1394,6 +1411,22 @@ public class FlamestriderBikeEntity extends Entity {
             this.frontWheelSpinAngle += baseSpinDelta;
             this.rearWheelSpinAngle += baseSpinDelta;
         }
+
+        float targetSteeringAngle;
+        if (isSpinning()) {
+            targetSteeringAngle = 0.34F;
+        } else {
+            float yawDelta = Mth.wrapDegrees(this.getYRot() - this.yRotO);
+            float strafeInput = (this.getControllingPassenger() instanceof Player rider) ? rider.xxa : 0.0F;
+            targetSteeringAngle = Mth.clamp(yawDelta * 0.045F - strafeInput * 0.30F, -0.42F, 0.42F);
+        }
+        this.steeringAngle = Mth.lerp(0.32F, this.steeringAngle, targetSteeringAngle);
+        if (Math.abs(this.steeringAngle) < 0.004F) {
+            this.steeringAngle = 0.0F;
+        }
+    }
+
+    private void tickClientVisuals() {
         this.prevSpinLean = this.spinLean;
         this.prevWallClimbPitch = this.wallClimbPitch;
         float targetClimbPitch = this.clientWallClimbing ? -74.0F : 0.0F;

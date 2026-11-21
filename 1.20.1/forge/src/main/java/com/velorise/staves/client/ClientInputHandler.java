@@ -51,8 +51,8 @@ public final class ClientInputHandler {
             "key.categories.velorise_staves"
     );
 
-    public static final KeyMapping MAVUIKA_ULTI_KEY = new KeyMapping(
-            "key.velorise_staves.mavuika_ulti",
+    public static final KeyMapping ELEMENTAL_BURST_KEY = new KeyMapping(
+            "key.velorise_staves.elemental_burst",
             InputConstants.Type.KEYSYM,
             GLFW.GLFW_KEY_R,
             "key.categories.velorise_staves"
@@ -118,7 +118,7 @@ public final class ClientInputHandler {
         @SubscribeEvent
         public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
             event.register(OmniWheelOverlay.OMNI_WHEEL_KEY);
-            event.register(MAVUIKA_ULTI_KEY);
+            event.register(ELEMENTAL_BURST_KEY);
             event.register(OPEN_CONFIG_KEY);
             event.register(PLUNGE_ATTACK_KEY);
             event.register(WIND_GLIDER_KEY);
@@ -346,7 +346,7 @@ public final class ClientInputHandler {
             while (mc.options.keyDown.consumeClick()) {}
             while (mc.options.keyLeft.consumeClick()) {}
             while (mc.options.keyRight.consumeClick()) {}
-            while (MAVUIKA_ULTI_KEY.consumeClick()) {}
+            while (ELEMENTAL_BURST_KEY.consumeClick()) {}
             return;
         }
         ClientAuraTracker.tickLocalStaminaAndDash(
@@ -360,7 +360,7 @@ public final class ClientInputHandler {
                 mc.setScreen(new VeloriseConfigScreen(null));
             }
         }
-        while (MAVUIKA_ULTI_KEY.consumeClick()) {
+        while (ELEMENTAL_BURST_KEY.consumeClick()) {
             if (mc.player != null) {
                 if (!ArcaneStaffItem.isGenshinCharacterWeapon(mc.player.getMainHandItem())) {
                     continue;

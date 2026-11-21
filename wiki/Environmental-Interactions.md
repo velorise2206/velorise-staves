@@ -8,7 +8,7 @@ In **Velorise's Staves**, the Minecraft world is a living elemental sandbox. Ter
 
 ### 1. Water Bodies, Rain & Hydro Interactions
 - **Water Pools, Rivers & Oceans:** Standing or swimming in water continuously applies a non-decaying **`1.0U` Hydro Aura** and extinguishes Burning/Pyro auras.
-  - **Cryo on Water (Ice Bridging):** Any Cryo projectile, Tsaritsa Spear footstep, or Cryo-Imbued mob touching water freezes surface water blocks into temporary **Frosted Ice**.
+  - **Cryo on Water (Ice Bridging vs. Frozen):** Any Cryo projectile, Tsaritsa Spear footstep, or **Innate / Mutated Cryo** mob touching water freezes surface water blocks into temporary **Frosted Ice**. Normal (non-innate) mobs carrying an applied Cryo aura that enter water instead trigger **Frozen** on themselves!
   - **Electro on Water (Electrified Water Pools):** Striking water with any Electro attack (or when a Powered Creeper / Mutated Electro mob enters water) electrifies the water zone (`ElectrifiedWaterManager`). Crackling purple arcs jump across the water surface and between submerged mobs, dealing **`0.5❤` (`1.0F`) + `0.8U` Electro** every `1.0s` (`20t`) to trigger continuous **Electro-Charged** shocks!
 - **Rainfall:** Entities standing outdoors under rain receive continuous **Hydro Aura**, enabling effortless *Vaporize, Electro-Charged, Bloom,* and *Freeze* combos.
 - **Hydro Attacks on Terrain:** Hydro beams and splashes extinguish Fire blocks, unlight lit Campfires and Candles, solidify Lava into Obsidian/Cobblestone, and hydrate Farmland.
@@ -36,7 +36,7 @@ In **Velorise's Staves**, the Minecraft world is a living elemental sandbox. Ter
 
 ### 4. Dendro, Cryo & Geo Environmental Hazards
 - **Dendro Contact:** Standing on **Slime Blocks**, **Honey Blocks**, or touching **Giant Red/Brown Mushroom Blocks** applies **`1.0U` Dendro Aura**; walking into **Cactus** or **Sweet Berry Bushes** also applies Dendro.
-- **Cryo Contact:** Standing in **Powder Snow** or touching **Blue Ice / Packed Ice** applies **`1.0U` Cryo Aura**.
+- **Cryo Contact & Snowing Weather:** Standing in **Powder Snow**, touching **Blue Ice / Packed Ice**, or standing outdoors under **Snowing Weather** (`Biome.Precipitation.SNOW`) applies a continuous **`1.0U` Cryo Aura** (mirroring Rainfall Hydro). Players wearing at least one piece of **Leather Armor** (`#minecraft:freeze_immune_wearables`) stay warm and resist snowing-weather Cryo!
 - **Geo Contact:** Being struck by falling **Pointed Dripstone (Stalactites)** or landing on **Stalagmites** applies **`1.0U` Geo Aura** (and shatters Frozen targets!).
 - **Thorns Armor Reflection & Elemental Armor Wear:**
   - Wearing armor enchanted with **Thorns** reflects **`0.5U` per Thorns level** of the attacker's or victim's active element back onto melee attackers!

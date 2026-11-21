@@ -115,6 +115,8 @@ public final class ElementalTickManager {
                     handleEnvironmentalWater(player);
                 } else if (isTouchingEnvironmentalFireBlock(player) || isTouchingSoulCampfire(player)) {
                     maintainBurningPyroAura(player);
+                } else if (isExposedToEnvironmentalCryo(player)) {
+                    handleEnvironmentalCryo(player);
                 }
                 Collection<Element> playerElements = getEntityElements(player.getUUID());
                 updateCryoDebuff(player, player.getUUID(), playerElements.contains(Element.CRYO) && !isEntityFrozen(player), null);
@@ -163,14 +165,24 @@ public final class ElementalTickManager {
                             updateCoopMobScaling(sl, nearby);
                         }
                         EnumSet<Element> nearbyInnates = getInnateElements(nearby);
-                        if (nearbyInnates.contains(Element.CRYO) || hasElement(nearby, Element.CRYO)) {
+                        if (nearbyInnates.contains(Element.CRYO)) {
                             checkCryoWaterFreezing(nearby);
                         }
-                        if (!nearbyInnates.isEmpty() && serverNow % 20 == 0) {
-                            if (isEntityInWater(nearby)) {
-                                handleEnvironmentalWater(nearby);
-                            } else if (isTouchingEnvironmentalFireBlock(nearby) || isTouchingSoulCampfire(nearby)) {
-                                maintainBurningPyroAura(nearby);
+                        if (serverNow % 20 == 0) {
+                            if (!nearbyInnates.isEmpty()) {
+                                if (isEntityInWater(nearby)) {
+                                    handleEnvironmentalWater(nearby);
+                                } else if (isTouchingEnvironmentalFireBlock(nearby) || isTouchingSoulCampfire(nearby)) {
+                                    maintainBurningPyroAura(nearby);
+                                } else if ((sl.isRaining() || nearby.isInPowderSnow) && isExposedToEnvironmentalCryo(nearby)) {
+                                    handleEnvironmentalCryo(nearby);
+                                }
+                            } else if (!isPassiveAquaticOrAmbient(nearby) && (sl.isRaining() || nearby.isInPowderSnow)) {
+                                if (isEntityInWater(nearby)) {
+                                    handleEnvironmentalWater(nearby);
+                                } else if (isExposedToEnvironmentalCryo(nearby)) {
+                                    handleEnvironmentalCryo(nearby);
+                                }
                             }
                         }
                         if (serverNow % 5 == 0 && !isPassiveAquaticOrAmbient(nearby)) {
@@ -471,7 +483,7 @@ public final class ElementalTickManager {
             }
 
             // 1. Environmental Water / Fire check & Cryo Water Freezing
-            if (innateSet.contains(Element.CRYO) || entityGauges.containsKey(Element.CRYO)) {
+            if (innateSet.contains(Element.CRYO)) {
                 checkCryoWaterFreezing(target);
             }
             if (isEntityInWater(target)) {
@@ -482,6 +494,8 @@ public final class ElementalTickManager {
                 }
             } else if (isTouchingEnvironmentalFireBlock(target)) {
                 maintainBurningPyroAura(target);
+            } else if (isExposedToEnvironmentalCryo(target)) {
+                handleEnvironmentalCryo(target);
             }
 
             // Powered Creeper (special lightning creature): radiates electric shock within 1.0 block in air & water once per second
@@ -519,6 +533,9 @@ public final class ElementalTickManager {
                     continue;
                 }
                 if (gEntry.getKey() == Element.HYDRO && isEntityInWater(target)) {
+                    continue;
+                }
+                if (gEntry.getKey() == Element.CRYO && isExposedToEnvironmentalCryo(target)) {
                     continue;
                 }
                 GaugeState state = gEntry.getValue();

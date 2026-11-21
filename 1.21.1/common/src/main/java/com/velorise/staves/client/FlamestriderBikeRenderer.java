@@ -57,13 +57,18 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         int naT = entity.getActiveNaTicks();
         applyActionTransforms(entity, ultiT, naT, partialTicks, poseStack);
 
+        float frontWheelSpin = Mth.lerp(partialTicks, entity.prevFrontWheelSpinAngle, entity.frontWheelSpinAngle);
+        float rearWheelSpin = Mth.lerp(partialTicks, entity.prevRearWheelSpinAngle, entity.rearWheelSpinAngle);
+        float steeringYawRad = Mth.lerp(partialTicks, entity.prevSteeringAngle, entity.steeringAngle);
+
         renderBikeMesh(
                 poseStack,
                 bufferSource,
                 this.getFont(),
                 entity.isNetherite(),
-                entity.frontWheelSpinAngle,
-                entity.rearWheelSpinAngle,
+                frontWheelSpin,
+                rearWheelSpin,
+                steeringYawRad,
                 (float) entity.getCurrentSpeedBlocksPerSec(),
                 (float) entity.getDistanceTraveledBlocks(),
                 entity.isGliding(),
@@ -124,10 +129,25 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             boolean sprinting,
             int packedLight
     ) {
+        renderBikeMesh(poseStack, bufferSource, font, neth, frontWheelSpinAngle, rearWheelSpinAngle, 0.0F, speedBps, odoMeters, gliding, sprinting, packedLight);
+    }
+
+    public static void renderBikeMesh(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            net.minecraft.client.gui.Font font,
+            boolean neth,
+            float frontWheelSpinAngle,
+            float rearWheelSpinAngle,
+            float steeringYawRad,
+            float speedBps,
+            float odoMeters,
+            boolean gliding,
+            boolean sprinting,
+            int packedLight
+    ) {
         FireBikeModel<FlamestriderBikeEntity> model = getOrBakeModel();
-        model.front_wheel.xRot = -frontWheelSpinAngle;
-        model.rear_wheel.xRot = -rearWheelSpinAngle;
-        model.steering.yRot = 0.0F;
+        model.applyWheelAndSteering(frontWheelSpinAngle, rearWheelSpinAngle, steeringYawRad);
 
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));

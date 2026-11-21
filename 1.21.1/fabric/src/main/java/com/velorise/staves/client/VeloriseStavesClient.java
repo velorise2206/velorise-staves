@@ -104,9 +104,9 @@ public final class VeloriseStavesClient implements ClientModInitializer {
 
         net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OMNI_WHEEL_KEY);
         net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(OmniWheelOverlay.OPEN_CONFIG_KEY);
-        net.minecraft.client.KeyMapping mavuikaUltiKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
+        net.minecraft.client.KeyMapping elementalBurstKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
                 new net.minecraft.client.KeyMapping(
-                        "key.velorise_staves.mavuika_ulti",
+                        "key.velorise_staves.elemental_burst",
                         com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
                         org.lwjgl.glfw.GLFW.GLFW_KEY_R,
                         "key.categories.velorise_staves"
@@ -371,7 +371,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 while (client.options.keyDown.consumeClick()) {}
                 while (client.options.keyLeft.consumeClick()) {}
                 while (client.options.keyRight.consumeClick()) {}
-                while (mavuikaUltiKey.consumeClick()) {}
+                while (elementalBurstKey.consumeClick()) {}
                 return;
             }
             ClientAuraTracker.tickLocalStaminaAndDash(
@@ -385,7 +385,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     client.setScreen(new VeloriseConfigScreen(null));
                 }
             }
-            while (mavuikaUltiKey.consumeClick()) {
+            while (elementalBurstKey.consumeClick()) {
                 if (client.player != null) {
                     if (!com.velorise.staves.item.ArcaneStaffItem.isGenshinCharacterWeapon(client.player.getMainHandItem())) {
                         continue;

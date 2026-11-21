@@ -9,10 +9,15 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.FluidTags;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.animal.Bee;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.monster.Blaze;
@@ -57,6 +62,32 @@ public final class EnvironmentalAuraManager {
 
     public static boolean isEntityInWater(LivingEntity target) {
         return isEntitySubmergedInWater(target) || target.isInWaterRainOrBubble() || target.isInWaterOrRain();
+    }
+
+    public static boolean isWearingWarmLeatherArmor(@Nullable LivingEntity target) {
+        if (target == null) return false;
+        for (ItemStack armor : target.getArmorSlots()) {
+            if (!armor.isEmpty() && armor.is(ItemTags.FREEZE_IMMUNE_WEARABLES)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isEntityInSnowWeather(@Nullable LivingEntity target) {
+        if (target == null || target.level().isClientSide()) return false;
+        Level level = target.level();
+        if (!level.isRaining()) return false;
+        BlockPos eyePos = BlockPos.containing(target.getX(), target.getEyeY(), target.getZ());
+        if (!level.hasChunkAt(eyePos) || !level.canSeeSky(eyePos)) return false;
+        return level.getBiome(eyePos).value().getPrecipitationAt(eyePos) == Biome.Precipitation.SNOW;
+    }
+
+    public static boolean isExposedToEnvironmentalCryo(@Nullable LivingEntity target) {
+        if (target == null || !target.isAlive() || target.isSpectator()) return false;
+        if (target.isInPowderSnow) return true;
+        if (target instanceof Player && isWearingWarmLeatherArmor(target)) return false;
+        return isEntityInSnowWeather(target);
     }
 
     public static boolean isTouchingSoulCampfire(LivingEntity target) {
@@ -482,6 +513,29 @@ public final class EnvironmentalAuraManager {
             return;
         }
 
+        // 4B. Applied Cryo in water/rain -> Trigger Frozen reaction!
+        if (targetGauges.containsKey(Element.CRYO) && !isEntityFrozen(target)) {
+            if (!checkReactionIcd(target, ElementalReaction.FROZEN, now)) return;
+            GaugeState cg = targetGauges.get(Element.CRYO);
+            float cryoBefore = cg != null ? cg.getUnits() : 1.0F;
+            if (cg != null) {
+                cg.consume(0.8F);
+                if (cg.isExpired()) targetGauges.remove(Element.CRYO);
+            }
+            float freezeU = 2.0F * Math.min(cryoBefore, 1.0F);
+            GaugeState newFreeze = GaugeState.createFrozen(Math.max(0.8F, freezeU));
+            int freezeTicks = newFreeze.getRemainingTicks();
+            if (!isBossEntity(target)) {
+                applyFreezeState(target, id, newFreeze, freezeTicks, now);
+            }
+            if (target.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.SNOWFLAKE, target.getX(), target.getY() + 0.8D, target.getZ(), 14, 0.3D, 0.35D, 0.3D, 0.03D);
+                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.PLAYER_HURT_FREEZE, SoundSource.PLAYERS, 0.7F, 1.2F);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.CRYO, Element.HYDRO, ElementalReaction.FROZEN, 0.0F);
+            return;
+        }
+
         // 5. Environmental Wet: Apply or keep Hydro refreshed while in water or rain
         if (innateSet.isEmpty()) {
             if (!targetGauges.containsKey(Element.HYDRO)) {
@@ -496,9 +550,77 @@ public final class EnvironmentalAuraManager {
         }
     }
 
+
+    public static void handleEnvironmentalCryo(LivingEntity target) {
+        if (target == null || !target.isAlive() || target.isSpectator() || isOmniInnate(target)) return;
+        if (isEntitySubmergedInWater(target)) return;
+        UUID id = target.getUUID();
+        EnumSet<Element> innateSet = getInnateElements(target);
+        long now = target.level().getGameTime();
+
+        if (!innateSet.isEmpty()) {
+            // Innate Pyro mob in snow/powder snow -> Reverse Melt!
+            if (innateSet.contains(Element.PYRO)) {
+                Long lastMelt = INNATE_COOLDOWN_UNTIL.get(id);
+                if (lastMelt == null || now >= lastMelt) {
+                    INNATE_COOLDOWN_UNTIL.put(id, now + 20L);
+                    boolean sensitive = isNaturallyWaterSensitive(target);
+                    float meltDmg = sensitive ? applyMobElementalResistance(target, Element.CRYO, 2.0F) : 0.0F;
+                    if (target.level() instanceof ServerLevel sl) {
+                        sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 10, 0.3D, 0.3D, 0.3D, 0.03D);
+                        sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.6F, 1.3F);
+                        if (sensitive && meltDmg > 0.0F) {
+                            hurtWithPreAppliedElementalRes(target, ElementalDeathMessageHelper.createDamageSource(sl, null, ElementalReaction.REVERSE_MELT, Element.CRYO), meltDmg);
+                        }
+                    }
+                    syncAuras(target, innateSet, Element.PYRO, Element.CRYO, ElementalReaction.REVERSE_MELT, meltDmg);
+                }
+            }
+            return;
+        }
+
+        Map<Element, GaugeState> targetGauges = GAUGES.computeIfAbsent(id, k -> new ConcurrentHashMap<>());
+
+        // Applied Pyro in snow/powder snow -> Reverse Melt & gradually extinguish
+        if (targetGauges.containsKey(Element.PYRO)) {
+            if (!checkReactionIcd(target, ElementalReaction.REVERSE_MELT, now)) return;
+            GaugeState pg = targetGauges.get(Element.PYRO);
+            if (pg != null) {
+                pg.consume(0.5F);
+                if (pg.isExpired()) {
+                    targetGauges.remove(Element.PYRO);
+                    BURNING_UNTIL.remove(id);
+                    BURNING_EM_LEVEL.remove(id);
+                    BURNING_ATTACKER_UUID.remove(id);
+                    LAST_BURN_PYRO_REFRESH.remove(id);
+                    target.clearFire();
+                }
+            }
+            if (target.level() instanceof ServerLevel sl) {
+                sl.sendParticles(ParticleTypes.CLOUD, target.getX(), target.getY() + 0.8D, target.getZ(), 8, 0.25D, 0.25D, 0.25D, 0.02D);
+                sl.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 1.4F);
+            }
+            syncAuras(target, targetGauges.keySet(), Element.PYRO, Element.CRYO, ElementalReaction.REVERSE_MELT, 0.0F);
+            return;
+        }
+
+        // Environmental Cryo: apply or keep Cryo refreshed while in powder snow or snowing weather
+        if (!isEntityFrozen(target) && !targetGauges.containsKey(Element.HYDRO)) {
+            if (!targetGauges.containsKey(Element.CRYO)) {
+                targetGauges.put(Element.CRYO, createAuraGauge(target, Element.CRYO, 1.25F));
+                syncAuras(target, targetGauges.keySet(), null, null, null, 0.0F);
+            } else {
+                GaugeState cryo = targetGauges.get(Element.CRYO);
+                if (cryo != null) {
+                    refreshAuraGauge(target, cryo, Element.CRYO, 1.25F);
+                }
+            }
+        }
+    }
+
     public static void checkCryoWaterFreezing(LivingEntity entity) {
         if (entity.level().isClientSide() || !(entity.level() instanceof ServerLevel sl)) return;
-        if (!hasInnateElement(entity, Element.CRYO) && !hasElement(entity, Element.CRYO)) return;
+        if (!hasInnateElement(entity, Element.CRYO)) return;
 
         BlockPos pos = entity.blockPosition();
         BlockPos below = pos.below();

@@ -20,6 +20,10 @@
 
 **A:** **Omni-Innate (`Omni ∞`)** mobs are 100% immune to all Elemental and Magic damage! Switch to a **Physical Melee Sword** or **Vanilla Bow/Crossbow** to deal physical damage — or, if it is a tamable Wolf/Fox, feed it an **Omni Element** (`omni_element`) to tame it as an elemental-immune pet!
 
+### Q5: Why are idle/hover animations (Raiden levitating, Nahida swing) not displaying properly in large modpacks?
+
+**A:** Temporary minor visual conflict with player animation libraries (such as **`player-animation-lib`** or **`EMF`**), which override custom player bone positions back to standard standing poses. Rest assured, this is purely a cosmetic UX/idle issue — all combat skills, damage, hitboxes, and particle FX work 100% normally!
+
 
 ---
 
@@ -115,3 +119,4 @@ Minimal `pack.mcmeta` example (`1.21.1`):
 | **Iris / Oculus Shaders**                    | NeoForge, Fabric, Forge | Custom `ShieldRenderTypes` (`TRANSLUCENT_NO_DEPTH_WRITE`, `TRANSLUCENT_DEPTH_WRITE`, `METEOR_SOLID`) render 3D shields, lightning arcs, Nahida domes, and meteors cleanly without shader depth-buffer artifacts. |
 | **Sodium / Embeddium / Rubidium**            | NeoForge, Fabric, Forge | Zero custom chunk mesh hooks; all particle and vertex batches are fully compatible with Sodium's rendering pipeline.                                                                                             |
 | **First-Person Model / Better First Person** | NeoForge, Fabric, Forge | Dedicated 1st-person vs 3rd-person camera checks (`CameraType.FIRST_PERSON`) prevent 3D idle props or sunglasses overlays from clipping the camera.                                                              |
+| **Player Animation Lib / EMF**               | NeoForge, Fabric, Forge | Minor visual note: May temporarily clamp idle poses (e.g. Raiden floating or Nahida swing). Purely a cosmetic UX issue; all combat, skills, and gameplay remain 100% normal. |

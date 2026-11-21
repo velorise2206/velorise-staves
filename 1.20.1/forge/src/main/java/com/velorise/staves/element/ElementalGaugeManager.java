@@ -899,7 +899,7 @@ public final class ElementalGaugeManager {
                     }
                 }
             }
-        } else if (target.isInPowderSnow) {
+        } else if (isExposedToEnvironmentalCryo(target)) {
             if (innateElements.isEmpty() && !targetGauges.containsKey(Element.CRYO)) {
                 targetGauges.put(Element.CRYO, createAuraGauge(target, Element.CRYO, 1.25F));
             }
@@ -1574,6 +1574,9 @@ public static void tick(MinecraftServer server) {
     public static void handlePlayerFreezeStruggle(ServerPlayer player) { FreezeStateManager.handlePlayerFreezeStruggle(player); }
     public static boolean isEntitySubmergedInWater(LivingEntity target) { return EnvironmentalAuraManager.isEntitySubmergedInWater(target); }
     public static boolean isEntityInWater(LivingEntity target) { return EnvironmentalAuraManager.isEntityInWater(target); }
+    public static boolean isEntityInSnowWeather(@Nullable LivingEntity target) { return EnvironmentalAuraManager.isEntityInSnowWeather(target); }
+    public static boolean isExposedToEnvironmentalCryo(@Nullable LivingEntity target) { return EnvironmentalAuraManager.isExposedToEnvironmentalCryo(target); }
+    public static void handleEnvironmentalCryo(LivingEntity target) { EnvironmentalAuraManager.handleEnvironmentalCryo(target); }
     public static boolean isTouchingSoulCampfire(LivingEntity target) { return EnvironmentalAuraManager.isTouchingSoulCampfire(target); }
     public static boolean isTouchingEnvironmentalFireBlock(LivingEntity target) { return EnvironmentalAuraManager.isTouchingEnvironmentalFireBlock(target); }
     public static boolean isTouchingMushroomBlock(LivingEntity target) { return EnvironmentalAuraManager.isTouchingMushroomBlock(target); }

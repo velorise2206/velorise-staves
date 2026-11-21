@@ -72,7 +72,7 @@ public final class OmniWheelOverlay {
         return ClientAuraRenderer.getElementIconTexture(OmniOrbEntity.WHEEL_ELEMENTS[clamped]);
     }
 
-    public static final KeyMapping MAVUIKA_ULTI_KEY = ClientInputHandler.MAVUIKA_ULTI_KEY;
+    public static final KeyMapping ELEMENTAL_BURST_KEY = ClientInputHandler.ELEMENTAL_BURST_KEY;
     public static final KeyMapping OPEN_CONFIG_KEY = ClientInputHandler.OPEN_CONFIG_KEY;
 
     public static boolean isWheelActive() {

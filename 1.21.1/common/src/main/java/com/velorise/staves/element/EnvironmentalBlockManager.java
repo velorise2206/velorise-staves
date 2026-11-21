@@ -576,6 +576,7 @@ public final class EnvironmentalBlockManager {
         boolean touchingRedstone = false;
         BlockPos redstoneArcPos = null;
         boolean touchingSlimeOrHoney = false;
+        boolean touchingColdIce = false;
         boolean touchingSoulCampfire = false;
         BlockPos amethystZapPos = null;
         boolean sameChunk = (min.getX() >> 4) == (max.getX() >> 4) && (min.getZ() >> 4) == (max.getZ() >> 4);
@@ -596,6 +597,9 @@ public final class EnvironmentalBlockManager {
             }
             if (st.is(Blocks.SLIME_BLOCK) || st.is(Blocks.HONEY_BLOCK)) {
                 touchingSlimeOrHoney = true;
+            }
+            if (st.is(Blocks.BLUE_ICE) || st.is(Blocks.PACKED_ICE)) {
+                touchingColdIce = true;
             }
             if (isSolidAmethystBlock(st) && amethystZapPos == null) {
                 amethystZapPos = p.immutable();
@@ -620,6 +624,9 @@ public final class EnvironmentalBlockManager {
         }
         if (touchingSlimeOrHoney) {
             ElementalGaugeManager.applyElement(level, living, Element.DENDRO, 1.0F, null, 0.0F);
+        }
+        if (touchingColdIce) {
+            ElementalGaugeManager.applyElement(level, living, Element.CRYO, 1.0F, null, 0.0F);
         }
 
         // 2. Amethyst Cluster: Radiates Electro aura within 1.0 block every 1s
