@@ -49,6 +49,7 @@ public final class ElementalGaugeManager {
     public static final TagKey<EntityType<?>> DENDRO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(VeloriseStavesMod.MODID, "dendro_creatures"));
     public static final TagKey<EntityType<?>> ANEMO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(VeloriseStavesMod.MODID, "anemo_creatures"));
     public static final TagKey<EntityType<?>> GEO_CREATURES = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(VeloriseStavesMod.MODID, "geo_creatures"));
+    public static final TagKey<EntityType<?>> NO_INNATE_CREATURES = TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation(VeloriseStavesMod.MODID, "no_innate_creatures"));
     public static final TagKey<Block> MUSHROOM_BLOCKS = TagKey.create(Registries.BLOCK, new ResourceLocation(VeloriseStavesMod.MODID, "mushroom_blocks"));
 
     public static final Map<UUID, Map<Element, GaugeState>> GAUGES = new ConcurrentHashMap<>();
@@ -616,6 +617,58 @@ public final class ElementalGaugeManager {
         return resDamage;
     }
 
+    public static float getAuraUnits(@Nullable LivingEntity target, @Nullable Element element) {
+        if (target == null || element == null) return 0.0F;
+        Map<Element, GaugeState> map = GAUGES.get(target.getUUID());
+        if (map == null) return 0.0F;
+        GaugeState state = map.get(element);
+        return (state != null && !state.isExpired()) ? state.getUnits() : 0.0F;
+    }
+
+    public static com.velorise.staves.api.ReactionResult applyElementFromEntity(
+            ServerLevel level,
+            LivingEntity target,
+            Element attackElement,
+            float attackU,
+            @Nullable LivingEntity attacker,
+            float baseDamage,
+            boolean bypassStandardIcd
+    ) {
+        if (target == null || attackElement == null || !target.isAlive() || target.isInvulnerable()) {
+            return com.velorise.staves.api.ReactionResult.EMPTY;
+        }
+        if (!com.velorise.staves.api.VeloriseElementEvents.firePreApplyAura(level, target, attacker, attackElement, attackU)) {
+            return com.velorise.staves.api.ReactionResult.EMPTY;
+        }
+        ElementalShieldManager.ShieldHitOutcome shieldHit = ElementalShieldManager.processIncomingElement(
+                level, target, attacker, attackElement, attackU
+        );
+        if (shieldHit.immune()) {
+            return com.velorise.staves.api.ReactionResult.immune(shieldHit.remainingUnits());
+        }
+        float scaledDamage = baseDamage * shieldHit.damageScale();
+        ServerPlayer spAttacker = attacker instanceof ServerPlayer sp ? sp : null;
+        LivingEntity prevAttacker = CURRENT_REACTION_ATTACKER.get();
+        CURRENT_REACTION_ATTACKER.set(attacker != null ? attacker : prevAttacker);
+        try {
+            if (attacker != null && spAttacker == null && scaledDamage > 0.0F) {
+                triggerMobAggro(level, target, attacker);
+            }
+            applyElement(level, target, attackElement, attackU, spAttacker, scaledDamage, bypassStandardIcd, null);
+        } finally {
+            if (prevAttacker == null) CURRENT_REACTION_ATTACKER.remove();
+            else CURRENT_REACTION_ATTACKER.set(prevAttacker);
+        }
+        return new com.velorise.staves.api.ReactionResult(
+                true,
+                false,
+                ElementalReaction.NONE,
+                scaledDamage,
+                shieldHit.remainingUnits(),
+                shieldHit.broken()
+        );
+    }
+
     public static void applyElement(
             ServerLevel level,
             LivingEntity target,
@@ -664,9 +717,24 @@ public final class ElementalGaugeManager {
             triggerMobAggro(level, target, attacker);
         }
 
+        if (!physicalMelee && !com.velorise.staves.api.VeloriseElementEvents.firePreApplyAura(level, target, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get(), attackElement, attackU)) {
+            return;
+        }
+
         boolean egtEnabled = StavesConfig.ENABLE_ELEMENTAL_GAUGE.get();
         double dmgMult = StavesConfig.DAMAGE_MULTIPLIER.get();
         float effectiveDamage = physicalMelee ? baseDamage : (float) (baseDamage * dmgMult);
+
+        if (!physicalMelee && ElementalShieldManager.hasShield(target)) {
+            LivingEntity shieldAttacker = attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get();
+            ElementalShieldManager.ShieldHitOutcome shieldHit = ElementalShieldManager.processIncomingElement(
+                    level, target, shieldAttacker, attackElement, attackU
+            );
+            if (shieldHit.immune()) {
+                return;
+            }
+            effectiveDamage *= shieldHit.damageScale();
+        }
 
         if (!physicalMelee && target instanceof ServerPlayer sp && effectiveDamage > 0.0F) {
             Element activeShield = CrystallizeShardManager.getActiveShield(sp, level.getGameTime());
@@ -1466,6 +1534,9 @@ public final class ElementalGaugeManager {
             double dmgMult
     ) {
         ReactionEffectManager.executeReactionEffectInternal(level, target, reaction, trigger, reactedU, attacker, dmgMult);
+        com.velorise.staves.api.VeloriseElementEvents.fireReactionTriggered(
+                level, target, attacker != null ? attacker : CURRENT_REACTION_ATTACKER.get(), trigger, reaction, reactedU
+        );
     }
 
 public static void tick(MinecraftServer server) {

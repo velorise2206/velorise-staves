@@ -293,8 +293,8 @@ public final class StavesConfig {
             .comment("Movement and wall-climbing speed multiplier for Mavuika's Flamestrider bike (0.5 to 3.0). Default: 1.0")
             .defineInRange("mavuika_bike_speed_multiplier", 1.0D, 0.5D, 3.0D);
         INNATE_MUTATION_CHANCE = builder
-            .comment("Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element. Default: 0.07 (7%: 6% Elemental + 1% Omni Mutated)")
-            .defineInRange("innate_mutation_chance", 0.07D, 0.0D, 1.0D);
+            .comment("Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element. Default: 0.08 (8%: 7% Elemental + 1% Omni Mutated)")
+            .defineInRange("innate_mutation_chance", 0.08D, 0.0D, 1.0D);
         builder.pop();
 
         builder.comment("Innate Elemental Mutation Categories, Whitelist/Blacklist & Per-Mob Rates").push("innate_mutation");
@@ -308,8 +308,8 @@ public final class StavesConfig {
             .comment("Allow non-hostile neutral/passive mobs (excluding Bosses, Villagers/NPCs, and passive Aquatic/Ambient) to mutate unless whitelisted. Default: false")
             .define("allow_neutral_and_passive_mutation", false);
         OMNI_MUTATION_SHARE = builder
-            .comment("Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (remaining become 1 of the 7 elements). Default: 0.143 (~1/7 -> 1% Omni at 7% rate)")
-            .defineInRange("omni_mutation_share", 0.143D, 0.0D, 1.0D);
+            .comment("Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (remaining become 1 of the 7 elements). Default: 0.125 (1/8 -> 1% Omni at 8% rate)")
+            .defineInRange("omni_mutation_share", 0.125D, 0.0D, 1.0D);
         MUTABLE_MOB_WHITELIST = builder
             .comment("Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:wolf\", \"minecraft:fox\") or entity tags (\"#minecraft:raiders\") always allowed to mutate.")
             .defineListAllowEmpty("mutable_mob_whitelist", List.of("minecraft:iron_golem", "minecraft:wolf", "minecraft:fox"), () -> "", o -> o instanceof String s && !s.trim().isEmpty());
@@ -592,7 +592,7 @@ public final class StavesConfig {
             int mdBasic = buf.readVarInt();
             int mdNeth = buf.readVarInt();
             boolean egtOn = buf.isReadable() ? buf.readBoolean() : true;
-            double mutChance = buf.isReadable() ? buf.readDouble() : 0.07D;
+            double mutChance = buf.isReadable() ? buf.readDouble() : 0.08D;
             boolean resOn = buf.isReadable() ? buf.readBoolean() : true;
             int maxCap = buf.isReadable() ? buf.readVarInt() : 4;
             double[] dmgs = new double[len];

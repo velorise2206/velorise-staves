@@ -239,6 +239,7 @@ public final class ElementalTickManager {
         ELECTRO_CHARGE_EM_LEVEL.remove(id);
         SUPPRESSED_PHYSICAL_FLOAT_TICK.remove(id);
         ElementalDeathMessageHelper.clearEntityState(entity);
+        ElementalShieldManager.clearEntity(id);
         LAST_BURN_PYRO_REFRESH.remove(id);
         INNATE_COOLDOWN_UNTIL.remove(id);
         ELECTRO_CHARGE_TICK.remove(id);
@@ -408,6 +409,7 @@ public final class ElementalTickManager {
         BURNING_ATTACKER_UUID.clear();
         SUPPRESSED_PHYSICAL_FLOAT_TICK.clear();
         InnateMobManager.clearAll();
+        ElementalShieldManager.clearAll();
         ZhongliManager.clearAll();
         VentiManager.clearAll();
         FurinaManager.clearAll();

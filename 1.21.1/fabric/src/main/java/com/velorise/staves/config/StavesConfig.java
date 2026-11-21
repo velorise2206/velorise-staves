@@ -82,13 +82,13 @@ public final class StavesConfig {
     public static final BooleanValue ENABLE_WALL_CLIMB = defineBool("gameplay", "enable_wall_climb", true);
     public static final BooleanValue ENABLE_MAVUIKA_WALL_CLIMB = defineBool("gameplay", "enable_mavuika_wall_climb", true);
     public static final DoubleValue MAVUIKA_BIKE_SPEED_MULTIPLIER = defineDouble("gameplay", "mavuika_bike_speed_multiplier", 1.0D, 0.5D, 3.0D);
-    public static final DoubleValue INNATE_MUTATION_CHANCE = defineDouble("elemental_gauge", "innate_mutation_chance", 0.07D, 0.0D, 1.0D);
+    public static final DoubleValue INNATE_MUTATION_CHANCE = defineDouble("elemental_gauge", "innate_mutation_chance", 0.08D, 0.0D, 1.0D);
 
     // Innate Mutation Rules & Whitelist/Blacklist
     public static final BooleanValue ALLOW_HOSTILE_MOB_MUTATION = defineBool("innate_mutation", "allow_hostile_mob_mutation", true);
     public static final BooleanValue ALLOW_GOLEM_MUTATION = defineBool("innate_mutation", "allow_golem_mutation", true);
     public static final BooleanValue ALLOW_NEUTRAL_AND_PASSIVE_MUTATION = defineBool("innate_mutation", "allow_neutral_and_passive_mutation", false);
-    public static final DoubleValue OMNI_MUTATION_SHARE = defineDouble("innate_mutation", "omni_mutation_share", 0.143D, 0.0D, 1.0D);
+    public static final DoubleValue OMNI_MUTATION_SHARE = defineDouble("innate_mutation", "omni_mutation_share", 0.125D, 0.0D, 1.0D);
     public static final StringListValue MUTABLE_MOB_WHITELIST = defineStringList("innate_mutation", "mutable_mob_whitelist", List.of("minecraft:iron_golem", "minecraft:wolf", "minecraft:fox"));
     public static final StringListValue MUTABLE_MOB_BLACKLIST = defineStringList("innate_mutation", "mutable_mob_blacklist", List.of());
     public static final StringListValue CUSTOM_MOB_MUTATION_RATES = defineStringList("innate_mutation", "custom_mob_mutation_rates", List.of());
@@ -317,7 +317,7 @@ public final class StavesConfig {
                 writer.write("show_reaction_text = " + SHOW_REACTION_TEXT.get() + "\n");
                 writer.write("# Render floating elemental damage numbers\n");
                 writer.write("show_damage_numbers = " + SHOW_DAMAGE_NUMBERS.get() + "\n");
-                writer.write("# Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element (Default: 0.07 = 7%: 6% Elemental + 1% Omni Mutated)\n");
+                writer.write("# Base chance (0.0 to 1.0) for eligible mobs to spawn mutated with an innate element (Default: 0.08 = 8%: 7% Elemental + 1% Omni Mutated)\n");
                 writer.write("innate_mutation_chance = " + INNATE_MUTATION_CHANCE.get() + "\n\n");
 
                 writer.write("[innate_mutation]\n");
@@ -327,7 +327,7 @@ public final class StavesConfig {
                 writer.write("allow_golem_mutation = " + ALLOW_GOLEM_MUTATION.get() + "\n");
                 writer.write("# Allow non-hostile neutral/passive mobs (excluding Bosses, Villagers/NPCs, Aquatic/Ambient) to mutate unless whitelisted\n");
                 writer.write("allow_neutral_and_passive_mutation = " + ALLOW_NEUTRAL_AND_PASSIVE_MUTATION.get() + "\n");
-                writer.write("# Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (Default: 0.143 ~= 1/7)\n");
+                writer.write("# Fraction (0.0 to 1.0) of successful mutations that become Omni Mutated (Default: 0.125 = 1/8 -> 1% Omni at 8% rate)\n");
                 writer.write("omni_mutation_share = " + OMNI_MUTATION_SHARE.get() + "\n");
                 writer.write("# Explicit entity IDs (e.g. \"minecraft:iron_golem\", \"minecraft:wolf\", \"minecraft:fox\") or entity tags (\"#minecraft:raiders\") always allowed to mutate\n");
                 writer.write("mutable_mob_whitelist = " + formatTomlStringList(MUTABLE_MOB_WHITELIST.get()) + "\n");
@@ -537,7 +537,7 @@ public final class StavesConfig {
             int mdBasic = buf.readVarInt();
             int mdNeth = buf.readVarInt();
             boolean egtOn = buf.isReadable() ? buf.readBoolean() : true;
-            double mutChance = buf.isReadable() ? buf.readDouble() : 0.07D;
+            double mutChance = buf.isReadable() ? buf.readDouble() : 0.08D;
             boolean resOn = buf.isReadable() ? buf.readBoolean() : true;
             int maxCap = buf.isReadable() ? buf.readVarInt() : 4;
             double[] dmgs = new double[len];

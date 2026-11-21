@@ -233,10 +233,59 @@ public final class InnateMobManager {
         return false;
     }
 
+    public static void setExplicitInnateElement(LivingEntity entity, @Nullable Element element) {
+        if (entity == null || entity.level().isClientSide()) return;
+        entity.addTag("VeloriseInnateChecked");
+        OMNI_INNATE_ENTITIES.remove(entity.getUUID());
+        entity.removeTag(TAG_INNATE_OMNI);
+        entity.removeTag("VeloriseInnate:OMNI");
+        entity.removeTag("VeloriseInnate:NONE");
+        for (Element e : Element.values()) {
+            entity.removeTag("VeloriseInnate:" + e.name());
+        }
+        if (element == null) {
+            entity.addTag("VeloriseInnate:NONE");
+            GAUGES.remove(entity.getUUID());
+            syncAuras(entity, Collections.emptyList(), null, null, null, 0.0F);
+            return;
+        }
+        entity.addTag("VeloriseInnate:" + element.name());
+        if (element == Element.PYRO) {
+            extinguishPyroInnate(entity);
+        }
+        Map<Element, GaugeState> gauges = GAUGES.computeIfAbsent(entity.getUUID(), k -> new ConcurrentHashMap<>());
+        gauges.put(element, new GaugeState(element, 1.25F));
+        syncAuras(entity, gauges.keySet(), element, null, null, 0.0F);
+    }
+
+    public static void setOmniInnate(LivingEntity entity, boolean omni) {
+        if (entity == null || entity.level().isClientSide()) return;
+        entity.addTag("VeloriseInnateChecked");
+        if (!omni) {
+            OMNI_INNATE_ENTITIES.remove(entity.getUUID());
+            entity.removeTag(TAG_INNATE_OMNI);
+            entity.removeTag("VeloriseInnate:OMNI");
+            syncAuras(entity, Collections.emptyList(), null, null, null, 0.0F);
+            return;
+        }
+        for (Element e : Element.values()) {
+            entity.removeTag("VeloriseInnate:" + e.name());
+        }
+        entity.removeTag("VeloriseInnate:NONE");
+        entity.addTag(TAG_INNATE_OMNI);
+        entity.addTag("VeloriseInnate:OMNI");
+        OMNI_INNATE_ENTITIES.add(entity.getUUID());
+        extinguishPyroInnate(entity);
+        com.velorise.staves.network.ModNetwork.sendAuraSync(entity, Collections.emptyList(), null, null, null, 0.0F, -2);
+    }
+
     public static @Nullable Element getInnateElement(LivingEntity target) {
         if (target == null || target instanceof Player) return null;
         if (!target.level().isClientSide() && !target.getTags().contains("VeloriseInnateChecked")) {
             checkInnateMutation(target);
+        }
+        if (target.getTags().contains("VeloriseInnate:NONE")) {
+            return null;
         }
         if (target.getTags().contains(TAG_INNATE_OMNI) || target.getTags().contains("VeloriseInnate:OMNI")) {
             OMNI_INNATE_ENTITIES.add(target.getUUID());
@@ -349,6 +398,7 @@ public final class InnateMobManager {
 
     public static @Nullable Element getNaturalInnateElement(LivingEntity target) {
         EntityType<?> type = target.getType();
+        if (type.is(NO_INNATE_CREATURES)) return null;
         if (type.is(PYRO_CREATURES)) return Element.PYRO;
         if (type.is(HYDRO_CREATURES)) return Element.HYDRO;
         if (type.is(CRYO_CREATURES)) return Element.CRYO;

@@ -113,9 +113,9 @@ public class VeloriseConfigScreen extends Screen {
                     StavesConfig.ENABLE_ELEMENTAL_GAUGE.set(val);
                 }), rowHeight * 2);
 
-        List<Double> mutateRates = List.of(0.0D, 0.02D, 0.04D, 0.07D, 0.10D, 0.15D, 0.25D, 0.50D, 1.0D);
+        List<Double> mutateRates = List.of(0.0D, 0.02D, 0.04D, 0.08D, 0.10D, 0.15D, 0.25D, 0.50D, 1.0D);
         double curRate = StavesConfig.INNATE_MUTATION_CHANCE.get();
-        Double initialRate = mutateRates.stream().min((a, b) -> Double.compare(Math.abs(a - curRate), Math.abs(b - curRate))).orElse(0.07D);
+        Double initialRate = mutateRates.stream().min((a, b) -> Double.compare(Math.abs(a - curRate), Math.abs(b - curRate))).orElse(0.08D);
 
         this.addScrollableWidget(CycleButton.<Double>builder(val -> Component.literal(Math.round(val * 100.0) + "%"))
                 .withValues(mutateRates)
@@ -259,8 +259,8 @@ public class VeloriseConfigScreen extends Screen {
             StavesConfig.ENABLE_CUSTOM_DASH.set(true);
             StavesConfig.ENABLE_WALL_CLIMB.set(true);
             StavesConfig.MAX_STAVES_IN_INVENTORY.set(4);
-            StavesConfig.INNATE_MUTATION_CHANCE.set(0.07D);
-            StavesConfig.OMNI_MUTATION_SHARE.set(0.143D);
+            StavesConfig.INNATE_MUTATION_CHANCE.set(0.08D);
+            StavesConfig.OMNI_MUTATION_SHARE.set(0.125D);
             StavesConfig.ALLOW_HOSTILE_MOB_MUTATION.set(true);
             StavesConfig.ALLOW_GOLEM_MUTATION.set(true);
             StavesConfig.ALLOW_NEUTRAL_AND_PASSIVE_MUTATION.set(false);

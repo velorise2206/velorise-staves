@@ -1,6 +1,6 @@
 # Relics, Gliders, Elemental Rods & Advancements
 
-Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aerial gliders, crafting essences/rods, an interactive 9-tab guidebook, and **28 custom advancements**.
+Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aerial gliders, crafting essences/rods, an interactive 9-tab guidebook, and **39 custom advancements**.
 
 ---
 
@@ -48,7 +48,14 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
   - Crafted by combining all **7 Standard Elemental Essences** in a Crafting Table, or dropped by **Omni-Innate Mobs**.
   - Can substitute for **any** of the 7 elements in staff crafting recipes, repair any staff in an Anvil, imbue any sword, or **tame an Omni-Innate animal**!
 
-### 2. Elemental Rods & 1.20.1 Backport Recipes
+### 2. Wandering Trader Elemental Trades & Hidden Advancement
+Even in **Peaceful mode** or without farming mutated mobs, players can acquire every Elemental Essence (including **Omni Element**) by trading Emeralds with **Wandering Traders**:
+- **50% Spawn Offer Chance:** Every newly spawned Wandering Trader has a **50% chance** to generate **`2–3` extra Elemental Essence trade slots** (`1` purchase max per slot).
+- **7 Standard Elemental Essences (`7/8` = `87.5%` per slot):** Priced at **`24–32 Emeralds`** (rewards **`12 XP`**).
+- **Omni Element (`1/8` = `12.5%` per slot, max 1 per trader):** Priced at **`48–64 Emeralds`** (rewards **`25 XP`**).
+- **Hidden Advancement (`Where is he from ??`):** Purchasing any Elemental Essence or Omni Element from a Wandering Trader immediately unlocks the hidden Goal advancement **Where is he from ??** (`where_is_he_from`).
+
+### 3. Elemental Rods & 1.20.1 Backport Recipes
 - **`cryo_rod` (Cryo), `electro_rod` (Electro), `hydro_rod` (Hydro), `geo_rod` (Geo), `breeze_rod` (Anemo), `blaze_rod` (Pyro):**
   - Any rod can be transmuted into another elemental rod (shapeless recipe: **Any Rod + Target Elemental Essence ➔ Target Rod**).
   - **Wind Charge Crafting:** `1 Anemo/Omni Element ➔ 4 Wind Charges` (allowing full Wind Staff & Daybreak Chronicles crafting even on Forge 1.20.1 or peaceful worlds!).
@@ -72,7 +79,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 | **Spatial Traveler** | `spatial_traveler` | Task | Teleport using the **Void Translocator** or **Magic Mirror**. |
 | **High-Voltage Architect** | `tesla_coil` | Goal | Overcharge a **Tesla Coil** (Lightning Rod on Redstone Block). |
 | **Transcendent Companion** | `tame_omni_pet` | Challenge | Tame an **Omni-Innate (`Omni ∞`)** creature using an **Omni Element**. |
-| **Where Is He From?** | `where_is_he_from` | Goal *(Hidden)* | Encounter or strike an **Omni-Innate (`Omni ∞`)** creature. |
+| **Where is he from ??** | `where_is_he_from` | Goal *(Hidden)* | Successfully trade for any **Elemental Essence** or **Omni Element** from a mysterious **Wandering Trader**. |
 | **Web Developer** | `web_developer` | Goal *(Hidden)* | Trap and poison a **Spider** inside your own **Webcaster** cobweb. |
 | **Take My Ball!** | `take_my_ball` | Goal *(Hidden)* | Deflect or hit a Ghast/projectiles using Anemo wind blasts. |
 | **Rat From the Sky** | `rat_from_the_sky` | Challenge | Land a **Mavuika Flamestrider Plunging Attack** or **Sunfell Slice `[R]`** from high altitude. |
