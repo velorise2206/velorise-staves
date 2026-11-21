@@ -148,14 +148,25 @@ public final class RaidenManager {
         int dur = isMusouBurst ? 10 : 6;
 
         if (isCharged) {
-            // Charged Attack: two staggered upward-diagonal crescent arcs projecting forward
-            Vec3 s1 = center.add(right.scale(-span * 0.90D)).add(up.scale(-span * 0.48D));
-            Vec3 e1 = center.add(right.scale(span * 0.90D)).add(up.scale(span * 0.58D));
-            Vec3 c2 = center.add(fwd.scale(1.35D));
-            Vec3 s2 = c2.add(right.scale(span * 0.90D)).add(up.scale(-span * 0.45D));
-            Vec3 e2 = c2.add(right.scale(-span * 0.90D)).add(up.scale(span * 0.62D));
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, dur, color);
-            com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, dur, color);
+            int caDur = 9;
+            if (comboStep == 0) {
+                // CA Hit 1: wide upward-diagonal crescent (Bottom-Left -> Top-Right)
+                Vec3 s1 = center.add(right.scale(-span * 0.95D)).add(up.scale(-span * 0.52D));
+                Vec3 e1 = center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.62D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, caDur, color);
+            } else if (comboStep == 1) {
+                // CA Hit 2: overlapping counter-diagonal crescent (Top-Left -> Bottom-Right, forming giant X)
+                Vec3 s2 = center.add(right.scale(-span * 0.92D)).add(up.scale(span * 0.60D));
+                Vec3 e2 = center.add(right.scale(span * 0.92D)).add(up.scale(-span * 0.50D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, caDur, color);
+            } else {
+                Vec3 s1 = center.add(right.scale(-span * 0.95D)).add(up.scale(-span * 0.52D));
+                Vec3 e1 = center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.62D));
+                Vec3 s2 = center.add(right.scale(-span * 0.92D)).add(up.scale(span * 0.60D));
+                Vec3 e2 = center.add(right.scale(span * 0.92D)).add(up.scale(-span * 0.50D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, caDur, color);
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, caDur, color);
+            }
             return;
         }
         if (isMusouBurst) {
@@ -290,7 +301,28 @@ public final class RaidenManager {
         RAIDEN_IFRAME_UNTIL.put(id, now + 34L); // 1.6s Burst i-frame covering full draw animation
         RAIDEN_NEXT_SWING_TICK.put(id, now + 30L); // Lock NA attacks until chest draw + slash finishes
         player.invulnerableTime = Math.max(player.invulnerableTime, 34);
-        ArchonUltiManager.applyBurstRoot(player, 32);
+        ArchonUltiManager.applyBurstRoot(player, 25);
+
+        // Smooth forward micro-lunge (~1.1 blocks over ticks 26..28) right as Raiden unleashes Musou no Hitotachi
+        for (int lungeStep = 0; lungeStep < 3; lungeStep++) {
+            final int stepIdx = lungeStep;
+            ArchonUltiManager.scheduleBurstAction(player, 26 + lungeStep, () -> {
+                if (!player.isAlive()) return;
+                Vec3 l = player.getLookAngle();
+                Vec3 h = new Vec3(l.x, 0.0D, l.z);
+                if (h.lengthSqr() < 1.0E-4D) h = Vec3.directionFromRotation(0.0F, player.getYRot());
+                else h = h.normalize();
+                double speed = (stepIdx == 0) ? 0.44D : (stepIdx == 1 ? 0.40D : 0.24D);
+                AABB nextBox = player.getDimensions(player.getPose()).makeBoundingBox(player.position().add(h.scale(speed)));
+                if (level.noCollision(player, nextBox)) {
+                    double vy = Math.max(player.getDeltaMovement().y * 0.25D, 0.01D);
+                    player.setDeltaMovement(h.x * speed, vy, h.z * speed);
+                    player.fallDistance = 0.0F;
+                    player.hurtMarked = true;
+                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(player));
+                }
+            });
+        }
 
         RAIDEN_PENDING_HITOTACHI_TICK.put(id, now + 28L);
         RAIDEN_PENDING_HITOTACHI_MULT.put(id, resolveMult);
@@ -515,90 +547,99 @@ public final class RaidenManager {
 
         if (isCharged) {
             cancelIdle(player);
-            RAIDEN_IFRAME_UNTIL.put(id, Math.max(RAIDEN_IFRAME_UNTIL.getOrDefault(id, 0L), now + 14L));
-            player.invulnerableTime = Math.max(player.invulnerableTime, 14);
-            RAIDEN_NEXT_SWING_TICK.put(id, now + 12L);
+            RAIDEN_IFRAME_UNTIL.put(id, Math.max(RAIDEN_IFRAME_UNTIL.getOrDefault(id, 0L), now + 10L));
+            player.invulnerableTime = Math.max(player.invulnerableTime, 10);
+            RAIDEN_NEXT_SWING_TICK.put(id, now + 14L);
+
             Vec3 horiz = new Vec3(look.x, 0.0D, look.z);
             if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
             else horiz = horiz.normalize();
-            Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
-            Vec3 startPos = player.position();
+            final Vec3 lungeHoriz = horiz;
+            final boolean leftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+            final double cleaveReach = isNetherite ? 5.8D : 4.4D;
+            final double cleaveHalfWidth = isNetherite ? 3.2D : 2.6D;
+            final double arcSpan = isNetherite ? 2.5D : 1.95D;
 
-            // Compute safe dash distance up to 10 blocks (2x), then glide smoothly (0..0.8 fast, 0.8..1.0 ease-out)
-            Vec3 curPos = startPos;
-            double safeDist = 0.0D;
-            for (int step = 1; step <= 20; step++) {
-                Vec3 nextPos = startPos.add(horiz.scale(step * 0.5D));
-                AABB testBox = player.getDimensions(player.getPose()).makeBoundingBox(nextPos);
-                if (level.noCollision(player, testBox)) {
-                    curPos = nextPos;
-                    safeDist = step * 0.5D;
-                } else {
-                    break;
-                }
-            }
-            Vec3 endPos = curPos;
-            final Vec3 dashHoriz = horiz;
-            final double totalDashDist = safeDist;
-            for (int tick = 0; tick < 5; tick++) {
-                final double p0 = tick / 5.0D;
-                final double p1 = (tick + 1) / 5.0D;
-                final double s0 = (p0 <= 0.8D) ? (p0 / 0.8D) * 0.88D : (0.88D + 0.12D * (1.0D - Math.pow(1.0D - (p0 - 0.8D) / 0.2D, 2.0D)));
-                final double s1 = (p1 <= 0.8D) ? (p1 / 0.8D) * 0.88D : (0.88D + 0.12D * (1.0D - Math.pow(1.0D - (p1 - 0.8D) / 0.2D, 2.0D)));
-                final double ds = totalDashDist * (s1 - s0);
-                final boolean isEnd = (tick == 4);
-                Runnable stepMove = () -> {
+            // Phase 1 (T0..T2): Short, poised forward iai lunge (~1.8 blocks total, collision-checked)
+            for (int tick = 0; tick < 3; tick++) {
+                final double stepSpeed = (tick == 0) ? 0.68D : (tick == 1 ? 0.62D : 0.34D);
+                final boolean isEnd = (tick == 2);
+                Runnable lungeMove = () -> {
                     if (!player.isAlive()) return;
-                    double vy = isEnd ? 0.0D : Math.max(player.getDeltaMovement().y * 0.4D, 0.03D);
-                    player.setDeltaMovement(dashHoriz.x * ds, vy, dashHoriz.z * ds);
-                    player.fallDistance = 0.0F;
-                    player.hurtMarked = true;
-                    player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(player));
-                };
-                if (tick == 0) {
-                    stepMove.run();
-                } else {
-                    ArchonUltiManager.scheduleBurstAction(player, tick, stepMove);
-                }
-            }
-
-            // Damage area: 5 blocks long (along dash) x 3 blocks wide (+/-1.5 blocks)
-            double dashLen = 10.0D;
-            double halfWidth = 1.5D;
-            AABB corridor = new AABB(startPos, startPos.add(horiz.scale(dashLen))).inflate(halfWidth, 2.0D, halfWidth);
-            IS_PROCESSING_RAIDEN_PROC.set(true);
-            try {
-                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, corridor,
-                        e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
-                    Vec3 toTarget = target.position().subtract(startPos);
-                    double proj = toTarget.dot(horiz);
-                    double side = Math.abs(toTarget.dot(right));
-                    if (proj >= -0.5D && proj <= dashLen + 0.5D && side <= halfWidth) {
-                        applyElement(level, target, Element.ELECTRO, attackU, player, slashDmg);
+                    AABB nextBox = player.getDimensions(player.getPose()).makeBoundingBox(player.position().add(lungeHoriz.scale(stepSpeed)));
+                    if (level.noCollision(player, nextBox)) {
+                        double vy = isEnd ? 0.0D : Math.max(player.getDeltaMovement().y * 0.3D, 0.02D);
+                        player.setDeltaMovement(lungeHoriz.x * stepSpeed, vy, lungeHoriz.z * stepSpeed);
+                        player.fallDistance = 0.0F;
+                        player.hurtMarked = true;
+                        player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(player));
                     }
+                };
+                if (tick == 0) lungeMove.run();
+                else ArchonUltiManager.scheduleBurstAction(player, tick, lungeMove);
+            }
+
+            // Phase 2 (T05): Twin X-Crescent Hit 1 (upward-diagonal Bottom-Left -> Top-Right)
+            ArchonUltiManager.scheduleBurstAction(player, 5, () -> {
+                if (!player.isAlive()) return;
+                Vec3 liveLook = player.getLookAngle().normalize();
+                Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
+                if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
+                else liveHoriz = liveHoriz.normalize();
+                Vec3 liveRight = new Vec3(-liveHoriz.z, 0.0D, liveHoriz.x);
+                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(cleaveReach * 0.52D)).add(0.0D, -0.20D, 0.0D);
+                float hit1Dmg = slashDmg * 0.58F;
+                AABB box = player.getBoundingBox().expandTowards(liveHoriz.scale(cleaveReach)).inflate(cleaveHalfWidth, 2.0D, cleaveHalfWidth);
+                IS_PROCESSING_RAIDEN_PROC.set(true);
+                try {
+                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                        Vec3 toT = target.position().subtract(player.position());
+                        double proj = toT.dot(liveHoriz);
+                        double side = Math.abs(toT.dot(liveRight));
+                        if (proj >= -0.4D && proj <= cleaveReach + 0.5D && side <= cleaveHalfWidth) {
+                            applyElement(level, target, Element.ELECTRO, attackU, player, hit1Dmg);
+                        }
+                    }
+                } finally {
+                    IS_PROCESSING_RAIDEN_PROC.set(false);
                 }
-            } finally {
-                IS_PROCESSING_RAIDEN_PROC.set(false);
-            }
-            electrifyWaterAlongSlash(level, player, startPos.lerp(endPos, 0.5D), 3.0D, slashDmg * 0.45F);
-            level.playSound(null, endPos.x, endPos.y, endPos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.70F, 1.35F);
+                electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.2D : 3.2D, hit1Dmg * 0.45F);
+                sendRaidenSlashArc(level, hitCenter, liveLook, 0, false, true, arcSpan, leftArm);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.62F, 1.65F);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.48F, 1.80F);
+            });
 
-            // 5 continuous Electro slashes left behind 0.25s (5 ticks) after passing each spot along the dash path
-            final Vec3 finalHoriz = horiz;
-            boolean leftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
-            for (int k = 0; k < 5; k++) {
-                final int slashIdx = k;
-                final double frac = 0.12D + k * 0.19D;
-                final Vec3 slashSpot = startPos.lerp(endPos, frac).add(0.0D, 1.05D, 0.0D);
-                int passTick = (int) Math.round(frac * 4.0D);
-                ArchonUltiManager.scheduleBurstAction(player, passTick + 5, () -> {
-                    if (!player.isAlive()) return;
-                    sendRaidenSlashArc(level, slashSpot, finalHoriz, slashIdx % 4, false, false, isNetherite ? 2.1D : 1.65D, leftArm);
-
-                    level.playSound(null, slashSpot.x, slashSpot.y, slashSpot.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.42F, 1.75F + slashIdx * 0.06F);
-                    level.playSound(null, slashSpot.x, slashSpot.y, slashSpot.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.36F, 1.85F + slashIdx * 0.05F);
-                });
-            }
+            // Phase 3 (T09): Twin X-Crescent Hit 2 (overlapping counter-diagonal Top-Left -> Bottom-Right)
+            ArchonUltiManager.scheduleBurstAction(player, 9, () -> {
+                if (!player.isAlive()) return;
+                Vec3 liveLook = player.getLookAngle().normalize();
+                Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
+                if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
+                else liveHoriz = liveHoriz.normalize();
+                Vec3 liveRight = new Vec3(-liveHoriz.z, 0.0D, liveHoriz.x);
+                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(cleaveReach * 0.58D)).add(0.0D, -0.22D, 0.0D);
+                float hit2Dmg = slashDmg * 0.68F;
+                AABB box = player.getBoundingBox().expandTowards(liveHoriz.scale(cleaveReach + 0.4D)).inflate(cleaveHalfWidth, 2.0D, cleaveHalfWidth);
+                IS_PROCESSING_RAIDEN_PROC.set(true);
+                try {
+                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                            e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                        Vec3 toT = target.position().subtract(player.position());
+                        double proj = toT.dot(liveHoriz);
+                        double side = Math.abs(toT.dot(liveRight));
+                        if (proj >= -0.4D && proj <= cleaveReach + 0.8D && side <= cleaveHalfWidth) {
+                            applyElement(level, target, Element.ELECTRO, attackU, player, hit2Dmg);
+                        }
+                    }
+                } finally {
+                    IS_PROCESSING_RAIDEN_PROC.set(false);
+                }
+                electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.5D : 3.5D, hit2Dmg * 0.45F);
+                sendRaidenSlashArc(level, hitCenter, liveLook, 1, false, true, arcSpan * 1.08D, leftArm);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.72F, 1.42F);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.58F, 1.55F);
+            });
             return;
         }
         ArchonUltiManager.scheduleBurstAction(player, 2, () -> {

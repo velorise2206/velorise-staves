@@ -832,5 +832,26 @@ public final class ClientAuraRenderer {
         if (bufferSource instanceof MultiBufferSource.BufferSource bs) {
             bs.endBatch(RenderType.lightning());
         }
+        // Translucent cosmic void-rift pass for Raiden Shogun Musou Isshin slashes
+        boolean renderedRaidenRift = false;
+        PoseStack.Pose riftPose = poseStack.last();
+        float riftPt = mc.getFrameTime();
+        for (ClientAuraTracker.ActiveArc arc : ClientAuraTracker.ACTIVE_ARCS) {
+            if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF) continue;
+            Entity fromEnt = (arc.fromEntityId >= 0) ? mc.level.getEntity(arc.fromEntityId) : null;
+            Entity toEnt = (arc.toEntityId >= 0) ? mc.level.getEntity(arc.toEntityId) : null;
+            Vec3 startPos = fromEnt != null
+                    ? fromEnt.getPosition(riftPt).add(0.0D, fromEnt.getBbHeight() * 0.45D, 0.0D)
+                    : arc.start;
+            Vec3 endPos = toEnt != null
+                    ? toEnt.getPosition(riftPt).add(0.0D, toEnt.getBbHeight() * 0.55D, 0.0D)
+                    : arc.end;
+            if (startPos == null || endPos == null) continue;
+            RaidenVisualRenderer.renderSlashRiftTexture(arc, startPos, endPos, camPos, now, bufferSource, riftPose);
+            renderedRaidenRift = true;
+        }
+        if (renderedRaidenRift && bufferSource instanceof MultiBufferSource.BufferSource bs) {
+            bs.endBatch();
+        }
     }
 }

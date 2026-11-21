@@ -36,6 +36,8 @@ public final class RaidenVisualRenderer {
             new ResourceLocation("velorise_staves", "textures/entity/raiden_chakra_ring.png");
     private static final ResourceLocation RAIDEN_EYE_AURA_TEXTURE =
             new ResourceLocation("velorise_staves", "textures/entity/raiden_eye_aura.png");
+    private static final ResourceLocation RAIDEN_MUSOU_SLASH_TEXTURE =
+            new ResourceLocation("velorise_staves", "textures/entity/raiden_musou_slash.png");
     private static final ResourceLocation RAIDEN_ROBOT_TEXTURE =
             new ResourceLocation("velorise_staves", "textures/entity/raiden_robot_narukami_atlas.png");
     private static com.velorise.staves.client.model.RaidenRobotModel<net.minecraft.world.entity.Entity> robotModel;
@@ -293,7 +295,7 @@ public final class RaidenVisualRenderer {
         boolean isMusouOrCa = (arc.color == 0xFFE0B0FF);
         float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
         float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
-        float fade = (prog < 0.22F) ? (prog / 0.22F) : (1.0F - (prog - 0.22F) / 0.78F);
+        float fade = (prog < 0.14F) ? (prog / 0.14F) : Math.max(0.0F, 1.0F - (prog - 0.14F) / 0.42F);
         int alpha = Mth.clamp((int) (255.0F * fade), 10, 255);
         Vec3 sCam = startPos.subtract(camPos);
         Vec3 eCam = endPos.subtract(camPos);
@@ -318,8 +320,8 @@ public final class RaidenVisualRenderer {
 
             // Smooth 12-segment crescent moon spline with 3-tier Electro gradient (0x7828C8 -> 0xBF5AF2 -> 0xFFFFFF)
             int segs = 12;
-            double archDepth = chordLen * (isMusouOrCa ? 0.28D : 0.20D) * (0.92D + prog * 0.16D);
-            double maxHalfWidth = (isMusouOrCa ? 0.90D : 0.16D) * (1.08D - prog * 0.32D);
+            double archDepth = isMusouOrCa ? 0.0D : (chordLen * 0.20D * (0.92D + prog * 0.16D));
+            double maxHalfWidth = (isMusouOrCa ? 0.38D : 0.16D) * (1.08D - prog * 0.32D);
 
             for (int i = 0; i < segs; i++) {
                 double u0 = (double) i / (double) segs;
@@ -376,6 +378,81 @@ public final class RaidenVisualRenderer {
             }
         }
         return true;
+    }
+
+    public static void renderSlashRiftTexture(
+            ClientAuraTracker.ActiveArc arc,
+            Vec3 startPos,
+            Vec3 endPos,
+            Vec3 camPos,
+            long now,
+            MultiBufferSource bufferSource,
+            PoseStack.Pose pose
+    ) {
+        if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF) return;
+        boolean isMusouOrCa = (arc.color == 0xFFE0B0FF);
+        float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
+        float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
+        float fade = (prog < 0.16F) ? (prog / 0.16F) : (1.0F - smootherStep01((prog - 0.16F) / 0.84F));
+        int alpha = Mth.clamp((int) (248.0F * fade), 0, 255);
+        if (alpha <= 6) return;
+
+        Vec3 sCam = startPos.subtract(camPos);
+        Vec3 eCam = endPos.subtract(camPos);
+        if (isMusouOrCa) {
+            Vec3 mid = sCam.lerp(eCam, 0.5D);
+            sCam = mid.add(sCam.subtract(mid).scale(2.6D));
+            eCam = mid.add(eCam.subtract(mid).scale(2.6D));
+        }
+        Vec3 slashDir = eCam.subtract(sCam);
+        double chordLen = slashDir.length();
+        if (chordLen <= 1.0E-4D) return;
+
+        Vec3 unit = slashDir.scale(1.0D / chordLen);
+        Vec3 midChord = sCam.lerp(eCam, 0.5D);
+        Vec3 toCam = midChord.scale(-1.0D);
+        Vec3 perp = unit.cross(toCam.lengthSqr() > 1.0E-4D ? toCam.normalize() : new Vec3(0.0D, 1.0D, 0.0D));
+        if (perp.lengthSqr() < 1.0E-4D) perp = unit.cross(new Vec3(1.0D, 0.0D, 0.0D));
+        perp = perp.normalize();
+        Vec3 curveOut = perp.cross(unit).normalize();
+        if (curveOut.dot(toCam) > 0.0D) {
+            curveOut = curveOut.scale(-1.0D);
+        }
+
+        VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucent(RAIDEN_MUSOU_SLASH_TEXTURE));
+        Matrix4f mat = pose.pose();
+        org.joml.Matrix3f norm = pose.normal();
+        int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
+        int segs = 12;
+        double archDepth = 0.0D;
+        double maxHalfWidth = (isMusouOrCa ? 0.92D : 0.34D) * (1.12D - prog * 0.38D);
+
+        for (int i = 0; i < segs; i++) {
+            float u0 = (float) i / (float) segs;
+            float u1 = (float) (i + 1) / (float) segs;
+            double s0 = Math.sin(u0 * Math.PI);
+            double s1 = Math.sin(u1 * Math.PI);
+
+            Vec3 c0 = sCam.lerp(eCam, u0).add(curveOut.scale(archDepth * s0));
+            Vec3 c1 = sCam.lerp(eCam, u1).add(curveOut.scale(archDepth * s1));
+
+            Vec3 top0 = c0.add(perp.scale(maxHalfWidth));
+            Vec3 bot0 = c0.subtract(perp.scale(maxHalfWidth));
+            Vec3 top1 = c1.add(perp.scale(maxHalfWidth));
+            Vec3 bot1 = c1.subtract(perp.scale(maxHalfWidth));
+
+            // Front face
+            vc.vertex(mat, (float) top0.x, (float) top0.y, (float) top0.z).color(255, 255, 255, alpha).uv(u0, 0.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, 1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) top1.x, (float) top1.y, (float) top1.z).color(255, 255, 255, alpha).uv(u1, 0.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, 1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) bot1.x, (float) bot1.y, (float) bot1.z).color(255, 255, 255, alpha).uv(u1, 1.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, 1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) bot0.x, (float) bot0.y, (float) bot0.z).color(255, 255, 255, alpha).uv(u0, 1.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, 1.0F, 0.0F).endVertex();
+
+            // Back face
+            vc.vertex(mat, (float) bot0.x, (float) bot0.y, (float) bot0.z).color(255, 255, 255, alpha).uv(u0, 1.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, -1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) bot1.x, (float) bot1.y, (float) bot1.z).color(255, 255, 255, alpha).uv(u1, 1.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, -1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) top1.x, (float) top1.y, (float) top1.z).color(255, 255, 255, alpha).uv(u1, 0.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, -1.0F, 0.0F).endVertex();
+            vc.vertex(mat, (float) top0.x, (float) top0.y, (float) top0.z).color(255, 255, 255, alpha).uv(u0, 0.0F).overlayCoords(overlay).uv2(FULL_BRIGHT).normal(norm, 0.0F, -1.0F, 0.0F).endVertex();
+        }
     }
 
     // =========================================================================
@@ -508,33 +585,36 @@ public final class RaidenVisualRenderer {
     }
 
     // -------------------------------------------------------------------------
-    // ULTIMATE: Musou no Hitotachi (54 ticks = 2700ms; impact at tick 28)
+    // ULTIMATE: Musou no Hitotachi (54 ticks = 2700ms; micro-lunge T26..28, impact T28)
+    // 3D-matrix-verified zero-crookedness blade orientation across draw -> coil -> horizontal cleave
     // -------------------------------------------------------------------------
     private static final MusouKey[] TRACK_ULTIMATE_DRAW = new MusouKey[] {
             // T0: Begin reaching toward chest, sword still hidden inside sternum
-            new MusouKey(0.0F,   0.00F,  0.00F, 0.00F, 0.0F,  0.00F,  0.00F,  -0.30F, -0.15F,  0.10F,  -0.20F,  0.10F, -0.08F,  0.05F, -0.04F, -0.05F,  0.04F,  -0.08F, -0.04F,  0.04F, -162.0F,   0.0F,   0.0F, 0.00F, 0.25F),
-            // T5: Hand grips hilt emerging from chest, head bowed gently, sword starts materializing
-            new MusouKey(5.0F,  -0.14F, -0.08F, 0.00F, 0.0F,  0.22F,  0.00F,  -1.08F, -0.60F,  0.34F,  -0.86F,  0.38F, -0.22F,  0.16F, -0.07F, -0.14F,  0.07F,  -0.11F, -0.06F,  0.05F, -162.0F,   0.0F,   0.0F, 0.10F, 1.00F),
-            // T10: Hilt fully materialized vertically, steady poise
-            new MusouKey(10.0F, -0.16F, -0.10F, 0.00F, 0.0F,  0.24F,  0.00F,  -1.15F, -0.58F,  0.32F,  -0.88F,  0.36F, -0.20F,  0.18F, -0.08F, -0.16F,  0.08F,  -0.10F, -0.04F,  0.04F, -158.0F,   0.0F,   0.0F, 1.00F, 1.00F),
-            // T20: Smoothly drawing Musou Isshin straight upward out of chest, head lifts
-            new MusouKey(20.0F, -0.02F, -0.18F, 0.00F, 0.0F, -0.04F,  0.00F,  -2.25F, -0.12F,  0.10F,  -0.36F,  0.18F, -0.18F,  0.22F, -0.09F, -0.20F,  0.09F,  -0.02F,  0.04F, -0.04F, -112.0F,   0.0F,   0.0F, 1.00F, 1.00F),
-            // T25: Coil left for Musou no Hitotachi horizontal cleave; blade rotates flat horizontal
-            new MusouKey(25.0F,  0.08F, -0.48F, -0.04F, 0.4F, 0.02F,  0.18F,  -1.55F, -1.14F, -0.32F,  -0.42F, -0.12F, -0.25F,  0.26F, -0.10F, -0.26F,  0.10F,   0.00F,  0.04F, -0.08F,  -48.0F, -12.0F, -84.0F, 1.00F, 1.00F),
-            // T28: Impact peak — mid-sweep horizontal dimensional cleave
-            new MusouKey(28.0F,  0.14F,  0.22F,  0.04F, 0.6F, 0.04F, -0.08F,  -1.52F,  0.42F,  0.08F,   0.18F, -0.25F, -0.35F,  0.30F, -0.10F, -0.32F,  0.10F,   0.00F,  0.04F, -0.09F,  -45.0F,   0.0F, -88.0F, 1.00F, 1.00F),
-            // T31: Full follow-through — right arm extended straight out right, blade pointing straight right
-            new MusouKey(31.0F,  0.14F,  0.52F,  0.06F, 0.5F, 0.04F, -0.18F,  -1.50F,  1.46F,  0.24F,   0.42F, -0.34F, -0.40F,  0.28F, -0.10F, -0.30F,  0.10F,   0.00F,  0.04F, -0.09F,  -45.0F,   0.0F, -88.0F, 1.00F, 1.00F),
+            new MusouKey(0.0F,   0.00F,  0.00F, 0.00F, 0.0F,  0.00F,  0.00F,  -0.30F, -0.15F,  0.10F,  -0.20F,  0.10F, -0.08F,  0.05F, -0.04F, -0.05F,  0.04F,  -0.08F, -0.04F,  0.04F, -148.0F, -43.0F,  32.0F, 0.00F, 0.25F),
+            // T5: Hand grips hilt emerging straight vertically from chest, sword starts materializing
+            new MusouKey(5.0F,  -0.14F, -0.08F, 0.00F, 0.0F,  0.22F,  0.00F,  -1.08F, -0.58F,  0.22F,  -0.86F,  0.38F, -0.22F,  0.16F, -0.07F, -0.14F,  0.07F,  -0.10F, -0.05F,  0.04F, -148.0F, -43.0F,  32.0F, 0.12F, 1.00F),
+            // T10: Hilt fully materialized straight vertical (blade = 0, -1, 0), steady poise
+            new MusouKey(10.0F, -0.16F, -0.10F, 0.00F, 0.0F,  0.24F,  0.00F,  -1.15F, -0.56F,  0.20F,  -0.88F,  0.36F, -0.20F,  0.18F, -0.08F, -0.16F,  0.08F,  -0.09F, -0.03F,  0.03F, -150.0F, -39.0F,  26.0F, 1.00F, 1.00F),
+            // T20: Drawing Musou Isshin straight vertically upward out of chest (blade stays strictly 0, -1, 0!)
+            new MusouKey(20.0F, -0.02F, -0.16F, 0.00F, 0.0F, -0.04F,  0.00F,  -2.20F, -0.18F,  0.08F,  -0.36F,  0.18F, -0.18F,  0.22F, -0.09F, -0.20F,  0.09F,  -0.02F,  0.04F, -0.04F, -206.0F, -11.0F,  -2.0F, 1.00F, 1.00F),
+            // T22.5: Clean overhead-left wrist transition into horizontal iai plane (zero crooked flip)
+            new MusouKey(22.5F,  0.04F, -0.34F, -0.02F, 0.2F, 0.00F,  0.10F,  -1.92F, -0.68F,  0.04F,  -0.40F,  0.02F, -0.22F,  0.24F, -0.09F, -0.24F,  0.09F,   0.00F,  0.04F, -0.06F,  -88.0F,  42.0F, -52.0F, 1.00F, 1.00F),
+            // T25: Coil left for Musou no Hitotachi horizontal cleave — blade strictly flat horizontal pointing Left-Forward
+            new MusouKey(25.0F,  0.10F, -0.48F, -0.04F, 0.5F, 0.02F,  0.18F,  -1.55F, -1.10F,  0.00F,  -0.42F, -0.12F, -0.25F,  0.28F, -0.10F, -0.28F,  0.10F,   0.00F,  0.04F, -0.08F,    0.0F,  79.0F, -88.0F, 1.00F, 1.00F),
+            // T28: Impact peak + forward micro-lunge — blade strictly flat horizontal pointing Straight Forward (0, 0, +1)
+            new MusouKey(28.0F,  0.16F,  0.18F,  0.04F, 0.7F, 0.04F, -0.06F,  -1.55F,  0.00F,  0.00F,   0.18F, -0.25F, -0.35F,  0.34F, -0.10F, -0.36F,  0.10F,   0.00F,  0.04F, -0.08F,    0.0F,  79.0F, -88.0F, 1.00F, 1.00F),
+            // T31: Full follow-through — right arm extended straight right, blade strictly horizontal pointing Right (+0.99, 0, +0.12)
+            new MusouKey(31.0F,  0.14F,  0.52F,  0.06F, 0.5F, 0.04F, -0.18F,  -1.55F,  1.45F,  0.00F,   0.42F, -0.34F, -0.40F,  0.30F, -0.10F, -0.32F,  0.10F,   0.00F,  0.04F, -0.08F,    0.0F,  79.0F, -88.0F, 1.00F, 1.00F),
             // T37: Graceful post-Hitotachi hold, torso begins uncoiling slowly
-            new MusouKey(37.0F,  0.06F,  0.30F,  0.02F, 0.2F, 0.02F, -0.10F,  -1.42F,  1.05F,  0.18F,   0.26F, -0.20F, -0.24F,  0.18F, -0.07F, -0.18F,  0.07F,   0.00F,  0.04F, -0.08F,  -48.0F,  18.0F, -72.0F, 1.00F, 1.00F),
+            new MusouKey(37.0F,  0.06F,  0.30F,  0.02F, 0.2F, 0.02F, -0.10F,  -1.42F,  0.96F,  0.00F,   0.26F, -0.20F, -0.24F,  0.18F, -0.07F, -0.18F,  0.07F,   0.00F,  0.04F, -0.07F,  -28.0F,  68.0F, -86.0F, 1.00F, 1.00F),
             // T45: Iconic horizontal front presentation across chest (video #105-#109)
-            new MusouKey(45.0F,  0.02F,  0.06F,  0.00F, 0.0F, 0.00F,  0.00F,  -1.18F, -0.26F, -0.14F,  -0.38F,  0.22F, -0.14F,  0.08F, -0.04F, -0.08F,  0.04F,   0.02F,  0.04F, -0.06F,  -62.0F,  78.0F, -14.0F, 1.00F, 1.00F),
+            new MusouKey(45.0F,  0.02F,  0.06F,  0.00F, 0.0F, 0.00F,  0.00F,  -1.18F, -0.24F,  0.00F,  -0.38F,  0.22F, -0.14F,  0.08F, -0.04F, -0.08F,  0.04F,   0.02F,  0.04F, -0.05F, -159.0F,  15.0F, -96.0F, 1.00F, 1.00F),
             // T47: Crisp downward-right flick as electro gleam triggers dissolution (video #111)
-            new MusouKey(47.0F,  0.00F,  0.08F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.78F,  0.24F,  0.20F,  -0.14F,  0.10F, -0.12F,  0.04F, -0.03F, -0.04F,  0.03F,   0.00F,  0.02F, -0.04F,  -54.0F,  42.0F, -32.0F, 0.85F, 0.92F),
+            new MusouKey(47.0F,  0.00F,  0.08F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.78F,  0.22F,  0.16F,  -0.14F,  0.10F, -0.12F,  0.04F, -0.03F, -0.04F,  0.03F,   0.00F,  0.02F, -0.04F, -120.0F,  24.0F, -64.0F, 0.85F, 0.92F),
             // T52: Sword fully dissolved into electro sparks (video #115)
-            new MusouKey(52.0F,  0.00F,  0.02F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.18F,  0.06F,  0.06F,   0.00F,  0.00F, -0.04F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,  20.0F, -15.0F, 0.00F, 0.30F),
+            new MusouKey(52.0F,  0.00F,  0.02F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.18F,  0.06F,  0.06F,   0.00F,  0.00F, -0.04F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -80.0F,  12.0F, -24.0F, 0.00F, 0.30F),
             // T54: Relaxed neutral stance
-            new MusouKey(54.0F,  0.00F,  0.00F,  0.00F, 0.0F, 0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+            new MusouKey(54.0F,  0.00F,  0.00F,  0.00F, 0.0F, 0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -80.0F,   0.0F,   0.0F, 0.00F, 0.00F)
     };
 
     // -------------------------------------------------------------------------
