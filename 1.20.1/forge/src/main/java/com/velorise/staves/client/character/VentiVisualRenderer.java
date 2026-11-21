@@ -14,6 +14,7 @@ import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -24,6 +25,17 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 
 public final class VentiVisualRenderer {
+    private static final ResourceLocation VENTI_HARP_TEX =
+            new ResourceLocation("velorise_staves", "textures/entity/venti_der_fruhling_harp.png");
+    private static com.velorise.staves.client.model.VentiDerFruhlingHarpModel<LivingEntity> ventiHarpModel;
+    private static com.velorise.staves.client.model.VentiDerFruhlingHarpModel<LivingEntity> getOrBakeHarpModel() {
+        if (ventiHarpModel == null) {
+            ventiHarpModel = new com.velorise.staves.client.model.VentiDerFruhlingHarpModel<>(
+                    com.velorise.staves.client.model.VentiDerFruhlingHarpModel.createBodyLayer().bakeRoot());
+        }
+        return ventiHarpModel;
+    }
+
     private VentiVisualRenderer() {}
     private static final java.util.Set<Integer> SKILL_E_WIND_ORB_IDS = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
@@ -741,48 +753,17 @@ public final class VentiVisualRenderer {
             poseStack.scale(fade, fade, fade);
         }
 
-        VertexConsumer solidVc = buffer.getBuffer(ClientAuraRenderer.getMeteorSolid());
-        Matrix4f mat = poseStack.last().pose();
-
-        // Holy Lyre "Der Frühling": curved golden-bronze base & soundbox with glowing Anemo teal gem
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.11F, -0.13F, -0.028F, 0.11F, -0.05F, 0.028F, 198, 148, 74, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.13F, -0.06F, -0.024F, 0.13F, -0.01F, 0.024F, 232, 186, 98, 255);
-        // Glowing Anemo teal gem in center of base
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.036F, -0.10F, -0.034F, 0.036F, -0.025F, 0.034F, 65, 235, 195, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.020F, -0.085F, -0.038F, 0.020F, -0.040F, 0.038F, 185, 255, 238, 255);
-
-        // Two Anemo wing/leaf flourishes flaring at the base
-        for (int side : new int[]{-1, 1}) {
-            poseStack.pushPose();
-            poseStack.translate(side * 0.12F, -0.06F, 0.0F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 34.0F));
-            Matrix4f wMat = poseStack.last().pose();
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, wMat, -0.055F, -0.018F, -0.012F, 0.055F, 0.024F, 0.012F, 195, 248, 224, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, wMat, -0.035F, 0.024F, -0.010F, 0.035F, 0.060F, 0.010F, 130, 235, 198, 255);
-            poseStack.popPose();
-        }
-
-        // Angled curved golden-bronze lyre arms + pointed wing-tip finials
-        for (int side : new int[]{-1, 1}) {
-            poseStack.pushPose();
-            poseStack.translate(side * 0.115F, -0.02F, 0.0F);
-            poseStack.mulPose(Axis.ZP.rotationDegrees(-side * 12.0F));
-            Matrix4f aMat = poseStack.last().pose();
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.020F, 0.0F, -0.018F, 0.020F, 0.23F, 0.018F, 218, 172, 92, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.016F, 0.23F, -0.015F, 0.016F, 0.30F, 0.015F, 255, 224, 128, 255);
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, aMat, -0.009F, 0.30F, -0.009F, 0.009F, 0.35F, 0.009F, 255, 245, 195, 255);
-            poseStack.popPose();
-        }
-
-        // Curved upper crossbar
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.155F, 0.215F, -0.014F, 0.155F, 0.245F, 0.014F, 245, 205, 108, 255);
-        ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, -0.085F, 0.245F, -0.014F, 0.085F, 0.262F, 0.014F, 255, 228, 140, 255);
-
-        // 6 shimmering Anemo-gold strings
-        for (int s = 0; s < 6; s++) {
-            float sx = -0.075F + s * 0.030F;
-            ZhongliVisualRenderer.drawJadeArmorBox(solidVc, mat, sx - 0.0035F, -0.015F, -0.004F, sx + 0.0035F, 0.225F, 0.004F, 165, 255, 232, 255);
-        }
+        // Holy Lyre 'Der Fruhling' 3D custom Blockbench model (137 elements, animated strings & Anemo FX)
+        com.velorise.staves.client.model.VentiDerFruhlingHarpModel<LivingEntity> harpModel = getOrBakeHarpModel();
+        harpModel.animatePlaying(time);
+        poseStack.pushPose();
+        poseStack.scale(0.46F, 0.46F, 0.46F);
+        poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
+        poseStack.scale(-1.0F, -1.0F, 1.0F);
+        poseStack.translate(0.0F, -0.88F, 0.0F);
+        VertexConsumer harpVc = buffer.getBuffer(RenderType.entityCutoutNoCull(VENTI_HARP_TEX));
+        harpModel.renderToBuffer(poseStack, harpVc, 0xF000F0, net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        poseStack.popPose();
 
         // Swirling wind notes around Venti
         VertexConsumer transVc = buffer.getBuffer(ClientAuraRenderer.getTranslucentNoDepthWrite());

@@ -116,6 +116,18 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         float rearWheelSpin = Mth.lerp(partialTicks, entity.prevRearWheelSpinAngle, entity.rearWheelSpinAngle);
         float steeringYawRad = Mth.lerp(partialTicks, entity.prevSteeringAngle, entity.steeringAngle);
 
+        float bikeAlpha = 1.0F;
+        int dismountT = entity.getDismountTicks();
+        if (dismountT > 0) {
+            float dt = Mth.clamp((dismountT - partialTicks) / 9.0F, 0.0F, 1.0F);
+            bikeAlpha = dt * dt;
+            float sc = Mth.lerp(dt, 0.84F, 1.0F);
+            poseStack.scale(sc, sc, sc);
+        } else if (entity.getActiveNaStep() == 8 && naT > 0) {
+            float p = Mth.clamp(1.0F - (entity.getSmoothNaTicks(partialTicks) / 10.0F), 0.0F, 1.0F);
+            bikeAlpha = Mth.clamp(0.22F + (p / 0.55F) * 0.78F, 0.22F, 1.0F);
+        }
+
         renderBikeMesh(
                 poseStack,
                 bufferSource,
@@ -128,7 +140,8 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
                 (float) entity.getDistanceTraveledBlocks(),
                 entity.isGliding(),
                 entity.isBikeSprinting() || entity.isSpinning(),
-                packedLight
+                packedLight,
+                bikeAlpha
         );
 
         poseStack.popPose();
@@ -201,6 +214,24 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             boolean sprinting,
             int packedLight
     ) {
+        renderBikeMesh(poseStack, bufferSource, font, neth, frontWheelSpinAngle, rearWheelSpinAngle, steeringYawRad, speedBps, odoMeters, gliding, sprinting, packedLight, 1.0F);
+    }
+
+    public static void renderBikeMesh(
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            net.minecraft.client.gui.Font font,
+            boolean neth,
+            float frontWheelSpinAngle,
+            float rearWheelSpinAngle,
+            float steeringYawRad,
+            float speedBps,
+            float odoMeters,
+            boolean gliding,
+            boolean sprinting,
+            int packedLight,
+            float alpha
+    ) {
         FireBikeModel<FlamestriderBikeEntity> model = getOrBakeModel();
         model.applyWheelAndSteering(frontWheelSpinAngle, rearWheelSpinAngle, steeringYawRad);
 
@@ -208,8 +239,15 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         poseStack.mulPose(Axis.YP.rotationDegrees(180.0F));
         poseStack.scale(-1.0F, -1.0F, 1.0F);
         poseStack.translate(0.0F, -1.50F, 0.0F);
-        VertexConsumer modelVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(FIRE_BIKE_TEXTURE));
-        model.renderToBuffer(poseStack, modelVc, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        if (alpha < 0.99F) {
+            float g = Mth.lerp(alpha, 0.68F, 1.0F);
+            float b = Mth.lerp(alpha, 0.36F, 1.0F);
+            VertexConsumer modelVc = bufferSource.getBuffer(RenderType.entityTranslucent(FIRE_BIKE_TEXTURE));
+            model.renderToBuffer(poseStack, modelVc, 0xF000F0, OverlayTexture.NO_OVERLAY, 1.0F, g, b, Math.max(0.06F, alpha));
+        } else {
+            VertexConsumer modelVc = bufferSource.getBuffer(RenderType.entityCutoutNoCull(FIRE_BIKE_TEXTURE));
+            model.renderToBuffer(poseStack, modelVc, packedLight, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);
+        }
         poseStack.popPose();
 
         // Deployable Natlan Jet-Wings when gliding
@@ -360,7 +398,10 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         float climbPitch = Mth.lerp(partialTicks, bike.prevWallClimbPitch, bike.wallClimbPitch);
         int ultiT = bike.getUltiTicks();
         int naT = bike.getActiveNaTicks();
-        if (!spinning && Math.abs(spinLean) <= 0.05F && Math.abs(climbPitch) <= 0.05F && ultiT <= 0 && naT <= 0 && !bike.isGliding() && !bike.isPlunging()) {
+        boolean dashing = bike.getActionState().isDashState();
+        if (!spinning && !dashing && Math.abs(spinLean) <= 0.05F && Math.abs(climbPitch) <= 0.05F
+                && ultiT <= 0 && naT <= 0 && !bike.isGliding() && !bike.isPlunging()
+                && !com.velorise.staves.fsm.BikePoseBlender.hasActivePose(bike.getId())) {
             return false;
         }
 
@@ -376,7 +417,47 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
         }
 
-        applyActionTransforms(bike, ultiT, naT, partialTicks, poseStack);
+        if (bike.getActiveNaStep() == 8 && naT > 0) {
+            // During Re-Mount catch-up, keep rider centered while the bike rushes from -2.4m behind to scoop them up
+            float p = Mth.clamp(1.0F - (bike.getSmoothNaTicks(partialTicks) / 10.0F), 0.0F, 1.0F);
+            float hopY = p < 0.60F ? Mth.sin((p / 0.60F) * (float) Math.PI) * 0.34F
+                    : -Mth.sin(((p - 0.60F) / 0.40F) * (float) Math.PI) * 0.05F;
+            poseStack.translate(0.0D, hopY, 0.0D);
+        } else {
+            applyActionTransforms(bike, ultiT, naT, partialTicks, poseStack);
+            if (bike.getActiveNaStep() == 6 && naT > 0) {
+                // Authentic Genshin Finisher: Mavuika/Steve vaults +1.65m high ABOVE the bike (p=0.11..0.37),
+                // then plunges straight down onto the saddle on hitmark (p=0.37..0.52)!
+                float p = bike.getFinisherProgress(partialTicks);
+                double vaultY = 0.0D;
+                float vaultPitch = 0.0F;
+                if (p >= 0.11F && p < 0.37F) {
+                    float u = (p - 0.11F) / 0.26F;
+                    float e = 1.0F - (1.0F - u) * (1.0F - u);
+                    vaultY = e * 1.65D;
+                    vaultPitch = -14.0F * e;
+                } else if (p >= 0.37F && p < 0.52F) {
+                    float u = (p - 0.37F) / 0.15F;
+                    float drop = (float) Math.pow(u, 2.4D);
+                    vaultY = (1.0D - drop) * 1.65D;
+                    vaultPitch = Mth.lerp(u, -14.0F, 16.0F);
+                }
+                if (vaultY > 0.002D || Math.abs(vaultPitch) > 0.05F) {
+                    double vaultFwd = (vaultY / 1.65D) * 0.32D;
+                    poseStack.translate(0.0D, vaultY, vaultFwd);
+                    if (Math.abs(vaultPitch) > 0.05F) {
+                        poseStack.mulPose(Axis.XP.rotationDegrees(vaultPitch));
+                    }
+                } else if (p >= 0.58F && p < 0.96F) {
+                    // Keep Steve's torso upright & standing half-up during the 40-deg sideways wheelie (Genshin 11.32s..11.48s)
+                    float wWheelie = p < 0.68F ? ((p - 0.58F) / 0.10F)
+                            : (p < 0.86F ? 1.0F : 1.0F - ((p - 0.86F) / 0.10F));
+                    wWheelie = Mth.clamp(wWheelie, 0.0F, 1.0F);
+                    poseStack.translate(0.0D, 0.10D * wWheelie, 0.0D);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(30.0F * wWheelie));
+                }
+            }
+        }
 
         float bodyYaw = Mth.rotLerp(partialTicks, rider.yBodyRotO, rider.yBodyRot);
         poseStack.mulPose(Axis.YP.rotationDegrees(bodyYaw));

@@ -2,8 +2,9 @@ package com.velorise.staves.fsm;
 
 /**
  * Block 2 of Mavuika's 4-Block HFSM:
- * Authoritative action & locomotion state enum for the Flamestrider bike.
- * Replaces scattered boolean/timer priority checks with a single priority & cancel-window matrix.
+ * Authoritative pure Finite State Machine enum for the Flamestrider bike.
+ * Every behavioral mode (Hold Spin, Release Grace, Tap Armed, Hands-Free Continuous Spin,
+ * Normal Dash, Charge-Cancel Dash) is a first-class state — zero hidden boolean mode flags.
  */
 public enum BikeActionState {
     // Locomotion states (priority 10..26)
@@ -18,20 +19,28 @@ public enum BikeActionState {
 
     // Combat states (priority 35..60)
     PLUNGE_RECOVERY(35, 8, 3, true),
-    NA_1(40, 10, 4, true),
-    NA_2(40, 10, 4, true),
-    NA_3(40, 10, 4, true),
+    NA_1(40, 9, 4, true),
+    NA_2(40, 11, 5, true),
+    NA_3(40, 12, 6, true),
     NA_4(40, 10, 5, true),
-    NA_5(42, 14, 7, true),          // 360-degree front-flip slam
-    MOUNT_TAIL_WHIP(48, 10, 5, true), // Hold E mount 180-deg half-donut tail whip
-    CA_SPIN_LOOP(50, -1, 0, true),  // Donut Charged Attack continuous loop
-    CA_SPIN_FINISHER(55, 14, 6, true),
+    NA_5(42, 23, 12, true),               // 360-degree front-flip slam
+    MOUNT_TAIL_WHIP(48, 10, 5, true),     // Hold E mount 180-deg half-donut tail whip with forward surge
+    MOUNT_CATCH(46, 10, 0, true),         // Re-mount catch-up: bike rushes in from behind to scoop airborne rider
+
+    // Explicit Charged Attack Donut Spin sub-states (0 boolean mode flags!)
+    CA_SPIN_HOLD(50, 120, 0, true),          // Spinning while LMB held (6.0s max)
+    CA_SPIN_RELEASE_GRACE(50, 4, 0, true),   // 4t release grace before committing to Finisher
+    CA_SPIN_TAP_ARMED(50, 6, 0, true),       // Armed after tap #1; tap #2 -> CA_SPIN_CONTINUOUS
+    CA_SPIN_CONTINUOUS(50, 120, 0, true),    // Hands-Free Continuous Donut after double-tap CC (6.0s max)
+
+    CA_SPIN_FINISHER(55, 27, 27, true),      // Authentic 27t Genshin Finisher: 3t pull + 7t rider aerial vault + 4t plunge slam + 13t wheelie tail-slide
     PLUNGE_WINDUP(58, 5, 5, true),
     PLUNGE_DIVE(60, -1, 0, true),
 
     // High-priority interrupts (priority 80..100)
-    DASH(80, 8, 3, true),           // I-frame dash-cancel
-    ULTI_BURST(100, 30, 22, true);  // Crucible of Death and Life burst slam
+    DASH(80, 7, 6, true),                    // Standard Dash (caCancel = 6t)
+    DASH_CHARGE_CANCEL(80, 7, 2, true),      // Dash entered from CA_* (dC early caCancel = 2t)
+    ULTI_BURST(100, 30, 22, true);           // Crucible of Death and Life burst slam
 
     private final int priority;
     private final int durationTicks;
@@ -69,8 +78,19 @@ public enum BikeActionState {
         return this == PLUNGE_WINDUP || this == PLUNGE_DIVE || this == PLUNGE_RECOVERY;
     }
 
+    public boolean isChargedSpinState() {
+        return this == CA_SPIN_HOLD
+                || this == CA_SPIN_RELEASE_GRACE
+                || this == CA_SPIN_TAP_ARMED
+                || this == CA_SPIN_CONTINUOUS;
+    }
+
+    public boolean isDashState() {
+        return this == DASH || this == DASH_CHARGE_CANCEL;
+    }
+
     public boolean isSpinState() {
-        return this == CA_SPIN_LOOP || this == CA_SPIN_FINISHER;
+        return isChargedSpinState() || this == CA_SPIN_FINISHER;
     }
 
     public int toNaStep() {
@@ -82,6 +102,7 @@ public enum BikeActionState {
             case NA_5 -> 5;
             case CA_SPIN_FINISHER -> 6;
             case MOUNT_TAIL_WHIP -> 7;
+            case MOUNT_CATCH -> 8;
             default -> 0;
         };
     }
@@ -95,6 +116,7 @@ public enum BikeActionState {
             case 5 -> NA_5;
             case 6 -> CA_SPIN_FINISHER;
             case 7 -> MOUNT_TAIL_WHIP;
+            case 8 -> MOUNT_CATCH;
             default -> IDLE;
         };
     }
@@ -105,38 +127,12 @@ public enum BikeActionState {
         return vals[ordinal];
     }
 
-    /**
-     * Authoritative transition guard enforcing state priorities and cancel windows.
-     */
     public static boolean canTransition(BikeActionState current, BikeActionState next, int elapsedTicks) {
-        if (current == null || next == null) return false;
-        if (current == next) return true;
-        // ULTI_BURST always preempts any non-burst state
-        if (next == ULTI_BURST) return true;
-        // Lock all transitions during active ULTI_BURST until recovery window (u <= 8 -> elapsed >= 22)
-        if (current == ULTI_BURST) {
-            return elapsedTicks >= current.cancelWindowStartTicks;
-        }
-        // DASH can cancel any NA, CA_SPIN_LOOP, CA_SPIN_FINISHER, PLUNGE_RECOVERY, or locomotion
-        if (next == DASH) {
-            return current != PLUNGE_WINDUP && current != PLUNGE_DIVE;
-        }
-        // Plunge can only be initiated from airborne/glide states
-        if (next == PLUNGE_WINDUP || next == PLUNGE_DIVE) {
-            return current == AIRBORNE || current == GLIDE || current == PLUNGE_WINDUP;
-        }
-        // Strict priority preemption or cancel window expiry
-        if (next.priority > current.priority) {
-            return true;
-        }
-        if (current.durationTicks > 0 && elapsedTicks >= current.durationTicks) {
-            return true;
-        }
-        return elapsedTicks >= current.cancelWindowStartTicks;
+        return BikeFrameData.canCancelInto(current, next, elapsedTicks);
     }
 
     /**
-     * Resolves the canonical BikeActionState from entity runtime flags in strict priority order.
+     * Resolves the visual BikeActionState from entity runtime data in strict priority order.
      */
     public static BikeActionState resolveActiveState(
             int ultiTicks,
@@ -158,7 +154,7 @@ public enum BikeActionState {
         if (ultiTicks > 0) return ULTI_BURST;
         if (plunging) return plungeWindup > 0 ? PLUNGE_WINDUP : PLUNGE_DIVE;
         if (dashing) return DASH;
-        if (spinning) return CA_SPIN_LOOP;
+        if (spinning) return CA_SPIN_HOLD;
         if (activeNaTicks > 0 && activeNaStep > 0) {
             return fromNaStep(activeNaStep);
         }

@@ -65,10 +65,18 @@ public abstract class CameraMixin {
             this.setPosition(targetPos.x, targetPos.y, targetPos.z);
         }
         if (!detached && entity != null) {
-            if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity ultiBike && ultiBike.getUltiTicks() > 0) {
-                net.minecraft.world.phys.Vec3 ultiOff = ultiBike.getFirstPersonUltiCameraOffset(partialTick);
-                net.minecraft.world.phys.Vec3 curCam = this.getPosition();
-                this.setPosition(curCam.x + ultiOff.x, curCam.y + ultiOff.y, curCam.z + ultiOff.z);
+            if (entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity actionBike) {
+                if (actionBike.getUltiTicks() > 0) {
+                    net.minecraft.world.phys.Vec3 ultiOff = actionBike.getFirstPersonUltiCameraOffset(partialTick);
+                    net.minecraft.world.phys.Vec3 curCam = this.getPosition();
+                    this.setPosition(curCam.x + ultiOff.x, curCam.y + ultiOff.y, curCam.z + ultiOff.z);
+                } else {
+                    float actionOffY = actionBike.getFirstPersonActionCameraOffsetY(partialTick);
+                    if (Math.abs(actionOffY) > 0.001F) {
+                        net.minecraft.world.phys.Vec3 curCam = this.getPosition();
+                        this.setPosition(curCam.x, curCam.y + actionOffY, curCam.z);
+                    }
+                }
             }
             float liftY = com.velorise.staves.client.character.VentiVisualRenderer.getLevitationCameraOffsetY(entity, partialTick)
                     + com.velorise.staves.client.character.MavuikaVisualRenderer.getIdleCameraOffsetY(entity, partialTick)

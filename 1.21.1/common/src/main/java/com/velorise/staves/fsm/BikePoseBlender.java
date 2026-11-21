@@ -59,6 +59,17 @@ public final class BikePoseBlender {
         ENTITY_POSES.remove(entityId);
     }
 
+    public static BikePoseSnapshot getCurrentPose(int entityId) {
+        return ENTITY_POSES.get(entityId);
+    }
+
+    public static boolean hasActivePose(int entityId) {
+        BikePoseSnapshot p = ENTITY_POSES.get(entityId);
+        if (p == null) return false;
+        return Math.abs(p.offsetX) > 0.002F || Math.abs(p.offsetY) > 0.002F || Math.abs(p.offsetZ) > 0.002F
+                || Math.abs(p.pitchDeg) > 0.1F || Math.abs(p.yawDeg) > 0.1F || Math.abs(p.rollDeg) > 0.1F;
+    }
+
     /**
      * Evaluates target action pose for the active BikeActionState and smoothly blends
      * toward it so mid-combo dash cancels and finisher transitions never snap harshly.
@@ -76,13 +87,14 @@ public final class BikePoseBlender {
         BikePoseSnapshot target = new BikePoseSnapshot();
         switch (state) {
             case GLIDE -> evalGlidePose(target);
-            case CA_SPIN_LOOP -> evalSpinPose(target);
+            case CA_SPIN_HOLD, CA_SPIN_RELEASE_GRACE, CA_SPIN_TAP_ARMED, CA_SPIN_CONTINUOUS -> evalSpinPose(target);
             case PLUNGE_WINDUP, PLUNGE_DIVE -> evalPlungePose(plungeWindup, partialTicks, target);
             case ULTI_BURST -> evalUltiPose(ultiT, partialTicks, target);
             case NA_1, NA_2, NA_3, NA_4, NA_5 -> evalNaPose(naStep, smoothNaTicks, target);
             case CA_SPIN_FINISHER -> evalFinisherPose(finisherProgress, target);
             case MOUNT_TAIL_WHIP -> evalMountTailWhipPose(smoothNaTicks, target);
-            case DASH -> evalDashPose(target);
+            case MOUNT_CATCH -> evalMountCatchPose(smoothNaTicks, target);
+            case DASH, DASH_CHARGE_CANCEL -> evalDashPose(target);
             default -> target.zero();
         }
 
@@ -93,7 +105,8 @@ public final class BikePoseBlender {
         boolean snapArc = (state == BikeActionState.ULTI_BURST
                 || state == BikeActionState.NA_5
                 || state == BikeActionState.CA_SPIN_FINISHER
-                || state == BikeActionState.MOUNT_TAIL_WHIP);
+                || state == BikeActionState.MOUNT_TAIL_WHIP
+                || state == BikeActionState.MOUNT_CATCH);
         if (current.lastUpdateNanos <= 0L || (snapArc && current.lastState == state)) {
             current.copyFrom(target);
             current.lastUpdateNanos = nowNanos;
@@ -120,8 +133,10 @@ public final class BikePoseBlender {
     }
 
     private static void evalDashPose(BikePoseSnapshot out) {
-        out.pitchDeg = -7.0F;
-        out.offsetZ = 0.08F;
+        // Genshin Flamestrider Dash: crisp wheelie pop lifting the front nose up with forward surge
+        out.pitchDeg = -20.0F;
+        out.offsetY = 0.12F;
+        out.offsetZ = 0.14F;
     }
 
     private static void evalSpinPose(BikePoseSnapshot out) {
@@ -176,48 +191,84 @@ public final class BikePoseBlender {
 
     private static void evalNaPose(int step, float naTf, BikePoseSnapshot out) {
         if (step == 1) {
-            float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-            float s = p * p * (3.0F - 2.0F * p);
+            // Genshin NA1 (9t): Aggressive sideways drift left (-62 deg) with wide right-to-left cleave
+            float p = Mth.clamp(1.0F - (naTf / 9.0F), 0.0F, 1.0F);
             float swing = Mth.sin(p * (float) Math.PI);
-            float pitch = (s < 0.45F)
-                    ? Mth.lerp(s / 0.45F, 0.0F, -16.0F)
-                    : Mth.lerp((s - 0.45F) / 0.55F, -16.0F, 14.0F) * (1.0F - p * 0.65F);
-            out.offsetY = swing * 0.16F;
-            out.offsetZ = swing * 0.10F;
-            out.yawDeg = Mth.lerp(s, 10.0F, -14.0F) * swing;
-            out.pitchDeg = pitch;
-            out.rollDeg = 10.0F * swing;
+            float s = p * p * (3.0F - 2.0F * p);
+            out.offsetY = swing * 0.18F;
+            out.offsetZ = swing * 0.22F;
+            out.yawDeg = Mth.lerp(s, 14.0F, -62.0F) * swing;
+            out.rollDeg = -24.0F * swing;
+            out.pitchDeg = -10.0F * swing;
         } else if (step == 2) {
-            float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+            // Genshin NA2 (11t): 180-deg counter-spin tail whip around front tire (+68 deg) carving horizontal slash
+            float p = Mth.clamp(1.0F - (naTf / 11.0F), 0.0F, 1.0F);
             float s = p * p * (3.0F - 2.0F * p);
             float swing = Mth.sin(p * (float) Math.PI);
-            out.offsetY = swing * 0.10F;
-            out.yawDeg = Mth.lerp(s, -34.0F, 36.0F) * swing;
-            out.rollDeg = 20.0F * swing;
-            out.pitchDeg = 8.0F * swing;
+            out.pivotZ = 0.62F;
+            out.offsetY = swing * 0.20F;
+            out.yawDeg = Mth.lerp(s, -58.0F, 68.0F) * swing;
+            out.rollDeg = 28.0F * swing;
+            out.pitchDeg = -12.0F * swing;
         } else if (step == 3) {
-            float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-            float s = p * p * (3.0F - 2.0F * p);
-            float swing = Mth.sin(p * (float) Math.PI);
-            out.offsetY = swing * 0.08F;
-            out.offsetZ = swing * 0.12F;
-            out.yawDeg = Mth.lerp(s, 38.0F, -38.0F) * swing;
-            out.rollDeg = -22.0F * swing;
+            // Genshin NA3 (12t): Vertical front-wheelie stoppie (tail kicks +54 deg high!) -> heavy rear-tire fire slam!
+            float p = Mth.clamp(1.0F - (naTf / 12.0F), 0.0F, 1.0F);
+            if (p < 0.42F) {
+                float u = p / 0.42F;
+                float e = 1.0F - (1.0F - u) * (1.0F - u);
+                out.offsetY = e * 0.42F;
+                out.offsetZ = e * 0.16F;
+                out.pitchDeg = e * 54.0F; // nose down, rear tire kicked high!
+                out.rollDeg = -10.0F * e;
+            } else if (p < 0.60F) {
+                float u = (p - 0.42F) / 0.18F;
+                float slam = u * u;
+                out.offsetY = Mth.lerp(slam, 0.42F, -0.08F);
+                out.offsetZ = Mth.lerp(slam, 0.16F, 0.04F);
+                out.pitchDeg = Mth.lerp(slam, 54.0F, -14.0F);
+                out.rollDeg = Mth.lerp(slam, -10.0F, 8.0F);
+            } else {
+                float u = (p - 0.60F) / 0.40F;
+                float e = u * u * (3.0F - 2.0F * u);
+                out.offsetY = Mth.lerp(e, -0.08F, 0.0F);
+                out.pitchDeg = Mth.lerp(e, -14.0F, 0.0F);
+                out.rollDeg = Mth.lerp(e, 8.0F, 0.0F);
+            }
         } else if (step == 4) {
+            // Genshin NA4 (10t): High wheelie side-drift right (+68 deg, roll +30 deg, nose-up -26 deg) uppercut!
             float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-            float s = p * p * (3.0F - 2.0F * p);
             float swing = Mth.sin(p * (float) Math.PI);
-            float pitch = (s < 0.52F)
-                    ? Mth.lerp(s / 0.52F, 0.0F, -34.0F)
-                    : Mth.lerp((s - 0.52F) / 0.48F, -34.0F, 18.0F) * (1.0F - (p - 0.52F));
-            out.offsetY = swing * 0.36F;
-            out.pitchDeg = pitch;
-            out.rollDeg = -12.0F * swing;
-        } else if (step == 5) {
-            float p = Mth.clamp(1.0F - (naTf / 14.0F), 0.0F, 1.0F);
             float s = p * p * (3.0F - 2.0F * p);
-            out.offsetY = (float) (Math.sin(p * Math.PI) * 0.88D);
-            out.pitchDeg = s * 360.0F;
+            out.offsetY = swing * 0.36F;
+            out.offsetZ = swing * 0.18F;
+            out.yawDeg = Mth.lerp(s, -18.0F, 68.0F) * swing;
+            out.rollDeg = 30.0F * swing;
+            out.pitchDeg = -26.0F * swing;
+        } else if (step == 5) {
+            // Genshin NA5 (23t): Massive airborne 360-deg front-flip Superman slam (+1.45m apex -> hitmark tick 12 -> wheelie bounce!)
+            float p = Mth.clamp(1.0F - (naTf / 23.0F), 0.0F, 1.0F);
+            if (p < 0.32F) {
+                float u = p / 0.32F;
+                out.offsetY = (1.0F - (1.0F - u) * (1.0F - u)) * 1.45F;
+                out.offsetZ = u * 0.35F;
+                out.pitchDeg = u * 205.0F;
+            } else if (p < 0.52F) {
+                float u = (p - 0.32F) / 0.20F;
+                out.offsetY = (1.0F - (float) Math.pow(u, 2.5D)) * 1.45F;
+                out.offsetZ = Mth.lerp(u, 0.35F, 0.20F);
+                out.pitchDeg = 205.0F + u * 155.0F;
+            } else if (p < 0.62F) {
+                float u = (p - 0.52F) / 0.10F;
+                out.offsetY = -Mth.sin(u * (float) Math.PI) * 0.14F;
+                out.pitchDeg = Mth.lerp(u, 10.0F, -22.0F);
+            } else if (p < 0.80F) {
+                float u = (p - 0.62F) / 0.18F;
+                out.offsetY = Mth.sin((1.0F - u) * (float) Math.PI * 0.5F) * 0.10F;
+                out.pitchDeg = Mth.lerp(u, -22.0F, 0.0F);
+            } else {
+                out.offsetY = 0.0F;
+                out.pitchDeg = 0.0F;
+            }
         }
     }
 
@@ -233,26 +284,91 @@ public final class BikePoseBlender {
         out.pitchDeg = 12.0F * swing;
     }
 
-    private static void evalFinisherPose(float p, BikePoseSnapshot out) {
-        float jumpArc = (p < 0.72F) ? Mth.sin((p / 0.72F) * (float) Math.PI) * 0.68F : 0.0F;
-        float surgeZ = Mth.sin(p * (float) Math.PI) * 0.20F;
-        out.offsetY = jumpArc;
-        out.offsetZ = surgeZ;
-        if (p < 0.36F) {
-            float e = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
-            out.yawDeg = Mth.lerp(e, 0.0F, -8.0F);
-            out.pitchDeg = Mth.lerp(e, 0.0F, -22.0F);
-            out.rollDeg = Mth.lerp(e, 0.0F, -8.0F);
-        } else if (p < 0.72F) {
-            float e = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
-            out.yawDeg = Mth.lerp(e, -8.0F, 10.0F);
-            out.pitchDeg = Mth.lerp(e, -22.0F, 14.0F);
-            out.rollDeg = Mth.lerp(e, -8.0F, 10.0F);
+    private static void evalMountCatchPose(float naTf, BikePoseSnapshot out) {
+        // Genshin Re-Mount: translucent bike materializes behind the leaping rider (-2.4m) and rushes forward to scoop them up
+        float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+        if (p < 0.55F) {
+            float u = p / 0.55F;
+            float easeOut = 1.0F - (1.0F - u) * (1.0F - u);
+            out.offsetZ = Mth.lerp(easeOut, -2.40F, 0.0F);
+            out.offsetY = Mth.sin(u * (float) Math.PI) * 0.10F;
+            out.pitchDeg = Mth.lerp(easeOut, -11.0F, -2.0F);
         } else {
-            float e = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
-            out.yawDeg = Mth.lerp(e, 10.0F, 0.0F);
-            out.pitchDeg = Mth.lerp(e, 14.0F, 0.0F);
-            out.rollDeg = Mth.lerp(e, 10.0F, 0.0F);
+            float u = (p - 0.55F) / 0.45F;
+            out.offsetZ = 0.0F;
+            out.offsetY = -Mth.sin(u * (float) Math.PI) * 0.06F;
+            out.pitchDeg = Mth.lerp(u, -2.0F, 0.0F);
+        }
+    }
+
+    private static void evalFinisherPose(float p, BikePoseSnapshot out) {
+        // Authentic 27-tick Genshin Finisher bike choreography (measured 12fps from Genshin video):
+        // Phase 0 (0.00..0.11, 3t): grounded pull onto forward centerline
+        // Phase 1 (0.11..0.37, 7t): bike glides low & sleek beneath the airborne vaulting rider
+        // Phase 2 (0.37..0.52, 4t): rider plunges onto saddle -> heavy impact compression at hitmark (p = 0.52, tick 14)
+        // Phase 3a (0.52..0.60): explosive pop into sideways wheelie tail-slide
+        // Phase 3b (0.60..0.85): iconic Genshin sideways nose-up wheelie hold (pitch -34 deg, yaw +28 deg, roll +14 deg)
+        // Phase 3c (0.85..1.00): smooth front-wheel touchdown back to 0 deg
+        if (p < 0.11F) {
+            float u = p / 0.11F;
+            out.offsetY = 0.0F;
+            out.offsetZ = 0.0F;
+            out.yawDeg = Mth.lerp(u, 0.0F, -4.0F);
+            out.pitchDeg = Mth.sin(u * (float) Math.PI) * 3.5F;
+            out.rollDeg = Mth.lerp(u, 0.0F, -3.0F);
+        } else if (p < 0.37F) {
+            // Bike curves noticeably back-left underneath the vaulting rider (Genshin 10.55s..10.92s)
+            float u = (p - 0.11F) / 0.26F;
+            float s = Mth.sin(u * (float) Math.PI);
+            out.offsetX = -s * 0.58F;
+            out.offsetY = s * 0.08F;
+            out.offsetZ = -s * 0.65F;
+            out.yawDeg = Mth.lerp(u, -4.0F, -28.0F);
+            out.pitchDeg = Mth.lerp(u, 0.0F, -8.0F);
+            out.rollDeg = Mth.lerp(u, -3.0F, -16.0F);
+        } else if (p < 0.52F) {
+            // Bike swings cleanly back underneath rider right on the horizontal cleave (Genshin 10.98s..11.08s)
+            float u = (p - 0.37F) / 0.15F;
+            float e = u * u;
+            out.offsetX = Mth.lerp(e, -0.34F, 0.0F);
+            out.offsetY = Mth.lerp(e, 0.06F, -0.08F);
+            out.offsetZ = Mth.lerp(e, -0.38F, 0.08F);
+            out.yawDeg = Mth.lerp(e, -28.0F, 6.0F);
+            out.pitchDeg = Mth.lerp(e, -8.0F, 10.0F);
+            out.rollDeg = Mth.lerp(e, -16.0F, 5.0F);
+        } else if (p < 0.58F) {
+            // Hold low grounded cleave impact while giant horizontal slash sweeps left-to-right!
+            float u = (p - 0.52F) / 0.06F;
+            out.offsetY = Mth.lerp(u, -0.08F, -0.04F);
+            out.offsetZ = 0.08F;
+            out.yawDeg = Mth.lerp(u, 6.0F, 18.0F);
+            out.pitchDeg = Mth.lerp(u, 10.0F, 0.0F);
+            out.rollDeg = Mth.lerp(u, 5.0F, 8.0F);
+        } else if (p < 0.68F) {
+            // Whip 58 deg sideways & pop 40 deg nose-up wheelie AFTER the slash blooms (Genshin 11.25s..11.48s)
+            float u = (p - 0.58F) / 0.10F;
+            float e = 1.0F - (1.0F - u) * (1.0F - u);
+            out.offsetY = Mth.lerp(e, -0.04F, 0.22F);
+            out.offsetZ = Mth.lerp(e, 0.08F, -0.14F);
+            out.yawDeg = Mth.lerp(e, 18.0F, 58.0F);
+            out.pitchDeg = Mth.lerp(e, 0.0F, -40.0F);
+            out.rollDeg = Mth.lerp(e, 8.0F, 16.0F);
+        } else if (p < 0.86F) {
+            float u = (p - 0.68F) / 0.18F;
+            float settle = 1.0F - u * 0.14F;
+            out.offsetY = 0.22F * settle;
+            out.offsetZ = -0.14F * settle;
+            out.yawDeg = 58.0F * (1.0F - u * 0.08F);
+            out.pitchDeg = -40.0F * settle;
+            out.rollDeg = 16.0F * settle;
+        } else {
+            float u = Mth.clamp((p - 0.86F) / 0.14F, 0.0F, 1.0F);
+            float e = u * u * (3.0F - 2.0F * u);
+            out.offsetY = Mth.lerp(e, 0.189F, 0.0F);
+            out.offsetZ = Mth.lerp(e, -0.120F, 0.0F);
+            out.yawDeg = Mth.lerp(e, 53.4F, 0.0F);
+            out.pitchDeg = Mth.lerp(e, -34.4F, 0.0F);
+            out.rollDeg = Mth.lerp(e, 13.8F, 0.0F);
         }
     }
 }

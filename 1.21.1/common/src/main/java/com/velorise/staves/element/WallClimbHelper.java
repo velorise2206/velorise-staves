@@ -125,22 +125,21 @@ public final class WallClimbHelper {
         double sampleX = player.getX() + inward.getStepX() * (halfW + CLIENT_WALL_PROBE_DIST);
         double sampleZ = player.getZ() + inward.getStepZ() * (halfW + CLIENT_WALL_PROBE_DIST);
 
-        // Probe waist (y+0.55) and shin (y+0.15) to find the top block of the wall
-        BlockPos waistWall = BlockPos.containing(sampleX, player.getY() + 0.55D, sampleZ);
+        // Probe chest/shoulder/waist (y+1.35 -> y+0.95 -> y+0.55) so mantle triggers as soon as raised hands grip the top lip
+        double[] probeHeights = new double[] { 1.35D, 0.95D, 0.55D, 0.15D };
         BlockPos ledgeBlock = null;
-        if (isSturdyClimbableFace(level, waistWall, wallNormalFace)) {
-            ledgeBlock = waistWall;
-        } else {
-            BlockPos shinWall = BlockPos.containing(sampleX, player.getY() + 0.15D, sampleZ);
-            if (isSturdyClimbableFace(level, shinWall, wallNormalFace)) {
-                ledgeBlock = shinWall;
+        for (double py : probeHeights) {
+            BlockPos candidate = BlockPos.containing(sampleX, player.getY() + py, sampleZ);
+            if (isSturdyClimbableFace(level, candidate, wallNormalFace)) {
+                ledgeBlock = candidate;
+                break;
             }
         }
         if (ledgeBlock == null) return Double.NaN;
 
         double topSurfaceY = ledgeBlock.getY() + 1.0D;
-        // Wait until feet are within 1.05 blocks of the top surface so we don't trigger prematurely
-        if (player.getY() < topSurfaceY - 1.05D) {
+        // Trigger as soon as raised hands (~y+1.75) reach the top lip (feet within 1.65 blocks of top surface)
+        if (player.getY() < topSurfaceY - 1.65D) {
             return Double.NaN;
         }
         BlockPos topClear1 = ledgeBlock.above();
@@ -152,6 +151,57 @@ public final class WallClimbHelper {
                 && level.getBlockState(topClear2).getCollisionShape(level, topClear2).isEmpty()
                 && level.getBlockState(headClear).getCollisionShape(level, headClear).isEmpty();
         return clear ? topSurfaceY : Double.NaN;
+    }
+
+    public record LowStepTarget(Direction wallNormalFace, double topSurfaceY) {}
+
+    /**
+     * Genshin-style low-obstacle auto-mantle detector (0 stamina):
+     * Detects ANY solid obstacle taller than Vanilla's 0.60m auto-step and up to 1.15m
+     * (full 1-block Dirt/Stone, Anvil, Chest, Enchanting Table, Cauldron, Lectern, etc.)
+     * while cleanly skipping half-slabs/stairs (<= 0.60m) and fences/walls (1.50m).
+     */
+    public static LowStepTarget findLowStepMantle(Player player) {
+        if (player == null || !player.onGround()) return null;
+        Level level = player.level();
+        Vec3 look = player.getLookAngle();
+        double lookLen = Math.hypot(look.x, look.z);
+        if (lookLen < 1.0E-4D) return null;
+        double lookX = look.x / lookLen;
+        double lookZ = look.z / lookLen;
+
+        AABB bb = player.getBoundingBox();
+        double halfW = Math.max(0.28D, (bb.maxX - bb.minX) * 0.5D);
+        LowStepTarget best = null;
+        double bestDot = 0.72D;
+
+        for (Direction inward : HORIZONTAL_DIRS) {
+            double dot = inward.getStepX() * lookX + inward.getStepZ() * lookZ;
+            if (dot <= bestDot) continue;
+            Direction normalFace = inward.getOpposite();
+            double sampleX = player.getX() + inward.getStepX() * (halfW + 0.24D);
+            double sampleZ = player.getZ() + inward.getStepZ() * (halfW + 0.24D);
+            BlockPos lowBlock = BlockPos.containing(sampleX, player.getY() + 0.55D, sampleZ);
+            BlockState state = level.getBlockState(lowBlock);
+            if (state.isAir() || state.is(BlockTags.CLIMBABLE)) continue;
+            var shape = state.getCollisionShape(level, lowBlock);
+            if (shape.isEmpty()) continue;
+
+            double topSurfaceY = lowBlock.getY() + shape.max(Direction.Axis.Y);
+            double dy = topSurfaceY - player.getY();
+            // Strictly taller than vanilla 0.60m step-up and <= 1.15m (excludes half-slabs 0.5m & fences 1.5m)
+            if (dy <= 0.60D || dy > 1.15D) continue;
+
+            // Verify destination standing box on top of the obstacle (and headroom above current pos) is completely clear
+            AABB destBox = bb.move(inward.getStepX() * 0.72D, dy + 0.04D, inward.getStepZ() * 0.72D);
+            BlockPos headClear = BlockPos.containing(player.getX(), topSurfaceY + 1.65D, player.getZ());
+            if (level.noCollision(player, destBox)
+                    && level.getBlockState(headClear).getCollisionShape(level, headClear).isEmpty()) {
+                bestDot = dot;
+                best = new LowStepTarget(normalFace, topSurfaceY);
+            }
+        }
+        return best;
     }
 
     /**

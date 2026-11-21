@@ -225,8 +225,13 @@ public final class MavuikaManager {
         level.addFreshEntity(bike);
         player.startRiding(bike, true);
         if (dealCastSweep) {
-            // Genshin Hold E mount: whip the rear wheel in a 180-deg half-donut arc first, then trigger Pyro AoE damage at the whip apex
-            bike.triggerMountWhip(firstCast);
+            if (firstCast) {
+                // Genshin Hold E mount: whip the rear wheel in a 180-deg half-donut arc with forward surge
+                bike.triggerMountWhip(true);
+            } else {
+                // Genshin Re-Mount: translucent bike rushes in from behind to scoop the leaping rider smoothly
+                bike.triggerMountCatch();
+            }
         }
         level.sendParticles(ParticleTypes.FLAME, player.getX(), player.getY() + 0.5D, player.getZ(), 22, 0.55D, 0.3D, 0.55D, 0.07D);
         level.playSound(null, player.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.9F, 0.95F);
@@ -236,8 +241,7 @@ public final class MavuikaManager {
         if (player == null || player.level().isClientSide() || !player.isAlive()) return;
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
             if (bike.getUltiTicks() > 0) return;
-            player.stopRiding();
-            bike.discard();
+            bike.beginSmoothDismount(player);
             return;
         }
         if (ElementalResonanceManager.checkAndNotifyOverloaded(player)) return;
@@ -345,25 +349,25 @@ public final class MavuikaManager {
         }
 
         Vec3 right = new Vec3(-forward.z, 0.0D, forward.x).normalize();
-        Vec3 slashStart = origin.add(forward.scale(2.1D)).subtract(right.scale(4.4D)).add(0.0D, 0.55D, 0.0D);
-        Vec3 slashEnd = origin.add(forward.scale(4.2D)).add(right.scale(4.6D)).add(0.0D, 2.35D, 0.0D);
-        com.velorise.staves.network.ModNetwork.sendElectricArc(level, slashStart, slashEnd, 14, 0xFFFF6A00);
-        for (int k = 0; k <= 12; k++) {
-            double frac = k / 12.0D;
-            double bow = Math.sin(frac * Math.PI) * 2.2D;
+        Vec3 slashStart = origin.add(forward.scale(2.0D)).subtract(right.scale(5.4D)).add(0.0D, 0.65D, 0.0D);
+        Vec3 slashEnd = origin.add(forward.scale(4.6D)).add(right.scale(5.4D)).add(0.0D, 2.75D, 0.0D);
+        com.velorise.staves.network.ModNetwork.sendElectricArc(level, slashStart, slashEnd, 16, 0xFFFF6A00);
+        for (int k = 0; k <= 16; k++) {
+            double frac = k / 16.0D;
+            double bow = Math.sin(frac * Math.PI) * 3.1D;
             Vec3 slashPt = slashStart.lerp(slashEnd, frac).add(forward.scale(bow));
-            level.sendParticles(ParticleTypes.FLAME, slashPt.x, slashPt.y, slashPt.z, 3, 0.10D, 0.10D, 0.10D, 0.03D);
+            level.sendParticles(ParticleTypes.FLAME, slashPt.x, slashPt.y, slashPt.z, 4, 0.14D, 0.12D, 0.14D, 0.04D);
             if (k % 2 == 0) {
-                level.sendParticles(ParticleTypes.LAVA, slashPt.x, slashPt.y, slashPt.z, 1, 0.06D, 0.06D, 0.06D, 0.01D);
+                level.sendParticles(ParticleTypes.LAVA, slashPt.x, slashPt.y, slashPt.z, 1, 0.08D, 0.08D, 0.08D, 0.01D);
             }
         }
 
-        Vec3 slamCenter = origin.add(forward.scale(2.8D));
-        level.sendParticles(ParticleTypes.EXPLOSION, slamCenter.x, slamCenter.y + 0.8D, slamCenter.z, 2, 0.6D, 0.3D, 0.6D, 0.0D);
-        for (int a = 0; a < 360; a += 15) {
+        Vec3 slamCenter = origin.add(forward.scale(3.0D));
+        level.sendParticles(ParticleTypes.EXPLOSION, slamCenter.x, slamCenter.y + 0.8D, slamCenter.z, 3, 0.8D, 0.35D, 0.8D, 0.0D);
+        for (int a = 0; a < 360; a += 12) {
             Vec3 dir = Vec3.directionFromRotation(0.0F, player.getYRot() + a);
-            Vec3 ringPos = origin.add(dir.scale(3.2D));
-            level.sendParticles(ParticleTypes.FLAME, ringPos.x, origin.y + 0.18D, ringPos.z, 2, 0.08D, 0.05D, 0.08D, 0.02D);
+            Vec3 ringPos = origin.add(dir.scale(5.0D));
+            level.sendParticles(ParticleTypes.FLAME, ringPos.x, origin.y + 0.22D, ringPos.z, 2, 0.10D, 0.06D, 0.10D, 0.02D);
             if (a >= -90 && a <= 90) {
                 for (double r = 1.8D; r <= 5.0D; r += 1.4D) {
                     Vec3 p = origin.add(dir.scale(r));
@@ -387,8 +391,7 @@ public final class MavuikaManager {
                     if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                         if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
                                 && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
-                            player.stopRiding();
-                            bike.discard();
+                            bike.beginSmoothDismount(player);
                         }
                     }
                     float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);
@@ -460,8 +463,7 @@ public final class MavuikaManager {
                 if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
                     if (!bike.isSpinning() && !bike.isSpinInputHeld() && !bike.isFinisherPlaying()
                             && !bike.isPlunging() && !bike.isDashingServer() && bike.getUltiTicks() <= 0) {
-                        player.stopRiding();
-                        bike.discard();
+                        bike.beginSmoothDismount(player);
                     }
                 }
                 float pts = MAVUIKA_NIGHTSOUL_POINTS.getOrDefault(id, 0.0F);

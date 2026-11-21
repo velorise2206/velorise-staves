@@ -38,6 +38,7 @@ public final class ClientAuraTracker {
     public static final int ANIM_GLIDER_UNLOCKED = 30;
     public static final int ANIM_GLIDER_LOCKED = 31;
     public static final int ANIM_MAVUIKA_BURST = 32;
+    public static final int ANIM_MAVUIKA_DISMOUNT = 69;
     public static final int ANIM_VENTI_BURST = 33;
     public static final int ANIM_VENTI_SKILL_E = 66;
     public static final int ANIM_FURINA_BURST = 34;
@@ -164,9 +165,13 @@ public final class ClientAuraTracker {
         public float steveWallMoveX = 0.0F;
         public float prevWallMoveY = 0.0F;
         public float steveWallMoveY = 0.0F;
+        public long steveWallJumpStartMs = 0L;
         public long steveWallJumpUntilMs = 0L;
+        public boolean steveWallJumpMirror = false;
         public long steveWallMantleStartMs = 0L;
         public long steveWallMantleUntilMs = 0L;
+        public float steveWallMantleDurationMs = 500.0F;
+        public boolean steveWallLowMantle = false;
         public net.minecraft.core.Direction wallNormalFace = null;
         public final com.velorise.staves.fsm.PoseBlender.HumanoidPose wallClimbPose = new com.velorise.staves.fsm.PoseBlender.HumanoidPose();
         public int nightsFocusStars = 0;
@@ -802,7 +807,9 @@ public final class ClientAuraTracker {
                 entry.steveWallClimbing = (animType == ANIM_STEVE_WALL_CLIMB_ON);
                 if (!entry.steveWallClimbing) entry.wallNormalFace = null;
             } else if (animType == ANIM_STEVE_WALL_CLIMB_JUMP) {
+                entry.steveWallJumpStartMs = now;
                 entry.steveWallJumpUntilMs = now + 420L;
+                entry.steveWallJumpMirror = !entry.steveWallJumpMirror;
             } else if (animType == ANIM_STEVE_WALL_CLIMB_MANTLE) {
                 entry.steveWallMantleStartMs = now;
                 entry.steveWallMantleUntilMs = now + 500L;
@@ -915,6 +922,7 @@ public final class ClientAuraTracker {
             case ANIM_NEUVILLETTE_BURST -> 1800L;
             case ANIM_NEUVILLETTE_SKILL_E -> 550L;
             case ANIM_MAVUIKA_BURST -> 1700L;
+            case ANIM_MAVUIKA_DISMOUNT -> 650L;
             case ANIM_VENTI_BURST -> 2000L;
             case ANIM_VENTI_SKILL_E -> 900L;
             case ANIM_FURINA_BURST -> 1800L;

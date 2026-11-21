@@ -193,9 +193,7 @@ public final class ClientInputHandler {
         }
         if (!event.isAttack()) return;
         if (mc.player != null && (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity || bikeDismountWaitAttackRelease)) {
-            if (mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
-                queuedFastAttackClicks++;
-            }
+            // Strictly cancel vanilla mining/attack; raw physical presses are captured by GenshinInputState
             event.setSwingHand(false);
             event.setCanceled(true);
             return;
@@ -356,6 +354,7 @@ public final class ClientInputHandler {
             bikeSpinTapCount = 0;
             bikeDoubleTapWindowTicks = 0;
             BIKE_INPUT_BUFFER.reset();
+            GenshinInputState.reset();
             queuedFastAttackClicks = 0;
             ClientAuraTracker.ventiUltiHoldTicks = 0;
             ventiUltiFiredThisHold = false;
@@ -743,21 +742,20 @@ public final class ClientInputHandler {
             if (bikeMountWaitRelease && !mc.options.keyUse.isDown()) {
                 bikeMountWaitRelease = false;
             }
-            int attackClicks = queuedFastAttackClicks;
+            GenshinInputState.sampleTick(mc);
             queuedFastAttackClicks = 0;
             while (mc.options.keyAttack.consumeClick()) {
-                // Suppress melee swing/block-breaking while riding bike, but count fast taps
-                attackClicks++;
+                // Suppress vanilla melee swing/block-breaking while riding bike
             }
             while (mc.options.keyUse.consumeClick()) {
-                // Suppress item right-click re-triggers while riding bike
+                // Suppress vanilla right-click re-triggers while riding bike
             }
-            if (mc.options.keyJump.isDown()) {
+            if (GenshinInputState.jump().justPressed()) {
                 BIKE_INPUT_BUFFER.notifyJumpPressed();
             }
             com.velorise.staves.fsm.MavuikaInputBuffer.TickDecision bikeDec = BIKE_INPUT_BUFFER.tickAttackInput(
-                    mc.options.keyAttack.isDown(),
-                    attackClicks,
+                    GenshinInputState.attack().isDown(),
+                    GenshinInputState.attack().physicalPresses(),
                     bike.getUltiTicks() > 8,
                     bike.isSpinning(),
                     bike.getActiveNaStep(),
@@ -784,8 +782,8 @@ public final class ClientInputHandler {
             if (bikeDec.sendNormalAttack) {
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
             }
-            boolean useHeld = !bikeMountWaitRelease && mc.options.keyUse.isDown();
-            boolean sprintDown = mc.options.keySprint.isDown() || useHeld;
+            boolean useHeld = !bikeMountWaitRelease && GenshinInputState.skill().isDown();
+            boolean sprintDown = GenshinInputState.sprint().isDown() || useHeld;
             boolean dashTriggered = sprintDown && !wasBikeDashDown && !bike.isOnDashCooldown() && bike.getUltiTicks() <= 0;
             wasBikeDashDown = sprintDown;
             if (dashTriggered) {
@@ -838,6 +836,9 @@ public final class ClientInputHandler {
 
     @SubscribeEvent
     public static void onMouseButtonPre(InputEvent.MouseButton.Pre event) {
+        if (!OmniWheelOverlay.isWheelActive()) {
+            GenshinInputState.onRawMouseButton(event.getButton(), event.getAction());
+        }
         if (event.getAction() == GLFW.GLFW_PRESS && !OmniWheelOverlay.isWheelActive() && event.getButton() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.player != null && mc.screen == null

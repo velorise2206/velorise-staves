@@ -27,6 +27,9 @@ public final class ClientMovementTracker {
     private static double localMantleDestZ = 0.0D;
     private static int localMantleElapsedTicks = 0;
     private static final int LOCAL_MANTLE_DURATION_TICKS = 10;
+    private static final int LOCAL_LOW_MANTLE_DURATION_TICKS = 7;
+    private static int localMantleDurationTicks = LOCAL_MANTLE_DURATION_TICKS;
+    private static int localPostMantleCooldownTicks = 0;
     private static com.velorise.staves.fsm.MovementActionState localMovementState = com.velorise.staves.fsm.MovementActionState.GROUNDED;
     private static int localMoveElapsedTicks = 0;
     private static int localWallJumpTicks = 0;
@@ -250,7 +253,7 @@ public final class ClientMovementTracker {
         if (localMovementState == com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE
                 && !Double.isNaN(localMantleDestY)) {
             double t = net.minecraft.util.Mth.clamp(
-                    (localMantleElapsedTicks + 1.0D) / (double) LOCAL_MANTLE_DURATION_TICKS,
+                    (localMantleElapsedTicks + 1.0D) / (double) Math.max(1, localMantleDurationTicks),
                     0.0D,
                     1.0D
             );
@@ -413,23 +416,61 @@ public final class ClientMovementTracker {
             return;
         }
 
+        if (localPostMantleCooldownTicks > 0) {
+            localPostMantleCooldownTicks--;
+        }
         // Active ParCool! ClimbUp 2-phase cubic-eased ledge mantle (driven by LocalPlayerMixin.move)
         if (localMovementState == com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE) {
             localMoveElapsedTicks++;
             localMantleElapsedTicks++;
             player.fallDistance = 0.0F;
-            if (Double.isNaN(localMantleDestY) || localMantleElapsedTicks >= LOCAL_MANTLE_DURATION_TICKS) {
+            if (Double.isNaN(localMantleDestY) || localMantleElapsedTicks >= localMantleDurationTicks) {
                 exitLocalWallClimb(player, false);
+                // Immediately clear wall-climb fade & mantle timer so Steve never flashes IDLE_FRAME arm-grab after stepping up
+                AuraDisplayData doneEntry = DATA.get(pid);
+                if (doneEntry != null) {
+                    doneEntry.steveWallClimbFade = 0.0F;
+                    doneEntry.prevWallClimbFade = 0.0F;
+                    doneEntry.steveWallMantleUntilMs = 0L;
+                    doneEntry.steveWallMantleStartMs = 0L;
+                    doneEntry.steveWallLowMantle = false;
+                }
+                localPostMantleCooldownTicks = 7;
                 player.setDeltaMovement(0.0D, -0.04D, 0.0D);
             }
             return;
         }
 
-        // Active climb jump (8 ticks, cancel window at tick 5)
+        // Active climb jump (8 ticks; if reaching top ledge lip mid-jump, immediately grab & mantle onto the block!)
         if (localMovementState == com.velorise.staves.fsm.MovementActionState.WALL_JUMP) {
             localMoveElapsedTicks++;
             localWallJumpTicks--;
             player.fallDistance = 0.0F;
+            if (localMoveElapsedTicks >= 2 && fwdIn > 0.10F && localWallNormalFace != null) {
+                double jumpLedgeY = com.velorise.staves.element.WallClimbHelper.findLedgeTopY(player, localWallNormalFace);
+                if (!Double.isNaN(jumpLedgeY)) {
+                    net.minecraft.core.Direction inward = localWallNormalFace.getOpposite();
+                    localMantleStartX = player.getX();
+                    localMantleStartY = player.getY();
+                    localMantleStartZ = player.getZ();
+                    localMantleDestX = player.getX() + inward.getStepX() * 0.72D;
+                    localMantleDestY = jumpLedgeY;
+                    localMantleDestZ = player.getZ() + inward.getStepZ() * 0.72D;
+                    localMantleElapsedTicks = 0;
+                    localMantleDurationTicks = LOCAL_MANTLE_DURATION_TICKS;
+                    localWallJumpTicks = 0;
+                    localMovementState = com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE;
+                    localMoveElapsedTicks = 0;
+                    AuraDisplayData jEntry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
+                    long nowMs = System.currentTimeMillis();
+                    jEntry.steveWallJumpUntilMs = 0L;
+                    jEntry.steveWallLowMantle = false;
+                    jEntry.steveWallMantleDurationMs = localMantleDurationTicks * 50.0F;
+                    jEntry.steveWallMantleStartMs = nowMs;
+                    jEntry.steveWallMantleUntilMs = nowMs + (localMantleDurationTicks * 50L) + 120L;
+                    return;
+                }
+            }
             if (localWallJumpTicks <= 0) {
                 net.minecraft.core.Direction regrab = com.velorise.staves.element.WallClimbHelper.findClimbWall(
                         player, com.velorise.staves.element.WallClimbHelper.CLIENT_WALL_PROBE_DIST + 0.15D);
@@ -457,7 +498,7 @@ public final class ClientMovementTracker {
 
         if (!localSteveWallClimbing) {
             boolean enoughToStart = !customStamina || creative || (!localStaminaExhausted && !localExhaustedClimbFall && localStamina >= 5.0F);
-            boolean wantsAttach = wallFace != null && !sneakDown && enoughToStart
+            boolean wantsAttach = localPostMantleCooldownTicks <= 0 && wallFace != null && !sneakDown && enoughToStart
                     && fwdIn > 0.10F;
             if (wantsAttach) {
                 localSteveWallClimbing = true;
@@ -469,6 +510,40 @@ public final class ClientMovementTracker {
                 entry.wallNormalFace = wallFace;
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 29);
             } else {
+                // Genshin low-obstacle auto-mantle (0 stamina!): vaults smoothly over ANY 0.61m..1.15m obstacle (Anvil, Chest, 1-block, etc.)
+                if (localPostMantleCooldownTicks <= 0 && !sneakDown && !localExhaustedClimbFall && fwdIn > 0.20F && player.onGround()) {
+                    com.velorise.staves.element.WallClimbHelper.LowStepTarget lowTarget =
+                            com.velorise.staves.element.WallClimbHelper.findLowStepMantle(player);
+                    if (lowTarget != null) {
+                        net.minecraft.core.Direction lowFace = lowTarget.wallNormalFace();
+                        net.minecraft.core.Direction inward = lowFace.getOpposite();
+                        localSteveWallClimbing = true;
+                        localWallNormalFace = lowFace;
+                        localMantleStartX = player.getX();
+                        localMantleStartY = player.getY();
+                        localMantleStartZ = player.getZ();
+                        localMantleDestX = player.getX() + inward.getStepX() * 0.72D;
+                        localMantleDestY = lowTarget.topSurfaceY();
+                        localMantleDestZ = player.getZ() + inward.getStepZ() * 0.72D;
+                        localMantleElapsedTicks = 0;
+                        localMantleDurationTicks = LOCAL_LOW_MANTLE_DURATION_TICKS;
+                        localMovementState = com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE;
+                        localMoveElapsedTicks = 0;
+                        AuraDisplayData entry = DATA.computeIfAbsent(pid, k -> new AuraDisplayData());
+                        long nowMs = System.currentTimeMillis();
+                        entry.steveWallClimbing = true;
+                        entry.wallNormalFace = lowFace;
+                        entry.steveWallClimbFade = 1.0F;
+                        entry.prevWallClimbFade = 1.0F;
+                        entry.steveWallLowMantle = true;
+                        entry.steveWallMantleDurationMs = localMantleDurationTicks * 50.0F;
+                        entry.steveWallMantleStartMs = nowMs;
+                        entry.steveWallMantleUntilMs = nowMs + (localMantleDurationTicks * 50L) + 120L;
+                        player.fallDistance = 0.0F;
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 29);
+                        return;
+                    }
+                }
                 return;
             }
         }
@@ -502,11 +577,14 @@ public final class ClientMovementTracker {
                 localMantleDestY = ledgeTopY;
                 localMantleDestZ = player.getZ() + inward.getStepZ() * 0.72D;
                 localMantleElapsedTicks = 0;
+                localMantleDurationTicks = LOCAL_MANTLE_DURATION_TICKS;
                 localMovementState = com.velorise.staves.fsm.MovementActionState.LEDGE_MANTLE;
                 localMoveElapsedTicks = 0;
                 long nowMs = System.currentTimeMillis();
+                entry.steveWallLowMantle = false;
+                entry.steveWallMantleDurationMs = localMantleDurationTicks * 50.0F;
                 entry.steveWallMantleStartMs = nowMs;
-                entry.steveWallMantleUntilMs = nowMs + (LOCAL_MANTLE_DURATION_TICKS * 50L);
+                entry.steveWallMantleUntilMs = nowMs + (localMantleDurationTicks * 50L) + 120L;
                 player.fallDistance = 0.0F;
                 return;
             }
@@ -540,7 +618,10 @@ public final class ClientMovementTracker {
                 localMovementState = com.velorise.staves.fsm.MovementActionState.WALL_JUMP;
                 localMoveElapsedTicks = 0;
                 localWallJumpTicks = com.velorise.staves.fsm.MovementActionState.WALL_JUMP_DURATION_TICKS;
-                entry.steveWallJumpUntilMs = System.currentTimeMillis() + 420L;
+                long jumpNowMs = System.currentTimeMillis();
+                entry.steveWallJumpStartMs = jumpNowMs;
+                entry.steveWallJumpUntilMs = jumpNowMs + 420L;
+                entry.steveWallJumpMirror = !entry.steveWallJumpMirror;
                 com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 31);
                 if (customStamina && !creative && localStamina <= 0.01F) {
                     localStamina = 0.0F;

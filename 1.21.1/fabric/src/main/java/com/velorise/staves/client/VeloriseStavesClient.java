@@ -202,7 +202,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
             if (client.player != null && client.screen == null
                     && client.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) {
                 while (client.options.keyAttack.consumeClick()) {
-                    queuedFastAttackClicks[0]++;
+                    // Suppress vanilla block-breaking; raw physical presses are captured by GenshinInputState
                 }
             }
         });
@@ -320,6 +320,7 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 bikeSpinTapCount[0] = 0;
                 bikeDoubleTapWindowTicks[0] = 0;
                 bikeInputBuffer.reset();
+                com.velorise.staves.client.GenshinInputState.reset();
                 queuedFastAttackClicks[0] = 0;
                 raidenAttackHoldTicks[0] = 0;
                 ClientAuraTracker.ventiUltiHoldTicks = 0;
@@ -742,21 +743,20 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (bikeMountWaitRelease[0] && !client.options.keyUse.isDown()) {
                     bikeMountWaitRelease[0] = false;
                 }
-                int attackClicks = queuedFastAttackClicks[0];
+                com.velorise.staves.client.GenshinInputState.sampleTick(client);
                 queuedFastAttackClicks[0] = 0;
                 while (client.options.keyAttack.consumeClick()) {
-                    // Suppress melee swing/block-breaking while riding bike, but count fast taps
-                    attackClicks++;
+                    // Suppress vanilla melee swing/block-breaking while riding bike
                 }
                 while (client.options.keyUse.consumeClick()) {
-                    // Suppress item right-click re-triggers while riding bike
+                    // Suppress vanilla right-click re-triggers while riding bike
                 }
-                if (client.options.keyJump.isDown()) {
+                if (com.velorise.staves.client.GenshinInputState.jump().justPressed()) {
                     bikeInputBuffer.notifyJumpPressed();
                 }
                 com.velorise.staves.fsm.MavuikaInputBuffer.TickDecision bikeDec = bikeInputBuffer.tickAttackInput(
-                        client.options.keyAttack.isDown(),
-                        attackClicks,
+                        com.velorise.staves.client.GenshinInputState.attack().isDown(),
+                        com.velorise.staves.client.GenshinInputState.attack().physicalPresses(),
                         bike.getUltiTicks() > 8,
                         bike.isSpinning(),
                         bike.getActiveNaStep(),
@@ -783,8 +783,8 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (bikeDec.sendNormalAttack) {
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_BIKE_NA);
                 }
-                boolean useHeld = !bikeMountWaitRelease[0] && client.options.keyUse.isDown();
-                boolean sprintDown = client.options.keySprint.isDown() || useHeld;
+                boolean useHeld = !bikeMountWaitRelease[0] && com.velorise.staves.client.GenshinInputState.skill().isDown();
+                boolean sprintDown = com.velorise.staves.client.GenshinInputState.sprint().isDown() || useHeld;
                 boolean dashTriggered = sprintDown && !wasBikeDashDown[0] && !bike.isOnDashCooldown() && bike.getUltiTicks() <= 0;
                 wasBikeDashDown[0] = sprintDown;
                 if (dashTriggered) {

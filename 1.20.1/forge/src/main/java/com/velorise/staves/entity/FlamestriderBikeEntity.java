@@ -60,6 +60,8 @@ public class FlamestriderBikeEntity extends Entity {
             SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_NA_TICKS =
             SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_DISMOUNT_TICKS =
+            SynchedEntityData.defineId(FlamestriderBikeEntity.class, EntityDataSerializers.INT);
 
     private long lastSpinDamageTick = -100L;
     private long lastDashTick = -100L;
@@ -88,11 +90,19 @@ public class FlamestriderBikeEntity extends Entity {
     private int ultiVoiceLine = 0;
     private int ultiVoiceMaxTicks = 30;
     private boolean pendingFinisher = false;
+    private int pendingNaHitStep = 0;
+    private int pendingNaHitAtRemainingTicks = -1;
     private boolean pendingDiscardAfterFinisher = false;
     private int clientGlideTicks = 0;
     private int clientGlideBoostTicks = 0;
     private int clientGlideCharges = 1;
     private boolean clientWasJumping = false;
+    private float clientLastTurnSign = 1.0F;
+    private float idleStopBlend = 0.0F;
+    private float prevIdleStopBlend = 0.0F;
+    private double clientFinisherTargetX = 0.0D;
+    private double clientFinisherTargetZ = 0.0D;
+    private boolean clientFinisherHasTarget = false;
     private boolean clientWasOnGround = false;
     private boolean clientWasSpinning = false;
     private double spinPivotX = 0.0D;
@@ -107,16 +117,16 @@ public class FlamestriderBikeEntity extends Entity {
     private double spinCamIntroStartZ = 0.0D;
     private int clientNaStep = 0;
     private int clientNaTicks = 0;
-    private int clientNaTotalTicks = 14;
+    private int clientNaTotalTicks = 25;
     private int lastSyncedServerNaStep = 0;
     private int lastSyncedServerNaTicks = 0;
     private int clientFinisherYawBlendTicks = 0;
     private static final double FRONT_WHEEL_PIVOT_OFFSET = 0.86D;
     private static final double REAR_WHEEL_OFFSET = 0.82D;
-    private static final double FRONT_WHEEL_INNER_RADIUS = 2.05D;
-    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 2.91m
-    private static final float DONUT_FULL_ROTATION_TICKS = 11.0F; // 0.55s (11.0 ticks at 20 TPS) per 1 full 360° Donut loop
-    private static final float DONUT_DEG_PER_TICK = 360.0F / DONUT_FULL_ROTATION_TICKS; // 32.727 deg/tick
+    private static final double FRONT_WHEEL_INNER_RADIUS = 1.15D;
+    private static final double BIKE_CENTER_SPIN_RADIUS = FRONT_WHEEL_PIVOT_OFFSET + FRONT_WHEEL_INNER_RADIUS; // 2.01m (fits cleanly inside 3P camera)
+    private static final float DONUT_FULL_ROTATION_TICKS = 16.0F; // 0.80s (16.0 ticks at 20 TPS) matching Genshin 0.83s/rev for silky-smooth 20 TPS orbit
+    private static final float DONUT_DEG_PER_TICK = 360.0F / DONUT_FULL_ROTATION_TICKS; // 22.5 deg/tick
     private static final double REAR_WHEEL_OUTER_RADIUS = BIKE_CENTER_SPIN_RADIUS + REAR_WHEEL_OFFSET; // 3.73m (7.46m outer diameter)
     private float spinOrbitAngle = 0.0F;
     private double spinOrbitRadius = 0.0D;
@@ -128,7 +138,6 @@ public class FlamestriderBikeEntity extends Entity {
     private int clientDashCooldownTicks = 0;
     private int clientDashChain = 0;
     private int clientDashWindowTicks = 0;
-    private int clientPostDoubleDashFinisherTicks = 0;
     private int clientJumpCooldownTicks = 0;
     private int clientPlungeRecoveryTicks = 0;
     private boolean clientWasPlunging = false;
@@ -170,6 +179,7 @@ public class FlamestriderBikeEntity extends Entity {
         this.entityData.define(DATA_ULTI_TICKS, 0);
         this.entityData.define(DATA_NA_STEP, 0);
         this.entityData.define(DATA_NA_TICKS, 0);
+        this.entityData.define(DATA_DISMOUNT_TICKS, 0);
     }
 
     public void setOwner(@Nullable Player owner) {
@@ -333,6 +343,36 @@ public class FlamestriderBikeEntity extends Entity {
         return this.entityData.get(DATA_NA_TICKS);
     }
 
+    public int getDismountTicks() {
+        return this.entityData.get(DATA_DISMOUNT_TICKS);
+    }
+
+    public void beginSmoothDismount(@Nullable ServerPlayer sp) {
+        if (this.level().isClientSide() || getDismountTicks() > 0) return;
+        this.spinInputHeld = false;
+        setSpinning(false);
+        this.entityData.set(DATA_NA_STEP, 0);
+        this.entityData.set(DATA_NA_TICKS, 0);
+        this.entityData.set(DATA_DISMOUNT_TICKS, 9);
+        this.noPhysics = true;
+        Vec3 fwd = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize();
+        if (sp != null && sp.isAlive()) {
+            if (sp.getVehicle() == this) {
+                sp.stopRiding();
+            }
+            // Genshin smooth aerial vault dismount: gentle upward hop & forward carry, zero fall snap
+            sp.setDeltaMovement(fwd.x * 0.16D, 0.34D, fwd.z * 0.16D);
+            sp.hurtMarked = true;
+            sp.resetFallDistance();
+            com.velorise.staves.network.ModNetwork.sendStaffAnimation(sp, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_DISMOUNT);
+        }
+        this.setDeltaMovement(fwd.x * 0.18D, 0.0D, fwd.z * 0.18D);
+        if (this.level() instanceof ServerLevel sl) {
+            sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.5D, this.getZ(), 18, 0.45D, 0.28D, 0.45D, 0.06D);
+            sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.55F, 1.35F);
+        }
+    }
+
     public float getSmoothNaTicks(float partialTick) {
         int ticks = getActiveNaTicks();
         if (ticks <= 0) {
@@ -346,7 +386,7 @@ public class FlamestriderBikeEntity extends Entity {
             return 0.0F;
         }
         float naTf = getSmoothNaTicks(partialTick);
-        float total = Math.max(1.0F, (float) (this.clientNaTotalTicks > 0 ? this.clientNaTotalTicks : 14));
+        float total = Math.max(1.0F, (float) (this.clientNaTotalTicks > 0 ? this.clientNaTotalTicks : 27));
         return Mth.clamp(1.0F - (naTf / total), 0.0F, 1.0F);
     }
 
@@ -356,13 +396,21 @@ public class FlamestriderBikeEntity extends Entity {
         }
         this.setSpinning(false);
         this.clientNaStep = 6;
-        this.clientNaTicks = 14;
-        this.clientNaTotalTicks = 14;
-        this.clientFinisherYawBlendTicks = 7;
+        this.clientNaTicks = 27;
+        this.clientNaTotalTicks = 27;
+        this.clientFinisherYawBlendTicks = 10;
+        if (this.spinOrbitRadius > 0.05D) {
+            this.clientFinisherTargetX = this.spinPivotX;
+            this.clientFinisherTargetZ = this.spinPivotZ;
+        } else {
+            this.clientFinisherTargetX = this.getX();
+            this.clientFinisherTargetZ = this.getZ();
+        }
+        this.clientFinisherHasTarget = true;
     }
 
     public void cancelClientFinisherToSpin() {
-        if (this.clientNaStep == 6 && this.clientNaTicks >= 9) {
+        if (this.clientNaStep == 6 && this.clientNaTicks <= 10) {
             this.clientNaStep = 0;
             this.clientNaTicks = 0;
             this.clientFinisherYawBlendTicks = 0;
@@ -372,8 +420,10 @@ public class FlamestriderBikeEntity extends Entity {
     public boolean shouldOverrideFirstPersonCamera() {
         return this.getUltiTicks() > 0
                 || this.isSpinning()
+                || this.clientDashTicks > 0
                 || this.clientFinisherYawBlendTicks > 0
-                || (getActiveNaStep() == 6 && getActiveNaTicks() > 0);
+                || (getActiveNaStep() == 6 && getActiveNaTicks() > 0)
+                || com.velorise.staves.fsm.BikePoseBlender.hasActivePose(this.getId());
     }
 
     public float getFirstPersonCameraYaw(float partialTick, float playerCameraYaw) {
@@ -442,20 +492,106 @@ public class FlamestriderBikeEntity extends Entity {
                 return rec * 8.0F;
             }
         }
-        if (this.isSpinning() || getActiveNaStep() != 6 || getActiveNaTicks() <= 0) {
+        if (this.isSpinning()) {
+            return 0.0F;
+        }
+        if (getActiveNaStep() != 6 || getActiveNaTicks() <= 0) {
+            if (this.clientDashTicks > 0 || com.velorise.staves.fsm.BikePoseBlender.hasActivePose(this.getId())) {
+                com.velorise.staves.fsm.BikePoseBlender.BikePoseSnapshot pSnap =
+                        com.velorise.staves.fsm.BikePoseBlender.getCurrentPose(this.getId());
+                if (pSnap != null && pSnap.pitchDeg < -0.5F) {
+                    // Sync 1st-person camera nose-up tilt smoothly with 3rd-person Dash wheelie
+                    return Mth.clamp(pSnap.pitchDeg * 0.55F, -12.0F, 0.0F);
+                }
+            }
             return 0.0F;
         }
         float p = getFinisherProgress(partialTick);
-        if (p < 0.36F) {
-            float e = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
-            return -8.5F * e;
-        } else if (p < 0.72F) {
-            float e = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
-            return Mth.lerp(e, -8.5F, 9.5F);
+        if (p < 0.11F) {
+            float u = p / 0.11F;
+            return Mth.sin(u * (float) Math.PI) * 1.2F;
+        } else if (p < 0.37F) {
+            // Phase 1: rider vaults high above bike
+            float u = (p - 0.11F) / 0.26F;
+            float e = 1.0F - (1.0F - u) * (1.0F - u);
+            return Mth.lerp(e, 0.0F, -11.0F);
+        } else if (p < 0.52F) {
+            // Phase 2: plunge slam onto hitmark (p = 0.52)
+            float u = (p - 0.37F) / 0.15F;
+            float e = u * u;
+            return Mth.lerp(e, -11.0F, 10.5F);
+        } else if (p < 0.62F) {
+            // Phase 3a: pop into wheelie nose-up
+            float u = (p - 0.52F) / 0.10F;
+            float e = 1.0F - (1.0F - u) * (1.0F - u);
+            return Mth.lerp(e, 10.5F, -9.0F);
+        } else if (p < 0.84F) {
+            float u = (p - 0.62F) / 0.22F;
+            return Mth.lerp(u, -9.0F, -7.2F);
         } else {
-            float e = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
-            return Mth.lerp(e, 9.5F, 0.0F);
+            float u = Mth.clamp((p - 0.84F) / 0.16F, 0.0F, 1.0F);
+            float e = u * u * (3.0F - 2.0F * u);
+            return Mth.lerp(e, -7.2F, 0.0F);
         }
+    }
+
+    /**
+     * Vertical 1st-person camera offset for non-physics visual bike arcs:
+     * - NA5 front-flip slam (+0.88m leap -> u^2.4 drop -> -0.08m squash)
+     * - Finisher landing suspension squash (-0.08m at p = 0.48..0.58, layered on top of real +1.40m physics leap)
+     */
+    public float getFirstPersonActionCameraOffsetY(float partialTick) {
+        if (this.isSpinning() || this.getUltiTicks() > 0) {
+            return 0.0F;
+        }
+        int step = getActiveNaStep();
+        int naT = getActiveNaTicks();
+        if (naT <= 0) {
+            if (this.clientDashTicks > 0 || com.velorise.staves.fsm.BikePoseBlender.hasActivePose(this.getId())) {
+                com.velorise.staves.fsm.BikePoseBlender.BikePoseSnapshot pSnap =
+                        com.velorise.staves.fsm.BikePoseBlender.getCurrentPose(this.getId());
+                if (pSnap != null && Math.abs(pSnap.offsetY) > 0.002F) {
+                    return pSnap.offsetY;
+                }
+            }
+            return 0.0F;
+        }
+        if (step == 8) {
+            float p = Mth.clamp(1.0F - (getSmoothNaTicks(partialTick) / 10.0F), 0.0F, 1.0F);
+            if (p < 0.65F) {
+                return Mth.sin((p / 0.65F) * (float) Math.PI) * 0.24F;
+            }
+            return 0.0F;
+        }
+        if (step == 6) {
+            float p = getFinisherProgress(partialTick);
+            if (p >= 0.11F && p < 0.37F) {
+                float u = (p - 0.11F) / 0.26F;
+                return (1.0F - (1.0F - u) * (1.0F - u)) * 1.15F;
+            } else if (p >= 0.37F && p < 0.52F) {
+                float u = (p - 0.37F) / 0.15F;
+                return (1.0F - (float) Math.pow(u, 2.3D)) * 1.15F;
+            } else if (p >= 0.52F && p < 0.60F) {
+                float u = (p - 0.52F) / 0.08F;
+                return -Mth.sin(u * (float) Math.PI) * 0.10F;
+            }
+            return 0.0F;
+        }
+        if (step == 5) {
+            float naTf = getSmoothNaTicks(partialTick);
+            float p = Mth.clamp(1.0F - (naTf / 23.0F), 0.0F, 1.0F);
+            if (p < 0.32F) {
+                float u = p / 0.32F;
+                return (1.0F - (1.0F - u) * (1.0F - u)) * 1.45F;
+            } else if (p < 0.52F) {
+                float u = (p - 0.32F) / 0.20F;
+                return (1.0F - (float) Math.pow(u, 2.5D)) * 1.45F;
+            } else if (p < 0.62F) {
+                float u = (p - 0.52F) / 0.10F;
+                return -Mth.sin(u * (float) Math.PI) * 0.14F;
+            }
+        }
+        return 0.0F;
     }
 
     public Vec3 getFirstPersonUltiCameraOffset(float partialTick) {
@@ -512,6 +648,8 @@ public class FlamestriderBikeEntity extends Entity {
         this.spinReleaseGraceTicks = 0;
         setSpinning(false);
         this.pendingFinisher = false;
+        this.pendingNaHitStep = 0;
+        this.pendingNaHitAtRemainingTicks = -1;
         this.pendingDiscardAfterFinisher = false;
         this.pendingMountWhipDamage = false;
         this.plungeRecoveryUntil = 0L;
@@ -534,9 +672,9 @@ public class FlamestriderBikeEntity extends Entity {
     }
 
     public void triggerUltiAnimation() {
-        this.ultiVoiceMaxTicks = 22;
+        this.ultiVoiceMaxTicks = 30;
         this.ultiVoiceLine = this.random.nextInt(20) == 0 ? 3 : this.random.nextInt(3);
-        this.entityData.set(DATA_ULTI_TICKS, 22);
+        this.entityData.set(DATA_ULTI_TICKS, 30);
     }
 
     @Override
@@ -667,6 +805,19 @@ public class FlamestriderBikeEntity extends Entity {
 
     private void tickServer() {
         if (!(this.level() instanceof ServerLevel sl)) return;
+        int dismountT = getDismountTicks();
+        if (dismountT > 0) {
+            Vec3 vel = this.getDeltaMovement();
+            this.setPos(this.getX() + vel.x, this.getY(), this.getZ() + vel.z);
+            this.setDeltaMovement(vel.x * 0.82D, 0.0D, vel.z * 0.82D);
+            sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.45D, this.getZ(), 7, 0.55D, 0.25D, 0.55D, 0.04D);
+            int nextDismount = dismountT - 1;
+            this.entityData.set(DATA_DISMOUNT_TICKS, nextDismount);
+            if (nextDismount <= 0) {
+                this.discard();
+            }
+            return;
+        }
         long now = sl.getServer().overworld().getGameTime();
         UUID ownerId = getOwnerUUID();
         Entity passenger = this.getFirstPassenger();
@@ -679,7 +830,12 @@ public class FlamestriderBikeEntity extends Entity {
             }
         }
         if (this.tickCount > 5 && (!(passenger instanceof ServerPlayer sp) || (ownerId != null && !ownerId.equals(sp.getUUID())))) {
-            this.discard();
+            ServerPlayer ownerSp = ownerId != null ? sl.getServer().getPlayerList().getPlayer(ownerId) : null;
+            if (ownerSp != null && ownerSp.isAlive() && ownerSp.level() == sl && ownerSp.distanceToSqr(this) < 16.0D) {
+                beginSmoothDismount(ownerSp);
+            } else {
+                this.discard();
+            }
             return;
         }
         if (passenger instanceof ServerPlayer sp) {
@@ -695,11 +851,7 @@ public class FlamestriderBikeEntity extends Entity {
             boolean holdingMavuika = ArcaneStaffItem.getEffectiveKind(sp.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS
                     || ArcaneStaffItem.getEffectiveKind(sp.getOffhandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS;
             if (!holdingMavuika && this.getUltiTicks() <= 0) {
-                this.spinInputHeld = false;
-                setSpinning(false);
-                sp.stopRiding();
-                sl.playSound(null, sp.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.7F, 1.2F);
-                this.discard();
+                beginSmoothDismount(sp);
                 return;
             }
             if (ElementalGaugeManager.isMavuikaAuraActive(sp.getUUID(), now)) {
@@ -709,7 +861,7 @@ public class FlamestriderBikeEntity extends Entity {
                     this.spinInputHeld = false;
                     setSpinning(false);
                     this.entityData.set(DATA_NA_STEP, 6);
-                    this.entityData.set(DATA_NA_TICKS, 14);
+                    this.entityData.set(DATA_NA_TICKS, 27);
                     this.pendingFinisher = true;
                     this.pendingDiscardAfterFinisher = true;
                     sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.45F);
@@ -721,8 +873,7 @@ public class FlamestriderBikeEntity extends Entity {
                     setBikeSprinting(false);
                     this.pendingDiscardAfterFinisher = true;
                 } else {
-                    sp.stopRiding();
-                    this.discard();
+                    beginSmoothDismount(sp);
                     return;
                 }
             }
@@ -766,7 +917,7 @@ public class FlamestriderBikeEntity extends Entity {
                         setSpinning(false);
                         this.serverSpinAngle = 0.0F;
                         this.entityData.set(DATA_NA_STEP, 6);
-                        this.entityData.set(DATA_NA_TICKS, 14);
+                        this.entityData.set(DATA_NA_TICKS, 27);
                         this.pendingFinisher = true;
                         sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.65F, 1.40F);
                         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.75F, 1.20F);
@@ -786,21 +937,22 @@ public class FlamestriderBikeEntity extends Entity {
                     double tailX = this.getX() + Math.sin(whipRad) * 1.35D;
                     double tailZ = this.getZ() - Math.cos(whipRad) * 1.35D;
                     sl.sendParticles(ParticleTypes.FLAME, tailX, this.getY() + 0.18D, tailZ, 4, 0.14D, 0.05D, 0.14D, 0.02D);
-                    sl.sendParticles(ParticleTypes.LARGE_SMOKE, tailX, this.getY() + 0.10D, tailZ, 2, 0.10D, 0.03D, 0.10D, 0.01D);
+                    sl.sendParticles(ParticleTypes.FLAME, tailX, this.getY() + 0.12D, tailZ, 1, 0.06D, 0.02D, 0.06D, 0.01D);
                     if (nextNa == 5) {
                         executeMountWhipImpact(sl, sp);
                     }
-                } else if (pendingFinisher && curStep == 6 && nextNa == 6) {
+                } else if (pendingNaHitStep >= 1 && pendingNaHitStep <= 5 && curStep == pendingNaHitStep && nextNa == pendingNaHitAtRemainingTicks) {
+                    int hitStep = pendingNaHitStep;
+                    pendingNaHitStep = 0;
+                    pendingNaHitAtRemainingTicks = -1;
+                    executeNormalAttackHitmark(sl, sp, hitStep);
+                } else if (pendingFinisher && curStep == 6 && nextNa == 20) {
+                    // Crisp golden-fire star burst at rider aerial vault apex (zero giant white FLASH billboard!)
+                    sl.sendParticles(ParticleTypes.CRIT, this.getX(), this.getY() + 2.35D, this.getZ(), 10, 0.22D, 0.22D, 0.22D, 0.14D);
+                    sl.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 2.20D, this.getZ(), 8, 0.24D, 0.18D, 0.24D, 0.06D);
+                } else if (pendingFinisher && curStep == 6 && nextNa == 14) {
                     pendingFinisher = false;
                     executeChargedFinisher(sl, sp);
-                } else if (!pendingFinisher && !pendingDiscardAfterFinisher && curStep == 6 && nextNa <= 5 && spinInputHeld && serverDashTicks <= 0) {
-                    // Genshin Finisher Cancel ("F -> C" / "F CDCD("): transition immediately out of Finisher recovery into Donut Spin
-                    this.entityData.set(DATA_NA_STEP, 0);
-                    this.entityData.set(DATA_NA_TICKS, 0);
-                    if (now - this.lastSpinStartHitResetTick >= 4L) {
-                        this.lastSpinStartHitResetTick = now;
-                        this.spinHitCooldowns.clear();
-                    }
                 }
             }
 
@@ -829,7 +981,7 @@ public class FlamestriderBikeEntity extends Entity {
 
             // Hold left-click while riding -> Donut Spin Charged Attack (sweeps 360° around pivot)
             // Keep spinning smoothly during spinReleaseGraceTicks so re-holding Left-Click ("(" tech) never stutters or triggers Finisher early.
-            boolean inCommittedFinisher = getNaStep() == 6 && getNaTicks() > 0 && (pendingFinisher || getNaTicks() > 5 || pendingDiscardAfterFinisher);
+            boolean inCommittedFinisher = getNaStep() == 6 && getNaTicks() > 0;
             boolean holdingSuns = (spinInputHeld || spinReleaseGraceTicks > 0)
                     && serverDashTicks <= 0 && !inCommittedFinisher && !isPlunging() && getUltiTicks() <= 8;
             setSpinning(holdingSuns);
@@ -839,11 +991,6 @@ public class FlamestriderBikeEntity extends Entity {
                 serverContinuousSpinTicks++;
                 serverSpinAngle = (serverSpinAngle + DONUT_DEG_PER_TICK) % 360.0F;
                 performDonutSweepHit(sl, sp, now);
-                // Genshin "CC" No-Finisher Combo Mechanic: spinning for 1 full 0.42s rotation (~8.4 ticks or 2 C hits) resets the 2-dash cooldown
-                if (serverContinuousSpinTicks >= 8 || serverSpinHitsSinceDash >= 2) {
-                    this.serverDashCooldownUntil = -100L;
-                    this.serverDashChain = 0;
-                }
             } else {
                 serverContinuousSpinTicks = 0;
                 serverSpinAngle = 0.0F;
@@ -897,7 +1044,7 @@ public class FlamestriderBikeEntity extends Entity {
             double dTail = target.position().add(0.0D, target.getBbHeight() * 0.4D, 0.0D).distanceToSqr(tailPoint);
             if (dMid > 10.24D && dTail > 10.24D) continue; // 3.2m Donut Charged Attack Cyclic AoE radius
             long lastHit = spinHitCooldowns.getOrDefault(target.getId(), -100L);
-            if (now - lastHit < 8L) continue; // Hit at start (0t) and end (~8.4t = 0.42s) of 1 full rotation ("CC")
+            if (now - lastHit < 11L) continue; // 1 hit per full 360-deg rotation (11 ticks = 0.55s)
             spinHitCooldowns.put(target.getId(), now);
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             sl.sendParticles(ParticleTypes.FLAME,
@@ -907,10 +1054,6 @@ public class FlamestriderBikeEntity extends Entity {
         }
         if (anyHit) {
             serverSpinHitsSinceDash++;
-            if (serverSpinHitsSinceDash >= 2) {
-                this.serverDashCooldownUntil = -100L;
-                this.serverDashChain = 0;
-            }
             sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.55F, 1.25F);
         }
         // Concentric Donut flame tire trails: inner ring (front wheel) + outer ring (rear wheel)
@@ -994,6 +1137,17 @@ public class FlamestriderBikeEntity extends Entity {
         }
     }
 
+    public void triggerMountCatch() {
+        this.entityData.set(DATA_NA_STEP, 8);
+        this.entityData.set(DATA_NA_TICKS, 10);
+        this.pendingMountWhipDamage = false;
+        if (this.level() instanceof ServerLevel sl) {
+            Vec3 back = Vec3.directionFromRotation(0.0F, this.getYRot()).normalize().scale(-1.6D);
+            sl.sendParticles(ParticleTypes.FLAME, this.getX() + back.x, this.getY() + 0.5D, this.getZ() + back.z, 18, 0.45D, 0.25D, 0.45D, 0.07D);
+            sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.65F, 1.25F);
+        }
+    }
+
     private void executeMountWhipImpact(ServerLevel sl, ServerPlayer sp) {
         spawnFierySweep(sl, this.position().add(0.0D, 0.45D, 0.0D), sp.getYRot(), 3.2D, false);
         Vec3 fwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
@@ -1034,7 +1188,7 @@ public class FlamestriderBikeEntity extends Entity {
     public void performNormalAttack(ServerPlayer sp) {
         if (!(this.level() instanceof ServerLevel sl)) return;
         if (getUltiTicks() > 8 || isPlunging() || this.pendingDiscardAfterFinisher) return;
-        if (this.pendingFinisher && getNaStep() == 6 && getNaTicks() > 6 && getNaTicks() <= 8) return;
+        if (getNaStep() == 6 && getNaTicks() > 0) return;
         this.pendingFinisher = false;
         this.spinReleaseGraceTicks = 0;
         if (sl.getServer().overworld().getGameTime() < plungeRecoveryUntil) return;
@@ -1054,13 +1208,19 @@ public class FlamestriderBikeEntity extends Entity {
             return;
         }
         long now = sl.getServer().overworld().getGameTime();
-        long requiredCd = (naComboStep == 5) ? 12L : 7L; // 0.35s between hits, 0.60s recovery after strong 5th hit
+        com.velorise.staves.fsm.BikeActionState prevNaState = com.velorise.staves.fsm.BikeActionState.fromNaStep(Math.max(1, naComboStep));
+        long requiredCd = com.velorise.staves.fsm.BikeFrameData.get(prevNaState).naCancelTick();
         if (now - lastNaTick < requiredCd) return;
         naComboStep = (now - lastNaTick > 32L || naComboStep >= 5) ? 1 : naComboStep + 1;
         lastNaTick = now;
         ElementalGaugeManager.consumeMavuikaNightsoulFuel(sp, 1.0F);
+        com.velorise.staves.fsm.BikeFrameData.FrameSpec naSpec =
+                com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.fromNaStep(naComboStep));
+        int dur = naSpec.durationTicks();
         this.entityData.set(DATA_NA_STEP, naComboStep);
-        this.entityData.set(DATA_NA_TICKS, naComboStep == 5 ? 14 : 10);
+        this.entityData.set(DATA_NA_TICKS, dur);
+        this.pendingNaHitStep = naComboStep;
+        this.pendingNaHitAtRemainingTicks = Math.max(0, dur - naSpec.hitmarkTick());
         net.minecraft.world.InteractionHand swingHand =
                 (ArcaneStaffItem.getEffectiveKind(sp.getMainHandItem()) == ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS)
                         ? net.minecraft.world.InteractionHand.MAIN_HAND
@@ -1068,38 +1228,8 @@ public class FlamestriderBikeEntity extends Entity {
                                 ? net.minecraft.world.InteractionHand.OFF_HAND
                                 : net.minecraft.world.InteractionHand.MAIN_HAND);
         sp.swing(swingHand, true);
-
-        boolean neth = isNetherite();
-        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth);
-        float mult = switch (naComboStep) {
-            case 2 -> 1.05F;
-            case 3 -> 1.15F;
-            case 4 -> 1.30F;
-            case 5 -> 1.65F;
-            default -> 0.95F;
-        };
-        float dmg = baseDmg * (mult + ElementalGaugeManager.getMavuikaCrucibleNaBonusMultiplier(sp));
-        float units = naComboStep == 5 ? (neth ? 1.5F : 1.0F) : 1.0F;
-        double range = naComboStep == 5 ? 4.4D : (naComboStep >= 3 ? 3.8D : 3.5D);
-
         Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
         Vec3 origin = this.position().add(0.0D, 0.5D, 0.0D);
-        AABB box = this.getBoundingBox().inflate(range, 1.8D, range);
-        List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
-                e -> isValidBikeCombatTarget(sp, e));
-        boolean anyHit = false;
-        for (LivingEntity target : targets) {
-            Vec3 toTarget = target.position().subtract(origin);
-            double distSqr = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
-            if (distSqr > range * range) continue;
-            Vec3 horiz = new Vec3(toTarget.x, 0.0D, toTarget.z);
-            if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < -0.15D) continue;
-            ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
-            anyHit = true;
-        }
-        if (anyHit) {
-            ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
-        }
 
         Vec3 horizFwd = new Vec3(forward.x, 0.0D, forward.z);
         if (horizFwd.lengthSqr() < 1.0E-4D) {
@@ -1175,17 +1305,8 @@ public class FlamestriderBikeEntity extends Entity {
         }
         long now = (this.level() instanceof ServerLevel sl) ? sl.getServer().overworld().getGameTime() : this.tickCount;
         if (held) {
-            // If Finisher is in its committed downward slam frames (naStep == 6, pendingFinisher == true, naTicks <= 8),
-            // buffer spinInputHeld = true so Donut Spin starts right after impact (naTicks <= 5).
-            boolean committedFinisherSlam = this.pendingFinisher && getNaStep() == 6 && getNaTicks() > 0 && getNaTicks() <= 8;
-            if (!committedFinisherSlam) {
-                // Cancel any uncommitted Finisher windup (naTicks >= 9) or post-Finisher recovery (pendingFinisher == false)
-                if (getNaStep() == 6) {
-                    this.pendingFinisher = false;
-                    this.entityData.set(DATA_NA_STEP, 0);
-                    this.entityData.set(DATA_NA_TICKS, 0);
-                }
-            }
+            // Once in CA_SPIN_FINISHER (naStep == 6), LMB CANNOT cancel Finisher (only Dash or Burst can cancel it).
+            boolean committedFinisherSlam = (getNaStep() == 6 && getNaTicks() > 0);
             this.spinReleaseGraceTicks = 0;
             this.spinInputHeld = true;
             // Genshin Re-Hold / Continuous CA ("(" / CCD tech):
@@ -1194,6 +1315,10 @@ public class FlamestriderBikeEntity extends Entity {
             if (now - this.lastSpinStartHitResetTick >= 4L) {
                 this.lastSpinStartHitResetTick = now;
                 this.spinHitCooldowns.clear();
+            }
+            // Allow dC charge-cancel at Dash hitmark (tick 2 -> serverDashTicks <= 1) without swallowing hit C
+            if (this.serverDashTicks > 0 && this.serverDashTicks <= 1) {
+                this.serverDashTicks = 0;
             }
             if (this.serverDashTicks <= 0 && !committedFinisherSlam && !isPlunging() && getUltiTicks() <= 8) {
                 setSpinning(true);
@@ -1204,21 +1329,21 @@ public class FlamestriderBikeEntity extends Entity {
         } else {
             boolean wasSpinningOrGrace = this.spinInputHeld || this.spinReleaseGraceTicks > 0 || isSpinning();
             this.spinInputHeld = false;
-            if (this.serverDashTicks > 0) {
-                // Released Left-Click during a Dash Cancel ("CD"): end spin cleanly without forcing a Finisher jump
+            if (this.serverDashTicks > 0 || (!this.onGround() && !this.isInWater())) {
+                // Released Left-Click during Dash Cancel ("CD") or Jump Cancel: end spin cleanly without Finisher
                 this.spinReleaseGraceTicks = 0;
                 this.serverSpinAngle = 0.0F;
                 setSpinning(false);
                 return;
             }
             if (wasSpinningOrGrace && !this.isFinisherPlaying()) {
-                // Launch Finisher ("F") immediately with zero release delay; early windup ticks (14..9) remain
+                // Launch Finisher ("F") immediately with zero release delay; early windup ticks (25..19) remain
                 // seamlessly re-hold cancelable back into Donut Spin if player presses Left-Click again ("(" tech).
                 this.spinReleaseGraceTicks = 0;
                 setSpinning(false);
                 this.serverSpinAngle = 0.0F;
                 this.entityData.set(DATA_NA_STEP, 6);
-                this.entityData.set(DATA_NA_TICKS, 14);
+                this.entityData.set(DATA_NA_TICKS, 27);
                 this.pendingFinisher = true;
                 if (this.level() instanceof ServerLevel sl) {
                     sl.playSound(null, this.blockPosition(), SoundEvents.BLAZE_SHOOT, SoundSource.PLAYERS, 0.65F, 1.40F);
@@ -1235,10 +1360,42 @@ public class FlamestriderBikeEntity extends Entity {
     /**
      * Charged Attack Finisher Slam: rider & bike leap up together and slam a fiery sword sweep forward (no explosion).
      */
+    private void executeNormalAttackHitmark(ServerLevel sl, ServerPlayer sp, int step) {
+        boolean neth = isNetherite();
+        float baseDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth);
+        float mult = switch (step) {
+            case 2 -> 1.05F;
+            case 3 -> 1.15F;
+            case 4 -> 1.30F;
+            case 5 -> 1.65F;
+            default -> 0.95F;
+        };
+        float dmg = baseDmg * (mult + ElementalGaugeManager.getMavuikaCrucibleNaBonusMultiplier(sp));
+        float units = step == 5 ? (neth ? 1.5F : 1.0F) : 1.0F;
+        double range = step == 5 ? 4.4D : (step >= 3 ? 3.8D : 3.5D);
+
+        Vec3 forward = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
+        Vec3 origin = this.position().add(0.0D, 0.5D, 0.0D);
+        AABB box = this.getBoundingBox().inflate(range, 1.8D, range);
+        List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
+                e -> isValidBikeCombatTarget(sp, e));
+        boolean anyHit = false;
+        for (LivingEntity target : targets) {
+            Vec3 toTarget = target.position().subtract(origin);
+            double distSqr = toTarget.x * toTarget.x + toTarget.z * toTarget.z;
+            if (distSqr > range * range) continue;
+            Vec3 horiz = new Vec3(toTarget.x, 0.0D, toTarget.z);
+            if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < -0.15D) continue;
+            ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
+            anyHit = true;
+        }
+        if (anyHit) {
+            ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
+        }
+    }
+
     private void executeChargedFinisher(ServerLevel sl, ServerPlayer sp) {
-        // Completing a Charged Attack Final ("F") refreshes the 2-dash chain cooldown and Donut hit ICD for the next CD CD( F loop
-        this.serverDashCooldownUntil = -100L;
-        this.serverDashChain = 0;
+        // Completing a Charged Attack Final ("F") clears Donut hit ICD (Dash cooldown is never bypassed)
         this.spinHitCooldowns.clear();
 
         boolean neth = isNetherite();
@@ -1270,14 +1427,20 @@ public class FlamestriderBikeEntity extends Entity {
         Vec3 finFwd = Vec3.directionFromRotation(0.0F, sp.getYRot()).normalize();
         boolean isLeftFin = sp.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
         Vec3 finRight = new Vec3(-finFwd.z, 0.0D, finFwd.x).normalize().scale(isLeftFin ? -1.0D : 1.0D);
-        Vec3 arcMid = this.position().add(0.0D, 1.05D, 0.0D).add(finFwd.scale(2.35D));
+        Vec3 arcMid = this.position().add(0.0D, 0.55D, 0.0D).add(finFwd.scale(1.55D));
         com.velorise.staves.network.ModNetwork.sendElectricArc(
                 sl,
-                arcMid.add(finRight.scale(-2.45D)).add(0.0D, -0.08D, 0.0D),
-                arcMid.add(finRight.scale(2.45D)).add(0.0D, 0.18D, 0.0D),
-                10,
+                arcMid.add(finRight.scale(-5.10D)).add(0.0D, -0.08D, 0.0D),
+                arcMid.add(finRight.scale(5.10D)).add(0.0D, 0.18D, 0.0D),
+                13,
                 isLeftFin ? 0xFFFF7A19 : 0xFFFF7A18);
-        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 18, 0.85D, 0.20D, 0.85D, 0.06D);
+        sl.sendParticles(ParticleTypes.CRIT, arcMid.x, arcMid.y + 0.25D, arcMid.z, 14, 0.65D, 0.22D, 0.65D, 0.16D);
+        sl.sendParticles(ParticleTypes.FLAME, hitCenter.x, hitCenter.y, hitCenter.z, 14, 1.15D, 0.18D, 1.15D, 0.06D);
+        for (int a = 0; a < 360; a += 30) {
+            Vec3 rDir = Vec3.directionFromRotation(0.0F, sp.getYRot() + a);
+            Vec3 rPos = hitCenter.add(rDir.scale(3.9D));
+            sl.sendParticles(ParticleTypes.FLAME, rPos.x, this.getY() + 0.15D, rPos.z, 1, 0.05D, 0.03D, 0.05D, 0.015D);
+        }
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 1.0F, 0.85F);
         sl.playSound(null, this.blockPosition(), SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.90F);
         sl.playSound(null, this.blockPosition(), SoundEvents.FIRECHARGE_USE, SoundSource.PLAYERS, 0.95F, 1.05F);
@@ -1299,12 +1462,12 @@ public class FlamestriderBikeEntity extends Entity {
                 || (getNaStep() == 6 && getNaTicks() > 0);
         serverDashChain++;
         lastDashTick = now;
-        int dashCd = (serverDashChain >= 2) ? 30 : 5; // 2 consecutive dashes (5t gap), then 1.5s (30t) cooldown unless reset by CC spin
+        int dashCd = (serverDashChain >= 2) ? 24 : 2; // 2-charge Dash: 2t gap for CDCDC, 24t (1.2s) recovery after 2nd dash
         if (serverDashChain >= 2) {
             serverDashChain = 0;
         }
         serverDashCooldownUntil = now + dashCd;
-        serverDashTicks = combatCancel ? 3 : 5;
+        serverDashTicks = combatCancel ? 2 : 5;
         serverDashIframeTicks = 10;
         sp.invulnerableTime = Math.max(sp.invulnerableTime, 10);
         this.invulnerableTime = Math.max(this.invulnerableTime, 10);
@@ -1362,22 +1525,19 @@ public class FlamestriderBikeEntity extends Entity {
                 || (getNaStep() == 6 && getNaTicks() > 0)
                 || (this.level().isClientSide() && ClientInputAccess.isAttackDown());
         clientDashChain++;
-        clientDashTicks = combatCancel ? 3 : 5;
+        clientDashTicks = combatCancel ? 2 : 5;
         if (clientDashChain >= 2) {
             clientDashChain = 0;
             clientDashWindowTicks = 0;
-            clientDashCooldownTicks = 30; // 1.5s Genshin-accurate cooldown after 2nd consecutive dash
-            if (combatCancel) {
-                clientPostDoubleDashFinisherTicks = 11; // 3t dash + 8t NAx2 buffer window before auto-Finisher
-            }
+            clientDashCooldownTicks = 24; // 1.2s recovery after 2nd consecutive dash (synced 1:1 with server & CC spin)
         } else {
             clientDashWindowTicks = 28;
-            clientDashCooldownTicks = 5; // Quick 2nd dash follow-up for CCD CD F
-            clientPostDoubleDashFinisherTicks = 0;
+            clientDashCooldownTicks = 2; // 2t gap matching Dash hitmark so CDCDC never swallows 2nd dash
         }
         this.clientSpinOrbitGraceTicks = 0;
         this.clientNaStep = 0;
         this.clientNaTicks = 0;
+        this.clientFinisherHasTarget = false;
         this.clientFinisherYawBlendTicks = combatCancel ? 7 : 0;
         this.spinCamIntroStartX = 0.0D;
         this.spinCamIntroStartZ = 0.0D;
@@ -1418,7 +1578,18 @@ public class FlamestriderBikeEntity extends Entity {
         } else {
             float yawDelta = Mth.wrapDegrees(this.getYRot() - this.yRotO);
             float strafeInput = (this.getControllingPassenger() instanceof Player rider) ? rider.xxa : 0.0F;
-            targetSteeringAngle = Mth.clamp(yawDelta * 0.045F - strafeInput * 0.30F, -0.42F, 0.42F);
+            if (this.idleStopBlend < 0.15F) {
+                if (Math.abs(strafeInput) > 0.05F) {
+                    this.clientLastTurnSign = strafeInput < 0.0F ? 1.0F : -1.0F;
+                } else if (Math.abs(yawDelta) > 1.2F) {
+                    this.clientLastTurnSign = Math.signum(yawDelta);
+                }
+            }
+            if (this.idleStopBlend > 0.05F) {
+                targetSteeringAngle = this.clientLastTurnSign * 0.14F * this.idleStopBlend;
+            } else {
+                targetSteeringAngle = Mth.clamp(yawDelta * 0.045F - strafeInput * 0.30F, -0.42F, 0.42F);
+            }
         }
         this.steeringAngle = Mth.lerp(0.32F, this.steeringAngle, targetSteeringAngle);
         if (Math.abs(this.steeringAngle) < 0.004F) {
@@ -1426,8 +1597,17 @@ public class FlamestriderBikeEntity extends Entity {
         }
     }
 
+    public float getIdleStopBlend(float partialTick) {
+        return Mth.lerp(partialTick, this.prevIdleStopBlend, this.idleStopBlend);
+    }
+
+    public float getIdleStopSide() {
+        return this.clientLastTurnSign >= 0.0F ? 1.0F : -1.0F;
+    }
+
     private void tickClientVisuals() {
         this.prevSpinLean = this.spinLean;
+        this.prevIdleStopBlend = this.idleStopBlend;
         this.prevWallClimbPitch = this.wallClimbPitch;
         float targetClimbPitch = this.clientWallClimbing ? -74.0F : 0.0F;
         this.wallClimbPitch = Mth.lerp(this.clientWallClimbing ? 0.38F : 0.28F, this.wallClimbPitch, targetClimbPitch);
@@ -1440,22 +1620,27 @@ public class FlamestriderBikeEntity extends Entity {
         int srvStep = this.entityData.get(DATA_NA_STEP);
         int srvTicks = this.entityData.get(DATA_NA_TICKS);
         if (isSpinning()) {
+            this.idleStopBlend = 0.0F;
             this.clientNaStep = 0;
             this.clientNaTicks = 0;
             this.clientFinisherYawBlendTicks = 0;
             this.spinYawOffset = (this.spinYawOffset + 24.0F) % 360.0F;
             float leanLerp = this.clientContinuousSpinTicks <= 1 ? 0.20F
                     : (this.clientContinuousSpinTicks == 2 ? 0.30F : 0.42F);
-            this.spinLean = Mth.lerp(leanLerp, this.spinLean, 24.0F);
+            this.spinLean = Mth.lerp(leanLerp, this.spinLean, 30.0F);
         } else {
             if (srvStep > 0 && srvTicks > 0) {
-                boolean newServerCombo = this.clientNaStep != srvStep
+                boolean staleFinisherTail = srvStep == 6
+                        && this.lastSyncedServerNaStep == 6
+                        && srvTicks <= this.lastSyncedServerNaTicks
+                        && this.clientNaTicks <= 0;
+                boolean newServerCombo = !staleFinisherTail && (this.clientNaStep != srvStep
                         || this.clientNaTicks <= 0
-                        || (srvStep != 6 && srvTicks > this.lastSyncedServerNaTicks + 1);
+                        || (srvStep != 6 && srvTicks > this.lastSyncedServerNaTicks + 1));
                 if (newServerCombo) {
                     this.clientNaStep = srvStep;
                     this.clientNaTicks = srvTicks;
-                    this.clientNaTotalTicks = (srvStep == 6 || srvStep == 5) ? 14 : 10;
+                    this.clientNaTotalTicks = com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.fromNaStep(srvStep)).durationTicks();
                     if (srvStep == 6) {
                         this.clientFinisherYawBlendTicks = Math.max(this.clientFinisherYawBlendTicks, 7);
                     }
@@ -1469,8 +1654,26 @@ public class FlamestriderBikeEntity extends Entity {
                 }
             }
             this.spinYawOffset = 0.0F;
-            this.spinLean = Mth.lerp(0.32F, this.spinLean, 0.0F);
-            if (Math.abs(this.spinLean) < 0.05F) {
+            boolean hasRider = this.getControllingPassenger() != null;
+            boolean solidBelow = !this.level().noCollision(this, this.getBoundingBox().move(0.0D, -0.15D, 0.0D));
+            boolean grounded = this.onGround() || solidBelow;
+            double horizStep = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);
+            boolean movingInput = (this.getControllingPassenger() instanceof Player p)
+                    && (Math.abs(p.zza) > 0.01F || Math.abs(p.xxa) > 0.01F);
+            boolean idleStopped = hasRider && grounded && !movingInput && horizStep < 0.06D
+                    && this.clientNaTicks <= 0 && srvTicks <= 0 && this.getUltiTicks() <= 0
+                    && this.clientDashTicks <= 0 && !this.isGliding() && !this.clientWallClimbing && !this.isPlunging();
+            this.idleStopBlend = Mth.lerp(idleStopped ? 0.18F : 0.45F, this.idleStopBlend, idleStopped ? 1.0F : 0.0F);
+            if (this.idleStopBlend < 0.005F) {
+                this.idleStopBlend = 0.0F;
+            } else if (this.idleStopBlend > 0.995F) {
+                this.idleStopBlend = 1.0F;
+            }
+            float targetLean = (this.idleStopBlend > 0.005F)
+                    ? (this.getIdleStopSide() * 10.5F * this.idleStopBlend)
+                    : 0.0F;
+            this.spinLean = Mth.lerp(idleStopped ? 0.24F : 0.32F, this.spinLean, targetLean);
+            if (Math.abs(this.spinLean) < 0.05F && targetLean == 0.0F) {
                 this.spinLean = 0.0F;
             }
         }
@@ -1482,30 +1685,21 @@ public class FlamestriderBikeEntity extends Entity {
         boolean spinningNow = this.isSpinning();
         float targetYaw = rider.getYRot();
         int finNaT = getActiveNaStep() == 6 ? getActiveNaTicks() : 0;
-        if (finNaT == 6) {
-            this.clientDashCooldownTicks = 0;
-            this.clientDashChain = 0;
-            this.clientDashWindowTicks = 0;
-        }
-        if (this.clientPostDoubleDashFinisherTicks > 0) {
-            if (this.clientNaStep >= 1 && this.clientNaStep <= 5) {
-                this.clientPostDoubleDashFinisherTicks = 0;
-            } else if (--this.clientPostDoubleDashFinisherTicks == 0) {
-                this.triggerClientFinisher(rider);
-                com.velorise.staves.network.ModNetwork.sendMavuikaAction((byte) 5);
-            }
-        }
+        boolean firstPerson = !this.level().isClientSide() || ClientInputAccess.isFirstPerson();
+        boolean combatAimLock = finNaT > 0 || this.clientFinisherYawBlendTicks > 0
+                || this.getUltiTicks() > 0 || this.clientDashTicks > 0
+                || this.getActiveNaTicks() > 0 || this.isGliding() || this.clientWallClimbing;
         if (!spinningNow) {
             this.yRotO = this.getYRot();
             if (finNaT > 0 || this.clientFinisherYawBlendTicks > 0) {
                 // Smoothly rotate out of any Donut orbit angle into the front-center Finisher direction
-                float nextYaw = Mth.rotLerp(finNaT >= 8 ? 0.46F : 0.68F, this.getYRot(), targetYaw);
+                float nextYaw = Mth.rotLerp(finNaT >= 25 ? 0.44F : (finNaT >= 13 ? 0.64F : 0.72F), this.getYRot(), targetYaw);
                 if (Math.abs(Mth.wrapDegrees(targetYaw - nextYaw)) < 0.5F) {
                     nextYaw = targetYaw;
                 }
                 this.setYRot(nextYaw);
-            } else {
-                // Preserve yRotO from previous tick so partialTick rotLerp never snaps
+            } else if (firstPerson || combatAimLock) {
+                // 1st-person or active combat/glide/climb: align bike cleanly with camera aim yaw
                 float nextYaw = Mth.rotLerp(0.72F, this.getYRot(), targetYaw);
                 if (Math.abs(Mth.wrapDegrees(targetYaw - nextYaw)) < 0.5F) {
                     nextYaw = targetYaw;
@@ -1610,7 +1804,36 @@ public class FlamestriderBikeEntity extends Entity {
             double dz = forward * cos + strafe * sin;
             double len = Math.hypot(dx, dz);
             if (len > 1.0E-4D) {
-                inputVec = new Vec3(dx / len * speed, 0.0D, dz / len * speed);
+                if (!firstPerson && !spinningNow && !combatAimLock) {
+                    // Genshin 3rd-person steering: pressing S / A / D never reverses — bike picks the shorter side
+                    // (breaking exact 180-deg ties smoothly via clientLastTurnSign) and whips a tight U-turn forward!
+                    float desiredYaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+                    float diff = Mth.wrapDegrees(desiredYaw - this.getYRot());
+                    if (Math.abs(diff) > 168.0F) {
+                        if (Math.abs(strafe) > 0.05F) {
+                            clientLastTurnSign = strafe > 0.0F ? -1.0F : 1.0F;
+                        }
+                        diff = clientLastTurnSign * 170.0F;
+                    } else if (Math.abs(diff) > 6.0F) {
+                        clientLastTurnSign = Math.signum(diff);
+                    }
+                    float maxTurnDeg = sprintingNow ? 22.0F : 26.0F;
+                    float turnStep = Mth.clamp(diff, -maxTurnDeg, maxTurnDeg);
+                    float nextYaw = this.getYRot() + turnStep;
+                    if (Math.abs(Mth.wrapDegrees(desiredYaw - nextYaw)) < 1.0F) {
+                        nextYaw = desiredYaw;
+                    }
+                    this.setYRot(nextYaw);
+                    // Subtle motorcycle lean into the U-turn (+ZP leans right when turning right, matching idle kickstand side)
+                    float targetLean = Mth.clamp(turnStep * 0.72F, -18.0F, 18.0F);
+                    this.spinLean = Mth.lerp(0.35F, this.spinLean, targetLean);
+                    // Drive forward along the bike's turning nose so U-turns carve a true motorcycle arc
+                    Vec3 bikeNose = Vec3.directionFromRotation(0.0F, nextYaw).normalize();
+                    double turnSpeedScale = Math.abs(diff) > 75.0F ? 0.78D : 1.0D;
+                    inputVec = bikeNose.scale(speed * turnSpeedScale);
+                } else {
+                    inputVec = new Vec3(dx / len * speed, 0.0D, dz / len * speed);
+                }
             }
         }
 
@@ -1647,11 +1870,6 @@ public class FlamestriderBikeEntity extends Entity {
                 spinPivotZO = spinPivotZ;
             }
             clientContinuousSpinTicks++;
-            if (clientContinuousSpinTicks >= 8) {
-                clientDashCooldownTicks = 0;
-                clientDashChain = 0;
-                clientDashWindowTicks = 0;
-            }
             clientSpinOrbitGraceTicks = 8;
             double stepX = inputVec.x * 0.35D;
             double stepZ = inputVec.z * 0.35D;
@@ -1691,7 +1909,8 @@ public class FlamestriderBikeEntity extends Entity {
             double targetZ = spinPivotZ - cosYaw * effectiveRadius;
             vx = targetX - this.getX();
             vz = targetZ - this.getZ();
-            float yawBlend = Mth.clamp(clientContinuousSpinTicks / 3.0F, 0.0F, 1.0F);
+            float rawYawU = Mth.clamp(clientContinuousSpinTicks / 4.0F, 0.0F, 1.0F);
+            float yawBlend = rawYawU * rawYawU * (3.0F - 2.0F * rawYawU);
             float bikeYaw = Mth.rotLerp(yawBlend, spinStartYaw, spinOrbitAngle);
             this.yRotO = this.getYRot();
             this.setYRot(bikeYaw);
@@ -1792,24 +2011,73 @@ public class FlamestriderBikeEntity extends Entity {
                 vy = -0.26D - diveProgress * 0.48D;
             }
             this.setOnGround(false);
-        } else if (finNaT > 0) {
-            // Higher forward leap & powerful downward slam along rider's look direction
+        } else if (getActiveNaStep() == 7 && getActiveNaTicks() > 0) {
+            // Genshin Hold E Mount tail-whip: surge forward (~2.0 blocks) while whipping rear wheel in a fire arc
+            int whipT = getActiveNaTicks();
             Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
-            if (finNaT >= 9) {
-                double forwardSpeed = 0.36D;
-                vx = Mth.lerp(0.45D, prev.x, fwdDir.x * forwardSpeed + inputVec.x * 0.25D);
-                vz = Mth.lerp(0.45D, prev.z, fwdDir.z * forwardSpeed + inputVec.z * 0.25D);
-                float liftProgress = Mth.clamp((14.0F - finNaT) / 5.0F, 0.0F, 1.0F);
-                vy = Mth.lerp(liftProgress, 0.48D, 0.12D);
-                this.setOnGround(false);
-            } else if (finNaT >= 5) {
-                vx = Mth.lerp(0.40D, prev.x, fwdDir.x * 0.24D + inputVec.x * 0.22D);
-                vz = Mth.lerp(0.40D, prev.z, fwdDir.z * 0.24D + inputVec.z * 0.22D);
-                vy = onSurface ? -0.04D : Math.max(-0.92D, prev.y - 0.22D);
+            double surgeSpeed = whipT >= 4 ? (0.36D * ((whipT - 2.0D) / 8.0D) + 0.14D) : 0.08D;
+            vx = fwdDir.x * surgeSpeed;
+            vz = fwdDir.z * surgeSpeed;
+            vy = onSurface ? -0.04D : Math.max(-0.8D, prev.y - 0.12D);
+        } else if (getActiveNaStep() == 8 && getActiveNaTicks() > 0) {
+            // Genshin Re-Mount catch-up: gentle forward glide as the bike scoops the leaping rider
+            int catchT = getActiveNaTicks();
+            Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
+            double glideSpeed = 0.08D + 0.14D * (catchT / 10.0D);
+            vx = fwdDir.x * glideSpeed;
+            vz = fwdDir.z * glideSpeed;
+            vy = onSurface ? -0.04D : Math.max(-0.8D, prev.y - 0.12D);
+        } else if (finNaT > 0) {
+            // Authentic 27-tick Genshin Finisher synced to hitmark at finNaT == 13 (tick 14 = 0.70s):
+            // Phase 0 (finNaT 27..25, 3t): grounded pull onto forward centerline (never pulls backward!)
+            // Phase 1 (finNaT 24..18, 7t): bike glides low & sleek forward while rider vaults +1.65m high above saddle
+            // Phase 2 (finNaT 17..14, 4t): rider plunges straight onto saddle -> hitmark cleave at finNaT == 13
+            // Phase 3 (finNaT 13..1, 13t): iconic Genshin sideways wheelie tail-slide forward then clean settle
+            Vec3 fwdDir = Vec3.directionFromRotation(0.0F, targetYaw).normalize();
+            if (!this.clientFinisherHasTarget) {
+                if (this.spinOrbitRadius > 0.05D) {
+                    double relX = this.getX() - this.spinPivotX;
+                    double relZ = this.getZ() - this.spinPivotZ;
+                    double clampedFwd = Math.max(0.0D, relX * fwdDir.x + relZ * fwdDir.z);
+                    this.clientFinisherTargetX = this.spinPivotX + fwdDir.x * clampedFwd;
+                    this.clientFinisherTargetZ = this.spinPivotZ + fwdDir.z * clampedFwd;
+                } else {
+                    this.clientFinisherTargetX = this.getX();
+                    this.clientFinisherTargetZ = this.getZ();
+                }
+                this.clientFinisherHasTarget = true;
+            }
+            if (finNaT >= 25) {
+                double toX = this.clientFinisherTargetX - this.getX();
+                double toZ = this.clientFinisherTargetZ - this.getZ();
+                double remTicks = Math.max(1.0D, (finNaT - 24));
+                double stepX = toX / remTicks;
+                double stepZ = toZ / remTicks;
+                double stepLen = Math.hypot(stepX, stepZ);
+                if (stepLen > 0.85D) {
+                    stepX = (stepX / stepLen) * 0.85D;
+                    stepZ = (stepZ / stepLen) * 0.85D;
+                }
+                vx = stepX;
+                vz = stepZ;
+                vy = onSurface ? -0.04D : Math.max(-0.8D, prev.y - 0.12D);
+            } else if (finNaT >= 18) {
+                // Bike stays low & sleek beneath the vaulting rider (+0.26m subtle hop)
+                vx = fwdDir.x * 0.24D;
+                vz = fwdDir.z * 0.24D;
+                float u = (24.0F - finNaT) / 6.0F;
+                vy = u < 0.45F ? 0.12D : (onSurface ? -0.04D : -0.14D);
+            } else if (finNaT >= 14) {
+                vx = fwdDir.x * 0.18D;
+                vz = fwdDir.z * 0.18D;
+                vy = onSurface ? -0.04D : Math.max(-0.8D, prev.y - 0.18D);
             } else {
-                vx = Mth.lerp(0.35D, prev.x, inputVec.x);
-                vz = Mth.lerp(0.35D, prev.z, inputVec.z);
-                vy = onSurface ? -0.04D : Math.max(-1.05D, prev.y - 0.10D);
+                this.clientFinisherHasTarget = false;
+                // Gentle forward tail-slide momentum during wheelie recovery (finNaT 13..6)
+                double slide = finNaT >= 6 ? (0.16D * ((finNaT - 5.0D) / 8.0D)) : 0.0D;
+                vx = Mth.lerp(0.35D, prev.x, inputVec.x + fwdDir.x * slide);
+                vz = Mth.lerp(0.35D, prev.z, inputVec.z + fwdDir.z * slide);
+                vy = onSurface ? -0.04D : Math.max(-1.05D, prev.y - 0.22D);
             }
         } else if (wallClimbingNow) {
             clientGlideTicks = 0;
@@ -1856,9 +2124,16 @@ public class FlamestriderBikeEntity extends Entity {
             double anchorWorldZ = this.spinPivotZ + this.spinCamIntroStartZ * introWeight;
             this.camAnchorOffsetX = anchorWorldX - this.getX();
             this.camAnchorOffsetZ = anchorWorldZ - this.getZ();
+        } else if (finNaT >= 25 && this.clientFinisherHasTarget) {
+            // Lock camera anchor smoothly onto the Finisher convergence target during Phase 0 so the camera NEVER lurches
+            // outward toward the rim and back inward while the bike glides smoothly into the forward centerline!
+            double desiredAnchorX = Mth.lerp(0.35D, prevAnchorWorldX, this.clientFinisherTargetX);
+            double desiredAnchorZ = Mth.lerp(0.35D, prevAnchorWorldZ, this.clientFinisherTargetZ);
+            this.camAnchorOffsetX = desiredAnchorX - this.getX();
+            this.camAnchorOffsetZ = desiredAnchorZ - this.getZ();
         } else {
-            this.camAnchorOffsetX *= 0.64D;
-            this.camAnchorOffsetZ *= 0.64D;
+            this.camAnchorOffsetX *= 0.72D;
+            this.camAnchorOffsetZ *= 0.72D;
             if (Math.hypot(this.camAnchorOffsetX, this.camAnchorOffsetZ) < 0.004D) {
                 this.camAnchorOffsetX = 0.0D;
                 this.camAnchorOffsetZ = 0.0D;
@@ -1906,6 +2181,11 @@ public class FlamestriderBikeEntity extends Entity {
         static boolean isJumpDown() {
             net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
             return mc != null && mc.options != null && mc.options.keyJump.isDown();
+        }
+
+        static boolean isFirstPerson() {
+            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+            return mc == null || mc.options == null || mc.options.getCameraType().isFirstPerson();
         }
     }
 }

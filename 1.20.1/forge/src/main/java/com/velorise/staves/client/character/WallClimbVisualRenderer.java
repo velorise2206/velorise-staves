@@ -177,12 +177,50 @@ public final class WallClimbVisualRenderer {
             0.06F, 0.0F, 0.0F, 0.0F, 0.05F
     );
 
-    private static final ClimbFrame JUMP_FRAME = new ClimbFrame(
-            new PartPose(-3.04F, -0.12F,  0.18F, 0.0F, -1.6F, -1.4F),
-            new PartPose(-3.04F,  0.12F, -0.18F, 0.0F, -1.6F, -1.4F),
-            new PartPose(-0.96F,  0.10F,  0.22F, 0.1F, -2.6F, -2.0F),
-            new PartPose(-0.82F, -0.10F, -0.22F, -0.1F, -2.2F, -1.8F),
-            -0.16F, 0.0F, 0.0F, 0.05F, -0.35F
+    // Genshin 1-block low-obstacle symmetric two-hand push-vault (hands plant DOWN on waist-high edge, push back cleanly, zero side tilt!)
+    private static final ClimbFrame LOW_MANTLE_START = new ClimbFrame(
+            new PartPose(-1.18F, -0.08F,  0.16F, 0.0F,  0.4F, -1.6F),
+            new PartPose(-1.18F,  0.08F, -0.16F, 0.0F,  0.4F, -1.6F),
+            new PartPose(-0.86F,  0.04F,  0.06F, 0.0F, -1.8F, -1.4F),
+            new PartPose( 0.34F, -0.04F, -0.06F, 0.0F,  0.2F,  0.5F),
+            0.26F, 0.0F, 0.0F, 0.02F, 0.14F
+    );
+    private static final ClimbFrame LOW_MANTLE_MID = new ClimbFrame(
+            new PartPose( 0.28F, -0.06F,  0.20F, 0.0F,  1.0F,  0.4F),
+            new PartPose( 0.28F,  0.06F, -0.20F, 0.0F,  1.0F,  0.4F),
+            new PartPose(-0.42F,  0.02F,  0.04F, 0.0F, -0.8F, -0.6F),
+            new PartPose(-0.56F, -0.02F, -0.04F, 0.0F, -1.2F, -0.9F),
+            0.20F, 0.0F, 0.0F, 0.04F, 0.10F
+    );
+    private static final ClimbFrame LOW_MANTLE_END = new ClimbFrame(
+            new PartPose(-0.08F,  0.00F,  0.06F, 0.0F,  0.0F,  0.0F),
+            new PartPose(-0.08F,  0.00F, -0.06F, 0.0F,  0.0F,  0.0F),
+            new PartPose(-0.06F,  0.00F,  0.02F, 0.0F,  0.0F,  0.0F),
+            new PartPose( 0.06F,  0.00F, -0.02F, 0.0F,  0.0F,  0.0F),
+            0.03F, 0.0F, 0.0F, 0.0F, 0.02F
+    );
+
+    // Genshin-style 3-keyframe athletic climb-jump (Launch Push-off -> Cross-Drive Apex -> Firm Re-Grab)
+    private static final ClimbFrame JUMP_LAUNCH = new ClimbFrame(
+            new PartPose(-3.06F, -0.20F,  0.14F,  0.0F, -1.8F, -1.6F),
+            new PartPose(-0.92F,  0.14F, -0.24F,  0.0F,  1.2F, -0.9F),
+            new PartPose( 0.34F,  0.04F,  0.10F,  0.0F,  0.6F,  0.8F),
+            new PartPose( 0.18F, -0.06F, -0.12F,  0.0F,  0.3F,  0.5F),
+            -0.10F, -0.08F, -0.14F, 0.05F, -0.34F
+    );
+    private static final ClimbFrame JUMP_APEX = new ClimbFrame(
+            new PartPose(-2.22F, -0.22F,  0.24F,  0.0F, -0.6F, -1.7F),
+            new PartPose(-2.98F,  0.22F, -0.14F,  0.0F, -1.7F, -1.8F),
+            new PartPose(-1.08F,  0.14F,  0.26F,  0.2F, -2.8F, -2.2F),
+            new PartPose( 0.16F, -0.06F, -0.12F,  0.0F,  0.3F,  0.4F),
+            -0.14F,  0.08F,  0.14F, 0.07F, -0.32F
+    );
+    private static final ClimbFrame JUMP_REGRAB = new ClimbFrame(
+            new PartPose(-2.58F, -0.20F,  0.20F,  0.0F, -1.0F, -1.8F),
+            new PartPose(-2.14F,  0.20F, -0.22F,  0.0F, -0.2F, -1.6F),
+            new PartPose(-0.74F,  0.12F,  0.22F,  0.1F, -2.0F, -1.8F),
+            new PartPose(-0.42F, -0.10F, -0.16F, -0.1F, -0.9F, -1.0F),
+            0.08F,  0.02F, -0.04F, 0.01F, -0.18F
     );
 
     public static boolean isWallClimbPoseActive(LivingEntity entity) {
@@ -205,7 +243,16 @@ public final class WallClimbVisualRenderer {
             return activeNow ? 1.0F : 0.0F;
         }
         float w = Mth.clamp(Mth.lerp(partialTick, data.prevWallClimbFade, data.steveWallClimbFade), 0.0F, 1.0F);
-        if (activeNow && w < 0.25F) {
+        long nowMs = System.currentTimeMillis();
+        if (nowMs < data.steveWallMantleUntilMs) {
+            // Smoothly blend out of MANTLE_END directly into normal standing/walking pose on the last 28% of mantle
+            float dur = Math.max(100.0F, data.steveWallMantleDurationMs);
+            float mt = Mth.clamp((nowMs - data.steveWallMantleStartMs) / dur, 0.0F, 1.0F);
+            if (mt > 0.72F) {
+                float out = 1.0F - Mth.clamp((mt - 0.72F) / 0.28F, 0.0F, 1.0F);
+                w *= out;
+            }
+        } else if (activeNow && w < 0.25F) {
             w = 0.25F;
         }
         if (w < 0.015F) return 0.0F;
@@ -263,15 +310,29 @@ public final class WallClimbVisualRenderer {
         long nowMs = System.currentTimeMillis();
 
         if (data != null && nowMs < data.steveWallMantleUntilMs) {
-            float dur = Math.max(100.0F, (float) (data.steveWallMantleUntilMs - data.steveWallMantleStartMs));
+            float dur = Math.max(100.0F, data.steveWallMantleDurationMs);
             float t = Mth.clamp((nowMs - data.steveWallMantleStartMs) / dur, 0.0F, 1.0F);
+            if (data.steveWallLowMantle) {
+                if (t < 0.50F) {
+                    return ClimbFrame.lerp(LOW_MANTLE_START, LOW_MANTLE_MID, t / 0.50F);
+                }
+                return ClimbFrame.lerp(LOW_MANTLE_MID, LOW_MANTLE_END, (t - 0.50F) / 0.50F);
+            }
             if (t < 0.55F) {
                 return ClimbFrame.lerp(MANTLE_START, MANTLE_MID, t / 0.55F);
             }
             return ClimbFrame.lerp(MANTLE_MID, MANTLE_END, (t - 0.55F) / 0.45F);
         }
         if (data != null && nowMs < data.steveWallJumpUntilMs) {
-            return JUMP_FRAME;
+            float dur = Math.max(120.0F, (float) (data.steveWallJumpUntilMs - data.steveWallJumpStartMs));
+            float jt = Mth.clamp((nowMs - data.steveWallJumpStartMs) / dur, 0.0F, 1.0F);
+            ClimbFrame jf;
+            if (jt < 0.34F) {
+                jf = ClimbFrame.lerp(JUMP_LAUNCH, JUMP_APEX, jt / 0.34F);
+            } else {
+                jf = ClimbFrame.lerp(JUMP_APEX, JUMP_REGRAB, (jt - 0.34F) / 0.66F);
+            }
+            return data.steveWallJumpMirror ? mirrorFrame(jf) : jf;
         }
 
         float dist = data != null ? Mth.lerp(partialTick, data.prevWallClimbDist, data.steveWallClimbDist) : 0.0F;
@@ -328,14 +389,18 @@ public final class WallClimbVisualRenderer {
         if (blend < 0.015F || !(entity instanceof Player)) return;
 
         ClimbFrame frame = evaluateClimbFrame(entity, partialTick);
+        ClientAuraTracker.AuraDisplayData bodyData = ClientAuraTracker.get(entity.getId());
+        boolean lowStepVault = bodyData != null && bodyData.steveWallLowMantle && System.currentTimeMillis() < bodyData.steveWallMantleUntilMs;
         float vanillaBodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
         float wallYaw = resolveWallBodyYaw(entity);
-        float yawDiff = Mth.wrapDegrees(wallYaw - vanillaBodyYaw);
+        float yawDiff = lowStepVault ? 0.0F : Mth.wrapDegrees(wallYaw - vanillaBodyYaw);
 
         lastRenderPartialTick = partialTick;
         poseStack.translate(0.0D, 0.9D, 0.0D);
-        poseStack.mulPose(Axis.YP.rotationDegrees(-yawDiff * blend));
-        poseStack.translate(0.0D, frame.heaveY * blend, -0.175D * blend);
+        if (Math.abs(yawDiff) > 0.01F) {
+            poseStack.mulPose(Axis.YP.rotationDegrees(-yawDiff * blend));
+        }
+        poseStack.translate(0.0D, frame.heaveY * blend, lowStepVault ? 0.0D : (-0.175D * blend));
         poseStack.mulPose(Axis.XP.rotation(-frame.bodyPitch * blend));
         poseStack.mulPose(Axis.YP.rotation(frame.bodyTwist * blend));
         poseStack.mulPose(Axis.ZP.rotation(frame.bodyRoll * blend));

@@ -16,11 +16,12 @@ public abstract class MouseHandlerMixin {
 
     @Inject(method = "onPress", at = @At("HEAD"), cancellable = true)
     private void velorise$onMousePress(long windowPointer, int button, int action, int modifiers, CallbackInfo ci) {
-        if (this.minecraft != null
-                && this.minecraft.getWindow().getWindow() == windowPointer
-                && this.minecraft.screen == null
-                && OmniWheelOverlay.handleMouseButtonPress(button, action)) {
-            ci.cancel();
+        if (this.minecraft != null && this.minecraft.getWindow().getWindow() == windowPointer) {
+            if (this.minecraft.screen == null && OmniWheelOverlay.handleMouseButtonPress(button, action)) {
+                ci.cancel();
+                return;
+            }
+            com.velorise.staves.client.GenshinInputState.onRawMouseButton(button, action);
         }
     }
 }

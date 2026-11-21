@@ -45,6 +45,12 @@ public final class MavuikaVisualRenderer {
             new ResourceLocation("velorise_staves", "textures/entity/mavuika_sun_aura.png");
     private static final ResourceLocation MAVUIKA_SUN_CHARGE_TEXTURE =
             new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_sun_charge.png");
+    private static final ResourceLocation MAVUIKA_NIGHTSOUL_FLAME_TEXTURE =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_nightsoul_flame.png");
+    private static final ResourceLocation MAVUIKA_NIGHTSOUL_FILL_TEXTURE =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_nightsoul_fill.png");
+    private static final ResourceLocation MAVUIKA_NIGHTSOUL_FRAME_TEXTURE =
+            new ResourceLocation(VeloriseStavesMod.MODID, "textures/gui/mavuika_nightsoul_frame.png");
     private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> helmetModel;
 
     private static com.velorise.staves.client.model.MavuikaHelmetModel<LivingEntity> getOrBakeHelmetModel() {
@@ -196,60 +202,54 @@ public final class MavuikaVisualRenderer {
         float cx = sw * 0.5F - 38.0F;
         float cy = sh * 0.5F;
 
-        float startDeg = 128.0F;
-        float endDeg = 232.0F;
-        int segments = 24;
-
-        Matrix4f mat = guiGraphics.pose().last().pose();
-        VertexConsumer vc = guiGraphics.bufferSource().getBuffer(RenderType.gui());
-
         float ultiCdTicks = state.effectiveUltiCooldownTicks();
         boolean cdReady = ultiCdTicks <= 0.0F;
         boolean qReady = points >= 5.0F && cdReady;
 
-        WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 29.0F, 35.0F, startDeg, endDeg, segments, 18, 12, 16, qReady ? 195 : 135);
-
-        float nsFrac = Mth.clamp(points / 10.0F, 0.0F, 1.0F);
-        if (nsFrac > 0.005F) {
-            float fillEnd = Mth.lerp(nsFrac, startDeg, endDeg);
-            float pulse = qReady ? (0.85F + 0.15F * Mth.sin(System.currentTimeMillis() * 0.01F)) : 1.0F;
-            int r = qReady ? 255 : (cdReady ? 175 : 120);
-            int g = qReady ? Math.round(215 * pulse) : (cdReady ? 75 : 48);
-            int b = qReady ? Math.round(70 * pulse) : (cdReady ? 22 : 18);
-            int a = qReady ? 250 : 175;
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 29.5F, 34.5F, startDeg, fillEnd, Math.max(2, Math.round(segments * nsFrac)), r, g, b, a);
-        }
-
-        float midDeg = (startDeg + endDeg) * 0.5F;
-        WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 27.5F, 36.5F, midDeg - 1.8F, midDeg + 1.8F, 1,
-                qReady ? 255 : 150, qReady ? 245 : 135, qReady ? 190 : 105, qReady ? 245 : 155);
-
         if (auraTicks > 0.0F) {
             float fuelFrac = Mth.clamp(state.nightsoulFuel() / state.maxNightsoulFuel(), 0.0F, 1.0F);
-            int fuelTicks = state.netherite ? 12 : 8;
-            WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 35.0F, 42.5F, startDeg, endDeg, segments, 24, 10, 10, 210);
-            if (fuelFrac > 0.005F) {
-                int fillSegs = Math.max(2, Math.round(segments * fuelFrac));
-                for (int s = 0; s < fillSegs; s++) {
-                    float f0 = (float) s / segments;
-                    float f1 = Math.min(fuelFrac, (float) (s + 1) / segments);
-                    if (f1 <= f0) break;
-                    float d0 = Mth.lerp(f0, startDeg, endDeg);
-                    float d1 = Mth.lerp(f1, startDeg, endDeg);
-                    float t = (f0 + f1) * 0.5F;
-                    int r = 240 + Math.round(15.0F * t);
-                    int g = 38 + Math.round(135.0F * t);
-                    int b = 16 + Math.round(28.0F * t);
-                    WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 35.8F, 41.7F, d0, d1, 1, r, g, b, 245);
-                }
-            }
-            for (int tick = 1; tick < fuelTicks; tick++) {
-                float tickDeg = Mth.lerp(tick / (float) fuelTicks, startDeg, endDeg);
-                WindGliderRenderer.drawHudArc(vc, mat, cx, cy, 34.8F, 42.7F, tickDeg - 1.3F, tickDeg + 1.3F, 1, 10, 6, 6, 255);
-            }
-        }
+            int wingSize = 54;
+            int wingX = Math.round(cx) - 48;
+            int wingY = Math.round(cy) - wingSize / 2;
+            long nowMs = System.currentTimeMillis();
+            float flicker = 0.88F + 0.12F * Mth.sin(nowMs * 0.017F);
+            float flameBobY = Mth.sin(nowMs * 0.012F) * 0.9F;
 
-        guiGraphics.flush();
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+
+            // 1. Outer blazing Nightsoul flame aura behind the wing (animated flicker & gentle sway)
+            if (fuelFrac > 0.02F) {
+                float flameAlpha = Mth.clamp(0.45F + 0.55F * fuelFrac, 0.38F, 1.0F) * flicker;
+                guiGraphics.pose().pushPose();
+                guiGraphics.pose().translate(0.0F, flameBobY, 0.0F);
+                RenderSystem.setShaderColor(1.0F, 0.96F + 0.04F * flicker, 0.92F, flameAlpha);
+                guiGraphics.blit(MAVUIKA_NIGHTSOUL_FLAME_TEXTURE, wingX, wingY, wingSize, wingSize, 0.0F, 0.0F, 128, 128, 128, 128);
+                guiGraphics.pose().popPose();
+            }
+
+            // 2. Dark warm-maroon obsidian empty trough backing (exact empty interior color from Genshin)
+            RenderSystem.setShaderColor(0.44F, 0.22F, 0.20F, 0.92F);
+            guiGraphics.blit(MAVUIKA_NIGHTSOUL_FILL_TEXTURE, wingX, wingY, wingSize, wingSize, 0.0F, 0.0F, 128, 128, 128, 128);
+
+            // 3. Dynamic inner fiery fill clipped smoothly bottom-to-top within active wing bounds (v: 22..114 of 128)
+            if (fuelFrac > 0.005F) {
+                float activeTopV = 22.0F;
+                float activeBotV = 114.0F;
+                float clipV = Mth.lerp(fuelFrac, activeBotV, activeTopV);
+                int srcV = Math.round(clipV);
+                int srcH = Math.max(1, 128 - srcV);
+                int dstOffsetY = Math.round((srcV / 128.0F) * wingSize);
+                int dstH = Math.max(1, wingSize - dstOffsetY);
+                RenderSystem.setShaderColor(1.0F, 0.97F + 0.03F * flicker, 0.94F, 0.98F);
+                guiGraphics.blit(MAVUIKA_NIGHTSOUL_FILL_TEXTURE, wingX, wingY + dstOffsetY, wingSize, dstH, 0.0F, (float) srcV, 128, srcH, 128, 128);
+            }
+
+            // 4. Crisp 128x128 Natlan wing frame, spiky diagonal crimson ribs, and concave golden horn trim on top
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            guiGraphics.blit(MAVUIKA_NIGHTSOUL_FRAME_TEXTURE, wingX, wingY, wingSize, wingSize, 0.0F, 0.0F, 128, 128, 128, 128);
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        }
 
         Font font = mc.font;
         int labelX = Math.round(cx - 46);
@@ -270,6 +270,24 @@ public final class MavuikaVisualRenderer {
         // Lock rider body yaw to motorcycle yaw so hands stay locked onto the handlebars during turns
         entity.yBodyRot = bike.getYRot();
         entity.yBodyRotO = bike.yRotO;
+        // 3rd-person head/neck fix: align head smoothly along bike nose (never twist backward like an owl when orbiting camera behind/front); 1st-person unchanged
+        Minecraft mc = Minecraft.getInstance();
+        boolean isFirstPerson = mc != null && mc.options != null && mc.options.getCameraType().isFirstPerson();
+        boolean thirdPersonOrRemote = !(entity == mc.player && isFirstPerson);
+        if (thirdPersonOrRemote) {
+            float relHeadYaw = Mth.wrapDegrees(entity.yHeadRot - bike.getYRot());
+            float clampedYawDeg;
+            if (Math.abs(relHeadYaw) <= 75.0F) {
+                clampedYawDeg = Mth.clamp(relHeadYaw, -28.0F, 28.0F);
+            } else {
+                float tBack = Mth.clamp((Math.abs(relHeadYaw) - 75.0F) / 45.0F, 0.0F, 1.0F);
+                clampedYawDeg = Mth.lerp(tBack, Math.signum(relHeadYaw) * 28.0F, 0.0F);
+            }
+            model.head.yRot = clampedYawDeg * ((float) Math.PI / 180.0F);
+            model.head.xRot = Mth.clamp(model.head.xRot, -0.32F, 0.32F);
+            model.hat.yRot = model.head.yRot;
+            model.hat.xRot = model.head.xRot;
+        }
         // Lower seated posture onto the bike saddle and place feet down onto footpegs / brake pedal
         float seatDrop = 5.2F;
         model.head.y += seatDrop;
@@ -354,34 +372,94 @@ public final class MavuikaVisualRenderer {
         float naTf = bike.getSmoothNaTicks(pt);
         if (step == 6 && naT > 0) {
             float p = bike.getFinisherProgress(pt);
-            if (p < 0.36F) {
-                // Phase 1: Continuous rise from Donut Spin / riding posture up to overhead apex
-                float w = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
-                model.body.xRot = Mth.lerp(w, 0.26F, 0.08F);
-                model.body.yRot = Mth.lerp(w, -0.22F, 0.26F) * dir;
-                weaponArm.xRot = Mth.lerp(w, -0.95F, -2.68F);
-                weaponArm.yRot = Mth.lerp(w, -0.75F, -0.52F) * dir;
-                weaponArm.zRot = Mth.lerp(w, 0.32F, -0.26F) * dir;
-            } else if (p < 0.72F) {
-                // Phase 2: Single unbroken accelerated overhead slam cleave all the way through impact
-                float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
-                model.body.xRot = Mth.lerp(s, 0.08F, 0.34F);
-                model.body.yRot = Mth.lerp(s, 0.26F, -0.36F) * dir;
-                weaponArm.xRot = Mth.lerp(s, -2.68F, -0.78F);
-                weaponArm.yRot = Mth.lerp(s, -0.52F, 1.02F) * dir;
-                weaponArm.zRot = Mth.lerp(s, -0.26F, 0.70F) * dir;
+            if (p < 0.37F) {
+                // Phase 0+1: Athletic Genshin aerial vault above bike (split legs, arched torso, Claymore raised overhead!)
+                float u = p / 0.37F;
+                float w = 1.0F - (1.0F - u) * (1.0F - u);
+                float air = Mth.clamp((p - 0.08F) / 0.22F, 0.0F, 1.0F);
+                float airS = air * air * (3.0F - 2.0F * air);
+                model.body.xRot = Mth.lerp(w, 0.26F, -0.18F);
+                model.body.yRot = Mth.lerp(w, -0.22F, 0.32F) * dir;
+                model.rightLeg.xRot = Mth.lerp(airS, -0.52F, 0.68F);
+                model.rightLeg.zRot = Mth.lerp(airS, 0.16F, 0.26F);
+                model.leftLeg.xRot = Mth.lerp(airS, -0.52F, -0.88F);
+                model.leftLeg.zRot = Mth.lerp(airS, -0.16F, -0.20F);
+                // Both hands rise overhead gripping/charging the skyward Claymore (Genshin 10.62s..10.95s)
+                handleArm.xRot = Mth.lerp(airS, -0.94F, -2.48F);
+                handleArm.yRot = Mth.lerp(airS, 0.10F * dir, 0.36F * dir);
+                handleArm.zRot = Mth.lerp(airS, -0.10F * dir, 0.16F * dir);
+                weaponArm.xRot = Mth.lerp(w, -0.95F, -2.76F);
+                weaponArm.yRot = Mth.lerp(w, -0.75F, -0.22F) * dir;
+                weaponArm.zRot = Mth.lerp(w, 0.32F, -0.10F) * dir;
+            } else if (p < 0.52F) {
+                // Phase 2: Plunge onto saddle & execute wide HORIZONTAL LEFT-to-RIGHT sweep (Genshin 10.98s..11.12s)
+                float u = (p - 0.37F) / 0.15F;
+                float s = u * u;
+                model.body.xRot = Mth.lerp(s, -0.18F, 0.24F);
+                model.body.yRot = Mth.lerp(s, 0.42F, -0.56F) * dir;
+                model.rightLeg.xRot = Mth.lerp(s, 0.68F, -0.52F);
+                model.rightLeg.zRot = Mth.lerp(s, 0.26F, 0.16F);
+                model.leftLeg.xRot = Mth.lerp(s, -0.88F, -0.52F);
+                model.leftLeg.zRot = Mth.lerp(s, -0.20F, -0.16F);
+                handleArm.xRot = Mth.lerp(s, -2.48F, -0.94F);
+                handleArm.yRot = Mth.lerp(s, 0.36F * dir, 0.10F * dir);
+                handleArm.zRot = Mth.lerp(s, 0.16F * dir, -0.10F * dir);
+                weaponArm.xRot = Mth.lerp(s, -2.76F, -1.32F);
+                weaponArm.yRot = Mth.lerp(s, -1.08F, 1.24F) * dir;
+                weaponArm.zRot = Mth.lerp(s, -0.18F, 0.72F) * dir;
+            } else if (p < 0.86F) {
+                // Phase 3a: Iconic sideways wheelie — upright torso, right arm extended straight DOWN planting Claymore tip into ground (Genshin 11.32s..11.48s)
+                float u = Mth.clamp((p - 0.52F) / 0.14F, 0.0F, 1.0F);
+                float e = 1.0F - (1.0F - u) * (1.0F - u);
+                model.body.xRot = Mth.lerp(e, 0.24F, 0.06F);
+                model.body.yRot = Mth.lerp(e, -0.56F, -0.22F) * dir;
+                weaponArm.xRot = Mth.lerp(e, -1.32F, -0.32F);
+                weaponArm.yRot = Mth.lerp(e, 1.24F, 0.18F) * dir;
+                weaponArm.zRot = Mth.lerp(e, 0.72F, 0.42F) * dir;
             } else {
-                // Phase 3: Smooth recovery back to neutral handlebar posture
-                float r = 0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI);
-                model.body.xRot = Mth.lerp(r, 0.34F, 0.28F);
-                model.body.yRot = Mth.lerp(r, -0.36F, 0.0F) * dir;
-                weaponArm.xRot = Mth.lerp(r, -0.78F, -1.15F);
-                weaponArm.yRot = Mth.lerp(r, 1.02F, -0.16F) * dir;
-                weaponArm.zRot = Mth.lerp(r, 0.70F, 0.05F) * dir;
+                // Phase 3b: Clean return to riding grip
+                float r = Mth.clamp((p - 0.86F) / 0.14F, 0.0F, 1.0F);
+                float e = r * r * (3.0F - 2.0F * r);
+                model.body.xRot = Mth.lerp(e, 0.06F, 0.28F);
+                model.body.yRot = Mth.lerp(e, -0.22F, 0.0F) * dir;
+                weaponArm.xRot = Mth.lerp(e, -0.32F, -0.94F);
+                weaponArm.yRot = Mth.lerp(e, 0.18F, -0.10F) * dir;
+                weaponArm.zRot = Mth.lerp(e, 0.42F, 0.10F) * dir;
             }
+        } else if (step == 8 && naT > 0) {
+            // Genshin Re-Mount catch-up: Steve hops up straddling the incoming bike, swings leg over saddle, and grabs handlebars
+            float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
+            if (p < 0.45F) {
+                float u = WindGliderRenderer.smoothStep01(p / 0.45F);
+                model.body.xRot = Mth.lerp(u, 0.08F, 0.16F);
+                model.body.yRot = Mth.lerp(u, -0.18F, -0.10F);
+                model.rightLeg.xRot = Mth.lerp(u, -0.18F, -0.26F);
+                model.rightLeg.zRot = Mth.lerp(u, 0.64F, 0.56F);
+                model.leftLeg.xRot = Mth.lerp(u, -0.88F, -0.74F);
+                model.leftLeg.zRot = -0.18F;
+                handleArm.xRot = Mth.lerp(u, -1.24F, -1.06F);
+                handleArm.zRot = Mth.lerp(u, -0.42F * dir, -0.18F * dir);
+                weaponArm.xRot = Mth.lerp(u, -1.24F, -1.06F);
+                weaponArm.zRot = Mth.lerp(u, 0.42F * dir, 0.18F * dir);
+            } else {
+                float u = WindGliderRenderer.smoothStep01((p - 0.45F) / 0.55F);
+                model.body.xRot = Mth.lerp(u, 0.16F, 0.28F);
+                model.body.yRot = Mth.lerp(u, -0.10F, 0.0F);
+                model.rightLeg.xRot = Mth.lerp(u, -0.26F, -0.52F);
+                model.rightLeg.zRot = Mth.lerp(u, 0.56F, 0.16F);
+                model.leftLeg.xRot = Mth.lerp(u, -0.74F, -0.52F);
+                model.leftLeg.zRot = Mth.lerp(u, -0.18F, -0.16F);
+                handleArm.xRot = Mth.lerp(u, -1.06F, -0.94F);
+                handleArm.zRot = Mth.lerp(u, -0.18F * dir, -0.10F * dir);
+                weaponArm.xRot = Mth.lerp(u, -1.06F, -0.94F);
+                weaponArm.zRot = Mth.lerp(u, 0.18F * dir, 0.10F * dir);
+            }
+            smoothBikeWeaponArm(entity.getId(), weaponArm);
+            return true;
         } else if (step == 7 && naT > 0) {
             // Hold E Mount 180-deg tail whip: counterbalance torso & sweep sword wide
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 10.0F));
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.MOUNT_TAIL_WHIP).durationTicks());
+            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / dur));
             float w = Mth.sin(s * (float) Math.PI);
             model.body.xRot = 0.28F - 0.08F * w;
             model.body.yRot = Mth.lerp(s, 0.32F, -0.28F) * w * dir;
@@ -389,46 +467,109 @@ public final class MavuikaVisualRenderer {
             weaponArm.yRot = Mth.lerp(s, -0.95F, 0.65F) * dir;
             weaponArm.zRot = Mth.lerp(s, -0.22F, 0.42F) * dir;
         } else if (step == 1 && naT > 0) {
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 10.0F));
-            model.body.yRot = Mth.lerp(s, 0.22F, -0.24F) * dir;
-            weaponArm.xRot = Mth.lerp(s, -2.25F, -0.45F);
-            weaponArm.yRot = Mth.lerp(s, -0.75F, 0.55F) * dir;
-            weaponArm.zRot = Mth.lerp(s, -0.18F, 0.35F) * dir;
+            // Genshin NA1: Lean out into sideways drift + wide right-to-left horizontal sweep
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.NA_1).durationTicks());
+            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / dur));
+            float w = Mth.sin(s * (float) Math.PI);
+            model.body.xRot = Mth.lerp(w, 0.28F, 0.14F);
+            model.body.yRot = Mth.lerp(s, 0.44F, -0.52F) * dir;
+            weaponArm.xRot = Mth.lerp(s, -1.55F, -1.05F);
+            weaponArm.yRot = Mth.lerp(s, -1.12F, 1.05F) * dir;
+            weaponArm.zRot = Mth.lerp(s, -0.22F, 0.68F) * dir;
         } else if (step == 2 && naT > 0) {
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 10.0F));
-            model.body.yRot = Mth.lerp(s, -0.26F, 0.28F) * dir;
-            weaponArm.xRot = Mth.lerp(s, -0.45F, -2.15F);
-            weaponArm.yRot = Mth.lerp(s, 0.55F, -0.75F) * dir;
-            weaponArm.zRot = Mth.lerp(s, 0.40F, -0.15F) * dir;
+            // Genshin NA2: Counter-spin tail whip + blazing left-to-right reverse sweep
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.NA_2).durationTicks());
+            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / dur));
+            model.body.xRot = 0.20F;
+            model.body.yRot = Mth.lerp(s, -0.52F, 0.56F) * dir;
+            weaponArm.xRot = Mth.lerp(s, -1.15F, -1.48F);
+            weaponArm.yRot = Mth.lerp(s, 1.15F, -1.10F) * dir;
+            weaponArm.zRot = Mth.lerp(s, 0.68F, -0.32F) * dir;
         } else if (step == 3 && naT > 0) {
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 10.0F));
-            model.body.yRot = Mth.lerp(s, 0.28F, -0.32F) * dir;
-            weaponArm.xRot = -1.35F;
-            weaponArm.yRot = Mth.lerp(s, -0.88F, 0.78F) * dir;
-            weaponArm.zRot = Mth.lerp(s, -0.20F, 0.55F) * dir;
+            // Genshin NA3: Front-wheelie stoppie brace -> rear-tire fire slam!
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.NA_3).durationTicks());
+            float p = Mth.clamp(1.0F - (naTf / dur), 0.0F, 1.0F);
+            float kick = p < 0.45F ? WindGliderRenderer.smoothStep01(p / 0.45F)
+                    : (p < 0.65F ? 1.0F - WindGliderRenderer.smoothStep01((p - 0.45F) / 0.20F) : 0.0F);
+            model.body.xRot = Mth.lerp(kick, 0.28F, 0.52F);
+            model.rightLeg.xRot = Mth.lerp(kick, -0.52F, 0.48F);
+            model.leftLeg.xRot = Mth.lerp(kick, -0.52F, 0.36F);
+            weaponArm.xRot = Mth.lerp(kick, -0.94F, -2.35F);
+            weaponArm.yRot = Mth.lerp(kick, -0.10F, -0.42F) * dir;
+            weaponArm.zRot = Mth.lerp(kick, 0.10F, 0.30F) * dir;
         } else if (step == 4 && naT > 0) {
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 10.0F));
-            model.body.xRot = Mth.lerp(s, 0.14F, 0.30F);
-            model.body.yRot = Mth.lerp(s, -0.22F, 0.24F) * dir;
-            weaponArm.xRot = Mth.lerp(s, -0.95F, -1.75F);
-            weaponArm.yRot = Mth.lerp(s, 0.75F, -0.82F) * dir;
-            weaponArm.zRot = Mth.lerp(s, 0.50F, -0.25F) * dir;
+            // Genshin NA4: High wheelie side-drift uppercut slash
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.NA_4).durationTicks());
+            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / dur));
+            model.body.xRot = Mth.lerp(s, 0.32F, 0.06F);
+            model.body.yRot = Mth.lerp(s, -0.45F, 0.48F) * dir;
+            weaponArm.xRot = Mth.lerp(s, -0.55F, -2.35F);
+            weaponArm.yRot = Mth.lerp(s, 0.92F, -0.88F) * dir;
+            weaponArm.zRot = Mth.lerp(s, 0.62F, -0.30F) * dir;
         } else if (step == 5 && naT > 0) {
-            float s = WindGliderRenderer.smoothStep01(1.0F - (naTf / 14.0F));
-            model.body.xRot = Mth.lerp(s, 0.12F, 0.34F);
-            weaponArm.xRot = Mth.lerp(s, -2.65F, -0.30F);
-            weaponArm.yRot = Mth.lerp(s, -0.60F, 0.35F) * dir;
-            weaponArm.zRot = Mth.lerp(s, -0.10F, 0.25F) * dir;
+            // Genshin NA5: Airborne 360-deg front-flip Superman trailing legs (Genshin 33.58s..33.75s) -> heavy slam!
+            float dur = Math.max(1.0F, (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.NA_5).durationTicks());
+            float p = Mth.clamp(1.0F - (naTf / dur), 0.0F, 1.0F);
+            float air = (p < 0.12F) ? (p / 0.12F)
+                    : (p < 0.46F ? 1.0F : (p < 0.56F ? 1.0F - ((p - 0.46F) / 0.10F) : 0.0F));
+            float airS = air * air * (3.0F - 2.0F * air);
+            model.body.xRot = Mth.lerp(airS, 0.28F, -0.36F);
+            model.rightLeg.xRot = Mth.lerp(airS, -0.52F, 1.18F);
+            model.leftLeg.xRot = Mth.lerp(airS, -0.52F, 0.96F);
+            model.rightLeg.zRot = Mth.lerp(airS, 0.16F, 0.24F);
+            model.leftLeg.zRot = Mth.lerp(airS, -0.16F, -0.24F);
+            handleArm.xRot = Mth.lerp(airS, -0.94F, -1.72F);
+            weaponArm.xRot = Mth.lerp(airS, -0.94F, -1.72F);
+            weaponArm.yRot = Mth.lerp(airS, -0.10F, -0.18F) * dir;
+            weaponArm.zRot = Mth.lerp(airS, 0.10F, 0.16F) * dir;
         } else {
             weaponArm.xRot = -0.94F;
             weaponArm.yRot = -0.10F * dir;
             weaponArm.zRot = 0.10F * dir;
+            // Genshin stopped UX: plant the foot on the leaned side onto the ground while both hands stay on handlebars
+            float idleStop = bike.getIdleStopBlend(pt);
+            if (idleStop > 0.005F) {
+                float side = bike.getIdleStopSide();
+                ModelPart braceLeg = (side > 0.0F) ? model.rightLeg : model.leftLeg;
+                braceLeg.xRot = Mth.lerp(idleStop, -0.52F, 0.06F);
+                braceLeg.zRot = Mth.lerp(idleStop, 0.16F * side, 0.34F * side);
+                braceLeg.yRot = Mth.lerp(idleStop, 0.26F * side, 0.14F * side);
+                braceLeg.y += 0.65F * idleStop;
+                model.body.zRot = -0.05F * side * idleStop;
+            } else {
+                model.body.zRot = 0.0F;
+            }
         }
         smoothBikeWeaponArm(entity.getId(), weaponArm);
         return true;
     }
 
     public static boolean applyBurstHumanoidAnimation(LivingEntity entity, HumanoidModel<?> model, int activeAnim, float t) {
+        if (activeAnim == ClientAuraTracker.ANIM_MAVUIKA_DISMOUNT) {
+            // Genshin smooth aerial vault dismount: push off saddle, stylish midair side-kick, controlled soft landing
+            float rise = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.28F));
+            float descend = (t < 0.28F) ? 0.0F : WindGliderRenderer.smoothStep01(Math.min(1.0F, (t - 0.28F) / 0.42F));
+            float blendOut = (t < 0.72F) ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.72F) / 0.28F);
+            float bodyX = (t < 0.28F) ? Mth.lerp(rise, 0.20F, -0.14F) : Mth.lerp(descend, -0.14F, 0.10F);
+            float bodyY = (t < 0.28F) ? Mth.lerp(rise, 0.0F, -0.22F) : Mth.lerp(descend, -0.22F, 0.0F);
+            float rLegX = (t < 0.28F) ? Mth.lerp(rise, -0.50F, 0.54F) : Mth.lerp(descend, 0.54F, 0.04F);
+            float rLegZ = (t < 0.28F) ? Mth.lerp(rise, 0.18F, 0.36F) : Mth.lerp(descend, 0.36F, 0.04F);
+            float lLegX = (t < 0.28F) ? Mth.lerp(rise, -0.50F, -0.64F) : Mth.lerp(descend, -0.64F, -0.04F);
+            float lLegZ = (t < 0.28F) ? Mth.lerp(rise, -0.18F, -0.22F) : Mth.lerp(descend, -0.22F, -0.04F);
+            float armX = (t < 0.28F) ? Mth.lerp(rise, -0.90F, -0.44F) : Mth.lerp(descend, -0.44F, -0.08F);
+            float armZ = (t < 0.28F) ? Mth.lerp(rise, 0.14F, 0.88F) : Mth.lerp(descend, 0.88F, 0.14F);
+            model.body.xRot = Mth.lerp(blendOut, model.body.xRot, bodyX);
+            model.body.yRot = Mth.lerp(blendOut, model.body.yRot, bodyY);
+            model.rightLeg.xRot = Mth.lerp(blendOut, model.rightLeg.xRot, rLegX);
+            model.rightLeg.zRot = Mth.lerp(blendOut, model.rightLeg.zRot, rLegZ);
+            model.leftLeg.xRot = Mth.lerp(blendOut, model.leftLeg.xRot, lLegX);
+            model.leftLeg.zRot = Mth.lerp(blendOut, model.leftLeg.zRot, lLegZ);
+            model.rightArm.xRot = Mth.lerp(blendOut, model.rightArm.xRot, armX);
+            model.rightArm.zRot = Mth.lerp(blendOut, model.rightArm.zRot, armZ);
+            model.leftArm.xRot = Mth.lerp(blendOut, model.leftArm.xRot, armX);
+            model.leftArm.zRot = Mth.lerp(blendOut, model.leftArm.zRot, -armZ);
+            return true;
+        }
         if (activeAnim != ClientAuraTracker.ANIM_MAVUIKA_BURST) return false;
         HumanoidArm arm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS);
         float dir = (arm == HumanoidArm.RIGHT) ? 1.0F : -1.0F;
@@ -489,28 +630,40 @@ public final class MavuikaVisualRenderer {
         if (ultiT <= 0 && naT > 0 && !bike.isSpinning() && !bike.isPlunging()) {
             float pt = Minecraft.getInstance().getFrameTime();
             int step = bike.getActiveNaStep();
-            float total = (step == 6 || step == 5) ? 14.0F : 10.0F;
-            float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(pt) / total), 0.0F, 1.0F);
+            float total = (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.fromNaStep(step)).durationTicks();
+            float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(pt) / Math.max(1.0F, total)), 0.0F, 1.0F);
             if (step == 6) {
                 float p = bike.getFinisherProgress(pt);
-                if (p < 0.36F) {
-                    float w = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
-                    poseStack.translate(Mth.lerp(w, 0.04F, 0.0F) * sign, Mth.lerp(w, -0.04F, 0.14F), Mth.lerp(w, -0.12F, -0.10F));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -20.0F, -34.0F)));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(w, 64.0F, 76.0F) * sign));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(w, -24.0F, -26.0F) * sign));
-                } else if (p < 0.72F) {
-                    float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.36F) * (float) Math.PI);
-                    poseStack.translate(0.0F, Mth.lerp(s, 0.14F, -0.04F), Mth.lerp(s, -0.10F, -0.16F));
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -34.0F, -48.0F)));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(s, 76.0F, 80.0F) * sign));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -26.0F, 28.0F) * sign));
+                if (p < 0.37F) {
+                    // Sword points skyward/diagonally UP along raised arms (no horizontal bar behind neck!)
+                    float u = p / 0.37F;
+                    float w = 1.0F - (1.0F - u) * (1.0F - u);
+                    poseStack.translate(Mth.lerp(w, 0.04F, 0.0F) * sign, Mth.lerp(w, -0.04F, 0.08F), Mth.lerp(w, -0.12F, -0.06F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(w, -20.0F, -10.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(w, 52.0F, 12.0F) * sign));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(w, -24.0F, -8.0F) * sign));
+                } else if (p < 0.52F) {
+                    // Wide horizontal LEFT-to-RIGHT blade sweep parallel to ground
+                    float u = (p - 0.37F) / 0.15F;
+                    float s = u * u;
+                    poseStack.translate(0.0F, Mth.lerp(s, 0.08F, -0.04F), Mth.lerp(s, -0.06F, -0.14F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s, -10.0F, -22.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(s, 12.0F, 82.0F) * sign));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(s, -42.0F, 52.0F) * sign));
+                } else if (p < 0.86F) {
+                    // Plant Claymore tip straight down toward ground during 58-deg sideways wheelie
+                    float u = Mth.clamp((p - 0.52F) / 0.14F, 0.0F, 1.0F);
+                    float e = 1.0F - (1.0F - u) * (1.0F - u);
+                    poseStack.translate(0.0F, Mth.lerp(e, -0.04F, -0.12F), Mth.lerp(e, -0.14F, -0.06F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(e, -22.0F, 24.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.lerp(e, 82.0F, 18.0F) * sign));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(Mth.lerp(e, 52.0F, 10.0F) * sign));
                 } else {
-                    float r = 1.0F - (0.5F - 0.5F * Mth.cos(((p - 0.72F) / 0.28F) * (float) Math.PI));
-                    poseStack.translate(0.0F, -0.04F * r, -0.16F * r);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-48.0F * r));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(80.0F * sign * r));
-                    poseStack.mulPose(Axis.YP.rotationDegrees(28.0F * sign * r));
+                    float r = 1.0F - Mth.clamp((p - 0.86F) / 0.14F, 0.0F, 1.0F);
+                    poseStack.translate(0.0F, -0.12F * r, -0.06F * r);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(24.0F * r));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(18.0F * sign * r));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(10.0F * sign * r));
                 }
             } else if (step == 3 || step == 4 || step == 7) {
                 float dirSign = (step == 3 ? -1.0F : 1.0F) * sign;
@@ -656,14 +809,15 @@ public final class MavuikaVisualRenderer {
             }
             if (naT > 0) {
                 int step = bike.getActiveNaStep();
-                float total = (step == 6 || step == 5) ? 14.0F : 10.0F;
-                float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(partialTicks) / total), 0.0F, 1.0F);
+                float total = (float) com.velorise.staves.fsm.BikeFrameData.get(com.velorise.staves.fsm.BikeActionState.fromNaStep(step)).durationTicks();
+                float nt = Mth.clamp(1.0F - (bike.getSmoothNaTicks(partialTicks) / Math.max(1.0F, total)), 0.0F, 1.0F);
                 float w = Mth.sin(nt * (float) Math.PI);
                 if (step == 6) {
                     float p = bike.getFinisherProgress(partialTicks);
-                    if (p < 0.36F) {
-                        // Continuous lift from Donut Spin posture to overhead windup apex
-                        float lift = 0.5F - 0.5F * Mth.cos((p / 0.36F) * (float) Math.PI);
+                    if (p < 0.37F) {
+                        // Continuous lift from Donut Spin posture to overhead windup apex (p = 0.28)
+                        float u = p / 0.37F;
+                        float lift = 1.0F - (1.0F - u) * (1.0F - u);
                         poseStack.translate(
                                 dir * Mth.lerp(lift, 0.14F, -0.32F),
                                 Mth.lerp(lift, -0.12F, 0.36F),
@@ -672,9 +826,10 @@ public final class MavuikaVisualRenderer {
                         poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(lift, -24.0F, -28.0F)));
                         poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(lift, 54.0F, 68.0F)));
                         poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(lift, 12.0F, 16.0F)));
-                    } else if (p < 0.76F) {
-                        // Unbroken diagonal-overhead cleave slam across the screen
-                        float s = 0.5F - 0.5F * Mth.cos(((p - 0.36F) / 0.40F) * (float) Math.PI);
+                    } else if (p < 0.52F) {
+                        // Accelerated diagonal-overhead cleave slam hitting right at hitmark (p = 0.48, tick 12)
+                        float u = (p - 0.37F) / 0.15F;
+                        float s = u * u;
                         poseStack.translate(
                                 dir * Mth.lerp(s, -0.32F, 0.40F),
                                 Mth.lerp(s, 0.36F, -0.20F),
@@ -684,8 +839,8 @@ public final class MavuikaVisualRenderer {
                         poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s, 68.0F, -74.0F)));
                         poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(s, 16.0F, -22.0F)));
                     } else {
-                        // Smooth follow-through fade
-                        float r = 1.0F - (0.5F - 0.5F * Mth.cos(((p - 0.76F) / 0.24F) * (float) Math.PI));
+                        // Smooth follow-through fade (0.48 -> 1.00)
+                        float r = 1.0F - (0.5F - 0.5F * Mth.cos(((p - 0.52F) / 0.48F) * (float) Math.PI));
                         poseStack.translate(dir * 0.40F * r, -0.20F * r, -0.24F * r);
                         poseStack.mulPose(Axis.XP.rotationDegrees(-54.0F * r));
                         poseStack.mulPose(Axis.ZP.rotationDegrees(-dir * 74.0F * r));
@@ -766,9 +921,9 @@ public final class MavuikaVisualRenderer {
             Vec3 forwardBowDir = horizChord.lengthSqr() > 1.0E-4D
                     ? new Vec3(0.0D, 1.0D, 0.0D).cross(horizChord).normalize().scale(bowSign)
                     : new Vec3(0.0D, 0.0D, 1.0D);
-            double arcScale = isUlti ? 1.0D : (isFinisher ? 0.66D : 0.42D);
-            double fadeScale = (1.15D - prog * 0.35D) * arcScale;
-            double bowOffset = isUlti ? 0.34D : (isFinisher ? 0.32D : 0.28D);
+            double arcScale = isUlti ? 1.48D : (isFinisher ? 1.08D : 0.48D);
+            double fadeScale = (1.18D - prog * 0.32D) * arcScale;
+            double bowOffset = isUlti ? 0.44D : (isFinisher ? 0.42D : 0.28D);
             int segs = 16;
             Vec3[] pts = new Vec3[segs + 1];
             for (int i = 0; i <= segs; i++) {
