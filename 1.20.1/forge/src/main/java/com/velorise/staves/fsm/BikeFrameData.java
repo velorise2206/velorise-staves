@@ -37,12 +37,12 @@ public final class BikeFrameData {
         SPECS.put(BikeActionState.WALL_CLIMB, free);
         SPECS.put(BikeActionState.WALL_CREST, new FrameSpec(6, -1, 0, 4, 4, 4, 4, 0));
 
-        // Flamestrider Normal Attacks (gcsim 60 FPS / 3 -> 20 TPS)
-        SPECS.put(BikeActionState.NA_1, new FrameSpec(9,  4, 2, 4, 4, 6, 6, 0));
-        SPECS.put(BikeActionState.NA_2, new FrameSpec(11, 5, 2, 5, 5, 7, 7, 0));
-        SPECS.put(BikeActionState.NA_3, new FrameSpec(12, 6, 1, 6, 6, 8, 8, 0));
-        SPECS.put(BikeActionState.NA_4, new FrameSpec(10, 5, 1, 5, 5, 7, 7, 0));
-        SPECS.put(BikeActionState.NA_5, new FrameSpec(23, 12, 0, 12, 12, 18, 16, 0));
+        // Flamestrider Normal Attacks (Genshin 48fps -> 20 TPS, separating naCancelTick from full follow-through recovery)
+        SPECS.put(BikeActionState.NA_1, new FrameSpec(22, 5,  2, 5,  5,  11, 11, 0));
+        SPECS.put(BikeActionState.NA_2, new FrameSpec(24, 7,  2, 7,  7,  14, 14, 0));
+        SPECS.put(BikeActionState.NA_3, new FrameSpec(22, 7,  1, 7,  7,  14, 14, 0));
+        SPECS.put(BikeActionState.NA_4, new FrameSpec(20, 4,  1, 4,  4,  10, 10, 0));
+        SPECS.put(BikeActionState.NA_5, new FrameSpec(28, 12, 0, 12, 12, 18, 16, 0));
 
         // Hold E mount tail whip & Re-mount catch-up
         SPECS.put(BikeActionState.MOUNT_TAIL_WHIP, new FrameSpec(10, 5, 1, 5, 5, 8, 8, 0));
@@ -67,7 +67,7 @@ public final class BikeFrameData {
         SPECS.put(BikeActionState.DASH_CHARGE_CANCEL, new FrameSpec(7, 2, 0, -1, 3, 5, 2, 0));
 
         // Crucible of Death and Life Burst
-        SPECS.put(BikeActionState.ULTI_BURST, new FrameSpec(30, 22, 0, 22, 22, 22, 22, 30));
+        SPECS.put(BikeActionState.ULTI_BURST, new FrameSpec(40, 24, 0, 32, 32, 32, 32, 40));
     }
 
     public static FrameSpec get(BikeActionState state) {

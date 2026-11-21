@@ -88,6 +88,68 @@ public abstract class CameraMixin {
                 this.setPosition(camPos.x, camPos.y + liftY, camPos.z);
             }
         }
+        if (detached && entity != null
+                && entity.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity ultiBike
+                && ultiBike.getUltiTicks() > 0) {
+            // Smooth panoramic 3rd-person zoom-out (4m -> ~10.2m) + gentle vertical focus lift during 40-tick Mavuika Ultimate
+            float tUlti = net.minecraft.util.Mth.clamp(
+                    40.0F - Math.max(0.0F, (float) ultiBike.getUltiTicks() - partialTick), 0.0F, 40.0F);
+            float zoomW;
+            if (tUlti < 6.0F) {
+                float u = tUlti / 6.0F;
+                zoomW = u * u * (3.0F - 2.0F * u);
+            } else if (tUlti < 33.0F) {
+                zoomW = 1.0F;
+            } else {
+                float u = (40.0F - tUlti) / 7.0F;
+                zoomW = u * u * (3.0F - 2.0F * u);
+            }
+            double liftY;
+            if (tUlti < 14.0F) {
+                float u = tUlti / 14.0F;
+                liftY = (1.0F - (1.0F - u) * (1.0F - u)) * 2.10D;
+            } else if (tUlti < 24.0F) {
+                float u = (tUlti - 14.0F) / 10.0F;
+                liftY = net.minecraft.util.Mth.lerp(u * u * (3.0F - 2.0F * u), 2.10D, 0.55D);
+            } else if (tUlti < 33.0F) {
+                liftY = 0.55D;
+            } else {
+                float u = (40.0F - tUlti) / 7.0F;
+                liftY = (u * u * (3.0F - 2.0F * u)) * 0.55D;
+            }
+            if (zoomW > 0.001F || liftY > 0.001D) {
+                double px = net.minecraft.util.Mth.lerp(partialTick, entity.xo, entity.getX());
+                double py = net.minecraft.util.Mth.lerp(partialTick, entity.yo, entity.getY()) + entity.getEyeHeight();
+                double pz = net.minecraft.util.Mth.lerp(partialTick, entity.zo, entity.getZ());
+                net.minecraft.world.phys.Vec3 eyePos = new net.minecraft.world.phys.Vec3(px, py, pz);
+                net.minecraft.world.phys.Vec3 curPos = this.getPosition();
+                net.minecraft.world.phys.Vec3 backDir = curPos.subtract(eyePos);
+                double curDist = backDir.length();
+                net.minecraft.world.phys.Vec3 targetPos = curDist > 1.0E-4D
+                        ? curPos.add(backDir.scale((6.20D * zoomW) / curDist)).add(0.0D, liftY, 0.0D)
+                        : curPos.add(0.0D, liftY, 0.0D);
+                if (level instanceof net.minecraft.world.level.Level lvl) {
+                    net.minecraft.world.phys.BlockHitResult hit = lvl.clip(new net.minecraft.world.level.ClipContext(
+                            eyePos, targetPos,
+                            net.minecraft.world.level.ClipContext.Block.VISUAL,
+                            net.minecraft.world.level.ClipContext.Fluid.NONE,
+                            entity
+                    ));
+                    if (hit.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+                        net.minecraft.world.phys.Vec3 hitLoc = hit.getLocation();
+                        net.minecraft.world.phys.Vec3 dir = targetPos.subtract(eyePos);
+                        double len = dir.length();
+                        if (len > 1.0E-4D) {
+                            double safeDist = Math.max(0.35D, hitLoc.distanceTo(eyePos) - 0.22D);
+                            targetPos = eyePos.add(dir.scale(safeDist / len));
+                        } else {
+                            targetPos = hitLoc;
+                        }
+                    }
+                }
+                this.setPosition(targetPos.x, targetPos.y, targetPos.z);
+            }
+        }
         if (detached && !thirdPersonReverse && entity != null) {
             float vfW = com.velorise.staves.client.character.NahidaVisualRenderer.getViewfinderFade(entity);
             long nowNs = System.nanoTime();

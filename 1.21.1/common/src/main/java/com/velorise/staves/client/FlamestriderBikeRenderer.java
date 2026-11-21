@@ -55,6 +55,12 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
         }
         int ultiT = entity.getUltiTicks();
         int naT = entity.getActiveNaTicks();
+        float ultiVis = com.velorise.staves.fsm.BikePoseBlender.getUltiBikeVisibility(ultiT, partialTicks);
+        if (ultiT > 0 && ultiVis <= 0.01F) {
+            poseStack.popPose();
+            super.render(entity, entityYaw, partialTicks, poseStack, bufferSource, packedLight);
+            return;
+        }
         applyActionTransforms(entity, ultiT, naT, partialTicks, poseStack);
 
         float frontWheelSpin = Mth.lerp(partialTicks, entity.prevFrontWheelSpinAngle, entity.frontWheelSpinAngle);
@@ -67,6 +73,10 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             float dt = Mth.clamp((dismountT - partialTicks) / 9.0F, 0.0F, 1.0F);
             bikeAlpha = dt * dt;
             float sc = Mth.lerp(dt, 0.84F, 1.0F);
+            poseStack.scale(sc, sc, sc);
+        } else if (ultiT > 0 && ultiVis < 0.999F) {
+            bikeAlpha = ultiVis;
+            float sc = Mth.lerp(ultiVis, 0.55F, 1.0F);
             poseStack.scale(sc, sc, sc);
         } else if (entity.getActiveNaStep() == 8 && naT > 0) {
             float p = Mth.clamp(1.0F - (entity.getSmoothNaTicks(partialTicks) / 10.0F), 0.0F, 1.0F);
@@ -364,7 +374,27 @@ public class FlamestriderBikeRenderer extends EntityRenderer<FlamestriderBikeEnt
             poseStack.mulPose(Axis.ZP.rotationDegrees(spinLean));
         }
 
-        if (bike.getActiveNaStep() == 8 && naT > 0) {
+        if (ultiT > 0) {
+            // Detached 40-tick Co-op Ultimate rider transform: launches with bike -> ejects mid-air -> meteor dives -> lands on re-summoned sideways wheelie!
+            com.velorise.staves.fsm.BikePoseBlender.BikePoseSnapshot rPose =
+                    new com.velorise.staves.fsm.BikePoseBlender.BikePoseSnapshot();
+            com.velorise.staves.fsm.BikePoseBlender.evalUltiRiderPose(ultiT, partialTicks, rPose);
+            if (Math.abs(rPose.offsetX) > 0.0001F || Math.abs(rPose.offsetY) > 0.0001F || Math.abs(rPose.offsetZ) > 0.0001F) {
+                poseStack.translate(rPose.offsetX, rPose.offsetY, rPose.offsetZ);
+            }
+            if (Math.abs(rPose.yawDeg) > 0.001F) poseStack.mulPose(Axis.YP.rotationDegrees(rPose.yawDeg));
+            if (Math.abs(rPose.pitchDeg) > 0.001F) poseStack.mulPose(Axis.XP.rotationDegrees(rPose.pitchDeg));
+            if (Math.abs(rPose.rollDeg) > 0.001F) poseStack.mulPose(Axis.ZP.rotationDegrees(rPose.rollDeg));
+            // Keep Steve's torso upright during the iconic -36 deg sideways wheelie hold (T25..T38)
+            float tElapsed = Mth.clamp(40.0F - Math.max(0.0F, (float) ultiT - partialTicks), 0.0F, 40.0F);
+            if (tElapsed >= 25.0F && tElapsed < 39.0F) {
+                float wWheelie = tElapsed < 27.0F ? (tElapsed - 25.0F) / 2.0F
+                        : (tElapsed < 34.0F ? 1.0F : 1.0F - (tElapsed - 34.0F) / 5.0F);
+                wWheelie = Mth.clamp(wWheelie, 0.0F, 1.0F);
+                poseStack.translate(0.0D, 0.08D * wWheelie, 0.0D);
+                poseStack.mulPose(Axis.XP.rotationDegrees(26.0F * wWheelie));
+            }
+        } else if (bike.getActiveNaStep() == 8 && naT > 0) {
             // During Re-Mount catch-up, keep rider centered while the bike rushes from -2.4m behind to scoop them up
             float p = Mth.clamp(1.0F - (bike.getSmoothNaTicks(partialTicks) / 10.0F), 0.0F, 1.0F);
             float hopY = p < 0.60F ? Mth.sin((p / 0.60F) * (float) Math.PI) * 0.34F

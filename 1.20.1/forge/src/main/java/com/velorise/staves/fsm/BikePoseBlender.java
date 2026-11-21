@@ -103,6 +103,9 @@ public final class BikePoseBlender {
         // Fast stiffness during high-speed flips/bursts so arc fidelity is 100% crisp,
         // softer damping when settling back to IDLE/DRIVE/GLIDE or dash-canceling.
         boolean snapArc = (state == BikeActionState.ULTI_BURST
+                || state == BikeActionState.NA_2
+                || state == BikeActionState.NA_3
+                || state == BikeActionState.NA_4
                 || state == BikeActionState.NA_5
                 || state == BikeActionState.CA_SPIN_FINISHER
                 || state == BikeActionState.MOUNT_TAIL_WHIP
@@ -116,12 +119,25 @@ public final class BikePoseBlender {
 
         float dt = PoseBlender.clampDtSeconds(nowNanos, current.lastUpdateNanos);
         current.lastUpdateNanos = nowNanos;
-        float stiffness = state.isCombatState() ? 32.0F : 18.0F;
+        boolean stateChanged = current.lastState != state;
+        if (stateChanged) {
+            // Normalize wrapped yaw/pitch on state boundary so 360-deg spins seamlessly connect to 0 deg without unwinding backward
+            current.yawDeg = Mth.wrapDegrees(current.yawDeg);
+            current.pitchDeg = Mth.wrapDegrees(current.pitchDeg);
+            if (state == BikeActionState.NA_4 && current.yawDeg > 0.0F) {
+                current.yawDeg -= 360.0F;
+            }
+        }
+        float stiffness = state.isCombatState() ? 26.0F : 14.0F;
         current.offsetX = PoseBlender.damp(current.offsetX, target.offsetX, stiffness, dt);
         current.offsetY = PoseBlender.damp(current.offsetY, target.offsetY, stiffness, dt);
         current.offsetZ = PoseBlender.damp(current.offsetZ, target.offsetZ, stiffness, dt);
         current.pitchDeg = PoseBlender.damp(current.pitchDeg, target.pitchDeg, stiffness, dt);
-        current.yawDeg = PoseBlender.damp(current.yawDeg, target.yawDeg, stiffness, dt);
+        if (state.isCombatState()) {
+            current.yawDeg = PoseBlender.damp(current.yawDeg, target.yawDeg, stiffness, dt);
+        } else {
+            current.yawDeg = PoseBlender.dampAngleDeg(current.yawDeg, target.yawDeg, stiffness, dt);
+        }
         current.rollDeg = PoseBlender.damp(current.rollDeg, target.rollDeg, stiffness, dt);
         current.pivotZ = PoseBlender.damp(current.pivotZ, target.pivotZ, stiffness, dt);
         current.lastState = state;
@@ -155,119 +171,277 @@ public final class BikePoseBlender {
         }
     }
 
+    /**
+     * Evaluates the Flamestrider bike's 40-tick Genshin Co-op Ultimate pose:
+     * - T00..T08: Sky launch (+4.8m Y, +1.8m forward Z, -38 deg nose-up toward sun)
+     * - T08..T14: Bike separates from leaping rider and rockets forward-up (+7.2m Y, +6.5m Z) while fading out
+     * - T14..T25: Bike hidden (scale = 0 in FlamestriderBikeRenderer)
+     * - T25..T34: Re-summoned directly under Steve in iconic sideways wheelie (+68 deg yaw LEFT, -36 deg nose-up, +12 deg roll)
+     * - T34..T40: Smooth wheelie touchdown back to 0 deg
+     */
     private static void evalUltiPose(int ultiT, float partialTicks, BikePoseSnapshot out) {
         float u = Math.max(0.0F, (float) ultiT - partialTicks);
-        if (u > 8.0F) {
-            if (u >= 19.0F) {
-                // Half 1 (u: 30.0 -> 19.0): steady climb + 180-deg half-donut spin behind/beside rider
-                float p1 = Mth.clamp((30.0F - u) / 11.0F, 0.0F, 1.0F);
-                float s1 = p1 * p1 * (3.0F - 2.0F * p1);
-                float theta = s1 * (float) Math.PI;
-                out.offsetX = Mth.sin(theta) * 1.15F;
-                out.offsetY = p1 * 0.85F;
-                out.offsetZ = -(1.0F - Mth.cos(theta)) * 0.55F;
-                out.yawDeg = -s1 * 180.0F;
-                out.rollDeg = -Mth.sin(theta) * 32.0F;
-                out.pitchDeg = -Mth.sin(theta) * 20.0F;
-            } else {
-                // Half 2 (u: 19.0 -> 8.0): complete loop 180 -> 360 deg forward, descend, and cleave at touchdown
-                float p2 = Mth.clamp((19.0F - u) / 11.0F, 0.0F, 1.0F);
-                float s2 = p2 * p2 * (3.0F - 2.0F * p2);
-                float theta = (float) Math.PI * (1.0F + s2);
-                out.offsetX = Mth.sin(theta) * 1.15F;
-                out.offsetY = (1.0F - p2 * p2) * 0.85F;
-                out.offsetZ = -(1.0F - Mth.cos(theta)) * 0.55F;
-                out.yawDeg = -180.0F - s2 * 180.0F;
-                out.rollDeg = Mth.sin(s2 * (float) Math.PI) * 28.0F;
-                out.pitchDeg = Mth.sin(s2 * (float) Math.PI) * 22.0F;
-            }
+        float t = Mth.clamp(40.0F - u, 0.0F, 40.0F);
+        if (t < 8.0F) {
+            float e = easeOutQuad(t / 8.0F);
+            out.offsetY = e * 4.80F;
+            out.offsetZ = e * 1.80F;
+            out.pitchDeg = Mth.lerp(e, 0.0F, -38.0F);
+        } else if (t < 14.0F) {
+            float e = (t - 8.0F) / 6.0F;
+            out.offsetY = Mth.lerp(e, 4.80F, 7.20F);
+            out.offsetZ = Mth.lerp(e, 1.80F, 6.50F);
+            out.pitchDeg = Mth.lerp(e, -38.0F, -44.0F);
+        } else if (t < 25.0F) {
+            // Hidden mid-air while Steve meteor-dives and cleaves
+            out.offsetY = 0.0F;
+            out.offsetZ = 0.0F;
+            out.yawDeg = 68.0F;
+            out.pitchDeg = -36.0F;
+            out.rollDeg = 12.0F;
+        } else if (t < 34.0F) {
+            // Re-summoned iconic sideways wheelie hold (nose LEFT +68 deg, nose-up -36 deg, roll +12 deg)
+            float settle = t < 27.0F ? easeOutCubic((t - 25.0F) / 2.0F) : 1.0F;
+            out.offsetY = Mth.lerp(settle, 0.04F, 0.18F);
+            out.offsetZ = 0.0F;
+            out.yawDeg = 68.0F;
+            out.pitchDeg = Mth.lerp(settle, -18.0F, -36.0F);
+            out.rollDeg = Mth.lerp(settle, 6.0F, 12.0F);
         } else {
-            float rec = Mth.clamp(u / 8.0F, 0.0F, 1.0F);
-            out.offsetZ = rec * 0.25F;
-            out.rollDeg = rec * 14.0F;
-            out.pitchDeg = rec * 8.0F;
+            float e = easeInOutSine((t - 34.0F) / 6.0F);
+            out.offsetY = Mth.lerp(e, 0.18F, 0.0F);
+            out.offsetZ = 0.0F;
+            out.yawDeg = Mth.lerp(e, 68.0F, 0.0F);
+            out.pitchDeg = Mth.lerp(e, -36.0F, 0.0F);
+            out.rollDeg = Mth.lerp(e, 12.0F, 0.0F);
         }
     }
 
+    /**
+     * Evaluates the detached rider (Steve/Mavuika) transform during the 40-tick Ultimate:
+     * - T00..T08: Rides the launching bike up to +4.8m
+     * - T08..T14: Ejects off bike at sky apex (+5.2m) while bike flies away
+     * - T14..T22: Vertical meteor dive straight down to +0.35m & windup
+     * - T22..T25: Ground-skimming 360-deg Sunfell Slice cleave
+     * - T25..T40: Reunited with re-summoned bike in sideways wheelie hold -> touchdown
+     */
+    public static void evalUltiRiderPose(int ultiT, float partialTicks, BikePoseSnapshot out) {
+        out.zero();
+        float u = Math.max(0.0F, (float) ultiT - partialTicks);
+        float t = Mth.clamp(40.0F - u, 0.0F, 40.0F);
+        if (t < 8.0F) {
+            evalUltiPose(ultiT, partialTicks, out);
+        } else if (t < 14.0F) {
+            float e = easeOutQuad((t - 8.0F) / 6.0F);
+            out.offsetY = Mth.lerp(e, 4.80F, 5.20F);
+            out.offsetZ = Mth.lerp(e, 1.80F, 1.05F);
+            out.pitchDeg = Mth.lerp(e, -28.0F, 12.0F);
+        } else if (t < 19.0F) {
+            float e = easeInQuad((t - 14.0F) / 5.0F);
+            out.offsetY = Mth.lerp(e, 5.20F, 0.85F);
+            out.offsetZ = Mth.lerp(e, 1.05F, 0.15F);
+            out.pitchDeg = Mth.lerp(e, 12.0F, 22.0F);
+        } else if (t < 22.0F) {
+            float e = easeOutCubic((t - 19.0F) / 3.0F);
+            out.offsetY = Mth.lerp(e, 0.85F, 0.32F);
+            out.offsetZ = Mth.lerp(e, 0.15F, 0.0F);
+            out.pitchDeg = Mth.lerp(e, 22.0F, 4.0F);
+            out.yawDeg = Mth.lerp(e, 0.0F, -24.0F);
+        } else if (t < 25.0F) {
+            float e = easeOutCubic((t - 22.0F) / 3.0F);
+            out.offsetY = Mth.lerp(e, 0.32F, 0.04F);
+            out.pitchDeg = Mth.lerp(e, 4.0F, 0.0F);
+            out.yawDeg = Mth.lerp(e, -24.0F, 68.0F);
+        } else {
+            evalUltiPose(ultiT, partialTicks, out);
+        }
+    }
+
+    public static float getUltiBikeVisibility(int ultiT, float partialTicks) {
+        if (ultiT <= 0) return 1.0F;
+        float t = Mth.clamp(40.0F - Math.max(0.0F, (float) ultiT - partialTicks), 0.0F, 40.0F);
+        if (t < 10.0F) return 1.0F;
+        if (t < 13.5F) return Mth.clamp(1.0F - (t - 10.0F) / 3.5F, 0.0F, 1.0F);
+        if (t < 25.0F) return 0.0F;
+        if (t < 27.0F) return Mth.clamp((t - 25.0F) / 2.0F, 0.0F, 1.0F);
+        return 1.0F;
+    }
+
+    private static float easeInQuad(float u) {
+        return u * u;
+    }
+
+    private static float easeOutQuad(float u) {
+        float inv = 1.0F - u;
+        return 1.0F - inv * inv;
+    }
+
+    private static float easeOutCubic(float u) {
+        float inv = 1.0F - u;
+        return 1.0F - inv * inv * inv;
+    }
+
+    private static float easeInCubic(float u) {
+        return u * u * u;
+    }
+
+    private static float easeInOutSine(float u) {
+        return 0.5F - 0.5F * Mth.cos(u * (float) Math.PI);
+    }
+
     private static void evalNaPose(int step, float naTf, BikePoseSnapshot out) {
+        // Minecraft Axis.YP sign convention: +yawDeg turns nose LEFT (CCW from above), -yawDeg turns nose RIGHT (CW from above).
         if (step == 1) {
-            // Genshin NA1 (9t): Aggressive sideways drift left (-62 deg) with wide right-to-left cleave
-            float p = Mth.clamp(1.0F - (naTf / 9.0F), 0.0F, 1.0F);
-            float swing = Mth.sin(p * (float) Math.PI);
-            float s = p * p * (3.0F - 2.0F * p);
-            out.offsetY = swing * 0.18F;
-            out.offsetZ = swing * 0.22F;
-            out.yawDeg = Mth.lerp(s, 14.0F, -62.0F) * swing;
-            out.rollDeg = -24.0F * swing;
-            out.pitchDeg = -10.0F * swing;
-        } else if (step == 2) {
-            // Genshin NA2 (11t): 180-deg counter-spin tail whip around front tire (+68 deg) carving horizontal slash
-            float p = Mth.clamp(1.0F - (naTf / 11.0F), 0.0F, 1.0F);
-            float s = p * p * (3.0F - 2.0F * p);
-            float swing = Mth.sin(p * (float) Math.PI);
-            out.pivotZ = 0.62F;
-            out.offsetY = swing * 0.20F;
-            out.yawDeg = Mth.lerp(s, -58.0F, 68.0F) * swing;
-            out.rollDeg = 28.0F * swing;
-            out.pitchDeg = -12.0F * swing;
-        } else if (step == 3) {
-            // Genshin NA3 (12t): Vertical front-wheelie stoppie (tail kicks +54 deg high!) -> heavy rear-tire fire slam!
-            float p = Mth.clamp(1.0F - (naTf / 12.0F), 0.0F, 1.0F);
-            if (p < 0.42F) {
-                float u = p / 0.42F;
-                float e = 1.0F - (1.0F - u) * (1.0F - u);
-                out.offsetY = e * 0.42F;
-                out.offsetZ = e * 0.16F;
-                out.pitchDeg = e * 54.0F; // nose down, rear tire kicked high!
-                out.rollDeg = -10.0F * e;
-            } else if (p < 0.60F) {
-                float u = (p - 0.42F) / 0.18F;
-                float slam = u * u;
-                out.offsetY = Mth.lerp(slam, 0.42F, -0.08F);
-                out.offsetZ = Mth.lerp(slam, 0.16F, 0.04F);
-                out.pitchDeg = Mth.lerp(slam, 54.0F, -14.0F);
-                out.rollDeg = Mth.lerp(slam, -10.0F, 8.0F);
+            // Genshin NA1 (22t full, cancel T11): Windup right (-10 deg) -> Drift nose LEFT (+85 deg, tail right) -> Hold sideways (+78 deg) -> Smooth slow recover to 0 deg
+            float t = Mth.clamp(22.0F - naTf, 0.0F, 22.0F);
+            if (t < 3.0F) {
+                float e = easeInQuad(t / 3.0F);
+                out.yawDeg = Mth.lerp(e, 0.0F, -10.0F);
+                out.pitchDeg = Mth.lerp(e, 0.0F, -4.0F);
+                out.rollDeg = Mth.lerp(e, 0.0F, -6.0F);
+                out.offsetZ = Mth.lerp(e, 0.0F, 0.20F);
+            } else if (t < 7.0F) {
+                float u = (t - 3.0F) / 4.0F;
+                float e = easeOutCubic(u);
+                out.yawDeg = Mth.lerp(e, -10.0F, 85.0F);
+                out.pitchDeg = Mth.lerp(e, -4.0F, -8.0F);
+                out.rollDeg = Mth.lerp(e, -6.0F, 22.0F);
+                out.offsetY = Mth.sin(u * (float) Math.PI) * 0.12F;
+                out.offsetZ = Mth.lerp(e, 0.20F, 0.45F);
+            } else if (t < 12.0F) {
+                float e = easeInOutSine((t - 7.0F) / 5.0F);
+                out.yawDeg = Mth.lerp(e, 85.0F, 78.0F);
+                out.pitchDeg = Mth.lerp(e, -8.0F, -2.0F);
+                out.rollDeg = Mth.lerp(e, 22.0F, 10.0F);
+                out.offsetZ = Mth.lerp(e, 0.45F, 0.36F);
             } else {
-                float u = (p - 0.60F) / 0.40F;
-                float e = u * u * (3.0F - 2.0F * u);
+                float e = easeInOutSine((t - 12.0F) / 10.0F);
+                out.yawDeg = Mth.lerp(e, 78.0F, 0.0F);
+                out.pitchDeg = Mth.lerp(e, -2.0F, 0.0F);
+                out.rollDeg = Mth.lerp(e, 10.0F, 0.0F);
+                out.offsetZ = Mth.lerp(e, 0.36F, 0.0F);
+            }
+        } else if (step == 2) {
+            // Genshin NA2 (24t full, cancel T14): Continuous CLOCKWISE 360-deg spin (+78 deg -> 0 -> -90 -> -180 -> -275 -> -360/0 deg)
+            float t = Mth.clamp(24.0F - naTf, 0.0F, 24.0F);
+            out.pivotZ = 0.48F;
+            if (t < 4.0F) {
+                float e = easeInQuad(t / 4.0F);
+                out.yawDeg = Mth.lerp(e, 78.0F, -45.0F);
+                out.rollDeg = Mth.lerp(e, 10.0F, -18.0F);
+                out.pitchDeg = Mth.lerp(e, -2.0F, -6.0F);
+                out.offsetZ = Mth.lerp(e, 0.36F, 0.45F);
+            } else if (t < 9.0F) {
+                float u = (t - 4.0F) / 5.0F;
+                out.yawDeg = Mth.lerp(u, -45.0F, -275.0F);
+                out.rollDeg = Mth.lerp(u, -18.0F, -30.0F);
+                out.pitchDeg = Mth.lerp(u, -6.0F, -10.0F);
+                out.offsetY = Mth.sin(u * (float) Math.PI) * 0.16F;
+                out.offsetZ = Mth.lerp(u, 0.45F, 0.65F);
+            } else if (t < 15.0F) {
+                float e = easeOutCubic((t - 9.0F) / 6.0F);
+                out.yawDeg = Mth.lerp(e, -275.0F, -360.0F);
+                out.rollDeg = Mth.lerp(e, -30.0F, 0.0F);
+                out.pitchDeg = Mth.lerp(e, -10.0F, 0.0F);
+                out.offsetZ = Mth.lerp(e, 0.65F, 0.22F);
+                out.pivotZ = Mth.lerp(e, 0.48F, 0.0F);
+            } else {
+                float e = easeInOutSine((t - 15.0F) / 9.0F);
+                out.yawDeg = -360.0F;
+                out.offsetZ = Mth.lerp(e, 0.22F, 0.0F);
+                out.pivotZ = 0.0F;
+            }
+        } else if (step == 3) {
+            // Genshin NA3 (22t full, cancel T14): Front-wheel Stoppie (+72 deg pitch) + CLOCKWISE 180-deg pivot spin (0 -> -180 deg), hold until T16 for smooth NA4 chain
+            float t = Mth.clamp(22.0F - naTf, 0.0F, 22.0F);
+            if (t < 5.5F) {
+                float e = easeOutQuad(t / 5.5F);
+                out.pivotZ = 0.68F;
+                out.pitchDeg = Mth.lerp(e, 0.0F, 72.0F);
+                out.yawDeg = Mth.lerp(e, 0.0F, -165.0F);
+                out.offsetY = Mth.lerp(e, 0.0F, 0.46F);
+                out.offsetZ = Mth.lerp(e, 0.0F, 0.18F);
+                out.rollDeg = Mth.lerp(e, 0.0F, 8.0F);
+            } else if (t < 8.0F) {
+                float e = easeInCubic((t - 5.5F) / 2.5F);
+                out.pivotZ = 0.68F;
+                out.pitchDeg = Mth.lerp(e, 72.0F, -8.0F);
+                out.yawDeg = Mth.lerp(e, -165.0F, -180.0F);
+                out.offsetY = Mth.lerp(e, 0.46F, -0.08F);
+                out.offsetZ = Mth.lerp(e, 0.18F, 0.06F);
+                out.rollDeg = Mth.lerp(e, 8.0F, -4.0F);
+            } else if (t < 16.0F) {
+                float e = easeOutCubic(Mth.clamp((t - 8.0F) / 6.0F, 0.0F, 1.0F));
+                out.pivotZ = Mth.lerp(e, 0.68F, 0.0F);
+                out.pitchDeg = Mth.lerp(e, -8.0F, 0.0F);
+                out.yawDeg = -180.0F;
                 out.offsetY = Mth.lerp(e, -0.08F, 0.0F);
-                out.pitchDeg = Mth.lerp(e, -14.0F, 0.0F);
-                out.rollDeg = Mth.lerp(e, 8.0F, 0.0F);
+                out.offsetZ = Mth.lerp(e, 0.06F, 0.0F);
+                out.rollDeg = Mth.lerp(e, -4.0F, 0.0F);
+            } else {
+                // If player pauses past T16 after NA3, smoothly turn the remaining 180 deg CW back to -360/0 deg
+                float e = easeInOutSine((t - 16.0F) / 6.0F);
+                out.yawDeg = Mth.lerp(e, -180.0F, -360.0F);
             }
         } else if (step == 4) {
-            // Genshin NA4 (10t): High wheelie side-drift right (+68 deg, roll +30 deg, nose-up -26 deg) uppercut!
-            float p = Mth.clamp(1.0F - (naTf / 10.0F), 0.0F, 1.0F);
-            float swing = Mth.sin(p * (float) Math.PI);
-            float s = p * p * (3.0F - 2.0F * p);
-            out.offsetY = swing * 0.36F;
-            out.offsetZ = swing * 0.18F;
-            out.yawDeg = Mth.lerp(s, -18.0F, 68.0F) * swing;
-            out.rollDeg = 30.0F * swing;
-            out.pitchDeg = -26.0F * swing;
-        } else if (step == 5) {
-            // Genshin NA5 (23t): Massive airborne 360-deg front-flip Superman slam (+1.45m apex -> hitmark tick 12 -> wheelie bounce!)
-            float p = Mth.clamp(1.0F - (naTf / 23.0F), 0.0F, 1.0F);
-            if (p < 0.32F) {
-                float u = p / 0.32F;
-                out.offsetY = (1.0F - (1.0F - u) * (1.0F - u)) * 1.45F;
-                out.offsetZ = u * 0.35F;
-                out.pitchDeg = u * 205.0F;
-            } else if (p < 0.52F) {
-                float u = (p - 0.32F) / 0.20F;
-                out.offsetY = (1.0F - (float) Math.pow(u, 2.5D)) * 1.45F;
-                out.offsetZ = Mth.lerp(u, 0.35F, 0.20F);
-                out.pitchDeg = 205.0F + u * 155.0F;
-            } else if (p < 0.62F) {
-                float u = (p - 0.52F) / 0.10F;
-                out.offsetY = -Mth.sin(u * (float) Math.PI) * 0.14F;
-                out.pitchDeg = Mth.lerp(u, 10.0F, -22.0F);
-            } else if (p < 0.80F) {
-                float u = (p - 0.62F) / 0.18F;
-                out.offsetY = Mth.sin((1.0F - u) * (float) Math.PI * 0.5F) * 0.10F;
-                out.pitchDeg = Mth.lerp(u, -22.0F, 0.0F);
+            // Genshin NA4 (20t full, cancel T10): From NA3's -180 deg, pop -35 deg Wheelie & blast exhaust sparks -> smooth CLOCKWISE 180-deg drift back to -360/0 deg
+            float t = Mth.clamp(20.0F - naTf, 0.0F, 20.0F);
+            if (t < 3.5F) {
+                float e = easeOutQuad(t / 3.5F);
+                out.yawDeg = Mth.lerp(e, -180.0F, -205.0F);
+                out.pitchDeg = Mth.lerp(e, 0.0F, -35.0F);
+                out.rollDeg = Mth.lerp(e, 0.0F, -18.0F);
+                out.offsetY = Mth.lerp(e, 0.0F, 0.20F);
+                out.offsetZ = Mth.lerp(e, 0.0F, 0.25F);
+            } else if (t < 10.5F) {
+                float e = easeOutCubic((t - 3.5F) / 7.0F);
+                out.yawDeg = Mth.lerp(e, -205.0F, -360.0F);
+                out.pitchDeg = Mth.lerp(e, -35.0F, -8.0F);
+                out.rollDeg = Mth.lerp(e, -18.0F, -6.0F);
+                out.offsetY = Mth.lerp(e, 0.20F, 0.06F);
+                out.offsetZ = Mth.lerp(e, 0.25F, 0.45F);
             } else {
-                out.offsetY = 0.0F;
-                out.pitchDeg = 0.0F;
+                float e = easeInOutSine((t - 10.5F) / 9.5F);
+                out.yawDeg = -360.0F;
+                out.pitchDeg = Mth.lerp(e, -8.0F, 0.0F);
+                out.rollDeg = Mth.lerp(e, -6.0F, 0.0F);
+                out.offsetY = Mth.lerp(e, 0.06F, 0.0F);
+                out.offsetZ = Mth.lerp(e, 0.45F, 0.0F);
+            }
+        } else if (step == 5) {
+            // Genshin NA5 (28t full, hitmark T12): Wheelie launch (-58 deg) -> 6t Front-vault Superman arc (-58 -> 0 -> +78 deg nose-down, never belly-up backflip!) -> Dive slam -> Wheelie bounce & settle
+            float t = Mth.clamp(28.0F - naTf, 0.0F, 28.0F);
+            if (t < 3.5F) {
+                float e = easeOutQuad(t / 3.5F);
+                out.pitchDeg = Mth.lerp(e, 0.0F, -58.0F);
+                out.offsetY = Mth.lerp(e, 0.0F, 1.35F);
+                out.offsetZ = Mth.lerp(e, 0.0F, 0.55F);
+            } else if (t < 9.5F) {
+                float u = (t - 3.5F) / 6.0F;
+                float e = easeInOutSine(u);
+                out.offsetY = 1.35F + Mth.sin(u * (float) Math.PI) * 0.30F;
+                out.offsetZ = Mth.lerp(u, 0.55F, 0.85F);
+                out.pitchDeg = Mth.lerp(e, -58.0F, 78.0F); // Front-vault forward arc from nose-up to nose-down dive!
+            } else if (t < 12.5F) {
+                float u = (t - 9.5F) / 3.0F;
+                float drop = (float) Math.pow(u, 2.4D);
+                out.offsetY = Mth.lerp(drop, 1.35F, -0.14F);
+                out.offsetZ = Mth.lerp(u, 0.85F, 0.40F);
+                out.pitchDeg = Mth.lerp(u, 78.0F, 8.0F); // Nose-down dive -> grounded impact
+            } else if (t < 17.5F) {
+                float e = easeOutQuad((t - 12.5F) / 5.0F);
+                out.offsetY = Mth.lerp(e, -0.14F, 0.12F);
+                out.offsetZ = Mth.lerp(e, 0.40F, 0.25F);
+                out.pitchDeg = Mth.lerp(e, 8.0F, -22.0F);
+                out.yawDeg = Mth.lerp(e, 0.0F, 15.0F);
+                out.rollDeg = Mth.lerp(e, 0.0F, 8.0F);
+            } else {
+                float e = easeInOutSine((t - 17.5F) / 10.5F);
+                out.offsetY = Mth.lerp(e, 0.12F, 0.0F);
+                out.offsetZ = Mth.lerp(e, 0.25F, 0.0F);
+                out.pitchDeg = Mth.lerp(e, -22.0F, 0.0F);
+                out.yawDeg = Mth.lerp(e, 15.0F, 0.0F);
+                out.rollDeg = Mth.lerp(e, 8.0F, 0.0F);
             }
         }
     }

@@ -19,11 +19,11 @@ public enum BikeActionState {
 
     // Combat states (priority 35..60)
     PLUNGE_RECOVERY(35, 8, 3, true),
-    NA_1(40, 9, 4, true),
-    NA_2(40, 11, 5, true),
-    NA_3(40, 12, 6, true),
-    NA_4(40, 10, 5, true),
-    NA_5(42, 23, 12, true),               // 360-degree front-flip slam
+    NA_1(40, 22, 5, true),
+    NA_2(40, 24, 7, true),
+    NA_3(40, 22, 7, true),
+    NA_4(40, 20, 4, true),
+    NA_5(42, 28, 12, true),               // Airborne Superman front-flip slam
     MOUNT_TAIL_WHIP(48, 10, 5, true),     // Hold E mount 180-deg half-donut tail whip with forward surge
     MOUNT_CATCH(46, 10, 0, true),         // Re-mount catch-up: bike rushes in from behind to scoop airborne rider
 
@@ -40,7 +40,7 @@ public enum BikeActionState {
     // High-priority interrupts (priority 80..100)
     DASH(80, 7, 6, true),                    // Standard Dash (caCancel = 6t)
     DASH_CHARGE_CANCEL(80, 7, 2, true),      // Dash entered from CA_* (dC early caCancel = 2t)
-    ULTI_BURST(100, 30, 22, true);           // Crucible of Death and Life burst slam
+    ULTI_BURST(100, 40, 24, true);           // Crucible of Death and Life burst slam
 
     private final int priority;
     private final int durationTicks;

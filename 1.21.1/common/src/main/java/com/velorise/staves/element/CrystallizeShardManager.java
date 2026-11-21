@@ -89,6 +89,15 @@ public final class CrystallizeShardManager {
         };
     }
 
+    public static @Nullable Element getElementForShardItem(@Nullable Item item) {
+        if (item == null) return null;
+        if (item == getShardItem(Element.PYRO)) return Element.PYRO;
+        if (item == getShardItem(Element.HYDRO)) return Element.HYDRO;
+        if (item == getShardItem(Element.ELECTRO)) return Element.ELECTRO;
+        if (item == getShardItem(Element.CRYO)) return Element.CRYO;
+        return null;
+    }
+
     public static void spawn(ServerLevel level, LivingEntity target, Element reactedElement) {
         spawn(level, target, reactedElement, target.getUUID());
     }
@@ -230,17 +239,49 @@ public final class CrystallizeShardManager {
             }
         }
 
-        // Auto-Purge Orphaned Crystallize Shards
-        if (now % 20 == 0 && !level.players().isEmpty()) {
+        // Inventory Leak Guard + Orphan/Thrown Shard Recovery (runs every 5 ticks):
+        // Prevents Crystallize Shard items from ever staying in player inventory (via magnet mods, hoppers, or Q-drops)
+        // and converts any untracked ground Crystallize Shard ItemEntity back into a real shield pickup.
+        if (now % 5 == 0 && !level.players().isEmpty()) {
             Set<UUID> trackedShardIds = new HashSet<>(SHARDS.size() * 2);
             for (ShardEntry s : SHARDS) {
                 trackedShardIds.add(s.entity.getUUID());
             }
             for (ServerPlayer player : level.players()) {
-                AABB scanBox = player.getBoundingBox().inflate(64.0D);
+                if (player.isAlive() && !player.isSpectator()) {
+                    // 1. Auto-consume & remove any Crystallize Shard items that leaked into player inventory
+                    var inv = player.getInventory();
+                    Element leakedElem = null;
+                    for (int slot = 0; slot < inv.getContainerSize(); slot++) {
+                        ItemStack st = inv.getItem(slot);
+                        if (!st.isEmpty()) {
+                            Element elem = getElementForShardItem(st.getItem());
+                            if (elem != null) {
+                                leakedElem = elem;
+                                inv.setItem(slot, ItemStack.EMPTY);
+                            }
+                        }
+                    }
+                    if (leakedElem != null) {
+                        pickupShard(level, player, leakedElem, 0);
+                    }
+                }
+
+                // 2. Scan nearby ground ItemEntities for orphaned or player-thrown Crystallize Shards
+                AABB scanBox = player.getBoundingBox().inflate(32.0D);
                 for (ItemEntity item : level.getEntitiesOfClass(ItemEntity.class, scanBox, e -> e.isAlive() && !e.isRemoved())) {
-                    if (item.getTags().contains(TAG_CRYSTALLIZE_SHARD)) {
-                        if (!trackedShardIds.contains(item.getUUID()) && item.getAge() >= SHARD_LIFETIME_TICKS) {
+                    Element shardElem = getElementForShardItem(item.getItem().getItem());
+                    boolean isTagged = item.getTags().contains(TAG_CRYSTALLIZE_SHARD);
+                    if (shardElem == null && !isTagged) continue;
+
+                    // Always lock pickupDelay so vanilla/other systems cannot put it into inventory
+                    item.setPickUpDelay(32767);
+                    if (!isTagged) {
+                        item.addTag(TAG_CRYSTALLIZE_SHARD);
+                    }
+
+                    if (!trackedShardIds.contains(item.getUUID())) {
+                        if (item.getAge() >= SHARD_LIFETIME_TICKS) {
                             try {
                                 Scoreboard sb = level.getScoreboard();
                                 PlayerTeam team = sb.getPlayersTeam(item.getScoreboardName());
@@ -248,6 +289,10 @@ public final class CrystallizeShardManager {
                                     sb.removePlayerFromTeam(item.getScoreboardName(), team);
                                 }
                             } catch (Throwable ignored) {}
+                            item.discard();
+                        } else if (shardElem != null && player.isAlive() && !player.isSpectator()
+                                && item.getBoundingBox().inflate(1.25D, 0.6D, 1.25D).intersects(player.getBoundingBox())) {
+                            pickupShard(level, player, shardElem, 0);
                             item.discard();
                         }
                     }

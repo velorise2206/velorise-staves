@@ -352,7 +352,7 @@ public final class MavuikaManager {
         }
         ArchonUltiManager.grantUltiIframe(player, 36); // Full unstoppable Genshin Q I-frames
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, com.velorise.staves.client.ClientAuraTracker.ANIM_MAVUIKA_BURST);
-        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 162L); // Genshin Q: 22t Sunfell Slice windup + 140t (7.0s) Crucible of Death and Life
+        MAVUIKA_CRUCIBLE_UNTIL.put(id, now + 164L); // Genshin Q: 22t Sunfell Slice windup + 140t (7.0s) Crucible of Death and Life
         MAVUIKA_CRUCIBLE_POINTS.put(id, clampedPts);
         if (player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity bike) {
             bike.startUltiSlam(ultiDmg);
