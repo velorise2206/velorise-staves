@@ -177,21 +177,21 @@ public final class RaidenManager {
         Vec3 e;
         int arcColor = color;
         switch (step) {
-            case 0 -> {
-                s = center.add(right.scale(span)).add(up.scale(0.10D));
-                e = center.add(right.scale(-span)).add(up.scale(-0.08D));
+            case 0 -> { // N1: diagonal top-left -> bottom-right
+                s = center.add(right.scale(-span * 0.85D)).add(up.scale(span * 0.58D));
+                e = center.add(right.scale(span * 0.85D)).add(up.scale(-span * 0.52D));
             }
-            case 1 -> {
-                s = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.48D));
-                e = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
+            case 1 -> { // N2: flat horizontal right -> left
+                s = center.add(right.scale(span * 1.05D)).add(up.scale(0.06D));
+                e = center.add(right.scale(-span * 1.05D)).add(up.scale(0.02D));
             }
-            case 2 -> {
-                s = center.add(right.scale(span * 0.85D)).add(up.scale(span * 0.52D));
-                e = center.add(right.scale(-span * 0.85D)).add(up.scale(-span * 0.45D));
+            case 2 -> { // N3: steep rising vertical upward slash (bottom-left -> straight up)
+                s = center.add(right.scale(-span * 0.25D)).add(up.scale(-span * 0.72D));
+                e = center.add(right.scale(span * 0.18D)).add(up.scale(span * 1.18D));
             }
-            default -> {
-                s = center.add(up.scale(span * 1.15D));
-                e = center.add(up.scale(-span * 0.85D)).add(fwd.scale(0.35D));
+            default -> { // N5: massive low horizontal space-cleaving iai slash (left -> right)
+                s = center.add(right.scale(-span * 1.35D)).add(up.scale(-0.18D));
+                e = center.add(right.scale(span * 1.35D)).add(up.scale(-0.12D));
                 arcColor = 0xFFE0B0FF;
             }
         }

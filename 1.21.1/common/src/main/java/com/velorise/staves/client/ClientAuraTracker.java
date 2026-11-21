@@ -892,7 +892,7 @@ public final class ClientAuraTracker {
             entry.xilonenJumpFlipUntil = 0L;
         }
         if (animType == ANIM_RAIDEN_SLASH) {
-            if (now - entry.raidenLastSlashTime > 1500L) {
+            if (now - entry.raidenLastSlashTime > 2000L) {
                 entry.raidenNextComboStep = 0;
             }
             entry.raidenComboStep = entry.raidenNextComboStep;
@@ -911,9 +911,15 @@ public final class ClientAuraTracker {
             case ANIM_VORTEX_TAP -> 500L;
             case ANIM_GHASTFIRE_SLAM -> 450L;
             case ANIM_RAIDEN_EYE -> 420L;
-            case ANIM_RAIDEN_DRAW -> 1600L;
-            case ANIM_RAIDEN_SLASH -> (entry.raidenComboStep == 3 || entry.raidenComboStep == 4) ? 420L : 340L;
-            case ANIM_RAIDEN_CA -> 700L;
+            case ANIM_RAIDEN_DRAW -> 2700L;
+            case ANIM_RAIDEN_SLASH -> switch (entry.raidenComboStep) {
+                case 0 -> 1800L;
+                case 1 -> 1900L;
+                case 2 -> 2300L;
+                case 3 -> 2500L;
+                default -> 2400L;
+            };
+            case ANIM_RAIDEN_CA -> 2200L;
             case ANIM_ZHONGLI_PLANET_BEFALL -> 2800L;
             case ANIM_XILONEN_SKATE_DASH -> 480L;
             case ANIM_XILONEN_KICK_1 -> 380L;
@@ -1390,9 +1396,17 @@ public final class ClientAuraTracker {
 
     public static boolean isRaidenSlashingOrBursting(int entityId) {
         AuraDisplayData data = DATA.get(entityId);
-        if (data == null || System.currentTimeMillis() >= data.staffAnimUntil) return false;
+        long now = System.currentTimeMillis();
+        if (data == null || now >= data.staffAnimUntil) return false;
+        long elapsed = now - data.staffAnimStartTime;
         int anim = data.staffAnimType;
-        return anim == ANIM_RAIDEN_DRAW || anim == ANIM_RAIDEN_SLASH || anim == ANIM_RAIDEN_CA;
+        if (anim == ANIM_RAIDEN_DRAW) return elapsed < 1600L;
+        if (anim == ANIM_RAIDEN_CA) return elapsed < 750L;
+        if (anim == ANIM_RAIDEN_SLASH) {
+            long activeMs = (data.raidenComboStep == 3 || data.raidenComboStep == 4) ? 680L : 440L;
+            return elapsed < activeMs;
+        }
+        return false;
     }
 
     public static boolean isSlotSwitchLocked(int entityId) {

@@ -207,15 +207,12 @@ public final class RaidenVisualRenderer {
                 && animData != null
                 && nowMs < animData.staffAnimUntil
                 && animData.staffAnimType == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
-            float totalMs = Math.max(1.0F, (float) (animData.staffAnimUntil - animData.staffAnimStartTime));
-            float t = Mth.clamp((nowMs - animData.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float cx0 = sw * 0.5F;
+            long elapsedMs = Math.max(0L, nowMs - animData.staffAnimStartTime);
             float cy0 = sh * 0.5F;
 
-
-            if (t >= 0.70F) {
-                // Blinding white-violet horizontal slash flash ("Torn to oblivion!") synced with slash & damage
-                float fp = Mth.clamp((t - 0.70F) / 0.28F, 0.0F, 1.0F);
+            if (elapsedMs >= 1200L && elapsedMs <= 1650L) {
+                // Blinding white-violet horizontal slash flash ("Torn to oblivion!") synced with Hitotachi impact at tick 28 (1400ms)
+                float fp = Mth.clamp((elapsedMs - 1200.0F) / 450.0F, 0.0F, 1.0F);
                 float flashA = (fp < 0.22F) ? (fp / 0.22F) : (1.0F - WindGliderRenderer.smoothStep01((fp - 0.22F) / 0.78F));
                 int screenFlashA = Math.round(130.0F * flashA);
                 int beamA = Math.round(245.0F * flashA);
@@ -379,6 +376,356 @@ public final class RaidenVisualRenderer {
         return true;
     }
 
+    // =========================================================================
+    // Musou Isshin Tick-Accurate Multi-Keyframe Animation Engine (20 TPS = 50ms/tick)
+    // Researched frame-by-frame (20fps) from Genshin Impact Raiden Shogun Showcase:
+    //   - Ultimate (ANIM_RAIDEN_DRAW, 54t / 2700ms): chest draw -> coil -> Hitotachi cleave -> front flourish -> dissolve
+    //   - N1 (step 0, 36t / 1800ms): diagonal top-left -> bottom-right -> hip-back rest -> dissolve
+    //   - N2 (step 1, 38t / 1900ms): flat horizontal right -> left -> right hold -> vertical wrist spin -> dissolve
+    //   - N3 (step 2, 46t / 2300ms): steep rising vertical slash -> high hold -> slow arc to horizontal -> flick dissolve
+    //   - N4 (step 3, 50t / 2500ms): rapid 2-hit cross spin -> low diagonal hold -> vertical lift -> horizontal flick dissolve
+    //   - N5 (step 4, 48t / 2400ms): low iaijutsu crouch -> wide horizontal space-cleave -> crouched sheathe -> dissolve -> rise
+    //   - Charged Attack (ANIM_RAIDEN_CA, 44t / 2200ms): low iai coil -> twin X-crescent dash -> low hold -> vertical dissolve
+    // =========================================================================
+    private static final class MusouKey {
+        final float tick;
+        final float bodyX, bodyY, bodyZ, crouchY;
+        final float headX, headY;
+        final float mainX, mainY, mainZ;
+        final float offX, offY, offZ;
+        final float legLX, legLZ, legRX, legRZ;
+        // Third-person held sword local transform (applied before handheld model display)
+        final float swTx, swTy, swTz;
+        final float swRx, swRy, swRz;
+        // Sword materialization / dissolution alpha [0.0 = hidden, 1.0 = fully visible]
+        final float swAlpha;
+        // Pose blend weight [0.0 = vanilla idle, 1.0 = full choreography pose]
+        final float poseWeight;
+
+        MusouKey(
+                float tick,
+                float bodyX, float bodyY, float bodyZ, float crouchY,
+                float headX, float headY,
+                float mainX, float mainY, float mainZ,
+                float offX, float offY, float offZ,
+                float legLX, float legLZ, float legRX, float legRZ,
+                float swTx, float swTy, float swTz,
+                float swRx, float swRy, float swRz,
+                float swAlpha, float poseWeight
+        ) {
+            this.tick = tick;
+            this.bodyX = bodyX; this.bodyY = bodyY; this.bodyZ = bodyZ; this.crouchY = crouchY;
+            this.headX = headX; this.headY = headY;
+            this.mainX = mainX; this.mainY = mainY; this.mainZ = mainZ;
+            this.offX = offX; this.offY = offY; this.offZ = offZ;
+            this.legLX = legLX; this.legLZ = legLZ; this.legRX = legRX; this.legRZ = legRZ;
+            this.swTx = swTx; this.swTy = swTy; this.swTz = swTz;
+            this.swRx = swRx; this.swRy = swRy; this.swRz = swRz;
+            this.swAlpha = swAlpha;
+            this.poseWeight = poseWeight;
+        }
+    }
+
+    private static final class SampledMusouPose {
+        float bodyX, bodyY, bodyZ, crouchY;
+        float headX, headY;
+        float mainX, mainY, mainZ;
+        float offX, offY, offZ;
+        float legLX, legLZ, legRX, legRZ;
+        float swTx, swTy, swTz;
+        float swRx, swRy, swRz;
+        float swAlpha;
+        float poseWeight;
+    }
+
+    private static float smootherStep01(float x) {
+        float t = Mth.clamp(x, 0.0F, 1.0F);
+        return t * t * t * (t * (t * 6.0F - 15.0F) + 10.0F);
+    }
+
+    private static SampledMusouPose sampleTrack(MusouKey[] keys, float tick) {
+        SampledMusouPose out = new SampledMusouPose();
+        if (keys == null || keys.length == 0) return out;
+        if (tick <= keys[0].tick) {
+            copyKey(keys[0], out);
+            return out;
+        }
+        MusouKey last = keys[keys.length - 1];
+        if (tick >= last.tick) {
+            copyKey(last, out);
+            return out;
+        }
+        int idx = 0;
+        for (int i = 0; i < keys.length - 1; i++) {
+            if (tick >= keys[i].tick && tick <= keys[i + 1].tick) {
+                idx = i;
+                break;
+            }
+        }
+        MusouKey a = keys[idx];
+        MusouKey b = keys[idx + 1];
+        float span = Math.max(0.0001F, b.tick - a.tick);
+        float u = smootherStep01((tick - a.tick) / span);
+        out.bodyX = Mth.lerp(u, a.bodyX, b.bodyX);
+        out.bodyY = Mth.lerp(u, a.bodyY, b.bodyY);
+        out.bodyZ = Mth.lerp(u, a.bodyZ, b.bodyZ);
+        out.crouchY = Mth.lerp(u, a.crouchY, b.crouchY);
+        out.headX = Mth.lerp(u, a.headX, b.headX);
+        out.headY = Mth.lerp(u, a.headY, b.headY);
+        out.mainX = Mth.lerp(u, a.mainX, b.mainX);
+        out.mainY = Mth.lerp(u, a.mainY, b.mainY);
+        out.mainZ = Mth.lerp(u, a.mainZ, b.mainZ);
+        out.offX = Mth.lerp(u, a.offX, b.offX);
+        out.offY = Mth.lerp(u, a.offY, b.offY);
+        out.offZ = Mth.lerp(u, a.offZ, b.offZ);
+        out.legLX = Mth.lerp(u, a.legLX, b.legLX);
+        out.legLZ = Mth.lerp(u, a.legLZ, b.legLZ);
+        out.legRX = Mth.lerp(u, a.legRX, b.legRX);
+        out.legRZ = Mth.lerp(u, a.legRZ, b.legRZ);
+        out.swTx = Mth.lerp(u, a.swTx, b.swTx);
+        out.swTy = Mth.lerp(u, a.swTy, b.swTy);
+        out.swTz = Mth.lerp(u, a.swTz, b.swTz);
+        out.swRx = Mth.lerp(u, a.swRx, b.swRx);
+        out.swRy = Mth.lerp(u, a.swRy, b.swRy);
+        out.swRz = Mth.lerp(u, a.swRz, b.swRz);
+        out.swAlpha = Mth.lerp(u, a.swAlpha, b.swAlpha);
+        out.poseWeight = Mth.lerp(u, a.poseWeight, b.poseWeight);
+        return out;
+    }
+
+    private static void copyKey(MusouKey k, SampledMusouPose out) {
+        out.bodyX = k.bodyX; out.bodyY = k.bodyY; out.bodyZ = k.bodyZ; out.crouchY = k.crouchY;
+        out.headX = k.headX; out.headY = k.headY;
+        out.mainX = k.mainX; out.mainY = k.mainY; out.mainZ = k.mainZ;
+        out.offX = k.offX; out.offY = k.offY; out.offZ = k.offZ;
+        out.legLX = k.legLX; out.legLZ = k.legLZ; out.legRX = k.legRX; out.legRZ = k.legRZ;
+        out.swTx = k.swTx; out.swTy = k.swTy; out.swTz = k.swTz;
+        out.swRx = k.swRx; out.swRy = k.swRy; out.swRz = k.swRz;
+        out.swAlpha = k.swAlpha;
+        out.poseWeight = k.poseWeight;
+    }
+
+    // -------------------------------------------------------------------------
+    // ULTIMATE: Musou no Hitotachi (54 ticks = 2700ms; impact at tick 28)
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_ULTIMATE_DRAW = new MusouKey[] {
+            // T0: Begin reaching toward chest, sword still hidden inside sternum
+            new MusouKey(0.0F,   0.00F,  0.00F, 0.00F, 0.0F,  0.00F,  0.00F,  -0.30F, -0.15F,  0.10F,  -0.20F,  0.10F, -0.08F,  0.05F, -0.04F, -0.05F,  0.04F,  -0.08F, -0.04F,  0.04F, -162.0F,   0.0F,   0.0F, 0.00F, 0.25F),
+            // T5: Hand grips hilt emerging from chest, head bowed gently, sword starts materializing
+            new MusouKey(5.0F,  -0.14F, -0.08F, 0.00F, 0.0F,  0.22F,  0.00F,  -1.08F, -0.60F,  0.34F,  -0.86F,  0.38F, -0.22F,  0.16F, -0.07F, -0.14F,  0.07F,  -0.11F, -0.06F,  0.05F, -162.0F,   0.0F,   0.0F, 0.10F, 1.00F),
+            // T10: Hilt fully materialized vertically, steady poise
+            new MusouKey(10.0F, -0.16F, -0.10F, 0.00F, 0.0F,  0.24F,  0.00F,  -1.15F, -0.58F,  0.32F,  -0.88F,  0.36F, -0.20F,  0.18F, -0.08F, -0.16F,  0.08F,  -0.10F, -0.04F,  0.04F, -158.0F,   0.0F,   0.0F, 1.00F, 1.00F),
+            // T20: Smoothly drawing Musou Isshin straight upward out of chest, head lifts
+            new MusouKey(20.0F, -0.02F, -0.18F, 0.00F, 0.0F, -0.04F,  0.00F,  -2.25F, -0.12F,  0.10F,  -0.36F,  0.18F, -0.18F,  0.22F, -0.09F, -0.20F,  0.09F,  -0.02F,  0.04F, -0.04F, -112.0F,   0.0F,   0.0F, 1.00F, 1.00F),
+            // T25: Coil left for Musou no Hitotachi horizontal cleave; blade rotates flat horizontal
+            new MusouKey(25.0F,  0.08F, -0.48F, -0.04F, 0.4F, 0.02F,  0.18F,  -1.55F, -1.14F, -0.32F,  -0.42F, -0.12F, -0.25F,  0.26F, -0.10F, -0.26F,  0.10F,   0.00F,  0.04F, -0.08F,  -48.0F, -12.0F, -84.0F, 1.00F, 1.00F),
+            // T28: Impact peak — mid-sweep horizontal dimensional cleave
+            new MusouKey(28.0F,  0.14F,  0.22F,  0.04F, 0.6F, 0.04F, -0.08F,  -1.52F,  0.42F,  0.08F,   0.18F, -0.25F, -0.35F,  0.30F, -0.10F, -0.32F,  0.10F,   0.00F,  0.04F, -0.09F,  -45.0F,   0.0F, -88.0F, 1.00F, 1.00F),
+            // T31: Full follow-through — right arm extended straight out right, blade pointing straight right
+            new MusouKey(31.0F,  0.14F,  0.52F,  0.06F, 0.5F, 0.04F, -0.18F,  -1.50F,  1.46F,  0.24F,   0.42F, -0.34F, -0.40F,  0.28F, -0.10F, -0.30F,  0.10F,   0.00F,  0.04F, -0.09F,  -45.0F,   0.0F, -88.0F, 1.00F, 1.00F),
+            // T37: Graceful post-Hitotachi hold, torso begins uncoiling slowly
+            new MusouKey(37.0F,  0.06F,  0.30F,  0.02F, 0.2F, 0.02F, -0.10F,  -1.42F,  1.05F,  0.18F,   0.26F, -0.20F, -0.24F,  0.18F, -0.07F, -0.18F,  0.07F,   0.00F,  0.04F, -0.08F,  -48.0F,  18.0F, -72.0F, 1.00F, 1.00F),
+            // T45: Iconic horizontal front presentation across chest (video #105-#109)
+            new MusouKey(45.0F,  0.02F,  0.06F,  0.00F, 0.0F, 0.00F,  0.00F,  -1.18F, -0.26F, -0.14F,  -0.38F,  0.22F, -0.14F,  0.08F, -0.04F, -0.08F,  0.04F,   0.02F,  0.04F, -0.06F,  -62.0F,  78.0F, -14.0F, 1.00F, 1.00F),
+            // T47: Crisp downward-right flick as electro gleam triggers dissolution (video #111)
+            new MusouKey(47.0F,  0.00F,  0.08F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.78F,  0.24F,  0.20F,  -0.14F,  0.10F, -0.12F,  0.04F, -0.03F, -0.04F,  0.03F,   0.00F,  0.02F, -0.04F,  -54.0F,  42.0F, -32.0F, 0.85F, 0.92F),
+            // T52: Sword fully dissolved into electro sparks (video #115)
+            new MusouKey(52.0F,  0.00F,  0.02F,  0.00F, 0.0F, 0.00F,  0.00F,  -0.18F,  0.06F,  0.06F,   0.00F,  0.00F, -0.04F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,  20.0F, -15.0F, 0.00F, 0.30F),
+            // T54: Relaxed neutral stance
+            new MusouKey(54.0F,  0.00F,  0.00F,  0.00F, 0.0F, 0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // N1 (step 0, 36 ticks = 1800ms): Diagonal Top-Left -> Bottom-Right -> Hip-Back Rest -> Dissolve
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_N1 = new MusouKey[] {
+            // T0: Sword materializes quickly as arm raises high-left
+            new MusouKey(0.0F,   0.02F, -0.22F, -0.03F, 0.0F,  0.00F,  0.10F,  -1.65F, -0.68F, -0.22F,  -0.25F,  0.12F, -0.15F,  0.14F, -0.05F, -0.14F,  0.05F,   0.00F,  0.05F, -0.08F,  -52.0F, -14.0F, -42.0F, 0.35F, 0.85F),
+            // T3: Peak wind-up upper-left
+            new MusouKey(3.0F,   0.04F, -0.34F, -0.05F, 0.2F,  0.02F,  0.14F,  -2.18F, -0.86F, -0.30F,  -0.32F,  0.16F, -0.20F,  0.20F, -0.07F, -0.18F,  0.07F,   0.00F,  0.05F, -0.09F,  -50.0F, -16.0F, -48.0F, 1.00F, 1.00F),
+            // T7: Fast crisp diagonal cleave down to lower-right (video #168-#171)
+            new MusouKey(7.0F,   0.12F,  0.36F,  0.05F, 0.4F,  0.04F, -0.14F,  -0.46F,  0.78F,  0.42F,   0.36F, -0.22F, -0.30F,  0.24F, -0.08F, -0.26F,  0.08F,   0.00F,  0.04F, -0.08F,  -40.0F,  12.0F,  34.0F, 1.00F, 1.00F),
+            // T16: Poised low-right follow-through hold (video #173-#180)
+            new MusouKey(16.0F,  0.08F,  0.28F,  0.03F, 0.2F,  0.02F, -0.10F,  -0.42F,  0.66F,  0.36F,   0.26F, -0.16F, -0.22F,  0.18F, -0.06F, -0.20F,  0.06F,   0.00F,  0.03F, -0.07F,  -36.0F,  18.0F,  28.0F, 1.00F, 1.00F),
+            // T25: Smoothly sweeps blade behind right hip pointing back-downward (video #185-#190)
+            new MusouKey(25.0F,  0.02F,  0.14F,  0.00F, 0.0F,  0.00F, -0.04F,   0.28F,  0.24F,  0.22F,  -0.22F,  0.24F, -0.12F,  0.08F, -0.04F, -0.08F,  0.04F,   0.02F,  0.00F, -0.02F,  -16.0F,  28.0F,  16.0F, 1.00F, 0.95F),
+            // T31: Smooth dissolution while resting at right hip (video #191-#194)
+            new MusouKey(31.0F,  0.00F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,   0.14F,  0.10F,  0.10F,  -0.08F,  0.08F, -0.06F,  0.02F, -0.01F, -0.02F,  0.01F,   0.00F,  0.00F,  0.00F,  -12.0F,  14.0F,   8.0F, 0.00F, 0.45F),
+            // T36: Neutral idle
+            new MusouKey(36.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -12.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // N2 (step 1, 38 ticks = 1900ms): Flat Horizontal Right -> Left -> Right Hold -> Vertical Wrist Spin -> Dissolve
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_N2 = new MusouKey[] {
+            // T0: Coil right at waist height, blade flat horizontal
+            new MusouKey(0.0F,   0.04F,  0.34F,  0.04F, 0.2F,  0.02F, -0.14F,  -1.26F,  0.96F,  0.44F,   0.20F, -0.18F, -0.22F,  0.18F, -0.06F, -0.18F,  0.06F,   0.00F,  0.04F, -0.08F,  -46.0F,   6.0F,  82.0F, 0.55F, 0.90F),
+            // T3: Peak right wind-up
+            new MusouKey(3.0F,   0.06F,  0.42F,  0.05F, 0.3F,  0.02F, -0.16F,  -1.42F,  1.12F,  0.48F,   0.26F, -0.22F, -0.26F,  0.22F, -0.07F, -0.22F,  0.07F,   0.00F,  0.04F, -0.09F,  -46.0F,   4.0F,  86.0F, 1.00F, 1.00F),
+            // T7: Razor-flat horizontal backhand slash Right -> Left (video #235-#238)
+            new MusouKey(7.0F,   0.10F, -0.40F, -0.05F, 0.3F,  0.02F,  0.16F,  -1.48F, -0.96F, -0.34F,   0.38F,  0.24F, -0.34F,  0.26F, -0.08F, -0.24F,  0.08F,   0.00F,  0.04F, -0.09F,  -48.0F,  -6.0F,  86.0F, 1.00F, 1.00F),
+            // T13: Smooth pull back across to poised right-side horizontal hold (video #241-#253)
+            new MusouKey(13.0F,  0.04F,  0.16F,  0.02F, 0.1F,  0.00F, -0.06F,  -1.36F,  0.72F,  0.24F,   0.12F, -0.10F, -0.18F,  0.14F, -0.05F, -0.14F,  0.05F,   0.00F,  0.04F, -0.08F,  -48.0F,  12.0F,  78.0F, 1.00F, 1.00F),
+            // T22: Hold poised horizontal right stance
+            new MusouKey(22.0F,  0.02F,  0.12F,  0.00F, 0.0F,  0.00F, -0.04F,  -1.32F,  0.64F,  0.22F,   0.08F, -0.08F, -0.14F,  0.10F, -0.04F, -0.10F,  0.04F,   0.00F,  0.04F, -0.08F,  -48.0F,  16.0F,  74.0F, 1.00F, 1.00F),
+            // T26: Iconic wrist spin tilting blade 45° upward (video #256-#257)
+            new MusouKey(26.0F,  0.00F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -1.18F,  0.18F,  0.08F,  -0.12F,  0.12F, -0.12F,  0.06F, -0.03F, -0.06F,  0.03F,   0.00F,  0.04F, -0.05F,  -14.0F,  10.0F,  28.0F, 1.00F, 0.98F),
+            // T29: Blade upright 90° vertical right in front of chest (video #259-#260)
+            new MusouKey(29.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,  -1.08F, -0.14F,  0.04F,  -0.22F,  0.18F, -0.12F,  0.04F, -0.02F, -0.04F,  0.02F,   0.00F,  0.04F, -0.03F,   16.0F,   0.0F,   0.0F, 1.00F, 0.95F),
+            // T34: Smooth vertical sword dissolution (video #261-#265)
+            new MusouKey(34.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,  -0.36F, -0.04F,  0.02F,  -0.06F,  0.06F, -0.04F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.02F,  0.00F,   16.0F,   0.0F,   0.0F, 0.00F, 0.42F),
+            // T38: Neutral idle
+            new MusouKey(38.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,    0.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // N3 (step 2, 46 ticks = 2300ms): Low-Left -> Steep Rising Vertical Slash -> High Hold -> Slow Arc to Horizontal -> Flick Dissolve
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_N3 = new MusouKey[] {
+            // T0: Slight crouch, right arm drops low-left
+            new MusouKey(0.0F,   0.10F, -0.26F, -0.04F, 0.4F,  0.06F,  0.10F,  -0.38F, -0.62F, -0.24F,   0.22F,  0.14F, -0.18F,  0.20F, -0.06F, -0.20F,  0.06F,   0.00F,  0.02F, -0.06F,  -32.0F, -10.0F, -16.0F, 0.65F, 0.92F),
+            // T3: Launch point low-left
+            new MusouKey(3.0F,   0.12F, -0.32F, -0.05F, 0.5F,  0.06F,  0.12F,  -0.30F, -0.72F, -0.28F,   0.28F,  0.18F, -0.22F,  0.22F, -0.07F, -0.22F,  0.07F,   0.00F,  0.02F, -0.07F,  -30.0F, -12.0F, -18.0F, 1.00F, 1.00F),
+            // T8: Explosive steep rising vertical slash straight up (video #312-#316)
+            new MusouKey(8.0F,  -0.12F,  0.20F,  0.04F, 0.0F, -0.10F, -0.08F,  -2.74F,  0.18F,  0.16F,   0.34F, -0.20F, -0.28F, -0.18F, -0.06F,  0.20F,  0.06F,   0.00F,  0.06F, -0.08F,  -42.0F,   4.0F,   8.0F, 1.00F, 1.00F),
+            // T13: Settle into regal high-poised vertical katana stance (video #318-#335)
+            new MusouKey(13.0F, -0.02F,  0.12F,  0.00F, 0.0F, -0.02F, -0.04F,  -1.64F,  0.14F,  0.10F,  -0.18F,  0.16F, -0.14F,  0.10F, -0.04F, -0.10F,  0.04F,   0.00F,  0.05F, -0.04F,   18.0F,   4.0F,   0.0F, 1.00F, 1.00F),
+            // T24: Hold high vertical blade calmly
+            new MusouKey(24.0F,  0.00F,  0.10F,  0.00F, 0.0F,  0.00F, -0.02F,  -1.56F,  0.12F,  0.08F,  -0.22F,  0.18F, -0.14F,  0.08F, -0.04F, -0.08F,  0.04F,   0.00F,  0.05F, -0.04F,   18.0F,   6.0F,   0.0F, 1.00F, 1.00F),
+            // T31: Slow regal downward arc (blade at ~45°, video #340-#342)
+            new MusouKey(31.0F,  0.00F,  0.06F,  0.00F, 0.0F,  0.00F,  0.00F,  -1.36F, -0.06F, -0.04F,  -0.36F,  0.26F, -0.16F,  0.06F, -0.03F, -0.06F,  0.03F,   0.01F,  0.04F, -0.05F,  -22.0F,  44.0F, -10.0F, 1.00F, 1.00F),
+            // T37: Locked horizontal across chest (video #345-#347)
+            new MusouKey(37.0F,  0.02F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -1.22F, -0.22F, -0.12F,  -0.44F,  0.30F, -0.16F,  0.04F, -0.02F, -0.04F,  0.02F,   0.02F,  0.04F, -0.06F,  -60.0F,  78.0F, -14.0F, 1.00F, 1.00F),
+            // T39: Crisp horizontal flick right + electro flash (video #348-#350)
+            new MusouKey(39.0F,  0.02F,  0.14F,  0.02F, 0.0F,  0.00F, -0.04F,  -1.18F,  0.52F,  0.22F,  -0.18F,  0.10F, -0.16F,  0.04F, -0.02F, -0.04F,  0.02F,   0.00F,  0.04F, -0.07F,  -48.0F,  28.0F, -72.0F, 0.85F, 0.94F),
+            // T42: Sword fully dissolved (video #351-#353)
+            new MusouKey(42.0F,  0.00F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -0.38F,  0.18F,  0.08F,  -0.06F,  0.04F, -0.06F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,  10.0F, -30.0F, 0.00F, 0.42F),
+            // T46: Neutral idle
+            new MusouKey(46.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // N4 (step 3, 50 ticks = 2500ms): Spin Wind-up -> Rapid 2-Hit Cross -> Low Diagonal Hold -> Vertical Lift -> Horizontal Flick Dissolve
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_N4 = new MusouKey[] {
+            // T0: Coil right for spin entry
+            new MusouKey(0.0F,   0.06F,  0.38F,  0.04F, 0.3F,  0.02F, -0.14F,  -1.36F,  1.08F,  0.46F,  -0.30F, -0.16F, -0.24F,  0.22F, -0.07F, -0.22F,  0.07F,   0.00F,  0.04F, -0.08F,  -48.0F,   8.0F,  78.0F, 0.65F, 0.94F),
+            // T4: Peak spin coil right (video #418-#419)
+            new MusouKey(4.0F,   0.10F,  0.46F,  0.06F, 0.5F,  0.04F, -0.18F,  -1.42F,  1.22F,  0.52F,  -0.42F, -0.24F, -0.32F,  0.26F, -0.09F, -0.26F,  0.09F,   0.00F,  0.04F, -0.09F,  -46.0F,   6.0F,  82.0F, 1.00F, 1.00F),
+            // T8: Hit 4A — Wide horizontal-diagonal sweep Right -> Left (video #420-#423)
+            new MusouKey(8.0F,   0.12F, -0.46F, -0.06F, 0.5F,  0.04F,  0.18F,  -1.66F, -1.08F, -0.44F,   0.38F,  0.28F, -0.36F, -0.24F, -0.08F,  0.26F,  0.08F,   0.00F,  0.05F, -0.09F,  -46.0F, -10.0F,  64.0F, 1.00F, 1.00F),
+            // T13: Hit 4B — Instant reverse-spin counter-slash Left -> Low-Right (video #424-#428)
+            new MusouKey(13.0F,  0.14F,  0.44F,  0.06F, 0.4F,  0.04F, -0.16F,  -0.62F,  0.96F,  0.46F,   0.44F, -0.28F, -0.36F,  0.28F, -0.09F, -0.28F,  0.09F,   0.00F,  0.04F, -0.08F,  -40.0F,  14.0F,  36.0F, 1.00F, 1.00F),
+            // T25: Poised low-diagonal follow-through hold (video #432-#443)
+            new MusouKey(25.0F,  0.06F,  0.24F,  0.02F, 0.1F,  0.02F, -0.08F,  -0.54F,  0.52F,  0.28F,   0.18F, -0.10F, -0.20F,  0.16F, -0.06F, -0.16F,  0.06F,   0.00F,  0.03F, -0.07F,  -38.0F,  18.0F,  26.0F, 1.00F, 1.00F),
+            // T33: Graceful vertical lift — blade sweeps straight UP 90° (video #447-#449)
+            new MusouKey(33.0F,  0.00F,  0.06F,  0.00F, 0.0F,  0.00F, -0.02F,  -1.52F,  0.16F,  0.08F,  -0.22F,  0.18F, -0.14F,  0.08F, -0.04F, -0.08F,  0.04F,   0.00F,  0.05F, -0.04F,   18.0F,   6.0F,   0.0F, 1.00F, 1.00F),
+            // T41: Smoothly arcs down into horizontal chest lock (video #454-#457)
+            new MusouKey(41.0F,  0.02F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -1.20F, -0.20F, -0.12F,  -0.42F,  0.28F, -0.16F,  0.04F, -0.02F, -0.04F,  0.02F,   0.02F,  0.04F, -0.06F,  -60.0F,  76.0F, -14.0F, 1.00F, 1.00F),
+            // T43: Bright horizontal electro flash flick (video #458-#460)
+            new MusouKey(43.0F,  0.02F,  0.14F,  0.02F, 0.0F,  0.00F, -0.04F,  -1.16F,  0.54F,  0.22F,  -0.16F,  0.10F, -0.16F,  0.04F, -0.02F, -0.04F,  0.02F,   0.00F,  0.04F, -0.07F,  -48.0F,  28.0F, -72.0F, 0.85F, 0.94F),
+            // T46: Sword smoothly dissolves (video #461-#464)
+            new MusouKey(46.0F,  0.00F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -0.36F,  0.16F,  0.08F,  -0.06F,  0.04F, -0.06F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,  10.0F, -30.0F, 0.00F, 0.42F),
+            // T50: Neutral idle
+            new MusouKey(50.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // N5 (step 4, 48 ticks = 2400ms): Low Iaijutsu Crouch -> Massive Horizontal Space-Cleave -> Crouched Sheathe -> Dissolve -> Rise
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_N5 = new MusouKey[] {
+            // T0: Begin dropping into low iai stance, arm drawing left
+            new MusouKey(0.0F,   0.18F, -0.30F, -0.04F, 1.0F,  0.06F,  0.12F,  -1.15F, -0.78F, -0.26F,  -0.56F,  0.34F, -0.18F,  0.28F, -0.09F, -0.28F,  0.09F,   0.00F,  0.03F, -0.07F,  -48.0F, -10.0F, -82.0F, 0.70F, 0.94F),
+            // T8: Deep low iaijutsu crouch coiled left, left hand poised at waist scabbard (video #547-#549)
+            new MusouKey(8.0F,   0.36F, -0.58F, -0.07F, 2.5F,  0.10F,  0.26F,  -1.24F, -1.16F, -0.36F,  -0.78F,  0.52F, -0.22F,  0.48F, -0.12F, -0.44F,  0.12F,   0.00F,  0.03F, -0.08F,  -48.0F, -14.0F, -88.0F, 1.00F, 1.00F),
+            // T13: MASSIVE LOW HORIZONTAL SPACE-CLEAVING IAI SLASH Left -> Extended Right-Back (video #550-#555)
+            new MusouKey(13.0F,  0.38F,  0.62F,  0.08F, 2.6F,  0.08F, -0.26F,  -1.16F,  1.56F,  0.46F,   0.52F, -0.42F, -0.46F,  0.46F, -0.12F, -0.46F,  0.12F,   0.00F,  0.04F, -0.09F,  -46.0F,   0.0F, -88.0F, 1.00F, 1.00F),
+            // T24: Hold iconic low crouched follow-through pose (video #558-#565)
+            new MusouKey(24.0F,  0.34F,  0.52F,  0.06F, 2.4F,  0.06F, -0.22F,  -1.12F,  1.38F,  0.38F,   0.40F, -0.32F, -0.36F,  0.44F, -0.11F, -0.42F,  0.11F,   0.00F,  0.04F, -0.08F,  -46.0F,   8.0F, -84.0F, 1.00F, 1.00F),
+            // T32: Slow crouched draw-back / sheathing across waist with electro glint (video #566-#573)
+            new MusouKey(32.0F,  0.28F,  0.18F,  0.02F, 2.0F,  0.08F, -0.08F,  -0.76F,  0.32F,  0.18F,  -0.36F,  0.28F, -0.18F,  0.38F, -0.10F, -0.36F,  0.10F,   0.02F,  0.02F, -0.05F,  -54.0F,  48.0F, -48.0F, 1.00F, 1.00F),
+            // T39: Smooth sword dissolution while still crouched low (video #574-#581)
+            new MusouKey(39.0F,  0.22F,  0.08F,  0.00F, 1.5F,  0.06F, -0.02F,  -0.46F,  0.12F,  0.10F,  -0.22F,  0.16F, -0.12F,  0.28F, -0.08F, -0.26F,  0.08F,   0.00F,  0.00F, -0.02F,  -48.0F,  28.0F, -24.0F, 0.00F, 0.85F),
+            // T44: Gracefully rising upright out of the crouch (video #582-#586)
+            new MusouKey(44.0F,  0.06F,  0.02F,  0.00F, 0.4F,  0.02F,  0.00F,  -0.16F,  0.04F,  0.04F,  -0.08F,  0.06F, -0.04F,  0.08F, -0.03F, -0.08F,  0.03F,   0.00F,  0.00F,  0.00F,  -45.0F,   8.0F,  -8.0F, 0.00F, 0.35F),
+            // T48: Regal standing neutral
+            new MusouKey(48.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  -45.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    // -------------------------------------------------------------------------
+    // CHARGED ATTACK (ANIM_RAIDEN_CA, 44 ticks = 2200ms): Low Iai Coil -> Twin X-Crescent Dash -> Low Hold -> Vertical Hold -> Dissolve
+    // -------------------------------------------------------------------------
+    private static final MusouKey[] TRACK_CA = new MusouKey[] {
+            // T0: Quick low-left iai coil (video #597-#601)
+            new MusouKey(0.0F,   0.18F, -0.34F, -0.04F, 0.8F,  0.06F,  0.14F,  -1.10F, -0.88F, -0.28F,  -0.52F,  0.30F, -0.18F,  0.28F, -0.08F, -0.26F,  0.08F,   0.00F,  0.03F, -0.07F,  -48.0F, -10.0F, -64.0F, 0.65F, 0.94F),
+            // T4: Peak coil before dash
+            new MusouKey(4.0F,   0.26F, -0.44F, -0.06F, 1.2F,  0.08F,  0.18F,  -0.68F, -1.04F, -0.34F,  -0.60F,  0.34F, -0.22F,  0.36F, -0.10F, -0.34F,  0.10F,   0.00F,  0.03F, -0.08F,  -46.0F, -12.0F, -54.0F, 1.00F, 1.00F),
+            // T9: Twin X-Slash Hit 1 — explosive upward-diagonal whip low-left -> high-right (video #619-#623)
+            new MusouKey(9.0F,   0.22F,  0.46F,  0.06F, 0.8F,  0.04F, -0.18F,  -2.24F,  1.04F,  0.42F,   0.44F, -0.30F, -0.36F, -0.32F, -0.09F,  0.36F,  0.09F,   0.00F,  0.05F, -0.09F,  -44.0F,   8.0F,  44.0F, 1.00F, 1.00F),
+            // T15: Twin X-Slash Hit 2 — counter diagonal slash high-right -> low-right lunge (video #627-#635)
+            new MusouKey(15.0F,  0.18F,  0.24F,  0.04F, 0.5F,  0.04F, -0.10F,  -0.52F,  0.66F,  0.36F,   0.32F, -0.22F, -0.28F,  0.30F, -0.09F, -0.30F,  0.09F,   0.00F,  0.03F, -0.08F,  -40.0F,  14.0F,  30.0F, 1.00F, 1.00F),
+            // T25: Poised low-diagonal follow-through stance (video #639-#653)
+            new MusouKey(25.0F,  0.06F,  0.14F,  0.02F, 0.1F,  0.02F, -0.06F,  -0.44F,  0.46F,  0.26F,   0.14F, -0.10F, -0.16F,  0.16F, -0.05F, -0.16F,  0.05F,   0.00F,  0.02F, -0.06F,  -36.0F,  16.0F,  22.0F, 1.00F, 1.00F),
+            // T34: Smooth wrist rotation lifting katana straight UP vertically beside right side (video #655-#669)
+            new MusouKey(34.0F,  0.00F,  0.04F,  0.00F, 0.0F,  0.00F,  0.00F,  -0.78F,  0.14F,  0.12F,  -0.08F,  0.08F, -0.10F,  0.06F, -0.03F, -0.06F,  0.03F,   0.00F,  0.04F, -0.03F,   20.0F,   6.0F,   0.0F, 1.00F, 0.96F),
+            // T39: Vertical electro flash & smooth sword dissolution (video #671-#675)
+            new MusouKey(39.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,  -0.32F,  0.06F,  0.06F,  -0.04F,  0.04F, -0.04F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.02F,  0.00F,   20.0F,   2.0F,   0.0F, 0.00F, 0.44F),
+            // T44: Neutral idle
+            new MusouKey(44.0F,  0.00F,  0.00F,  0.00F, 0.0F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,  0.00F,   0.00F,  0.00F,  0.00F,    0.0F,   0.0F,   0.0F, 0.00F, 0.00F)
+    };
+
+    private static MusouKey[] resolveMusouTrack(int activeAnim, ClientAuraTracker.AuraDisplayData data) {
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) return TRACK_ULTIMATE_DRAW;
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA) return TRACK_CA;
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
+            int step = data != null ? Math.floorMod(data.raidenComboStep, 5) : 0;
+            return switch (step) {
+                case 0 -> TRACK_N1;
+                case 1 -> TRACK_N2;
+                case 2 -> TRACK_N3;
+                case 3 -> TRACK_N4;
+                default -> TRACK_N5;
+            };
+        }
+        return null;
+    }
+
+    private static float getActiveCombatCutoffTick(int activeAnim, ClientAuraTracker.AuraDisplayData data) {
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) return 32.0F;
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA) return 16.0F;
+        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
+            int step = data != null ? Math.floorMod(data.raidenComboStep, 5) : 0;
+            return (step == 3 || step == 4) ? 15.0F : 9.0F;
+        }
+        return 0.0F;
+    }
+
+    /**
+     * Returns smooth weapon visibility alpha [0..1] for Raiden Shogun's Musou Isshin sword:
+     * - Normal polearm mode: always 1.0F (untouched).
+     * - Musou Isshin active attack/draw/CA: exact tick-keyframed materialization & dissolution alpha.
+     * - Musou Isshin idle (between attacks after dissolution): smoothly hidden (0.0F), matching Genshin Impact.
+     */
+    public static float getMusouWeaponFadeAlpha(LivingEntity entity, net.minecraft.world.item.ItemStack stack) {
+        if (entity == null || stack == null || stack.isEmpty() || !(stack.getItem() instanceof ArcaneStaffItem)) return 1.0F;
+        if (ArcaneStaffItem.getEffectiveKind(stack) != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) return 1.0F;
+        int id = entity.getId();
+        ClientAuraTracker.AuraDisplayData data = ClientAuraTracker.get(id);
+        long now = System.currentTimeMillis();
+        int activeAnim = (data != null && now < data.staffAnimUntil) ? data.staffAnimType : 0;
+        MusouKey[] track = resolveMusouTrack(activeAnim, data);
+        if (track != null && data != null) {
+            float tick = Math.max(0.0F, (now - data.staffAnimStartTime) / 50.0F);
+            SampledMusouPose pose = sampleTrack(track, tick);
+            return Mth.clamp(pose.swAlpha, 0.0F, 1.0F);
+        }
+        if (ClientAuraTracker.isRaidenMusouActive(id)) {
+            return 0.0F;
+        }
+        return 1.0F;
+    }
+
     public static boolean applyHumanoidAnimation(
             LivingEntity entity,
             HumanoidModel<?> model,
@@ -400,138 +747,68 @@ public final class RaidenVisualRenderer {
             offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * slash);
             return true;
         }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
+        MusouKey[] track = resolveMusouTrack(activeAnim, data);
+        if (track != null && data != null) {
             HumanoidArm castArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
             var mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
             var offPart = castArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
+            var leadLeg = castArm == HumanoidArm.RIGHT ? model.rightLeg : model.leftLeg;
+            var trailLeg = castArm == HumanoidArm.RIGHT ? model.leftLeg : model.rightLeg;
             float castDir = castArm == HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            float offDir = -castDir;
 
-            float stanceW = (t < 0.88F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.88F) / 0.12F) * (float) Math.PI));
-            model.leftLeg.xRot = Mth.lerp(stanceW, model.leftLeg.xRot, 0.22F);
-            model.rightLeg.xRot = Mth.lerp(stanceW, model.rightLeg.xRot, -0.18F);
-            model.leftLeg.zRot = Mth.lerp(stanceW, model.leftLeg.zRot, -0.08F);
-            model.rightLeg.zRot = Mth.lerp(stanceW, model.rightLeg.zRot, 0.08F);
-            if (t < 0.625F) {
-                float reach = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.35F));
-                model.body.xRot = Mth.lerp(reach, model.body.xRot, -0.15F);
-                mainPart.xRot = Mth.lerp(reach, mainPart.xRot, -1.1F);
-                mainPart.yRot = Mth.lerp(reach, mainPart.yRot, castDir * -0.6F);
-                mainPart.zRot = Mth.lerp(reach, mainPart.zRot, castDir * 0.4F);
-                offPart.xRot = Mth.lerp(reach, offPart.xRot, -0.85F);
-                offPart.yRot = Mth.lerp(reach, offPart.yRot, offDir * -0.35F);
-                offPart.zRot = Mth.lerp(reach, offPart.zRot, offDir * 0.20F);
-                model.head.xRot = Mth.lerp(reach, model.head.xRot, 0.2F);
-                model.hat.copyFrom(model.head);
-            } else if (t < 0.8125F) {
-                float pull = WindGliderRenderer.smoothStep01((t - 0.625F) / 0.1875F);
-                float tremor = Mth.sin(ageInTicks * 2.4F) * 0.02F * pull;
-                model.body.xRot = Mth.lerp(pull, -0.15F, 0.0F);
-                model.body.yRot = castDir * Mth.lerp(pull, 0.0F, -0.4F);
-                mainPart.xRot = Mth.lerp(pull, -1.1F, -2.2F) + tremor;
-                mainPart.yRot = castDir * Mth.lerp(pull, -0.6F, 0.2F);
-                mainPart.zRot = castDir * Mth.lerp(pull, 0.4F, 0.1F);
-                offPart.xRot = Mth.lerp(pull, -0.85F, -0.35F);
-                model.head.xRot = Mth.lerp(pull, 0.2F, 0.0F);
-                model.hat.copyFrom(model.head);
-            } else {
-                float slash = WindGliderRenderer.smoothStep01((t - 0.8125F) / 0.125F);
-                model.body.xRot = Mth.lerp(slash, 0.0F, 0.10F);
-                model.body.yRot = castDir * Mth.lerp(slash, -0.40F, 0.38F);
-                // Sweep straight arm from left (-1.05) across to stretched out right (+1.57), matching 1st-person slash
-                mainPart.xRot = -1.57F;
-                mainPart.yRot = castDir * Mth.lerp(slash, -1.05F, 1.57F);
-                mainPart.zRot = 0.0F;
-                offPart.xRot = Mth.lerp(slash, -0.35F, -1.25F);
-                offPart.yRot = offDir * Mth.lerp(slash, 0.10F, -1.10F);
-                offPart.zRot = 0.0F;
+            float tick = Math.max(0.0F, (System.currentTimeMillis() - data.staffAnimStartTime) / 50.0F);
+            SampledMusouPose p = sampleTrack(track, tick);
+            float w = Mth.clamp(p.poseWeight, 0.0F, 1.0F);
+            if (w <= 0.001F) return false;
+
+            // Subtle high-energy tremor during Ultimate chest pull (ticks 10..20)
+            float tremor = (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && tick >= 10.0F && tick <= 20.0F)
+                    ? Mth.sin(ageInTicks * 2.4F) * 0.016F
+                    : 0.0F;
+
+            // Upper/lower body blending: during passive recovery flourish, if player starts walking,
+            // smoothly release leg & crouch overrides so legs walk naturally while arms finish sheathing
+            float activeCutoff = getActiveCombatCutoffTick(activeAnim, data);
+            float walkSpeed = entity.walkAnimation.speed();
+            float moveRelease = (tick > activeCutoff && walkSpeed > 0.08F)
+                    ? Mth.clamp((walkSpeed - 0.08F) / 0.28F, 0.0F, 1.0F)
+                    : 0.0F;
+            float legW = w * (1.0F - moveRelease);
+            float crouchOffset = p.crouchY * legW;
+
+            if (crouchOffset > 0.01F) {
+                model.head.y += crouchOffset;
+                model.hat.y += crouchOffset;
+                model.body.y += crouchOffset;
+                model.rightArm.y += crouchOffset;
+                model.leftArm.y += crouchOffset;
             }
-            return true;
-        }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH) {
-            HumanoidArm castArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
-            var mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
-            var offPart = castArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
-            float castDir = castArm == HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            int step = data != null ? Math.floorMod(data.raidenComboStep, 5) : 0;
-            float slash = WindGliderRenderer.smoothStep01(t / 0.48F);
-            float w = (t < 0.60F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.60F) / 0.40F) * (float) Math.PI));
-            switch (step) {
-                case 0 -> {
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.30F);
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.95F, 0.85F));
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.35F, 0.45F));
-                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F * slash);
-                    model.body.yRot = castDir * Mth.lerp(slash, -0.22F, 0.25F) * w;
-                }
-                case 1 -> {
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -0.55F, -2.05F));
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.65F, -0.85F));
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.35F, -0.45F));
-                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.30F * slash);
-                    model.body.yRot = castDir * Mth.lerp(slash, 0.20F, -0.22F) * w;
-                }
-                case 2 -> {
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -2.10F, -0.45F));
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.85F, 0.75F));
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.45F, 0.40F));
-                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.25F);
-                    model.body.yRot = castDir * Mth.lerp(slash, -0.22F, 0.26F) * w;
-                }
-                case 3 -> {
-                    if (t < 0.44F) {
-                        float f1 = WindGliderRenderer.smoothStep01(t / 0.44F);
-                        mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(f1, -0.95F, -1.65F));
-                        mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(f1, 0.90F, -0.85F));
-                        mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(f1, 0.48F, -0.48F));
-                        model.body.yRot = castDir * Mth.lerp(f1, 0.22F, -0.24F) * w;
-                    } else {
-                        float f2 = WindGliderRenderer.smoothStep01((t - 0.44F) / 0.40F);
-                        mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(f2, -1.65F, -1.05F));
-                        mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(f2, -0.95F, 0.90F));
-                        mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(f2, -0.52F, 0.48F));
-                        model.body.yRot = castDir * Mth.lerp(f2, -0.24F, 0.26F) * w;
-                    }
-                    offPart.xRot = Mth.lerp(w, offPart.xRot, -0.35F);
-                }
-                default -> {
-                    float lift = WindGliderRenderer.smoothStep01(t / 0.28F);
-                    float drop = WindGliderRenderer.smoothStep01((t - 0.28F) / 0.36F);
-                    float targetX = (t < 0.28F) ? Mth.lerp(lift, -1.45F, -2.75F) : Mth.lerp(drop, -2.75F, -0.25F);
-                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, targetX);
-                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, 0.0F);
-                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.08F);
-                    offPart.xRot = Mth.lerp(w, offPart.xRot, targetX * 0.92F);
-                    offPart.yRot = Mth.lerp(w, offPart.yRot, -castDir * 0.35F);
-                    model.body.xRot = Mth.lerp(drop, -0.08F, 0.22F) * w;
-                }
+
+            model.body.xRot = Mth.lerp(w, model.body.xRot, p.bodyX);
+            model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * p.bodyY);
+            model.body.zRot = Mth.lerp(w, model.body.zRot, castDir * p.bodyZ);
+
+            mainPart.xRot = Mth.lerp(w, mainPart.xRot, p.mainX + tremor);
+            mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * p.mainY);
+            mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * p.mainZ);
+
+            offPart.xRot = Mth.lerp(w, offPart.xRot, p.offX);
+            offPart.yRot = Mth.lerp(w, offPart.yRot, castDir * p.offY);
+            offPart.zRot = Mth.lerp(w, offPart.zRot, castDir * p.offZ);
+
+            if (legW > 0.001F) {
+                trailLeg.xRot = Mth.lerp(legW, trailLeg.xRot, p.legLX);
+                trailLeg.zRot = Mth.lerp(legW, trailLeg.zRot, castDir * p.legLZ);
+                leadLeg.xRot = Mth.lerp(legW, leadLeg.xRot, p.legRX);
+                leadLeg.zRot = Mth.lerp(legW, leadLeg.zRot, castDir * p.legRZ);
             }
-            return true;
-        }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA) {
-            HumanoidArm castArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.ENGULFING_LIGHTNING);
-            var mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
-            var offPart = castArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
-            float castDir = castArm == HumanoidArm.RIGHT ? 1.0F : -1.0F;
-            float offDir = -castDir;
-            float w = (t < 0.80F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.80F) / 0.20F) * (float) Math.PI));
-            if (t < 0.22F) {
-                float dashP = WindGliderRenderer.smoothStep01(t / 0.22F);
-                model.body.xRot = Mth.lerp(w, model.body.xRot, 0.28F * dashP);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(dashP, -1.20F, 0.85F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.28F * dashP);
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.26F * dashP);
-                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.55F * dashP);
-            } else {
-                // Post-dash pose matching Tsaritsa spear stance: arm angled back, torso leaned 10 deg forward
-                model.body.xRot = Mth.lerp(w, model.body.xRot, 0.175F);
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, 0.85F);
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * 0.28F);
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * 0.26F);
-                offPart.xRot = Mth.lerp(w, offPart.xRot, -0.45F);
-                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * 0.25F);
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.32F);
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.28F);
+
+            // Head poise: strong during active window, subtle during recovery so player can look around
+            float headW = (tick <= activeCutoff) ? w : (w * 0.45F * (1.0F - moveRelease));
+            if (headW > 0.001F) {
+                model.head.xRot = Mth.lerp(headW, model.head.xRot, p.headX);
+                model.head.yRot = Mth.lerp(headW, model.head.yRot, castDir * p.headY);
+                model.hat.copyFrom(model.head);
             }
             return true;
         }
@@ -539,6 +816,7 @@ public final class RaidenVisualRenderer {
     }
 
     public static boolean applyThirdPersonItemTransform(
+            LivingEntity entity,
             ArcaneStaffItem.Kind effKind,
             boolean leftHand,
             PoseStack poseStack,
@@ -548,31 +826,28 @@ public final class RaidenVisualRenderer {
     ) {
         if (effKind != ArcaneStaffItem.Kind.ENGULFING_LIGHTNING) return false;
         float side = leftHand ? -1.0F : 1.0F;
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            if (t < 0.625F) {
-                float reach = WindGliderRenderer.smoothStep01(Math.min(1.0F, t / 0.35F));
-                poseStack.translate(-side * 0.10F * reach, -0.04F * reach, 0.04F * reach);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-152.0F * reach));
-            } else if (t < 0.8125F) {
-                float drawOut = WindGliderRenderer.smoothStep01((t - 0.625F) / 0.1875F);
-                poseStack.translate(-side * Mth.lerp(drawOut, 0.10F, 0.0F), Mth.lerp(drawOut, -0.04F, 0.04F), Mth.lerp(drawOut, 0.04F, -0.08F));
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(drawOut, -152.0F, -45.0F)));
-            } else {
-                // Keep sword rigidly along the exact same axis as the sweeping arm (no direction flip)
-                poseStack.translate(0.0F, 0.04F, -0.08F);
-                poseStack.mulPose(Axis.XP.rotationDegrees(-45.0F));
+        MusouKey[] track = resolveMusouTrack(activeAnim, data);
+        if (track != null && data != null) {
+            float tick = Math.max(0.0F, (now - data.staffAnimStartTime) / 50.0F);
+            SampledMusouPose p = sampleTrack(track, tick);
+            if (p.swAlpha <= 0.02F) {
+                poseStack.scale(0.0F, 0.0F, 0.0F);
+                return true;
             }
+            poseStack.translate(side * p.swTx, p.swTy, p.swTz);
+            poseStack.mulPose(Axis.YP.rotationDegrees(side * p.swRy));
+            poseStack.mulPose(Axis.XP.rotationDegrees(p.swRx));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(side * p.swRz));
+            if (p.swAlpha < 0.995F) {
+                float s = Mth.lerp(p.swAlpha, 0.86F, 1.0F);
+                poseStack.scale(s, s, s);
+            }
+            return true;
         }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH && data != null) {
-            poseStack.translate(0.0F, 0.06F, -0.10F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(-74.0F));
-        }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
-            // Reverse-grip spear collinear with the arm axis, matching Tsaritsa's spear stance
-            poseStack.translate(0.0F, -0.04F, 0.09F);
-            poseStack.mulPose(Axis.XP.rotationDegrees(-80.0F));
+        // When Musou Isshin is active and no attack/draw is playing, sword has dissolved from hand
+        if (entity != null && ClientAuraTracker.isRaidenMusouActive(entity.getId())) {
+            poseStack.scale(0.0F, 0.0F, 0.0F);
+            return true;
         }
         return true;
     }
@@ -598,106 +873,70 @@ public final class RaidenVisualRenderer {
             poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -55.0F, 62.0F) * w));
             return true;
         }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            if (t < 0.22F) {
-                float reach = WindGliderRenderer.smoothStep01(t / 0.22F);
-                poseStack.translate(-dir * 0.42F * reach, -0.24F * reach, -0.18F * reach);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F * reach));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F * reach));
-            } else if (t < 0.62F) {
-                float pull = WindGliderRenderer.smoothStep01((t - 0.22F) / 0.40F);
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 2.4F) * 0.006F * pull;
-                poseStack.translate(-dir * 0.42F + tremor, Mth.lerp(pull, -0.24F, 0.30F), -0.18F);
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F));
-            } else if (t < 0.72F) {
-                float prep = WindGliderRenderer.smoothStep01((t - 0.62F) / 0.10F);
-                poseStack.translate(-dir * Mth.lerp(prep, 0.42F, 0.46F), Mth.lerp(prep, 0.30F, -0.02F), Mth.lerp(prep, -0.18F, -0.28F));
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(prep, 0.0F, -24.0F)));
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(prep, -10.0F, -58.0F)));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(prep, 172.0F, 82.0F)));
+        MusouKey[] track = resolveMusouTrack(activeAnim, data);
+        if (track != null && data != null) {
+            float tick = Math.max(0.0F, (now - data.staffAnimStartTime) / 50.0F);
+            SampledMusouPose p = sampleTrack(track, tick);
+            if (p.swAlpha <= 0.02F) {
+                poseStack.scale(0.0F, 0.0F, 0.0F);
+                return true;
+            }
+            if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
+                if (tick < 10.0F) {
+                    float reach = smootherStep01(tick / 10.0F);
+                    poseStack.translate(-dir * 0.42F * reach, -0.26F * reach, -0.18F * reach);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F * reach));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F * reach));
+                } else if (tick < 20.0F) {
+                    float pull = smootherStep01((tick - 10.0F) / 10.0F);
+                    float tremor = Mth.sin((player.tickCount + partialTicks) * 2.4F) * 0.006F * pull;
+                    poseStack.translate(-dir * 0.42F + tremor, Mth.lerp(pull, -0.26F, 0.30F), -0.18F);
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 172.0F));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-10.0F));
+                } else if (tick < 25.0F) {
+                    float prep = smootherStep01((tick - 20.0F) / 5.0F);
+                    poseStack.translate(-dir * Mth.lerp(prep, 0.42F, 0.56F), Mth.lerp(prep, 0.30F, -0.02F), Mth.lerp(prep, -0.18F, -0.30F));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(prep, 0.0F, 34.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(prep, -10.0F, -72.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(prep, 172.0F, 86.0F)));
+                } else if (tick < 31.0F) {
+                    float slash = smootherStep01((tick - 25.0F) / 6.0F);
+                    poseStack.translate(dir * Mth.lerp(slash, -0.56F, 0.34F), 0.02F, -0.34F);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 34.0F, -54.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(-82.0F));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 86.0F));
+                } else if (tick < 45.0F) {
+                    float hold = smootherStep01((tick - 31.0F) / 14.0F);
+                    poseStack.translate(dir * Mth.lerp(hold, 0.34F, -0.10F), Mth.lerp(hold, 0.02F, -0.06F), Mth.lerp(hold, -0.34F, -0.28F));
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(hold, -54.0F, 12.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(hold, -82.0F, -56.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(hold, 86.0F, 72.0F)));
+                } else {
+                    float diss = smootherStep01((tick - 45.0F) / 7.0F);
+                    poseStack.translate(dir * Mth.lerp(diss, -0.10F, 0.16F), Mth.lerp(diss, -0.06F, -0.22F), -0.26F);
+                    poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(diss, 12.0F, -18.0F)));
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(diss, -56.0F, -32.0F)));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(diss, 72.0F, 24.0F)));
+                }
             } else {
-                float slash = WindGliderRenderer.smoothStep01((t - 0.72F) / 0.18F);
-                float w = (t < 0.90F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.90F) / 0.10F) * (float) Math.PI));
-                poseStack.translate(dir * Mth.lerp(slash, -0.75F, 0.28F) * w, 0.04F * w, -0.36F * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(slash, 48.0F, -52.0F) * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-82.0F * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 86.0F * w));
+                // Unified smooth 1st-person projection directly driven by the tick-accurate 3rd-person pose!
+                float w = p.poseWeight;
+                float tx = dir * Mth.clamp(p.mainY * 0.28F, -0.44F, 0.42F) * w;
+                float ty = Mth.clamp((-p.mainX - 1.10F) * 0.20F - p.crouchY * 0.05F, -0.30F, 0.30F) * w;
+                float tz = (-0.24F - 0.10F * Mth.clamp(Math.abs(p.mainY), 0.0F, 1.0F)) * w;
+                poseStack.translate(tx, ty, tz);
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.clamp(-p.mainY * 32.0F + p.swRy * 0.25F, -65.0F, 65.0F) * w));
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.clamp((p.swRx + 15.0F) * 0.85F, -86.0F, 28.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.clamp(-p.swRz * 0.85F, -92.0F, 92.0F) * w));
+            }
+            if (p.swAlpha < 0.995F) {
+                float s = Mth.lerp(p.swAlpha, 0.84F, 1.0F);
+                poseStack.scale(s, s, s);
             }
             return true;
         }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_SLASH && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float slash = WindGliderRenderer.smoothStep01(t / 0.48F);
-            float w = (t < 0.60F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.60F) / 0.40F) * (float) Math.PI));
-            switch (Math.floorMod(data.raidenComboStep, 5)) {
-                case 0 -> {
-                    poseStack.translate(dir * Mth.lerp(slash, 0.28F, -0.32F) * w, 0.02F * w, -0.24F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(-34.0F * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -64.0F, 68.0F) * w));
-                }
-                case 1 -> {
-                    poseStack.translate(dir * Mth.lerp(slash, -0.26F, 0.24F) * w, Mth.lerp(slash, -0.16F, 0.18F) * w, -0.24F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -16.0F, -58.0F) * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 58.0F, -50.0F) * w));
-                }
-                case 2 -> {
-                    poseStack.translate(dir * Mth.lerp(slash, 0.24F, -0.28F) * w, Mth.lerp(slash, 0.18F, -0.18F) * w, -0.22F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -56.0F, -12.0F) * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -50.0F, 56.0F) * w));
-                }
-                case 3 -> {
-                    if (t < 0.44F) {
-                        float f1 = WindGliderRenderer.smoothStep01(t / 0.44F);
-                        poseStack.translate(dir * Mth.lerp(f1, -0.26F, 0.26F) * w, Mth.lerp(f1, -0.12F, 0.12F) * w, -0.26F * w);
-                        poseStack.mulPose(Axis.XP.rotationDegrees(-44.0F * w));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(f1, 64.0F, -58.0F) * w));
-                    } else {
-                        float f2 = WindGliderRenderer.smoothStep01((t - 0.44F) / 0.40F);
-                        poseStack.translate(dir * Mth.lerp(f2, 0.26F, -0.28F) * w, Mth.lerp(f2, 0.12F, -0.12F) * w, -0.26F * w);
-                        poseStack.mulPose(Axis.XP.rotationDegrees(-44.0F * w));
-                        poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(f2, -58.0F, 64.0F) * w));
-                    }
-                }
-                default -> {
-                    float lift = WindGliderRenderer.smoothStep01(t / 0.28F);
-                    float drop = WindGliderRenderer.smoothStep01((t - 0.28F) / 0.36F);
-                    float ty = (t < 0.28F) ? Mth.lerp(lift, 0.04F, 0.32F) : Mth.lerp(drop, 0.32F, -0.26F);
-                    float xp = (t < 0.28F) ? Mth.lerp(lift, -24.0F, 18.0F) : Mth.lerp(drop, 18.0F, -82.0F);
-                    poseStack.translate(-dir * 0.12F * w, ty * w, -0.28F * w);
-                    poseStack.mulPose(Axis.XP.rotationDegrees(xp * w));
-                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 8.0F * w));
-                }
-            }
-            return true;
-        }
-        if (activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
+        if (ClientAuraTracker.isRaidenMusouActive(player.getId())) {
             poseStack.scale(0.0F, 0.0F, 0.0F);
-            return true;
-        }
-        if (false && activeAnim == ClientAuraTracker.ANIM_RAIDEN_CA && data != null) {
-            float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
-            float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float w = (t < 0.76F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.76F) / 0.24F) * (float) Math.PI));
-            if (t < 0.24F) {
-                float wind = WindGliderRenderer.smoothStep01(t / 0.24F);
-                float tremor = Mth.sin((player.tickCount + partialTicks) * 3.2F) * 0.006F * wind;
-                poseStack.translate(dir * 0.26F * wind * w + tremor, -0.30F * wind * w, -0.16F * wind * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 18.0F * wind * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(-18.0F * wind * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 96.0F * wind * w));
-            } else {
-                float rawSweep = Mth.clamp((t - 0.24F) / 0.52F, 0.0F, 1.0F);
-                float sweep = 1.0F - (1.0F - rawSweep) * (1.0F - rawSweep) * (1.0F - rawSweep); // Cubic ease-out upward crescent whip
-                float arcLift = Mth.sin(sweep * (float) Math.PI) * 0.10F;
-                poseStack.translate(dir * Mth.lerp(sweep, 0.26F, -0.42F) * w, (Mth.lerp(sweep, -0.30F, 0.34F) + arcLift) * w, Mth.lerp(sweep, -0.16F, -0.34F) * w);
-                poseStack.mulPose(Axis.YP.rotationDegrees(dir * Mth.lerp(sweep, -18.0F, 28.0F) * w));
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(sweep, -18.0F, -76.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(sweep, 96.0F, -84.0F) * w));
-            }
             return true;
         }
         return true;

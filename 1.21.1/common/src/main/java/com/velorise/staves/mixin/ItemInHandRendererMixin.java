@@ -43,7 +43,10 @@ public abstract class ItemInHandRendererMixin {
             LivingEntity entity,
             ItemStack stack
     ) {
-        float alpha = com.velorise.staves.client.character.NahidaVisualRenderer.getWeaponFadeAlpha(entity, stack);
+        float alpha = Math.min(
+                com.velorise.staves.client.character.NahidaVisualRenderer.getWeaponFadeAlpha(entity, stack),
+                com.velorise.staves.client.character.RaidenVisualRenderer.getMusouWeaponFadeAlpha(entity, stack)
+        );
         if (alpha >= 0.995F) return buffer;
         return com.velorise.staves.client.character.NahidaVisualRenderer.wrapTranslucentBuffer(buffer, alpha);
     }

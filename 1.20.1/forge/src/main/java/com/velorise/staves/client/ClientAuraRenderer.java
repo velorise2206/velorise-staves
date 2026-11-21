@@ -573,8 +573,11 @@ public final class ClientAuraRenderer {
                 || NahidaVisualRenderer.applyActionHumanoidAnimation(model, ageInTicks, activeAnim, t)
                 || TsaritsaVisualRenderer.applyActionHumanoidAnimation(entity, model, activeAnim, t);
         if (handled && ultiActive) {
-            model.head.yRot = 0.0F;
-            model.hat.copyFrom(model.head);
+            boolean raidenRecovery = (activeAnim == ClientAuraTracker.ANIM_RAIDEN_DRAW && (System.currentTimeMillis() - data.staffAnimStartTime) >= 1600L);
+            if (!raidenRecovery) {
+                model.head.yRot = 0.0F;
+                model.hat.copyFrom(model.head);
+            }
         }
     }
 
@@ -604,7 +607,7 @@ public final class ClientAuraRenderer {
 
         if (WindGliderRenderer.applyAuxiliaryThirdPersonItemTransform(entity, stack, staff, effKind, leftHand, poseStack, data, activeAnim, now)) return;
         if (ZhongliVisualRenderer.applyThirdPersonItemTransform(entity, stack, staff, effKind, leftHand, poseStack, data, activeAnim, now)) return;
-        if (RaidenVisualRenderer.applyThirdPersonItemTransform(effKind, leftHand, poseStack, data, activeAnim, now)) return;
+        if (RaidenVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack, data, activeAnim, now)) return;
         MavuikaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack);
         NahidaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, poseStack, activeAnim);
         TsaritsaVisualRenderer.applyThirdPersonItemTransform(entity, effKind, leftHand, poseStack, activeAnim);
