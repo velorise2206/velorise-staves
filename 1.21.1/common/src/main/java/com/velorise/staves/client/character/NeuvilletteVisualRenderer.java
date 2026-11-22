@@ -38,7 +38,7 @@ public final class NeuvilletteVisualRenderer {
         ClientAuraTracker.AuraDisplayData nd = ClientAuraTracker.get(mc.player.getId());
         if (nd == null) return false;
         float pct = nd.neuvilletteFiringBeam
-                ? Mth.clamp(1.0F - (nd.neuvilletteBeamElapsed / 60.0F), 0.05F, 1.0F)
+                ? Mth.clamp(1.0F - (nd.neuvilletteBeamElapsed / 60.0F), 0.0F, 1.0F)
                 : Mth.clamp(nd.neuvilletteChargeProgress / 60.0F, 0.0F, 1.0F);
         renderGuardianChargeIcon(guiGraphics, guiGraphics.guiWidth(), guiGraphics.guiHeight(), pct, nd.neuvilletteFiringBeam);
         return true;
@@ -58,11 +58,14 @@ public final class NeuvilletteVisualRenderer {
 
         float clamped = Mth.clamp(pct, 0.0F, 1.0F);
         if (clamped > 0.005F) {
-            int fillH = Math.max(1, Math.round(16 * clamped));
-            int topY = iconY + (16 - fillH);
+            // guardian_head_charge.png opaque pixels span Y=3..11 (9px tall, 3px top pad, 4px bottom pad)
+            int contentTop = 3;
+            int contentHeight = 9;
+            int fillH = Math.max(1, Math.round(contentHeight * clamped));
+            int topOffset = contentTop + (contentHeight - fillH);
             float pulse = firingOrFull ? (0.90F + 0.10F * Mth.sin(System.currentTimeMillis() * 0.032F)) : 1.0F;
             com.mojang.blaze3d.systems.RenderSystem.setShaderColor(pulse, pulse, 1.0F, 1.0F);
-            guiGraphics.blit(guardTex, iconX, topY, 0, 16 - fillH, 16, fillH, 16, 16);
+            guiGraphics.blit(guardTex, iconX, iconY + topOffset, 0, topOffset, 16, fillH, 16, 16);
         }
         com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
     }
