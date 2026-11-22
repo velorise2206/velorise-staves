@@ -1,21 +1,31 @@
 # Changelog
 
-## [Unreleased] - Authentic Genshin Wall Climbing
-
-- **Wall Climbing & FSM Core**: Added complete Genshin-authentic wall climbing mechanics across NeoForge 1.21.1, Fabric 1.21.1, and Forge 1.20.1. Includes wall cling (holding), climbing up/down, lateral shimmying, stamina consumption, and smooth ledge mantling.
-- **Smooth Animation & Movement**: Intercepts player movement to eliminate jitter, with 3D climber animations, waist-pivot body tilting, and synchronized third-person and first-person visuals.
-- **Server Safety & Stability**: Integrated 80-tick anti-kick protection, seamless grace windows at block seams, and automatic cleanup of stale flight/gravity flags.
-
-## [Unreleased] - Authentic Genshin Plunging Attack Rework
-- **Base-Scaled Plunging Attack (`PlungeAndGliderManager`)**: Replaced fixed plunge scaling with unified weapon-base multipliers following Genshin Impact's 1 : 2 : 2.5 ratio (`0.64x` Mid-Air Collision every 6 ticks / 0.3s in 1.0m radius, `1.28x` Low Plunge for `<= 2.4` blocks in 3.0m radius, `1.60x` High Plunge for `> 2.4` blocks in 5.0m radius) across `1.21.1/neoforge`, `1.21.1/fabric`, and `1.20.1/forge`.
-- **Radial Impulse & VFX/SFX Tiering**: Added Low/High Plunge radial knockback (`0.25` vs `0.55` + `0.22Y` lift), scaled shockwave particle rings, and distinct audio pitch.
-- **Authentic Genshin Plunge Fall Damage**: Removed unconditional fall-damage immunity on plunge landing; now computes fall damage strictly from plunge-start height using Genshin tiers (`0–40m`: 0% taken, `40–60m`: 10% taken, `60–100m`: 20% taken, `>100m`: 40% taken), including water-walking landings.
-
-
 All notable changes to **Velorise's Staves** are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.1.1] - 2026-11-22
+
+### Added (All 3 Loaders: NeoForge 1.21.1, Fabric 1.21.1, Forge 1.20.1)
+
+- **Authentic Genshin Wall Climbing**: Added wall clinging, climbing up/down, lateral shimmying, stamina consumption, smooth ledge mantling (including climbing & mantling Geo Constructs / Zhongli's Stone Stele), 3D climber animations, and 80-tick anti-kick protection.
+- **Plunging Attack Rework**: Scaled plunge damage by weapon base (`0.64x` Mid-Air, `1.28x` Low, `1.60x` High) with tiered knockback/VFX and Genshin height-based plunge fall damage.
+- **Cryo Regisvine (Internal Testing)**: Added Regisvine boss entity with procedural 3D laser beams, 14 Blockbench animations, and shield mechanics for API testing (summonable via `/summon velorise_staves:cryo_regisvine`; hidden from survival recipes & creative tab).
+- **Public API (`com.velorise.staves.api`)**: Unified mod API and cross-loader `ElementalShieldManager`.
+
+### Fixed & Changed
+
+- **Mavuika Flamestrider**: Refactored edge-triggered FSM & gcsim-aligned combo timing, added smooth `partialTicks` front/rear wheel spin and steering animation, and fixed the Ultimate sideways wheelie facing direction (now faces right from the player's view).
+- **Raiden Shogun Overhaul**: Added authentic 3-stage 3D dimensional space-tear slashes, snap-open cosmic eye rift with 3-petal Mitsudomoe crest and starburst rays in 1st-person Burst, clean asymmetric X-rift Charged Attack, balanced E coordinated strikes, and restored exact 1.1.0 levitation isolated before RenderLivingEvent.Post so Magatsu hands remain grounded.
+- **Nahida Combat & Animations**: Added `50` Stamina cost to Nahida's Charged Attack, migrated swing/viewfinder/platform offsets to `LivingEntityRenderer` internal `PoseStack.pushPose()` / `popPose()` block with exact 1.1.0 seat alignment (-3.2px drop, +3.45px sway along swing facing), preventing RenderLivingEvent.Post prop stacking and external animation mod overrides (`player-animation-lib`, `EMF`, `Mo' Bends`).
+- **Venti Holy Lyre Idle**: Transcribed 3 authentic HoYoLAB Windsong Lyre sheets into Note Block range (Genshin Main Theme 23.4s, Dawn Winery Theme 14.5s, Let The Wind Tell You 13.3s) with dedicated warm NOTE_BLOCK_BASS chords, flute highlights, note particles, and non-repeating alternating playback.
+- **HUD Improvements**: Fixed Furina CA hold charge progress arc not updating on Fabric 1.21.1 and early-release reset on NeoForge/Forge; aligned Neuvillette's charge icon fill to exact opaque bounds (`Y=3..11`) for a smooth 0.0s → 3.0s visual indicator.
+- **Mini Ender Dragon Targeting**: Refactored target evaluation so the dragon pet immediately follows up on any target attacked by the owner (`player.getLastHurtMob()`), including passive animals, villagers, target dummies, and NoAI mobs, while preserving strict exploit prevention for ambient scanning and Resonant Echo.
+- **Geo Construct Shatter Rules**: Enforced authentic Genshin mechanics where Geo Constructs (`GeoFangPillarEntity` / Zhongli's Stone Stele) immediately shatter if spawned directly overlapping a Boss (including Cryo Regisvine) or oversized entity (`width >= 1.5` or `height >= 2.8`), preventing bosses from being lifted or stuck on pillars.
+- **Keybinds & Cleanup**: Renamed Burst keybind to `key.velorise_staves.elemental_burst` across all 3 loaders and 9 locales, updated `mod_authors` to `velorise2206`, and deduplicated shared resources.
 
 ---
 
@@ -68,34 +78,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Combat Staves & Netherite Upgrades**:
   - 12 elemental combat staves: Inferno Rod (![Pyro][pyro]), Ghastfire Staff (![Pyro][pyro]), Guardian Lens (![Hydro][hydro]), Frostbolt Wand (![Cryo][cryo]), Stormcaller (![Electro][electro]), Wind Staff (![Anemo][anemo], 1.21+ only), Resonant Echo (![Anemo][anemo]), Webcaster (![Dendro][dendro]), Evoker Fang Staff (![Geo][geo]), Shulker Seeker (![Electro][electro]), Dragonfire Scepter (![Electro][electro]), and Wither Scepter (Nether).
   - Smithing Table upgrade system: Upgrade basic staves and artifacts with a Netherite Ingot and Netherite Upgrade Template for boosted durability, damage, and reduced cooldowns.
-  - Balanced around vanilla cooldowns and durability; fully enchantable with `Unbreaking` and `Mending`.
-
-- **Utility & Mobility Artifacts**:
-  - **Void Translocator**: Safely blinks forward through obstacles (up to 24 blocks Basic / 36 blocks Netherite).
-  - **Magic Mirror**: Channels a recall back to bed or world spawn point (intra-dimension Basic / cross-dimension Netherite).
-
-- **Elemental Gauge Theory (EGT) System**:
-  - 7 elements: Pyro ![Pyro][pyro], Hydro ![Hydro][hydro], Cryo ![Cryo][cryo], Electro ![Electro][electro], Anemo ![Anemo][anemo], Geo ![Geo][geo], and Dendro ![Dendro][dendro].
-  - 5 persistent aura elements (Pyro, Hydro, Cryo, Electro, Dendro) with 0.8x aura tax and decay over time ($Duration = 2.5U + 7.0s$); Anemo and Geo act as trigger-only elements.
-  - Complete elemental reaction matrix: Vaporize, Melt, Overloaded, Superconduct, Frozen & Shatter, Electro-Charged, Burning, Quicken (Aggravate & Spread), Bloom (Hyperbloom & Burgeon), Swirl, and Crystallize.
-  - World & Creature Interactions: Innate elements for vanilla creatures (Blaze, Stray, Guardian, Enderman, Armadillo, etc.) with matching element immunities; environmental aura application from rain, water, lava, fire, powder snow, and redstone/amethyst blocks.
-
-- **Combat Feedback & Visuals**:
-  - 3D Floating Combat Text displaying reaction titles and elemental damage numbers.
-  - HD overhead 32x32 pixel-art element icons indicating active auras and dual-reaction animations.
-  - Jade / Waila HUD tooltip integration showing active element gauges and remaining units (U).
-
-- **Multi-Loader Support & Configuration**:
-  - Full feature parity across **NeoForge 1.21.1** (Java 21), **Forge 1.20.1** (Java 17), and **Fabric 1.21.1** (Java 21).
-  - Centralized TOML configuration (`config/velorise_staves.toml`) for damage multipliers, individual staff cooldowns, durability, and visual toggles.
-  - Automated simultaneous multi-loader compilation script (`build-all.ps1`).
-  - Full localization support for English (`en_us`), Vietnamese (`vi_vn`), and Simplified Chinese (`zh_cn`).
-
-[pyro]: shared-resources/assets/velorise_staves/textures/element/pyro.png
-[hydro]: shared-resources/assets/velorise_staves/textures/element/hydro.png
-[cryo]: shared-resources/assets/velorise_staves/textures/element/cryo.png
-[electro]: shared-resources/assets/velorise_staves/textures/element/electro.png
-[anemo]: shared-resources/assets/velorise_staves/textures/element/anemo.png
-[geo]: shared-resources/assets/velorise_staves/textures/element/geo.png
-[dendro]: shared-resources/assets/velorise_staves/textures/element/dendro.png
-[omni]: shared-resources/assets/velorise_staves/textures/element/omni.png

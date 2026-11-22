@@ -19,4 +19,5 @@
 - [Environmental Interactions](Environmental-Interactions)
 - [Relics, Gliders & Advancements](Relics-and-Utilities)
 - [Configuration Guide](Configuration-Guide)
+- [Developer API (KubeJS & Mods)](Developer-API)
 - [FAQ & Compatibility](FAQ-and-Compatibility)
