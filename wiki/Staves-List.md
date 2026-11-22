@@ -109,7 +109,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ### 1. Mavuika — *A Thousand Blazing Suns* (`thousand_blazing_suns`)
 - **Element:** ![Pyro][pyro] Pyro | **Role:** Pyro Archon Claymore (On-Field Motorcycle Hypercarry & Off-Field Sub-DPS) | **Archon:** Yes (`isArchon = true`)
-- **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Skill CD:** `15.0s` | **Burst CD:** `18.0s` | **Durability:** `420` Basic / `840` Netherite
+- **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Melee:** Claymore (`8.0` / `9.0` DMG, `1.2` Speed) | **Skill CD:** `15.0s` | **Burst CD:** `18.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Elemental Skill — *The Named Moment* (`Right-Click`):**
   - **Tap Right-Click (Off-Field Mode):** Summons the **Ring of Searing Radiance** above the player (`20s` duration, `80` Nightsoul points). Strikes nearby enemies with coordinated Pyro pillars every `2.0s` within `3.0m` (Basic) / `8.0m` (Netherite).
   - **Hold Right-Click or Re-Press Right-Click while Ring is active (All-Fire Armaments):** Summons and mounts the **Flamestrider Motorcycle**!
