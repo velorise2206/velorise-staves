@@ -26,6 +26,9 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
     @Unique
     private final Deque<Boolean> velorise$bikePoseStack = new ArrayDeque<>();
 
+    @Unique
+    private final Deque<Boolean> velorise$archonPoseStack = new ArrayDeque<>();
+
     @Inject(method = "getBob(Lnet/minecraft/world/entity/LivingEntity;F)F", at = @At("HEAD"), cancellable = true)
     private void velorise$freezeBobOnPetrifyOrFreeze(T livingEntity, float partialTicks, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Float> cir) {
         if (livingEntity != null && com.velorise.staves.client.ClientAuraTracker.isFrozen(livingEntity.getId())) {
@@ -44,6 +47,35 @@ public abstract class LivingEntityRendererMixin<T extends LivingEntity, M extend
             livingEntity.yBodyRotO = livingEntity.yRotO;
         }
         velorise$bikePoseStack.push(FlamestriderBikeRenderer.pushRiderBikeTransform(livingEntity, partialTicks, poseStack));
+    }
+
+    @Inject(
+            method = "render",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/blaze3d/vertex/PoseStack;pushPose()V",
+                    ordinal = 0,
+                    shift = At.Shift.AFTER
+            )
+    )
+    private void velorise$pushArchonBodyTransform(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
+        boolean archonPushed = com.velorise.staves.client.character.RaidenVisualRenderer.pushIdleBodyTransform(livingEntity, partialTicks, poseStack)
+                || com.velorise.staves.client.character.NahidaVisualRenderer.pushIdleAndViewfinderBodyTransform(livingEntity, partialTicks, poseStack);
+        velorise$archonPoseStack.push(archonPushed);
+    }
+
+    @Inject(
+            method = "render",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V",
+                    ordinal = 0
+            )
+    )
+    private void velorise$popArchonBodyTransform(T livingEntity, float entityYaw, float partialTicks, PoseStack poseStack, MultiBufferSource multiBufferSource, int packedLight, CallbackInfo ci) {
+        if (!velorise$archonPoseStack.isEmpty() && velorise$archonPoseStack.pop()) {
+            poseStack.popPose();
+        }
     }
 
     @Inject(

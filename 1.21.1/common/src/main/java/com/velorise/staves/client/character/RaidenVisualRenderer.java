@@ -1286,7 +1286,28 @@ public final class RaidenVisualRenderer {
         float liftProg = WindGliderRenderer.smoothStep01(d.raidenIdleFade / 0.55F);
         if (liftProg <= 0.01F) return 0.0F;
         float hover = Mth.sin((le.tickCount + partialTick) * 0.10F);
-        return (0.72F + hover * 0.053F) * liftProg;
+        return (0.674F - hover * 0.050F) * liftProg;
+    }
+
+    /**
+     * Pushes Raiden's whole-body idle levitation altitude directly onto the LivingEntityRenderer PoseStack
+     * in world space (before setupRotations/scale) so external animation libraries cannot override bone Y.
+     */
+    public static boolean pushIdleBodyTransform(LivingEntity entity, float partialTicks, PoseStack poseStack) {
+        if (entity == null || entity.isUsingItem() || entity.swinging) return false;
+        if (!ClientAuraTracker.isRaidenIdle(entity.getId())) return false;
+        ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+        if (d == null) return false;
+        stepIdleFade(d, System.currentTimeMillis());
+        float w = WindGliderRenderer.smoothStep01(d.raidenIdleFade / 0.55F);
+        if (w <= 0.01F) return false;
+        float ageInTicks = (float) entity.tickCount + partialTicks;
+        float hover = Mth.sin(ageInTicks * 0.10F);
+        // Exact v1.1.0 altitude (-11.5px + 0.85*hover in 0.9375 PlayerRenderer scale), now isolated from RenderLivingEvent.Post
+        double liftBlocks = (11.5F * w - hover * 0.85F * w) * (0.9375D / 16.0D);
+        poseStack.pushPose();
+        poseStack.translate(0.0D, liftBlocks, 0.0D);
+        return true;
     }
 
     public static boolean applyIdleHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
@@ -1304,16 +1325,8 @@ public final class RaidenVisualRenderer {
         float w = (d != null) ? WindGliderRenderer.smoothStep01(d.raidenIdleFade / 0.55F) : 0.0F;
         if (w <= 0.01F) return false;
 
-        // Levitating gently up and down above the giant Magatsu Mitake Narukami no Mikoto hands
+        // Whole-body levitation altitude is applied via PoseStack in applyIdleBodyTransform()
         float hover = Mth.sin(ageInTicks * 0.10F);
-        float liftY = -11.5F * w + hover * 0.85F * w;
-        model.head.y += liftY;
-        model.hat.y += liftY;
-        model.body.y += liftY;
-        model.rightArm.y += liftY;
-        model.leftArm.y += liftY;
-        model.rightLeg.y += liftY;
-        model.leftLeg.y += liftY;
 
         model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
         model.leftArmPose = HumanoidModel.ArmPose.EMPTY;

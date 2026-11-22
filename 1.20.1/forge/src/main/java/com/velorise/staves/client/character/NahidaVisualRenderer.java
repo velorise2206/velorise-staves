@@ -240,28 +240,59 @@ public final class NahidaVisualRenderer {
         }
     }
 
+    /**
+     * Pushes Nahida's whole-body idle swing displacement/sway, viewfinder levitation, and NA platform hop
+     * directly onto the LivingEntityRenderer PoseStack in world space (exact same yaw space as renderNahidaIdleSwing3D)
+     * so external animation libraries cannot override them and swing sway always matches the vine seat direction.
+     */
+    public static boolean pushIdleAndViewfinderBodyTransform(LivingEntity entity, float partialTicks, PoseStack poseStack) {
+        if (entity == null) return false;
+        float ageInTicks = (float) entity.tickCount + partialTicks;
+        if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
+            if (entity.isUsingItem() || entity.swinging) return false;
+            ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
+            float w = stepIdleSwingFade(d, System.currentTimeMillis());
+            if (w <= 0.01F) return false;
+            float sway = Mth.sin(ageInTicks * 0.10F);
+            // Exact v1.1.0 seated offset (+3.2px drop, -3.45px sway in 0.9375 PlayerRenderer scale), isolated from RenderLivingEvent.Post
+            double sitDropBlocks = (3.2F * w) * (0.9375D / 16.0D);
+            float bodyYaw = Mth.rotLerp(partialTicks, entity.yBodyRotO, entity.yBodyRot);
+            float swingYaw = (d != null && d.nahidaIdleYawSet) ? d.nahidaIdleYaw : bodyYaw;
+            double yawRad = Math.toRadians(swingYaw);
+            double fwdX = -Math.sin(yawRad);
+            double fwdZ = Math.cos(yawRad);
+            double swayFwd = (3.45F * sway * w) * (0.9375D / 16.0D);
+            poseStack.pushPose();
+            poseStack.translate(fwdX * swayFwd, -sitDropBlocks, fwdZ * swayFwd);
+            return true;
+        }
+        float vfW = getViewfinderFade(entity);
+        if (vfW > 0.01F) {
+            float hover = Mth.sin(ageInTicks * 0.12F);
+            double liftBlocks = (0.48F + hover * 0.04F) * vfW;
+            poseStack.pushPose();
+            poseStack.translate(0.0D, liftBlocks, 0.0D);
+            return true;
+        }
+        float platW = getNaPlatformFade(entity);
+        if (platW > 0.005F) {
+            float hopY = getNaPlatformHopY(entity) * platW;
+            double liftBlocks = 0.14F * platW + hopY;
+            poseStack.pushPose();
+            poseStack.translate(0.0D, liftBlocks, 0.0D);
+            return true;
+        }
+        return false;
+    }
+
     public static boolean applyIdleAndViewfinderHumanoidPose(LivingEntity entity, HumanoidModel<?> model, float ageInTicks) {
         if (ClientAuraTracker.isNahidaIdleSwing(entity.getId())) {
             ClientAuraTracker.AuraDisplayData d = ClientAuraTracker.get(entity.getId());
             float w = stepIdleSwingFade(d, System.currentTimeMillis());
             float sway = Mth.sin(ageInTicks * 0.10F);
-            float sitDropY = 3.2F * w;
-            float swayZ = -3.45F * sway * w;
-            model.body.y += sitDropY;
-            model.head.y += sitDropY;
-            model.hat.y += sitDropY;
-            model.rightArm.y += sitDropY;
-            model.leftArm.y += sitDropY;
-            model.rightLeg.y += sitDropY;
-            model.leftLeg.y += sitDropY;
-
-            model.body.z += swayZ;
-            model.head.z += swayZ;
-            model.hat.z += swayZ;
-            model.rightArm.z += swayZ;
-            model.leftArm.z += swayZ;
-            model.rightLeg.z += swayZ - 1.8F * w;
-            model.leftLeg.z += swayZ - 1.8F * w;
+            // Whole-body sitDropY and swayZ are applied via PoseStack in applyIdleAndViewfinderBodyTransform()
+            model.rightLeg.z += -1.8F * w;
+            model.leftLeg.z += -1.8F * w;
 
             model.body.xRot = Mth.lerp(w, model.body.xRot, 0.06F * sway);
             model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -1.28F + 0.16F * sway);
@@ -277,14 +308,6 @@ public final class NahidaVisualRenderer {
         float vfW = getViewfinderFade(entity);
         if (vfW > 0.01F) {
             float hover = Mth.sin(ageInTicks * 0.12F);
-            float liftY = -(0.48F + hover * 0.04F) * 16.0F * vfW;
-            model.head.y += liftY;
-            model.hat.y += liftY;
-            model.body.y += liftY;
-            model.rightArm.y += liftY;
-            model.leftArm.y += liftY;
-            model.rightLeg.y += liftY;
-            model.leftLeg.y += liftY;
 
             if (ClientAuraTracker.isNahidaViewfinder(entity.getId())) {
                 model.rightArmPose = HumanoidModel.ArmPose.EMPTY;
@@ -306,18 +329,6 @@ public final class NahidaVisualRenderer {
             model.leftLeg.zRot = Mth.lerp(vfW, model.leftLeg.zRot, -0.08F);
             model.rightLeg.zRot = Mth.lerp(vfW, model.rightLeg.zRot, 0.08F);
             return true;
-        }
-        float platW = getNaPlatformFade(entity);
-        if (platW > 0.005F) {
-            float hopY = getNaPlatformHopY(entity) * platW;
-            float liftY = -(0.14F * platW + hopY) * 16.0F;
-            model.head.y += liftY;
-            model.hat.y += liftY;
-            model.body.y += liftY;
-            model.rightArm.y += liftY;
-            model.leftArm.y += liftY;
-            model.rightLeg.y += liftY;
-            model.leftLeg.y += liftY;
         }
         return false;
     }
