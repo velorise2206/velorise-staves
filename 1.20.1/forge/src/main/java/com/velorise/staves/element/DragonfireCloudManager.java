@@ -555,7 +555,7 @@ public final class DragonfireCloudManager {
         double maxDistSqr = radius * radius;
         LivingEntity lastHurt = player.getLastHurtMob();
         if (lastHurt != null
-                && isValidResonanceTarget(player, lastHurt)
+                && isValidMiniDragonCommandTarget(player, lastHurt)
                 && lastHurt.distanceToSqr(player) <= maxDistSqr) {
             return lastHurt;
         }
@@ -565,7 +565,7 @@ public final class DragonfireCloudManager {
         for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box,
                 ent -> ent.isAlive() && !ent.isSpectator() && ent != player && !player.isAlliedTo(ent))) {
             if (!isValidResonanceTarget(player, e)) continue;
-            boolean hostile = e instanceof Enemy || e == player.getLastHurtMob() || e == player.getLastHurtByMob();
+            boolean hostile = e instanceof Enemy || e == player.getLastHurtByMob();
             if (!hostile) continue;
             double d = e.distanceToSqr(player);
             if (d <= maxDistSqr && d < bestDist) {
@@ -574,6 +574,23 @@ public final class DragonfireCloudManager {
             }
         }
         return best;
+    }
+
+    /**
+     * Target filter for owner-commanded Mini Ender Dragon attacks (player.getLastHurtMob()).
+     * Allows passive animals, villagers, target dummies, and NoAI test mobs when explicitly hit by the owner,
+     * while still excluding allies, tamed pets, ArmorStands, and Creative/Spectator players.
+     */
+    private static boolean isValidMiniDragonCommandTarget(ServerPlayer attacker, @Nullable LivingEntity target) {
+        if (target == null || !target.isAlive() || target == attacker || target.isSpectator() || target.isInvulnerable()) {
+            return false;
+        }
+        if (target instanceof ArmorStand) return false;
+        if (attacker.isAlliedTo(target)) return false;
+        if (target instanceof TamableAnimal ta && ta.isTame()) return false;
+        if (target instanceof OwnableEntity oe && oe.getOwnerUUID() != null) return false;
+        if (target instanceof Player p && (p.isCreative() || p.isSpectator())) return false;
+        return true;
     }
 
     /**

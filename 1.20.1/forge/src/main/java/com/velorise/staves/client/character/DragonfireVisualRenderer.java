@@ -738,12 +738,12 @@ public final class DragonfireVisualRenderer {
         updateAndRenderMiniDragonPet(entity, data, poseStack, buffer, pt, now, mc);
     }
 
-    private static boolean isValidClientMiniDragonTarget(LivingEntity owner, @org.jetbrains.annotations.Nullable LivingEntity target) {
+    private static boolean isValidClientMiniDragonTarget(LivingEntity owner, @org.jetbrains.annotations.Nullable LivingEntity target, boolean allowNoAi) {
         if (target == null || !target.isAlive() || target == owner || target.isSpectator() || target.isInvulnerable()) {
             return false;
         }
         if (target instanceof ArmorStand) return false;
-        if (target instanceof Mob mob && mob.isNoAi()) return false;
+        if (!allowNoAi && target instanceof Mob mob && mob.isNoAi()) return false;
         if (owner.isAlliedTo(target)) return false;
         if (target instanceof TamableAnimal ta && ta.isTame()) return false;
         if (target instanceof OwnableEntity oe && oe.getOwnerUUID() != null) return false;
@@ -769,7 +769,7 @@ public final class DragonfireVisualRenderer {
             if (hurtId != pose.lastOwnerHurtMobId || hurtTs != pose.lastOwnerHurtMobTs) {
                 pose.lastOwnerHurtMobId = hurtId;
                 pose.lastOwnerHurtMobTs = hurtTs;
-                if (isValidClientMiniDragonTarget(owner, lastHurt)
+                if (isValidClientMiniDragonTarget(owner, lastHurt, true)
                         && lastHurt.position().distanceToSqr(ownerWorld) <= maxScanSqr) {
                     data.dragonfirePetTargetId = hurtId;
                     pose.targetEntityId = hurtId;
@@ -783,7 +783,7 @@ public final class DragonfireVisualRenderer {
             if (cid > 0) {
                 Entity ent = mc.level.getEntity(cid);
                 if (ent instanceof LivingEntity le
-                        && isValidClientMiniDragonTarget(owner, le)
+                        && isValidClientMiniDragonTarget(owner, le, true)
                         && le.position().distanceToSqr(ownerWorld) <= maxLockDistSqr) {
                     return le;
                 } else {
@@ -806,7 +806,7 @@ public final class DragonfireVisualRenderer {
         double bestDist = Double.MAX_VALUE;
         for (LivingEntity e : mc.level.getEntitiesOfClass(LivingEntity.class,
                 owner.getBoundingBox().inflate(ENGAGE_DETECT_RANGE, 8.0D, ENGAGE_DETECT_RANGE),
-                ent -> isValidClientMiniDragonTarget(owner, ent))) {
+                ent -> isValidClientMiniDragonTarget(owner, ent, false))) {
             boolean hostile = e instanceof Enemy
                     || e == owner.getLastHurtMob()
                     || e == owner.getLastHurtByMob();
