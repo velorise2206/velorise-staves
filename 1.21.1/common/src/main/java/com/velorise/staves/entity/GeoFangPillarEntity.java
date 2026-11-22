@@ -33,6 +33,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.SnowGolem;
 import net.minecraft.world.entity.monster.Blaze;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.monster.Ravager;
 import net.minecraft.world.entity.monster.Witch;
 import net.minecraft.world.entity.monster.Zoglin;
@@ -559,7 +560,9 @@ public class GeoFangPillarEntity extends Entity {
 
         if (this.ageTicks <= 8) {
             this.refreshDimensions();
-            liftOverlappingEntities(sl);
+            if (liftOverlappingEntities(sl)) {
+                return;
+            }
             if (this.ageTicks == 0) {
                 sl.playSound(null, this.getX(), this.getY() + 0.5D, this.getZ(),
                         SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.0F, 0.75F);
@@ -619,8 +622,20 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
+    /**
+     * Authentic Genshin Geo Construct rule: bosses and oversized entities shatter overlapping
+     * Geo Constructs on spawn instead of being lifted on top of them.
+     */
+    public static boolean shattersGeoConstructOnOverlap(@Nullable LivingEntity living) {
+        if (living == null || living instanceof Player) return false;
+        return ElementalGaugeManager.isBossEntity(living)
+                || living.getBbWidth() >= 1.5F
+                || living.getBbHeight() >= 2.8F;
+    }
+
     public void liftEntityOntoPillar(LivingEntity living) {
         if (living == null || !living.isAlive() || living.isSpectator() || isHorizontalStele()) return;
+        if (shattersGeoConstructOnOverlap(living)) return;
         this.refreshDimensions();
         double topY = this.getBoundingBox().maxY + 0.06D;
         double dy = topY - living.getY();
@@ -641,12 +656,22 @@ public class GeoFangPillarEntity extends Entity {
         }
     }
 
-    private void liftOverlappingEntities(ServerLevel level) {
-        if (isHorizontalStele()) return;
+    private boolean liftOverlappingEntities(ServerLevel level) {
+        AABB overlapBox = this.getBoundingBox().inflate(0.05D, 0.05D, 0.05D);
+        List<LivingEntity> bossOverlaps = level.getEntitiesOfClass(
+                LivingEntity.class,
+                overlapBox,
+                e -> e.isAlive() && !e.isSpectator() && shattersGeoConstructOnOverlap(e)
+        );
+        if (!bossOverlaps.isEmpty()) {
+            this.shatter();
+            return true;
+        }
+        if (isHorizontalStele()) return false;
         List<LivingEntity> overlapping = level.getEntitiesOfClass(
                 LivingEntity.class,
                 this.getBoundingBox().inflate(0.25D, 0.25D, 0.25D),
-                e -> e.isAlive() && !e.isSpectator()
+                e -> e.isAlive() && !e.isSpectator() && !shattersGeoConstructOnOverlap(e)
         );
         for (LivingEntity living : overlapping) {
             double topY = this.getBoundingBox().maxY + 0.06D;
@@ -660,6 +685,7 @@ public class GeoFangPillarEntity extends Entity {
                 living.hurtMarked = true;
             }
         }
+        return false;
     }
 
     private void liftOverlappingEntitiesClientOrServer(Level lvl) {
@@ -669,7 +695,7 @@ public class GeoFangPillarEntity extends Entity {
         List<LivingEntity> overlapping = lvl.getEntitiesOfClass(
                 LivingEntity.class,
                 pillarBox.inflate(0.08D, 0.15D, 0.08D),
-                e -> e.isAlive() && !e.isSpectator()
+                e -> e.isAlive() && !e.isSpectator() && !shattersGeoConstructOnOverlap(e)
         );
         for (LivingEntity living : overlapping) {
             if (living.getY() < topY - 0.02D && living.getBoundingBox().maxY > pillarBox.minY + 0.05D) {
@@ -696,7 +722,7 @@ public class GeoFangPillarEntity extends Entity {
         List<LivingEntity> overlapping = lvl.getEntitiesOfClass(
                 LivingEntity.class,
                 box.inflate(0.04D),
-                e -> e.isAlive() && !e.isSpectator()
+                e -> e.isAlive() && !e.isSpectator() && !shattersGeoConstructOnOverlap(e)
         );
         for (LivingEntity living : overlapping) {
             AABB livingBox = living.getBoundingBox();

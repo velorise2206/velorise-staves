@@ -451,7 +451,8 @@ public final class InnateMobManager {
         return entity instanceof Warden
                 || entity instanceof EnderDragon
                 || entity instanceof WitherBoss
-                || entity instanceof ElderGuardian;
+                || entity instanceof ElderGuardian
+                || entity instanceof com.velorise.staves.entity.CryoRegisvineEntity;
     }
 
     public static boolean isPassiveAquaticOrAmbient(LivingEntity entity) {
