@@ -60,13 +60,13 @@ Many vanilla Minecraft mobs possess a permanent **Innate Elemental Aura** (and a
 
 ---
 
-## 🧬 Innate Mob Mutations (`7%` Default) & Omni Pet Taming
+## 🧬 Innate Mob Mutations (`8%` Default) & Omni Pet Taming
 
 When normal mobs spawn in the world, they roll against the configurable **Innate Mutation System** (`StavesConfig` `innate_mutation`):
-1. **Standard Elemental Mutation (`~6%` default):**
+1. **Standard Elemental Mutation (`7%` default):**
    - The mob gains one of the **7 Elements** as an innate aura (displayed as an overhead elemental badge and in Jade/Waila tooltips), becomes immune to that element, inflicts `1.0U` of that element on melee attacks, and drops its matching **Elemental Essence** at a **15% rate** on player kill (vs `5%` for natural innate mobs).
-2. **Omni-Innate Mutation (`~1%` default — `Omni ∞`):**
-   - Approximately `14.3%` (`omni_mutation_share = 0.143`) of mutated mobs ascend into **Omni-Innate Creatures**, marked by a spinning iridescent **Omni Prism Badge (`Omni ∞`)**.
+2. **Omni-Innate Mutation (`1%` default — `Omni ∞`):**
+   - Exactly `12.5%` (`1/8`, `omni_mutation_share = 0.125`) of mutated mobs ascend into **Omni-Innate Creatures**, marked by a spinning iridescent **Omni Prism Badge (`Omni ∞`)**.
    - **100% Immune to All Elemental & Magic Damage:** Omni-mutated mobs take **zero damage** from staves, reactions, potions, and elemental hazards — you must defeat them using **Physical Melee or Bow attacks**!
    - **Adaptive Elemental Strikes:** When an Omni-mutated mob attacks a target that already has an elemental aura, it **automatically applies the strongest reaction-triggering element**!
    - **25% Essence Drop Rate:** Dropping an **Omni Element** or Elemental Essence on player kill.

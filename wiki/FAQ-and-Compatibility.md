@@ -20,9 +20,9 @@
 
 **A:** **Omni-Innate (`Omni ∞`)** mobs are 100% immune to all Elemental and Magic damage! Switch to a **Physical Melee Sword** or **Vanilla Bow/Crossbow** to deal physical damage — or, if it is a tamable Wolf/Fox, feed it an **Omni Element** (`omni_element`) to tame it as an elemental-immune pet!
 
-### Q5: Why are idle/hover animations (Raiden levitating, Nahida swing) not displaying properly in large modpacks?
+### Q5: Are Archon idle/hover animations (Raiden levitating, Nahida swing) compatible with player animation mods?
 
-**A:** Temporary minor visual conflict with player animation libraries (such as **`player-animation-lib`** or **`EMF`**), which override custom player bone positions back to standard standing poses. Rest assured, this is purely a cosmetic UX/idle issue — all combat skills, damage, hitboxes, and particle FX work 100% normally!
+**A:** Yes! As of **v1.1.1**, Archon levitation and swing/seat offsets are isolated inside `LivingEntityRenderer`'s internal `PoseStack` block, keeping Raiden's levitation and Nahida's swing intact alongside **`player-animation-lib`**, **`EMF`**, and **`Mo' Bends`** without prop stacking or pose overrides.
 
 
 ---
@@ -31,7 +31,7 @@
 
 All keybinds can be rebound in Minecraft's standard **Options ➔ Controls ➔ Key Binds** menu under the **Velorise's Staves** category:
 
-- **`[R]` (Elemental Burst):** Cast Elemental Burst `[Q]` (Mavuika, Furina, Zhongli, Venti, Raiden, Nahida, Tsaritsa, Neuvillette, Xilonen, Layla, Dragonfire).
+- **`[R]` (`key.velorise_staves.elemental_burst`):** Cast Elemental Burst `[Q]` (Mavuika, Furina, Zhongli, Venti, Raiden, Nahida, Tsaritsa, Neuvillette, Xilonen, Layla, Dragonfire).
 - **`[Tab]` (`key.velorise_staves.omni_wheel`):** Open the **Omni Element Wheel** while holding the Omni Staff.
 - **`Unbound` -> falls back to `Use / Right-Click` (`key.velorise_staves.wind_glider`):** Deploy / Fold the **Wings of First Flight (Wind Glider)** in midair (`enable_wind_glider`). You can bind a dedicated custom key in Controls without overriding vanilla Right-Click.
 - **`Unbound` -> falls back to `Attack / Left-Click` (`key.velorise_staves.plunge_attack`):** Execute a midair **Plunging Attack** (`enable_plunge_attack`). You can bind a dedicated custom key in Controls without overriding vanilla Left-Click.
@@ -119,4 +119,5 @@ Minimal `pack.mcmeta` example (`1.21.1`):
 | **Iris / Oculus Shaders**                    | NeoForge, Fabric, Forge | Custom `ShieldRenderTypes` (`TRANSLUCENT_NO_DEPTH_WRITE`, `TRANSLUCENT_DEPTH_WRITE`, `METEOR_SOLID`) render 3D shields, lightning arcs, Nahida domes, and meteors cleanly without shader depth-buffer artifacts. |
 | **Sodium / Embeddium / Rubidium**            | NeoForge, Fabric, Forge | Zero custom chunk mesh hooks; all particle and vertex batches are fully compatible with Sodium's rendering pipeline.                                                                                             |
 | **First-Person Model / Better First Person** | NeoForge, Fabric, Forge | Dedicated 1st-person vs 3rd-person camera checks (`CameraType.FIRST_PERSON`) prevent 3D idle props or sunglasses overlays from clipping the camera.                                                              |
-| **Player Animation Lib / EMF**               | NeoForge, Fabric, Forge | Minor visual note: May temporarily clamp idle poses (e.g. Raiden floating or Nahida swing). Purely a cosmetic UX issue; all combat, skills, and gameplay remain 100% normal. |
+| **Player Animation Lib / EMF / Mo' Bends**   | NeoForge, Fabric, Forge | Archon idle `PoseStack` offsets (Raiden levitation, Nahida swing) are isolated inside `LivingEntityRenderer` so idle animations remain intact without external pose overrides. |
+| **FTB Chunks / Flan / OpenPAC / WorldGuard** | NeoForge, Fabric, Forge | Cross-loader claim protection automatically prevents Raiden's *Grasscutter* weed clearing and Zhongli's *Vortex Vanquisher* Geo ore mining from modifying protected claims. |

@@ -68,8 +68,8 @@
 ### 4. Innate Mob Mutation Rules (`[innate_mutation]`)
 | Key | Default | Range / Format | Description |
 | :--- | :--- | :--- | :--- |
-| `innate_mutation_chance` | `0.07` (`7%`) | `0.0` – `1.0` | Default probability for an eligible mob to spawn with a mutated elemental aura. |
-| `omni_mutation_share` | `0.143` (`~1/7`) | `0.0` – `1.0` | Share of mutated mobs that become **Omni-Innate (`Omni ∞`)** (`0.07 × 0.143 ≈ 1%`). |
+| `innate_mutation_chance` | `0.08` (`8%`) | `0.0` – `1.0` | Default probability for an eligible mob to spawn with a mutated elemental aura (`7%` standard elemental + `1%` Omni). |
+| `omni_mutation_share` | `0.125` (`1/8`) | `0.0` – `1.0` | Share of mutated mobs that become **Omni-Innate (`Omni ∞`)** (`0.08 × 0.125 = 1%`). |
 | `allow_hostile_mob_mutation` | `true` | `boolean` | Allows hostile monsters (`Monster` category) to mutate. |
 | `allow_golem_mutation` | `true` | `boolean` | Allows Golems (`Iron Golem, Snow Golem`) to mutate. |
 | `allow_neutral_and_passive_mutation` | `false` | `boolean` | Allows all passive/neutral animals to mutate globally (even if not in whitelist). |

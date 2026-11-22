@@ -17,7 +17,7 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
 | **Omni Element Wheel** | **`[Tab]` Key** (Hold/Tap) | **Element Switcher** | Opens the radial **Omni Wheel** to lock onto any of the 7 elements or `Auto Best` mode (`0`). |
 | **Character Voice Menu** | **`[V]` Key** | **Voice-Over Profile** | Opens the **Character Voice Screen** (`18` Zhongli voice lines in EN/ZH + voice language selector). |
 | **Wind Glider** | **Right-Click in midair** *(rebindable)* | **Wings of First Flight** | Deploys/folds the Wind Glider in midair (`enable_wind_glider`). Defaults to **Right-Click** (Unbound fallback) to avoid conflicting with Creative mode flight. Carrying **Dragonfire Scepter** upgrades it to a **5m Ender Dragon Glider** (**+50%** horizontal speed). |
-| **Plunging Attack** | **`Left-Click` in midair** *(rebindable)* | **Plunging Attack** | Dives straight down (`enable_plunge_attack`), dealing AoE impact damage and **canceling 100% of fall damage**. |
+| **Plunging Attack** | **`Left-Click` in midair** *(rebindable)* | **Plunging Attack** | Dives straight down (`enable_plunge_attack`), scaling AoE damage by weapon base (`0.64×` Mid-Air, `1.28×` Low, `1.60×` High) with tiered knockback/VFX and Genshin height-based plunge fall damage. |
 
 ---
 
@@ -146,11 +146,11 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 - **Element:** ![Geo][geo] Geo | **Role:** Geo Archon Polearm (All-RES Shred, Geo Construct Resonance & Petrification) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`+ Max HP scaling`) | **Melee:** Polearm (`6.0` / `7.0` DMG, `2.0` Speed) | **Tap E CD:** `4.0s` | **Hold E CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Elemental Skill — *Dominus Lapidis* (`Right-Click`):**
-  - **Tap Right-Click (`4.0s` CD):** Summons a `3.5m` physical **Stone Stele** (`GeoFangPillarEntity` in Stele mode, `30s` lifetime, max `3` constructs per player). The Stele blocks projectiles, taunts hit monsters, and emits expanding square **Geo Resonance Waves** every `2.0s` (`3.5m` Basic / `5.5m` Netherite) that trigger **Sympathetic Resonance Pulses** from other nearby Geo Constructs!
+  - **Tap Right-Click (`4.0s` CD):** Summons a climbable `3.5m` physical **Stone Stele** (`GeoFangPillarEntity` in Stele mode, `30s` lifetime, max `3` constructs per player; shatters immediately if spawned overlapping a Boss or oversized mob with `width >= 1.5` or `height >= 2.8`). The Stele blocks projectiles, taunts hit monsters, and emits expanding square **Geo Resonance Waves** every `2.0s` (`3.5m` Basic / `5.5m` Netherite) that trigger **Sympathetic Resonance Pulses** from other nearby Geo Constructs!
   - **Hold Right-Click for `1.5s` (`12.0s` CD):** Unleashes an inward Geo shockwave, summons a Stone Stele (if below cap), and forms the **Jade Shield** for `20.0s`:
     - **150% Damage Absorption** against all Elemental and Physical damage + complete **Knockback Immunity**.
     - **Universal `-20%` RES Shred Aura:** Enemies within `6.0m` of a Jade-Shielded player suffer **-20% All Elemental & Physical Resistance** (indicated by downward golden arrows).
-    - **Geo Mining & Fortune:** Can shatter ore blocks (including Ancient Debris on Netherite) and supports the **Fortune** enchantment.
+    - **Geo Ore & Amethyst Mining (Fortune & Claim-Protected):** Tap E (`1.0m`), Hold E (`4.5m` Basic / `6.0m` Netherite), and *Planet Befall* (`6.0m` / `8.5m`) shatter nearby ores and Amethyst clusters with proper pickaxe loot (Diamond tier for Basic, Netherite tier including Ancient Debris for Netherite) and ore XP, scaling with **Fortune** (`#minecraft:enchantable/mining_loot`) and respecting cross-loader claim protection.
 - **Elemental Burst — *Planet Befall* (`[R]` Key):**
   - Grants `2.5s` (`50t`) I-frames & dramatic arms-crossed levitation while summoning a colossal 3D **Meteorite** from the heavens (`6.0m` Basic / `8.5m` Netherite impact radius).
   - Deals heavy Geo damage (`(6.0 + 33% Max HP)` scaled by tier) and inflicts **Petrification** (`4.0s` Basic / `5.0s` Netherite), turning enemies into solid stone statues unable to move, rotate, or attack.
@@ -176,7 +176,9 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 - **Element:** ![Electro][electro] Electro | **Role:** Electro Archon Polearm (Coordinated Sub-DPS, Resolve Battery & Musou Isshin Hypercarry) | **Archon:** Yes (`isArchon = true`)
 - **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Melee:** Polearm (`6.0` / `7.0` DMG, `2.0` Speed) | **Skill CD:** `10.0s` | **Burst CD:** `18.0s` | **Durability:** `160` Basic / `520` Netherite
 - **Crescent Charged Attack (`Hold Left-Click`):**
-  - Unleashes a vertical upward **Crescent Lightning Sweep** (`1.35×` DMG, `7.5m` Basic / `9.5m` Netherite reach) with 3rd-person look-direction lock that launches enemies upward.
+  - Unleashes a 3-stage asymmetric X-rift **Crescent Lightning Sweep** (`1.35×` DMG, `7.5m` Basic / `9.5m` Netherite reach) with 3rd-person look-direction lock that launches enemies upward.
+- **Grasscutter (*Đoạn Thảo*) Weed-Clearing Passive:**
+  - Electro slashes, left-click weed mining, and melee on-hit attacks (`1.5m–1.8m`) cleanly shear wild grass, tall grass, ferns, dead bushes, vines, and hanging roots with authentic Shears item drops in Survival (respecting cross-loader claim protection without harming crops, flowers, saplings, or solid terrain).
 - **Elemental Skill — *Transcendence: Baleful Omen* (`Right-Click`, `10.0s` CD):**
   - Deals AoE Electro slash damage and opens the **Eye of Stormy Judgment** above the player for `15.0s` (`300t`).
   - Whenever the player deals damage to any enemy, the Eye unleashes a **Coordinated AoE Electro Slash** at the victim's position (ICD: `0.9s` / `18t`), generating **+4 Resolve** per proc.
@@ -195,7 +197,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 - **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Tap E CD:** `5.0s` | **Hold E CD:** `6.0s` | **Burst CD:** `13.5s` | **Durability:** `380` Basic / `760` Netherite
 - **Normal & Charged Attack (`Left-Click` / `Hold Left-Click`):**
   - **Tap Left-Click (*Akara* 4-Step Hopscotch Combo):** Projects 4 glowing green keyboard tiles (`2.0m wide × 5.0m forward`) dealing AoE Dendro damage (`0.5❤` base) and **automatically bone-mealing crops and saplings** along the path!
-  - **Hold Left-Click (Charged Attack Cube):** Constructs a 3D wireframe **Dendro Containment Cube** (`3×3×3m`) ahead of the player that detonates after `0.65s` (`13t`) for heavy AoE Dendro damage (`3.0❤` Basic / `4.5❤` Netherite, `2.0U`).
+  - **Hold Left-Click (Charged Attack Cube, `50` Stamina):** Constructs a 3D wireframe **Dendro Containment Cube** (`3×3×3m`) ahead of the player that detonates after `0.65s` (`13t`) for heavy AoE Dendro damage (`3.0❤` Basic / `4.5❤` Netherite, `2.0U`).
 - **Elemental Skill — *All Schemes to Know* (`Right-Click`):**
   - **Tap Right-Click (`5.0s` CD):** Sweeps a `2.0m` floral ring around the player, dealing Dendro damage and marking up to `8` enemies with the **Seed of Skandha** (`25.0s` duration), linked by glowing green tethers.
   - **Hold Right-Click (`6.0s` CD — *Camera Viewfinder*):** Enters a 360° ** Green Viewfinder Aiming Mode** (`20.0m` Basic / `28.0m` Netherite range) with brief hover suspension:
@@ -244,7 +246,7 @@ Standing completely still for **3.0 seconds** (`60t`) while holding a signature 
 | :--- | :--- | :--- |
 | **Furina** | *Splendor of Tranquil Waters* | • **Pneuma (Light):** Sits gracefully on a translucent Hydro bubble chair while a carousel of **6 Fontaine pastries** (Strawberry Shortcake, Blueberry Mousse, Mont Blanc, Rainbow Macaron, Caramel Pudding, Matcha Opera) orbits around her; picks up and nibbles a cake with falling crumbs.<br>• **Ousia (Dark):** Cradles baby **Surintendante Chevalmarin** in both hands while the seahorse blows playful water arcs (and auto-summons the companion if none is active). |
 | **Zhongli** | *Vortex Vanquisher* | Crosses arms in contemplative poise (with smooth 3rd-person camera angle lock) while a miniature golden **Planet Befall meteorite** orbits his torso leaving Geo dust trails. |
-| **Venti** | *The Daybreak Chronicles* | Gently levitates into midair cradling the **Holy Lyre der Himmel**, strumming melodies above a 5-tier counter-rotating jade whirlwind. |
+| **Venti** | *The Daybreak Chronicles* | Gently levitates into midair cradling the **Holy Lyre der Himmel** above a 5-tier counter-rotating jade whirlwind, alternating non-repeating Note Block harp/bass/flute renditions of *Genshin Impact Main Theme*, *Dawn Winery Theme*, and *Let The Wind Tell You*. |
 | **Raiden Shogun** | *Engulfing Lightning* | Meditates in midair levitation as the **Eye of Stormy Judgment** and **Chakra Desiderata halo** ignite behind her back with violet arcs. |
 | **Mavuika** | *A Thousand Blazing Suns* | Casually leans on the **Flamestrider Motorcycle** (in 1st-person view, applies a warm cinematic visor tint `0x140e18` without obstructing vision). |
 | **Nahida** | *A Thousand Floating Dreams* | Manifests a glowing emerald **botanical vine swing** suspended from above, swaying gently back and forth. |

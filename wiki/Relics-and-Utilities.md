@@ -20,7 +20,7 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
 - **Function:** Carry the **Wind Glider** anywhere in your inventory (or equip it) and press **Right-Click in midair** (`enable_wind_glider = true`, default `Unbound` fallback to Use/Right-Click to avoid conflicting with Creative mode flight; rebindable via `key.velorise_staves.wind_glider`) to unfold 3D procedural **Wings of First Flight**!
   - Smoothly glides through the air with zero durability loss and complete fall-damage protection.
   - **Updraft Synergy:** Gliding into **Venti's *Skyward Sonnet* wind current** or over rising heat sources propels you high into the sky!
-  - **Mid-Air Plunging Attack (`Left-Click` while gliding or falling):** Folds the glider and slams straight down (`enable_plunge_attack = true`), dealing AoE impact damage on landing and canceling all fall damage!
+  - **Mid-Air Plunging Attack (`Left-Click` while gliding or falling):** Folds the glider and slams straight down (`enable_plunge_attack = true`), scaling AoE impact damage by weapon base (`0.64×` Mid-Air, `1.28×` Low, `1.60×` High) with tiered knockback/VFX and Genshin height-based plunge fall damage.
 - **Crafting:** Shaped Crafting Table recipe (`2 Phantom Membranes` + `1 Diamond` + `4 Feathers` + `1 Anemo/Omni Element`).
 
 ### 4. Genshin-Style Stamina, Quick Dash & Wall-Climbing
@@ -28,11 +28,11 @@ Beyond the 22 combat staves, **Velorise's Staves** provides movement relics, aer
   - Starts at **`100` Max Stamina** in the Overworld and permanently upgrades to **`170`** upon reaching the Nether milestone and **`240`** upon reaching The End milestone!
   - Consumed by **Quick Dash** (`18` Stamina), sprinting, gliding, and vertical wall-climbing; automatically regenerates after a short pause (Creative mode is exempt).
 - **Quick Dash (`enable_custom_dash = true`):** Pressing `[Sprint / Ctrl]` triggers a Genshin-style forward dash impulse with brief **I-frames** to dodge incoming attacks.
-- **Universal Wall-Climbing (`enable_wall_climb = true`):** Pressing forward against solid vertical walls lets you climb directly up cliffs and structures while consuming Stamina.
+- **Authentic Genshin Wall-Climbing (`enable_wall_climb = true`, Row 6 in Config Screen):** Cling to vertical walls, climb up/down, shimmy laterally, and smoothly mantle ledges — including climbing and mantling **Geo Constructs** (such as Zhongli's *Stone Stele*) — complete with 3D climber animations, Stamina consumption, and 80-tick anti-kick protection.
 
 ### 5. Elemental Codex (`elemental_codex`)
 - **Function:** Automatically gifted to every player upon first joining a world (and craftable anytime via `Book + Amethyst Shard`).
-- **Interactive 9-Tab Guidebook:** Covers *Overview, Elements, Reactions, Staves, Artifacts, Sword Imbuing, World & Mobs, Resonances,* and *Live Config*. Features clickable cross-reference links, visual recipe grids, and **real-time server config synchronization** across **9 languages** (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `ru_ru`, `fr_fr`, `es_es`, `pt_br`).
+- **Interactive 9-Tab Guidebook:** Covers *Overview, Elements, Reactions, Staves, Artifacts, Sword Imbuing, World & Mobs, Resonances,* and *Live Config*. Features clickable cross-reference links, visual recipe grids, and **real-time server config synchronization** across **9 languages** (`en_us`, `vi_vn`, `zh_cn`, `ja_jp`, `ko_kr`, `de_de`, `es_es`, `fr_fr`, `ru_ru`).
 
 ---
 

@@ -9,8 +9,8 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
   - **11 Standard Elemental Staves** + **1 Master Omni Staff** (with `[Tab]` Radial Element Wheel and Auto-Best Reaction AI).
 - **19 Elemental Reactions** (including **Forward/Reverse Vaporize & Melt**, **Frozen & Shatter**, **Quicken/Aggravate/Spread**, **Bloom/Hyperbloom/Burgeon**, **Overvape**, and Tsaritsa's 3 **Stellar Cryo Reactions**).
 - **Dynamic World & Environmental Physics:** Electrified water pools, Tesla Coils (Lightning Rod on Redstone Block), Sculk Sensor & Observer zaps, Amethyst Cluster Overloaded mining, Slime/Honey/Mushroom Dendro contact, Dripstone Geo impacts, and AI hazard avoidance.
-- **Innate Creature Elements & Mutations:** Natural mob elemental affinities, a configurable `7%` innate mutation system (`6%` Elemental + `1%` **Omni-Innate `Omni ∞`**), and **Omni Pet Taming**.
-- **Relics, Gliders, Enchantments & 39 Custom Advancements:** *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider)*, *Elemental Codex* (9 languages), *Elemental Mastery I–III*, *Elemental Protection I–IV*, and *Anvil Sword Imbuing*.
+- **Innate Creature Elements & Mutations:** Natural mob elemental affinities, a configurable `8%` innate mutation system (`7%` Elemental + `1%` **Omni-Innate `Omni ∞`**), and **Omni Pet Taming**.
+- **Relics, Gliders, Wall Climbing, Enchantments & 39 Custom Advancements:** *Void Translocator*, *Magic Mirror*, *Wings of First Flight (Wind Glider & Tiered Plunge Attacks)*, **Authentic Genshin Wall Climbing**, *Elemental Codex* (9 languages), *Elemental Mastery I–III*, *Elemental Protection I–IV*, *Anvil Sword Imbuing*, and a **Public Developer API (`com.velorise.staves.api`)**.
 
 ---
 
@@ -29,7 +29,9 @@ The mod brings a faithful, zero-mana adaptation of Genshin Impact's **Elemental 
 6. **[Configuration Guide (TOML & In-Game GUI)](Configuration-Guide)**
    - Full reference for all server/client TOML settings (`mechanics`, `elemental_gauge`, `scaling`, `gameplay`, `audio`, `innate_mutation`, `cooldowns`, `damage`, `durability`), Co-Op dynamic mob scaling, and live server-to-client Codex sync.
 7. **[FAQ, Keybinds, Resource Packs & Compatibility](FAQ-and-Compatibility)**
-   - Frequently asked questions, full keybind list, **Resource Pack Guide (Custom Wind Glider Textures & Character Voice Packs)**, and compatibility details for **JEI/REI/EMI**, **Jade/Waila**, **Iris/Oculus Shaders**, **Sodium/Embeddium**, and **First-Person Model** mods.
+   - Frequently asked questions, full keybind list, **Resource Pack Guide (Custom Wind Glider Textures & Character Voice Packs)**, and compatibility details for **JEI/REI/EMI**, **Jade/Waila**, **Iris/Oculus Shaders**, **Sodium/Embeddium**, **Claim Protection mods**, and **Player Animation** mods.
+8. **[Developer API (KubeJS & Mods)](Developer-API)**
+   - Public cross-loader API (`com.velorise.staves.api`) for applying auras, dealing elemental damage, managing elemental shields, subscribing to reaction events, and integrating with **KubeJS**.
 
 
 ---
