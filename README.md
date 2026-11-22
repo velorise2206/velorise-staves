@@ -1,4 +1,4 @@
-﻿# Velorise's Staves
+# Velorise's Staves
 
 [![Official Wiki](https://img.shields.io/badge/Official-Wiki-0969da?style=for-the-badge&logo=gitbook&logoColor=white)](https://github.com/velorise2206/velorise-staves/wiki)
 [![CurseForge](https://img.shields.io/badge/CurseForge-Available_Now-f16436?style=for-the-badge&logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/velorises-staves-elements)
