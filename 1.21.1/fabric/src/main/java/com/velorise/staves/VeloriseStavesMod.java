@@ -330,7 +330,6 @@ public final class VeloriseStavesMod implements ModInitializer {
             output.accept(MAGIC_MIRROR);
             output.accept(NETHERITE_MAGIC_MIRROR);
             output.accept(WIND_GLIDER);
-            output.accept(HOARFROST_CORE);
 
             // 2. Genshin Weapons (Basic + Netherite pairs)
             output.accept(GUARDIAN_LENS);

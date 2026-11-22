@@ -389,7 +389,6 @@ public final class VeloriseStavesMod {
                 output.accept(MAGIC_MIRROR.get());
                 output.accept(NETHERITE_MAGIC_MIRROR.get());
                 output.accept(WIND_GLIDER.get());
-                output.accept(HOARFROST_CORE.get());
 
                 // 2. Genshin Weapons (Basic + Netherite pairs)
                 output.accept(GUARDIAN_LENS.get());
