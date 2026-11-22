@@ -347,6 +347,7 @@ public final class MavuikaManager {
             if (horiz.lengthSqr() > 1.0E-4D && horiz.normalize().dot(forward) < 0.0D) continue;
             applyElement(level, target, Element.PYRO, 2.0F, player, ultiDmg);
         }
+        EnvironmentalBlockManager.checkPyroAmethystMining(level, origin.add(forward.scale(2.5D)), 4.5D);
 
         Vec3 right = new Vec3(-forward.z, 0.0D, forward.x).normalize();
         Vec3 slashStart = origin.add(forward.scale(2.0D)).subtract(right.scale(5.4D)).add(0.0D, 0.65D, 0.0D);
@@ -486,6 +487,7 @@ public final class MavuikaManager {
                     for (int ti = 0; ti < maxTargets; ti++) {
                         LivingEntity target = candidates.get(ti);
                         applyElement(level, target, Element.PYRO, neth ? 1.5F : 1.0F, player, strikeDmg);
+                        EnvironmentalBlockManager.checkPyroAmethystMining(level, target.position(), 1.8D);
                         for (int h = 0; h < 6; h++) {
                             level.sendParticles(ParticleTypes.FLAME,
                                     target.getX(), target.getY() + target.getBbHeight() + 0.3D + h * 0.45D, target.getZ(),

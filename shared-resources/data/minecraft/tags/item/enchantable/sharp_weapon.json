@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "velorise_staves:vortex_vanquisher",
+    "velorise_staves:netherite_vortex_vanquisher",
+    "velorise_staves:engulfing_lightning",
+    "velorise_staves:netherite_engulfing_lightning"
+  ]
+}

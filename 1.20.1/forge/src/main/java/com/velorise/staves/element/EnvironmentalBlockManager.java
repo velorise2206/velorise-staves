@@ -125,15 +125,29 @@ public final class EnvironmentalBlockManager {
     }
 
     public static void applyPyroEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius) {
+        applyPyroEnvironmentEffects(level, hitPos, radius, false);
+    }
+
+    public static void applyPyroEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius, boolean squareShape) {
+        applyPyroEnvironmentEffects(level, hitPos, radius, squareShape, false);
+    }
+
+    public static void applyPyroEnvironmentEffects(ServerLevel level, Vec3 hitPos, double radius, boolean squareShape, boolean horizontalOnly) {
         BlockPos center = BlockPos.containing(hitPos);
         int r = Math.max(1, (int) Math.ceil(radius));
         double r2 = (radius + 0.65D) * (radius + 0.65D);
+        double sqLimit = radius + 0.35D;
         boolean isUltraWarm = level.dimensionType().ultraWarm();
+        int minY = horizontalOnly ? 0 : -1;
 
-        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -1, -r), center.offset(r, 2, r))) {
+        for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, minY, -r), center.offset(r, 2, r))) {
             if (!level.hasChunkAt(p)) continue;
             Vec3 blockCenter = Vec3.atCenterOf(p);
-            if (blockCenter.distanceToSqr(hitPos) > r2) continue;
+            if (squareShape) {
+                if (Math.abs(blockCenter.x - hitPos.x) > sqLimit || Math.abs(blockCenter.z - hitPos.z) > sqLimit) continue;
+            } else if (blockCenter.distanceToSqr(hitPos) > r2) {
+                continue;
+            }
 
             BlockState st = level.getBlockState(p);
             if (st.isAir()) continue;
@@ -231,15 +245,28 @@ public final class EnvironmentalBlockManager {
     }
 
     public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius) {
-        applyPyroEnvironmentEffects(level, hitPos, radius);
+        checkPyroAmethystMining(level, hitPos, radius, false);
+    }
+
+    public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius, boolean squareShape) {
+        checkPyroAmethystMining(level, hitPos, radius, squareShape, false);
+    }
+
+    public static void checkPyroAmethystMining(ServerLevel level, Vec3 hitPos, double radius, boolean squareShape, boolean horizontalOnly) {
+        applyPyroEnvironmentEffects(level, hitPos, radius, squareShape, horizontalOnly);
         BlockPos center = BlockPos.containing(hitPos);
         int r = Math.max(1, (int) Math.ceil(radius));
         double r2 = (radius + 0.75D) * (radius + 0.75D);
+        double sqLimit = radius + 0.35D;
 
         for (BlockPos p : BlockPos.betweenClosed(center.offset(-r, -r, -r), center.offset(r, r, r))) {
             if (!level.hasChunkAt(p)) continue;
             Vec3 blockCenter = Vec3.atCenterOf(p);
-            if (blockCenter.distanceToSqr(hitPos) > r2) continue;
+            if (squareShape) {
+                if (Math.abs(blockCenter.x - hitPos.x) > sqLimit || Math.abs(blockCenter.z - hitPos.z) > sqLimit) continue;
+            } else if (blockCenter.distanceToSqr(hitPos) > r2) {
+                continue;
+            }
 
             BlockState st = level.getBlockState(p);
             if (isAmethystClusterOrBud(st)) {

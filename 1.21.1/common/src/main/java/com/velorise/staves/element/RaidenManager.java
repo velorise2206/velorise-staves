@@ -286,6 +286,7 @@ public final class RaidenManager {
                 applyElement(level, target, Element.ELECTRO, attackU, player, dmg);
             }
             EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, center, radius, player, dmg);
+            cutWildGrassAlongSlash(level, player, center, radius);
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
@@ -364,6 +365,68 @@ public final class RaidenManager {
     }
 
 
+    /**
+     * Engulfing Lightning ("Grasscutter's Light" / Đoạn Thảo) environmental mechanic:
+     * Raiden's Electro slashes cleanly shear wild grass, ferns, dead bushes, vines, and hanging roots
+     * without harming player crops, flowers, saplings, or solid terrain.
+     */
+    public static boolean isRaidenCuttableWeed(BlockState st) {
+        return st.is(Blocks.SHORT_GRASS)
+                || st.is(Blocks.TALL_GRASS)
+                || st.is(Blocks.FERN)
+                || st.is(Blocks.LARGE_FERN)
+                || st.is(Blocks.DEAD_BUSH)
+                || st.is(Blocks.VINE)
+                || st.is(Blocks.HANGING_ROOTS);
+    }
+
+    public static void handleNormalWeedMine(ServerLevel level, ServerPlayer player, BlockState minedState, BlockPos minedPos) {
+        if (level == null || player == null || minedState == null || minedPos == null) return;
+        if (!isRaidenCuttableWeed(minedState)) return;
+        boolean doDrops = !player.isCreative() && level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOBLOCKDROPS);
+        if (doDrops) {
+            BlockState dropState = minedState;
+            if (dropState.hasProperty(net.minecraft.world.level.block.DoublePlantBlock.HALF)
+                    && dropState.getValue(net.minecraft.world.level.block.DoublePlantBlock.HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER) {
+                dropState = dropState.setValue(net.minecraft.world.level.block.DoublePlantBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.LOWER);
+            }
+            net.minecraft.world.level.block.Block.dropResources(dropState, level, minedPos, null, player, new ItemStack(net.minecraft.world.item.Items.SHEARS));
+        }
+        cutWildGrassAlongSlash(level, player, Vec3.atCenterOf(minedPos), 1.5D);
+    }
+
+    public static void cutWildGrassAlongSlash(ServerLevel level, ServerPlayer player, Vec3 center, double radius) {
+        if (level == null || player == null || center == null || !player.mayBuild()) return;
+        double clampedRadius = Math.min(Math.max(1.5D, radius), 5.5D);
+        int r = (int) Math.ceil(clampedRadius);
+        double r2 = (clampedRadius + 0.5D) * (clampedRadius + 0.5D);
+        BlockPos origin = BlockPos.containing(center);
+        boolean doDrops = !player.isCreative() && level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOBLOCKDROPS);
+        ItemStack shears = doDrops ? new ItemStack(net.minecraft.world.item.Items.SHEARS) : ItemStack.EMPTY;
+        for (BlockPos p : BlockPos.betweenClosed(origin.offset(-r, -1, -r), origin.offset(r, 2, r))) {
+            if (!level.hasChunkAt(p) || !level.mayInteract(player, p)) continue;
+            if (Vec3.atCenterOf(p).distanceToSqr(center) > r2) continue;
+            BlockState st = level.getBlockState(p);
+            if (st.isAir() || !isRaidenCuttableWeed(st)) continue;
+            BlockPos targetPos = p;
+            BlockState targetState = st;
+            if (st.hasProperty(net.minecraft.world.level.block.DoublePlantBlock.HALF)
+                    && st.getValue(net.minecraft.world.level.block.DoublePlantBlock.HALF) == net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER) {
+                BlockPos lowerPos = p.below();
+                BlockState lowerState = level.getBlockState(lowerPos);
+                if (isRaidenCuttableWeed(lowerState)) {
+                    targetPos = lowerPos;
+                    targetState = lowerState;
+                }
+            }
+            if (!com.velorise.staves.event.ArcaneStaffEvents.canPlayerBreakBlock(level, player, targetPos, targetState)) continue;
+            if (doDrops) {
+                net.minecraft.world.level.block.Block.dropResources(targetState, level, targetPos, null, player, shears);
+            }
+            level.destroyBlock(targetPos, false, player);
+        }
+    }
+
     private static void electrifyWaterAlongSlash(ServerLevel level, ServerPlayer player, Vec3 slashCenter, double radius, float damage) {
         if (level == null || player == null || slashCenter == null) return;
         Vec3 playerPos = player.position();
@@ -408,6 +471,7 @@ public final class RaidenManager {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
         electrifyWaterAlongSlash(level, player, slashCenter, aoeRadius, hitotachiDmg * 0.35F);
+        cutWildGrassAlongSlash(level, player, slashCenter, aoeRadius);
 
         DustParticleOptions violetSlash = isNetherite ? RAIDEN_SLASH_DUST_NETH : RAIDEN_SLASH_DUST_STD;
         Vec3 right = new Vec3(-look.z, 0.0D, look.x);
@@ -475,6 +539,7 @@ public final class RaidenManager {
                 applyElement(level, victim, Element.ELECTRO, attackU, finalAttacker, dmg);
             }
             EnvironmentalBlockManager.applyElectroEnvironmentEffects(level, pos, aoe + 1.5D, finalAttacker, dmg);
+            cutWildGrassAlongSlash(level, finalAttacker, pos, aoe + 1.0D);
         } finally {
             IS_PROCESSING_RAIDEN_PROC.set(false);
         }
@@ -536,6 +601,7 @@ public final class RaidenManager {
 
         Vec3 hitPos = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
         electrifyWaterAlongSlash(level, attacker, hitPos, isNetherite ? 4.5D : 3.5D, bonusDmg * 0.45F);
+        cutWildGrassAlongSlash(level, attacker, hitPos, isNetherite ? 3.5D : 2.5D);
         sendRaidenSlashArc(level, hitPos, attacker.getLookAngle(), comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
 
         // ParticleTypes.ELECTRIC_SPARK removed
@@ -652,6 +718,7 @@ public final class RaidenManager {
                     IS_PROCESSING_RAIDEN_PROC.set(false);
                 }
                 electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.2D : 3.2D, hit1Dmg * 0.45F);
+                cutWildGrassAlongSlash(level, player, hitCenter, isNetherite ? 3.8D : 3.0D);
                 sendRaidenSlashArc(level, hitCenter, liveHoriz, 1, false, true, arcSpan * 0.94D, leftArm);
                 level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.60F, 1.70F);
                 level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.46F, 1.85F);
@@ -696,6 +763,7 @@ public final class RaidenManager {
                     IS_PROCESSING_RAIDEN_PROC.set(false);
                 }
                 electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.5D : 3.5D, hit2Dmg * 0.45F);
+                cutWildGrassAlongSlash(level, player, hitCenter, isNetherite ? 4.2D : 3.2D);
                 sendRaidenSlashArc(level, hitCenter, liveHoriz, 3, false, true, arcSpan * 1.08D, leftArm);
                 level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.74F, 1.40F);
                 level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.60F, 1.52F);
@@ -735,6 +803,7 @@ public final class RaidenManager {
                     }
                     Vec3 livePos = player.getEyePosition().add(horiz.scale(isNetherite ? 2.7D : 2.4D)).add(0.0D, -0.32D, 0.0D);
                     electrifyWaterAlongSlash(level, player, livePos, isNetherite ? 4.2D : 3.2D, n4HitDmg * 0.45F);
+                    cutWildGrassAlongSlash(level, player, livePos, isNetherite ? 3.2D : 2.4D);
                     sendRaidenSlashArc(level, livePos, horiz, hIdx == 0 ? 0 : 1, false, false, n4Span, leftArm);
                     level.playSound(null, livePos.x, livePos.y, livePos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.46F, hIdx == 0 ? 1.90F : 1.72F);
                     level.playSound(null, livePos.x, livePos.y, livePos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.36F, hIdx == 0 ? 2.0F : 1.82F);
@@ -780,6 +849,7 @@ public final class RaidenManager {
             }
 
             electrifyWaterAlongSlash(level, player, slashPos, isNetherite ? 4.5D : 3.5D, slashDmg * 0.45F);
+            cutWildGrassAlongSlash(level, player, slashPos, (isNetherite ? 3.5D : 2.6D) * (comboStep == 4 ? 1.25D : 1.0D));
             sendRaidenSlashArc(level, slashPos, naHoriz, comboStep, false, isCharged, (isNetherite ? 2.85D : 2.15D) * (comboStep == 4 ? 1.35D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
             if (isCharged) {
                 Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);

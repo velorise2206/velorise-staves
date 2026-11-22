@@ -1014,6 +1014,9 @@ public class FlamestriderBikeEntity extends Entity {
         Vec3 frontPoint = midPoint.add(forward.scale(FRONT_WHEEL_PIVOT_OFFSET));
         Vec3 tailPoint = midPoint.subtract(forward.scale(REAR_WHEEL_OFFSET));
 
+        if (now % 4L == 0L) {
+            com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(sl, midPoint, 3.0D, false, true);
+        }
         AABB box = this.getBoundingBox().inflate(3.2D, 1.6D, 3.2D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
                 e -> isValidBikeCombatTarget(sp, e));
@@ -1082,6 +1085,7 @@ public class FlamestriderBikeEntity extends Entity {
         float dmg = baseDmg * (1.85F + ElementalGaugeManager.getMavuikaCrucibleChargedBonusMultiplier(sp));
         float units = 1.5F;
         Vec3 center = this.position().add(0.0D, 0.4D, 0.0D);
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(sl, center, 3.8D);
         AABB box = new AABB(center.x - 4.0D, center.y - 1.5D, center.z - 4.0D,
                 center.x + 4.0D, center.y + 2.5D, center.z + 4.0D);
         List<LivingEntity> targets = sl.getEntitiesOfClass(LivingEntity.class, box,
@@ -1147,6 +1151,7 @@ public class FlamestriderBikeEntity extends Entity {
         float castDmg = StavesConfig.getStaffBaseDamage(ArcaneStaffItem.Kind.THOUSAND_BLAZING_SUNS, neth) * 0.68F;
         float units = neth ? 1.5F : 1.0F;
         Vec3 sweepCenter = this.position().add(fwd.scale(1.8D)).add(0.0D, 0.5D, 0.0D);
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(sl, sweepCenter, 3.2D);
         AABB sweepBox = new AABB(
                 sweepCenter.x - 3.6D, sweepCenter.y - 1.5D, sweepCenter.z - 3.6D,
                 sweepCenter.x + 3.6D, sweepCenter.y + 2.2D, sweepCenter.z + 3.6D
@@ -1348,6 +1353,8 @@ public class FlamestriderBikeEntity extends Entity {
             ElementalGaugeManager.applyElement(sl, target, Element.PYRO, units, sp, dmg);
             anyHit = true;
         }
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(
+                sl, origin.add(forward.scale(range * 0.55D)), Math.min(3.0D, range * 0.65D), false, true);
         if (anyHit) {
             ElementalGaugeManager.addMavuikaNormalAttackFightingSpirit(sp);
         }
@@ -1431,6 +1438,7 @@ public class FlamestriderBikeEntity extends Entity {
         Vec3 hitCenter = this.position().add(forward.scale(2.3D)).add(0.0D, 0.5D, 0.0D);
         double radius = 4.5D;
 
+        com.velorise.staves.element.EnvironmentalBlockManager.checkPyroAmethystMining(sl, hitCenter, radius);
         AABB box = new AABB(
                 hitCenter.x - radius, hitCenter.y - 1.5D, hitCenter.z - radius,
                 hitCenter.x + radius, hitCenter.y + 2.2D, hitCenter.z + radius

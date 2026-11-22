@@ -465,41 +465,131 @@ public final class TsaritsaManager {
     }
 
     private static void performSpearNormalAttack(ServerPlayer player, ServerLevel level, TsaritsaPlayerState state, long now) {
-        if (now >= state.lastSpearSlashTick && now - state.lastSpearSlashTick < 8L) return;
-        if (now < state.lastSpearSlashTick || now - state.lastSpearSlashTick > 28L) {
+        if (now >= state.lastSpearSlashTick && now - state.lastSpearSlashTick < 7L) return;
+        if (now < state.lastSpearSlashTick || now - state.lastSpearSlashTick > 30L) {
             state.spearComboStep = 0;
         }
         int step = state.spearComboStep;
-        state.spearComboStep = (state.spearComboStep + 1) % 3;
+        state.spearComboStep = (state.spearComboStep + 1) % 5;
         state.lastSpearSlashTick = now;
 
         int anim = switch (step) {
             case 0 -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1;
             case 1 -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2;
-            default -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3;
+            case 2 -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3;
+            case 3 -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_4;
+            default -> ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_5;
         };
         ModNetwork.sendStaffAnimation(player, anim);
 
-        float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * (step == 2 ? 1.45F : 1.15F);
+        float stepMult = switch (step) {
+            case 0 -> 1.10F;
+            case 1 -> 1.15F;
+            case 2 -> 1.25F; // Imperial Piercing Thrust
+            case 3 -> 0.72F; // 2-hit Glacial Cross Flurry (2 x 0.72 = 1.44x)
+            default -> 1.60F; // Sovereign's Glacial Finisher
+        };
+        float baseDmg = (float) StavesConfig.getDamage(ArcaneStaffItem.Kind.TSARITSA_BOW) * stepMult;
         if (state.netherite) baseDmg *= 1.15F;
 
         boolean isLeftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
         Vec3 eye = player.getEyePosition();
         Vec3 look = player.getLookAngle().normalize();
-        Vec3 fwd = new Vec3(look.x, 0.0D, look.z);
-        if (fwd.lengthSqr() < 1.0E-4D) fwd = new Vec3(0.0D, 0.0D, 1.0D);
-        else fwd = fwd.normalize();
-        Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
-        if (isLeftArm) right = right.scale(-1.0D);
-        Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
+        Vec3 rawFwd = new Vec3(look.x, 0.0D, look.z);
+        final Vec3 fwd = rawFwd.lengthSqr() < 1.0E-4D ? new Vec3(0.0D, 0.0D, 1.0D) : rawFwd.normalize();
+        Vec3 rawRight = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
+        final Vec3 right = isLeftArm ? rawRight.scale(-1.0D) : rawRight;
+        final Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
 
-        Vec3 center = eye.add(look.scale(2.0D));
-        double span = state.netherite ? 1.6D : 1.35D;
+        final Vec3 center = eye.add(look.scale(2.1D));
+        final double span = state.netherite ? 1.65D : 1.40D;
+        final float finalBaseDmg = baseDmg;
+        final double hitRadius = state.netherite ? 1.55D : 1.35D;
+
+        // N3 (step == 2): Imperial Piercing Thrust — crisp forward dash + long glacial lance stab
+        if (step == 2) {
+            double lungeDist = 0.42D;
+            AABB nextBox = player.getDimensions(player.getPose()).makeBoundingBox(player.position().add(fwd.scale(lungeDist)));
+            if (level.noCollision(player, nextBox)) {
+                player.setDeltaMovement(fwd.x * lungeDist, Math.max(player.getDeltaMovement().y * 0.25D, 0.01D), fwd.z * lungeDist);
+                player.hurtMarked = true;
+                player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(player));
+            }
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.9F, 1.55F);
+            Vec3 thrustStart = eye.add(fwd.scale(0.6D)).add(up.scale(-0.22D));
+            Vec3 thrustEnd = eye.add(look.scale(state.netherite ? 4.4D : 3.6D)).add(up.scale(-0.18D));
+            Vec3 thrustMid = thrustStart.lerp(thrustEnd, 0.5D);
+            ArchonUltiManager.scheduleBurstAction(player, 2, () -> {
+                if (!player.isAlive()) return;
+                ModNetwork.sendElectricArc(level, thrustStart, thrustEnd, 9, 0xFF88EEFF);
+                com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(thrustEnd.x, player.getY(), thrustEnd.z), state.netherite ? 2 : 1);
+                level.sendParticles(ParticleTypes.SNOWFLAKE, thrustEnd.x, thrustEnd.y, thrustEnd.z, 12, 0.22D, 0.18D, 0.22D, 0.04D);
+                level.playSound(null, thrustEnd.x, thrustEnd.y, thrustEnd.z, SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.55F, 1.75F);
+                AABB box = new AABB(thrustStart, thrustEnd).inflate(hitRadius * 0.95D);
+                for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                        e -> e != player && e.isAlive() && isValidCombatTarget(player, e)
+                                && isTargetAlongSlashArc(e.getBoundingBox(), thrustStart, thrustMid, thrustEnd, hitRadius * 0.95D))) {
+                    float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, finalBaseDmg);
+                    target.invulnerableTime = 0;
+                    ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 1.2F);
+                    Vec3 push = fwd.scale(0.32D).add(0.0D, 0.08D, 0.0D);
+                    target.setDeltaMovement(target.getDeltaMovement().add(push));
+                    target.hurtMarked = true;
+                }
+                for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(
+                        net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+                    if (isTargetAlongSlashArc(crystal.getBoundingBox(), thrustStart, thrustMid, thrustEnd, hitRadius)) {
+                        crystal.hurt(level.damageSources().playerAttack(player), finalBaseDmg);
+                    }
+                }
+            });
+            return;
+        }
+
+        // N4 (step == 3): 2-Hit Glacial Cross Flurry (rapid X-slash bypassing i-frames, like Raiden N4)
+        if (step == 3) {
+            level.playSound(null, player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.PLAYERS, 0.85F, 1.45F);
+            for (int hitIdx = 0; hitIdx < 2; hitIdx++) {
+                final int hIdx = hitIdx;
+                ArchonUltiManager.scheduleBurstAction(player, hitIdx == 0 ? 1 : 4, () -> {
+                    if (!player.isAlive()) return;
+                    Vec3 s = (hIdx == 0)
+                            ? center.add(right.scale(-span * 0.95D)).add(up.scale(span * 0.65D))
+                            : center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.65D));
+                    Vec3 ePos = (hIdx == 0)
+                            ? center.add(right.scale(span * 0.95D)).add(up.scale(-span * 0.55D))
+                            : center.add(right.scale(-span * 0.95D)).add(up.scale(-span * 0.55D));
+                    Vec3 mid = s.lerp(ePos, 0.5D).add(fwd.scale(0.35D));
+                    ModNetwork.sendElectricArc(level, s, ePos, 8, hIdx == 0 ? 0xFF44CCFF : 0xFF88EEFF);
+                    com.velorise.staves.event.ArcaneStaffEvents.freezeWaterNear(level, new Vec3(mid.x, player.getY(), mid.z), state.netherite ? 2 : 1);
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, mid.x, mid.y, mid.z, 8, 0.35D, 0.25D, 0.35D, 0.03D);
+                    level.playSound(null, mid.x, mid.y, mid.z, SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.72F, hIdx == 0 ? 1.55F : 1.75F);
+                    AABB box = new AABB(s, ePos).minmax(new AABB(mid, mid)).inflate(hitRadius);
+                    for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, box,
+                            ent -> ent != player && ent.isAlive() && isValidCombatTarget(player, ent)
+                                    && isTargetAlongSlashArc(ent.getBoundingBox(), s, mid, ePos, hitRadius))) {
+                        float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, finalBaseDmg);
+                        target.invulnerableTime = 0;
+                        ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, 1.0F);
+                    }
+                    for (net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal : level.getEntitiesOfClass(
+                            net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, box)) {
+                        if (isTargetAlongSlashArc(crystal.getBoundingBox(), s, mid, ePos, hitRadius)) {
+                            crystal.hurt(level.damageSources().playerAttack(player), finalBaseDmg);
+                        }
+                    }
+                });
+            }
+            return;
+        }
 
         Vec3 arcStart;
         Vec3 arcEnd;
-        int arcColor = (step == 2) ? 0xFF88EEFF : 0xFF44CCFF;
-        int dur = (step == 2) ? 10 : 7;
+        boolean isFinisher = (step == 4);
+        int arcColor = isFinisher ? 0xFFA8F4FF : 0xFF44CCFF;
+        int dur = isFinisher ? 12 : 7;
 
         switch (step) {
             case 0 -> {
@@ -513,14 +603,14 @@ public final class TsaritsaManager {
                 arcEnd = center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.75D)).add(fwd.scale(0.30D));
             }
             default -> {
-                // NA 3: Powerful Finisher Overhead Lunge & Glacial Impale Slam (Vertical Top -> Ground Slam)
-                arcStart = center.add(up.scale(span * 1.30D)).add(fwd.scale(-0.35D));
-                arcEnd = center.add(up.scale(-span * 1.05D)).add(fwd.scale(0.65D));
+                // NA 5: Sovereign's Overhead Imperial Frost Slam + 360° Frost Nova
+                arcStart = center.add(up.scale(span * 1.38D)).add(fwd.scale(-0.35D));
+                arcEnd = center.add(up.scale(-span * 1.08D)).add(fwd.scale(0.75D));
             }
         }
-        if (step == 2) {
+        if (isFinisher) {
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.75F, 1.15F);
+                    SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.85F, 1.05F);
         } else {
             level.playSound(null, player.getX(), player.getY(), player.getZ(),
                     SoundEvents.TRIDENT_THROW, SoundSource.PLAYERS, 0.85F, 1.35F + step * 0.15F);
@@ -529,10 +619,8 @@ public final class TsaritsaManager {
         }
 
         // Spear tip leads; slash arc & damage sweep sequentially across 4 segments along the arc path
-        int trailDelay = (step == 2) ? 3 : 1;
-        final float finalBaseDmg = baseDmg;
+        int trailDelay = isFinisher ? 3 : 1;
         final Vec3 arcMid = arcStart.lerp(arcEnd, 0.5D).add(fwd.scale(0.38D));
-        final double hitRadius = state.netherite ? 1.55D : 1.35D;
         final java.util.Set<UUID> hitTargets = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
         final java.util.Set<UUID> hitCrystals = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
 
@@ -551,26 +639,30 @@ public final class TsaritsaManager {
                 level.sendParticles(ParticleTypes.SNOWFLAKE, segStart.x, segStart.y, segStart.z, 2, 0.06D, 0.06D, 0.06D, 0.008D);
                 level.sendParticles(ParticleTypes.SNOWFLAKE, segEnd.x, segEnd.y, segEnd.z, 2, 0.06D, 0.06D, 0.06D, 0.008D);
 
-                if (step == 2 && segIdx == 3) {
-                    level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 10, 0.25D, 0.10D, 0.25D, 0.04D);
+                if (isFinisher && segIdx == 3) {
+                    // Wide horizontal frost shockwave crescent on finisher landing
+                    Vec3 slamL = arcEnd.add(right.scale(-span * 1.45D));
+                    Vec3 slamR = arcEnd.add(right.scale(span * 1.45D));
+                    ModNetwork.sendElectricArc(level, slamL, slamR, 12, 0xFFA8F4FF);
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, arcEnd.x, arcEnd.y, arcEnd.z, 18, 0.55D, 0.15D, 0.55D, 0.06D);
                     level.playSound(null, player.getX(), player.getY(), player.getZ(),
-                            SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.8F, 1.4F);
+                            SoundEvents.GLASS_BREAK, SoundSource.PLAYERS, 0.9F, 1.3F);
                     level.playSound(null, player.getX(), player.getY(), player.getZ(),
                             SoundEvents.PLAYER_ATTACK_CRIT, SoundSource.PLAYERS, 1.0F, 0.9F);
                 }
 
-                AABB box = new AABB(segStart, segEnd).minmax(new AABB(segMid, segMid)).inflate(hitRadius);
+                AABB box = new AABB(segStart, segEnd).minmax(new AABB(segMid, segMid)).inflate(isFinisher ? hitRadius * 1.25D : hitRadius);
                 List<LivingEntity> targets = level.getEntitiesOfClass(LivingEntity.class, box,
                         e -> e != player && e.isAlive() && isValidCombatTarget(player, e)
                                 && !hitTargets.contains(e.getUUID())
-                                && isTargetAlongSlashArc(e.getBoundingBox(), segStart, segMid, segEnd, hitRadius));
+                                && isTargetAlongSlashArc(e.getBoundingBox(), segStart, segMid, segEnd, isFinisher ? hitRadius * 1.25D : hitRadius));
                 for (LivingEntity target : targets) {
                     if (!hitTargets.add(target.getUUID())) continue;
                     float finalDmg = applyStellarAndCrownMultipliers(player, target, Element.CRYO, finalBaseDmg);
                     target.invulnerableTime = 0;
-                    ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, step == 2 ? 1.5F : 1.0F);
-                    if (step == 2) {
-                        Vec3 push = target.position().subtract(player.position()).normalize().scale(0.35D).add(0.0D, 0.12D, 0.0D);
+                    ElementalGaugeManager.applyElement(target, Element.CRYO, player, finalDmg, isFinisher ? 1.5F : 1.0F);
+                    if (isFinisher) {
+                        Vec3 push = target.position().subtract(player.position()).normalize().scale(0.42D).add(0.0D, 0.16D, 0.0D);
                         target.setDeltaMovement(target.getDeltaMovement().add(push));
                         target.hurtMarked = true;
                     }

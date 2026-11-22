@@ -100,7 +100,7 @@ public final class GhastfireFieldManager {
 
             if (age > 0L && phase == 0) {
                 DendroCoreManager.checkReactionsNear(level, centerPos, radius, Element.PYRO, owner);
-                EnvironmentalBlockManager.checkPyroAmethystMining(level, centerPos, radius);
+                EnvironmentalBlockManager.checkPyroAmethystMining(level, centerPos, radius, true);
                 level.playSound(null, centerPos.x, centerPos.y, centerPos.z, SoundEvents.FIRE_AMBIENT, SoundSource.PLAYERS, 0.7F, 1.05F);
             }
 

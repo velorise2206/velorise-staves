@@ -296,6 +296,84 @@ public final class ZhongliManager {
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(target, petrifyTicks >= 95 ? 17 : 16);
     }
 
+    /**
+     * Dominus Lapidis (Hold E) Geo Mining mechanic:
+     * Shatters nearby ore blocks and Amethyst clusters in a spherical shockwave around Zhongli,
+     * dropping proper pickaxe loot (Diamond Pickaxe for Basic, Netherite Pickaxe + Ancient Debris for Netherite) and ore XP.
+     */
+    private static boolean isZhongliShatterableOre(net.minecraft.world.level.block.state.BlockState st, boolean isNetherite) {
+        if (st.is(net.minecraft.tags.BlockTags.COAL_ORES)
+                || st.is(net.minecraft.tags.BlockTags.IRON_ORES)
+                || st.is(net.minecraft.tags.BlockTags.COPPER_ORES)
+                || st.is(net.minecraft.tags.BlockTags.GOLD_ORES)
+                || st.is(net.minecraft.tags.BlockTags.REDSTONE_ORES)
+                || st.is(net.minecraft.tags.BlockTags.LAPIS_ORES)
+                || st.is(net.minecraft.tags.BlockTags.DIAMOND_ORES)
+                || st.is(net.minecraft.tags.BlockTags.EMERALD_ORES)
+                || st.is(net.minecraft.world.level.block.Blocks.NETHER_QUARTZ_ORE)
+                || st.is(net.minecraft.world.level.block.Blocks.NETHER_GOLD_ORE)
+                || st.is(net.minecraft.world.level.block.Blocks.AMETHYST_CLUSTER)
+                || st.is(net.minecraft.world.level.block.Blocks.LARGE_AMETHYST_BUD)
+                || st.is(net.minecraft.world.level.block.Blocks.MEDIUM_AMETHYST_BUD)
+                || st.is(net.minecraft.world.level.block.Blocks.SMALL_AMETHYST_BUD)) {
+            return true;
+        }
+        return isNetherite && st.is(net.minecraft.world.level.block.Blocks.ANCIENT_DEBRIS);
+    }
+
+    public static int shatterNearbyOres(ServerLevel level, ServerPlayer player, Vec3 center, boolean isNetherite) {
+        return shatterNearbyOres(level, player, center, isNetherite, isNetherite ? 6.0D : 4.5D);
+    }
+
+    public static int shatterNearbyOres(ServerLevel level, ServerPlayer player, Vec3 center, boolean isNetherite, double customRadius) {
+        if (level == null || player == null || center == null || !player.mayBuild()) return 0;
+        double radius = Math.max(0.75D, customRadius);
+        int r = (int) Math.ceil(radius);
+        boolean isTapPoint = radius <= 1.25D;
+        double pad = isTapPoint ? 0.35D : 0.5D;
+        double r2 = (radius + pad) * (radius + pad);
+        int minY = isTapPoint ? -1 : -2;
+        int maxY = isTapPoint ? 1 : 3;
+        net.minecraft.core.BlockPos origin = net.minecraft.core.BlockPos.containing(center);
+        boolean doDrops = !player.isCreative() && level.getGameRules().getBoolean(net.minecraft.world.level.GameRules.RULE_DOBLOCKDROPS);
+        net.minecraft.world.item.ItemStack pickaxe = doDrops
+                ? new net.minecraft.world.item.ItemStack(isNetherite ? Items.NETHERITE_PICKAXE : Items.DIAMOND_PICKAXE)
+                : net.minecraft.world.item.ItemStack.EMPTY;
+        if (doDrops) {
+            net.minecraft.world.item.ItemStack heldStaff = player.getMainHandItem();
+            if (ArcaneStaffItem.getEffectiveKind(heldStaff) != ArcaneStaffItem.Kind.VORTEX) {
+                heldStaff = player.getOffhandItem();
+            }
+            if (ArcaneStaffItem.getEffectiveKind(heldStaff) == ArcaneStaffItem.Kind.VORTEX) {
+                int fortuneLvl = net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(
+                        net.minecraft.world.item.enchantment.Enchantments.BLOCK_FORTUNE, heldStaff);
+                if (fortuneLvl > 0) {
+                    pickaxe.enchant(net.minecraft.world.item.enchantment.Enchantments.BLOCK_FORTUNE, fortuneLvl);
+                }
+            }
+        }
+        int shattered = 0;
+        for (net.minecraft.core.BlockPos p : net.minecraft.core.BlockPos.betweenClosed(origin.offset(-r, minY, -r), origin.offset(r, maxY, r))) {
+            if (!level.hasChunkAt(p) || !level.mayInteract(player, p)) continue;
+            Vec3 bCenter = Vec3.atCenterOf(p);
+            if (bCenter.distanceToSqr(center) > r2) continue;
+            net.minecraft.world.level.block.state.BlockState st = level.getBlockState(p);
+            if (st.isAir() || !isZhongliShatterableOre(st, isNetherite)) continue;
+            if (!com.velorise.staves.event.ArcaneStaffEvents.canPlayerBreakBlock(level, player, p, st)) continue;
+            if (doDrops) {
+                Block.dropResources(st, level, p, level.getBlockEntity(p), player, pickaxe);
+                st.spawnAfterBreak(level, p, pickaxe, true);
+            }
+            level.destroyBlock(p, false, player);
+            shattered++;
+        }
+        if (shattered > 0) {
+            level.playSound(null, center.x, center.y, center.z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.PLAYERS, 0.9F, 0.85F);
+            level.sendParticles(ParticleTypes.CRIT, center.x, center.y + 0.8D, center.z, Math.min(24, shattered * 4), 1.6D, 0.8D, 1.6D, 0.08D);
+        }
+        return shattered;
+    }
+
     public static void cancelIdle(ServerPlayer player) {
         if (player == null) return;
         ZhongliIdleState st = ZHONGLI_IDLE_STATES.get(player.getUUID());

@@ -654,7 +654,8 @@ public final class ArcaneStaffEvents {
             level.sendParticles(ParticleTypes.LAVA, hit.x, hit.y + 0.2D, hit.z, 18, 0.55D, 0.35D, 0.55D, 0.05D);
             level.sendParticles(ParticleTypes.EXPLOSION, hit.x, hit.y + 0.25D, hit.z, 2, 0.25D, 0.15D, 0.25D, 0.0D);
             level.playSound(null, hit.x, hit.y, hit.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.PLAYERS, 0.85F, 1.25F);
-        } else if (event.getRayTraceResult() instanceof BlockHitResult bhr) {
+        }
+        if (event.getRayTraceResult() instanceof BlockHitResult bhr) {
             com.velorise.staves.element.EnvironmentalBlockManager.igniteSingleHitBlock(level, bhr.getBlockPos(), bhr.getDirection());
         }
         meltIceNear(level, hit, isNetherite ? 2 : 1);
@@ -1204,5 +1205,22 @@ public final class ArcaneStaffEvents {
         if (!event.getLevel().isClientSide() && (!event.getEntity().isAlive() || event.getEntity().isRemoved())) {
             com.velorise.staves.element.PlayerGenshinState.onEntityRemoved(event.getEntity());
         }
+    }
+
+    /**
+     * Checks vanilla permissions (Adventure mode, Spawn Protection) and posts Forge's
+     * BlockEvent.BreakEvent so server claim mods (FTB Chunks, OpenPAC, WorldGuard, etc.) can cancel block breaking.
+     */
+    public static boolean canPlayerBreakBlock(
+            net.minecraft.server.level.ServerLevel level,
+            net.minecraft.server.level.ServerPlayer player,
+            net.minecraft.core.BlockPos pos,
+            net.minecraft.world.level.block.state.BlockState state
+    ) {
+        if (level == null || player == null || pos == null || state == null) return false;
+        if (!player.mayBuild() || !level.mayInteract(player, pos)) return false;
+        net.minecraftforge.event.level.BlockEvent.BreakEvent event =
+                new net.minecraftforge.event.level.BlockEvent.BreakEvent(level, pos, state, player);
+        return !net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);
     }
 }

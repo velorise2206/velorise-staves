@@ -127,7 +127,7 @@ public final class TsaritsaVisualRenderer {
                 && ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.TSARITSA_SPEAR);
         float wSpear = stepSpearStanceFade(entity, spearStance);
         if (wSpear <= 0.001F) return false;
-        if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_UNSEAL) return false;
+        if (ClientAuraTracker.isTsaritsaSpearNaAnim(activeAnim) || (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_BURST_SUPPORT && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_UNSEAL)) return false;
         if (entity.isUsingItem() || entity.swinging || entity.getVehicle() != null) return false;
 
         HumanoidArm spearArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.TSARITSA_SPEAR);
@@ -163,19 +163,72 @@ public final class TsaritsaVisualRenderer {
         ClientAuraTracker.AuraDisplayData dFade = ClientAuraTracker.get(entity.getId());
         float wSpear = spearStance ? 1.0F : (dFade != null ? WindGliderRenderer.smoothStep01(dFade.tsaritsaSpearFade) : 0.0F);
         if (wSpear <= 0.001F) return false;
-        if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+        if (ClientAuraTracker.isTsaritsaSpearNaAnim(activeAnim)) {
             ClientAuraTracker.AuraDisplayData dItem = ClientAuraTracker.get(entity.getId());
+            float tItem = 0.5F;
             float wItem = 1.0F;
             if (dItem != null) {
                 long nowMs = System.currentTimeMillis();
                 float totalMs = Math.max(1.0F, (float) (dItem.staffAnimUntil - dItem.staffAnimStartTime));
-                float tItem = Mth.clamp((nowMs - dItem.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-                wItem = (tItem < 0.18F) ? WindGliderRenderer.smoothStep01(tItem / 0.18F)
-                        : (tItem < 0.68F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((tItem - 0.68F) / 0.32F));
+                tItem = Mth.clamp((nowMs - dItem.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
+                wItem = (tItem < 0.15F) ? WindGliderRenderer.smoothStep01(tItem / 0.15F)
+                        : (tItem < 0.72F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((tItem - 0.72F) / 0.28F));
             }
-            // Smoothly transition spear item between reverse-grip behind back and forward slash arc
-            poseStack.translate(0.0F, Mth.lerp(wItem, -0.04F, 0.06F), Mth.lerp(wItem, 0.09F, -0.10F));
-            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(wItem, -80.0F, -78.0F)));
+            float handDir = leftHand ? -1.0F : 1.0F;
+            float tx = 0.0F, ty = 0.04F, tz = -0.10F;
+            float rx = -78.0F, ry = 0.0F, rz = 0.0F;
+            if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
+                // NA1: Wide horizontal glacial cleave — blade lays flat and sweeps across
+                float s = WindGliderRenderer.smoothStep01(tItem / 0.55F);
+                tx = handDir * Mth.lerp(s, 0.06F, -0.08F);
+                ty = 0.04F;
+                tz = -0.14F;
+                rx = Mth.lerp(s, -68.0F, -92.0F);
+                ry = handDir * Mth.lerp(s, -24.0F, 34.0F);
+                rz = handDir * Mth.lerp(s, -35.0F, 48.0F);
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2) {
+                // NA2: Rising diagonal crescent — spear lifts from low-left to high-right
+                float s = WindGliderRenderer.smoothStep01(tItem / 0.55F);
+                tx = handDir * Mth.lerp(s, -0.06F, 0.08F);
+                ty = Mth.lerp(s, -0.04F, 0.12F);
+                tz = -0.12F;
+                rx = Mth.lerp(s, -48.0F, -112.0F);
+                ry = handDir * Mth.lerp(s, 22.0F, -24.0F);
+                rz = handDir * Mth.lerp(s, 42.0F, -38.0F);
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+                // NA3: Imperial Piercing Thrust — spear pulls back then jabs straight forward like a lance
+                float pullback = WindGliderRenderer.smoothStep01(tItem / 0.22F);
+                float thrust = WindGliderRenderer.smoothStep01((tItem - 0.22F) / 0.30F);
+                tz = (tItem < 0.22F) ? Mth.lerp(pullback, -0.04F, 0.18F) : Mth.lerp(thrust, 0.18F, -0.36F);
+                ty = 0.02F;
+                rx = -90.0F;
+                rz = handDir * 8.0F;
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_4) {
+                // NA4: 2-Hit Glacial Cross Flurry — rapid X-flip blade roll
+                if (tItem < 0.48F) {
+                    float s1 = WindGliderRenderer.smoothStep01(tItem / 0.44F);
+                    rx = Mth.lerp(s1, -52.0F, -98.0F);
+                    rz = handDir * Mth.lerp(s1, -50.0F, 52.0F);
+                    tz = -0.16F;
+                } else {
+                    float s2 = WindGliderRenderer.smoothStep01((tItem - 0.48F) / 0.40F);
+                    rx = Mth.lerp(s2, -98.0F, -56.0F);
+                    rz = handDir * Mth.lerp(s2, 52.0F, -54.0F);
+                    tz = -0.18F;
+                }
+            } else {
+                // NA5: Sovereign's Overhead Imperial Slam — high raise into vertical earth cleave
+                float lift = WindGliderRenderer.smoothStep01(tItem / 0.30F);
+                float slam = WindGliderRenderer.smoothStep01((tItem - 0.30F) / 0.42F);
+                ty = (tItem < 0.30F) ? Mth.lerp(lift, 0.02F, 0.16F) : Mth.lerp(slam, 0.16F, -0.08F);
+                tz = (tItem < 0.30F) ? Mth.lerp(lift, -0.06F, 0.06F) : Mth.lerp(slam, 0.06F, -0.24F);
+                rx = (tItem < 0.30F) ? Mth.lerp(lift, -45.0F, -12.0F) : Mth.lerp(slam, -12.0F, -128.0F);
+                rz = handDir * (tItem < 0.30F ? 12.0F : -10.0F);
+            }
+            poseStack.translate(Mth.lerp(wItem, 0.0F, tx), Mth.lerp(wItem, -0.04F, ty), Mth.lerp(wItem, 0.09F, tz));
+            poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(wItem, -80.0F, rx)));
+            poseStack.mulPose(Axis.YP.rotationDegrees(ry * wItem));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(rz * wItem));
             return true;
         }
         if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_BURST_DPS) {
@@ -219,7 +272,7 @@ public final class TsaritsaVisualRenderer {
     }
 
     public static boolean applyActionHumanoidAnimation(LivingEntity entity, HumanoidModel<?> model, int activeAnim, float t) {
-        if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+        if (ClientAuraTracker.isTsaritsaSpearNaAnim(activeAnim)) {
             HumanoidArm castArm = WindGliderRenderer.resolveStaffArm(entity, ArcaneStaffItem.Kind.TSARITSA_SPEAR);
             ModelPart mainPart = castArm == HumanoidArm.RIGHT ? model.rightArm : model.leftArm;
             ModelPart offPart = castArm == HumanoidArm.RIGHT ? model.leftArm : model.rightArm;
@@ -229,57 +282,98 @@ public final class TsaritsaVisualRenderer {
             mainPart.xRot = 0.85F;
             mainPart.yRot = 0.28F * castDir;
             mainPart.zRot = 0.26F * castDir;
-            float w = (t < 0.18F) ? WindGliderRenderer.smoothStep01(t / 0.18F)
-                    : (t < 0.68F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.68F) / 0.32F));
+            float w = (t < 0.15F) ? WindGliderRenderer.smoothStep01(t / 0.15F)
+                    : (t < 0.72F ? 1.0F : 1.0F - WindGliderRenderer.smoothStep01((t - 0.72F) / 0.28F));
 
             if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
+                // NA1: Regal horizontal cleave with torso follow-through & offhand poise
                 float slash = WindGliderRenderer.smoothStep01(t / 0.55F);
-
                 mainPart.xRot = Mth.lerp(w, mainPart.xRot, -1.38F);
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.92F, 0.85F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.36F, 0.42F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, -0.95F, 0.90F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, -0.38F, 0.45F));
 
-                offPart.xRot = 0.0F;
-                offPart.yRot = 0.0F;
-                offPart.zRot = 0.0F;
+                offPart.xRot = Mth.lerp(w, offPart.xRot, 0.38F);
+                offPart.yRot = Mth.lerp(w, offPart.yRot, offDir * Mth.lerp(slash, 0.25F, -0.35F));
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.48F);
 
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.28F);
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.22F);
-                model.leftLeg.zRot = Mth.lerp(w, model.leftLeg.zRot, -0.08F);
-                model.rightLeg.zRot = Mth.lerp(w, model.rightLeg.zRot, 0.08F);
+                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(slash, -0.28F, 0.32F));
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.30F);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.24F);
                 model.head.xRot += 0.06F * w;
                 model.hat.copyFrom(model.head);
             } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2) {
+                // NA2: Rising diagonal crescent sweep with graceful counter-twist
                 float slash = WindGliderRenderer.smoothStep01(t / 0.55F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -0.60F, -2.25F));
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.90F, -0.78F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.44F, -0.40F));
 
-                mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(slash, -0.65F, -2.15F));
-                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(slash, 0.88F, -0.72F));
-                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(slash, 0.42F, -0.38F));
+                offPart.xRot = Mth.lerp(w, offPart.xRot, Mth.lerp(slash, -0.55F, 0.42F));
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.52F);
 
-                offPart.xRot = 0.0F;
-                offPart.yRot = 0.0F;
-                offPart.zRot = 0.0F;
+                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(slash, 0.30F, -0.28F));
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.22F);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.32F);
+                model.head.xRot += Mth.lerp(slash, 0.08F, -0.06F) * w;
+                model.hat.copyFrom(model.head);
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+                // NA3: Imperial Piercing Thrust — deep forward fencer lunge!
+                float pullback = WindGliderRenderer.smoothStep01(t / 0.24F);
+                float thrust = WindGliderRenderer.smoothStep01((t - 0.24F) / 0.32F);
+                float armX = (t < 0.24F) ? Mth.lerp(pullback, -0.75F, -0.35F) : Mth.lerp(thrust, -0.35F, -1.58F);
+                mainPart.xRot = Mth.lerp(w, mainPart.xRot, armX);
+                mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * (t < 0.24F ? -0.35F : 0.06F));
+                mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * (t < 0.24F ? 0.22F : 0.04F));
 
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.18F);
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.30F);
-                model.head.xRot += 0.04F * w;
+                offPart.xRot = Mth.lerp(w, offPart.xRot, (t < 0.24F) ? -0.95F : 0.68F);
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.62F);
+
+                model.body.xRot = Mth.lerp(w, model.body.xRot, (t < 0.24F) ? -0.06F : 0.22F);
+                model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * (t < 0.24F ? -0.34F : 0.26F));
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, -0.44F);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, 0.48F);
+                model.head.xRot += 0.10F * w;
+                model.hat.copyFrom(model.head);
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_4) {
+                // NA4: 2-Hit Glacial Cross Flurry — rapid X-combo with rhythmic dual-arm & torso snap
+                if (t < 0.48F) {
+                    float s1 = WindGliderRenderer.smoothStep01(t / 0.44F);
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(s1, -2.05F, -0.72F));
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(s1, -0.82F, 0.82F));
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(s1, -0.45F, 0.45F));
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, -0.55F);
+                    offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.58F);
+                    model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(s1, -0.30F, 0.28F));
+                } else {
+                    float s2 = WindGliderRenderer.smoothStep01((t - 0.48F) / 0.40F);
+                    mainPart.xRot = Mth.lerp(w, mainPart.xRot, Mth.lerp(s2, -2.10F, -0.68F));
+                    mainPart.yRot = Mth.lerp(w, mainPart.yRot, castDir * Mth.lerp(s2, 0.85F, -0.85F));
+                    mainPart.zRot = Mth.lerp(w, mainPart.zRot, castDir * Mth.lerp(s2, 0.48F, -0.48F));
+                    offPart.xRot = Mth.lerp(w, offPart.xRot, 0.42F);
+                    offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * 0.46F);
+                    model.body.yRot = Mth.lerp(w, model.body.yRot, castDir * Mth.lerp(s2, 0.30F, -0.32F));
+                }
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, 0.26F);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, -0.26F);
+                model.head.xRot += 0.05F * w;
                 model.hat.copyFrom(model.head);
             } else {
-                float lift = WindGliderRenderer.smoothStep01(t / 0.32F);
-                float slam = WindGliderRenderer.smoothStep01((t - 0.32F) / 0.45F);
-                float armX = (t < 0.32F) ? Mth.lerp(lift, -1.35F, -2.65F) : Mth.lerp(slam, -2.65F, -0.45F);
-
+                // NA5: Sovereign's Overhead Imperial Frost Slam Finisher — high two-hand arch -> explosive earth cleave
+                float lift = WindGliderRenderer.smoothStep01(t / 0.30F);
+                float slam = WindGliderRenderer.smoothStep01((t - 0.30F) / 0.42F);
+                float armX = (t < 0.30F) ? Mth.lerp(lift, -1.35F, -2.78F) : Mth.lerp(slam, -2.78F, -0.32F);
                 mainPart.xRot = Mth.lerp(w, mainPart.xRot, armX);
-                mainPart.yRot = castDir * (t < 0.32F ? 0.20F : -0.10F) * w;
-                mainPart.zRot = castDir * (t < 0.32F ? 0.18F : -0.08F) * w;
+                mainPart.yRot = castDir * (t < 0.30F ? 0.22F : -0.14F) * w;
+                mainPart.zRot = castDir * (t < 0.30F ? 0.20F : -0.10F) * w;
 
-                offPart.xRot = 0.0F;
-                offPart.yRot = 0.0F;
-                offPart.zRot = 0.0F;
+                float offX = (t < 0.30F) ? Mth.lerp(lift, -0.95F, -2.35F) : Mth.lerp(slam, -2.35F, 0.55F);
+                offPart.xRot = Mth.lerp(w, offPart.xRot, offX);
+                offPart.zRot = Mth.lerp(w, offPart.zRot, offDir * (t < 0.30F ? 0.28F : 0.65F));
 
-                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, (t < 0.32F) ? 0.18F : 0.42F);
-                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, (t < 0.32F) ? -0.18F : -0.36F);
-                model.head.xRot += (t < 0.32F ? -0.12F : 0.18F) * w;
+                model.body.xRot = Mth.lerp(w, model.body.xRot, (t < 0.30F) ? -0.14F : 0.26F);
+                model.leftLeg.xRot = Mth.lerp(w, model.leftLeg.xRot, (t < 0.30F) ? 0.16F : 0.46F);
+                model.rightLeg.xRot = Mth.lerp(w, model.rightLeg.xRot, (t < 0.30F) ? -0.16F : -0.40F);
+                model.head.xRot += (t < 0.30F ? -0.16F : 0.20F) * w;
                 model.hat.copyFrom(model.head);
             }
             return true;
@@ -351,28 +445,50 @@ public final class TsaritsaVisualRenderer {
                 && !(effKind == ArcaneStaffItem.Kind.TSARITSA_BOW && ClientAuraTracker.isTsaritsaSpearStance(player.getId()))) {
             return false;
         }
-        if (activeAnim >= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1 && activeAnim <= ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3 && data != null) {
+        if (ClientAuraTracker.isTsaritsaSpearNaAnim(activeAnim) && data != null) {
             float totalMs = Math.max(1.0F, (float) (data.staffAnimUntil - data.staffAnimStartTime));
             float t = Mth.clamp((now - data.staffAnimStartTime) / totalMs, 0.0F, 1.0F);
-            float w = (t < 0.65F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.65F) / 0.35F) * (float) Math.PI));
+            float w = (t < 0.70F) ? 1.0F : 0.5F * (1.0F + Mth.cos(((t - 0.70F) / 0.30F) * (float) Math.PI));
             if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_1) {
                 float slash = WindGliderRenderer.smoothStep01(t / 0.52F);
-                poseStack.translate(dir * Mth.lerp(slash, 0.28F, -0.32F) * w, Mth.lerp(slash, -0.06F, 0.10F) * w, -0.26F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -22.0F, -46.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -55.0F, 68.0F) * w));
+                poseStack.translate(dir * Mth.lerp(slash, 0.28F, -0.34F) * w, Mth.lerp(slash, -0.06F, 0.10F) * w, -0.26F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -22.0F, -48.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, -55.0F, 70.0F) * w));
                 poseStack.mulPose(Axis.YP.rotationDegrees(-dir * 18.0F * w));
             } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_2) {
                 float slash = WindGliderRenderer.smoothStep01(t / 0.52F);
-                poseStack.translate(dir * Mth.lerp(slash, -0.28F, 0.26F) * w, Mth.lerp(slash, 0.18F, -0.16F) * w, -0.24F * w);
-                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -52.0F, -16.0F) * w));
-                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 64.0F, -54.0F) * w));
+                poseStack.translate(dir * Mth.lerp(slash, -0.28F, 0.28F) * w, Mth.lerp(slash, -0.18F, 0.22F) * w, -0.24F * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(slash, -18.0F, -58.0F) * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(slash, 64.0F, -56.0F) * w));
                 poseStack.mulPose(Axis.YP.rotationDegrees(dir * 14.0F * w));
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_3) {
+                // NA3: Straight-ahead piercing spear thrust lunge
+                float pull = WindGliderRenderer.smoothStep01(t / 0.22F);
+                float jab = WindGliderRenderer.smoothStep01((t - 0.22F) / 0.30F);
+                float tz = (t < 0.22F) ? Mth.lerp(pull, -0.06F, 0.18F) : Mth.lerp(jab, 0.18F, -0.58F);
+                poseStack.translate(-dir * 0.10F * w, -0.02F * w, tz * w);
+                poseStack.mulPose(Axis.XP.rotationDegrees(-68.0F * w));
+                poseStack.mulPose(Axis.YP.rotationDegrees(dir * 10.0F * w));
+                poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * w));
+            } else if (activeAnim == ClientAuraTracker.ANIM_TSARITSA_SPEAR_NA_4) {
+                // NA4: Rapid 2-hit X-cross flurry
+                if (t < 0.48F) {
+                    float s1 = WindGliderRenderer.smoothStep01(t / 0.44F);
+                    poseStack.translate(dir * Mth.lerp(s1, -0.24F, 0.26F) * w, Mth.lerp(s1, 0.22F, -0.16F) * w, -0.28F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s1, -18.0F, -56.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s1, -58.0F, 62.0F) * w));
+                } else {
+                    float s2 = WindGliderRenderer.smoothStep01((t - 0.48F) / 0.40F);
+                    poseStack.translate(dir * Mth.lerp(s2, 0.26F, -0.26F) * w, Mth.lerp(s2, 0.22F, -0.18F) * w, -0.30F * w);
+                    poseStack.mulPose(Axis.XP.rotationDegrees(Mth.lerp(s2, -18.0F, -58.0F) * w));
+                    poseStack.mulPose(Axis.ZP.rotationDegrees(dir * Mth.lerp(s2, 62.0F, -62.0F) * w));
+                }
             } else {
-                float lift = WindGliderRenderer.smoothStep01(t / 0.32F);
-                float drop = WindGliderRenderer.smoothStep01((t - 0.32F) / 0.45F);
-                float ty = (t < 0.32F) ? Mth.lerp(lift, 0.02F, 0.30F) : Mth.lerp(drop, 0.30F, -0.32F);
-                float tz = (t < 0.32F) ? Mth.lerp(lift, -0.18F, -0.10F) : Mth.lerp(drop, -0.10F, -0.38F);
-                float xp = (t < 0.32F) ? Mth.lerp(lift, -20.0F, 24.0F) : Mth.lerp(drop, 24.0F, -82.0F);
+                float lift = WindGliderRenderer.smoothStep01(t / 0.30F);
+                float drop = WindGliderRenderer.smoothStep01((t - 0.30F) / 0.42F);
+                float ty = (t < 0.30F) ? Mth.lerp(lift, 0.02F, 0.34F) : Mth.lerp(drop, 0.34F, -0.34F);
+                float tz = (t < 0.30F) ? Mth.lerp(lift, -0.18F, -0.08F) : Mth.lerp(drop, -0.08F, -0.44F);
+                float xp = (t < 0.30F) ? Mth.lerp(lift, -20.0F, 28.0F) : Mth.lerp(drop, 28.0F, -88.0F);
                 poseStack.translate(dir * 0.05F * w, ty * w, tz * w);
                 poseStack.mulPose(Axis.XP.rotationDegrees(xp * w));
                 poseStack.mulPose(Axis.ZP.rotationDegrees(dir * 12.0F * w));

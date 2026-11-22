@@ -440,6 +440,10 @@ public final class ArchonUltiManager {
             }
         }
 
+        if (caster != null && caster.isAlive()) {
+            ZhongliManager.shatterNearbyOres(level, caster, impact, pending.isNetherite(), aoeRadius);
+        }
+
         if (pending.isNetherite() && caster != null && caster.isAlive() && !caster.isSpectator()) {
             ElementalGaugeManager.activateJadeShield(caster, true);
             level.playSound(null, caster.getX(), caster.getY(), caster.getZ(),

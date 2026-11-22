@@ -570,9 +570,12 @@ public final class ArcaneStaffItem extends Item {
         if (kind == Kind.THOUSAND_BLAZING_SUNS) {
             props = props.attributes(SwordItem.createAttributes(Tiers.NETHERITE, 3, -2.4F))
                     .component(DataComponents.TOOL, SwordItem.createToolProperties());
-        } else if (kind == Kind.OMNI || kind == Kind.PEAK_PATROL_SONG) {
+        } else if (kind == Kind.OMNI || kind == Kind.PEAK_PATROL_SONG || kind == Kind.SPLENDOR) {
             props = props.attributes(SwordItem.createAttributes(isNetherite ? Tiers.NETHERITE : Tiers.DIAMOND, 3, -2.4F))
                     .component(DataComponents.TOOL, SwordItem.createToolProperties());
+        } else if (kind == Kind.VORTEX || kind == Kind.ENGULFING_LIGHTNING) {
+            // Polearms: slightly lower per-hit damage (6.0 Basic / 7.0 Netherite) with faster attack speed (2.0)
+            props = props.attributes(SwordItem.createAttributes(isNetherite ? Tiers.NETHERITE : Tiers.DIAMOND, 2, -2.0F));
         }
         return props;
     }
@@ -2045,11 +2048,13 @@ public final class ArcaneStaffItem extends Item {
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
+            com.velorise.staves.element.ZhongliManager.shatterNearbyOres(level, player, shockCenter, isNetherite);
             level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);
             level.playSound(null, player.blockPosition(), SoundEvents.DEEPSLATE_TILES_PLACE, SoundSource.PLAYERS, 1.0F, 0.72F);
             level.playSound(null, player.blockPosition(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 0.95F, 0.60F);
             level.playSound(null, player.blockPosition(), SoundEvents.GILDED_BLACKSTONE_STEP, SoundSource.PLAYERS, 0.9F, 0.85F);
         } else {
+            com.velorise.staves.element.ZhongliManager.shatterNearbyOres(level, player, shockCenter, isNetherite, 1.0D);
             BlockPos soundPos = BlockPos.containing(steleX, steleY, steleZ);
             level.playSound(null, soundPos, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 0.95F, 0.70F);
             level.playSound(null, soundPos, SoundEvents.DEEPSLATE_BRICKS_PLACE, SoundSource.PLAYERS, 1.0F, 0.75F);
@@ -2922,8 +2927,21 @@ public final class ArcaneStaffItem extends Item {
     }
 
     @Override
+    public boolean mineBlock(ItemStack stack, Level level, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, LivingEntity miningEntity) {
+        if (!level.isClientSide() && level instanceof ServerLevel sl && miningEntity instanceof ServerPlayer sp
+                && getEffectiveKind(stack) == Kind.ENGULFING_LIGHTNING
+                && com.velorise.staves.element.RaidenManager.isRaidenCuttableWeed(state)) {
+            com.velorise.staves.element.RaidenManager.handleNormalWeedMine(sl, sp, state, pos);
+        }
+        return super.mineBlock(stack, level, state, pos, miningEntity);
+    }
+
+    @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
         Kind effKind = getEffectiveKind(stack);
+        if (effKind == Kind.ENGULFING_LIGHTNING && !attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.element.RaidenManager.cutWildGrassAlongSlash(sp.serverLevel(), sp, target.position(), 1.8D);
+        }
         if (effKind == Kind.THOUSAND_FLOATING_DREAMS) {
             if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
                 com.velorise.staves.element.NahidaManager.handleNormalAttack(sp);

@@ -65,6 +65,16 @@ public final class ClientAuraTracker {
     public static final int ANIM_TSARITSA_SPEAR_NA_1 = 54;
     public static final int ANIM_TSARITSA_SPEAR_NA_2 = 55;
     public static final int ANIM_TSARITSA_SPEAR_NA_3 = 56;
+    public static final int ANIM_TSARITSA_SPEAR_NA_4 = 63;
+    public static final int ANIM_TSARITSA_SPEAR_NA_5 = 64;
+
+    public static boolean isTsaritsaSpearNaAnim(int animType) {
+        return animType == ANIM_TSARITSA_SPEAR_NA_1
+                || animType == ANIM_TSARITSA_SPEAR_NA_2
+                || animType == ANIM_TSARITSA_SPEAR_NA_3
+                || animType == ANIM_TSARITSA_SPEAR_NA_4
+                || animType == ANIM_TSARITSA_SPEAR_NA_5;
+    }
     public static final int ANIM_TSARITSA_BURST_SUPPORT = 57;
     public static final int ANIM_TSARITSA_BURST_DPS = 58;
     public static final int ANIM_TSARITSA_PUNISHMENT = 59;
@@ -944,7 +954,9 @@ public final class ClientAuraTracker {
             case ANIM_TSARITSA_TAP_E -> 500L;
             case ANIM_TSARITSA_HOLD_E -> 680L;
             case ANIM_TSARITSA_SPEAR_NA_1, ANIM_TSARITSA_SPEAR_NA_2 -> 380L;
-            case ANIM_TSARITSA_SPEAR_NA_3 -> 480L;
+            case ANIM_TSARITSA_SPEAR_NA_3 -> 420L;
+            case ANIM_TSARITSA_SPEAR_NA_4 -> 480L;
+            case ANIM_TSARITSA_SPEAR_NA_5 -> 560L;
             case ANIM_TSARITSA_BURST_SUPPORT -> 2000L;
             case ANIM_TSARITSA_BURST_DPS -> 2000L;
             case ANIM_TSARITSA_PUNISHMENT -> 520L;

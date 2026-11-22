@@ -2024,11 +2024,13 @@ public final class ArcaneStaffItem extends Item {
         com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, holdJadeShield ? 3 : 4);
         if (holdJadeShield) {
             ElementalGaugeManager.activateJadeShield(player, isNetherite);
+            com.velorise.staves.element.ZhongliManager.shatterNearbyOres(level, player, shockCenter, isNetherite);
             level.playSound(null, player.blockPosition(), SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 1.0F, 0.65F);
             level.playSound(null, player.blockPosition(), SoundEvents.DEEPSLATE_TILES_PLACE, SoundSource.PLAYERS, 1.0F, 0.72F);
             level.playSound(null, player.blockPosition(), SoundEvents.BASALT_PLACE, SoundSource.PLAYERS, 0.95F, 0.60F);
             level.playSound(null, player.blockPosition(), SoundEvents.GILDED_BLACKSTONE_STEP, SoundSource.PLAYERS, 0.9F, 0.85F);
         } else {
+            com.velorise.staves.element.ZhongliManager.shatterNearbyOres(level, player, shockCenter, isNetherite, 1.0D);
             BlockPos soundPos = BlockPos.containing(steleX, steleY, steleZ);
             level.playSound(null, soundPos, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.PLAYERS, 0.95F, 0.70F);
             level.playSound(null, soundPos, SoundEvents.DEEPSLATE_BRICKS_PLACE, SoundSource.PLAYERS, 1.0F, 0.75F);
@@ -2885,19 +2887,38 @@ public final class ArcaneStaffItem extends Item {
             Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.4D, AttributeModifier.Operation.ADDITION)
     );
 
+    private static final Multimap<Attribute, AttributeModifier> POLEARM_BASIC_ATTRIBUTES = ImmutableMultimap.of(
+            Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Weapon modifier", 5.0D, AttributeModifier.Operation.ADDITION),
+            Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.0D, AttributeModifier.Operation.ADDITION)
+    );
+
+    private static final Multimap<Attribute, AttributeModifier> POLEARM_NETHERITE_ATTRIBUTES = ImmutableMultimap.of(
+            Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Weapon modifier", 6.0D, AttributeModifier.Operation.ADDITION),
+            Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.0D, AttributeModifier.Operation.ADDITION)
+    );
+
     @Override
     public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot slot) {
-        if ((kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI) && slot == EquipmentSlot.MAINHAND) {
-            return (kind == Kind.PEAK_PATROL_SONG && !isNetherite) || (kind == Kind.OMNI && !isNetherite)
-                    ? XILONEN_BASIC_SWORD_ATTRIBUTES
-                    : MAVUIKA_SWORD_ATTRIBUTES;
+        if (slot == EquipmentSlot.MAINHAND) {
+            if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI || kind == Kind.SPLENDOR) {
+                return (kind != Kind.THOUSAND_BLAZING_SUNS && !isNetherite)
+                        ? XILONEN_BASIC_SWORD_ATTRIBUTES
+                        : MAVUIKA_SWORD_ATTRIBUTES;
+            }
+            if (kind == Kind.VORTEX || kind == Kind.ENGULFING_LIGHTNING) {
+                return isNetherite ? POLEARM_NETHERITE_ATTRIBUTES : POLEARM_BASIC_ATTRIBUTES;
+            }
         }
         return super.getDefaultAttributeModifiers(slot);
     }
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack, net.minecraft.world.item.enchantment.Enchantment enchantment) {
-        if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI) {
+        if (kind == Kind.VORTEX && enchantment == net.minecraft.world.item.enchantment.Enchantments.BLOCK_FORTUNE) {
+            return true;
+        }
+        if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI
+                || kind == Kind.SPLENDOR || kind == Kind.VORTEX || kind == Kind.ENGULFING_LIGHTNING) {
             if (enchantment.category == net.minecraft.world.item.enchantment.EnchantmentCategory.WEAPON) {
                 return true;
             }
@@ -2907,7 +2928,8 @@ public final class ArcaneStaffItem extends Item {
 
     @Override
     public boolean isBookEnchantable(ItemStack stack, ItemStack book) {
-        if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI) {
+        if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI
+                || kind == Kind.SPLENDOR || kind == Kind.VORTEX || kind == Kind.ENGULFING_LIGHTNING) {
             return true;
         }
         return super.isBookEnchantable(stack, book);
@@ -2939,8 +2961,21 @@ public final class ArcaneStaffItem extends Item {
     }
 
     @Override
+    public boolean mineBlock(ItemStack stack, Level level, net.minecraft.world.level.block.state.BlockState state, BlockPos pos, LivingEntity miningEntity) {
+        if (!level.isClientSide() && level instanceof ServerLevel sl && miningEntity instanceof ServerPlayer sp
+                && getEffectiveKind(stack) == Kind.ENGULFING_LIGHTNING
+                && com.velorise.staves.element.RaidenManager.isRaidenCuttableWeed(state)) {
+            com.velorise.staves.element.RaidenManager.handleNormalWeedMine(sl, sp, state, pos);
+        }
+        return super.mineBlock(stack, level, state, pos, miningEntity);
+    }
+
+    @Override
     public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
         Kind effKind = getEffectiveKind(stack);
+        if (effKind == Kind.ENGULFING_LIGHTNING && !attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
+            com.velorise.staves.element.RaidenManager.cutWildGrassAlongSlash(sp.serverLevel(), sp, target.position(), 1.8D);
+        }
         if (effKind == Kind.THOUSAND_FLOATING_DREAMS) {
             if (!attacker.level().isClientSide() && attacker instanceof ServerPlayer sp) {
                 com.velorise.staves.element.NahidaManager.handleNormalAttack(sp);

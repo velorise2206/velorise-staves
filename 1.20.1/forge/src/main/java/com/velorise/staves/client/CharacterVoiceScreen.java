@@ -46,7 +46,7 @@ public class CharacterVoiceScreen extends Screen {
                 .withValues(List.of("all", "self_only", "disabled"))
                 .withInitialValue(CharacterVoiceManager.getMasterMode())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_master_mode.desc")))
-                .create(leftColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
+                .create(leftColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.voice_master_mode"), (btn, val) -> {
                     CharacterVoiceManager.setMasterMode(val);
                 }));
 
@@ -62,7 +62,7 @@ public class CharacterVoiceScreen extends Screen {
         this.addRenderableWidget(CycleButton.<String>builder(val -> Component.translatable("config.velorise_staves.voice_language." + val))
                 .withValues(globalLangOpts)
                 .withInitialValue(curGlobalLang)
-                .create(rightColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.voice_language", ""), (btn, val) -> {
+                .create(rightColX, startY, colWidth, 20, Component.translatable("config.velorise_staves.voice_language"), (btn, val) -> {
                     CharacterVoiceManager.setGlobalLanguage(val);
                 }));
 
@@ -75,7 +75,7 @@ public class CharacterVoiceScreen extends Screen {
                 .withValues(volumes)
                 .withInitialValue(initVol)
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_volume.desc")))
-                .create(leftColX, startY + rowHeight, colWidth, 20, Component.translatable("config.velorise_staves.voice_volume", ""), (btn, val) -> {
+                .create(leftColX, startY + rowHeight, colWidth, 20, Component.translatable("config.velorise_staves.voice_volume"), (btn, val) -> {
                     CharacterVoiceManager.setVoiceVolume(val);
                 }));
 

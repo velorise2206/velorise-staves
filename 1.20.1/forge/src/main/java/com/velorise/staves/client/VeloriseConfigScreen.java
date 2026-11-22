@@ -172,15 +172,22 @@ public class VeloriseConfigScreen extends Screen {
                     this.saveLocalConfig();
                 }), rowHeight * 4);
 
-        // Row 6: Unified Texture Resolution (16x16px Standard vs 32x32px HD for Element Icons & Wind Glider)
-        this.addScrollableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32px (HD)" : "16x16px"))
+        // Row 6: Texture Resolution (Left) & Wall Climbing Toggle (Right)
+        this.addScrollableWidget(CycleButton.<Boolean>builder(val -> Component.literal(val ? "32x32" : "16x16"))
                 .withValues(List.of(false, true))
                 .withInitialValue(StavesConfig.isUse32pxTextures())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.texture_res.desc")))
-                .create(centerX - 100, 0, 200, 18, Component.translatable("config.velorise_staves.texture_res"), (btn, val) -> {
+                .create(leftColX, 0, colWidth, 18, Component.translatable("config.velorise_staves.texture_res"), (btn, val) -> {
                     StavesConfig.USE_32PX_TEXTURES.set(val);
                     StavesConfig.USE_32PX_ELEMENT_ICONS.set(val);
                     StavesConfig.USE_32PX_GLIDER_TEXTURE.set(val);
+                    this.saveLocalConfig();
+                }), rowHeight * 5);
+
+        this.addScrollableWidget(CycleButton.onOffBuilder(StavesConfig.ENABLE_WALL_CLIMB.get())
+                .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.enable_wall_climb.desc")))
+                .create(rightColX, 0, colWidth, 18, Component.translatable("config.velorise_staves.enable_wall_climb"), (btn, val) -> {
+                    StavesConfig.ENABLE_WALL_CLIMB.set(val);
                     this.saveLocalConfig();
                 }), rowHeight * 5);
 
@@ -211,7 +218,7 @@ public class VeloriseConfigScreen extends Screen {
                 .withValues(List.of("all", "self_only", "disabled"))
                 .withInitialValue(com.velorise.staves.audio.CharacterVoiceManager.getMasterMode())
                 .withTooltip(val -> Tooltip.create(Component.translatable("config.velorise_staves.voice_master_mode.desc")))
-                .create(rightColX, 0, colWidth, 18, Component.translatable("config.velorise_staves.voice_master_mode", ""), (btn, val) -> {
+                .create(rightColX, 0, colWidth, 18, Component.translatable("config.velorise_staves.voice_master_mode"), (btn, val) -> {
                     com.velorise.staves.audio.CharacterVoiceManager.setMasterMode(val);
                 }), rowHeight * 7);
 
