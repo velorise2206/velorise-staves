@@ -397,17 +397,21 @@ public final class ClientInputHandler {
         if (holdingFurina && !(mc.player.getVehicle() instanceof com.velorise.staves.entity.FlamestriderBikeEntity) && mc.player.onGround()) {
             if (mc.options.keyAttack.isDown()) {
                 furinaAttackHoldTicks++;
+                ClientAuraTracker.localFurinaCaHoldProgress = getFurinaCaHoldProgress();
                 if (furinaAttackHoldTicks >= 10 && !furinaCaTriggeredThisHold) {
                     furinaCaTriggeredThisHold = true;
+                    ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
                     com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_FURINA_CA_SWITCH);
                 }
             } else {
                 furinaAttackHoldTicks = 0;
                 furinaCaTriggeredThisHold = false;
+                ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
             }
         } else {
             furinaAttackHoldTicks = 0;
             furinaCaTriggeredThisHold = false;
+            ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
             raidenAttackHoldTicks = 0;
             raidenCaTriggeredThisHold = false;
         }
@@ -456,7 +460,9 @@ public final class ClientInputHandler {
                 nahidaAttackHoldTicks++;
                 if (nahidaAttackHoldTicks >= 10 && !nahidaCaTriggeredThisHold) {
                     nahidaCaTriggeredThisHold = true;
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NAHIDA_CA);
+                    if (com.velorise.staves.client.ClientMovementTracker.tryConsumeChargedAttackStamina(mc.player, 50.0F)) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPacket.ACTION_NAHIDA_CA);
+                    }
                 }
             } else if (nahidaAttackHoldTicks > 0) {
                 if (!nahidaCaTriggeredThisHold) {

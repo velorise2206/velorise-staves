@@ -466,6 +466,7 @@ public final class ClientInputHandler {
             } else {
                 furinaAttackHoldTicks = 0;
                 furinaCaTriggeredThisHold = false;
+                ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
             }
         } else {
             furinaAttackHoldTicks = 0;
@@ -517,7 +518,9 @@ public final class ClientInputHandler {
                 nahidaAttackHoldTicks++;
                 if (nahidaAttackHoldTicks >= 10 && !nahidaCaTriggeredThisHold) {
                     nahidaCaTriggeredThisHold = true;
-                    com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_CA);
+                    if (com.velorise.staves.client.ClientMovementTracker.tryConsumeChargedAttackStamina(mc.player, 50.0F)) {
+                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_CA);
+                    }
                 }
             } else if (nahidaAttackHoldTicks > 0) {
                 if (!nahidaCaTriggeredThisHold) {

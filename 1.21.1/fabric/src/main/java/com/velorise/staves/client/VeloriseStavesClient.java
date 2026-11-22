@@ -436,10 +436,11 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                 if (client.options.keyAttack.isDown()) {
                     furinaAttackHoldTicks[0]++;
                     furinaCaHoldTicks = furinaAttackHoldTicks[0];
+                    ClientAuraTracker.localFurinaCaHoldProgress = getFurinaCaHoldProgress();
                     if (furinaAttackHoldTicks[0] >= 10 && !furinaCaTriggeredThisHold[0]) {
                         furinaCaTriggeredThisHold[0] = true;
                         furinaCaHoldTriggered = true;
-                    ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
+                        ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
                         com.velorise.staves.network.ModNetwork.sendMavuikaAction(
                                 com.velorise.staves.network.MavuikaActionPayload.ACTION_FURINA_CA_SWITCH);
                     }
@@ -448,12 +449,14 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     furinaCaTriggeredThisHold[0] = false;
                     furinaCaHoldTicks = 0;
                     furinaCaHoldTriggered = false;
+                    ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
                 }
             } else {
                 furinaAttackHoldTicks[0] = 0;
                 furinaCaTriggeredThisHold[0] = false;
                 furinaCaHoldTicks = 0;
                 furinaCaHoldTriggered = false;
+                ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
             }
 
             // Raiden Musou Hold Left-Click Charged Attack: 5-block dash + 5 trailing slashes
@@ -499,8 +502,10 @@ public final class VeloriseStavesClient implements ClientModInitializer {
                     nahidaAttackHoldTicks[0]++;
                     if (nahidaAttackHoldTicks[0] >= 10 && !nahidaCaTriggeredThisHold[0]) {
                         nahidaCaTriggeredThisHold[0] = true;
-                        com.velorise.staves.network.ModNetwork.sendMavuikaAction(
-                                com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_CA);
+                        if (com.velorise.staves.client.ClientMovementTracker.tryConsumeChargedAttackStamina(client.player, 50.0F)) {
+                            com.velorise.staves.network.ModNetwork.sendMavuikaAction(
+                                    com.velorise.staves.network.MavuikaActionPayload.ACTION_NAHIDA_CA);
+                        }
                     }
                 } else if (nahidaAttackHoldTicks[0] > 0) {
                     if (!nahidaCaTriggeredThisHold[0]) {

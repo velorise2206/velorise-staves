@@ -40,6 +40,28 @@ public final class ClientMovementTracker {
     private static boolean localExhaustedClimbFall = false;
     private static final com.velorise.staves.fsm.InputBuffer<com.velorise.staves.fsm.MovementActionState.BufferedInput> localWallInputBuffer = new com.velorise.staves.fsm.InputBuffer<>();
 
+    /**
+     * Attempts to consume the given stamina cost for a Charged Attack (e.g., Nahida CA = 50 Stamina).
+     * Returns true if allowed (creative mode, custom stamina disabled, or sufficient stamina available).
+     */
+    public static boolean tryConsumeChargedAttackStamina(net.minecraft.world.entity.player.Player player, float cost) {
+        if (player == null) return false;
+        if (player.isCreative() || !com.velorise.staves.config.StavesConfig.isEnableCustomStamina()) {
+            return true;
+        }
+        if (localStaminaExhausted || localStamina < cost) {
+            return false;
+        }
+        localStamina = Math.max(0.0F, localStamina - cost);
+        localStaminaRegenDelayTicks = 30;
+        localStaminaFullHideTicks = 0;
+        if (localStamina <= 0.01F) {
+            localStamina = 0.0F;
+            localStaminaExhausted = true;
+        }
+        return true;
+    }
+
     public static void resetLocalStaminaState() {
         localStamina = localMaxStamina;
         localStaminaRegenDelayTicks = 0;

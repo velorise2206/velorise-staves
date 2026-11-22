@@ -176,7 +176,7 @@ public final class BikePoseBlender {
      * - T00..T08: Sky launch (+4.8m Y, +1.8m forward Z, -38 deg nose-up toward sun)
      * - T08..T14: Bike separates from leaping rider and rockets forward-up (+7.2m Y, +6.5m Z) while fading out
      * - T14..T25: Bike hidden (scale = 0 in FlamestriderBikeRenderer)
-     * - T25..T34: Re-summoned directly under Steve in iconic sideways wheelie (+68 deg yaw LEFT, -36 deg nose-up, +12 deg roll)
+     * - T25..T34: Re-summoned directly under Steve in iconic sideways wheelie (-68 deg yaw RIGHT, -36 deg nose-up, -12 deg roll)
      * - T34..T40: Smooth wheelie touchdown back to 0 deg
      */
     private static void evalUltiPose(int ultiT, float partialTicks, BikePoseSnapshot out) {
@@ -196,24 +196,24 @@ public final class BikePoseBlender {
             // Hidden mid-air while Steve meteor-dives and cleaves
             out.offsetY = 0.0F;
             out.offsetZ = 0.0F;
-            out.yawDeg = 68.0F;
+            out.yawDeg = -68.0F;
             out.pitchDeg = -36.0F;
-            out.rollDeg = 12.0F;
+            out.rollDeg = -12.0F;
         } else if (t < 34.0F) {
-            // Re-summoned iconic sideways wheelie hold (nose LEFT +68 deg, nose-up -36 deg, roll +12 deg)
+            // Re-summoned iconic sideways wheelie hold (nose RIGHT -68 deg, nose-up -36 deg, roll -12 deg)
             float settle = t < 27.0F ? easeOutCubic((t - 25.0F) / 2.0F) : 1.0F;
             out.offsetY = Mth.lerp(settle, 0.04F, 0.18F);
             out.offsetZ = 0.0F;
-            out.yawDeg = 68.0F;
+            out.yawDeg = -68.0F;
             out.pitchDeg = Mth.lerp(settle, -18.0F, -36.0F);
-            out.rollDeg = Mth.lerp(settle, 6.0F, 12.0F);
+            out.rollDeg = Mth.lerp(settle, -6.0F, -12.0F);
         } else {
             float e = easeInOutSine((t - 34.0F) / 6.0F);
             out.offsetY = Mth.lerp(e, 0.18F, 0.0F);
             out.offsetZ = 0.0F;
-            out.yawDeg = Mth.lerp(e, 68.0F, 0.0F);
+            out.yawDeg = Mth.lerp(e, -68.0F, 0.0F);
             out.pitchDeg = Mth.lerp(e, -36.0F, 0.0F);
-            out.rollDeg = Mth.lerp(e, 12.0F, 0.0F);
+            out.rollDeg = Mth.lerp(e, -12.0F, 0.0F);
         }
     }
 
@@ -246,12 +246,12 @@ public final class BikePoseBlender {
             out.offsetY = Mth.lerp(e, 0.85F, 0.32F);
             out.offsetZ = Mth.lerp(e, 0.15F, 0.0F);
             out.pitchDeg = Mth.lerp(e, 22.0F, 4.0F);
-            out.yawDeg = Mth.lerp(e, 0.0F, -24.0F);
+            out.yawDeg = Mth.lerp(e, 0.0F, 24.0F);
         } else if (t < 25.0F) {
             float e = easeOutCubic((t - 22.0F) / 3.0F);
             out.offsetY = Mth.lerp(e, 0.32F, 0.04F);
             out.pitchDeg = Mth.lerp(e, 4.0F, 0.0F);
-            out.yawDeg = Mth.lerp(e, -24.0F, 68.0F);
+            out.yawDeg = Mth.lerp(e, 24.0F, -68.0F);
         } else {
             evalUltiPose(ultiT, partialTicks, out);
         }
