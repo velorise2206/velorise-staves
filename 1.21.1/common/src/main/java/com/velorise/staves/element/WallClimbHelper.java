@@ -61,8 +61,10 @@ public final class WallClimbHelper {
 
             BlockPos chestPos = BlockPos.containing(sampleX, chestY, sampleZ);
             BlockPos shoulderPos = BlockPos.containing(sampleX, shoulderY, sampleZ);
-            boolean chestValid = isSturdyClimbableFace(level, chestPos, normalFace);
-            boolean shoulderValid = isSturdyClimbableFace(level, shoulderPos, normalFace);
+            boolean chestValid = isSturdyClimbableFace(level, chestPos, normalFace)
+                    || isGeoConstructAt(level, sampleX, chestY, sampleZ);
+            boolean shoulderValid = isSturdyClimbableFace(level, shoulderPos, normalFace)
+                    || isGeoConstructAt(level, sampleX, shoulderY, sampleZ);
             if (player.onGround()) {
                 if (!chestValid || !shoulderValid) continue;
             } else if (!chestValid && !shoulderValid) {
@@ -91,6 +93,28 @@ public final class WallClimbHelper {
         if (state.isAir() || state.is(BlockTags.CLIMBABLE)) return false;
         if (state.getCollisionShape(level, pos).isEmpty()) return false;
         return state.isFaceSturdy(level, pos, outwardNormal);
+    }
+
+    public static boolean isGeoConstructAt(Level level, double x, double y, double z) {
+        return !Double.isNaN(findGeoConstructTopY(level, x, y, z));
+    }
+
+    public static double findGeoConstructTopY(Level level, double x, double y, double z) {
+        if (level == null) return Double.NaN;
+        AABB probe = new AABB(x - 0.12D, y - 0.12D, z - 0.12D, x + 0.12D, y + 0.12D, z + 0.12D);
+        double bestTop = Double.NaN;
+        for (com.velorise.staves.entity.GeoFangPillarEntity pillar : level.getEntitiesOfClass(
+                com.velorise.staves.entity.GeoFangPillarEntity.class, probe,
+                e -> e.isAlive() && e.canBeCollidedWith())) {
+            AABB pBox = pillar.getBoundingBox().inflate(0.08D, 0.02D, 0.08D);
+            if (pBox.contains(x, y, z)) {
+                double topY = pillar.getBoundingBox().maxY;
+                if (Double.isNaN(bestTop) || topY > bestTop) {
+                    bestTop = topY;
+                }
+            }
+        }
+        return bestTop;
     }
 
     /**
@@ -127,23 +151,28 @@ public final class WallClimbHelper {
 
         // Probe chest/shoulder/waist (y+1.35 -> y+0.95 -> y+0.55) so mantle triggers as soon as raised hands grip the top lip
         double[] probeHeights = new double[] { 1.35D, 0.95D, 0.55D, 0.15D };
-        BlockPos ledgeBlock = null;
+        double topSurfaceY = Double.NaN;
         for (double py : probeHeights) {
-            BlockPos candidate = BlockPos.containing(sampleX, player.getY() + py, sampleZ);
+            double probeY = player.getY() + py;
+            BlockPos candidate = BlockPos.containing(sampleX, probeY, sampleZ);
             if (isSturdyClimbableFace(level, candidate, wallNormalFace)) {
-                ledgeBlock = candidate;
+                topSurfaceY = candidate.getY() + 1.0D;
+                break;
+            }
+            double geoTop = findGeoConstructTopY(level, sampleX, probeY, sampleZ);
+            if (!Double.isNaN(geoTop)) {
+                topSurfaceY = geoTop;
                 break;
             }
         }
-        if (ledgeBlock == null) return Double.NaN;
+        if (Double.isNaN(topSurfaceY)) return Double.NaN;
 
-        double topSurfaceY = ledgeBlock.getY() + 1.0D;
         // Trigger as soon as raised hands (~y+1.75) reach the top lip (feet within 1.65 blocks of top surface)
         if (player.getY() < topSurfaceY - 1.65D) {
             return Double.NaN;
         }
-        BlockPos topClear1 = ledgeBlock.above();
-        BlockPos topClear2 = ledgeBlock.above(2);
+        BlockPos topClear1 = BlockPos.containing(sampleX, topSurfaceY + 0.15D, sampleZ);
+        BlockPos topClear2 = BlockPos.containing(sampleX, topSurfaceY + 1.15D, sampleZ);
         // Also ensure headroom directly above player is clear to rise up to topSurfaceY
         BlockPos headClear = BlockPos.containing(player.getX(), topSurfaceY + 1.65D, player.getZ());
 
@@ -183,11 +212,17 @@ public final class WallClimbHelper {
             double sampleZ = player.getZ() + inward.getStepZ() * (halfW + 0.24D);
             BlockPos lowBlock = BlockPos.containing(sampleX, player.getY() + 0.55D, sampleZ);
             BlockState state = level.getBlockState(lowBlock);
-            if (state.isAir() || state.is(BlockTags.CLIMBABLE)) continue;
-            var shape = state.getCollisionShape(level, lowBlock);
-            if (shape.isEmpty()) continue;
-
-            double topSurfaceY = lowBlock.getY() + shape.max(Direction.Axis.Y);
+            double topSurfaceY = Double.NaN;
+            if (!state.isAir() && !state.is(BlockTags.CLIMBABLE)) {
+                var shape = state.getCollisionShape(level, lowBlock);
+                if (!shape.isEmpty()) {
+                    topSurfaceY = lowBlock.getY() + shape.max(Direction.Axis.Y);
+                }
+            }
+            if (Double.isNaN(topSurfaceY)) {
+                topSurfaceY = findGeoConstructTopY(level, sampleX, player.getY() + 0.55D, sampleZ);
+            }
+            if (Double.isNaN(topSurfaceY)) continue;
             double dy = topSurfaceY - player.getY();
             // Strictly taller than vanilla 0.60m step-up and <= 1.15m (excludes half-slabs 0.5m & fences 1.5m)
             if (dy <= 0.60D || dy > 1.15D) continue;
