@@ -2882,6 +2882,16 @@ public final class ArcaneStaffItem extends Item {
             Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.4D, AttributeModifier.Operation.ADDITION)
     );
 
+    private static final Multimap<Attribute, AttributeModifier> CLAYMORE_BASIC_ATTRIBUTES = ImmutableMultimap.of(
+            Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Weapon modifier", 7.0D, AttributeModifier.Operation.ADDITION),
+            Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.8D, AttributeModifier.Operation.ADDITION)
+    );
+
+    private static final Multimap<Attribute, AttributeModifier> CLAYMORE_NETHERITE_ATTRIBUTES = ImmutableMultimap.of(
+            Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Weapon modifier", 8.0D, AttributeModifier.Operation.ADDITION),
+            Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.8D, AttributeModifier.Operation.ADDITION)
+    );
+
     private static final Multimap<Attribute, AttributeModifier> XILONEN_BASIC_SWORD_ATTRIBUTES = ImmutableMultimap.of(
             Attributes.ATTACK_DAMAGE, new AttributeModifier(BASE_ATTACK_DAMAGE_UUID, "Weapon modifier", 6.0D, AttributeModifier.Operation.ADDITION),
             Attributes.ATTACK_SPEED, new AttributeModifier(BASE_ATTACK_SPEED_UUID, "Weapon modifier", -2.4D, AttributeModifier.Operation.ADDITION)
@@ -2900,8 +2910,11 @@ public final class ArcaneStaffItem extends Item {
     @Override
     public Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(EquipmentSlot slot) {
         if (slot == EquipmentSlot.MAINHAND) {
-            if (kind == Kind.THOUSAND_BLAZING_SUNS || kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI || kind == Kind.SPLENDOR) {
-                return (kind != Kind.THOUSAND_BLAZING_SUNS && !isNetherite)
+            if (kind == Kind.THOUSAND_BLAZING_SUNS) {
+                return isNetherite ? CLAYMORE_NETHERITE_ATTRIBUTES : CLAYMORE_BASIC_ATTRIBUTES;
+            }
+            if (kind == Kind.PEAK_PATROL_SONG || kind == Kind.OMNI || kind == Kind.SPLENDOR) {
+                return !isNetherite
                         ? XILONEN_BASIC_SWORD_ATTRIBUTES
                         : MAVUIKA_SWORD_ATTRIBUTES;
             }

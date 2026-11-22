@@ -10,7 +10,7 @@ Every combat staff in **Velorise's Staves** is available in **Basic** and **Neth
 | :--- | :--- | :--- | :--- |
 | **Elemental Skill (Tap E)** | **Right-Click** (Tap) | **Tap E** | Casts the weapon's primary Elemental Skill. Works from main hand or offhand (when main hand is not another Genshin weapon). |
 | **Elemental Skill (Hold E)** | **Hold Right-Click** | **Hold E** | Used by **Zhongli** (`1.5s` Jade Shield + Stele), **Nahida** (`Camera Viewfinder` mark/harvest), and **Mavuika** (mount Flamestrider). |
-| **Normal Attack (NA)** | **Left-Click** (Tap) | **Normal Attack** | Custom multi-step combos for **Mavuika** (5-hit bike), **Raiden** (5-hit Musou Tachi), **Nahida** (4-step hopscotch), **Tsaritsa** (Bow shot / 3-step Spear cleave), **Venti** (quick wind shot), and **Xilonen** (Roller Skate kicks). |
+| **Normal Attack (NA)** | **Left-Click** (Tap) | **Normal Attack** | Custom multi-step combos for **Mavuika** (5-hit bike), **Raiden** (5-hit Musou Tachi), **Nahida** (4-step hopscotch), **Tsaritsa** (Bow shot / 5-step Spear combo), **Venti** (quick wind shot), and **Xilonen** (Roller Skate kicks). |
 | **Charged Attack (CA)** | **Hold Left-Click** | **Charged Attack** | **Neuvillette** (`Equitable Judgment` Hydro Beam), **Furina** (`Ousia ⇄ Pneuma` Arkhe switch), **Mavuika** (Donut Spin + Finisher), **Raiden** (Crescent upward slash), **Nahida** (`3×3×3m` Dendro cube), **Venti** & **Tsaritsa** (3-stage Bow pull `_pulling_0/1/2`). |
 | **Elemental Burst (Q)** | **`[R]` Key** | **Elemental Burst [Q]** | Unleashes the signature Ultimate ability with **1.5s–2.5s Invulnerability Frames (I-frames)** and burst root/camera choreography. Supports main hand and offhand! |
 | **Combat Dash / Dodge** | **`[Sprint / Ctrl]`** | **Dash / Dodge** | While riding **Mavuika's Flamestrider** or skating in **Xilonen's Nightsoul state**, performs a 2-dash chain (`5t` gap between Dash 1 & Dash 2, then `1.5s` / `30t` cooldown). |
@@ -129,7 +129,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ### 2. Furina — *Splendor of Tranquil Waters* (`splendor_of_tranquil_waters`)
 - **Element:** ![Hydro][hydro] Hydro | **Role:** Hydro Archon Rapier (Dual-Arkhe Summoner, Water Walker & Universal Buffer) | **Archon:** Yes (`isArchon = true`)
-- **Config Base Damage:** `1.0` (Max HP-scaled summons) | **Skill CD:** `20.0s` (`30s` summon duration) | **Burst CD:** `15.0s` | **Durability:** `420` Basic / `840` Netherite
+- **Config Base Damage:** `1.0` (Max HP-scaled summons) | **Melee:** Diamond / Netherite Sword (`7.0` / `8.0` DMG, `1.6` Speed) | **Skill CD:** `20.0s` (`30s` summon duration) | **Burst CD:** `15.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Arkhe Alignment Switch (`Hold Left-Click`):**
   - Switches between **Arkhe: Ousia** (dark outfit/aura, offensive summon mode) and **Arkhe: Pneuma** (light outfit/aura, healing summon mode) with a `1.0s` (`20t`) switch cooldown. If summons are currently active in the world, switching Arkhe morphs them in real time!
 - **Elemental Skill — *Salon Solitaire* (`Right-Click`):**
@@ -144,13 +144,13 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ### 3. Zhongli — *Vortex Vanquisher* (`vortex_vanquisher`)
 - **Element:** ![Geo][geo] Geo | **Role:** Geo Archon Polearm (All-RES Shred, Geo Construct Resonance & Petrification) | **Archon:** Yes (`isArchon = true`)
-- **Config Base Damage:** `4.0` (`+ Max HP scaling`) | **Tap E CD:** `4.0s` | **Hold E CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `420` Basic / `840` Netherite
+- **Config Base Damage:** `4.0` (`+ Max HP scaling`) | **Melee:** Polearm (`6.0` / `7.0` DMG, `2.0` Speed) | **Tap E CD:** `4.0s` | **Hold E CD:** `12.0s` | **Burst CD:** `12.0s` | **Durability:** `420` Basic / `840` Netherite
 - **Elemental Skill — *Dominus Lapidis* (`Right-Click`):**
   - **Tap Right-Click (`4.0s` CD):** Summons a `3.5m` physical **Stone Stele** (`GeoFangPillarEntity` in Stele mode, `30s` lifetime, max `3` constructs per player). The Stele blocks projectiles, taunts hit monsters, and emits expanding square **Geo Resonance Waves** every `2.0s` (`3.5m` Basic / `5.5m` Netherite) that trigger **Sympathetic Resonance Pulses** from other nearby Geo Constructs!
   - **Hold Right-Click for `1.5s` (`12.0s` CD):** Unleashes an inward Geo shockwave, summons a Stone Stele (if below cap), and forms the **Jade Shield** for `20.0s`:
     - **150% Damage Absorption** against all Elemental and Physical damage + complete **Knockback Immunity**.
     - **Universal `-20%` RES Shred Aura:** Enemies within `6.0m` of a Jade-Shielded player suffer **-20% All Elemental & Physical Resistance** (indicated by downward golden arrows).
-    - **Geo Drain & Mining:** Instantly shatters nearby ore blocks and drains Geo shields/aura from surrounding mobs.
+    - **Geo Mining & Fortune:** Can shatter ore blocks (including Ancient Debris on Netherite) and supports the **Fortune** enchantment.
 - **Elemental Burst — *Planet Befall* (`[R]` Key):**
   - Grants `2.5s` (`50t`) I-frames & dramatic arms-crossed levitation while summoning a colossal 3D **Meteorite** from the heavens (`6.0m` Basic / `8.5m` Netherite impact radius).
   - Deals heavy Geo damage (`(6.0 + 33% Max HP)` scaled by tier) and inflicts **Petrification** (`4.0s` Basic / `5.0s` Netherite), turning enemies into solid stone statues unable to move, rotate, or attack.
@@ -174,11 +174,11 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
 
 ### 5. Raiden Shogun — *Engulfing Lightning* (`engulfing_lightning`)
 - **Element:** ![Electro][electro] Electro | **Role:** Electro Archon Polearm (Coordinated Sub-DPS, Resolve Battery & Musou Isshin Hypercarry) | **Archon:** Yes (`isArchon = true`)
-- **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Skill CD:** `10.0s` | **Burst CD:** `18.0s` | **Durability:** `420` Basic / `840` Netherite
+- **Config Base Damage:** `4.0` (`2.0❤` Basic / `3.0❤` Netherite) | **Melee:** Polearm (`6.0` / `7.0` DMG, `2.0` Speed) | **Skill CD:** `10.0s` | **Burst CD:** `18.0s` | **Durability:** `160` Basic / `520` Netherite
 - **Crescent Charged Attack (`Hold Left-Click`):**
   - Unleashes a vertical upward **Crescent Lightning Sweep** (`1.35×` DMG, `7.5m` Basic / `9.5m` Netherite reach) with 3rd-person look-direction lock that launches enemies upward.
 - **Elemental Skill — *Transcendence: Baleful Omen* (`Right-Click`, `10.0s` CD):**
-  - Deals AoE Electro slash damage and opens the **Eye of Stormy Judgment** above the player for `25.0s` (`500t`).
+  - Deals AoE Electro slash damage and opens the **Eye of Stormy Judgment** above the player for `15.0s` (`300t`).
   - Whenever the player deals damage to any enemy, the Eye unleashes a **Coordinated AoE Electro Slash** at the victim's position (ICD: `0.9s` / `18t`), generating **+4 Resolve** per proc.
   - Casting any staff skill or Elemental Burst generates **Resolve Stacks** (up to **60 stacks**), visualized as glowing purple segments around the 3D **Chakra Desiderata** ring behind the player's back.
 - **Elemental Burst — *Secret Art: Musou Shinsetsu* (`[R]` Key, `18.0s` CD):**
@@ -221,7 +221,7 @@ All 11 standard elemental staves below have `isArchon() == false` and **can be c
     - `Tap Left-Click`: Fires a rapid Cryo arrow.
     - `Hold Left-Click`: Draws a 3-stage **Frostflake Arrow** (`6t` partial / `16t` full charge) that blooms into an exploding ice lotus on impact (`3.5m` AoE Cryo).
   - **Spear Stance (*Glorious Regalia*):**
-    - `Left-Click` (Tap or Hold): Executes a rapid 3-step polearm cleave combo infused with Cryo.
+    - `Left-Click` (Tap or Hold): Executes a regal **5-step Cryo polearm combo (`N1–N5`)** (horizontal cleave, rising crescent, lunging piercing thrust, 2-hit cross flurry, and overhead frost slam finisher).
     - **Passive — *Sovereign's Permafrost*:** Walking across water in Spear Stance automatically freezes water blocks beneath your feet into temporary Frosted Ice.
 - **Dual-Variant Elemental Burst (`[R]` Key, `15.0s` CD, `1.9s` I-frames):**
   - **Variant 1 — Support Burst (Cast in Bow Stance: *Benevolent Blessing*):**

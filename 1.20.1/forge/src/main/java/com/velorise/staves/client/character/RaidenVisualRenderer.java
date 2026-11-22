@@ -302,7 +302,7 @@ public final class RaidenVisualRenderer {
 
         boolean holdingRaiden = ArcaneStaffItem.getEffectiveKind(entity.getMainHandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING
                 || ArcaneStaffItem.getEffectiveKind(entity.getOffhandItem()) == ArcaneStaffItem.Kind.ENGULFING_LIGHTNING;
-        if (!isIdle && holdingRaiden && (resolve > 0 || musouTicks > 0.0F || eyeTicks > 0.0F)) {
+        if (!isIdle && holdingRaiden && musouTicks <= 0.0F && (resolve > 0 || eyeTicks > 0.0F)) {
             float resolveFrac = (musouTicks > 0.0F || isIdle) ? 1.0F : Mth.clamp(resolve / 60.0F, 0.0F, 1.0F);
             ResourceLocation ringTex = RAIDEN_CHAKRA_RING_TEXTURE;
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucent(ringTex));

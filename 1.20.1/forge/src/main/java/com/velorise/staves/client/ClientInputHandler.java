@@ -412,8 +412,6 @@ public final class ClientInputHandler {
             furinaAttackHoldTicks = 0;
             furinaCaTriggeredThisHold = false;
             ClientAuraTracker.localFurinaCaHoldProgress = 0.0F;
-            raidenAttackHoldTicks = 0;
-            raidenCaTriggeredThisHold = false;
         }
 
         // Raiden Musou Hold Left-Click Charged Attack: 5-block dash + 5 trailing slashes

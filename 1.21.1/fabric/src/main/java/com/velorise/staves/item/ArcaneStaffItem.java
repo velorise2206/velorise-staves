@@ -588,8 +588,9 @@ public final class ArcaneStaffItem extends Item {
         Item.Properties props = new Item.Properties().stacksTo(1).durability(maxDurability);
         if (isNetherite) props = props.fireResistant();
         if (kind == Kind.THOUSAND_BLAZING_SUNS) {
-            props = props.attributes(SwordItem.createAttributes(Tiers.NETHERITE, 3, -2.4F))
-                    .component(DataComponents.TOOL, Items.NETHERITE_SWORD.components().get(DataComponents.TOOL));
+            // Claymore: higher per-hit damage (8.0 Basic / 9.0 Netherite) with slower swing speed (1.2)
+            props = props.attributes(SwordItem.createAttributes(isNetherite ? Tiers.NETHERITE : Tiers.DIAMOND, 4, -2.8F))
+                    .component(DataComponents.TOOL, isNetherite ? Items.NETHERITE_SWORD.components().get(DataComponents.TOOL) : Items.DIAMOND_SWORD.components().get(DataComponents.TOOL));
         } else if (kind == Kind.OMNI || kind == Kind.PEAK_PATROL_SONG || kind == Kind.SPLENDOR) {
             props = props.attributes(SwordItem.createAttributes(isNetherite ? Tiers.NETHERITE : Tiers.DIAMOND, 3, -2.4F))
                     .component(DataComponents.TOOL, isNetherite ? Items.NETHERITE_SWORD.components().get(DataComponents.TOOL) : Items.DIAMOND_SWORD.components().get(DataComponents.TOOL));
