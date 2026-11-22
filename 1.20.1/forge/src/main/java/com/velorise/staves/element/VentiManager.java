@@ -258,7 +258,8 @@ public final class VentiManager {
         int activeCode = 0;
         int lastSyncedCode = -1;
         int idleVariant = 0;
-        int songIndex = 0;
+        int songIndex = -1;
+        int songElapsed = 0;
     }
 
     private static final java.util.Map<java.util.UUID, ArchonStillState> VENTI_IDLE_STATES = new java.util.concurrent.ConcurrentHashMap<>();
@@ -292,29 +293,19 @@ public final class VentiManager {
             boolean canVenti = holdingVenti && player.onGround() && !player.isUsingItem() && !player.swinging && !player.isShiftKeyDown() && !player.isCrouching() && !player.isSprinting() && player.getVehicle() == null;
             if (canVenti && vDistSq < 0.0025D) {
                 vst.stillTicks++;
-                if (vst.stillTicks == 400) {
-                    vst.idleVariant = (vst.idleVariant + 1) % 2;
-                    if (vst.idleVariant == 0) {
-                        vst.songIndex = (vst.songIndex + 1) % 2;
-                    }
-                }
                 if (vst.stillTicks >= 200) {
-                    if (vst.idleVariant == 1) {
-                        // Levitation idle hovers for ~5s (ticks 400..500) then gently descends
-                        if (vst.stillTicks <= 500) {
-                            vst.activeCode = 4052;
-                        } else {
-                            vst.activeCode = 4050;
-                            vst.stillTicks = 0;
-                        }
-                    } else {
-                        vst.activeCode = 4051;
+                    // Continuous Holy Lyre performance until player moves or acts
+                    if (vst.activeCode != 4051) {
+                        vst.songIndex = player.getRandom().nextInt(3);
+                        vst.songElapsed = 0;
                     }
+                    vst.activeCode = 4051;
                 } else {
                     vst.activeCode = 4050;
                 }
             } else {
                 vst.stillTicks = 0;
+                vst.songElapsed = 0;
                 vst.lastStillPos = player.position();
                 vst.activeCode = 4050;
             }
@@ -323,59 +314,102 @@ public final class VentiManager {
                 com.velorise.staves.network.ModNetwork.sendStaffAnimation(player, vst.activeCode);
             }
             if (vst.activeCode == 4051 && vst.stillTicks >= 200) {
-                // {note, durationTicks} pairs for expressive rhythm (2t fast runs, 3-4t normal, 6-8t held notes)
-                int[][][] melodies = {
-                    // 1. Venti's Theme (Bard's Adventure / A New Day with Hope)
+                // 3 Genshin-inspired Holy Lyre arrangements (~15s each) in Minecraft Note Block range (0=F#3 .. 24=F#5)
+                // Format: {melodyNote (-1=rest), durationTicks, bassNote (-1=none)}
+                int[][][] songs = {
+                    // 0. Genshin Impact Main Theme (HoYoLAB Windsong Lyre)
                     {
-                        {17,3},{20,3},{22,3},{24,7}, {22,2},{20,3},{17,3},{15,6},
-                        {17,3},{20,3},{22,3},{20,3},{17,2},{15,3},{12,7},
-                        {15,3},{17,3},{20,3},{22,3},{24,7}, {22,2},{20,3},{17,6},
-                        {17,3},{20,3},{22,3},{24,5}, {22,2},{24,3},{27,6},{24,6},
-                        {22,2},{20,3},{17,3},{15,3},{17,3},{20,6},
-                        // Chorus
-                        {24,4},{24,2},{22,3},{20,3},{22,3},{24,7}, {27,4},{24,3},{22,3},{20,3},{17,6},
-                        {20,2},{22,2},{24,3},{27,6},{24,3},{22,3},{20,3},{17,3},{15,6},
-                        {17,3},{20,3},{22,3},{20,3},{17,3},{15,3},{12,8}, {17,8}
+                        { 4, 4,-1}, { 9, 8,21}, {11, 4,-1}, {13, 4,-1}, {15, 8,23}, {16, 3,-1},
+                        {15, 3,-1}, {13, 3,-1}, {11, 3,-1}, {13, 8,21}, {11, 4,-1}, { 9, 4,-1},
+                        {11, 6,23}, { 6, 6,-1}, { 9, 8,21}, { 9, 4,-1}, {11, 4,-1}, { 8, 6,23},
+                        { 6, 6,-1}, { 4, 4,-1}, { 6, 8,18}, {13, 8,20}, { 4, 4,-1}, { 9, 8,21},
+                        {11, 4,-1}, {13, 4,-1}, {15, 8,23}, {16, 3,-1}, {15, 3,-1}, {13, 3,-1},
+                        {11, 3,-1}, {13, 8,21}, {11, 4,-1}, { 9, 4,-1}, {11, 6,23}, { 6, 6,-1},
+                        { 9, 8,21}, { 9, 4,-1}, {11, 4,-1}, { 8, 6,23}, { 6, 6,-1}, { 4, 4,-1},
+                        { 6,12,18}, {13, 4,-1}, {15, 4,-1}, {16, 8,21}, {16, 4,-1}, {18, 4,-1},
+                        {15, 6,23}, {13, 3,-1}, {11, 3,-1}, {13, 4,21}, {20, 4,-1}, {15, 8,23},
+                        {16, 3,-1}, {15, 3,-1}, {13, 3,-1}, {11, 3,-1}, {13, 8,21}, {11, 4,-1},
+                        {11, 4,-1}, { 9, 4,-1}, { 8, 6,23}, { 6, 6,-1}, { 4, 4,-1}, { 6, 8,18},
+                        {13, 8,20}, {13, 4,-1}, {15, 4,-1}, {16, 8,21}, {16, 4,-1}, {18, 4,-1},
+                        {15, 6,23}, {13, 3,-1}, {11, 3,-1}, {13, 4,21}, {23, 4,-1}, {15, 8,23},
+                        {16, 3,-1}, {15, 3,-1}, {13, 3,-1}, {11, 3,-1}, {13, 8,21}, {11, 4,-1},
+                        {11, 4,-1}, { 9, 4,-1}, { 8, 6,23}, { 6, 6,-1}, { 4, 4,-1}, { 6,14,18},
+                        {-1,10,-1}
                     },
-                    // 2. Furina Execution (Sinner's Finale / La Vaguelette)
+                    // 1. Dawn Winery Theme (HoYoLAB Windsong Lyre)
                     {
-                        {13,4},{18,4},{20,4},{21,8}, {20,3},{18,3},{17,3},{18,7},
-                        {13,4},{14,3},{13,3},{11,3},{9,3},{8,3},{6,8},
-                        {13,4},{18,4},{20,4},{21,7}, {20,3},{21,3},{23,6},{21,7},
-                        {20,3},{18,3},{17,3},{18,3},{20,7},
-                        // Chorus
-                        {25,5},{25,3},{23,3},{21,3},{20,3},{21,8}, {23,4},{21,3},{20,3},{18,3},{17,7},
-                        {18,3},{20,3},{21,4},{25,7},{23,3},{21,3},{20,3},{18,3},{17,7},
-                        {13,4},{18,4},{20,4},{21,6},{20,3},{18,3},{17,4},{18,10}
+                        { 8, 4,13}, {13, 8,13}, {20, 6,16}, {20, 6,-1}, {18, 4,23}, {16, 4,-1},
+                        {18, 4,-1}, {15, 8,20}, {11, 4,-1}, {13, 4,13}, {15, 4,-1}, {16, 4,-1},
+                        {16, 6,21}, {16, 6,-1}, {15, 4,23}, {13, 4,-1}, {15, 4,-1}, {11, 8,20},
+                        { 8, 4,-1}, { 8, 4,13}, {13, 8,13}, {20, 6,16}, {20, 6,-1}, {18, 4,23},
+                        {16, 4,-1}, {18, 4,-1}, {15, 8,20}, {11, 4,-1}, {13, 4,13}, {15, 4,-1},
+                        {16, 4,-1}, {15, 4,23}, {13, 4,-1}, {15, 4,-1}, {11, 4,-1}, { 8, 4,20},
+                        {13,10,13}, {13, 4,13}, {15, 4,-1}, {16, 6,21}, { 9, 6,-1}, {18, 4,23},
+                        {16, 4,-1}, {15, 4,-1}, {16, 4,16}, {18, 4,-1}, {11, 8,23}, {15, 4,20},
+                        {16, 4,-1}, {18, 4,-1}, {11, 4,23}, {20, 8,16}, {15, 4,23}, {18, 4,-1},
+                        {16,14,13}, {-1,10,-1}
+                    },
+                    // 2. Let The Wind Tell You (HoYoLAB Windsong Lyre)
+                    {
+                        {20, 4,-1}, {18, 4,-1}, {16, 4,-1}, {16, 4,21}, {11, 4,-1}, {16, 4,-1},
+                        {11, 4,-1}, {16, 6,23}, {18, 6,-1}, {16, 4,13}, {18, 4,-1}, {20, 4,-1},
+                        {21, 4,-1}, {20, 8,23}, {18, 4,-1}, {16, 4,-1}, {16, 8,21}, {23, 4,-1},
+                        {16, 4,-1}, {16, 8,23}, {23, 4,-1}, {16, 4,-1}, {16, 8,13}, {13, 4,-1},
+                        {11, 4,-1}, {11, 8,23}, {20, 4,-1}, {18, 4,-1}, {16, 4,-1}, {16, 4,21},
+                        {11, 4,-1}, {16, 4,-1}, {11, 4,-1}, {16, 6,23}, {18, 6,-1}, {16, 4,13},
+                        {18, 4,-1}, {20, 4,-1}, {21, 4,-1}, {20, 6,23}, {18, 6,-1}, {18, 4,-1},
+                        {16, 4,-1}, {16, 8,21}, {23, 4,-1}, {16, 4,-1}, {16, 8,23}, {18, 4,-1},
+                        {16, 4,-1}, {16, 8,16}, {11,12,16}, {-1,10,-1}
                     }
                 };
-                int[][] song = melodies[Math.floorMod(vst.songIndex, melodies.length)];
-                int elapsed = vst.stillTicks - 60;
+                if (vst.songIndex < 0 || vst.songIndex >= songs.length) {
+                    vst.songIndex = player.getRandom().nextInt(songs.length);
+                    vst.songElapsed = 0;
+                }
+                int[][] song = songs[vst.songIndex];
+                int totalDuration = 0;
+                for (int[] pair : song) {
+                    totalDuration += pair[1];
+                }
+                int elapsed = vst.songElapsed;
                 int acc = 0;
-                boolean played = false;
                 for (int[] pair : song) {
                     if (elapsed == acc) {
                         int note = pair[0];
-                        if (note >= 0 && player.level() instanceof ServerLevel sl) {
-                            float pitch = (float) Math.pow(2.0D, (note - 12) / 12.0D);
-                            sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
-                                    SoundEvents.NOTE_BLOCK_HARP.get(), SoundSource.PLAYERS, 0.55F, pitch);
-                            if (pair[1] >= 6) {
+                        int bass = pair[2];
+                        if (player.level() instanceof ServerLevel sl) {
+                            if (note >= 0) {
+                                float pitch = (float) Math.pow(2.0D, (note - 12) / 12.0D);
                                 sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
-                                        SoundEvents.NOTE_BLOCK_FLUTE.get(), SoundSource.PLAYERS, 0.25F, pitch);
+                                        SoundEvents.NOTE_BLOCK_HARP.get(), SoundSource.PLAYERS, 0.62F, pitch);
+                                if (pair[1] >= 8) {
+                                    sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                                            SoundEvents.NOTE_BLOCK_FLUTE.get(), SoundSource.PLAYERS, 0.24F, pitch);
+                                }
+                                sl.sendParticles(ParticleTypes.NOTE,
+                                        player.getX() + (sl.random.nextDouble() - 0.5D) * 0.6D,
+                                        player.getY() + 1.35D,
+                                        player.getZ() + (sl.random.nextDouble() - 0.5D) * 0.6D,
+                                        1, (note / 24.0D), 0.0D, 0.0D, 1.0D);
+                            }
+                            if (bass >= 0) {
+                                float bassPitch = (float) Math.pow(2.0D, (bass - 12) / 12.0D);
+                                sl.playSound(null, player.getX(), player.getY() + 1.0D, player.getZ(),
+                                        SoundEvents.NOTE_BLOCK_BASS.get(), SoundSource.PLAYERS, 0.42F, bassPitch);
                             }
                         }
-                        played = true;
                         break;
                     }
                     acc += pair[1];
                 }
-                if (!played && elapsed >= acc) {
-                    vst.activeCode = 4050;
-                    vst.stillTicks = 0;
+                vst.songElapsed++;
+                if (vst.songElapsed >= totalDuration) {
+                    vst.songElapsed = 0;
+                    // Randomly rotate to one of the other 2 songs (never repeats the same song back-to-back)
+                    int offset = 1 + player.getRandom().nextInt(songs.length - 1);
+                    vst.songIndex = (vst.songIndex + offset) % songs.length;
                 }
             }
-
         }
     }
 }
