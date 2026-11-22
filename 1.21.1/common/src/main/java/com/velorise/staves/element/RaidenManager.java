@@ -47,10 +47,10 @@ public final class RaidenManager {
     private static final DustParticleOptions RAIDEN_EYE_DUST_NETH = new DustParticleOptions(new Vector3f(0.76F, 0.25F, 1.0F), 1.6F);
     private static final DustParticleOptions RAIDEN_CHARGE_DUST_STD = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.25F);
     private static final DustParticleOptions RAIDEN_CHARGE_DUST_NETH = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.5F);
-    private static final DustParticleOptions RAIDEN_SLASH_DUST_STD = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 1.7F);
-    private static final DustParticleOptions RAIDEN_SLASH_DUST_NETH = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 2.1F);
-    private static final DustParticleOptions RAIDEN_AURA_DUST_STD = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 1.05F);
-    private static final DustParticleOptions RAIDEN_AURA_DUST_NETH = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 1.3F);
+    private static final DustParticleOptions RAIDEN_SLASH_DUST_STD = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 0.58F);
+    private static final DustParticleOptions RAIDEN_SLASH_DUST_NETH = new DustParticleOptions(new Vector3f(0.82F, 0.30F, 1.0F), 0.72F);
+    private static final DustParticleOptions RAIDEN_AURA_DUST_STD = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 0.48F);
+    private static final DustParticleOptions RAIDEN_AURA_DUST_NETH = new DustParticleOptions(new Vector3f(0.85F, 0.35F, 1.0F), 0.60F);
 
     public static void onPlayerCastStaffSkill(@Nullable ServerPlayer player) {
         if (player == null) return;
@@ -138,34 +138,61 @@ public final class RaidenManager {
     }
 
     public static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span, boolean isLeftArm) {
+        sendRaidenSlashArc(level, center, forward, comboStep, isMusouBurst, isCharged, span, isLeftArm, false);
+    }
+
+    public static void sendRaidenSlashArc(ServerLevel level, Vec3 center, Vec3 forward, int comboStep, boolean isMusouBurst, boolean isCharged, double span, boolean isLeftArm, boolean isEyeProc) {
         Vec3 fwd = new Vec3(forward.x, 0.0D, forward.z);
         if (fwd.lengthSqr() < 1.0E-4D) fwd = new Vec3(0.0D, 0.0D, 1.0D);
         else fwd = fwd.normalize();
         Vec3 right = new Vec3(-fwd.z, 0.0D, fwd.x).normalize();
         if (isLeftArm) right = right.scale(-1.0D);
         Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
-        int color = (isMusouBurst || isCharged) ? 0xFFE0B0FF : 0xFFB84DFF;
-        int dur = isMusouBurst ? 10 : 6;
+        int color = isEyeProc ? 0xFF9E42FF : ((isMusouBurst || isCharged) ? 0xFFE0B0FF : 0xFFB84DFF);
+        int stepIdxForDur = Math.floorMod(comboStep, 5);
+        int dur = isEyeProc ? 8 : (isMusouBurst ? 22 : (stepIdxForDur == 4 ? 14 : (stepIdxForDur == 2 ? 11 : 10)));
 
         if (isCharged) {
-            int caDur = 9;
+            // Authentic 3-stage Genshin CA choreography (8 visual space tears, 2 damage hits):
+            //   comboStep 0 (T+1): Stage 1 opening upward diagonal slash (00:04-00:06)
+            //   comboStep 1 (T+4): Stage 2a flurry first 2 cuts (steep left + shallow right, 00:08)
+            //   comboStep 2 (T+5): Stage 2b flurry next 3 crossing web cuts (00:09-00:10)
+            //   comboStep 3 (T+8): Stage 3 finale giant asymmetric X-rift + cross-star flash (00:11-00:14)
             if (comboStep == 0) {
-                // CA Hit 1: wide upward-diagonal crescent (Bottom-Left -> Top-Right)
-                Vec3 s1 = center.add(right.scale(-span * 0.95D)).add(up.scale(-span * 0.52D));
-                Vec3 e1 = center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.62D));
-                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, caDur, color);
+                Vec3 s = center.add(right.scale(-span * 0.78D)).add(up.scale(-span * 0.42D));
+                Vec3 e = center.add(right.scale(span * 0.92D)).add(up.scale(span * 0.64D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s, e, 9, 0xFFB84DFF);
             } else if (comboStep == 1) {
-                // CA Hit 2: overlapping counter-diagonal crescent (Top-Left -> Bottom-Right, forming giant X)
-                Vec3 s2 = center.add(right.scale(-span * 0.92D)).add(up.scale(span * 0.60D));
-                Vec3 e2 = center.add(right.scale(span * 0.92D)).add(up.scale(-span * 0.50D));
-                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, caDur, color);
+                // Flurry A: steep left upward slash + shallow right upward slash
+                Vec3 sL = center.add(right.scale(-span * 0.72D)).add(up.scale(-span * 0.48D));
+                Vec3 eL = center.add(right.scale(-span * 0.38D)).add(up.scale(span * 0.76D));
+                Vec3 sR = center.add(right.scale(-span * 0.22D)).add(up.scale(-span * 0.56D));
+                Vec3 eR = center.add(right.scale(span * 1.02D)).add(up.scale(span * 0.32D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, sL, eL, 11, 0xFFB84DFF);
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, sR, eR, 11, 0xFFB84DFF);
+            } else if (comboStep == 2) {
+                // Flurry B: 3 intersecting dimensional web cuts (low horizontal, mid diagonal, steep right)
+                Vec3 sH = center.add(right.scale(-span * 1.05D)).add(up.scale(span * 0.04D));
+                Vec3 eH = center.add(right.scale(span * 0.75D)).add(up.scale(-span * 0.34D));
+                Vec3 sM = center.add(right.scale(-span * 0.65D)).add(up.scale(span * 0.66D));
+                Vec3 eM = center.add(right.scale(span * 0.62D)).add(up.scale(-span * 0.48D));
+                Vec3 sV = center.add(right.scale(span * 0.38D)).add(up.scale(span * 0.86D));
+                Vec3 eV = center.add(right.scale(span * 0.82D)).add(up.scale(-span * 0.52D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, sH, eH, 11, 0xFFB84DFF);
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, sM, eM, 11, 0xFFB84DFF);
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, sV, eV, 11, 0xFFB84DFF);
             } else {
-                Vec3 s1 = center.add(right.scale(-span * 0.95D)).add(up.scale(-span * 0.52D));
-                Vec3 e1 = center.add(right.scale(span * 0.95D)).add(up.scale(span * 0.62D));
-                Vec3 s2 = center.add(right.scale(-span * 0.92D)).add(up.scale(span * 0.60D));
-                Vec3 e2 = center.add(right.scale(span * 0.92D)).add(up.scale(-span * 0.50D));
-                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, caDur, color);
-                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, caDur, color);
+                // Stage 3 Finale: giant asymmetric X-rift + blinding cross-star flash at upper-right intersection
+                int finDur = 18;
+                Vec3 crossAnchor = center.add(right.scale(span * 0.16D)).add(up.scale(span * 0.16D));
+                Vec3 s1 = center.add(right.scale(-span * 1.15D)).add(up.scale(-span * 0.44D));
+                Vec3 e1 = center.add(right.scale(span * 1.08D)).add(up.scale(span * 0.60D));
+                Vec3 s2 = crossAnchor.add(right.scale(-span * 0.46D)).add(up.scale(span * 1.05D));
+                Vec3 e2 = crossAnchor.add(right.scale(span * 0.46D)).add(up.scale(-span * 1.05D));
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s1, e1, finDur, 0xFFE0B0FF);
+                com.velorise.staves.network.ModNetwork.sendElectricArc(level, s2, e2, finDur, 0xFFE0B0FF);
+                level.sendParticles(ParticleTypes.END_ROD, crossAnchor.x, crossAnchor.y, crossAnchor.z, 12, 0.28D, 0.28D, 0.28D, 0.08D);
+                level.sendParticles(RAIDEN_AURA_DUST_STD, crossAnchor.x, crossAnchor.y, crossAnchor.z, 8, 0.40D, 0.40D, 0.40D, 0.03D);
             }
             return;
         }
@@ -364,7 +391,10 @@ public final class RaidenManager {
         double reach = isNetherite ? 9.0D : 6.0D;
         double aoeRadius = isNetherite ? 5.25D : 3.5D;
         Vec3 look = player.getLookAngle().normalize();
-        Vec3 slashCenter = player.getEyePosition().add(look.scale(reach * 0.5D));
+        Vec3 horizLook = new Vec3(look.x, 0.0D, look.z);
+        if (horizLook.lengthSqr() < 1.0E-4D) horizLook = Vec3.directionFromRotation(0.0F, player.getYRot());
+        else horizLook = horizLook.normalize();
+        Vec3 slashCenter = player.getEyePosition().add(horizLook.scale(isNetherite ? 3.8D : 3.2D)).add(0.0D, -0.35D, 0.0D);
 
         IS_PROCESSING_RAIDEN_PROC.set(true);
         try {
@@ -391,7 +421,7 @@ public final class RaidenManager {
         }
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0F, 1.15F);
         level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.65F, 1.70F);
-        sendRaidenSlashArc(level, slashCenter, look, 0, true, false, aoeRadius, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+        sendRaidenSlashArc(level, slashCenter, horizLook, 0, true, false, isNetherite ? 5.8D : 4.6D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
     }
 
     public static void triggerRaidenUlti(ServerPlayer player) {
@@ -451,7 +481,8 @@ public final class RaidenManager {
 
 
         // ParticleTypes.ELECTRIC_SPARK removed
-        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, isNetherite ? 1.35D : 1.0D, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+        double eyeSpan = isNetherite ? 1.35D : 1.0D; // Kéo dài gấp rưỡi (1.5x) từ 2/3 span lên 1.0 span
+        sendRaidenSlashArc(level, pos, attacker.getLookAngle(), 1, false, false, eyeSpan, attacker.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT, true);
         level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.35F, 1.8F);
     }
 
@@ -543,7 +574,11 @@ public final class RaidenManager {
         float attackU = isNetherite ? 1.5F : 1.0F;
         Vec3 look = player.getLookAngle().normalize();
         double reach = isCharged ? (isNetherite ? 9.5D : 7.5D) : ((isNetherite ? 5.25D : 3.75D) * finisherMult);
-        Vec3 slashPos = player.getEyePosition().add(look.scale(reach * 0.55D)).add(0.0D, -0.25D, 0.0D);
+        Vec3 rawNaHoriz = new Vec3(look.x, 0.0D, look.z);
+        final Vec3 naHoriz = rawNaHoriz.lengthSqr() < 1.0E-4D ? Vec3.directionFromRotation(0.0F, player.getYRot()) : rawNaHoriz.normalize();
+        double forwardDist = (comboStep == 4) ? (isNetherite ? 3.1D : 2.75D) : (isNetherite ? 2.7D : 2.4D);
+        double verticalOff = (comboStep == 4) ? -0.72D : (comboStep == 2 ? -0.14D : -0.32D);
+        Vec3 slashPos = player.getEyePosition().add(naHoriz.scale(forwardDist)).add(0.0D, verticalOff, 0.0D);
 
         if (isCharged) {
             cancelIdle(player);
@@ -558,7 +593,7 @@ public final class RaidenManager {
             final boolean leftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
             final double cleaveReach = isNetherite ? 5.8D : 4.4D;
             final double cleaveHalfWidth = isNetherite ? 3.2D : 2.6D;
-            final double arcSpan = isNetherite ? 2.5D : 1.95D;
+            final double arcSpan = isNetherite ? 3.4D : 2.75D;
 
             // Phase 1 (T0..T2): Short, poised forward iai lunge (~1.8 blocks total, collision-checked)
             for (int tick = 0; tick < 3; tick++) {
@@ -579,15 +614,27 @@ public final class RaidenManager {
                 else ArchonUltiManager.scheduleBurstAction(player, tick, lungeMove);
             }
 
-            // Phase 2 (T05): Twin X-Crescent Hit 1 (upward-diagonal Bottom-Left -> Top-Right)
-            ArchonUltiManager.scheduleBurstAction(player, 5, () -> {
+            // Stage 1 (T01): Opening upward diagonal slash (visual lead-in matching slow-mo 00:04-00:06)
+            ArchonUltiManager.scheduleBurstAction(player, 1, () -> {
+                if (!player.isAlive()) return;
+                Vec3 liveLook = player.getLookAngle().normalize();
+                Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
+                if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
+                else liveHoriz = liveHoriz.normalize();
+                Vec3 openCenter = player.getEyePosition().add(liveHoriz.scale(isNetherite ? 2.9D : 2.5D)).add(0.0D, -0.28D, 0.0D);
+                sendRaidenSlashArc(level, openCenter, liveHoriz, 0, false, true, arcSpan * 0.86D, leftArm);
+                level.playSound(null, openCenter.x, openCenter.y, openCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.42F, 1.92F);
+            });
+
+            // Stage 2a (T04): Flurry Dimensional Web (first 2 cuts) + CA Damage Hit 1 (0.58x)
+            ArchonUltiManager.scheduleBurstAction(player, 4, () -> {
                 if (!player.isAlive()) return;
                 Vec3 liveLook = player.getLookAngle().normalize();
                 Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
                 if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
                 else liveHoriz = liveHoriz.normalize();
                 Vec3 liveRight = new Vec3(-liveHoriz.z, 0.0D, liveHoriz.x);
-                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(cleaveReach * 0.52D)).add(0.0D, -0.20D, 0.0D);
+                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(isNetherite ? 3.2D : 2.8D)).add(0.0D, -0.32D, 0.0D);
                 float hit1Dmg = slashDmg * 0.58F;
                 AABB box = player.getBoundingBox().expandTowards(liveHoriz.scale(cleaveReach)).inflate(cleaveHalfWidth, 2.0D, cleaveHalfWidth);
                 IS_PROCESSING_RAIDEN_PROC.set(true);
@@ -605,20 +652,32 @@ public final class RaidenManager {
                     IS_PROCESSING_RAIDEN_PROC.set(false);
                 }
                 electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.2D : 3.2D, hit1Dmg * 0.45F);
-                sendRaidenSlashArc(level, hitCenter, liveLook, 0, false, true, arcSpan, leftArm);
-                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.62F, 1.65F);
-                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.48F, 1.80F);
+                sendRaidenSlashArc(level, hitCenter, liveHoriz, 1, false, true, arcSpan * 0.94D, leftArm);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.60F, 1.70F);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.46F, 1.85F);
             });
 
-            // Phase 3 (T09): Twin X-Crescent Hit 2 (overlapping counter-diagonal Top-Left -> Bottom-Right)
-            ArchonUltiManager.scheduleBurstAction(player, 9, () -> {
+            // Stage 2b (T05): Flurry Dimensional Web (next 3 intersecting cuts matching slow-mo 00:09-00:10)
+            ArchonUltiManager.scheduleBurstAction(player, 5, () -> {
+                if (!player.isAlive()) return;
+                Vec3 liveLook = player.getLookAngle().normalize();
+                Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
+                if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
+                else liveHoriz = liveHoriz.normalize();
+                Vec3 webCenter = player.getEyePosition().add(liveHoriz.scale(isNetherite ? 3.25D : 2.85D)).add(0.0D, -0.32D, 0.0D);
+                sendRaidenSlashArc(level, webCenter, liveHoriz, 2, false, true, arcSpan * 0.96D, leftArm);
+                level.playSound(null, webCenter.x, webCenter.y, webCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.52F, 1.82F);
+            });
+
+            // Stage 3 (T08): Finale Giant Asymmetric X-Rift + Cross-Star Flash + CA Damage Hit 2 (0.68x, bypasses MC i-frame)
+            ArchonUltiManager.scheduleBurstAction(player, 8, () -> {
                 if (!player.isAlive()) return;
                 Vec3 liveLook = player.getLookAngle().normalize();
                 Vec3 liveHoriz = new Vec3(liveLook.x, 0.0D, liveLook.z);
                 if (liveHoriz.lengthSqr() < 1.0E-4D) liveHoriz = lungeHoriz;
                 else liveHoriz = liveHoriz.normalize();
                 Vec3 liveRight = new Vec3(-liveHoriz.z, 0.0D, liveHoriz.x);
-                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(cleaveReach * 0.58D)).add(0.0D, -0.22D, 0.0D);
+                Vec3 hitCenter = player.getEyePosition().add(liveHoriz.scale(isNetherite ? 3.3D : 2.9D)).add(0.0D, -0.32D, 0.0D);
                 float hit2Dmg = slashDmg * 0.68F;
                 AABB box = player.getBoundingBox().expandTowards(liveHoriz.scale(cleaveReach + 0.4D)).inflate(cleaveHalfWidth, 2.0D, cleaveHalfWidth);
                 IS_PROCESSING_RAIDEN_PROC.set(true);
@@ -629,6 +688,7 @@ public final class RaidenManager {
                         double proj = toT.dot(liveHoriz);
                         double side = Math.abs(toT.dot(liveRight));
                         if (proj >= -0.4D && proj <= cleaveReach + 0.8D && side <= cleaveHalfWidth) {
+                            target.invulnerableTime = 0;
                             applyElement(level, target, Element.ELECTRO, attackU, player, hit2Dmg);
                         }
                     }
@@ -636,10 +696,50 @@ public final class RaidenManager {
                     IS_PROCESSING_RAIDEN_PROC.set(false);
                 }
                 electrifyWaterAlongSlash(level, player, hitCenter, isNetherite ? 4.5D : 3.5D, hit2Dmg * 0.45F);
-                sendRaidenSlashArc(level, hitCenter, liveLook, 1, false, true, arcSpan * 1.08D, leftArm);
-                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.72F, 1.42F);
-                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.58F, 1.55F);
+                sendRaidenSlashArc(level, hitCenter, liveHoriz, 3, false, true, arcSpan * 1.08D, leftArm);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.74F, 1.40F);
+                level.playSound(null, hitCenter.x, hitCenter.y, hitCenter.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.60F, 1.52F);
             });
+            return;
+        }
+        // Authentic Genshin 2-hit N4 (comboStep == 3): Hit 1 at T+2 (0.52x) & Hit 2 at T+6 (0.52x, bypasses MC i-frame)
+        if (comboStep == 3) {
+            final float n4HitDmg = slashDmg * 0.52F;
+            final boolean leftArm = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT;
+            final double n4Span = isNetherite ? 2.65D : 2.05D;
+            for (int hitIdx = 0; hitIdx < 2; hitIdx++) {
+                final int hIdx = hitIdx;
+                ArchonUltiManager.scheduleBurstAction(player, hitIdx == 0 ? 2 : 6, () -> {
+                    if (!player.isAlive()) return;
+                    Vec3 liveLook = player.getLookAngle().normalize();
+                    Vec3 horiz = new Vec3(liveLook.x, 0.0D, liveLook.z);
+                    if (horiz.lengthSqr() < 1.0E-4D) horiz = Vec3.directionFromRotation(0.0F, player.getYRot());
+                    else horiz = horiz.normalize();
+                    Vec3 right = new Vec3(-horiz.z, 0.0D, horiz.x);
+                    double forwardReach = 3.2D;
+                    double halfWidth = 2.5D;
+                    AABB sweepBox = player.getBoundingBox().expandTowards(horiz.scale(forwardReach)).inflate(halfWidth, 1.75D, halfWidth);
+                    IS_PROCESSING_RAIDEN_PROC.set(true);
+                    try {
+                        for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweepBox,
+                                e -> e.isAlive() && !e.isSpectator() && e != player && !isRaidenProtectedAlly(player, e))) {
+                            Vec3 toTarget = target.position().subtract(player.position());
+                            double proj = toTarget.dot(horiz);
+                            double side = Math.abs(toTarget.dot(right));
+                            if (proj < -0.3D || proj > forwardReach || side > halfWidth) continue;
+                            if (hIdx == 1) target.invulnerableTime = 0;
+                            applyElement(level, target, Element.ELECTRO, attackU, player, n4HitDmg);
+                        }
+                    } finally {
+                        IS_PROCESSING_RAIDEN_PROC.set(false);
+                    }
+                    Vec3 livePos = player.getEyePosition().add(horiz.scale(isNetherite ? 2.7D : 2.4D)).add(0.0D, -0.32D, 0.0D);
+                    electrifyWaterAlongSlash(level, player, livePos, isNetherite ? 4.2D : 3.2D, n4HitDmg * 0.45F);
+                    sendRaidenSlashArc(level, livePos, horiz, hIdx == 0 ? 0 : 1, false, false, n4Span, leftArm);
+                    level.playSound(null, livePos.x, livePos.y, livePos.z, SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.46F, hIdx == 0 ? 1.90F : 1.72F);
+                    level.playSound(null, livePos.x, livePos.y, livePos.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.PLAYERS, 0.36F, hIdx == 0 ? 2.0F : 1.82F);
+                });
+            }
             return;
         }
         ArchonUltiManager.scheduleBurstAction(player, 2, () -> {
@@ -680,7 +780,7 @@ public final class RaidenManager {
             }
 
             electrifyWaterAlongSlash(level, player, slashPos, isNetherite ? 4.5D : 3.5D, slashDmg * 0.45F);
-            sendRaidenSlashArc(level, slashPos, look, comboStep, false, isCharged, (isNetherite ? 2.4D : 1.75D) * (isCharged ? 1.3D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
+            sendRaidenSlashArc(level, slashPos, naHoriz, comboStep, false, isCharged, (isNetherite ? 2.85D : 2.15D) * (comboStep == 4 ? 1.35D : 1.0D), player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);
             if (isCharged) {
                 Vec3 farSlashPos = player.getEyePosition().add(look.scale(reach * 0.85D)).add(0.0D, -0.15D, 0.0D);
                 sendRaidenSlashArc(level, farSlashPos, look, (comboStep + 2) % 4, false, true, (isNetherite ? 2.6D : 2.0D) * 1.3D, player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT);

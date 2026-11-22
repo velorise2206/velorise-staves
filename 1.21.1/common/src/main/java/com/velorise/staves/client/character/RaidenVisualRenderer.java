@@ -40,6 +40,224 @@ public final class RaidenVisualRenderer {
             ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_musou_slash.png");
     private static final ResourceLocation RAIDEN_ROBOT_TEXTURE =
             ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_robot_narukami_atlas.png");
+    private static final ResourceLocation RAIDEN_COSMIC_EYE_RIFT_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_cosmic_eye_rift.png");
+    private static final ResourceLocation RAIDEN_EYE_SYMBOL_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_eye_symbol.png");
+    private static final ResourceLocation RAIDEN_HITOTACHI_SLASH_BEAM_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_hitotachi_slash_beam.png");
+    private static final ResourceLocation RAIDEN_COSMIC_BACKDROP_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_cosmic_backdrop.png");
+    private static final ResourceLocation RAIDEN_STARBURST_RAYS_TEXTURE =
+            ResourceLocation.fromNamespaceAndPath("velorise_staves", "textures/entity/raiden_starburst_rays.png");
+    // Deterministic dimensional glass shatter shards flying outward on Hitotachi cut (angleDeg, speed, sizeW, sizeH, rotSpeed, isBright)
+    private static final float[][] SHATTER_SHARDS = {
+            {-165.0F, 1.15F, 26.0F, 9.0F, 140.0F, 1.0F}, {-142.0F, 0.92F, 18.0F, 7.0F, -110.0F, 0.0F},
+            {-118.0F, 1.28F, 22.0F, 8.0F, 170.0F, 1.0F}, {-88.0F,  1.05F, 15.0F, 6.0F, -145.0F, 0.0F},
+            {-58.0F,  1.32F, 24.0F, 8.0F, 125.0F, 1.0F}, {-32.0F,  1.45F, 30.0F, 9.0F, -160.0F, 1.0F},
+            {-14.0F,  1.60F, 34.0F, 7.0F, 95.0F,  1.0F}, {12.0F,   1.38F, 28.0F, 8.0F, -135.0F, 0.0F},
+            {38.0F,   1.18F, 20.0F, 7.0F, 155.0F, 1.0F}, {66.0F,   1.02F, 16.0F, 6.0F, -120.0F, 0.0F},
+            {96.0F,   1.22F, 22.0F, 8.0F, 130.0F, 1.0F}, {126.0F,  1.35F, 25.0F, 8.0F, -150.0F, 0.0F},
+            {154.0F,  1.50F, 32.0F, 9.0F, 115.0F, 1.0F}, {176.0F,  1.42F, 28.0F, 7.0F, -90.0F,  1.0F},
+            {-72.0F,  0.82F, 14.0F, 5.0F, 180.0F, 0.0F}, {112.0F,  0.86F, 15.0F, 6.0F, -175.0F, 0.0F}
+    };
+
+    private static void renderFirstPersonMusouEyeOverlay(GuiGraphics guiGraphics, int sw, int sh, long elapsedMs) {
+        if (elapsedMs > 1650L) return;
+        float cx0 = sw * 0.5F;
+        float cy0 = sh * 0.5F;
+
+        // 1. Plane of Euthymia cosmic galaxy backdrop (Alpha Blend, deep coverage like Genshin Ulti)
+        float bgFrac;
+        if (elapsedMs < 220L) {
+            bgFrac = WindGliderRenderer.smoothStep01(elapsedMs / 220.0F);
+        } else if (elapsedMs <= 1220L) {
+            bgFrac = 1.0F;
+        } else {
+            bgFrac = 1.0F - WindGliderRenderer.smoothStep01((elapsedMs - 1220.0F) / 380.0F);
+        }
+        float bgAlpha = Mth.clamp(0.94F * bgFrac, 0.0F, 1.0F);
+        if (bgAlpha > 0.01F) {
+            guiGraphics.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, bgAlpha);
+            guiGraphics.blit(RAIDEN_COSMIC_BACKDROP_TEXTURE, 0, 0, sw, sh, 0.0F, 0.0F, 512, 256, 512, 256);
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        }
+
+        // 2. Eye timeline: Phase 1 (0-220ms slit), Phase 2 (220-420ms snap-open + 420-980ms almond hold), Phase 3 (980-1220ms collapse)
+        if (elapsedMs <= 1260L) {
+            float riftScaleX;
+            float riftScaleY;
+            float riftAlpha;
+            float symScale;
+            float symAlpha;
+            float jitterX = 0.0F;
+            float jitterY = 0.0F;
+
+            if (elapsedMs < 220L) {
+                float p = WindGliderRenderer.smoothStep01(elapsedMs / 220.0F);
+                riftScaleX = Mth.lerp(p, 0.70F, 1.05F);
+                riftScaleY = Mth.lerp(p, 0.02F, 0.11F);
+                riftAlpha = Mth.lerp(p, 0.30F, 0.95F);
+                symScale = 0.52F;
+                symAlpha = 0.0F;
+            } else if (elapsedMs < 420L) {
+                // Snappy Genshin-style eye opening (cubic ease-out)
+                float p = (elapsedMs - 220.0F) / 200.0F;
+                float openEase = 1.0F - (1.0F - p) * (1.0F - p) * (1.0F - p);
+                riftScaleX = Mth.lerp(openEase, 1.05F, 1.0F);
+                riftScaleY = Mth.lerp(openEase, 0.11F, 0.86F);
+                riftAlpha = 1.0F;
+                symScale = Mth.lerp(openEase, 0.56F, 1.02F);
+                symAlpha = Mth.clamp(openEase * 1.25F, 0.0F, 1.0F);
+            } else if (elapsedMs < 980L) {
+                // Fierce almond-eye hold with subtle breathing pulse & micro energy tremor
+                float holdT = (elapsedMs - 420.0F) * 0.015F;
+                float pulse = 0.025F * Mth.sin(holdT);
+                riftScaleX = 1.0F + pulse * 0.5F;
+                riftScaleY = 0.86F + pulse;
+                riftAlpha = 1.0F;
+                symScale = 1.0F + 0.03F * Mth.sin(holdT * 1.3F);
+                symAlpha = 1.0F;
+                jitterX = Mth.sin(elapsedMs * 0.09F) * 0.85F;
+                jitterY = Mth.cos(elapsedMs * 0.11F) * 0.65F;
+            } else {
+                // Rapid vertical collapse + horizontal stretch into slash line
+                float p = WindGliderRenderer.smoothStep01((elapsedMs - 980.0F) / 240.0F);
+                riftScaleX = Mth.lerp(p, 1.0F, 1.58F);
+                riftScaleY = Mth.lerp(p, 0.86F, 0.05F);
+                riftAlpha = 1.0F - p * 0.28F;
+                symScale = Mth.lerp(p, 1.0F, 1.22F);
+                symAlpha = 1.0F - WindGliderRenderer.smoothStep01(p * 1.45F);
+            }
+
+            // Edge-to-edge almond eye dimensions (slash tips extend past left/right screen edges)
+            int riftW = Math.max(320, Math.round(sw * 1.38F));
+            int riftH = Math.max(115, Math.round(riftW * 0.36F));
+            int symSize = Math.max(32, Math.round(riftH * 0.35F));
+
+            // 2a. Authentic cosmic eye rift base (Normal Alpha Blend: dark void pupil cleanly masks the galaxy backdrop)
+            if (riftAlpha > 0.02F) {
+                guiGraphics.pose().pushPose();
+                guiGraphics.pose().translate(cx0 + jitterX, cy0 + jitterY, 0.0F);
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(-9.0F));
+                guiGraphics.pose().scale(riftScaleX, riftScaleY, 1.0F);
+                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, Mth.clamp(riftAlpha * bgFrac, 0.0F, 1.0F));
+                guiGraphics.blit(RAIDEN_COSMIC_EYE_RIFT_TEXTURE, -riftW / 2, -riftH / 2, riftW, riftH, 0.0F, 0.0F, 512, 256, 512, 256);
+                guiGraphics.pose().popPose();
+            }
+
+            // 2b. Additive glowing plasma bloom + snap-open radial starburst rays + gently rotating Electro Mitsudomoe crest
+            guiGraphics.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+            com.mojang.blaze3d.systems.RenderSystem.blendFunc(
+                    com.mojang.blaze3d.platform.GlStateManager.SourceFactor.SRC_ALPHA,
+                    com.mojang.blaze3d.platform.GlStateManager.DestFactor.ONE
+            );
+
+            // Radial starburst rays on Eye Snap-Open (210-500ms, matching Genshin 00:12)
+            if (elapsedMs >= 210L && elapsedMs <= 520L) {
+                float rp = Mth.clamp((elapsedMs - 210.0F) / 310.0F, 0.0F, 1.0F);
+                float rayA = (rp < 0.24F) ? (rp / 0.24F) : (1.0F - WindGliderRenderer.smoothStep01((rp - 0.24F) / 0.76F));
+                float rayScale = Mth.lerp(rp, 0.65F, 1.75F);
+                int raySize = Math.max(sw, sh);
+                guiGraphics.pose().pushPose();
+                guiGraphics.pose().translate(cx0, cy0, 0.0F);
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(-9.0F + rp * 8.0F));
+                guiGraphics.pose().scale(rayScale, rayScale, 1.0F);
+                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 0.92F, 1.0F, Mth.clamp(rayA * 0.88F, 0.0F, 1.0F));
+                guiGraphics.blit(RAIDEN_STARBURST_RAYS_TEXTURE, -raySize / 2, -raySize / 2, raySize, raySize, 0.0F, 0.0F, 512, 512, 512, 512);
+                guiGraphics.pose().popPose();
+            }
+
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(cx0 + jitterX, cy0 + jitterY, 0.0F);
+            guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(-9.0F));
+            guiGraphics.pose().scale(riftScaleX, riftScaleY, 1.0F);
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, Mth.clamp(riftAlpha, 0.0F, 1.0F));
+            guiGraphics.blit(RAIDEN_COSMIC_EYE_RIFT_TEXTURE, -riftW / 2, -riftH / 2, riftW, riftH, 0.0F, 0.0F, 512, 256, 512, 256);
+            guiGraphics.pose().popPose();
+
+            if (symAlpha > 0.02F) {
+                float rotProg = Mth.clamp((elapsedMs - 210.0F) / 970.0F, 0.0F, 1.0F);
+                float snapSpin = WindGliderRenderer.smoothStep01(Mth.clamp((elapsedMs - 210.0F) / 280.0F, 0.0F, 1.0F));
+                float symRotDeg = -9.0F + (-16.0F * (1.0F - snapSpin)) + (rotProg * 18.0F);
+                guiGraphics.pose().pushPose();
+                guiGraphics.pose().translate(cx0 + jitterX, cy0 + jitterY, 0.0F);
+                guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(symRotDeg));
+                guiGraphics.pose().scale(symScale, symScale, 1.0F);
+                com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 0.96F, 1.0F, Mth.clamp(symAlpha, 0.0F, 1.0F));
+                guiGraphics.blit(RAIDEN_EYE_SYMBOL_TEXTURE, -symSize / 2, -symSize / 2, symSize, symSize, 0.0F, 0.0F, 256, 256, 256, 256);
+                guiGraphics.pose().popPose();
+            }
+
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+        }
+
+        // 3. Phase 4 (1160-1650ms): Soft additive plasma Hitotachi slash beam synced with tick 28 (1400ms)
+        if (elapsedMs >= 1160L && elapsedMs <= 1650L) {
+            float fp = Mth.clamp((elapsedMs - 1160.0F) / 490.0F, 0.0F, 1.0F);
+            float flashA = (fp < 0.22F)
+                    ? WindGliderRenderer.smoothStep01(fp / 0.22F)
+                    : (1.0F - WindGliderRenderer.smoothStep01((fp - 0.22F) / 0.78F));
+            int screenFlashA = Math.round(92.0F * flashA);
+            if (screenFlashA > 2) {
+                guiGraphics.fill(0, 0, sw, sh, (screenFlashA << 24) | 0x6A2CE0);
+            }
+
+            guiGraphics.flush();
+            com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+            com.mojang.blaze3d.systems.RenderSystem.blendFunc(
+                    com.mojang.blaze3d.platform.GlStateManager.SourceFactor.SRC_ALPHA,
+                    com.mojang.blaze3d.platform.GlStateManager.DestFactor.ONE
+            );
+
+            int beamW = Math.round((float) Math.hypot(sw, sh) * 1.18F);
+            int beamH = Math.max(28, Math.round(sh * 0.34F * Mth.lerp(flashA, 0.22F, 1.12F)));
+
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(cx0, cy0, 0.0F);
+            guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(-9.0F));
+            // Main glowing plasma slash beam
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, Mth.clamp(flashA, 0.0F, 1.0F));
+            guiGraphics.blit(RAIDEN_HITOTACHI_SLASH_BEAM_TEXTURE, -beamW / 2, -beamH / 2, beamW, beamH, 0.0F, 0.0F, 512, 128, 512, 128);
+            // Secondary razor-hot overbright core bloom
+            int coreH = Math.max(12, Math.round(beamH * 0.42F));
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 0.94F, 1.0F, Mth.clamp(flashA * 0.78F, 0.0F, 1.0F));
+            guiGraphics.blit(RAIDEN_HITOTACHI_SLASH_BEAM_TEXTURE, -beamW / 2, -coreH / 2, beamW, coreH, 0.0F, 0.0F, 512, 128, 512, 128);
+            guiGraphics.pose().popPose();
+
+            com.mojang.blaze3d.systems.RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+            com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+
+            // Dimensional space-glass shatter shards flying outward (matching Genshin 00:16-00:18)
+            float shP = Mth.clamp((elapsedMs - 1180.0F) / 470.0F, 0.0F, 1.0F);
+            float shAlpha = (shP < 0.18F) ? (shP / 0.18F) : (1.0F - WindGliderRenderer.smoothStep01((shP - 0.18F) / 0.82F));
+            if (shAlpha > 0.03F) {
+                float travelBase = Math.max(sw, sh) * 0.52F * (1.0F - (1.0F - shP) * (1.0F - shP));
+                for (float[] sd : SHATTER_SHARDS) {
+                    float rad = (float) Math.toRadians(sd[0]);
+                    float dist = travelBase * sd[1];
+                    float sx = cx0 + Mth.cos(rad) * dist;
+                    float sy = cy0 + Mth.sin(rad) * dist;
+                    int hw = Math.max(2, Math.round(sd[2] * 0.5F * (1.0F - shP * 0.35F)));
+                    int hh = Math.max(1, Math.round(sd[3] * 0.5F * (1.0F - shP * 0.35F)));
+                    int aOuter = Math.round((sd[5] > 0.5F ? 225.0F : 190.0F) * shAlpha);
+                    int colOuter = (sd[5] > 0.5F) ? 0xD896FF : 0x26124A;
+                    int colInner = (sd[5] > 0.5F) ? 0xFFFFFF : 0x9F5CFF;
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().translate(sx, sy, 0.0F);
+                    guiGraphics.pose().mulPose(Axis.ZP.rotationDegrees(sd[0] + shP * sd[4]));
+                    guiGraphics.fill(-hw, -hh, hw, hh, (aOuter << 24) | colOuter);
+                    guiGraphics.fill(-Math.max(1, hw / 2), -Math.max(1, hh / 2), Math.max(1, hw / 2), Math.max(1, hh / 2), (aOuter << 24) | colInner);
+                    guiGraphics.pose().popPose();
+                }
+            }
+        }
+    }
     private static com.velorise.staves.client.model.RaidenRobotModel<net.minecraft.world.entity.Entity> robotModel;
     private static int raidenAttackHoldTicks = 0;
 
@@ -210,20 +428,9 @@ public final class RaidenVisualRenderer {
                 && nowMs < animData.staffAnimUntil
                 && animData.staffAnimType == ClientAuraTracker.ANIM_RAIDEN_DRAW) {
             long elapsedMs = Math.max(0L, nowMs - animData.staffAnimStartTime);
-            float cy0 = sh * 0.5F;
-
-            if (elapsedMs >= 1200L && elapsedMs <= 1650L) {
-                // Blinding white-violet horizontal slash flash ("Torn to oblivion!") synced with Hitotachi impact at tick 28 (1400ms)
-                float fp = Mth.clamp((elapsedMs - 1200.0F) / 450.0F, 0.0F, 1.0F);
-                float flashA = (fp < 0.22F) ? (fp / 0.22F) : (1.0F - WindGliderRenderer.smoothStep01((fp - 0.22F) / 0.78F));
-                int screenFlashA = Math.round(130.0F * flashA);
-                int beamA = Math.round(245.0F * flashA);
-                int coreA = Math.round(255.0F * flashA);
-                guiGraphics.fill(0, 0, sw, sh, (screenFlashA << 24) | 0x7A38E8);
-                int beamHalf = Math.max(4, Math.round(28.0F * flashA));
-                guiGraphics.fill(0, Math.round(cy0) - beamHalf, sw, Math.round(cy0) + beamHalf, (beamA << 24) | 0xD288FF);
-                int coreHalf = Math.max(2, Math.round(10.0F * flashA));
-                guiGraphics.fill(0, Math.round(cy0) - coreHalf, sw, Math.round(cy0) + coreHalf, (coreA << 24) | 0xFFFFFF);
+            renderFirstPersonMusouEyeOverlay(guiGraphics, sw, sh, elapsedMs);
+            if (elapsedMs <= 1650L) {
+                return;
             }
         }
         float cx = sw * 0.5F + 38.0F;
@@ -289,7 +496,8 @@ public final class RaidenVisualRenderer {
             VertexConsumer consumer,
             Matrix4f matrix
     ) {
-        if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF) return false;
+        if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF && arc.color != 0xFF9E42FF) return false;
+        boolean isEyeProc = (arc.color == 0xFF9E42FF);
         boolean isMusouOrCa = (arc.color == 0xFFE0B0FF);
         float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
         float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
@@ -319,7 +527,14 @@ public final class RaidenVisualRenderer {
             // Smooth 12-segment crescent moon spline with 3-tier Electro gradient (0x7828C8 -> 0xBF5AF2 -> 0xFFFFFF)
             int segs = 12;
             double archDepth = isMusouOrCa ? 0.0D : (chordLen * 0.20D * (0.92D + prog * 0.16D));
-            double maxHalfWidth = (isMusouOrCa ? 0.38D : 0.16D) * (1.08D - prog * 0.32D);
+            double maxHalfWidth;
+            if (isEyeProc) {
+                maxHalfWidth = 0.075D * (1.08D - prog * 0.32D); // Eye proc mỏng gấp đôi
+            } else if (isMusouOrCa) {
+                maxHalfWidth = 0.380D * (1.08D - prog * 0.32D); // CA & Ulti Musou mỏng lại còn 1x
+            } else {
+                maxHalfWidth = 0.220D * (1.08D - prog * 0.32D); // Musou NA
+            }
 
             for (int i = 0; i < segs; i++) {
                 double u0 = (double) i / (double) segs;
@@ -387,27 +602,30 @@ public final class RaidenVisualRenderer {
             MultiBufferSource bufferSource,
             PoseStack.Pose pose
     ) {
-        if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF) return;
+        if (arc.color != 0xFFB84DFF && arc.color != 0xFFE0B0FF && arc.color != 0xFF9E42FF) return;
+        boolean isEyeProc = (arc.color == 0xFF9E42FF);
         boolean isMusouOrCa = (arc.color == 0xFFE0B0FF);
         float totalMs = Math.max(1.0F, (float) (arc.expireTime - arc.startTime));
         float prog = Mth.clamp((now - arc.startTime) / totalMs, 0.0F, 1.0F);
-        float fade = (prog < 0.16F) ? (prog / 0.16F) : (1.0F - smootherStep01((prog - 0.16F) / 0.84F));
-        int alpha = Mth.clamp((int) (248.0F * fade), 0, 255);
+        // Keep space-tear visible through hair-thin filament collapse, fading cleanly in final 22%
+        float fade = (prog < 0.08F) ? (prog / 0.08F) : ((prog < 0.78F) ? 1.0F : (1.0F - smootherStep01((prog - 0.78F) / 0.22F)));
+        int alpha = Mth.clamp((int) (252.0F * fade), 0, 255);
         if (alpha <= 6) return;
 
         Vec3 sCam = startPos.subtract(camPos);
         Vec3 eCam = endPos.subtract(camPos);
-        if (isMusouOrCa) {
-            Vec3 mid = sCam.lerp(eCam, 0.5D);
-            sCam = mid.add(sCam.subtract(mid).scale(2.6D));
-            eCam = mid.add(eCam.subtract(mid).scale(2.6D));
-        }
         Vec3 slashDir = eCam.subtract(sCam);
         double chordLen = slashDir.length();
         if (chordLen <= 1.0E-4D) return;
 
-        Vec3 unit = slashDir.scale(1.0D / chordLen);
         Vec3 midChord = sCam.lerp(eCam, 0.5D);
+        double lengthScale = isEyeProc ? 1.0D : 1.35D;
+        Vec3 halfSpan = eCam.subtract(sCam).scale(0.5D * lengthScale);
+        sCam = midChord.subtract(halfSpan);
+        eCam = midChord.add(halfSpan);
+        slashDir = eCam.subtract(sCam);
+        chordLen = slashDir.length();
+        Vec3 unit = slashDir.scale(1.0D / chordLen);
         Vec3 toCam = midChord.scale(-1.0D);
         Vec3 perp = unit.cross(toCam.lengthSqr() > 1.0E-4D ? toCam.normalize() : new Vec3(0.0D, 1.0D, 0.0D));
         if (perp.lengthSqr() < 1.0E-4D) perp = unit.cross(new Vec3(1.0D, 0.0D, 0.0D));
@@ -420,9 +638,28 @@ public final class RaidenVisualRenderer {
         VertexConsumer vc = bufferSource.getBuffer(RenderType.entityTranslucent(RAIDEN_MUSOU_SLASH_TEXTURE));
         Matrix4f mat = pose.pose();
         int overlay = net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY;
-        int segs = 12;
-        double archDepth = 0.0D;
-        double maxHalfWidth = (isMusouOrCa ? 0.92D : 0.34D) * (1.12D - prog * 0.38D);
+        int segs = 14;
+        double archDepth = 0.0D; // Straight razor-cut space-tear rift
+        // Authentic 3-stage Genshin space-tear lifecycle: snap-open -> cosmic hold -> hair-thin black filament collapse
+        double widthCurve;
+        if (prog < 0.14F) {
+            float p = prog / 0.14F;
+            widthCurve = Mth.lerp(1.0F - (1.0F - p) * (1.0F - p), 0.24F, 1.18F);
+        } else if (prog < 0.46F) {
+            float p = (prog - 0.14F) / 0.32F;
+            widthCurve = Mth.lerp(p, 1.18F, 0.96F);
+        } else {
+            float p = (prog - 0.46F) / 0.54F;
+            widthCurve = Mth.lerp(p * p, 0.96F, 0.045F);
+        }
+        double maxHalfWidth;
+        if (isEyeProc) {
+            maxHalfWidth = 0.135D * widthCurve; // Eye proc mỏng gấp đôi
+        } else if (isMusouOrCa) {
+            maxHalfWidth = 0.496D * widthCurve; // CA & Ulti Musou mỏng lại còn 1x
+        } else {
+            maxHalfWidth = 0.320D * widthCurve; // Musou NA
+        }
 
         for (int i = 0; i < segs; i++) {
             float u0 = (float) i / (float) segs;
